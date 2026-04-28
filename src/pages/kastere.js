@@ -89,10 +89,10 @@ async function hentDetalj(id) {
       .from('resultat')
       .select(`
         id, plassering,
-        poengkongelag, poengminimatch, poengxhalvmatch, poengxheilmatch,
-        antallringkongelag, antallringminimatch, antallringhalvmatch, antallringheilmatch,
+        poeng_kongelag, poeng_xkast,
+        antall_ring_kongelag, antall_ring_xkast,
         klubb:klubbid(id, navn),
-        stevne:stevneid(id, navn, dato, stevnetype:stevnetypeid(id, navn), kategori:kategoriid(id, navn))
+        stevne:stevneid(id, navn, dato, stevnetype:stevnetypeid(id, navn), kategori:kategoriid(id, navn), innledendekastemetode:innledendekastemetodeid(navn), avsluttendekastemetode:avsluttendekastemetodeid(navn))
       `)
       .eq('kasterid', id),
   ])
@@ -109,24 +109,53 @@ async function hentDetalj(id) {
 
 // ── Statistikk-reknereglar ────────────────────────────────────────────────────
 
+function harMetode(r, metode) {
+  const innled = (r.stevne?.innledendekastemetode?.navn ?? '').toLowerCase()
+  const avsl = (r.stevne?.avsluttendekastemetode?.navn ?? '').toLowerCase()
+  return innled === metode || avsl === metode
+}
+
 function beregnStatistikk(resultater) {
   const kategoriar = [
-    { label: 'Kongelag',  poengFelt: 'poengkongelag',   ringFelt: 'antallringkongelag',  maxRing: MAX_RING.kongelag },
-    { label: 'Minimatch', poengFelt: 'poengminimatch',   ringFelt: 'antallringminimatch', maxRing: MAX_RING.minimatch },
-    { label: 'Halvmatch', poengFelt: 'poengxhalvmatch',  ringFelt: 'antallringhalvmatch', maxRing: MAX_RING.halvmatch },
-    { label: 'Heilmatch', poengFelt: 'poengxheilmatch',  ringFelt: 'antallringheilmatch', maxRing: MAX_RING.heilmatch },
+    {
+      label: 'Kongelag',
+      rader: resultater.filter(r => r.poeng_kongelag != null),
+      poengFn: r => r.poeng_kongelag,
+      ringFn:  r => r.antall_ring_kongelag,
+      maxRing: MAX_RING.kongelag,
+    },
+    {
+      label: 'Minimatch',
+      rader: resultater.filter(r => r.poeng_xkast != null && harMetode(r, 'minimatch')),
+      poengFn: r => r.poeng_xkast,
+      ringFn:  r => r.antall_ring_xkast,
+      maxRing: MAX_RING.minimatch,
+    },
+    {
+      label: 'Halvmatch',
+      rader: resultater.filter(r => r.poeng_xkast != null && harMetode(r, 'halvmatch')),
+      poengFn: r => r.poeng_xkast,
+      ringFn:  r => r.antall_ring_xkast,
+      maxRing: MAX_RING.halvmatch,
+    },
+    {
+      label: 'Heilmatch',
+      rader: resultater.filter(r => r.poeng_xkast != null && harMetode(r, 'heilmatch')),
+      poengFn: r => r.poeng_xkast,
+      ringFn:  r => r.antall_ring_xkast,
+      maxRing: MAX_RING.heilmatch,
+    },
   ]
 
-  return kategoriar.map(({ label, poengFelt, ringFelt, maxRing }) => {
-    const medPoeng = resultater.filter(r => r[poengFelt] != null)
-    const rekord = medPoeng.length ? Math.max(...medPoeng.map(r => r[poengFelt])) : null
-    const snittPoeng = snitt(medPoeng.map(r => r[poengFelt]))
+  return kategoriar.map(({ label, rader, poengFn, ringFn, maxRing }) => {
+    const rekord = rader.length ? Math.max(...rader.map(r => poengFn(r))) : null
+    const snittPoeng = snitt(rader.map(r => poengFn(r)))
 
-    const ringFra2017 = resultater.filter(
-      r => r[ringFelt] != null && hentAr(r.stevne?.dato) >= FOERSTE_RING_AR
+    const ringFra2017 = rader.filter(
+      r => ringFn(r) != null && hentAr(r.stevne?.dato) >= FOERSTE_RING_AR
     )
     const snittProsent = ringFra2017.length
-      ? Math.round(ringFra2017.reduce((s, r) => s + r[ringFelt] / maxRing * 100, 0) / ringFra2017.length * 100) / 100
+      ? Math.round(ringFra2017.reduce((s, r) => s + ringFn(r) / maxRing * 100, 0) / ringFra2017.length * 100) / 100
       : null
 
     return { label, rekord, snittPoeng, snittProsent }
@@ -147,14 +176,15 @@ function hentTidlegareKlubbar(resultater, noverandeKlubbId) {
 
 function beregnGrafVerdi(r, metrikk, metode) {
   if (metrikk === 'plassering') return r.plassering ?? null
-  const map = {
-    kongelag:  { felt: 'antallringkongelag',  max: MAX_RING.kongelag },
-    minimatch: { felt: 'antallringminimatch',  max: MAX_RING.minimatch },
-    halvmatch: { felt: 'antallringhalvmatch',  max: MAX_RING.halvmatch },
-    heilmatch: { felt: 'antallringheilmatch',  max: MAX_RING.heilmatch },
+  if (metode === 'kongelag') {
+    return r.antall_ring_kongelag != null
+      ? Math.round(r.antall_ring_kongelag / MAX_RING.kongelag * 10000) / 100
+      : null
   }
-  const { felt, max } = map[metode] ?? map.kongelag
-  return r[felt] != null ? Math.round(r[felt] / max * 10000) / 100 : null
+  if (!harMetode(r, metode)) return null
+  return r.antall_ring_xkast != null
+    ? Math.round(r.antall_ring_xkast / MAX_RING[metode] * 10000) / 100
+    : null
 }
 
 function byggGrafData(resultater, metrikk, metode, fra, til) {
@@ -326,10 +356,8 @@ function resultatTabellHtml(resultater, arFilter, typeFilter) {
         <td>${s?.stevnetype?.navn ?? '–'}</td>
         <td>${r.klubb?.navn ?? '–'}</td>
         <td style="text-align:center;font-weight:bold">${r.plassering ?? '–'}</td>
-        <td style="text-align:center">${ringTekst(r.poengkongelag, r.antallringkongelag)}</td>
-        <td style="text-align:center">${ringTekst(r.poengminimatch, r.antallringminimatch)}</td>
-        <td style="text-align:center">${ringTekst(r.poengxhalvmatch, r.antallringhalvmatch)}</td>
-        <td style="text-align:center">${ringTekst(r.poengxheilmatch, r.antallringheilmatch)}</td>
+        <td style="text-align:center">${ringTekst(r.poeng_kongelag, r.antall_ring_kongelag)}</td>
+        <td style="text-align:center">${ringTekst(r.poeng_xkast, r.antall_ring_xkast)}</td>
       </tr>`
   }).join('')
 
@@ -339,7 +367,7 @@ function resultatTabellHtml(resultater, arFilter, typeFilter) {
         <thead class="nc-thead">
           <tr>
             <th>Dato</th><th>Stevne</th><th>Type</th><th>Klubb</th>
-            <th>Pl.</th><th>Konge</th><th>X-mini</th><th>X-halv</th><th>X-heil</th>
+            <th>Pl.</th><th>Kongelag</th><th>X-kast</th>
           </tr>
         </thead>
         <tbody>${rader}</tbody>

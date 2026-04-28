@@ -29,16 +29,24 @@ function kasterNavn(kaster) {
   return [kaster?.fornavn, kaster?.etternavn].filter(Boolean).join(' ')
 }
 
-function regnUtProsent(r) {
-  if (r.antallringminimatch != null)
-    return { prosent: r.antallringminimatch / 60 * 100, metodeNavn: 'X-kast minimatch', antallRing: r.antallringminimatch }
-  if (r.antallringhalvmatch != null)
-    return { prosent: r.antallringhalvmatch, metodeNavn: 'X-kast halvmatch', antallRing: r.antallringhalvmatch }
-  if (r.antallringheilmatch != null)
-    return { prosent: r.antallringheilmatch / 200 * 100, metodeNavn: 'X-kast heilmatch', antallRing: r.antallringheilmatch }
-  if (r.antallringkongelag != null)
-    return { prosent: r.antallringkongelag / 40 * 100, metodeNavn: 'Kongelag', antallRing: r.antallringkongelag }
-  return null
+function regnUtProsentListe(r, stevneInfo) {
+  const innled = (stevneInfo?.innledMetode ?? '').toLowerCase()
+  const avsl = (stevneInfo?.avslMetode ?? '').toLowerCase()
+  const finn = m => innled === m || avsl === m
+  const liste = []
+
+  if (r.antall_ring_xkast != null) {
+    if (finn('minimatch'))
+      liste.push({ prosent: r.antall_ring_xkast / 60 * 100, metodeNavn: 'Minimatch', antallRing: r.antall_ring_xkast })
+    else if (finn('halvmatch'))
+      liste.push({ prosent: r.antall_ring_xkast, metodeNavn: 'Halvmatch', antallRing: r.antall_ring_xkast })
+    else if (finn('heilmatch'))
+      liste.push({ prosent: r.antall_ring_xkast / 200 * 100, metodeNavn: 'Heilmatch', antallRing: r.antall_ring_xkast })
+  }
+  if (r.antall_ring_kongelag != null)
+    liste.push({ prosent: r.antall_ring_kongelag / 40 * 100, metodeNavn: 'Kongelag', antallRing: r.antall_ring_kongelag })
+
+  return liste
 }
 
 // ── Data-henting ──────────────────────────────────────────────────────────────
@@ -46,7 +54,7 @@ function regnUtProsent(r) {
 async function hentStevnerOgResultater(ar) {
   const { data: allStevner, error: e1 } = await supabase
     .from('stevne')
-    .select('id, navn, dato, stevnetype:stevnetypeid(id, navn)')
+    .select('id, navn, dato, stevnetype:stevnetypeid(id, navn), innledendekastemetode:innledendekastemetodeid(navn), avsluttendekastemetode:avsluttendekastemetodeid(navn)')
     .eq('ernorgesranking', true)
     .gte('dato', `${ar}-01-01`)
     .lte('dato', `${ar}-12-31`)
@@ -62,7 +70,7 @@ async function hentStevnerOgResultater(ar) {
     .from('resultat')
     .select(`
       id, kasterid, klubbid, stevneid,
-      antallringminimatch, antallringhalvmatch, antallringheilmatch, antallringkongelag,
+      antall_ring_xkast, antall_ring_kongelag,
       kaster:kasterid(id, fornavn, etternavn),
       klubb:klubbid(id, navn)
     `)
@@ -71,10 +79,7 @@ async function hentStevnerOgResultater(ar) {
   if (e2) return { stevner, resultater: [], error: e2 }
 
   const resultater = (rader ?? []).filter(r =>
-    r.antallringminimatch != null ||
-    r.antallringhalvmatch != null ||
-    r.antallringheilmatch != null ||
-    r.antallringkongelag != null
+    r.antall_ring_xkast != null || r.antall_ring_kongelag != null
   )
 
   return { stevner, resultater, error: null }
@@ -97,7 +102,13 @@ async function hentOgBufferData(ar) {
 function lagStevnerMap() {
   const m = new Map()
   for (const s of cache.stevner) {
-    m.set(s.id, { navn: s.navn, dato: s.dato, typeNavn: s.stevnetype?.navn ?? '' })
+    m.set(s.id, {
+      navn: s.navn,
+      dato: s.dato,
+      typeNavn: s.stevnetype?.navn ?? '',
+      innledMetode: s.innledendekastemetode?.navn ?? null,
+      avslMetode: s.avsluttendekastemetode?.navn ?? null,
+    })
   }
   return m
 }
@@ -114,16 +125,15 @@ function byggRankingListe(resultater, stevnerMap) {
   const kasterMap = new Map()
 
   for (const r of resultater) {
-    const ringInfo = regnUtProsent(r)
-    if (!ringInfo) continue
+    const ringInfoListe = regnUtProsentListe(r, stevnerMap.get(r.stevneid))
+    if (!ringInfoListe.length) continue
     if (!kasterMap.has(r.kasterid)) {
       kasterMap.set(r.kasterid, { kaster: r.kaster, klubb: r.klubb, rader: [] })
     }
-    kasterMap.get(r.kasterid).rader.push({
-      ...ringInfo,
-      stevneid: r.stevneid,
-      _stevne: stevnerMap.get(r.stevneid),
-    })
+    const stevne = stevnerMap.get(r.stevneid)
+    for (const ringInfo of ringInfoListe) {
+      kasterMap.get(r.kasterid).rader.push({ ...ringInfo, stevneid: r.stevneid, _stevne: stevne })
+    }
   }
 
   const gyldig = []

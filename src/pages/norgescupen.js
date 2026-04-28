@@ -84,7 +84,7 @@ function singelTabellHtml(liste) {
         <td>${r._stevne?.typeNavn ?? '–'}</td>
         <td>${r._stevne?.navn ?? '–'}</td>
         <td>${r.plassering ?? '–'}</td>
-        <td>${formaterPoeng(r.norgescuppoeng)}</td>
+        <td>${formaterPoeng(r.nc_poeng)}</td>
       </tr>`).join('')
 
     return `

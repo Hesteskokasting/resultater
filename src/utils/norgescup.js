@@ -35,14 +35,14 @@ export async function hentStevnerOgResultater(ar) {
   const { data: resultater, error: e2 } = await supabase
     .from('resultat')
     .select(`
-      id, norgescuppoeng, plassering, kasterid, klubbid, klasseid, stevneid,
+      id, nc_poeng, plassering, kasterid, klubbid, klasseid, stevneid,
       kaster:kasterid(id, fornavn, etternavn),
       klubb:klubbid(id, navn),
       klasse:klasseid(id, navn)
     `)
     .in('stevneid', ids)
-    .not('norgescuppoeng', 'is', null)
-    .gt('norgescuppoeng', 0)
+    .not('nc_poeng', 'is', null)
+    .gt('nc_poeng', 0)
 
   return { stevner: ncStevner, resultater: resultater ?? [], error: e2 }
 }
@@ -56,7 +56,7 @@ function lagStevnerMap(stevner) {
 }
 
 function sorterDesc(arr) {
-  return [...arr].sort((a, b) => b.norgescuppoeng - a.norgescuppoeng)
+  return [...arr].sort((a, b) => b.nc_poeng - a.nc_poeng)
 }
 
 function beregnNcPoeng(rader, regler, stevnerMap) {
@@ -114,7 +114,7 @@ export function byggSingelListe(resultater, stevner, regler, cupType, klasse) {
   const liste = []
   for (const [, entry] of kasterMap) {
     const tellendeRader = beregn(entry.rader, regler, stevnerMap)
-    const totalPoeng = tellendeRader.reduce((s, r) => s + r.norgescuppoeng, 0)
+    const totalPoeng = tellendeRader.reduce((s, r) => s + r.nc_poeng, 0)
     const klubber = [...new Set(tellendeRader.map(r => r.klubb?.navn).filter(Boolean))]
     const detaljRader = tellendeRader
       .map(r => ({ ...r, _stevne: stevnerMap.get(r.stevneid) }))
@@ -145,7 +145,7 @@ export function byggLagListe(resultater, stevner, regler) {
     const perKlubb = new Map()
     for (const r of tellendeRader) {
       if (r.klubb && !klubbInfoMap.has(r.klubbid)) klubbInfoMap.set(r.klubbid, r.klubb)
-      perKlubb.set(r.klubbid, (perKlubb.get(r.klubbid) ?? 0) + r.norgescuppoeng)
+      perKlubb.set(r.klubbid, (perKlubb.get(r.klubbid) ?? 0) + r.nc_poeng)
     }
     for (const [klubbId, sum] of perKlubb) {
       bidragMap.set(`${entry.kaster.id}_${klubbId}`, { kaster: entry.kaster, klubbId, sum })

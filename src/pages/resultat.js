@@ -22,7 +22,7 @@ async function hentResultater(stevneId) {
   const { data, error } = await supabase
     .from('resultat')
     .select(`
-      plassering, norgescuppoeng,
+      plassering, nc_poeng,
       kaster:kasterid(fornavn, etternavn),
       klubb:klubbid(navn),
       klasse:klasseid(navn),
@@ -97,7 +97,7 @@ function desktopGruppeHtml(gruppe) {
       <td class="res-td-pl">${r.plassering ?? '–'}</td>
       <td class="res-td-navn"><a href="#" class="res-kaster-lenke">${kasternavn(r.kaster)}</a></td>
       <td class="res-td-klubb">${r.klubb?.navn ?? '–'}</td>
-      <td class="res-td-nc">${r.norgescuppoeng != null ? r.norgescuppoeng : ''}</td>
+      <td class="res-td-nc">${r.nc_poeng != null ? r.nc_poeng : ''}</td>
     </tr>
   `).join('')
 
