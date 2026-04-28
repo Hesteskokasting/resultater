@@ -1,0 +1,1 @@
+## Plan for funksjonalitet for turneringsadmin og resultatføring
