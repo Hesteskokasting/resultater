@@ -1,4 +1,5 @@
 import { supabase } from '../supabase.js'
+import { opnNumberpad } from './score-numberpad.js'
 
 let kanal = null
 
@@ -91,28 +92,41 @@ async function lastOgVis(container, stevneid) {
         </div>
       </div>
     </div>
-    <div class="modal fade" id="score-modal" tabindex="-1">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">Registrer poeng</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-          </div>
-          <div class="modal-body" id="score-modal-body"></div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Avbryt</button>
-            <button type="button" class="btn btn-primary" id="score-lagre-btn">Lagre</button>
-          </div>
-        </div>
-      </div>
-    </div>`
+  `
 
   container.querySelector('#fullfor-btn').addEventListener('click', () => fullforTurnering(container, stevneid))
 
   for (const kamp of alleKamper) {
-    container.querySelector(`#plus-${kamp.id}`)?.addEventListener('click', () =>
-      opnScoreModal(container, kamp, startnrMap, stevneid)
-    )
+    container.querySelector(`#plus-${kamp.id}`)?.addEventListener('click', async () => {
+      const [p1, p2] = hentP1P2(kamp.spelarar, startnrMap)
+      const spelarIds = [p1?.id, p2?.id].filter(Boolean)
+
+      let harOmgangar = false
+      if (spelarIds.length) {
+        const { data: omg } = await supabase
+          .from('kamp_omgang')
+          .select('id')
+          .in('kamp_spelar_id', spelarIds)
+          .limit(1)
+        harOmgangar = (omg?.length ?? 0) > 0
+      }
+
+      if (harOmgangar && !confirm('Dette sletter detaljar for denne kampen. Er du sikker på at du vil fortsette?')) return
+
+      const p1Namn = p1?.kaster ? `${p1.kaster.fornavn} ${p1.kaster.etternavn}` : '—'
+      const p2Namn = p2?.kaster ? `${p2.kaster.fornavn} ${p2.kaster.etternavn}` : '—'
+
+      opnNumberpad(p1Namn, p2Namn, scoreForSp(p1), scoreForSp(p2), async (s1, s2) => {
+        if (harOmgangar && spelarIds.length) {
+          await supabase.from('kamp_omgang').delete().in('kamp_spelar_id', spelarIds)
+        }
+        const updates = []
+        if (p1) updates.push(supabase.from('kamp_spelar').update({ score_poeng: s1 }).eq('id', p1.id))
+        if (p2) updates.push(supabase.from('kamp_spelar').update({ score_poeng: s2 }).eq('id', p2.id))
+        await Promise.all(updates)
+        await lastOgVis(container, stevneid)
+      })
+    })
     container.querySelector(`#bekrft-${kamp.id}`)?.addEventListener('click', () =>
       bekreftKamp(container, stevneid, kamp, startnrMap)
     )
@@ -195,7 +209,7 @@ function kampRad(kamp, startnrMap) {
       <td>${p2Vis}</td>
       <td class="text-end pe-2">
         <button class="btn btn-primary btn-sm" id="plus-${kamp.id}"${kamp.er_bekreftet ? ' disabled' : ''}>+</button>
-        <button class="btn ${bekrfKlass} btn-sm" id="bekrft-${kamp.id}"${bekrfDisabled}>Bekreftet</button>
+        <button class="btn ${bekrfKlass} btn-sm" id="bekrft-${kamp.id}"${bekrfDisabled}>Bekreft</button>
       </td>
     </tr>`
 }
@@ -228,44 +242,6 @@ function renderStilling(stilling) {
         </tbody>
       </table>
     </div>`
-}
-
-function opnScoreModal(container, kamp, startnrMap, stevneid) {
-  const [p1, p2] = hentP1P2(kamp.spelarar, startnrMap)
-
-  const p1Namn = p1?.kaster ? `${p1.kaster.fornavn} ${p1.kaster.etternavn}` : '—'
-  const p2Namn = kamp.er_walkover && !p2?.kaster ? 'Walkover' : (p2?.kaster ? `${p2.kaster.fornavn} ${p2.kaster.etternavn}` : '—')
-
-  const body = container.querySelector('#score-modal-body')
-  body.innerHTML = `
-    <div class="mb-3">
-      <label class="form-label fw-bold">${p1Namn}</label>
-      <input type="number" class="form-control" id="s1-input" value="${scoreForSp(p1)}" min="0">
-    </div>
-    <div>
-      <label class="form-label fw-bold">${p2Namn}</label>
-      <input type="number" class="form-control" id="s2-input" value="${scoreForSp(p2)}" min="0">
-    </div>`
-
-  const modal = new bootstrap.Modal(container.querySelector('#score-modal'))
-  modal.show()
-
-  const gamleLagreBtn = container.querySelector('#score-lagre-btn')
-  const nyLagreBtn = gamleLagreBtn.cloneNode(true)
-  gamleLagreBtn.replaceWith(nyLagreBtn)
-
-  nyLagreBtn.addEventListener('click', async () => {
-    const s1 = Number(body.querySelector('#s1-input').value)
-    const s2 = Number(body.querySelector('#s2-input').value)
-
-    const updates = []
-    if (p1) updates.push(supabase.from('kamp_spelar').update({ score_poeng: s1 }).eq('id', p1.id))
-    if (p2) updates.push(supabase.from('kamp_spelar').update({ score_poeng: s2 }).eq('id', p2.id))
-    await Promise.all(updates)
-
-    modal.hide()
-    await lastOgVis(container, stevneid)
-  })
 }
 
 async function bekreftKamp(container, stevneid, kamp, startnrMap) {
