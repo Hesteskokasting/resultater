@@ -1,0 +1,76 @@
+/* CSS-variablar — mørk modus som standard */
+
+:root {
+  --bg: #111318;
+  --flate: #1c1f2a;
+  --flate-2: #232738;
+  --kant: #2d3347;
+  --kant-2: #38404f;
+  --tekst: #e2e4e9;
+  --tekst-2: #9299a8;
+  --tekst-3: #666c7d;
+  --primaer: #31527E;
+  --primaer-hover: rgba(49, 82, 126, 0.18);
+  --primaer-text: #f0f4fa;
+  --lenke: #7ab3e0;
+  --header-bg: #0d0f14;
+  --input-bg: #1c1f2a;
+  --feil: #ff6b6b;
+}
+
+[data-theme="light"] {
+  --bg: #ffffff;
+  --flate: #F6F7FB;
+  --flate-2: #eceef3;
+  --kant: #ddd;
+  --kant-2: #ccc;
+  --tekst: #222;
+  --tekst-2: #555;
+  --tekst-3: #888;
+  --primaer: #31527E;
+  --primaer-hover: #eef1f7;
+  --primaer-text: #F6F7FB;
+  --lenke: #31527E;
+  --header-bg: #ffffff;
+  --input-bg: #ffffff;
+  --feil: #cc0000;
+}
+
+body {
+  background: var(--bg);
+  color: var(--tekst);
+}
+
+/* Tema-toggle-knapp */
+
+.tema-knapp {
+  background: none;
+  border: 1px solid var(--kant-2);
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 3px 8px;
+  font-size: 0.85rem;
+  color: var(--tekst-2);
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.tema-knapp:hover {
+  background: var(--primaer-hover);
+  color: var(--tekst);
+}
+
+/* Generelle input/select i mørk modus */
+
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea {
+  background: var(--input-bg);
+  color: var(--tekst);
+}
+
+input:not([type="checkbox"]):not([type="radio"]):focus,
+select:focus,
+textarea:focus {
+  outline-color: var(--lenke);
+}

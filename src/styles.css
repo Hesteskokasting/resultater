@@ -19,8 +19,8 @@
   align-items: center;
   justify-content: space-between;
   padding: 10px 16px;
-  background: #fff;
-  border-bottom: 1px solid #ddd;
+  background: var(--header-bg);
+  border-bottom: 1px solid var(--kant);
   position: sticky;
   top: 0;
   z-index: 100;
@@ -39,7 +39,13 @@
 
 .header-versjon {
   font-size: 0.65rem;
-  color: #888;
+  color: var(--tekst-3);
+}
+
+.header-kontroller {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .meny-knapp {
@@ -57,7 +63,7 @@
 .meny-knapp span {
   display: block;
   height: 2px;
-  background: #444;
+  background: var(--tekst);
   border-radius: 2px;
   transition: transform 0.25s, opacity 0.25s;
 }
@@ -84,8 +90,8 @@
   right: 0;
   height: 100%;
   width: 260px;
-  background: #fff;
-  box-shadow: -2px 0 12px rgba(0, 0, 0, 0.15);
+  background: var(--flate);
+  box-shadow: -2px 0 12px rgba(0, 0, 0, 0.3);
   transform: translateX(100%);
   transition: transform 0.3s ease;
   z-index: 300;
@@ -103,14 +109,14 @@
   display: block;
   padding: 12px 20px;
   font-size: 0.95rem;
-  color: #31527E;
+  color: var(--lenke);
   text-decoration: none;
 }
 
-.meny-liste li a:hover { background: #F6F7FB; }
+.meny-liste li a:hover { background: var(--primaer-hover); }
 
 .meny-skillelinje {
-  border-top: 1px solid #ddd;
+  border-top: 1px solid var(--kant);
   margin: 8px 0;
 }
 
@@ -119,14 +125,14 @@
   width: 100%;
   padding: 12px 20px;
   font-size: 0.95rem;
-  color: #31527E;
+  color: var(--lenke);
   background: none;
   border: none;
   text-align: left;
   cursor: pointer;
 }
 
-.meny-dropdown-knapp:hover { background: #F6F7FB; }
+.meny-dropdown-knapp:hover { background: var(--primaer-hover); }
 
 .meny-chevron {
   float: right;
@@ -176,7 +182,7 @@
   text-align: center;
   margin-top: 12px;
   font-size: 0.85rem;
-  color: #31527E;
+  color: var(--lenke);
   text-decoration: none;
 }
 
@@ -189,7 +195,7 @@
 }
 
 .stevne-kort {
-  border: 1px solid #ccc;
+  border: 1px solid var(--kant-2);
   border-radius: 4px;
   padding: 14px 16px;
   text-align: center;
@@ -197,20 +203,20 @@
 
 .stevne-dato {
   font-size: 0.85rem;
-  color: #555;
+  color: var(--tekst-2);
   margin-bottom: 6px;
 }
 
 .stevne-navn {
   font-size: 1rem;
-  color: #31527E;
+  color: var(--lenke);
   margin-bottom: 6px;
 }
 
 .stevne-lenke {
   display: block;
   font-size: 0.85rem;
-  color: #31527E;
+  color: var(--lenke);
   text-decoration: none;
 }
 
@@ -219,7 +225,7 @@
 .stevne-lenke-inaktiv {
   display: block;
   font-size: 0.85rem;
-  color: #888;
+  color: var(--tekst-3);
 }
 
 /* ── Terminliste ── */
@@ -243,18 +249,21 @@
 .tl-input {
   flex: 1 1 140px;
   padding: 6px 8px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--kant-2);
   border-radius: 4px;
   font-size: 0.85rem;
+  background: var(--input-bg);
+  color: var(--tekst);
 }
 
 .tl-select {
   flex: 1 1 120px;
   padding: 6px 8px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--kant-2);
   border-radius: 4px;
   font-size: 0.85rem;
-  background: #fff;
+  background: var(--input-bg);
+  color: var(--tekst);
 }
 
 .tl-mobil-rad {
@@ -267,10 +276,10 @@
 .tl-filter-knapp,
 .tl-excel-knapp {
   padding: 7px 12px;
-  border: 1px solid #31527E;
+  border: 1px solid var(--primaer);
   border-radius: 4px;
-  background: #fff;
-  color: #31527E;
+  background: var(--input-bg);
+  color: var(--lenke);
   font-size: 0.85rem;
   cursor: pointer;
   white-space: nowrap;
@@ -278,33 +287,33 @@
 }
 
 .tl-filter-knapp:hover,
-.tl-excel-knapp:hover { background: #F6F7FB; }
+.tl-excel-knapp:hover { background: var(--primaer-hover); }
 
 .tl-antall {
   font-size: 0.8rem;
-  color: #888;
+  color: var(--tekst-3);
   margin-bottom: 10px;
 }
 
 .tl-kort { text-align: center; }
 
-.tl-navn {
+.tl-namn {
   font-size: 1.05rem;
-  color: #31527E;
+  color: var(--lenke);
   font-weight: 600;
   margin-bottom: 4px;
 }
 
-.tl-navn-lenke {
+.tl-namn-lenke {
   display: block;
   text-decoration: none;
 }
 
-.tl-navn-lenke:hover { text-decoration: underline; }
+.tl-namn-lenke:hover { text-decoration: underline; }
 
 .tl-detalj {
   font-size: 0.83rem;
-  color: #444;
+  color: var(--tekst-2);
   margin-bottom: 2px;
 }
 
@@ -324,7 +333,7 @@
   display: block;
   margin-top: 6px;
   font-size: 0.85rem;
-  color: #31527E;
+  color: var(--lenke);
   text-decoration: none;
 }
 
@@ -347,9 +356,9 @@
   bottom: 0;
   left: 0;
   right: 0;
-  background: #fff;
+  background: var(--flate);
   border-radius: 12px 12px 0 0;
-  box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
   transform: translateY(100%);
   transition: transform 0.3s ease;
   z-index: 300;
@@ -392,9 +401,10 @@
 .tl-tilbakestill-knapp {
   flex: 1;
   padding: 10px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--kant-2);
   border-radius: 4px;
-  background: #fff;
+  background: var(--input-bg);
+  color: var(--tekst);
   font-size: 0.9rem;
   cursor: pointer;
 }
@@ -404,8 +414,8 @@
   padding: 10px;
   border: none;
   border-radius: 4px;
-  background: #31527E;
-  color: #F6F7FB;
+  background: var(--primaer);
+  color: var(--primaer-text);
   font-size: 0.9rem;
   font-weight: bold;
   cursor: pointer;
@@ -422,16 +432,16 @@
 .tl-th {
   text-align: left;
   padding: 8px 10px;
-  border-bottom: 2px solid #31527E;
+  border-bottom: 2px solid var(--primaer);
   cursor: pointer;
   white-space: nowrap;
   user-select: none;
-  color: #ddd;
+  color: var(--tekst);
 }
 
 .tl-th:last-child { cursor: default; }
 
-.tl-th:not(:last-child):hover { background: rgba(49, 82, 126, 0.25); }
+.tl-th:not(:last-child):hover { background: var(--primaer-hover); }
 
 .tl-sort-ikon {
   margin-left: 4px;
@@ -441,14 +451,14 @@
 
 .tl-sort-ikon.aktiv {
   opacity: 1;
-  color: #6a9fd8;
+  color: var(--lenke);
 }
 
-.tl-tabell tbody .tl-tr:hover { background: rgba(255, 255, 255, 0.04); }
+.tl-tabell tbody .tl-tr:hover { background: var(--primaer-hover); }
 
 .tl-tabell td {
   padding: 7px 10px;
-  border-bottom: 1px solid #2a2a2a;
+  border-bottom: 1px solid var(--kant);
   vertical-align: middle;
 }
 
@@ -475,13 +485,13 @@
 .res-klassifisering {
   text-align: center;
   font-size: 0.85rem;
-  color: #222;
+  color: var(--tekst-2);
   margin-bottom: 2px;
 }
 
 .res-pdf-lenke {
   display: block;
-  color: #31527E;
+  color: var(--lenke);
   font-size: 0.85rem;
   text-decoration: none;
   margin-bottom: 6px;
@@ -499,7 +509,7 @@
 /* Gruppe (mobil) */
 
 .res-gruppe {
-  border: 1px solid #222;
+  border: 1px solid var(--kant);
   border-radius: 6px;
   margin-bottom: 16px;
   overflow: hidden;
@@ -510,17 +520,17 @@
   font-size: 0.95rem;
   font-weight: bold;
   padding: 8px 12px;
-  background: #31527E;
-  color: #F6F7FB;
-  border-bottom: 1px solid #222;
+  background: var(--primaer);
+  color: var(--primaer-text);
+  border-bottom: 1px solid var(--kant);
 }
 
 .res-rad {
   display: flex;
   align-items: center;
   padding: 10px 14px;
-  border-bottom: 1px solid #222;
-  background: #F6F7FB;
+  border-bottom: 1px solid var(--kant);
+  background: var(--flate);
   gap: 12px;
 }
 
@@ -529,7 +539,7 @@
 .res-pl {
   font-size: 1rem;
   font-weight: bold;
-  color: #31527E;
+  color: var(--lenke);
   min-width: 28px;
 }
 
@@ -538,15 +548,15 @@
   flex-direction: column;
 }
 
-.res-navn {
+.res-namn {
   font-size: 0.95rem;
   font-weight: bold;
-  color: #31527E;
+  color: var(--lenke);
 }
 
 .res-klubb {
   font-size: 0.8rem;
-  color: #222;
+  color: var(--tekst-2);
 }
 
 /* Desktop-infotabell */
@@ -560,19 +570,19 @@
 
 .res-info-tabell td {
   padding: 6px 10px;
-  border: 1px solid #222;
+  border: 1px solid var(--kant);
 }
 
 .res-info-label {
-  background: #31527E;
-  color: #F6F7FB;
+  background: var(--primaer);
+  color: var(--primaer-text);
   font-weight: bold;
   white-space: nowrap;
 }
 
 .res-info-verdi {
-  background: #F6F7FB;
-  color: #222;
+  background: var(--flate);
+  color: var(--tekst-2);
 }
 
 /* Desktop-resultattabell */
@@ -586,16 +596,16 @@
 }
 
 .res-thead-gruppe td {
-  background: #31527E;
-  color: #F6F7FB;
+  background: var(--primaer);
+  color: var(--primaer-text);
   font-weight: bold;
   text-align: center;
   padding: 6px 10px;
 }
 
 .res-thead-kolonner th {
-  background: #31527E;
-  color: #F6F7FB;
+  background: var(--primaer);
+  color: var(--primaer-text);
   text-align: left;
   padding: 5px 10px;
   font-size: 0.8rem;
@@ -603,15 +613,15 @@
 }
 
 .res-tabell tbody tr {
-  border-bottom: 1px solid #222;
-  background: #F6F7FB;
+  border-bottom: 1px solid var(--kant);
+  background: var(--flate);
 }
 
-.res-tabell tbody tr:nth-child(even) { background: #eceef3; }
+.res-tabell tbody tr:nth-child(even) { background: var(--flate-2); }
 
 .res-tabell td {
   padding: 5px 10px;
-  color: #222;
+  color: var(--tekst);
 }
 
 .res-td-pl { width: 40px; }
@@ -622,7 +632,7 @@
 }
 
 .res-kaster-lenke {
-  color: #31527E;
+  color: var(--lenke);
   text-decoration: none;
 }
 
@@ -642,13 +652,13 @@
 
 .laster {
   text-align: center;
-  color: #666;
+  color: var(--tekst-3);
   margin-top: 40px;
 }
 
 .feil {
   text-align: center;
-  color: #c00;
+  color: var(--feil);
   margin-top: 40px;
 }
 
@@ -677,14 +687,14 @@
   text-align: center;
   font-size: 1.05rem;
   font-weight: bold;
-  color: #31527E;
+  color: var(--lenke);
   margin-bottom: 4px;
 }
 
 .nc-beskriving {
   text-align: center;
   font-size: 0.82rem;
-  color: #555;
+  color: var(--tekst-2);
   font-style: italic;
   margin-bottom: 10px;
 }
@@ -703,27 +713,27 @@
 
 .nc-klasse-tab {
   padding: 4px 12px;
-  border: 1px solid #31527E;
+  border: 1px solid var(--primaer);
   border-radius: 4px 4px 0 0;
-  background: #F6F7FB;
-  color: #31527E;
+  background: var(--flate);
+  color: var(--lenke);
   font-size: 0.82rem;
   cursor: pointer;
 }
 
 .nc-klasse-tab.aktiv {
-  background: #31527E;
-  color: #F6F7FB;
+  background: var(--primaer);
+  color: var(--primaer-text);
 }
 
 .nc-klikk-hint {
   font-size: 0.75rem;
-  color: #888;
+  color: var(--tekst-3);
 }
 
 .nc-ingen {
   text-align: center;
-  color: #666;
+  color: var(--tekst-3);
   margin-top: 20px;
 }
 
@@ -734,21 +744,21 @@
 }
 
 .nc-thead th {
-  background: #31527E;
-  color: #F6F7FB;
+  background: var(--primaer);
+  color: var(--primaer-text);
   text-align: left;
   padding: 5px 10px;
   font-size: 0.8rem;
   letter-spacing: 0.03em;
 }
 
-.nc-tabell tbody tr { background: #F6F7FB; }
-.nc-tabell tbody tr:nth-child(4n+3) { background: #eceef3; }
+.nc-tabell tbody tr { background: var(--flate); }
+.nc-tabell tbody tr:nth-child(4n+3) { background: var(--flate-2); }
 
 .nc-tabell td {
   padding: 5px 10px;
-  color: #222;
-  border-bottom: 1px solid #ddd;
+  color: var(--tekst);
+  border-bottom: 1px solid var(--kant);
 }
 
 .nc-td-pl { width: 36px; }
@@ -761,7 +771,7 @@
 .nc-poeng-celle,
 .nc-lag-poeng-celle {
   cursor: pointer;
-  color: #31527E;
+  color: var(--lenke);
   user-select: none;
   font-weight: 600;
 }
@@ -773,7 +783,7 @@
 
 .nc-detalj-rad td,
 .nc-lag-detalj-rad td {
-  background: #f0f3f8 !important;
+  background: var(--flate-2) !important;
   padding: 8px 14px;
 }
 
@@ -784,16 +794,16 @@
 }
 
 .nc-detalj-tabell th {
-  background: #dce3ee;
-  color: #31527E;
+  background: var(--kant);
+  color: var(--lenke);
   padding: 4px 8px;
   text-align: left;
 }
 
 .nc-detalj-tabell td {
   padding: 3px 8px;
-  border-bottom: 1px solid #ddd;
-  color: #222;
+  border-bottom: 1px solid var(--kant);
+  color: var(--tekst);
 }
 
 /* ── Kastere: liste ── */
@@ -821,14 +831,14 @@
   flex-direction: column;
   align-items: center;
   text-decoration: none;
-  border: 1px solid #ccc;
+  border: 1px solid var(--kant-2);
   border-radius: 6px;
   padding: 12px 8px 10px;
-  background: #F6F7FB;
+  background: var(--flate);
   transition: box-shadow 0.15s;
 }
 
-.kaster-kort:hover { box-shadow: 0 2px 10px rgba(49,82,126,0.2); }
+.kaster-kort:hover { box-shadow: 0 2px 10px rgba(49,82,126,0.3); }
 
 .kaster-kort img {
   width: 100%;
@@ -836,12 +846,12 @@
   object-fit: cover;
   border-radius: 4px;
   margin-bottom: 8px;
-  background: #ddd;
+  background: var(--kant);
 }
 
 .kaster-namn {
   font-size: 0.88rem;
-  color: #31527E;
+  color: var(--lenke);
   font-weight: 600;
   text-align: center;
   margin-bottom: 2px;
@@ -849,7 +859,7 @@
 
 .kaster-klubb {
   font-size: 0.78rem;
-  color: #555;
+  color: var(--tekst-2);
   text-align: center;
 }
 
@@ -863,7 +873,7 @@
 
 .pag-info {
   font-size: 0.85rem;
-  color: #555;
+  color: var(--tekst-2);
   padding: 0 4px;
 }
 
@@ -877,21 +887,21 @@
 }
 
 .kaster-tab-knapp {
-  border: 1px solid #31527E;
-  color: #31527E;
-  background: #F6F7FB;
+  border: 1px solid var(--primaer);
+  color: var(--lenke);
+  background: var(--flate);
 }
 
 .kaster-tab-knapp.active {
-  background: #31527E;
-  color: #F6F7FB;
+  background: var(--primaer);
+  color: var(--primaer-text);
 }
 
 .kd-tab { display: block; }
 .kd-skjult { display: none; }
 
 .tl-lenkje {
-  color: #31527E;
+  color: var(--lenke);
   text-decoration: none;
 }
 
@@ -899,10 +909,10 @@
 
 /* ── Rekorder ── */
 
-.rek-dame-rad { background-color: #fff0f5 !important; }
+.rek-dame-rad { background-color: rgba(220, 80, 100, 0.12) !important; }
 
 .rek-poeng-celle {
-  color: #6ba4d4;
+  color: var(--lenke);
   cursor: pointer;
   font-weight: 600;
 }

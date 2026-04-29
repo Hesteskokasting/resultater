@@ -1,11 +1,21 @@
 <!DOCTYPE html>
-<html lang="nb">
+<html lang="nb" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Hesteskokasting Resultater</title>
-  <link rel="stylesheet" href="styles.css">
+  <script>
+    (function () {
+      var tema = localStorage.getItem('tema') || 'dark';
+      if (tema === 'light') {
+        document.documentElement.setAttribute('data-theme', 'light');
+        document.documentElement.setAttribute('data-bs-theme', 'light');
+      }
+    })();
+  </script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="global.css">
+  <link rel="stylesheet" href="styles.css">
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5/dist/js/bootstrap.bundle.min.js"></script>
 </head>
 <body>
@@ -14,11 +24,14 @@
     <span class="header-tittel-gruppe">
       <span class="header-tittel">NHF Resultater</span><span class="header-versjon">0.1a</span>
     </span>
-    <button class="meny-knapp" id="menyKnapp" aria-label="Åpne meny">
-      <span></span>
-      <span></span>
-      <span></span>
-    </button>
+    <div class="header-kontroller">
+      <button class="tema-knapp" id="temaKnapp" aria-label="Bytt tema"></button>
+      <button class="meny-knapp" id="menyKnapp" aria-label="Åpne meny">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
   </header>
 
   <!-- Mørk bakgrunn bak menyen -->
@@ -61,6 +74,22 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
   <script type="module" src="app.js"></script>
   <script>
+    const temaKnapp = document.getElementById('temaKnapp')
+    function oppdaterTemaKnapp() {
+      const erMork = document.documentElement.getAttribute('data-theme') !== 'light'
+      temaKnapp.textContent = erMork ? 'Lys modus' : 'Mork modus'
+      temaKnapp.setAttribute('aria-label', erMork ? 'Bytt til lys modus' : 'Bytt til mork modus')
+    }
+    temaKnapp.addEventListener('click', function () {
+      const erMork = document.documentElement.getAttribute('data-theme') !== 'light'
+      const nytt = erMork ? 'light' : 'dark'
+      document.documentElement.setAttribute('data-theme', nytt)
+      document.documentElement.setAttribute('data-bs-theme', nytt)
+      localStorage.setItem('tema', nytt)
+      oppdaterTemaKnapp()
+    })
+    oppdaterTemaKnapp()
+
     const knapp = document.getElementById('menyKnapp')
     const panel = document.getElementById('sidepanel')
     const bakgrunn = document.getElementById('menyBakgrunn')
