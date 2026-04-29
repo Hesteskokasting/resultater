@@ -14,6 +14,7 @@ import { render as renderStevneAdmin }    from './admin/stevneadmin.js'
 import { render as renderKasterAdmin }    from './admin/kasteradmin.js'
 import { render as renderKlubbAdminSide } from './admin/klubbadmin-side.js'
 import { render as renderPamelding }      from './pages/pamelding.js'
+import { render as renderOrgStevne }      from './organizer/stevne.js'
 import { getUser, erAdmin, erKlubbadmin, loggUt } from './utils/auth.js'
 
 const container = document.getElementById('app')
@@ -44,6 +45,7 @@ const ruter = [
   { mønster: /^\/admin$/,                     side: authGuard('admin', renderAdmin),               params: () => ({}) },
   { mønster: /^\/stevne\/ny$/,                side: authGuard('klubbadmin', renderStevneAdmin),     params: () => ({}) },
   { mønster: /^\/stevne\/(\d+)\/admin$/,      side: authGuard('klubbadmin', renderStevneAdmin),     params: m => ({ id: m[1] }) },
+  { mønster: /^\/stevne\/(\d+)\/organizer$/, side: authGuard('klubbadmin', renderOrgStevne),        params: m => ({ id: m[1] }) },
   { mønster: /^\/stevne\/(\d+)\/pamelding$/,  side: renderPamelding,                               params: m => ({ id: m[1] }) },
   { mønster: /^\/kaster\/ny$/,                side: authGuard('klubbadmin', renderKasterAdmin),     params: () => ({}) },
   { mønster: /^\/kaster\/(\d+)\/admin$/,      side: authGuard('klubbadmin', renderKasterAdmin),     params: m => ({ id: m[1] }) },
