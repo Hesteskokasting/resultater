@@ -2,11 +2,10 @@ import { supabase } from '../supabase.js'
 
 const POENG_VERDIAR = [1, 2, 3, 4, 6]
 
-export async function renderScoreboard(container, kamp, p1ks, p2ks, { erArrangor = false, erDeltakar = false, onBekreft = null } = {}) {
+export async function renderScoreboard(container, kamp, p1ks, p2ks, { erArrangor = false, erDeltakar = false, onBekreft = null, omgangEl = null } = {}) {
   let omgangar = []
   let val1 = null
   let val2 = null
-  let visStats = false
   let kampFerdig = kamp.er_bekreftet
 
   const kanRedigere = erArrangor || (erDeltakar && !kamp.er_bekreftet)
@@ -102,33 +101,8 @@ export async function renderScoreboard(container, kamp, p1ks, p2ks, { erArrangor
     const kanBekrefte = kampFerdig && !kamp.er_bekreftet && (erArrangor || erDeltakar) && !!onBekreft
     const maxRinger = omgangar.length
 
-    const header = lagEl('div', null, 'sb-header')
-    const statsBtn = lagEl('button', '📊', 'sb-stats-btn')
-    statsBtn.title = 'Vis statistikk'
-    statsBtn.addEventListener('click', () => { visStats = !visStats; tegn() })
-    header.appendChild(statsBtn)
-    header.appendChild(lagEl('span', visStats ? 'Statistikk' : `Omgang ${nr}`, 'sb-omgang-tittel'))
-    container.appendChild(header)
-
-    if (visStats) {
-      container.appendChild(lagStatsPanel(t1, t2))
-      return
-    }
-
-    if (kampFerdig) {
-      const bannerWrap = lagEl('div', null, 'sb-ferdig-wrap')
-      const msg = kamp.er_bekreftet ? 'Kamp bekrefta ✓' : 'Kamp ferdig!'
-      bannerWrap.appendChild(lagEl('div', msg, 'sb-ferdig-banner'))
-      if (kanBekrefte) {
-        const bekreftBtn = lagEl('button', 'Bekreft kamp', 'sb-bekreft-btn')
-        bekreftBtn.addEventListener('click', async () => {
-          bekreftBtn.disabled = true
-          bekreftBtn.textContent = 'Lagrar…'
-          await onBekreft()
-        })
-        bannerWrap.appendChild(bekreftBtn)
-      }
-      container.appendChild(bannerWrap)
+    if (omgangEl) {
+      omgangEl.textContent = kamp.er_bekreftet ? 'Bekrefta' : (kampFerdig ? 'Ferdig' : `Omgang ${nr}`)
     }
 
     const wrap = lagEl('div', null, 'sb-wrap')
@@ -136,26 +110,38 @@ export async function renderScoreboard(container, kamp, p1ks, p2ks, { erArrangor
     wrap.appendChild(lagSpelerPanel(p2Namn(), t2, r2, maxRinger, val2, p2Dis, !kanRedigere, 2))
     container.appendChild(wrap)
 
-    const botn = lagEl('div', null, 'sb-botn')
     if (kanRedigere) {
-      const omgBtns = lagEl('div', null, 'sb-omg-btns')
-      for (const omg of omgangar) {
-        const btn = lagEl('button', String(omg.omgang), 'sb-omg-btn')
-        btn.title = `Slett frå omgang ${omg.omgang}`
-        btn.addEventListener('click', () => slettOmgangFra(omg.omgang))
-        omgBtns.appendChild(btn)
+      const angreRad = lagEl('div', null, 'sb-angre-rad')
+
+      if (omgangar.length > 0) {
+        const omgBtns = lagEl('div', null, 'sb-omg-btns')
+        for (const omg of omgangar) {
+          const btn = lagEl('button', String(omg.omgang), 'sb-omg-btn')
+          btn.title = `Slett frå omgang ${omg.omgang}`
+          btn.addEventListener('click', () => slettOmgangFra(omg.omgang))
+          omgBtns.appendChild(btn)
+        }
+        angreRad.appendChild(omgBtns)
       }
-      botn.appendChild(omgBtns)
 
       const angreBtn = lagEl('button', '↩', 'sb-angre-btn')
       angreBtn.title = 'Angre val for denne omgangen'
       angreBtn.disabled = val1 === null && val2 === null
       angreBtn.addEventListener('click', () => { val1 = null; val2 = null; tegn() })
-      botn.appendChild(angreBtn)
-    }
-    container.appendChild(botn)
+      angreRad.appendChild(angreBtn)
 
-    if (kanRedigere) {
+      container.appendChild(angreRad)
+    }
+
+    if (kanBekrefte) {
+      const bekreftBtn = lagEl('button', 'Bekreft kamp', 'sb-neste-btn sb-neste-btn--bekreft')
+      bekreftBtn.addEventListener('click', async () => {
+        bekreftBtn.disabled = true
+        bekreftBtn.textContent = 'Lagrar…'
+        await onBekreft()
+      })
+      container.appendChild(bekreftBtn)
+    } else if (kanRedigere) {
       const nesteBtn = lagEl('button', 'Neste omgang', 'sb-neste-btn')
       nesteBtn.disabled = !kanNeste
       nesteBtn.addEventListener('click', nesteOmgang)
@@ -193,48 +179,6 @@ export async function renderScoreboard(container, kamp, p1ks, p2ks, { erArrangor
       }
       panel.appendChild(knappar)
     }
-    return panel
-  }
-
-  function lagStatsPanel(t1, t2) {
-    const panel = lagEl('div', null, 'sb-stats-panel')
-
-    const lukkStats = lagEl('button', '← Tilbake', 'sb-stats-lukk')
-    lukkStats.addEventListener('click', () => { visStats = false; tegn() })
-    panel.appendChild(lukkStats)
-
-    const tabell = document.createElement('table')
-    tabell.className = 'sb-stats-tabell'
-
-    let html = `<thead>
-      <tr>
-        <th>Runde</th>
-        <th colspan="2">${p1Namn()}</th>
-        <th colspan="2">${p2Namn()}</th>
-      </tr>
-      <tr><th></th><th>P.</th><th>Tot.</th><th>P.</th><th>Tot.</th></tr>
-    </thead><tbody>`
-
-    let acc1 = 0, acc2 = 0
-    for (const o of omgangar) {
-      acc1 += o.s1; acc2 += o.s2
-      const cls1 = o.s1 > 0 ? 'sb-groen' : 'sb-rod'
-      const cls2 = o.s2 > 0 ? 'sb-groen' : 'sb-rod'
-      html += `<tr>
-        <td>${o.omgang}</td>
-        <td class="${cls1}">+${o.s1}</td><td>${acc1}</td>
-        <td class="${cls2}">+${o.s2}</td><td>${acc2}</td>
-      </tr>`
-    }
-
-    html += `</tbody><tfoot><tr>
-      <td><strong>Totalt</strong></td>
-      <td></td><td><strong>${t1}</strong></td>
-      <td></td><td><strong>${t2}</strong></td>
-    </tr></tfoot>`
-
-    tabell.innerHTML = html
-    panel.appendChild(tabell)
     return panel
   }
 

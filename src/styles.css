@@ -1038,6 +1038,85 @@
 
 /* ===================== SCOREBOARD ===================== */
 
+/* ── Kamp-scoreboard fullskjerm-modus ── */
+
+#app.sb-fullskjerm-modus {
+  padding: 0;
+  max-width: none;
+  margin: 0;
+}
+
+.sb-kamp-wrapper {
+  min-height: 100dvh;
+  background: #000;
+  color: white;
+  display: flex;
+  flex-direction: column;
+}
+
+.sb-kamp-topbar {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding: 6px 10px;
+  flex-shrink: 0;
+  background: #111;
+  border-bottom: 1px solid #333;
+  gap: 8px;
+}
+
+.sb-kamp-topbar-venstre {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.sb-tilbake-btn {
+  background: transparent;
+  border: 1px solid #555;
+  color: white;
+  border-radius: 6px;
+  padding: 2px 10px;
+  font-size: 1.1rem;
+  line-height: 1.4;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.sb-kamp-stevnenavn {
+  font-size: 0.9rem;
+  color: #ccc;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sb-kamp-topbar-midten {
+  font-size: 1.1rem;
+  font-weight: bold;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.sb-kamp-topbar-høgre {
+  display: flex;
+  justify-content: flex-end;
+  font-size: 0.85rem;
+  color: #aaa;
+  white-space: nowrap;
+}
+
+.sb-kamp-info-full { display: inline; }
+.sb-kamp-info-kort { display: none; }
+
+@media (max-width: 420px) {
+  .sb-kamp-info-full { display: none; }
+  .sb-kamp-info-kort { display: inline; }
+}
+
+/* ── Overlay-variant (fixed, full-screen) ── */
+
 .sb-overlay {
   position: fixed;
   inset: 0;
@@ -1049,77 +1128,15 @@
   overflow: hidden;
 }
 
-.sb-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
-  background: #111;
-  border-bottom: 1px solid #333;
-  flex-shrink: 0;
-}
-
-.sb-stats-btn,
-.sb-lukk-btn {
-  background: transparent;
-  border: 1px solid #555;
-  color: white;
-  border-radius: 6px;
-  padding: 4px 10px;
-  font-size: 1rem;
-  cursor: pointer;
-}
-
-.sb-omgang-tittel {
-  font-size: 1.3rem;
-  font-weight: bold;
-}
+/* ── Felles scoreboard ── */
 
 .sb-page {
   background: #000;
   color: white;
-  border-radius: 8px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
-}
-
-.sb-page .sb-wrap {
-  flex: none;
-  overflow: visible;
-  min-height: 200px;
-}
-
-.sb-ferdig-wrap {
-  flex-shrink: 0;
-}
-
-.sb-ferdig-banner {
-  background: #1a5e1a;
-  text-align: center;
-  padding: 10px;
-  font-size: 1.1rem;
-  font-weight: bold;
-  flex-shrink: 0;
-}
-
-.sb-bekreft-btn {
-  display: block;
-  width: 100%;
-  padding: 12px;
-  background: #1a8f2d;
-  color: white;
-  border: none;
-  font-size: 1.1rem;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-.sb-bekreft-btn:hover:not(:disabled) {
-  background: #157a24;
-}
-
-.sb-bekreft-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
 }
 
 .sb-wrap {
@@ -1134,8 +1151,8 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 12px 8px;
-  gap: 6px;
+  padding: 16px 8px;
+  gap: 8px;
   border-right: 1px solid #222;
 }
 
@@ -1144,7 +1161,7 @@
 }
 
 .sb-spelar-namn {
-  font-size: 1.2rem;
+  font-size: clamp(1.1rem, 4vw, 2.2rem);
   font-weight: bold;
   text-decoration: underline;
   color: #4cff4c;
@@ -1152,30 +1169,30 @@
 }
 
 .sb-score {
-  font-size: 4rem;
+  font-size: clamp(4rem, 18vw, 9rem);
   font-weight: bold;
   line-height: 1;
 }
 
 .sb-ringer-info {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: clamp(0.85rem, 2.5vw, 1.1rem);
   color: #ccc;
   text-align: center;
 }
 
 .sb-knappar {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   flex-wrap: wrap;
   justify-content: center;
-  margin-top: 4px;
+  margin-top: 6px;
 }
 
 .sb-poeng-btn {
-  width: 52px;
-  height: 52px;
-  font-size: 1.4rem;
+  width: clamp(54px, 14vw, 90px);
+  height: clamp(54px, 14vw, 90px);
+  font-size: clamp(1.4rem, 5vw, 2.4rem);
   font-weight: bold;
   background: white;
   color: #111;
@@ -1195,14 +1212,15 @@
   color: #000;
 }
 
-.sb-botn {
+/* ── Angre-rad (under spelar-panel, over botn-knapp) ── */
+
+.sb-angre-rad {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 6px 12px;
-  background: #111;
-  flex-shrink: 0;
+  justify-content: flex-end;
   gap: 8px;
+  padding: 6px 12px;
+  flex-shrink: 0;
 }
 
 .sb-omg-btns {
@@ -1232,9 +1250,10 @@
   border: 1px solid #555;
   color: white;
   border-radius: 6px;
-  padding: 4px 10px;
-  font-size: 1.1rem;
+  padding: 4px 14px;
+  font-size: clamp(1rem, 3vw, 1.3rem);
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 .sb-angre-btn:disabled {
@@ -1242,11 +1261,13 @@
   cursor: default;
 }
 
+/* ── Botn-knapp (Neste / Bekreft) ── */
+
 .sb-neste-btn {
   display: block;
   width: 100%;
-  padding: 14px;
-  font-size: 1.3rem;
+  padding: clamp(12px, 3vh, 22px);
+  font-size: clamp(1.2rem, 4vw, 1.8rem);
   font-weight: bold;
   background: white;
   color: #000;
@@ -1260,49 +1281,27 @@
   cursor: default;
 }
 
-.sb-stats-panel {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: auto;
-  padding: 12px;
-  gap: 10px;
-}
-
-.sb-stats-lukk {
-  background: transparent;
-  border: 1px solid #555;
+.sb-neste-btn--bekreft {
+  background: #1a8f2d;
   color: white;
-  border-radius: 6px;
-  padding: 5px 14px;
-  cursor: pointer;
-  align-self: flex-start;
 }
 
-.sb-stats-tabell {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.95rem;
-}
-
-.sb-stats-tabell th,
-.sb-stats-tabell td {
-  padding: 5px 10px;
-  text-align: center;
-  border-bottom: 1px solid #222;
-}
-
-.sb-stats-tabell thead {
-  background: #111;
-}
-
-.sb-stats-tabell tfoot td {
-  border-top: 2px solid #444;
-  padding-top: 8px;
+.sb-neste-btn--bekreft:hover:not(:disabled) {
+  background: #157a24;
 }
 
 .sb-groen { color: #4cff4c; }
 .sb-rod   { color: #ff6b6b; }
+
+@media (min-width: 501px) {
+  .sb-score    { font-size: clamp(4rem, 10vw, 9rem); }
+  .sb-poeng-btn {
+    width: clamp(54px, 8vw, 90px);
+    height: clamp(54px, 8vw, 90px);
+    font-size: clamp(1.4rem, 3vw, 2.4rem);
+  }
+  .sb-spelar-namn { font-size: clamp(1.1rem, 2.5vw, 2.2rem); }
+}
 
 @media (max-width: 500px) {
   .sb-wrap {
@@ -1311,13 +1310,5 @@
   .sb-spelar-panel {
     border-right: none;
     border-bottom: 1px solid #222;
-  }
-  .sb-score {
-    font-size: 3rem;
-  }
-  .sb-poeng-btn {
-    width: 46px;
-    height: 46px;
-    font-size: 1.2rem;
   }
 }

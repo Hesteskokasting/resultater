@@ -11,6 +11,7 @@ export async function render(container, { id } = {}) {
     supabase.from('kamp')
       .select(`
         id, stevneid, fase, runde_nummer, bane_nummer, er_bekreftet, er_walkover,
+        stevne:stevneid(navn),
         spelarar:kamp_spelar(
           id, kasterid, posisjon, score_poeng, kamp_poeng, antall_ringer,
           kaster:kasterid(id, fornavn, etternavn)
@@ -26,6 +27,15 @@ export async function render(container, { id } = {}) {
     return
   }
 
+  const hovudHeader = document.querySelector('.topp-header')
+  if (hovudHeader) hovudHeader.style.display = 'none'
+  container.classList.add('sb-fullskjerm-modus')
+
+  window.addEventListener('hashchange', () => {
+    if (hovudHeader) hovudHeader.style.display = ''
+    container.classList.remove('sb-fullskjerm-modus')
+  }, { once: true })
+
   const spelarar = kamp.spelarar ?? []
   const kasterid = auth?.profil?.kasterid ?? null
   const rolle = auth?.profil?.rolle ?? null
@@ -35,10 +45,21 @@ export async function render(container, { id } = {}) {
   const p1ks = spelarar.find(s => s.posisjon === 1) ?? spelarar[0] ?? null
   const p2ks = spelarar.find(s => s.posisjon === 2) ?? spelarar[1] ?? null
 
+  const stevneNavn = kamp.stevne?.navn ?? ''
+
   container.innerHTML = `
-    <div class="container-fluid py-3" style="max-width:600px">
-      <button id="tilbake-btn" class="btn btn-sm btn-outline-secondary mb-3">← Tilbake</button>
-      <h5 class="mb-2">Runde ${kamp.runde_nummer} / Bane ${kamp.bane_nummer}</h5>
+    <div class="sb-kamp-wrapper">
+      <div class="sb-kamp-topbar">
+        <div class="sb-kamp-topbar-venstre">
+          <button id="tilbake-btn" class="sb-tilbake-btn" aria-label="Tilbake">←</button>
+          <span class="sb-kamp-stevnenavn">${stevneNavn}</span>
+        </div>
+        <div id="sb-omgang-tittel" class="sb-kamp-topbar-midten">Omgang 1</div>
+        <div class="sb-kamp-topbar-høgre">
+          <span class="sb-kamp-info-full">Runde ${kamp.runde_nummer} - Bane ${kamp.bane_nummer}</span>
+          <span class="sb-kamp-info-kort">R${kamp.runde_nummer} - B${kamp.bane_nummer}</span>
+        </div>
+      </div>
       <div id="sb-container" class="sb-page"></div>
     </div>
   `
@@ -46,6 +67,7 @@ export async function render(container, { id } = {}) {
   container.querySelector('#tilbake-btn').addEventListener('click', () => history.back())
 
   const sbContainer = container.querySelector('#sb-container')
+  const omgangEl = container.querySelector('#sb-omgang-tittel')
 
   async function hentNesteKamp() {
     if (erArrangor) {
@@ -62,7 +84,6 @@ export async function render(container, { id } = {}) {
       return data
     }
 
-    // Deltakar: finn neste ubekrefte kamp i dette stevnet
     const { data: mine } = await supabase
       .from('kamp_spelar')
       .select('kampid')
@@ -98,10 +119,22 @@ export async function render(container, { id } = {}) {
 
   function visVentePaaNesteKamp() {
     container.innerHTML = `
-      <div class="container-fluid py-3" style="max-width:600px">
-        <button id="tilbake-btn-vente" class="btn btn-sm btn-outline-secondary mb-3">← Tilbake</button>
-        <div class="alert alert-success mb-3"><strong>Kamp bekrefta!</strong></div>
-        <div class="alert alert-info">Ventar på neste kamp…</div>
+      <div class="sb-kamp-wrapper">
+        <div class="sb-kamp-topbar">
+          <div class="sb-kamp-topbar-venstre">
+            <button id="tilbake-btn-vente" class="sb-tilbake-btn" aria-label="Tilbake">←</button>
+            <span class="sb-kamp-stevnenavn">${stevneNavn}</span>
+          </div>
+          <div class="sb-kamp-topbar-midten">Bekrefta</div>
+          <div class="sb-kamp-topbar-høgre">
+            <span class="sb-kamp-info-full">Runde ${kamp.runde_nummer} - Bane ${kamp.bane_nummer}</span>
+            <span class="sb-kamp-info-kort">R${kamp.runde_nummer} - B${kamp.bane_nummer}</span>
+          </div>
+        </div>
+        <div style="padding:20px">
+          <div class="alert alert-success mb-3"><strong>Kamp bekrefta!</strong></div>
+          <div class="alert alert-info">Ventar på neste kamp…</div>
+        </div>
       </div>
     `
     container.querySelector('#tilbake-btn-vente').addEventListener('click', () => history.back())
@@ -121,7 +154,6 @@ export async function render(container, { id } = {}) {
       })
       .subscribe()
 
-    // Rydd opp kanalen når brukaren navigerer bort
     window.addEventListener('hashchange', () => supabase.removeChannel(kanal), { once: true })
   }
 
@@ -172,5 +204,5 @@ export async function render(container, { id } = {}) {
     await navigerTilNesteKamp()
   }
 
-  await renderScoreboard(sbContainer, kamp, p1ks, p2ks, { erArrangor, erDeltakar, onBekreft })
+  await renderScoreboard(sbContainer, kamp, p1ks, p2ks, { erArrangor, erDeltakar, onBekreft, omgangEl })
 }
