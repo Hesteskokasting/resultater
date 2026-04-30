@@ -165,7 +165,7 @@ async function lastOgVis(container, stevneid) {
     kanal = supabase
       .channel(`stevne-innl-${stevneid}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'kamp_omgang' },
-        () => {
+                () => {
           if (location.hash === `#/stevne/${stevneid}/organizer/innledende`) {
             lastOgVis(container, stevneid)
           } else {
@@ -176,6 +176,7 @@ async function lastOgVis(container, stevneid) {
       )
       .subscribe()
   }
+}
 
 function renderRunde(nr, kamper, startnrMap) {
   return `
