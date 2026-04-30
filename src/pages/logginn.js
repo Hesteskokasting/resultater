@@ -131,8 +131,11 @@ export async function render(container) {
       return
     }
 
-    suksess.classList.remove('d-none')
-    e.target.reset()
-    knapp.disabled = false
+    await supabase.auth.signInWithPassword({
+      email:    container.querySelector('#reg-epost').value.trim(),
+      password: passord,
+    })
+
+    location.hash = '#/minside'
   })
 }
