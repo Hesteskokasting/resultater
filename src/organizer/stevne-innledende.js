@@ -86,14 +86,15 @@ async function lastOgVis(container, stevneid) {
     .sort((a, b) => b.kamp_poeng - a.kamp_poeng || b.score_poeng - a.score_poeng)
 
   const harBekreftaRunde = alleKamper.some(k => k.er_bekreftet)
+  const erAlleKamperBekreftet= alleKamper.length > 0 && alleKamper.every(k => k.er_bekreftet);
 
   container.innerHTML = `
     <div class="px-3 py-2">
       ${renderOrgNav(stevneid, 'innledende')}
       <div class="d-flex align-items-center gap-2 mb-3" style="background:#1e4976;color:white;padding:.5rem .75rem;border-radius:.375rem">
         <h5 class="mb-0 flex-grow-1">${stevne.navn}</h5>
-        ${erSwiss ? `<button id="neste-runde-btn" class="btn btn-sm btn-warning"${stevne.erfullfort ? ' disabled' : ''}>Generer neste runde</button>` : ''}
-        <button id="fullfor-btn" class="btn btn-sm btn-primary"${stevne.erfullfort ? ' disabled' : ''}>Fullfør turnering</button>
+        ${erSwiss ? `<button id="neste-runde-btn" class="btn btn-sm btn-warning"${stevne.erfullfort || !erAlleKamperBekreftet ? ' disabled' : ''}>Generer neste runde</button>` : ''}
+        <button id="fullfor-btn" class="btn btn-sm btn-primary"${stevne.erfullfort || !erAlleKamperBekreftet ?' disabled' : ''}>Fullfør turnering</button>
       </div>
       <div class="d-flex gap-3 align-items-start">
         <div class="flex-grow-1">
