@@ -1,5 +1,9 @@
 import { supabase } from '../supabase.js'
 
+function genMatchId() {
+  return crypto.randomUUID()
+}
+
 export async function genererInnledendeKamper(stevneid, kastemetodeNavn, antallRunder) {
   const { data: pameldingar, error } = await supabase
     .from('pamelding')
@@ -17,9 +21,8 @@ export async function genererInnledendeKamper(stevneid, kastemetodeNavn, antallR
     return { stevneid, kasterid: p.kasterid, startnummer: i + 1 }
   })
 
-  const { error: resErr } = await supabase
-    .from('resultat')
-    .upsert(resultatRows, { onConflict: 'stevneid,kasterid', ignoreDuplicates: false })
+  await supabase.from('resultat').delete().eq('stevneid', stevneid)
+  const { error: resErr } = await supabase.from('resultat').insert(resultatRows)
   if (resErr) throw new Error('Feil ved lagring av startnummer: ' + resErr.message)
 
   const erCascade = kastemetodeNavn.toLowerCase().includes('gloppen')
@@ -49,6 +52,7 @@ async function _insertCascadeMatches(stevneid, posToKasterid, N, antallRunder) {
       const erWalkover = p2Pos > N
 
       rundekampar.push({
+        match_id: genMatchId(),
         stevneid,
         fase: 'innledende',
         runde_nummer: r,
@@ -74,7 +78,7 @@ async function _insertCascadeMatches(stevneid, posToKasterid, N, antallRunder) {
       const { p1Pos, p2Pos, erWalkover } = kampPairs[ci]
 
       spelarRader.push({ kampid, kasterid: posToKasterid[p1Pos], posisjon: 1, score_poeng: 0, kamp_poeng: 0, antall_ringer: 0 })
-      spelarRader.push({ kampid, kasterid: erWalkover ? null : posToKasterid[p2Pos], posisjon: 2, score_poeng: 0, kamp_poeng: 0, antall_ringer: 0 })
+      if (!erWalkover) spelarRader.push({ kampid, kasterid: posToKasterid[p2Pos], posisjon: 2, score_poeng: 0, kamp_poeng: 0, antall_ringer: 0 })
     }
 
     const { error: spErr } = await supabase.from('kamp_spelar').insert(spelarRader)
@@ -94,6 +98,7 @@ async function _insertSwissRunde1(stevneid, posToKasterid, N) {
   for (let i = 1; i <= N; i += 2) {
     const erWalkover = i + 1 > N
     rundekampar.push({
+      match_id: genMatchId(),
       stevneid,
       fase: 'innledende',
       runde_nummer: 1,
@@ -120,7 +125,7 @@ async function _insertSwissRunde1(stevneid, posToKasterid, N) {
     const { p1Pos, p2Pos, erWalkover } = kampPairs[ci]
 
     spelarRader.push({ kampid, kasterid: posToKasterid[p1Pos], posisjon: 1, score_poeng: 0, kamp_poeng: 0, antall_ringer: 0 })
-    spelarRader.push({ kampid, kasterid: erWalkover ? null : posToKasterid[p2Pos], posisjon: 2, score_poeng: 0, kamp_poeng: 0, antall_ringer: 0 })
+    if (!erWalkover) spelarRader.push({ kampid, kasterid: posToKasterid[p2Pos], posisjon: 2, score_poeng: 0, kamp_poeng: 0, antall_ringer: 0 })
   }
 
   const { error: spErr } = await supabase.from('kamp_spelar').insert(spelarRader)
@@ -233,6 +238,7 @@ export async function genererNesteSwissRunde(stevneid) {
   if (!pairs) throw new Error('Paring er ikkje mogleg. Alle moglege motstandarar er allereie spela.')
 
   const rundekampar = pairs.map((pair, i) => ({
+    match_id: genMatchId(),
     stevneid,
     fase: 'innledende',
     runde_nummer: rundeNummer,
@@ -254,7 +260,7 @@ export async function genererNesteSwissRunde(stevneid) {
     const { p1, p2, erWalkover } = pairs[i]
     const kampid = baneToKampId[i + 1]
     spelarRader.push({ kampid, kasterid: p1, posisjon: 1, score_poeng: 0, kamp_poeng: 0, antall_ringer: 0 })
-    spelarRader.push({ kampid, kasterid: erWalkover ? null : p2, posisjon: 2, score_poeng: 0, kamp_poeng: 0, antall_ringer: 0 })
+    if (!erWalkover) spelarRader.push({ kampid, kasterid: p2, posisjon: 2, score_poeng: 0, kamp_poeng: 0, antall_ringer: 0 })
   }
 
   const { error: spErr } = await supabase.from('kamp_spelar').insert(spelarRader)

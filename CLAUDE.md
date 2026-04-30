@@ -9,4 +9,4 @@
 - Bruk arv/komposisjon/mixins framfor copy-paste av åtferd
 
 ## GIT
-- Ikkje lag commit, push, pull osv med mindre eg ber om det spesifikt
+- Ikkje stage, lag commit, push, pull osv med mindre eg ber om det spesifikt
