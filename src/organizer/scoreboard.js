@@ -13,6 +13,45 @@ export async function renderScoreboard(container, kamp, p1ks, p2ks, { erArrangor
   await lastOmgangar()
   tegn()
 
+  const spelarIds = [p1ks?.id, p2ks?.id].filter(Boolean)
+
+  let kanal = null
+  if (!kanRedigere && spelarIds.length) {
+    kanal = supabase
+      .channel(`scoreboard-kamp-${kamp.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'kamp_omgang' },
+        async (payload) => {
+          const endraId = payload.new?.kamp_spelar_id ?? payload.old?.kamp_spelar_id
+          if (!endraId || spelarIds.includes(endraId)) {
+            await lastOmgangar()
+            tegn()
+          }
+        }
+      )
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'kamp', filter: `id=eq.${kamp.id}` },
+        async (payload) => {
+          if (payload.new?.er_bekreftet) {
+            kamp.er_bekreftet = true
+            await lastOmgangar()
+            tegn()
+          }
+        }
+      )
+      .subscribe()
+  }
+
+  const pollId = setInterval(async () => {
+    if (document.visibilityState !== 'visible') return
+    if (kanRedigere && (val1 !== null || val2 !== null)) return
+    await lastOmgangar()
+    tegn()
+  }, 3000)
+
+  window.addEventListener('hashchange', () => {
+    clearInterval(pollId)
+    if (kanal) supabase.removeChannel(kanal)
+  }, { once: true })
+
   async function lastOmgangar() {
     const ids = [p1ks?.id, p2ks?.id].filter(Boolean)
     if (!ids.length) return
