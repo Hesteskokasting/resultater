@@ -1075,6 +1075,23 @@
   font-weight: bold;
 }
 
+.sb-page {
+  background: #000;
+  color: white;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.sb-page .sb-wrap {
+  flex: none;
+  overflow: visible;
+  min-height: 200px;
+}
+
+.sb-ferdig-wrap {
+  flex-shrink: 0;
+}
+
 .sb-ferdig-banner {
   background: #1a5e1a;
   text-align: center;
@@ -1082,6 +1099,27 @@
   font-size: 1.1rem;
   font-weight: bold;
   flex-shrink: 0;
+}
+
+.sb-bekreft-btn {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  background: #1a8f2d;
+  color: white;
+  border: none;
+  font-size: 1.1rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.sb-bekreft-btn:hover:not(:disabled) {
+  background: #157a24;
+}
+
+.sb-bekreft-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .sb-wrap {

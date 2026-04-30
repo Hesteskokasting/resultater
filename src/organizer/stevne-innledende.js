@@ -1,6 +1,5 @@
 import { supabase } from '../supabase.js'
 import { opnNumberpad } from './score-numberpad.js'
-import { apnScoreboard } from './scoreboard.js'
 import { beregnKampPoeng, hentP1P2, scoreForSp, ringerForSp, oppdaterResultatInnl } from '../utils/kamp.js'
 import { renderOrgNav } from './org-nav.js'
 import { genererNesteSwissRunde } from './kampgenerering-db.js'
@@ -153,27 +152,8 @@ async function lastOgVis(container, stevneid) {
       })
     })
 
-    container.querySelector(`#scoreboard-${kamp.id}`)?.addEventListener('click', async () => {
-      if (kamp.er_bekreftet) return
-
-      const { data: spelarar } = await supabase
-        .from('kamp_spelar')
-        .select('id, kasterid, posisjon, kaster:kasterid(id, fornavn, etternavn)')
-        .eq('kampid', kamp.id)
-
-      const [p1, p2] = hentP1P2(spelarar ?? [], startnrMap)
-
-      apnScoreboard(kamp, p1, p2, {
-        erArrangor: true,
-        onFerdig: () => {
-          lastOgVis(container, stevneid).then(() => {
-            const nesteBtn = container.querySelector(
-              `button[data-bane="${kamp.bane_nummer}"]:not([disabled])`
-            )
-            nesteBtn?.click()
-          })
-        },
-      })
+    container.querySelector(`#scoreboard-${kamp.id}`)?.addEventListener('click', () => {
+      location.hash = `#/kamp/${kamp.id}`
     })
 
     container.querySelector(`#bekrft-${kamp.id}`)?.addEventListener('click', () =>
@@ -238,8 +218,6 @@ function kampRad(kamp, startnrMap) {
   const kanBekrefte = !kamp.er_bekreftet && (harPoeng || kamp.er_walkover)
   const bekrfKlass = kamp.er_bekreftet || kanBekrefte ? 'btn-success' : 'btn-outline-secondary'
   const bekrfDisabled = kamp.er_bekreftet || !kanBekrefte ? ' disabled' : ''
-  const sbDisabled = kamp.er_bekreftet ? ' disabled' : ''
-
   return `
     <tr>
       <td class="text-center">${kamp.bane_nummer ?? ''}</td>
@@ -249,7 +227,7 @@ function kampRad(kamp, startnrMap) {
       <td>${p2Vis}</td>
       <td class="text-end pe-2">
         <button class="btn btn-primary btn-sm" id="plus-${kamp.id}"${kamp.er_bekreftet ? ' disabled' : ''}>+</button>
-        <button class="btn btn-secondary btn-sm" id="scoreboard-${kamp.id}" data-bane="${kamp.bane_nummer ?? ''}"${sbDisabled} title="Scoreboard">S</button>
+        <button class="btn btn-secondary btn-sm" id="scoreboard-${kamp.id}" data-bane="${kamp.bane_nummer ?? ''}" title="Scoreboard">S</button>
         <button class="btn ${bekrfKlass} btn-sm" id="bekrft-${kamp.id}"${bekrfDisabled}>Bekreft</button>
       </td>
     </tr>`

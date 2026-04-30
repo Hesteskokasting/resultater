@@ -1,18 +1,15 @@
 import { supabase } from '../supabase.js'
-import { beregnKampPoeng, oppdaterResultatInnl } from '../utils/kamp.js'
 
 const POENG_VERDIAR = [1, 2, 3, 4, 6]
 
-export async function apnScoreboard(kamp, p1ks, p2ks, { onFerdig = null, erArrangor = false } = {}) {
+export async function renderScoreboard(container, kamp, p1ks, p2ks, { erArrangor = false, erDeltakar = false, onBekreft = null } = {}) {
   let omgangar = []
   let val1 = null
   let val2 = null
   let visStats = false
-  let kampFerdig = false
+  let kampFerdig = kamp.er_bekreftet
 
-  const overlay = document.createElement('div')
-  overlay.className = 'sb-overlay'
-  document.body.appendChild(overlay)
+  const kanRedigere = erArrangor || (erDeltakar && !kamp.er_bekreftet)
 
   await lastOmgangar()
   tegn()
@@ -41,7 +38,7 @@ export async function apnScoreboard(kamp, p1ks, p2ks, { onFerdig = null, erArran
     omgangar = Object.values(omgMap).sort((a, b) => a.omgang - b.omgang)
 
     const [t1, t2] = beregnTotalar()
-    kampFerdig = erVinnarKondisjon(t1, t2)
+    kampFerdig = erVinnarKondisjon(t1, t2) || kamp.er_bekreftet
   }
 
   function beregnTotalar() {
@@ -67,7 +64,6 @@ export async function apnScoreboard(kamp, p1ks, p2ks, { onFerdig = null, erArran
     return omgangar.length > 0 ? omgangar[omgangar.length - 1].omgang + 1 : 1
   }
 
-  // Returns which buttons are disabled for each player given current selections
   function bereknKnappStatus(v1, v2) {
     const p1Dis = new Set()
     const p2Dis = new Set()
@@ -96,71 +92,77 @@ export async function apnScoreboard(kamp, p1ks, p2ks, { onFerdig = null, erArran
   }
 
   function tegn() {
-    overlay.innerHTML = ''
+    container.innerHTML = ''
 
     const [t1, t2] = beregnTotalar()
     const [r1, r2] = beregnRingarTotalar()
     const nr = noverAndeOmgang()
     const { p1Dis, p2Dis } = bereknKnappStatus(val1, val2)
-    const kanNeste = !kampFerdig && (val1 !== null || val2 !== null)
+    const kanNeste = kanRedigere && !kampFerdig && (val1 !== null || val2 !== null)
+    const kanBekrefte = kampFerdig && !kamp.er_bekreftet && (erArrangor || erDeltakar) && !!onBekreft
     const maxRinger = omgangar.length
 
-    // Header
     const header = lagEl('div', null, 'sb-header')
     const statsBtn = lagEl('button', '📊', 'sb-stats-btn')
     statsBtn.title = 'Vis statistikk'
     statsBtn.addEventListener('click', () => { visStats = !visStats; tegn() })
     header.appendChild(statsBtn)
     header.appendChild(lagEl('span', visStats ? 'Statistikk' : `Omgang ${nr}`, 'sb-omgang-tittel'))
-    const lukkBtn = lagEl('button', 'X', 'sb-lukk-btn')
-    lukkBtn.addEventListener('click', lukkScoreboard)
-    header.appendChild(lukkBtn)
-    overlay.appendChild(header)
+    container.appendChild(header)
 
     if (visStats) {
-      overlay.appendChild(lagStatsPanel(t1, t2))
+      container.appendChild(lagStatsPanel(t1, t2))
       return
     }
 
     if (kampFerdig) {
-      const msg = erArrangor
-        ? 'Kamp ferdig!'
-        : 'Kamp ferdig – ventar på stadfesting frå arrangør'
-      overlay.appendChild(lagEl('div', msg, 'sb-ferdig-banner'))
+      const bannerWrap = lagEl('div', null, 'sb-ferdig-wrap')
+      const msg = kamp.er_bekreftet ? 'Kamp bekrefta ✓' : 'Kamp ferdig!'
+      bannerWrap.appendChild(lagEl('div', msg, 'sb-ferdig-banner'))
+      if (kanBekrefte) {
+        const bekreftBtn = lagEl('button', 'Bekreft kamp', 'sb-bekreft-btn')
+        bekreftBtn.addEventListener('click', async () => {
+          bekreftBtn.disabled = true
+          bekreftBtn.textContent = 'Lagrar…'
+          await onBekreft()
+        })
+        bannerWrap.appendChild(bekreftBtn)
+      }
+      container.appendChild(bannerWrap)
     }
 
-    // Player panels
     const wrap = lagEl('div', null, 'sb-wrap')
-    wrap.appendChild(lagSpelerPanel(p1Namn(), t1, r1, maxRinger, val1, p1Dis, kampFerdig, 1))
-    wrap.appendChild(lagSpelerPanel(p2Namn(), t2, r2, maxRinger, val2, p2Dis, kampFerdig, 2))
-    overlay.appendChild(wrap)
+    wrap.appendChild(lagSpelerPanel(p1Namn(), t1, r1, maxRinger, val1, p1Dis, !kanRedigere, 1))
+    wrap.appendChild(lagSpelerPanel(p2Namn(), t2, r2, maxRinger, val2, p2Dis, !kanRedigere, 2))
+    container.appendChild(wrap)
 
-    // Bottom bar: past omgangar + undo
     const botn = lagEl('div', null, 'sb-botn')
-    const omgBtns = lagEl('div', null, 'sb-omg-btns')
-    for (const omg of omgangar) {
-      const btn = lagEl('button', String(omg.omgang), 'sb-omg-btn')
-      btn.title = `Slett frå omgang ${omg.omgang}`
-      btn.addEventListener('click', () => slettOmgangFra(omg.omgang))
-      omgBtns.appendChild(btn)
+    if (kanRedigere) {
+      const omgBtns = lagEl('div', null, 'sb-omg-btns')
+      for (const omg of omgangar) {
+        const btn = lagEl('button', String(omg.omgang), 'sb-omg-btn')
+        btn.title = `Slett frå omgang ${omg.omgang}`
+        btn.addEventListener('click', () => slettOmgangFra(omg.omgang))
+        omgBtns.appendChild(btn)
+      }
+      botn.appendChild(omgBtns)
+
+      const angreBtn = lagEl('button', '↩', 'sb-angre-btn')
+      angreBtn.title = 'Angre val for denne omgangen'
+      angreBtn.disabled = val1 === null && val2 === null
+      angreBtn.addEventListener('click', () => { val1 = null; val2 = null; tegn() })
+      botn.appendChild(angreBtn)
     }
-    botn.appendChild(omgBtns)
+    container.appendChild(botn)
 
-    const angreBtn = lagEl('button', '↩', 'sb-angre-btn')
-    angreBtn.title = 'Angre val for denne omgangen'
-    angreBtn.disabled = val1 === null && val2 === null
-    angreBtn.addEventListener('click', () => { val1 = null; val2 = null; tegn() })
-    botn.appendChild(angreBtn)
-    overlay.appendChild(botn)
+    if (kanRedigere) {
+      const nesteBtn = lagEl('button', 'Neste omgang', 'sb-neste-btn')
+      nesteBtn.disabled = !kanNeste
+      nesteBtn.addEventListener('click', nesteOmgang)
+      container.appendChild(nesteBtn)
+    }
 
-    // Next round button
-    const nesteBtn = lagEl('button', 'Neste omgang', 'sb-neste-btn')
-    nesteBtn.disabled = !kanNeste
-    nesteBtn.addEventListener('click', nesteOmgang)
-    overlay.appendChild(nesteBtn)
-
-    // Bind score button clicks
-    overlay.querySelectorAll('[data-spelar]').forEach(btn => {
+    container.querySelectorAll('[data-spelar]').forEach(btn => {
       btn.addEventListener('click', () => {
         const spelar = parseInt(btn.dataset.spelar)
         const v = parseInt(btn.dataset.val)
@@ -171,7 +173,7 @@ export async function apnScoreboard(kamp, p1ks, p2ks, { onFerdig = null, erArran
     })
   }
 
-  function lagSpelerPanel(namn, total, ringer, maxRinger, val, disabledSet, ferdig, spelarNr) {
+  function lagSpelerPanel(namn, total, ringer, maxRinger, val, disabledSet, lesvisning, spelarNr) {
     const panel = lagEl('div', null, 'sb-spelar-panel')
     panel.appendChild(lagEl('div', namn, 'sb-spelar-namn'))
     panel.appendChild(lagEl('div', String(total), 'sb-score'))
@@ -179,16 +181,18 @@ export async function apnScoreboard(kamp, p1ks, p2ks, { onFerdig = null, erArran
     const ringerPct = maxRinger > 0 ? Math.round(ringer / maxRinger * 100) : 0
     panel.appendChild(lagEl('p', `Ring: ${ringer} av ${maxRinger} ( ${ringerPct}% )`, 'sb-ringer-info'))
 
-    const knappar = lagEl('div', null, 'sb-knappar')
-    for (const n of POENG_VERDIAR) {
-      const btn = lagEl('button', String(n), 'sb-poeng-btn')
-      btn.dataset.spelar = String(spelarNr)
-      btn.dataset.val = String(n)
-      if (ferdig || disabledSet.has(n)) btn.disabled = true
-      if (val === n) btn.classList.add('sb-valgt')
-      knappar.appendChild(btn)
+    if (!lesvisning) {
+      const knappar = lagEl('div', null, 'sb-knappar')
+      for (const n of POENG_VERDIAR) {
+        const btn = lagEl('button', String(n), 'sb-poeng-btn')
+        btn.dataset.spelar = String(spelarNr)
+        btn.dataset.val = String(n)
+        if (disabledSet.has(n)) btn.disabled = true
+        if (val === n) btn.classList.add('sb-valgt')
+        knappar.appendChild(btn)
+      }
+      panel.appendChild(knappar)
     }
-    panel.appendChild(knappar)
     return panel
   }
 
@@ -253,36 +257,9 @@ export async function apnScoreboard(kamp, p1ks, p2ks, { onFerdig = null, erArran
     val2 = null
 
     const [newT1, newT2] = beregnTotalar()
-    if (erVinnarKondisjon(newT1, newT2)) {
-      kampFerdig = true
-      if (erArrangor) {
-        await autoBekreftOgFerdig(newT1, newT2)
-        return
-      }
-    }
+    if (erVinnarKondisjon(newT1, newT2)) kampFerdig = true
 
     tegn()
-  }
-
-  async function autoBekreftOgFerdig(t1, t2) {
-    const [r1, r2] = beregnRingarTotalar()
-    const [kp1, kp2] = beregnKampPoeng(t1, t2)
-
-    const updates = [
-      supabase.from('kamp').update({ er_bekreftet: true }).eq('id', kamp.id),
-    ]
-    if (p1ks?.id) updates.push(supabase.from('kamp_spelar').update({ score_poeng: t1, kamp_poeng: kp1, antall_ringer: r1 }).eq('id', p1ks.id))
-    if (p2ks?.id) updates.push(supabase.from('kamp_spelar').update({ score_poeng: t2, kamp_poeng: kp2, antall_ringer: r2 }).eq('id', p2ks.id))
-
-    const results = await Promise.all(updates)
-    const err = results.find(r => r.error)?.error
-    if (err) { alert('Feil ved bekreftelse: ' + err.message); tegn(); return }
-
-    const kasterids = [p1ks?.kasterid, p2ks?.kasterid].filter(Boolean)
-    if (kamp.stevneid) await oppdaterResultatInnl(kamp.stevneid, kasterids, kamp.fase)
-
-    lukkScoreboard()
-    if (onFerdig) onFerdig(kamp.id)
   }
 
   async function slettOmgangFra(fraNr) {
@@ -302,10 +279,6 @@ export async function apnScoreboard(kamp, p1ks, p2ks, { onFerdig = null, erArran
     const [t1, t2] = beregnTotalar()
     kampFerdig = erVinnarKondisjon(t1, t2)
     tegn()
-  }
-
-  function lukkScoreboard() {
-    if (document.body.contains(overlay)) document.body.removeChild(overlay)
   }
 }
 

@@ -1,6 +1,5 @@
 import { supabase } from '../supabase.js'
 import { getUser } from '../utils/auth.js'
-import { apnScoreboard } from '../organizer/scoreboard.js'
 
 const rolleLabel = { admin: 'Administrator', klubbadmin: 'Klubbadministrator', bruker: 'Brukar' }
 
@@ -143,11 +142,11 @@ async function _mineKamparHtml(kasterid) {
   }
 
   const kommandeRader = kommande.map(ks =>
-    lagKampRad(ks, `<button class="btn btn-sm btn-primary sb-opn-btn" data-ks-id="${ks.id}">Scoreboard</button>`)
+    lagKampRad(ks, `<a href="#/kamp/${ks.kamp.id}" class="btn btn-sm btn-primary">Scoreboard</a>`)
   ).join('')
 
   const ferdigeRader = ferdige.map(ks =>
-    lagKampRad(ks, '<span class="text-success">✓ Ferdig</span>')
+    lagKampRad(ks, `<a href="#/kamp/${ks.kamp.id}" class="btn btn-sm btn-outline-secondary">Sjå kamp</a>`)
   ).join('')
 
   const tabellHoaude = `<thead><tr><th>Stevne</th><th>Runde/Bane</th><th>Motstandar</th><th></th></tr></thead>`
@@ -192,35 +191,6 @@ function _bindMineKampar(container, kasterid) {
     })
   })
 
-  // Scoreboard buttons - need to re-fetch full kamp data
-  container.querySelectorAll('.sb-opn-btn').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const ksId = Number(btn.dataset.ksId)
-
-      const { data: ks } = await supabase
-        .from('kamp_spelar')
-        .select(`
-          id, kasterid, posisjon,
-          kamp:kampid(
-            id, stevneid, fase, runde_nummer, bane_nummer, er_bekreftet, er_walkover,
-            spelarar:kamp_spelar(
-              id, kasterid, posisjon,
-              kaster:kasterid(id, fornavn, etternavn)
-            )
-          )
-        `)
-        .eq('id', ksId)
-        .single()
-
-      if (!ks?.kamp) return
-
-      const kamp = ks.kamp
-      const eigenKs = (kamp.spelarar ?? []).find(s => s.kasterid === kasterid) ?? null
-      const motstandarKs = (kamp.spelarar ?? []).find(s => s.kasterid !== kasterid) ?? null
-
-      apnScoreboard(kamp, eigenKs, motstandarKs, { erArrangor: false })
-    })
-  })
 }
 
 function _bindKasterSok(container, brukerId) {
