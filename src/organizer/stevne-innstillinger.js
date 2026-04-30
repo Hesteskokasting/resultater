@@ -1,22 +1,19 @@
 import { supabase } from '../supabase.js'
 import { renderOrgNav } from './org-nav.js'
-import { genererInnledendeKamper } from './kampgenerering-db.js'
 
 export async function render(container, { id } = {}) {
   const stevneid = Number(id)
   container.innerHTML = '<p style="text-align:center;margin-top:40px;">Laster…</p>'
 
-  const [{ data: stevne }, { count: antallSpelarar }] = await Promise.all([
+  const [{ data: stevne }, { data: metodar }] = await Promise.all([
     supabase.from('stevne')
-      .select(`
-        id, navn, dato, sted, stevne_fase, antall_runder_innl,
-        kastemetode:innledendekastemetodeid(id, navn)
-      `)
+      .select('id, stevne_fase, antall_runder_innl, innledendekastemetodeid, avsluttendekastemetodeid')
       .eq('id', stevneid)
       .single(),
-    supabase.from('pamelding')
-      .select('id', { count: 'exact', head: true })
-      .eq('stevneid', stevneid),
+    supabase.from('kastemetode')
+      .select('id, navn, er_innledende, er_avsluttende')
+      .eq('eraktiv', true)
+      .order('navn'),
   ])
 
   if (!stevne) {
@@ -24,76 +21,69 @@ export async function render(container, { id } = {}) {
     return
   }
 
-  const fase = stevne.stevne_fase ?? null
-  const ikkjeStarta = fase === null || fase === 'ikke_startet'
-  const metodeNavn = stevne.kastemetode?.navn ?? '—'
-  const erCascade = metodeNavn.toLowerCase().includes('gloppen')
+  const innlMetodar = (metodar ?? []).filter(m => m.er_innledende)
+  const avslMetodar = (metodar ?? []).filter(m => m.er_avsluttende)
 
-  const faseBadge = ikkjeStarta
-    ? '<span class="badge bg-secondary">Ikkje starta</span>'
-    : fase === 'innledende'
-    ? '<span class="badge bg-primary">Innledande fase</span>'
-    : '<span class="badge bg-success">Avsluttande fase</span>'
+  function options(liste, vald) {
+    return liste.map(m =>
+      `<option value="${m.id}"${m.id === vald ? ' selected' : ''}>${m.navn}</option>`
+    ).join('')
+  }
 
   container.innerHTML = `
     <div class="container-fluid py-3">
       ${renderOrgNav(stevneid, 'innstillinger')}
-      <h4 class="mb-3">${stevne.navn} — Innstillingar ${faseBadge}</h4>
-      <div class="card mb-3" style="max-width:480px">
-        <div class="card-body">
-          <table class="table table-sm mb-0">
-            <tbody>
-              <tr><th>Stad</th><td>${stevne.sted ?? '—'}</td></tr>
-              <tr><th>Dato</th><td>${stevne.dato ?? '—'}</td></tr>
-              <tr><th>Kastemetode (innl.)</th><td>${metodeNavn}</td></tr>
-              <tr><th>Antal rundar (innl.)</th><td>${stevne.antall_runder_innl ?? '—'}</td></tr>
-              <tr><th>Påmelde spelarar</th><td>${antallSpelarar ?? 0}</td></tr>
-            </tbody>
-          </table>
+      <h4 class="mb-3">Innstillingar</h4>
+      <form id="innstillingar-form" style="max-width:480px">
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Kastemetode innledande</label>
+          <select id="innl-metode" class="form-select">
+            <option value="">— Ikkje vald —</option>
+            ${options(innlMetodar, stevne.innledendekastemetodeid)}
+          </select>
         </div>
-      </div>
-      ${ikkjeStarta ? `
-        <button id="start-stevne-btn" class="btn btn-success">
-          Start stevne
-        </button>
-      ` : ''}
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Kastemetode avsluttande</label>
+          <select id="avsl-metode" class="form-select">
+            <option value="">— Ikkje vald —</option>
+            ${options(avslMetodar, stevne.avsluttendekastemetodeid)}
+          </select>
+        </div>
+        <div class="mb-4">
+          <label class="form-label fw-semibold">Antal rundar innledande</label>
+          <input id="antall-rundar" type="number" min="1" class="form-control"
+            value="${stevne.antall_runder_innl ?? ''}" placeholder="t.d. 6">
+        </div>
+        <button type="submit" class="btn btn-primary">Lagre</button>
+        <span id="lagre-status" class="ms-3 text-success" style="display:none">Lagra ✓</span>
+      </form>
     </div>
   `
 
-  if (!ikkjeStarta) return
+  container.querySelector('#innstillingar-form').addEventListener('submit', async (e) => {
+    e.preventDefault()
 
-  container.querySelector('#start-stevne-btn').addEventListener('click', async () => {
-    if ((antallSpelarar ?? 0) < 2) {
-      alert('Stevnet må ha minst 2 spelarar for å startast.')
-      return
-    }
-    if (erCascade && !stevne.antall_runder_innl) {
-      alert('Du må setje antal rundar for innledande fase (Gloppen-metoden krev dette).')
-      return
-    }
+    const innlId   = container.querySelector('#innl-metode').value || null
+    const avslId   = container.querySelector('#avsl-metode').value || null
+    const rundar   = container.querySelector('#antall-rundar').value
+    const antall   = rundar ? Number(rundar) : null
 
-    const { error: faseErr } = await supabase
+    const { error } = await supabase
       .from('stevne')
-      .update({ stevne_fase: 'innledende' })
+      .update({
+        innledendekastemetodeid:  innlId  ? Number(innlId)  : null,
+        avsluttendekastemetodeid: avslId  ? Number(avslId)  : null,
+        antall_runder_innl:       antall,
+      })
       .eq('id', stevneid)
-    if (faseErr) { alert('Feil ved oppdatering av fase: ' + faseErr.message); return }
 
-    // Idempotent: berre generer om ingen kampar finst
-    const { count: eksisterandeKampar } = await supabase
-      .from('kamp')
-      .select('id', { count: 'exact', head: true })
-      .eq('stevneid', stevneid)
-      .eq('fase', 'innledende')
-
-    if (!eksisterandeKampar) {
-      try {
-        await genererInnledendeKamper(stevneid, metodeNavn, stevne.antall_runder_innl ?? 1)
-      } catch (e) {
-        alert('Feil ved kampgenerering: ' + e.message)
-        return
-      }
+    if (error) {
+      alert('Feil ved lagring: ' + error.message)
+      return
     }
 
-    location.hash = `#/stevne/${stevneid}/organizer/innledende`
+    const status = container.querySelector('#lagre-status')
+    status.style.display = ''
+    setTimeout(() => { status.style.display = 'none' }, 2000)
   })
 }

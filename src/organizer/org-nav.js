@@ -1,4 +1,5 @@
 const faner = [
+  { nøkkel: 'info',              label: 'Info' },
   { nøkkel: 'spillere',      label: 'Spelarar' },
   { nøkkel: 'innledende',    label: 'Innledande' },
   { nøkkel: 'avsluttende',   label: 'Avsluttande' },

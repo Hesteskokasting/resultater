@@ -1,5 +1,6 @@
 import { supabase } from '../supabase.js'
 import { renderOrgNav } from './org-nav.js'
+import { genererInnledendeKamper } from './kampgenerering-db.js'
 
 const faseLabel = {
   ikke_startet: '<span class="badge bg-secondary">Ikkje starta</span>',
@@ -11,32 +12,86 @@ export async function render(container, { id } = {}) {
   const stevneid = Number(id)
   container.innerHTML = '<p style="text-align:center;margin-top:40px;">Laster…</p>'
 
-  const { data: stevne } = await supabase
-    .from('stevne')
-    .select('id, navn, stevne_fase, dato, sted')
-    .eq('id', stevneid)
-    .single()
+  const [{ data: stevne }, { count: antallSpelarar }] = await Promise.all([
+    supabase.from('stevne')
+      .select(`
+        id, navn, dato, sted, stevne_fase, antall_runder_innl,
+        kastemetodeInnl:innledendekastemetodeid(id, navn),
+        kastemetodeAvsl:avsluttendekastemetodeid(id, navn)
+      `)
+      .eq('id', stevneid)
+      .single(),
+    supabase.from('pamelding')
+      .select('id', { count: 'exact', head: true })
+      .eq('stevneid', stevneid),
+  ])
 
   if (!stevne) {
     container.innerHTML = '<p style="text-align:center;margin-top:40px;color:red;">Stevne ikkje funne.</p>'
     return
   }
 
-  const fase = stevne.stevne_fase ?? 'ikke_startet'
-  const badge = faseLabel[fase] ?? `<span class="badge bg-secondary">${fase}</span>`
+  const fase = stevne.stevne_fase ?? null
+  const ikkjeStarta = fase === null || fase === 'ikke_startet'
+  const badge = faseLabel[fase ?? 'ikke_startet'] ?? `<span class="badge bg-secondary">${fase}</span>`
+  const metodeNavn = stevne.kastemetodeInnl?.navn ?? '—'
+  const erCascade = metodeNavn.toLowerCase().includes('gloppen')
 
   container.innerHTML = `
     <div class="container-fluid py-3">
-      ${renderOrgNav(stevneid, null)}
-      <h4 class="mb-1">${stevne.navn} ${badge}</h4>
-      <p class="text-muted mb-3">${[stevne.sted, stevne.dato].filter(Boolean).join(' · ')}</p>
-      <div class="d-flex gap-2">
-        <a href="#/stevne/${stevneid}/organizer/spillere" class="btn btn-outline-primary btn-sm">Spelarar →</a>
-        <a href="#/stevne/${stevneid}/organizer/innstillinger" class="btn btn-outline-secondary btn-sm">Innstillingar →</a>
-        ${fase !== 'ikke_startet' && fase !== null
-          ? `<a href="#/stevne/${stevneid}/organizer/innledende" class="btn btn-outline-success btn-sm">Innledande →</a>`
-          : ''}
+      ${renderOrgNav(stevneid, 'info')}
+      <h4 class="mb-3">${stevne.navn} ${badge}</h4>
+      <div class="card mb-3" style="max-width:480px">
+        <div class="card-body">
+          <table class="table table-sm mb-0">
+            <tbody>
+              <tr><th>Stad</th><td>${stevne.sted ?? '—'}</td></tr>
+              <tr><th>Dato</th><td>${stevne.dato ?? '—'}</td></tr>
+              <tr><th>Kastemetode innledande</th><td>${metodeNavn}</td></tr>
+              <tr><th>Kastemetode avsluttande</th><td>${stevne.kastemetodeAvsl?.navn ?? '—'}</td></tr>
+              <tr><th>Antal rundar innledande</th><td>${stevne.antall_runder_innl ?? '—'}</td></tr>
+              <tr><th>Påmelde spelarar</th><td>${antallSpelarar ?? 0}</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
+      ${ikkjeStarta ? `<button id="start-stevne-btn" class="btn btn-success">Start stevne</button>` : ''}
     </div>
   `
+
+  if (!ikkjeStarta) return
+
+  container.querySelector('#start-stevne-btn').addEventListener('click', async () => {
+    if ((antallSpelarar ?? 0) < 2) {
+      alert('Stevnet må ha minst 2 spelarar for å startast.')
+      return
+    }
+    if (erCascade && !stevne.antall_runder_innl) {
+      alert('Du må setje antal rundar for innledande fase (Gloppen-metoden krev dette).\nGå til Innstillingar for å endre.')
+      return
+    }
+
+    const { error: faseErr } = await supabase
+      .from('stevne')
+      .update({ stevne_fase: 'innledende' })
+      .eq('id', stevneid)
+    if (faseErr) { alert('Feil ved oppdatering av fase: ' + faseErr.message); return }
+
+    const { count: eksisterandeKampar } = await supabase
+      .from('kamp')
+      .select('id', { count: 'exact', head: true })
+      .eq('stevneid', stevneid)
+      .eq('fase', 'innledende')
+
+    if (!eksisterandeKampar) {
+      try {
+        await genererInnledendeKamper(stevneid, metodeNavn, stevne.antall_runder_innl ?? 1)
+      } catch (e) {
+        alert('Feil ved kampgenerering: ' + e.message)
+        return
+      }
+    }
+
+    location.hash = `#/stevne/${stevneid}/organizer/innledende`
+  })
 }

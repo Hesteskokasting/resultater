@@ -49,6 +49,7 @@ const ruter = [
   { mønster: /^\/admin$/,                     side: authGuard('admin', renderAdmin),               params: () => ({}) },
   { mønster: /^\/stevne\/ny$/,                side: authGuard('klubbadmin', renderStevneAdmin),     params: () => ({}) },
   { mønster: /^\/stevne\/(\d+)\/admin$/,      side: authGuard('klubbadmin', renderStevneAdmin),     params: m => ({ id: m[1] }) },
+  { mønster: /^\/stevne\/(\d+)\/organizer\/info$/,          side: authGuard('klubbadmin', renderOrgDashboard),      params: m => ({ id: m[1] }) },
   { mønster: /^\/stevne\/(\d+)\/organizer\/spillere$/,      side: authGuard('klubbadmin', renderOrgSpillarar),     params: m => ({ id: m[1] }) },
   { mønster: /^\/stevne\/(\d+)\/organizer\/innledende$/,    side: authGuard('klubbadmin', renderOrgInnledande),     params: m => ({ id: m[1] }) },
   { mønster: /^\/stevne\/(\d+)\/organizer\/avsluttende$/,   side: authGuard('klubbadmin', renderOrgAvsluttande),    params: m => ({ id: m[1] }) },
