@@ -71,26 +71,18 @@ export async function render(container, { id } = {}) {
       return
     }
 
+    try {
+      await genererInnledendeKamper(stevneid, metodeNavn, stevne.antall_runder_innl ?? 1)
+    } catch (e) {
+      alert('Feil ved kampgenerering: ' + e.message)
+      return
+    }
+
     const { error: faseErr } = await supabase
       .from('stevne')
       .update({ stevne_fase: 'innledende' })
       .eq('id', stevneid)
     if (faseErr) { alert('Feil ved oppdatering av fase: ' + faseErr.message); return }
-
-    const { count: eksisterandeKampar } = await supabase
-      .from('kamp')
-      .select('id', { count: 'exact', head: true })
-      .eq('stevneid', stevneid)
-      .eq('fase', 'innledende')
-
-    if (!eksisterandeKampar) {
-      try {
-        await genererInnledendeKamper(stevneid, metodeNavn, stevne.antall_runder_innl ?? 1)
-      } catch (e) {
-        alert('Feil ved kampgenerering: ' + e.message)
-        return
-      }
-    }
 
     location.hash = `#/stevne/${stevneid}/organizer/innledende`
   })
