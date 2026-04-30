@@ -2,6 +2,8 @@ import { supabase } from '../supabase.js'
 import { opnNumberpad } from './score-numberpad.js'
 import { apnScoreboard } from './scoreboard.js'
 import { beregnKampPoeng, hentP1P2, scoreForSp, ringerForSp, oppdaterResultatInnl } from '../utils/kamp.js'
+import { renderOrgNav } from './org-nav.js'
+import { genererNesteSwissRunde } from './kampgenerering-db.js'
 
 let kanal = null
 
@@ -13,7 +15,10 @@ export async function render(container, { id } = {}) {
 
 async function lastOgVis(container, stevneid) {
   const [{ data: stevne }, { data: kamper }, { data: resultatListe }] = await Promise.all([
-    supabase.from('stevne').select('id, navn, erfullfort').eq('id', stevneid).single(),
+    supabase.from('stevne').select(`
+      id, navn, erfullfort,
+      kastemetode:innledendekastemetodeid(id, navn)
+    `).eq('id', stevneid).single(),
     supabase.from('kamp')
       .select(`
         id, stevneid, runde_nummer, bane_nummer, er_bekreftet, er_walkover, fase,
@@ -36,6 +41,8 @@ async function lastOgVis(container, stevneid) {
     return
   }
 
+  const metodeNavn = stevne.kastemetode?.navn ?? ''
+  const erSwiss = !metodeNavn.toLowerCase().includes('gloppen')
   const startnrMap = Object.fromEntries((resultatListe ?? []).map(r => [r.kasterid, r.startnummer]))
 
   const alleKamper = (kamper ?? []).sort(
@@ -79,13 +86,17 @@ async function lastOgVis(container, stevneid) {
     .filter(s => ekteKasterids.has(s.kasterid))
     .sort((a, b) => b.kamp_poeng - a.kamp_poeng || b.score_poeng - a.score_poeng)
 
+  const harBekreftaRunde = alleKamper.some(k => k.er_bekreftet)
+
   container.innerHTML = `
-    <div>
-      <div class="d-flex align-items-center gap-2 px-3 py-2" style="background:#1e4976;color:white">
+    <div class="px-3 py-2">
+      ${renderOrgNav(stevneid, 'innledende')}
+      <div class="d-flex align-items-center gap-2 mb-3" style="background:#1e4976;color:white;padding:.5rem .75rem;border-radius:.375rem">
         <h5 class="mb-0 flex-grow-1">${stevne.navn}</h5>
+        ${erSwiss ? `<button id="neste-runde-btn" class="btn btn-sm btn-warning"${stevne.erfullfort ? ' disabled' : ''}>Generer neste runde</button>` : ''}
         <button id="fullfor-btn" class="btn btn-sm btn-primary"${stevne.erfullfort ? ' disabled' : ''}>Fullfør turnering</button>
       </div>
-      <div class="d-flex gap-3 p-3 align-items-start">
+      <div class="d-flex gap-3 align-items-start">
         <div class="flex-grow-1">
           ${[...rundeMap.entries()].map(([nr, rKamper]) => renderRunde(nr, rKamper, startnrMap)).join('')}
         </div>
@@ -97,6 +108,18 @@ async function lastOgVis(container, stevneid) {
   `
 
   container.querySelector('#fullfor-btn').addEventListener('click', () => fullforTurnering(container, stevneid))
+
+  if (erSwiss) {
+    container.querySelector('#neste-runde-btn')?.addEventListener('click', async () => {
+      try {
+        const { rundeNummer } = await genererNesteSwissRunde(stevneid)
+        await lastOgVis(container, stevneid)
+        alert(`Runde ${rundeNummer} er generert.`)
+      } catch (e) {
+        alert('Feil: ' + e.message)
+      }
+    })
+  }
 
   for (const kamp of alleKamper) {
     container.querySelector(`#plus-${kamp.id}`)?.addEventListener('click', async () => {
@@ -160,7 +183,7 @@ async function lastOgVis(container, stevneid) {
 
   if (!kanal) {
     kanal = supabase
-      .channel(`stevne-${stevneid}`)
+      .channel(`stevne-innl-${stevneid}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'kamp_omgang' },
         () => lastOgVis(container, stevneid)
       )

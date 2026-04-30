@@ -14,7 +14,11 @@ import { render as renderStevneAdmin }    from './admin/stevneadmin.js'
 import { render as renderKasterAdmin }    from './admin/kasteradmin.js'
 import { render as renderKlubbAdminSide } from './admin/klubbadmin-side.js'
 import { render as renderPamelding }      from './pages/pamelding.js'
-import { render as renderOrgStevne }      from './organizer/stevne.js'
+import { render as renderOrgDashboard }      from './organizer/stevne-dashboard.js'
+import { render as renderOrgSpillarar }      from './organizer/stevne-deltakere-side.js'
+import { render as renderOrgInnledande }     from './organizer/stevne-innledende.js'
+import { render as renderOrgAvsluttande }    from './organizer/stevne-avsluttende.js'
+import { render as renderOrgInnstillingar }  from './organizer/stevne-innstillinger.js'
 import { getUser, erAdmin, erKlubbadmin, loggUt } from './utils/auth.js'
 
 const container = document.getElementById('app')
@@ -45,7 +49,11 @@ const ruter = [
   { mønster: /^\/admin$/,                     side: authGuard('admin', renderAdmin),               params: () => ({}) },
   { mønster: /^\/stevne\/ny$/,                side: authGuard('klubbadmin', renderStevneAdmin),     params: () => ({}) },
   { mønster: /^\/stevne\/(\d+)\/admin$/,      side: authGuard('klubbadmin', renderStevneAdmin),     params: m => ({ id: m[1] }) },
-  { mønster: /^\/stevne\/(\d+)\/organizer$/, side: authGuard('klubbadmin', renderOrgStevne),        params: m => ({ id: m[1] }) },
+  { mønster: /^\/stevne\/(\d+)\/organizer\/spillere$/,      side: authGuard('klubbadmin', renderOrgSpillarar),     params: m => ({ id: m[1] }) },
+  { mønster: /^\/stevne\/(\d+)\/organizer\/innledende$/,    side: authGuard('klubbadmin', renderOrgInnledande),     params: m => ({ id: m[1] }) },
+  { mønster: /^\/stevne\/(\d+)\/organizer\/avsluttende$/,   side: authGuard('klubbadmin', renderOrgAvsluttande),    params: m => ({ id: m[1] }) },
+  { mønster: /^\/stevne\/(\d+)\/organizer\/innstillinger$/, side: authGuard('klubbadmin', renderOrgInnstillingar),  params: m => ({ id: m[1] }) },
+  { mønster: /^\/stevne\/(\d+)\/organizer$/,                side: authGuard('klubbadmin', renderOrgDashboard),      params: m => ({ id: m[1] }) },
   { mønster: /^\/stevne\/(\d+)\/pamelding$/,  side: renderPamelding,                               params: m => ({ id: m[1] }) },
   { mønster: /^\/kaster\/ny$/,                side: authGuard('klubbadmin', renderKasterAdmin),     params: () => ({}) },
   { mønster: /^\/kaster\/(\d+)\/admin$/,      side: authGuard('klubbadmin', renderKasterAdmin),     params: m => ({ id: m[1] }) },
