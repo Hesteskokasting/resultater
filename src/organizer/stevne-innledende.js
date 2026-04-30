@@ -167,13 +167,13 @@ async function lastOgVis(container, stevneid) {
       .channel(`stevne-innl-${stevneid}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'kamp_omgang' },
                 () => {
-          if (location.hash === `#/stevne/${stevneid}/organizer/innledende`) {
-            lastOgVis(container, stevneid)
-          } else {
-            supabase.removeChannel(kanal)
-            kanal = null
-          }
-        }
+      if (location.hash === `#/stevne/${stevneid}/organizer/innledende`) {
+        lastOgVis(container, stevneid)
+      } else {
+        supabase.removeChannel(kanal)
+        kanal = null
+      }
+    }
       )
       .subscribe()
   }
@@ -223,9 +223,11 @@ function kampRad(kamp, startnrMap) {
     || (p1?.omgangar?.length ?? 0) > 0 || (p2?.omgangar?.length ?? 0) > 0
     || s1 > 0 || s2 > 0
 
-  const kanBekrefte = !kamp.er_bekreftet && (harPoeng || kamp.er_walkover)
+  const harOmgangar = (p1?.omgangar?.length ?? 0) > 0 || (p2?.omgangar?.length ?? 0) > 0
+  const kanBekrefte = !kamp.er_bekreftet && (kamp.er_walkover || s1 >= 21 || s2 >= 21)
   const bekrfKlass = kamp.er_bekreftet || kanBekrefte ? 'btn-success' : 'btn-outline-secondary'
   const bekrfDisabled = kamp.er_bekreftet || !kanBekrefte ? ' disabled' : ''
+  const scoreboardDisabled = kamp.er_bekreftet && !harOmgangar ? ' disabled' : ''
   return `
     <tr>
       <td class="text-center">${kamp.bane_nummer ?? ''}</td>
@@ -235,7 +237,7 @@ function kampRad(kamp, startnrMap) {
       <td>${p2Vis}</td>
       <td class="text-end pe-2">
         <button class="btn btn-primary btn-sm" id="plus-${kamp.id}"${kamp.er_bekreftet ? ' disabled' : ''}>+</button>
-        <button class="btn btn-secondary btn-sm" id="scoreboard-${kamp.id}" data-bane="${kamp.bane_nummer ?? ''}" title="Scoreboard">S</button>
+        <button class="btn btn-secondary btn-sm" id="scoreboard-${kamp.id}" data-bane="${kamp.bane_nummer ?? ''}" title="Scoreboard"${scoreboardDisabled}>S</button>
         <button class="btn ${bekrfKlass} btn-sm" id="bekrft-${kamp.id}"${bekrfDisabled}>Bekreft</button>
       </td>
     </tr>`
