@@ -1035,3 +1035,251 @@
   border-radius: 6px;
   cursor: pointer;
 }
+
+/* ===================== SCOREBOARD ===================== */
+
+.sb-overlay {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  color: white;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sb-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: #111;
+  border-bottom: 1px solid #333;
+  flex-shrink: 0;
+}
+
+.sb-stats-btn,
+.sb-lukk-btn {
+  background: transparent;
+  border: 1px solid #555;
+  color: white;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.sb-omgang-tittel {
+  font-size: 1.3rem;
+  font-weight: bold;
+}
+
+.sb-ferdig-banner {
+  background: #1a5e1a;
+  text-align: center;
+  padding: 10px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.sb-wrap {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.sb-spelar-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 8px;
+  gap: 6px;
+  border-right: 1px solid #222;
+}
+
+.sb-spelar-panel:last-child {
+  border-right: none;
+}
+
+.sb-spelar-namn {
+  font-size: 1.2rem;
+  font-weight: bold;
+  text-decoration: underline;
+  color: #4cff4c;
+  text-align: center;
+}
+
+.sb-score {
+  font-size: 4rem;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.sb-ringer-info {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #ccc;
+  text-align: center;
+}
+
+.sb-knappar {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.sb-poeng-btn {
+  width: 52px;
+  height: 52px;
+  font-size: 1.4rem;
+  font-weight: bold;
+  background: white;
+  color: #111;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: opacity 0.1s;
+}
+
+.sb-poeng-btn:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+
+.sb-poeng-btn.sb-valgt {
+  background: #4cff4c;
+  color: #000;
+}
+
+.sb-botn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background: #111;
+  flex-shrink: 0;
+  gap: 8px;
+}
+
+.sb-omg-btns {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.sb-omg-btn {
+  width: 32px;
+  height: 32px;
+  font-size: 0.8rem;
+  background: #333;
+  color: white;
+  border: 1px solid #555;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.sb-omg-btn:hover {
+  background: #c0392b;
+}
+
+.sb-angre-btn {
+  background: transparent;
+  border: 1px solid #555;
+  color: white;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+.sb-angre-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.sb-neste-btn {
+  display: block;
+  width: 100%;
+  padding: 14px;
+  font-size: 1.3rem;
+  font-weight: bold;
+  background: white;
+  color: #000;
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.sb-neste-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.sb-stats-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+  padding: 12px;
+  gap: 10px;
+}
+
+.sb-stats-lukk {
+  background: transparent;
+  border: 1px solid #555;
+  color: white;
+  border-radius: 6px;
+  padding: 5px 14px;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.sb-stats-tabell {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.sb-stats-tabell th,
+.sb-stats-tabell td {
+  padding: 5px 10px;
+  text-align: center;
+  border-bottom: 1px solid #222;
+}
+
+.sb-stats-tabell thead {
+  background: #111;
+}
+
+.sb-stats-tabell tfoot td {
+  border-top: 2px solid #444;
+  padding-top: 8px;
+}
+
+.sb-groen { color: #4cff4c; }
+.sb-rod   { color: #ff6b6b; }
+
+@media (max-width: 500px) {
+  .sb-wrap {
+    flex-direction: column;
+  }
+  .sb-spelar-panel {
+    border-right: none;
+    border-bottom: 1px solid #222;
+  }
+  .sb-score {
+    font-size: 3rem;
+  }
+  .sb-poeng-btn {
+    width: 46px;
+    height: 46px;
+    font-size: 1.2rem;
+  }
+}

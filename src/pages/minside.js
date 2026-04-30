@@ -1,5 +1,6 @@
 import { supabase } from '../supabase.js'
 import { getUser } from '../utils/auth.js'
+import { apnScoreboard } from '../organizer/scoreboard.js'
 
 const rolleLabel = { admin: 'Administrator', klubbadmin: 'Klubbadministrator', bruker: 'Brukar' }
 
@@ -16,7 +17,6 @@ export async function render(container) {
       <h2 class="mb-1">Min side</h2>
       <p class="text-muted mb-4">${user.email} · <span class="badge bg-secondary">${rolleLabel[profil?.rolle] ?? 'Ukjent'}</span></p>`
 
-  // --- Kobling-seksjon ---
   const status = profil?.kobling_status ?? 'ingen'
 
   if (status === 'ingen' || status === 'avvist') {
@@ -38,6 +38,7 @@ export async function render(container) {
   } else if (status === 'godkjent' && profil?.kasterid) {
     html += await _lenkaTilKaster(profil.kasterid)
     html += await _minePameldingar(user.id)
+    html += await _mineKamparHtml(profil.kasterid)
   }
 
   html += '</div>'
@@ -45,6 +46,10 @@ export async function render(container) {
 
   if (status === 'ingen' || status === 'avvist') {
     _bindKasterSok(container, user.id)
+  }
+
+  if (status === 'godkjent' && profil?.kasterid) {
+    _bindMineKampar(container, profil.kasterid)
   }
 }
 
@@ -75,7 +80,6 @@ async function _minePameldingar(brukerId) {
     .limit(50)
   if (!data?.length) return '<p class="text-muted">Ingen påmeldingar enno.</p>'
 
-  // Sorter på stevnedato stigande (neste stevne først)
   const sortert = [...data].sort((a, b) => {
     const da = a.stevne?.dato ? new Date(a.stevne.dato) : 0
     const db = b.stevne?.dato ? new Date(b.stevne.dato) : 0
@@ -99,6 +103,124 @@ async function _minePameldingar(brukerId) {
         <tbody>${rader}</tbody></table>
       </div>
     </div>`
+}
+
+async function _mineKamparHtml(kasterid) {
+  const { data } = await supabase
+    .from('kamp_spelar')
+    .select(`
+      id, kasterid, posisjon,
+      kamp:kampid(
+        id, stevneid, fase, runde_nummer, bane_nummer, er_bekreftet, er_walkover,
+        stevne:stevneid(id, navn, erfullfort),
+        spelarar:kamp_spelar(
+          id, kasterid, posisjon,
+          kaster:kasterid(id, fornavn, etternavn)
+        )
+      )
+    `)
+    .eq('kasterid', kasterid)
+
+  const aktiveKampar = (data ?? [])
+    .filter(ks => ks.kamp?.stevne?.erfullfort === false && !ks.kamp?.er_walkover)
+    .sort((a, b) => (a.kamp?.runde_nummer ?? 0) - (b.kamp?.runde_nummer ?? 0))
+
+  const kommande = aktiveKampar.filter(ks => !ks.kamp?.er_bekreftet)
+  const ferdige  = aktiveKampar.filter(ks =>  ks.kamp?.er_bekreftet)
+
+  const lagKampRad = (ks, knapp) => {
+    const kamp = ks.kamp
+    const motstandar = (kamp?.spelarar ?? []).find(s => s.kasterid !== kasterid)
+    const motstandarNamn = motstandar?.kaster
+      ? `${motstandar.kaster.fornavn} ${motstandar.kaster.etternavn}`
+      : '–'
+    return `<tr>
+      <td>${kamp?.stevne?.navn ?? ''}</td>
+      <td>R${kamp?.runde_nummer ?? ''} / B${kamp?.bane_nummer ?? ''}</td>
+      <td>${motstandarNamn}</td>
+      <td>${knapp}</td>
+    </tr>`
+  }
+
+  const kommandeRader = kommande.map(ks =>
+    lagKampRad(ks, `<button class="btn btn-sm btn-primary sb-opn-btn" data-ks-id="${ks.id}">Scoreboard</button>`)
+  ).join('')
+
+  const ferdigeRader = ferdige.map(ks =>
+    lagKampRad(ks, '<span class="text-success">✓ Ferdig</span>')
+  ).join('')
+
+  const tabellHoaude = `<thead><tr><th>Stevne</th><th>Runde/Bane</th><th>Motstandar</th><th></th></tr></thead>`
+
+  return `
+    <div class="card mb-4" id="mine-kampar-seksjon" data-kasterid="${kasterid}">
+      <div class="card-body">
+        <h5 class="card-title">Mine kampar</h5>
+        <ul class="nav nav-tabs mb-3" id="kampfaner">
+          <li class="nav-item">
+            <button class="nav-link active" data-fane="kommande">Kommande (${kommande.length})</button>
+          </li>
+          <li class="nav-item">
+            <button class="nav-link" data-fane="ferdige">Ferdige (${ferdige.length})</button>
+          </li>
+        </ul>
+        <div id="fane-kommande">
+          ${kommande.length
+            ? `<table class="table table-sm">${tabellHoaude}<tbody>${kommandeRader}</tbody></table>`
+            : '<p class="text-muted">Ingen kommande kampar.</p>'
+          }
+        </div>
+        <div id="fane-ferdige" class="d-none">
+          ${ferdige.length
+            ? `<table class="table table-sm">${tabellHoaude}<tbody>${ferdigeRader}</tbody></table>`
+            : '<p class="text-muted">Ingen ferdige kampar enno.</p>'
+          }
+        </div>
+      </div>
+    </div>`
+}
+
+function _bindMineKampar(container, kasterid) {
+  // Tab switching
+  container.querySelectorAll('[data-fane]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      container.querySelectorAll('[data-fane]').forEach(b => b.classList.remove('active'))
+      btn.classList.add('active')
+      const fane = btn.dataset.fane
+      container.querySelector('#fane-kommande').classList.toggle('d-none', fane !== 'kommande')
+      container.querySelector('#fane-ferdige').classList.toggle('d-none', fane !== 'ferdige')
+    })
+  })
+
+  // Scoreboard buttons - need to re-fetch full kamp data
+  container.querySelectorAll('.sb-opn-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const ksId = Number(btn.dataset.ksId)
+
+      const { data: ks } = await supabase
+        .from('kamp_spelar')
+        .select(`
+          id, kasterid, posisjon,
+          kamp:kampid(
+            id, stevneid, fase, runde_nummer, bane_nummer, er_bekreftet, er_walkover,
+            spelarar:kamp_spelar(
+              id, kasterid, posisjon,
+              kaster:kasterid(id, fornavn, etternavn)
+            )
+          )
+        `)
+        .eq('id', ksId)
+        .single()
+
+      if (!ks?.kamp) return
+
+      const kamp = ks.kamp
+      const eigenKs = (kamp.spelarar ?? []).find(s => s.kasterid === kasterid) ?? null
+      const motstandarKs = (kamp.spelarar ?? []).find(s => s.kasterid !== kasterid) ?? null
+
+      apnScoreboard(kamp, eigenKs, motstandarKs, { erArrangor: false })
+    })
+  })
 }
 
 function _bindKasterSok(container, brukerId) {

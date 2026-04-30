@@ -1,5 +1,7 @@
 import { supabase } from '../supabase.js'
 import { opnNumberpad } from './score-numberpad.js'
+import { apnScoreboard } from './scoreboard.js'
+import { beregnKampPoeng, hentP1P2, scoreForSp, ringerForSp, oppdaterResultatInnl } from '../utils/kamp.js'
 
 let kanal = null
 
@@ -14,7 +16,7 @@ async function lastOgVis(container, stevneid) {
     supabase.from('stevne').select('id, navn, erfullfort').eq('id', stevneid).single(),
     supabase.from('kamp')
       .select(`
-        id, runde_nummer, bane_nummer, er_bekreftet, er_walkover, fase,
+        id, stevneid, runde_nummer, bane_nummer, er_bekreftet, er_walkover, fase,
         spelarar:kamp_spelar(
           id, kasterid, score_poeng, kamp_poeng, antall_ringer, posisjon,
           kaster:kasterid(id, fornavn, etternavn),
@@ -127,6 +129,30 @@ async function lastOgVis(container, stevneid) {
         await lastOgVis(container, stevneid)
       })
     })
+
+    container.querySelector(`#scoreboard-${kamp.id}`)?.addEventListener('click', async () => {
+      if (kamp.er_bekreftet) return
+
+      const { data: spelarar } = await supabase
+        .from('kamp_spelar')
+        .select('id, kasterid, posisjon, kaster:kasterid(id, fornavn, etternavn)')
+        .eq('kampid', kamp.id)
+
+      const [p1, p2] = hentP1P2(spelarar ?? [], startnrMap)
+
+      apnScoreboard(kamp, p1, p2, {
+        erArrangor: true,
+        onFerdig: () => {
+          lastOgVis(container, stevneid).then(() => {
+            const nesteBtn = container.querySelector(
+              `button[data-bane="${kamp.bane_nummer}"]:not([disabled])`
+            )
+            nesteBtn?.click()
+          })
+        },
+      })
+    })
+
     container.querySelector(`#bekrft-${kamp.id}`)?.addEventListener('click', () =>
       bekreftKamp(container, stevneid, kamp, startnrMap)
     )
@@ -142,16 +168,6 @@ async function lastOgVis(container, stevneid) {
   }
 }
 
-function scoreForSp(sp) {
-  if (sp?.omgangar?.length) return sp.omgangar.reduce((sum, o) => sum + (o.score ?? 0), 0)
-  return sp?.score_poeng ?? 0
-}
-
-function ringerForSp(sp) {
-  if (sp?.omgangar?.length) return sp.omgangar.reduce((sum, o) => sum + (o.antall_ringer ?? 0), 0)
-  return sp?.antall_ringer ?? 0
-}
-
 function renderRunde(nr, kamper, startnrMap) {
   return `
     <div class="mb-3">
@@ -164,7 +180,7 @@ function renderRunde(nr, kamper, startnrMap) {
             <th style="width:48px" class="text-center">S1</th>
             <th style="width:48px" class="text-center">S2</th>
             <th>P2</th>
-            <th style="width:120px"></th>
+            <th style="width:148px"></th>
           </tr>
         </thead>
         <tbody>
@@ -199,6 +215,7 @@ function kampRad(kamp, startnrMap) {
   const kanBekrefte = !kamp.er_bekreftet && (harPoeng || kamp.er_walkover)
   const bekrfKlass = kamp.er_bekreftet || kanBekrefte ? 'btn-success' : 'btn-outline-secondary'
   const bekrfDisabled = kamp.er_bekreftet || !kanBekrefte ? ' disabled' : ''
+  const sbDisabled = kamp.er_bekreftet ? ' disabled' : ''
 
   return `
     <tr>
@@ -209,6 +226,7 @@ function kampRad(kamp, startnrMap) {
       <td>${p2Vis}</td>
       <td class="text-end pe-2">
         <button class="btn btn-primary btn-sm" id="plus-${kamp.id}"${kamp.er_bekreftet ? ' disabled' : ''}>+</button>
+        <button class="btn btn-secondary btn-sm" id="scoreboard-${kamp.id}" data-bane="${kamp.bane_nummer ?? ''}"${sbDisabled} title="Scoreboard">S</button>
         <button class="btn ${bekrfKlass} btn-sm" id="bekrft-${kamp.id}"${bekrfDisabled}>Bekreft</button>
       </td>
     </tr>`
@@ -245,7 +263,6 @@ function renderStilling(stilling) {
 }
 
 async function bekreftKamp(container, stevneid, kamp, startnrMap) {
-  // Alltid hent ferske data — unngår å bruke foreldra klosyre-data
   const { data: spelarar, error: spErr } = await supabase
     .from('kamp_spelar')
     .select(`
@@ -277,51 +294,6 @@ async function bekreftKamp(container, stevneid, kamp, startnrMap) {
   await oppdaterResultatInnl(stevneid, kasterids, kamp.fase)
 
   await lastOgVis(container, stevneid)
-}
-
-function beregnKampPoeng(s1, s2) {
-  if (s1 === s2) return [1.5, 1.5]
-  if (s1 > s2) return [2, s2 >= 11 ? 1 : 0]
-  return [s1 >= 11 ? 1 : 0, 2]
-}
-
-async function oppdaterResultatInnl(stevneid, kasterids, fase) {
-  const { data: kamper } = await supabase
-    .from('kamp')
-    .select('id')
-    .eq('stevneid', stevneid)
-    .eq('er_bekreftet', true)
-    .eq('fase', fase)
-
-  const kampids = (kamper ?? []).map(k => k.id)
-  if (!kampids.length) return
-
-  for (const kasterid of kasterids) {
-    const { data } = await supabase
-      .from('kamp_spelar')
-      .select('score_poeng, kamp_poeng')
-      .eq('kasterid', kasterid)
-      .in('kampid', kampids)
-
-    const scoreInnl = (data ?? []).reduce((s, r) => s + r.score_poeng, 0)
-    const kampInnl = (data ?? []).reduce((s, r) => s + r.kamp_poeng, 0)
-
-    await supabase.from('resultat')
-      .update({ score_poeng_innl: scoreInnl, kamp_poeng_innl: kampInnl })
-      .eq('stevneid', stevneid)
-      .eq('kasterid', kasterid)
-  }
-}
-
-function hentP1P2(spelarar, startnrMap) {
-  const sp = spelarar ?? []
-  if (sp.some(s => s.posisjon != null)) {
-    return [sp.find(s => s.posisjon === 1) ?? null, sp.find(s => s.posisjon === 2) ?? null]
-  }
-  const sorted = [...sp].sort(
-    (a, b) => (startnrMap[a.kasterid] ?? Infinity) - (startnrMap[b.kasterid] ?? Infinity)
-  )
-  return [sorted[0] ?? null, sorted[1] ?? null]
 }
 
 async function fullforTurnering(container, stevneid) {
