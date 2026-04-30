@@ -242,8 +242,8 @@ export async function render(container, params) {
       const bar = document.createElement('div')
       bar.className = 'mb-2 d-flex gap-2 flex-wrap'
       bar.innerHTML = `
-        <a href="#/stevne/${id}/admin" class="btn btn-sm btn-warning">Rediger stevne</a>
-        <a href="#/stevne/${id}/pamelding" class="btn btn-sm btn-outline-info">Påmeldingar</a>`
+        <a href="#/stevne/${id}/organizer" class="btn btn-sm btn-warning">Administrer stevne</a>
+        <a href="#/stevne/${id}/pamelding" class="btn btn-sm btn-outline-info">Vis påmeldingar</a>`
       felles.prepend(bar)
     } else if (auth.profil.kobling_status === 'godkjent' && !stevne.erfullfort) {
       const link = document.createElement('div')
