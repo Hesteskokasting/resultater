@@ -224,7 +224,7 @@ function kampRad(kamp, startnrMap) {
     || s1 > 0 || s2 > 0
 
   const harOmgangar = (p1?.omgangar?.length ?? 0) > 0 || (p2?.omgangar?.length ?? 0) > 0
-  const kanBekrefte = !kamp.er_bekreftet && (kamp.er_walkover || s1 >= 21 || s2 >= 21)
+  const kanBekrefte = !kamp.er_bekreftet && (kamp.er_walkover || (!harOmgangar && (s1 >= 21 || s2 >= 21)))
   const bekrfKlass = kamp.er_bekreftet || kanBekrefte ? 'btn-success' : 'btn-outline-secondary'
   const bekrfDisabled = kamp.er_bekreftet || !kanBekrefte ? ' disabled' : ''
   const scoreboardDisabled = kamp.er_bekreftet && !harOmgangar ? ' disabled' : ''
