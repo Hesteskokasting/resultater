@@ -1,6 +1,7 @@
 import { supabase } from '../supabase.js'
 import { renderOrgNav } from './org-nav.js'
 import { genererInnledendeKamper } from './kampgenerering-db.js'
+import { formaterDatoNumeric, formaterTid } from '../utils/shared.js'
 
 const faseLabel = {
   ikke_startet: '<span class="badge bg-secondary">Ikkje starta</span>',
@@ -46,7 +47,8 @@ export async function render(container, { id } = {}) {
           <table class="table table-sm mb-0">
             <tbody>
               <tr><th>Stad</th><td>${stevne.sted ?? '—'}</td></tr>
-              <tr><th>Dato</th><td>${stevne.dato ?? '—'}</td></tr>
+              <tr><th>Dato</th><td>${stevne.dato ? formaterDatoNumeric(stevne.dato) : '—'}</td></tr>
+              <tr><th>Tid</th><td>${stevne.dato ? formaterTid(stevne.dato) : '—'}</td></tr>
               <tr><th>Kastemetode innledande</th><td>${metodeNavn}</td></tr>
               <tr><th>Kastemetode avsluttande</th><td>${stevne.kastemetodeAvsl?.navn ?? '—'}</td></tr>
               <tr><th>Antal rundar innledande</th><td>${stevne.antall_runder_innl ?? '—'}</td></tr>

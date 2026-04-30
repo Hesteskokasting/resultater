@@ -1,16 +1,28 @@
 // ── Dato-formatering ──────────────────────────────────────────────────────────
 
-const datoFmtKort = new Intl.DateTimeFormat('nb-NO', { day: '2-digit', month: '2-digit', year: 'numeric' })
-const datoFmtLang = new Intl.DateTimeFormat('nb-NO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+const datoFmtKort    = new Intl.DateTimeFormat('nb-NO', { day: '2-digit', month: '2-digit', year: 'numeric' })
+const datoFmtNumeric = new Intl.DateTimeFormat('nb-NO', { day: 'numeric', month: 'numeric', year: 'numeric' })
+const datoFmtLang    = new Intl.DateTimeFormat('nb-NO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+const tidFmt         = new Intl.DateTimeFormat('nb-NO', { hour: '2-digit', minute: '2-digit' })
 
 export function formaterDato(datoStr) {
   if (!datoStr) return ''
   return datoFmtKort.format(new Date(datoStr))
 }
 
+export function formaterDatoNumeric(datoStr) {
+  if (!datoStr) return ''
+  return datoFmtNumeric.format(new Date(datoStr))
+}
+
 export function formaterDatoLang(datoStr) {
   if (!datoStr) return ''
   return datoFmtLang.format(new Date(datoStr))
+}
+
+export function formaterTid(datoStr) {
+  if (!datoStr) return ''
+  return tidFmt.format(new Date(datoStr))
 }
 
 // ── Excel-eksport ─────────────────────────────────────────────────────────────
