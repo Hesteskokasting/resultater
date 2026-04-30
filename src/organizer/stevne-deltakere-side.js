@@ -36,21 +36,21 @@ function filterDatabasePlayers(players, search, selectedIds) {
   })
 }
 
-function createPlayerColumn(title, isSelected = false) {
+function createPlayerColumn(title) {
   const column = document.createElement('div')
-  column.className = 'db-players-column'
 
-  const titleEl = document.createElement('h3')
+  const titleEl = document.createElement('h6')
   titleEl.textContent = title
-  titleEl.className = 'db-players-column-title'
-
-  const table = document.createElement('table')
-  table.className = `db-players-table${isSelected ? ' selected' : ''}`
+  titleEl.className = 'fw-bold mb-1'
 
   const tableWrapper = document.createElement('div')
-  tableWrapper.className = `db-players-table-wrapper${isSelected ? ' selected' : ''}`
-  tableWrapper.appendChild(table)
+  tableWrapper.className = 'border rounded overflow-auto'
+  tableWrapper.style.maxHeight = '500px'
 
+  const table = document.createElement('table')
+  table.className = 'table table-sm table-hover table-bordered mb-0'
+
+  tableWrapper.appendChild(table)
   column.appendChild(titleEl)
   column.appendChild(tableWrapper)
   return { column, table }
@@ -58,30 +58,27 @@ function createPlayerColumn(title, isSelected = false) {
 
 function createSelectedPlayerRow(player, onRemove, disabled = false) {
   const row = document.createElement('tr')
-  row.className = 'db-players-row selected-row'
 
   const playerCell = document.createElement('td')
-  playerCell.className = 'db-players-cell player-info'
   playerCell.textContent = kasterNavn(player)
 
   const clubCell = document.createElement('td')
-  clubCell.className = 'db-players-cell club-info'
   clubCell.textContent = player.klubb?.navn ?? ''
 
   const actionCell = document.createElement('td')
-  actionCell.className = 'db-players-cell action-cell'
+  actionCell.className = 'text-center'
+  actionCell.style.width = '40px'
 
   if (!disabled) {
     const removeBtn = document.createElement('button')
-    removeBtn.textContent = '×'
-    removeBtn.className = 'db-players-remove-btn'
+    removeBtn.innerHTML = '&times;'
+    removeBtn.className = 'btn btn-danger btn-sm rounded-circle p-0 lh-1'
+    removeBtn.style.cssText = 'width:22px;height:22px;font-size:14px'
     removeBtn.title = 'Fjern spelar'
     removeBtn.addEventListener('click', (e) => { e.stopPropagation(); onRemove(player) })
     actionCell.appendChild(removeBtn)
-
-    row.addEventListener('click', (e) => {
-      if (e.target !== actionCell.firstChild) onRemove(player)
-    })
+    row.style.cursor = 'pointer'
+    row.addEventListener('click', (e) => { if (e.target !== removeBtn) onRemove(player) })
   }
 
   row.appendChild(playerCell)
@@ -92,18 +89,17 @@ function createSelectedPlayerRow(player, onRemove, disabled = false) {
 
 function createAvailablePlayerRow(player, onSelect, disabled = false) {
   const row = document.createElement('tr')
-  row.className = 'db-players-row'
 
   const playerCell = document.createElement('td')
-  playerCell.className = 'db-players-cell'
   playerCell.textContent = kasterNavn(player)
-  playerCell.title = kasterNavn(player)
 
   const clubCell = document.createElement('td')
-  clubCell.className = 'db-players-cell'
   clubCell.textContent = player.klubb?.navn ?? 'Ingen klubb'
 
-  if (!disabled) row.addEventListener('click', () => onSelect(player))
+  if (!disabled) {
+    row.style.cursor = 'pointer'
+    row.addEventListener('click', () => onSelect(player))
+  }
 
   row.appendChild(playerCell)
   row.appendChild(clubCell)
@@ -113,7 +109,7 @@ function createAvailablePlayerRow(player, onSelect, disabled = false) {
 function createEmptyRow(message) {
   const row = document.createElement('tr')
   const cell = document.createElement('td')
-  cell.className = 'db-players-cell db-players-empty'
+  cell.className = 'text-center text-muted fst-italic py-3'
   cell.textContent = message
   cell.colSpan = 3
   row.appendChild(cell)
@@ -160,14 +156,14 @@ export async function render(container, { id } = {}) {
   søkInput.type = 'text'
   søkInput.placeholder = 'Søk etter namn eller klubb…'
   søkInput.className = 'form-control mb-2'
-  const { column: venstreKol, table: tilgjengeliListe } = createPlayerColumn('Tilgjengelege spelarar', false)
+  const { column: venstreKol, table: tilgjengeliListe } = createPlayerColumn('Tilgjengelege spelarar')
   venstreWrapper.appendChild(søkInput)
   venstreWrapper.appendChild(venstreKol)
   layout.appendChild(venstreWrapper)
 
   const høgreWrapper = document.createElement('div')
   høgreWrapper.className = 'col-md-6'
-  const { column: høgreKol, table: pameldtListe } = createPlayerColumn('Påmelde spelarar', true)
+  const { column: høgreKol, table: pameldtListe } = createPlayerColumn('Påmelde spelarar')
   høgreWrapper.appendChild(høgreKol)
   layout.appendChild(høgreWrapper)
 
