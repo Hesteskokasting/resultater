@@ -118,6 +118,7 @@ export async function render(container, { id } = {}) {
   }
 
   function visVentePaaNesteKamp() {
+    sessionStorage.setItem(`ventar-neste-${kampId}`, '1')
     container.innerHTML = `
       <div class="sb-kamp-wrapper">
         <div class="sb-kamp-topbar">
@@ -125,14 +126,14 @@ export async function render(container, { id } = {}) {
             <button id="tilbake-btn-vente" class="sb-tilbake-btn" aria-label="Tilbake">←</button>
             <span class="sb-kamp-stevnenavn">${stevneNavn}</span>
           </div>
-          <div class="sb-kamp-topbar-midten">Bekrefta</div>
+          <div class="sb-kamp-topbar-midten">Fullført</div>
           <div class="sb-kamp-topbar-høgre">
             <span class="sb-kamp-info-full">Runde ${kamp.runde_nummer} - Bane ${kamp.bane_nummer}</span>
             <span class="sb-kamp-info-kort">R${kamp.runde_nummer} - B${kamp.bane_nummer}</span>
           </div>
         </div>
         <div style="padding:20px">
-          <div class="alert alert-success mb-3"><strong>Kamp bekrefta!</strong></div>
+          <div class="alert alert-success mb-3"><strong>Kampen er ferdig!</strong></div>
           <div class="alert alert-info">Ventar på neste kamp…</div>
         </div>
       </div>
@@ -154,7 +155,10 @@ export async function render(container, { id } = {}) {
       })
       .subscribe()
 
-    window.addEventListener('hashchange', () => supabase.removeChannel(kanal), { once: true })
+    window.addEventListener('hashchange', () => {
+      sessionStorage.removeItem(`ventar-neste-${kampId}`)
+      supabase.removeChannel(kanal)
+    }, { once: true })
   }
 
   async function navigerTilNesteKamp() {
@@ -202,6 +206,11 @@ export async function render(container, { id } = {}) {
     if (kamp.stevneid) await oppdaterResultatInnl(kamp.stevneid, kasterids, kamp.fase)
 
     await navigerTilNesteKamp()
+  }
+
+  if (kamp.er_bekreftet && sessionStorage.getItem(`ventar-neste-${kampId}`)) {
+    await navigerTilNesteKamp()
+    return
   }
 
   await renderScoreboard(sbContainer, kamp, p1ks, p2ks, { erArrangor, erDeltakar, onBekreft, omgangEl })

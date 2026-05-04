@@ -141,7 +141,7 @@ export async function renderScoreboard(container, kamp, p1ks, p2ks, { erArrangor
     const maxRinger = omgangar.length*2
 
     if (omgangEl) {
-      omgangEl.textContent = kamp.er_bekreftet ? 'Bekrefta' : (kampFerdig ? 'Ferdig' : `Omgang ${nr}`)
+      omgangEl.textContent = kamp.er_bekreftet ? 'Fullført' : (kampFerdig ? 'Ferdig' : `Omgang ${nr}`)
     }
 
     const wrap = lagEl('div', null, 'sb-wrap')
