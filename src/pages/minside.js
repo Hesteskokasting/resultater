@@ -134,22 +134,39 @@ async function _mineKamparHtml(kasterid) {
       ? `${motstandar.kaster.fornavn} ${motstandar.kaster.etternavn}`
       : '–'
     return `<tr>
-      <td>${kamp?.stevne?.navn ?? ''}</td>
       <td>R${kamp?.runde_nummer ?? ''} / B${kamp?.bane_nummer ?? ''}</td>
       <td>${motstandarNamn}</td>
       <td>${knapp}</td>
     </tr>`
   }
 
-  const kommandeRader = kommande.map(ks =>
-    lagKampRad(ks, `<a href="#/kamp/${ks.kamp.id}" class="btn btn-sm btn-primary">Scoreboard</a>`)
-  ).join('')
+  const tabellHoaude = `<thead><tr><th>Runde/Bane</th><th>Motstandar</th><th></th></tr></thead>`
 
-  const ferdigeRader = ferdige.map(ks =>
-    lagKampRad(ks, `<a href="#/kamp/${ks.kamp.id}" class="btn btn-sm btn-outline-secondary">Sjå kamp</a>`)
-  ).join('')
+  const grupperPerStevne = (kampar, lagKnapp) => {
+    if (!kampar.length) return null
+    const grupper = new Map()
+    for (const ks of kampar) {
+      const stevneId = ks.kamp?.stevneid ?? 'ukjent'
+      const stevneNamn = ks.kamp?.stevne?.navn ?? ''
+      if (!grupper.has(stevneId)) grupper.set(stevneId, { namn: stevneNamn, kampar: [] })
+      grupper.get(stevneId).kampar.push(ks)
+    }
+    return [...grupper.values()].map(({ namn, kampar: grp }) => `
+      <p class="fw-semibold mb-1 mt-2">${namn}</p>
+      <table class="table table-sm mb-3">${tabellHoaude}<tbody>
+        ${grp.map(ks => lagKampRad(ks, lagKnapp(ks))).join('')}
+      </tbody></table>`
+    ).join('')
+  }
 
-  const tabellHoaude = `<thead><tr><th>Stevne</th><th>Runde/Bane</th><th>Motstandar</th><th></th></tr></thead>`
+  const kommandeInnhald = grupperPerStevne(
+    kommande,
+    ks => `<a href="#/kamp/${ks.kamp.id}" class="btn btn-sm btn-primary">Scoreboard</a>`
+  )
+  const ferdigeInnhald = grupperPerStevne(
+    ferdige,
+    ks => `<a href="#/kamp/${ks.kamp.id}" class="btn btn-sm btn-outline-secondary">Sjå kamp</a>`
+  )
 
   return `
     <div class="card mb-4" id="mine-kampar-seksjon" data-kasterid="${kasterid}">
@@ -164,16 +181,10 @@ async function _mineKamparHtml(kasterid) {
           </li>
         </ul>
         <div id="fane-kommande">
-          ${kommande.length
-            ? `<table class="table table-sm">${tabellHoaude}<tbody>${kommandeRader}</tbody></table>`
-            : '<p class="text-muted">Ingen kommande kampar.</p>'
-          }
+          ${kommandeInnhald ?? '<p class="text-muted">Ingen kommande kampar.</p>'}
         </div>
         <div id="fane-ferdige" class="d-none">
-          ${ferdige.length
-            ? `<table class="table table-sm">${tabellHoaude}<tbody>${ferdigeRader}</tbody></table>`
-            : '<p class="text-muted">Ingen ferdige kampar enno.</p>'
-          }
+          ${ferdigeInnhald ?? '<p class="text-muted">Ingen ferdige kampar enno.</p>'}
         </div>
       </div>
     </div>`
