@@ -138,7 +138,7 @@ export async function renderScoreboard(container, kamp, p1ks, p2ks, { erArrangor
     const { p1Dis, p2Dis } = bereknKnappStatus(val1, val2)
     const kanNeste = kanRedigere && !kampFerdig && (val1 !== null || val2 !== null)
     const kanBekrefte = kampFerdig && !kamp.er_bekreftet && (erArrangor || erDeltakar) && !!onBekreft
-    const maxRinger = omgangar.length
+    const maxRinger = omgangar.length*2
 
     if (omgangEl) {
       omgangEl.textContent = kamp.er_bekreftet ? 'Bekrefta' : (kampFerdig ? 'Ferdig' : `Omgang ${nr}`)
