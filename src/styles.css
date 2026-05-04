@@ -1047,7 +1047,8 @@
 }
 
 .sb-kamp-wrapper {
-  min-height: 100dvh;
+  height: 100dvh;
+  overflow: hidden;
   background: #000;
   color: white;
   display: flex;
@@ -1134,6 +1135,7 @@
   background: #000;
   color: white;
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1142,11 +1144,14 @@
 .sb-wrap {
   display: flex;
   flex: 1;
+  min-height: 0;
   overflow: hidden;
 }
 
 .sb-spelar-panel {
   flex: 1;
+  min-height: 0;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1161,9 +1166,8 @@
 }
 
 .sb-spelar-namn {
-  font-size: clamp(1.1rem, 4vw, 2.2rem);
+  font-size: clamp(2.1rem, 4vw, 2.2rem);
   font-weight: bold;
-  text-decoration: underline;
   color: #4cff4c;
   text-align: center;
 }
@@ -1293,17 +1297,29 @@
 .sb-groen { color: #4cff4c; }
 .sb-rod   { color: #ff6b6b; }
 
-@media (min-width: 501px) {
-  .sb-score    { font-size: clamp(4rem, 10vw, 9rem); }
+@media (min-width: 801px) {
+  .sb-score { font-size: clamp(8rem, 20vw, 26rem); }
   .sb-poeng-btn {
-    width: clamp(54px, 8vw, 90px);
-    height: clamp(54px, 8vw, 90px);
-    font-size: clamp(1.4rem, 3vw, 2.4rem);
+    width: clamp(70px, 8vw, 120px);
+    height: clamp(70px, 8vw, 120px);
+    font-size: clamp(1.8rem, 3.5vw, 3.5rem);
   }
-  .sb-spelar-namn { font-size: clamp(1.1rem, 2.5vw, 2.2rem); }
+  .sb-spelar-namn { font-size: clamp(2rem, 4vw, 5rem); }
+  .sb-ringer-info { font-size: clamp(1rem, 2vw, 2rem); }
 }
 
-@media (max-width: 500px) {
+@media (min-width: 1500px) {
+  .sb-score { font-size: clamp(14rem, 22vw, 32rem); }
+  .sb-poeng-btn {
+    width: clamp(100px, 9vw, 160px);
+    height: clamp(100px, 9vw, 160px);
+    font-size: clamp(2.5rem, 4vw, 5rem);
+  }
+  .sb-spelar-namn { font-size: clamp(3rem, 5vw, 7rem); }
+  .sb-ringer-info { font-size: clamp(1.5rem, 2.5vw, 3rem); }
+}
+
+@media (max-width: 800px) {
   .sb-wrap {
     flex-direction: column;
   }
