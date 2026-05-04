@@ -1328,3 +1328,35 @@
     border-bottom: 1px solid #222;
   }
 }
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .sb-wrap {
+    flex-direction: row;
+  }
+  .sb-spelar-panel {
+    padding: 4px 8px;
+    gap: 4px;
+    border-right: 1px solid #222;
+    border-bottom: none;
+  }
+  .sb-spelar-panel:last-child { border-right: none; }
+  .sb-spelar-namn { font-size: clamp(1.5rem, 8vh, 3rem); }
+  .sb-score { font-size: clamp(4rem, 32vh, 12rem); }
+  .sb-ringer-info { display: none; }
+  .sb-knappar {
+    width: 90%;
+    gap: 4px;
+    flex-wrap: nowrap;
+  }
+  .sb-poeng-btn {
+    flex: 1;
+    width: auto;
+    height: clamp(44px, 13vh, 80px);
+    font-size: clamp(1.1rem, 5vh, 1.8rem);
+  }
+  .sb-angre-rad { padding: 2px 8px; }
+  .sb-neste-btn {
+    padding: clamp(6px, 1.5vh, 10px);
+    font-size: clamp(0.9rem, 2.5vh, 1.1rem);
+  }
+}
