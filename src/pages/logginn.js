@@ -97,7 +97,7 @@ export async function render(container) {
     }
 
     const redirect = new URLSearchParams(location.hash.split('?')[1] ?? '').get('redirect')
-    location.hash = redirect ? `#${redirect}` : '#/'
+    location.hash = redirect ? `#${redirect}` : '#/minside'
   })
 
   // Registrer
