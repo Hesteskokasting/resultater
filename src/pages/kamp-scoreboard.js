@@ -72,7 +72,7 @@ export async function render(container, { id } = {}) {
     { midtenId: 'sb-omgang-tittel' }
   )
 
-  container.querySelector('.sb-tilbake-btn').addEventListener('click', () => history.back())
+  container.addEventListener('click', e => { if (e.target.closest('.sb-tilbake-btn')) history.back() })
 
   const sbContainer = container.querySelector('#sb-container')
   const omgangEl = container.querySelector('#sb-omgang-tittel')
@@ -134,7 +134,6 @@ export async function render(container, { id } = {}) {
         <div class="alert alert-info">Ventar på neste kamp…</div>
       </div>`
     )
-    container.querySelector('.sb-tilbake-btn').addEventListener('click', () => history.back())
 
     const kanal = supabase
       .channel(`neste-kamp-${kampId}`)
