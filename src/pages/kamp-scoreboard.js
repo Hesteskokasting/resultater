@@ -47,24 +47,32 @@ export async function render(container, { id } = {}) {
 
   const stevneNavn = kamp.stevne?.navn ?? ''
 
-  container.innerHTML = `
-    <div class="sb-kamp-wrapper">
-      <div class="sb-kamp-topbar">
-        <div class="sb-kamp-topbar-venstre">
-          <button id="tilbake-btn" class="sb-tilbake-btn" aria-label="Tilbake">←</button>
-          <span class="sb-kamp-stevnenavn">${stevneNavn}</span>
+  function lagKampWrapper(midten, body, { midtenId = null } = {}) {
+    return `
+      <div class="sb-kamp-wrapper">
+        <div class="sb-kamp-topbar">
+          <div class="sb-kamp-topbar-venstre">
+            <button class="sb-tilbake-btn" aria-label="Tilbake">←</button>
+            <span class="sb-kamp-stevnenavn">${stevneNavn}</span>
+          </div>
+          <div${midtenId ? ` id="${midtenId}"` : ''} class="sb-kamp-topbar-midten">${midten}</div>
+          <div class="sb-kamp-topbar-høgre">
+            <span class="sb-kamp-info-full">Runde ${kamp.runde_nummer} - Bane ${kamp.bane_nummer}</span>
+            <span class="sb-kamp-info-kort">R${kamp.runde_nummer} - B${kamp.bane_nummer}</span>
+          </div>
         </div>
-        <div id="sb-omgang-tittel" class="sb-kamp-topbar-midten">Omgang 1</div>
-        <div class="sb-kamp-topbar-høgre">
-          <span class="sb-kamp-info-full">Runde ${kamp.runde_nummer} - Bane ${kamp.bane_nummer}</span>
-          <span class="sb-kamp-info-kort">R${kamp.runde_nummer} - B${kamp.bane_nummer}</span>
-        </div>
+        ${body}
       </div>
-      <div id="sb-container" class="sb-page"></div>
-    </div>
-  `
+    `
+  }
 
-  container.querySelector('#tilbake-btn').addEventListener('click', () => history.back())
+  container.innerHTML = lagKampWrapper(
+    'Omgang 1',
+    '<div id="sb-container" class="sb-page"></div>',
+    { midtenId: 'sb-omgang-tittel' }
+  )
+
+  container.querySelector('.sb-tilbake-btn').addEventListener('click', () => history.back())
 
   const sbContainer = container.querySelector('#sb-container')
   const omgangEl = container.querySelector('#sb-omgang-tittel')
@@ -119,26 +127,14 @@ export async function render(container, { id } = {}) {
 
   function visVentePaaNesteKamp() {
     sessionStorage.setItem(`ventar-neste-${kampId}`, '1')
-    container.innerHTML = `
-      <div class="sb-kamp-wrapper">
-        <div class="sb-kamp-topbar">
-          <div class="sb-kamp-topbar-venstre">
-            <button id="tilbake-btn-vente" class="sb-tilbake-btn" aria-label="Tilbake">←</button>
-            <span class="sb-kamp-stevnenavn">${stevneNavn}</span>
-          </div>
-          <div class="sb-kamp-topbar-midten">Fullført</div>
-          <div class="sb-kamp-topbar-høgre">
-            <span class="sb-kamp-info-full">Runde ${kamp.runde_nummer} - Bane ${kamp.bane_nummer}</span>
-            <span class="sb-kamp-info-kort">R${kamp.runde_nummer} - B${kamp.bane_nummer}</span>
-          </div>
-        </div>
-        <div style="padding:20px">
-          <div class="alert alert-success mb-3"><strong>Kampen er ferdig!</strong></div>
-          <div class="alert alert-info">Ventar på neste kamp…</div>
-        </div>
-      </div>
-    `
-    container.querySelector('#tilbake-btn-vente').addEventListener('click', () => history.back())
+    container.innerHTML = lagKampWrapper(
+      'Fullført',
+      `<div style="padding:20px">
+        <div class="alert alert-success mb-3"><strong>Kampen er ferdig!</strong></div>
+        <div class="alert alert-info">Ventar på neste kamp…</div>
+      </div>`
+    )
+    container.querySelector('.sb-tilbake-btn').addEventListener('click', () => history.back())
 
     const kanal = supabase
       .channel(`neste-kamp-${kampId}`)
