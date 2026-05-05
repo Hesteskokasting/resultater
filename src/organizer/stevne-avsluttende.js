@@ -4,6 +4,7 @@ import { beregnGyldigeGruppeStorrelsar, beregnCupStruktur } from '../utils/kaste
 import { genererCupRunde1, genererNesteCupRunde, genererFinaleOgBronsefinale } from './kampgenerering-db.js'
 import { opnNumberpad } from './score-numberpad.js'
 import { scoreForSp } from '../utils/kamp.js'
+import { slettKamperForFase } from '../utils/organizer-test-utils.js'
 
 let kanal = null
 
@@ -155,6 +156,7 @@ function renderHeader(stevne, stevneid, state) {
     <div class="d-flex align-items-center gap-2 mb-3 avsl-fase-header">
       <h5 class="mb-0 flex-grow-1">${stevne.navn} — Avsluttande fase</h5>
       ${handlingsHtml}
+      <button id="test-slett-avsl-btn" class="btn btn-sm btn-outline-danger">TEST: Slett kamper</button>
     </div>
   `
 }
@@ -494,6 +496,13 @@ function bindHeaderEvents(container, stevneid, stevne, alleInnlBekrefta, harGrup
     } catch (e) {
       alert('Feil: ' + e.message)
     }
+  })
+
+  container.querySelector('#test-slett-avsl-btn')?.addEventListener('click', async (e) => {
+    if (!confirm('Slett alle avsluttande kamper?')) return
+    e.currentTarget.disabled = true
+    await slettKamperForFase(stevneid, 'avsluttende')
+    await lastOgVis(container, stevneid)
   })
 }
 

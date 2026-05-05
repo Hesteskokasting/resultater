@@ -3,6 +3,7 @@ import { opnNumberpad } from './score-numberpad.js'
 import { beregnKampPoeng, hentP1P2, scoreForSp, ringerForSp, oppdaterResultatInnl } from '../utils/kamp.js'
 import { renderOrgNav } from './org-nav.js'
 import { genererNesteSwissRunde } from './kampgenerering-db.js'
+import { autoFullforInnledendeKamper, slettKamperForFase } from '../utils/organizer-test-utils.js'
 
 let kanal = null
 
@@ -95,6 +96,8 @@ async function lastOgVis(container, stevneid) {
         <h5 class="mb-0 flex-grow-1">${stevne.navn}</h5>
         ${erSwiss ? `<button id="neste-runde-btn" class="btn btn-sm btn-warning"${stevne.erfullfort || !erAlleKamperBekreftet ? ' disabled' : ''}>Generer neste runde</button>` : ''}
         <button id="fullfor-btn" class="btn btn-sm btn-primary"${stevne.erfullfort || !erAlleKamperBekreftet ?' disabled' : ''}>Fullfør turnering</button>
+        <button id="test-autofullfør-btn" class="btn btn-sm btn-outline-warning">TEST: Autofullfør</button>
+        <button id="test-slett-btn" class="btn btn-sm btn-outline-danger">TEST: Slett kamper</button>
       </div>
       <div class="d-flex gap-3 align-items-start">
         <div class="flex-grow-1">
@@ -108,6 +111,20 @@ async function lastOgVis(container, stevneid) {
   `
 
   container.querySelector('#fullfor-btn').addEventListener('click', () => fullforTurnering(container, stevneid))
+
+  container.querySelector('#test-autofullfør-btn')?.addEventListener('click', async (e) => {
+    if (!confirm('Autofullfør alle ubekreftede innledande kamper?')) return
+    e.currentTarget.disabled = true
+    await autoFullforInnledendeKamper(stevneid)
+    await lastOgVis(container, stevneid)
+  })
+
+  container.querySelector('#test-slett-btn')?.addEventListener('click', async (e) => {
+    if (!confirm('Slett alle innledande kamper?')) return
+    e.currentTarget.disabled = true
+    await slettKamperForFase(stevneid, 'innledende')
+    await lastOgVis(container, stevneid)
+  })
 
   if (erSwiss) {
     container.querySelector('#neste-runde-btn')?.addEventListener('click', async () => {
