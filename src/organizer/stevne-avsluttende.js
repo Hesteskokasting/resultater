@@ -554,54 +554,63 @@ async function bekreftCupKamp2Spelar(container, stevneid, kamp, sp, antallAktive
 
 function opnTreSpelarBekreftDialog(container, kamp, sp, stevneid, startnrMap, resultat, antallAktive) {
   const namns = sp.map(s => s?.kaster ? `${s.kaster.fornavn} ${s.kaster.etternavn}` : `Spelar ${s?.posisjon}`)
+  const valt = [] // kasterids i rekkefølgje (første = 1. plass)
 
   const modal = document.createElement('div')
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center'
-  modal.innerHTML = `
-    <div class="bg-white rounded p-4" style="min-width:320px;max-width:480px">
-      <h5 class="mb-3">Bekreft 3-spelar kamp</h5>
-      <p class="text-muted small mb-2">Vel rekkefølgja. Nr 1 og nr 2 går vidare. Nr 3 er eliminert.</p>
-      ${[1, 2, 3].map(plass => `
-        <div class="mb-2">
-          <label class="form-label mb-1">${plass === 1 ? '1. plass (vinnar)' : plass === 2 ? '2. plass' : '3. plass (eliminert)'}</label>
-          <select class="form-select" id="rekkefølge-${plass}">
-            <option value="">— vel spelar —</option>
-            ${sp.map((s, i) => `<option value="${s.kasterid}">${namns[i]}</option>`).join('')}
-          </select>
-        </div>`).join('')}
-      <div class="d-flex gap-2 mt-3">
-        <button id="bekreft-tre-btn" class="btn btn-success">Bekreft</button>
-        <button id="avbryt-tre-btn" class="btn btn-secondary">Avbryt</button>
-      </div>
-    </div>
-  `
   document.body.appendChild(modal)
 
-  modal.querySelector('#avbryt-tre-btn').addEventListener('click', () => modal.remove())
+  function render() {
+    const eliminert = valt.length === 2 ? sp.find(s => !valt.includes(s.kasterid)) : null
+    modal.innerHTML = `
+      <div class="card p-4" style="min-width:300px;max-width:420px;width:90vw">
+        <h5 class="card-title mb-1">Bekreft 3-spelar kamp</h5>
+        <p class="text-muted small mb-3">Vel dei to som går vidare. Den gjenverande er eliminert.</p>
+        <div class="d-flex flex-column gap-2 mb-3">
+          ${sp.map((s, i) => {
+            const idx = valt.indexOf(s.kasterid)
+            const erValt = idx !== -1
+            const erEliminert = !!eliminert && eliminert.kasterid === s.kasterid
+            const plasseringLabel = idx === 0 ? '1. plass' : idx === 1 ? '2. plass' : ''
+            return `<button
+              class="btn ${erValt ? 'btn-success' : erEliminert ? 'btn-outline-danger' : 'btn-outline-secondary'} text-start d-flex justify-content-between align-items-center"
+              data-kasterid="${s.kasterid}"
+              ${erEliminert ? 'disabled' : ''}
+            ><span>${namns[i]}</span>${
+              plasseringLabel ? `<span class="badge bg-success-subtle text-success-emphasis">${plasseringLabel}</span>` :
+              erEliminert ? `<span class="badge bg-danger">Eliminert</span>` : ''
+            }</button>`
+          }).join('')}
+        </div>
+        <div class="d-flex gap-2">
+          <button id="bekreft-tre-btn" class="btn btn-success" ${valt.length !== 2 ? 'disabled' : ''}>Bekreft</button>
+          <button id="avbryt-tre-btn" class="btn btn-secondary">Avbryt</button>
+        </div>
+      </div>
+    `
 
-  function oppdaterVal() {
-    for (let plass = 1; plass <= 3; plass++) {
-      const sel = modal.querySelector(`#rekkefølge-${plass}`)
-      const andreValt = [1, 2, 3].filter(p => p !== plass).map(p => modal.querySelector(`#rekkefølge-${p}`)?.value).filter(Boolean)
-      Array.from(sel.options).forEach(opt => {
-        opt.disabled = opt.value !== '' && andreValt.includes(opt.value)
+    modal.querySelector('#avbryt-tre-btn').addEventListener('click', () => modal.remove())
+
+    modal.querySelectorAll('[data-kasterid]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const kid = Number(btn.dataset.kasterid)
+        const idx = valt.indexOf(kid)
+        if (idx !== -1) valt.splice(idx, 1)
+        else if (valt.length < 2) valt.push(kid)
+        render()
       })
-    }
+    })
+
+    modal.querySelector('#bekreft-tre-btn')?.addEventListener('click', async () => {
+      if (valt.length !== 2) return
+      const eliminertId = sp.find(s => !valt.includes(s.kasterid))?.kasterid
+      modal.remove()
+      await _lagreCupKampResultat(stevneid, kamp, sp, [...valt], eliminertId, antallAktive)
+      await lastOgVis(container, stevneid)
+    })
   }
 
-  modal.querySelectorAll('select').forEach(s => s.addEventListener('change', oppdaterVal))
-
-  modal.querySelector('#bekreft-tre-btn').addEventListener('click', async () => {
-    const r1 = modal.querySelector('#rekkefølge-1')?.value
-    const r2 = modal.querySelector('#rekkefølge-2')?.value
-    const r3 = modal.querySelector('#rekkefølge-3')?.value
-    if (!r1 || !r2 || !r3) { alert('Vel rekkefølgje for alle spelarar.'); return }
-    if (new Set([r1, r2, r3]).size !== 3) { alert('Kvar spelar må velgast éin gong.'); return }
-
-    modal.remove()
-    await _lagreCupKampResultat(stevneid, kamp, sp, [parseInt(r1), parseInt(r2)], parseInt(r3), antallAktive)
-    await lastOgVis(container, stevneid)
-  })
+  render()
 }
 
 // --- Lagre cup-kamp-resultat ---
