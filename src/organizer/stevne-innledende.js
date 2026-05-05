@@ -30,6 +30,7 @@ async function lastOgVis(container, stevneid) {
         )
       `)
       .eq('stevneid', stevneid)
+      .eq('fase', 'innledende')
       .order('runde_nummer')
       .order('bane_nummer'),
     supabase.from('resultat')
