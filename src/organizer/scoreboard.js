@@ -230,8 +230,8 @@ export async function renderScoreboard(container, kamp, p1ks, p2ks, { erArrangor
     const nr = noverAndeOmgang()
     const s1 = val1 ?? 0
     const s2 = val2 ?? 0
-    const r1 = s1 === 3 ? 1 : s1 === 6 ? 2 : 0
-    const r2 = s2 === 3 ? 1 : s2 === 6 ? 2 : 0
+    const r1 = s1 === 6 ? 2 : (s1 === 3 || s1 === 4) ? 1 : 0
+    const r2 = s2 === 6 ? 2 : (s2 === 3 || s2 === 4) ? 1 : 0
 
     const inserts = []
     if (p1ks?.id) inserts.push({ kamp_spelar_id: p1ks.id, omgang: nr, score: s1, antall_ringer: r1 })
