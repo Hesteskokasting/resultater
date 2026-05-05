@@ -38,6 +38,12 @@
     - Pulje 2: 6-9
     - Pulje 3: 10-13
     - Walkover: 1
+4. Eksempel 3:
+- 4 spillere (2 spillere per bane)
+    - Pulje 1: 1-2
+    - Pulje 2: 3-4
+
+- Dersom seeding er slått av skal alle kampene genereres tilfeldig
 
 ## WALKOVER I CUP
 
