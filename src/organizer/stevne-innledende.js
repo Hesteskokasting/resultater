@@ -70,13 +70,13 @@ async function lastOgVis(container, stevneid) {
           startnummer: startnrMap[sp.kasterid] ?? null,
           kamp_poeng: 0,
           score_poeng: 0,
-          antall_ringer: 0,
+          antall_kamper: 0,
         }
       }
       if (kamp.er_bekreftet) {
         spelMap[sp.kasterid].kamp_poeng += sp.kamp_poeng
         spelMap[sp.kasterid].score_poeng += sp.score_poeng
-        spelMap[sp.kasterid].antall_ringer += sp.antall_ringer
+        spelMap[sp.kasterid].antall_kamper += 1
       }
     }
   }
@@ -264,7 +264,7 @@ function renderStilling(stilling) {
               <td>${i + 1}</td>
               <td>${s.startnummer ?? ''}</td>
               <td>${s.namn}</td>
-              <td class="text-center">${s.antall_ringer}</td>
+              <td class="text-center">${s.antall_kamper}</td>
               <td class="text-center">${s.kamp_poeng}</td>
               <td class="text-center">${s.score_poeng}</td>
             </tr>`).join('')}
