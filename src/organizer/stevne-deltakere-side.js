@@ -44,8 +44,7 @@ function createPlayerColumn(title) {
   titleEl.className = 'fw-bold mb-1'
 
   const tableWrapper = document.createElement('div')
-  tableWrapper.className = 'border rounded overflow-auto'
-  tableWrapper.style.maxHeight = '500px'
+  tableWrapper.className = 'border rounded deltaker-tabell-wrapper'
 
   const table = document.createElement('table')
   table.className = 'table table-sm table-hover table-bordered mb-0'
@@ -66,18 +65,16 @@ function createSelectedPlayerRow(player, onRemove, disabled = false) {
   clubCell.textContent = player.klubb?.navn ?? ''
 
   const actionCell = document.createElement('td')
-  actionCell.className = 'text-center'
-  actionCell.style.width = '40px'
+  actionCell.className = 'text-center th-40'
 
   if (!disabled) {
     const removeBtn = document.createElement('button')
     removeBtn.innerHTML = '&times;'
-    removeBtn.className = 'btn btn-danger btn-sm rounded-circle p-0 lh-1'
-    removeBtn.style.cssText = 'width:22px;height:22px;font-size:14px'
+    removeBtn.className = 'btn btn-danger btn-sm rounded-circle p-0 lh-1 deltaker-fjern-btn'
     removeBtn.title = 'Fjern spelar'
     removeBtn.addEventListener('click', (e) => { e.stopPropagation(); onRemove(player) })
     actionCell.appendChild(removeBtn)
-    row.style.cursor = 'pointer'
+    row.classList.add('deltaker-rad')
     row.addEventListener('click', (e) => { if (e.target !== removeBtn) onRemove(player) })
   }
 
@@ -97,7 +94,7 @@ function createAvailablePlayerRow(player, onSelect, disabled = false) {
   clubCell.textContent = player.klubb?.navn ?? 'Ingen klubb'
 
   if (!disabled) {
-    row.style.cursor = 'pointer'
+    row.classList.add('deltaker-rad')
     row.addEventListener('click', () => onSelect(player))
   }
 
@@ -118,7 +115,7 @@ function createEmptyRow(message) {
 
 export async function render(container, { id } = {}) {
   const stevneid = Number(id)
-  container.innerHTML = '<p style="text-align:center;margin-top:40px;">Laster…</p>'
+  container.innerHTML = '<p class="laster">Laster…</p>'
 
   const [{ data: stevne }, { data: pameldingar }] = await Promise.all([
     supabase.from('stevne').select('id, navn, stevne_fase').eq('id', stevneid).single(),
@@ -130,7 +127,7 @@ export async function render(container, { id } = {}) {
   await loadKasterPlayers()
 
   if (!stevne) {
-    container.innerHTML = '<p style="text-align:center;margin-top:40px;color:red;">Stevne ikkje funne.</p>'
+    container.innerHTML = '<p class="feil">Stevne ikkje funne.</p>'
     return
   }
 

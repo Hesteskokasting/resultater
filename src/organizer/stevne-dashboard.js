@@ -2,6 +2,7 @@ import { supabase } from '../supabase.js'
 import { renderOrgNav } from './org-nav.js'
 import { genererInnledendeKamper } from './kampgenerering-db.js'
 import { formaterDatoNumeric, formaterTid } from '../utils/shared.js'
+import { renderOrgBanner } from './org-shared.js'
 
 const faseLabel = {
   ikke_startet: '<span class="badge bg-secondary">Ikkje starta</span>',
@@ -11,7 +12,7 @@ const faseLabel = {
 
 export async function render(container, { id } = {}) {
   const stevneid = Number(id)
-  container.innerHTML = '<p style="text-align:center;margin-top:40px;">Laster…</p>'
+  container.innerHTML = '<p class="laster">Laster…</p>'
 
   const [{ data: stevne }, { count: antallSpelarar }] = await Promise.all([
     supabase.from('stevne')
@@ -28,7 +29,7 @@ export async function render(container, { id } = {}) {
   ])
 
   if (!stevne) {
-    container.innerHTML = '<p style="text-align:center;margin-top:40px;color:red;">Stevne ikkje funne.</p>'
+    container.innerHTML = '<p class="feil">Stevne ikkje funne.</p>'
     return
   }
 
@@ -38,11 +39,13 @@ export async function render(container, { id } = {}) {
   const metodeNavn = stevne.kastemetodeInnl?.navn ?? '—'
   const erCascade = metodeNavn.toLowerCase().includes('gloppen')
 
+  const knapperHtml = ikkjeStarta ? `<button id="start-stevne-btn" class="btn btn-sm btn-success">Start stevne</button>` : ''
+
   container.innerHTML = `
     <div class="container-fluid py-3">
       ${renderOrgNav(stevneid, 'info')}
-      <h4 class="mb-3">${stevne.navn} ${badge}</h4>
-      <div class="card mb-3" style="max-width:480px">
+      ${renderOrgBanner(`${stevne.navn} ${badge}`, knapperHtml)}
+      <div class="card mb-3 org-max-480">
         <div class="card-body">
           <table class="table table-sm mb-0">
             <tbody>
@@ -57,7 +60,6 @@ export async function render(container, { id } = {}) {
           </table>
         </div>
       </div>
-      ${ikkjeStarta ? `<button id="start-stevne-btn" class="btn btn-success">Start stevne</button>` : ''}
     </div>
   `
 

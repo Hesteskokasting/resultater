@@ -5,6 +5,7 @@ import { genererCupRunde1, genererNesteCupRunde, genererFinaleOgBronsefinale } f
 import { opnNumberpad } from './score-numberpad.js'
 import { scoreForSp } from '../utils/kamp.js'
 import { slettKamperForFase } from '../utils/organizer-test-utils.js'
+import { renderOrgBanner, sorterStilling } from './org-shared.js'
 
 let kanal = null
 
@@ -56,11 +57,9 @@ async function lastOgVis(container, stevneid) {
   const harFinale = avslKampar.some(k => k.runde_navn === 'Finale')
   const finaleOgBronseBekrefta = harFinale && avslKampar.filter(k => k.runde_navn === 'Finale' || k.runde_navn === 'Bronsefinale').every(k => k.er_bekreftet)
 
-  // Gruppeinfo-map
   const gruppeNavnMap = Object.fromEntries((grupper ?? []).map(g => [g.navn, g.id]))
   const startnrMap = Object.fromEntries((resultat ?? []).map(r => [r.kasterid, r.startnummer]))
 
-  // Bygg namns-map frå kamp_spelar-data
   const namnMap = {}
   for (const k of (kampar ?? [])) {
     for (const sp of k.spelarar ?? []) {
@@ -69,13 +68,17 @@ async function lastOgVis(container, stevneid) {
       }
     }
   }
-  // Berik resultat med namn
   const resultatMedNamn = (resultat ?? []).map(r => ({ ...r, _namn: namnMap[r.kasterid] ?? `Spelar ${r.kasterid}` }))
 
-  // --- Stilling ---
-  const stilling = beregnStilling(resultatMedNamn, avslKampar)
+  const stilling = sorterStilling(
+    resultatMedNamn.map(r => ({
+      ...r,
+      kamp_poeng: r.kamp_poeng_innl ?? 0,
+      score_poeng: r.score_poeng_innl ?? 0,
+    })),
+    innlKampar
+  )
 
-  // --- Render ---
   container.innerHTML = `
     <div class="px-3 py-2">
       ${renderOrgNav(stevneid, 'avsluttende')}
@@ -92,25 +95,6 @@ async function lastOgVis(container, stevneid) {
     bindKampEvents(container, stevneid, avslKampar, startnrMap, resultatMedNamn, aktive.length)
     abonnerPaaEndringar(container, stevneid)
   }
-}
-
-// --- Stilling ---
-
-function beregnStilling(resultat, avslKampar) {
-  const bekrefta = avslKampar.filter(k => k.er_bekreftet)
-  return [...resultat].sort((a, b) => {
-    const aAktiv = a.runde_eliminert == null
-    const bAktiv = b.runde_eliminert == null
-    if (aAktiv !== bAktiv) return aAktiv ? -1 : 1
-    if (aAktiv) {
-      // Aktive: sorter etter kamp_poeng_innl, score_poeng_innl
-      return (b.kamp_poeng_innl ?? 0) - (a.kamp_poeng_innl ?? 0)
-        || (b.score_poeng_innl ?? 0) - (a.score_poeng_innl ?? 0)
-    }
-    // Eliminerte: sorter etter runde_eliminert DESC (seinare = betre)
-    return (b.runde_eliminert ?? 0) - (a.runde_eliminert ?? 0)
-      || (a.startnummer ?? 0) - (b.startnummer ?? 0)
-  })
 }
 
 // --- Header med handlingsknapp ---
@@ -152,13 +136,12 @@ function renderHeader(stevne, stevneid, state) {
     `
   }
 
-  return `
-    <div class="d-flex align-items-center gap-2 mb-3 avsl-fase-header">
-      <h5 class="mb-0 flex-grow-1">${stevne.navn} — Avsluttande fase</h5>
-      ${handlingsHtml}
-      <button id="test-slett-avsl-btn" class="btn btn-sm btn-outline-danger">TEST: Slett kamper</button>
-    </div>
+  const knapperHtml = `
+    ${handlingsHtml}
+    <button id="test-slett-avsl-btn" class="btn btn-sm btn-outline-danger">TEST: Slett kamper</button>
   `
+
+  return renderOrgBanner(`${stevne.navn} — Avsluttande fase`, knapperHtml)
 }
 
 // --- Gruppefordeling-UI ---
@@ -167,7 +150,6 @@ function renderGruppefordeling(resultat) {
   const n = resultat.length
   const splits = beregnGyldigeGruppeStorrelsar(n)
 
-  // Sorter resultat etter innledende plassering (kamp_poeng_innl DESC, score_poeng_innl DESC)
   const sortert = [...resultat].sort((a, b) =>
     (b.kamp_poeng_innl ?? 0) - (a.kamp_poeng_innl ?? 0) ||
     (b.score_poeng_innl ?? 0) - (a.score_poeng_innl ?? 0) ||
@@ -285,15 +267,8 @@ function renderHovudinnhald(avslKampar, stilling, startnrMap) {
     rundeMap.get(k.runde_nummer).push(k)
   }
 
-  const gruppeNamn = (rKampar) => {
-    const g = rKampar[0]?.gruppe_navn
-    return g ? ` — Gruppe ${g}` : ''
-  }
-
-  // Group by runde, then within runde by gruppe
   const rundeHtml = [...rundeMap.entries()].map(([nr, rKampar]) => {
     const runde_namn = rKampar[0]?.runde_navn ?? `Runde ${nr}`
-    // Split by gruppe_navn
     const etter_gruppe = {}
     for (const k of rKampar) {
       const g = k.gruppe_navn ?? '_'
@@ -345,7 +320,7 @@ function kampRad(kamp, startnrMap) {
 
   const spelarListe = kamp.er_walkover
     ? `${spelerNamn(sp[0])} <span class="badge bg-secondary">Walkover</span>`
-    : sp.map((s, i) => {
+    : sp.map((s) => {
         const tot = scoreForSp(s)
         const score = kamp.er_bekreftet || tot > 0 ? ` <span class="badge bg-light text-dark">${tot}</span>` : ''
         return `${spelerNamn(s)}${score}`
@@ -409,7 +384,6 @@ function renderStilling(stilling) {
 // --- Event binding ---
 
 function bindHeaderEvents(container, stevneid, stevne, alleInnlBekrefta, harGruppefordeling, harAvslKampar, resultat, grupper, gruppeNavnMap) {
-  // Start avsluttende fase
   container.querySelector('#start-avsl-btn')?.addEventListener('click', async () => {
     if (!alleInnlBekrefta) return
     const { error } = await supabase.from('stevne').update({ stevne_fase: 'avsluttende' }).eq('id', stevneid)
@@ -417,7 +391,6 @@ function bindHeaderEvents(container, stevneid, stevne, alleInnlBekrefta, harGrup
     await lastOgVis(container, stevneid)
   })
 
-  // Gruppefordeling
   if (!harGruppefordeling && stevne.stevne_fase === 'avsluttende') {
     const n = resultat.length
     const sortert = [...resultat].sort((a, b) =>
@@ -425,7 +398,6 @@ function bindHeaderEvents(container, stevneid, stevne, alleInnlBekrefta, harGrup
       (b.score_poeng_innl ?? 0) - (a.score_poeng_innl ?? 0)
     )
 
-    // Oppdater preview ved val-endring
     container.querySelectorAll('input[name="gruppe-split"]').forEach(radio => {
       radio.addEventListener('change', () => {
         const nA = parseInt(radio.value)
@@ -455,17 +427,14 @@ function bindHeaderEvents(container, stevneid, stevne, alleInnlBekrefta, harGrup
       const err = results.find(r => r.error)?.error
       if (err) { alert('Feil: ' + err.message); return }
 
-      // Vis runde 1-generator med seeding-val
       await lastOgVis(container, stevneid)
     })
   }
 
-  // Neste runde
   container.querySelector('#neste-runde-btn')?.addEventListener('click', async () => {
     const medSeeding = container.querySelector('#seeding-toggle')?.checked ?? true
     try {
       if (!harAvslKampar) {
-        // Runde 1: bygg grupper frå resultat
         const sortert = [...resultat].sort((a, b) =>
           (b.kamp_poeng_innl ?? 0) - (a.kamp_poeng_innl ?? 0) ||
           (b.score_poeng_innl ?? 0) - (a.score_poeng_innl ?? 0)
@@ -488,7 +457,6 @@ function bindHeaderEvents(container, stevneid, stevne, alleInnlBekrefta, harGrup
     }
   })
 
-  // Generer finale
   container.querySelector('#generer-finale-btn')?.addEventListener('click', async () => {
     try {
       await genererFinaleOgBronsefinale(stevneid)
@@ -510,7 +478,6 @@ function bindKampEvents(container, stevneid, avslKampar, startnrMap, resultat, a
   for (const kamp of avslKampar) {
     const sp = (kamp.spelarar ?? []).sort((a, b) => a.posisjon - b.posisjon)
 
-    // + knapp (2-spelar, enter scores via numberpad)
     container.querySelector(`#plus-${kamp.id}`)?.addEventListener('click', async () => {
       const p1 = sp[0]
       const p2 = sp[1]
@@ -525,12 +492,10 @@ function bindKampEvents(container, stevneid, avslKampar, startnrMap, resultat, a
       })
     })
 
-    // Scoreboard-knapp
     container.querySelector(`#scoreboard-${kamp.id}`)?.addEventListener('click', () => {
       location.hash = `#/kamp/${kamp.id}`
     })
 
-    // Bekreft-knapp
     container.querySelector(`#bekrft-${kamp.id}`)?.addEventListener('click', () => {
       if (kamp.er_tre_spelarar) {
         opnTreSpelarBekreftDialog(container, kamp, sp, stevneid, startnrMap, resultat, antallAktive)
@@ -547,7 +512,6 @@ async function bekreftCupKamp2Spelar(container, stevneid, kamp, sp, antallAktive
   const p1 = sp[0]
   const p2 = sp[1]
 
-  // Hent oppdaterte scores frå DB
   const { data: aktuellSp } = await supabase
     .from('kamp_spelar')
     .select('id, kasterid, score_poeng, antall_ringer, omgangar:kamp_omgang(score, antall_ringer)')
@@ -572,7 +536,7 @@ async function bekreftCupKamp2Spelar(container, stevneid, kamp, sp, antallAktive
 
 function opnTreSpelarBekreftDialog(container, kamp, sp, stevneid, startnrMap, resultat, antallAktive) {
   const namns = sp.map(s => s?.kaster ? `${s.kaster.fornavn} ${s.kaster.etternavn}` : `Spelar ${s?.posisjon}`)
-  const valt = [] // kasterids i rekkefølgje (første = 1. plass)
+  const valt = []
 
   const modal = document.createElement('div')
   modal.className = 'avsl-dialog-overlay'
@@ -647,7 +611,6 @@ async function _lagreCupKampResultat(stevneid, kamp, sp, vidareIds, eliminertId,
     .update(elimUpdate)
     .eq('stevneid', stevneid).eq('kasterid', eliminertId)
 
-  // Sett plassering for vinnaren av Finale
   if (kamp.runde_navn === 'Finale' && vidareIds.length > 0) {
     await supabase.from('resultat')
       .update({ plassering: 1 })

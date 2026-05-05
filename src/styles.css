@@ -662,6 +662,24 @@
   margin-top: 40px;
 }
 
+/* ── Organizer felles ── */
+
+.org-fase-header {
+  background: var(--primaer);
+  color: var(--primaer-text);
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+}
+
+.org-stilling-sidebar { width: 400px; flex-shrink: 0; }
+.org-max-480 { max-width: 480px; }
+
+/* ── Deltakere-side ── */
+
+.deltaker-tabell-wrapper { max-height: 500px; overflow: auto; }
+.deltaker-rad { cursor: pointer; }
+.deltaker-fjern-btn { width: 22px; height: 22px; font-size: 14px; }
+
 /* ── Norgescupen ── */
 
 .nc-side { padding-bottom: 40px; }
@@ -1366,6 +1384,7 @@
 .th-28  { width: 28px; }
 .th-32  { width: 32px; }
 .th-36  { width: 36px; }
+.th-40  { width: 40px; }
 .th-44  { width: 44px; }
 .th-48  { width: 48px; }
 .th-50  { width: 50px; }
@@ -1374,12 +1393,6 @@
 
 /* ── Avsluttande fase ── */
 
-.avsl-fase-header {
-  background: var(--primaer);
-  color: var(--primaer-text);
-  padding: 0.5rem 0.75rem;
-  border-radius: 0.375rem;
-}
 
 .avsl-gruppe-kol  { flex: 1 1 0; min-width: 0; }
 .avsl-stilling-kol { width: 360px; flex-shrink: 0; }

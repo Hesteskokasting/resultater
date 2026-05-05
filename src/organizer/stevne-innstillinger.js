@@ -3,7 +3,7 @@ import { renderOrgNav } from './org-nav.js'
 
 export async function render(container, { id } = {}) {
   const stevneid = Number(id)
-  container.innerHTML = '<p style="text-align:center;margin-top:40px;">Laster…</p>'
+  container.innerHTML = '<p class="laster">Laster…</p>'
 
   const [{ data: stevne }, { data: metodar }] = await Promise.all([
     supabase.from('stevne')
@@ -17,7 +17,7 @@ export async function render(container, { id } = {}) {
   ])
 
   if (!stevne) {
-    container.innerHTML = '<p style="text-align:center;margin-top:40px;color:red;">Stevne ikkje funne.</p>'
+    container.innerHTML = '<p class="feil">Stevne ikkje funne.</p>'
     return
   }
 
@@ -34,7 +34,7 @@ export async function render(container, { id } = {}) {
     <div class="container-fluid py-3">
       ${renderOrgNav(stevneid, 'innstillinger')}
       <h4 class="mb-3">Innstillingar</h4>
-      <form id="innstillingar-form" style="max-width:480px">
+      <form id="innstillingar-form" class="org-max-480">
         <div class="mb-3">
           <label class="form-label fw-semibold">Kastemetode innledande</label>
           <select id="innl-metode" class="form-select">
@@ -55,7 +55,7 @@ export async function render(container, { id } = {}) {
             value="${stevne.antall_runder_innl ?? ''}" placeholder="t.d. 6">
         </div>
         <button type="submit" class="btn btn-primary">Lagre</button>
-        <span id="lagre-status" class="ms-3 text-success" style="display:none">Lagra ✓</span>
+        <span id="lagre-status" class="ms-3 text-success d-none">Lagra ✓</span>
       </form>
     </div>
   `
@@ -83,7 +83,7 @@ export async function render(container, { id } = {}) {
     }
 
     const status = container.querySelector('#lagre-status')
-    status.style.display = ''
-    setTimeout(() => { status.style.display = 'none' }, 2000)
+    status.classList.remove('d-none')
+    setTimeout(() => { status.classList.add('d-none') }, 2000)
   })
 }
