@@ -10,3 +10,6 @@
 
 ## GIT
 - Ikkje stage, lag commit, push, pull osv med mindre eg ber om det spesifikt
+
+## CSS
+- All css skal være i .css filer. Ikke bruk css i javascript-filer, med mindre det er høgst nødvendig.

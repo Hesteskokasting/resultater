@@ -9,7 +9,7 @@ let kanal = null
 
 export async function render(container, { id } = {}) {
   if (kanal) { supabase.removeChannel(kanal); kanal = null }
-  container.innerHTML = '<p style="text-align:center;margin-top:40px;">Laster…</p>'
+  container.innerHTML = '<p class="laster">Laster…</p>'
   await lastOgVis(container, Number(id))
 }
 
@@ -35,7 +35,7 @@ async function lastOgVis(container, stevneid) {
   ])
 
   if (!stevne) {
-    container.innerHTML = '<p style="text-align:center;margin-top:40px;color:red;">Stevne ikkje funne.</p>'
+    container.innerHTML = '<p class="feil">Stevne ikkje funne.</p>'
     return
   }
 
@@ -81,7 +81,7 @@ async function lastOgVis(container, stevneid) {
       ${renderHeader(stevne, stevneid, { alleInnlBekrefta, harAvslKampar, harGruppefordeling, erSisteRundeFullfort, aktive, harSemfinale, semfinalarBekrefta, harFinale, finaleOgBronseBekrefta })}
       ${harAvslKampar && harGruppefordeling ? renderHovudinnhald(avslKampar, stilling, startnrMap) : ''}
       ${stevne.stevne_fase === 'avsluttende' && !harGruppefordeling ? renderGruppefordeling(resultatMedNamn) : ''}
-      ${stevne.stevne_fase === 'avsluttende' && harGruppefordeling && !harAvslKampar ? `<div style="max-width:400px">${renderStilling(stilling)}</div>` : ''}
+      ${stevne.stevne_fase === 'avsluttende' && harGruppefordeling && !harAvslKampar ? `<div class="avsl-stilling-einzel">${renderStilling(stilling)}</div>` : ''}
     </div>
   `
 
@@ -152,7 +152,7 @@ function renderHeader(stevne, stevneid, state) {
   }
 
   return `
-    <div class="d-flex align-items-center gap-2 mb-3" style="background:#1e4976;color:white;padding:.5rem .75rem;border-radius:.375rem">
+    <div class="d-flex align-items-center gap-2 mb-3 avsl-fase-header">
       <h5 class="mb-0 flex-grow-1">${stevne.navn} — Avsluttande fase</h5>
       ${handlingsHtml}
     </div>
@@ -190,7 +190,7 @@ function renderGruppefordeling(resultat) {
   return `
     <div id="gruppe-val-wrapper">
       <h5 class="text-center mb-3">Velg gruppestørrelser for sluttspill</h5>
-      <div class="card mb-3" style="max-width:600px;margin:auto">
+      <div class="card mb-3 avsl-maks-600">
         <div class="card-body">
           ${splitOptions}
         </div>
@@ -221,9 +221,9 @@ function renderGruppePreview(sortert, nA) {
 
   const tabellHeader = `
     <thead class="table-dark"><tr>
-      <th style="width:32px">#</th><th style="width:36px">S</th><th>NAMN</th>
-      <th style="width:44px" class="text-center">KP</th>
-      <th style="width:44px" class="text-center">SP</th>
+      <th class="th-32">#</th><th class="th-36">S</th><th>NAMN</th>
+      <th class="th-44 text-center">KP</th>
+      <th class="th-44 text-center">SP</th>
     </tr></thead>`
 
   const tabellA = `
@@ -240,11 +240,11 @@ function renderGruppePreview(sortert, nA) {
 
   return `
     <div class="d-flex gap-3 flex-wrap">
-      <div style="flex:1 1 0;min-width:0">
+      <div class="avsl-gruppe-kol">
         <h6 class="fw-bold text-center">GRUPPE A (${gruppeA.length})</h6>
         ${tabellA}
       </div>
-      ${gruppeB.length ? `<div style="flex:1 1 0;min-width:0">
+      ${gruppeB.length ? `<div class="avsl-gruppe-kol">
         <h6 class="fw-bold text-center">GRUPPE B (${gruppeB.length})</h6>
         ${tabellB}
       </div>` : ''}
@@ -264,7 +264,7 @@ function renderStrukturPreview(nA, nB) {
   }
 
   return `
-    <div class="card" style="max-width:600px;margin:auto">
+    <div class="card avsl-maks-600">
       <div class="card-body">
         <strong>Sluttspillstruktur:</strong>
         ${renderGruppeStruktur('Gruppe A', strukturA)}
@@ -308,7 +308,7 @@ function renderHovudinnhald(avslKampar, stilling, startnrMap) {
   return `
     <div class="d-flex gap-3 align-items-start">
       <div class="flex-grow-1">${rundeHtml}</div>
-      <div style="width:360px;flex-shrink:0">${renderStilling(stilling)}</div>
+      <div class="avsl-stilling-kol">${renderStilling(stilling)}</div>
     </div>`
 }
 
@@ -319,9 +319,9 @@ function renderRunde(tittel, kampar, startnrMap) {
       <table class="table table-bordered table-sm mb-0 bg-white">
         <thead class="table-dark">
           <tr>
-            <th style="width:36px" class="text-center">B</th>
+            <th class="th-36 text-center">B</th>
             <th>Spelarar</th>
-            <th style="width:120px"></th>
+            <th class="th-120"></th>
           </tr>
         </thead>
         <tbody>
@@ -372,24 +372,33 @@ function renderStilling(stilling) {
       <table class="table table-bordered table-sm mb-0 bg-white">
         <thead class="table-dark">
           <tr>
-            <th style="width:28px">#</th>
-            <th style="width:28px">S</th>
+            <th class="th-28">#</th>
+            <th class="th-28">S</th>
             <th>NAMN</th>
-            <th style="width:28px" class="text-center">G</th>
-            <th style="width:44px" class="text-center">KP</th>
-            <th style="width:44px" class="text-center">SP</th>
+            <th class="th-28 text-center">G</th>
+            <th class="th-44 text-center">KP</th>
+            <th class="th-44 text-center">SP</th>
           </tr>
         </thead>
         <tbody>
-          ${stilling.map((r, i) => `
-            <tr class="${r.runde_eliminert != null ? 'table-secondary text-muted' : ''}">
-              <td>${r.runde_eliminert != null ? (r.plassering ?? '—') : i + 1}</td>
-              <td>${r.startnummer ?? ''}</td>
-              <td>${r._namn ?? `Spelar ${r.kasterid}`}</td>
-              <td class="text-center">${r.gruppe?.navn ?? ''}</td>
-              <td class="text-center">${r.kamp_poeng_innl ?? 0}</td>
-              <td class="text-center">${r.score_poeng_innl ?? 0}</td>
-            </tr>`).join('')}
+          ${(() => {
+            const aktivCount = stilling.filter(r => r.runde_eliminert == null).length
+            return stilling.map((r, i) => {
+              const erEliminert = r.runde_eliminert != null
+              const erForsteEliminerte = erEliminert && i === aktivCount
+              const separator = erForsteEliminerte
+                ? `<tr><td colspan="6" class="avsl-elim-separator"></td></tr>`
+                : ''
+              return separator + `<tr>
+                <td${erEliminert ? ' class="avsl-elim-plass"' : ''}>${i + 1}</td>
+                <td>${r.startnummer ?? ''}</td>
+                <td>${r._namn ?? `Spelar ${r.kasterid}`}</td>
+                <td class="text-center">${r.gruppe?.navn ?? ''}</td>
+                <td class="text-center">${r.kamp_poeng_innl ?? 0}</td>
+                <td class="text-center">${r.score_poeng_innl ?? 0}</td>
+              </tr>`
+            }).join('')
+          })()}
         </tbody>
       </table>
     </div>`
@@ -557,13 +566,13 @@ function opnTreSpelarBekreftDialog(container, kamp, sp, stevneid, startnrMap, re
   const valt = [] // kasterids i rekkefølgje (første = 1. plass)
 
   const modal = document.createElement('div')
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center'
+  modal.className = 'avsl-dialog-overlay'
   document.body.appendChild(modal)
 
   function render() {
     const eliminert = valt.length === 2 ? sp.find(s => !valt.includes(s.kasterid)) : null
     modal.innerHTML = `
-      <div class="card p-4" style="min-width:300px;max-width:420px;width:90vw">
+      <div class="card p-4 avsl-dialog-card">
         <h5 class="card-title mb-1">Bekreft 3-spelar kamp</h5>
         <p class="text-muted small mb-3">Vel dei to som går vidare. Den gjenverande er eliminert.</p>
         <div class="d-flex flex-column gap-2 mb-3">
@@ -620,14 +629,13 @@ async function _lagreCupKampResultat(stevneid, kamp, sp, vidareIds, eliminertId,
 
   if (!eliminertId) return
 
-  // Set runde_eliminert for den eliminerte
   const erFinale = kamp.runde_navn === 'Finale' || kamp.runde_navn === 'Bronsefinale'
-  const plassering = erFinale
-    ? (kamp.runde_navn === 'Finale' ? 2 : 4)
-    : antallAktive  // omtrentleg plassering = aktive når eliminert
+  const elimUpdate = erFinale
+    ? { runde_eliminert: kamp.runde_nummer, plassering: kamp.runde_navn === 'Finale' ? 2 : 4 }
+    : { runde_eliminert: kamp.runde_nummer }
 
   await supabase.from('resultat')
-    .update({ runde_eliminert: kamp.runde_nummer, plassering })
+    .update(elimUpdate)
     .eq('stevneid', stevneid).eq('kasterid', eliminertId)
 
   // Sett plassering for vinnaren av Finale

@@ -231,12 +231,12 @@ export async function render(container, { id } = {}) {
         .is('runde_eliminert', null)
 
       const erFinaleRunde = kamp.runde_navn === 'Finale' || kamp.runde_navn === 'Bronsefinale'
-      const plassering = erFinaleRunde
-        ? (kamp.runde_navn === 'Finale' ? 2 : 4)
-        : (count ?? 0)
+      const elimUpdate = erFinaleRunde
+        ? { runde_eliminert: kamp.runde_nummer, plassering: kamp.runde_navn === 'Finale' ? 2 : 4 }
+        : { runde_eliminert: kamp.runde_nummer }
 
       await supabase.from('resultat')
-        .update({ runde_eliminert: kamp.runde_nummer, plassering })
+        .update(elimUpdate)
         .eq('stevneid', kamp.stevneid).eq('kasterid', eliminertId)
 
       if (kamp.runde_navn === 'Finale') {
