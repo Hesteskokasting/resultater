@@ -14,6 +14,11 @@ export async function genererInnledendeKamper(stevneid, kastemetodeNavn, antallR
   if (error) throw new Error('Feil ved henting av påmelding: ' + error.message)
   if (!pameldingar?.length) throw new Error('Ingen spelarar påmelde.')
 
+  for (let i = pameldingar.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pameldingar[i], pameldingar[j]] = [pameldingar[j], pameldingar[i]]
+  }
+
   const N = pameldingar.length
   const posToKasterid = {}
   const resultatRows = pameldingar.map((p, i) => {
