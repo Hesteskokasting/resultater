@@ -44,6 +44,7 @@ export async function render(container, { id } = {}) {
 
   const p1ks = spelarar.find(s => s.posisjon === 1) ?? spelarar[0] ?? null
   const p2ks = spelarar.find(s => s.posisjon === 2) ?? spelarar[1] ?? null
+  const p3ks = kamp.er_tre_spelarar ? (spelarar.find(s => s.posisjon === 3) ?? spelarar[2] ?? null) : null
 
   const stevneNavn = kamp.stevne?.navn ?? ''
 
@@ -167,7 +168,17 @@ export async function render(container, { id } = {}) {
     }
   }
 
-  async function onBekreft() {
+  // orderedKasterids: brukt berre for 3-spelar cup (rekkefølgje: [1.plass, 2.plass, 3.plass])
+  async function onBekreft(orderedKasterids = null) {
+    if (kamp.fase === 'avsluttende') {
+      await _bekreftAvsluttendeFraScoreboard(orderedKasterids)
+    } else {
+      await _bekreftInnledende()
+    }
+    await navigerTilNesteKamp()
+  }
+
+  async function _bekreftInnledende() {
     const ids = [p1ks?.id, p2ks?.id].filter(Boolean)
     const { data: omgData } = await supabase
       .from('kamp_omgang')
@@ -176,21 +187,14 @@ export async function render(container, { id } = {}) {
 
     let t1 = 0, t2 = 0, r1 = 0, r2 = 0
     for (const row of (omgData ?? [])) {
-      if (row.kamp_spelar_id === p1ks?.id) {
-        t1 += row.score ?? 0
-        r1 += row.antall_ringer ?? 0
-      } else {
-        t2 += row.score ?? 0
-        r2 += row.antall_ringer ?? 0
-      }
+      if (row.kamp_spelar_id === p1ks?.id) { t1 += row.score ?? 0; r1 += row.antall_ringer ?? 0 }
+      else { t2 += row.score ?? 0; r2 += row.antall_ringer ?? 0 }
     }
 
     const [kp1, kp2] = beregnKampPoeng(t1, t2)
     const kasterids = [p1ks?.kasterid, p2ks?.kasterid].filter(Boolean)
 
-    const updates = [
-      supabase.from('kamp').update({ er_bekreftet: true }).eq('id', kampId),
-    ]
+    const updates = [supabase.from('kamp').update({ er_bekreftet: true }).eq('id', kampId)]
     if (p1ks?.id) updates.push(supabase.from('kamp_spelar').update({ score_poeng: t1, kamp_poeng: kp1, antall_ringer: r1 }).eq('id', p1ks.id))
     if (p2ks?.id) updates.push(supabase.from('kamp_spelar').update({ score_poeng: t2, kamp_poeng: kp2, antall_ringer: r2 }).eq('id', p2ks.id))
 
@@ -199,8 +203,53 @@ export async function render(container, { id } = {}) {
     if (err) { alert('Feil ved bekreftelse: ' + err.message); return }
 
     if (kamp.stevneid) await oppdaterResultatInnl(kamp.stevneid, kasterids, kamp.fase)
+  }
 
-    await navigerTilNesteKamp()
+  async function _bekreftAvsluttendeFraScoreboard(orderedKasterids) {
+    await supabase.from('kamp').update({ er_bekreftet: true }).eq('id', kampId)
+
+    // Finn taper (3-spelar: 3. plass; 2-spelar: lågaste score)
+    let eliminertId = null
+    if (orderedKasterids?.length === 3) {
+      eliminertId = orderedKasterids[2]
+    } else {
+      const ids = [p1ks?.id, p2ks?.id].filter(Boolean)
+      const { data: omgData } = await supabase.from('kamp_omgang')
+        .select('kamp_spelar_id, score').in('kamp_spelar_id', ids)
+      const totalar = {}
+      ;(omgData ?? []).forEach(o => { totalar[o.kamp_spelar_id] = (totalar[o.kamp_spelar_id] ?? 0) + (o.score ?? 0) })
+      const t1 = totalar[p1ks?.id] ?? p1ks?.score_poeng ?? 0
+      const t2 = totalar[p2ks?.id] ?? p2ks?.score_poeng ?? 0
+      eliminertId = t1 >= t2 ? p2ks?.kasterid : p1ks?.kasterid
+    }
+
+    if (eliminertId && kamp.stevneid) {
+      // Tell aktive spelarar for plassering
+      const { count } = await supabase.from('resultat')
+        .select('kasterid', { count: 'exact', head: true })
+        .eq('stevneid', kamp.stevneid)
+        .is('runde_eliminert', null)
+
+      const erFinaleRunde = kamp.runde_navn === 'Finale' || kamp.runde_navn === 'Bronsefinale'
+      const plassering = erFinaleRunde
+        ? (kamp.runde_navn === 'Finale' ? 2 : 4)
+        : (count ?? 0)
+
+      await supabase.from('resultat')
+        .update({ runde_eliminert: kamp.runde_nummer, plassering })
+        .eq('stevneid', kamp.stevneid).eq('kasterid', eliminertId)
+
+      if (kamp.runde_navn === 'Finale') {
+        const vinnarId = orderedKasterids ? orderedKasterids[0]
+          : (eliminertId === p2ks?.kasterid ? p1ks?.kasterid : p2ks?.kasterid)
+        if (vinnarId) await supabase.from('resultat').update({ plassering: 1 }).eq('stevneid', kamp.stevneid).eq('kasterid', vinnarId)
+      }
+      if (kamp.runde_navn === 'Bronsefinale') {
+        const vinnarId = orderedKasterids ? orderedKasterids[0]
+          : (eliminertId === p2ks?.kasterid ? p1ks?.kasterid : p2ks?.kasterid)
+        if (vinnarId) await supabase.from('resultat').update({ plassering: 3 }).eq('stevneid', kamp.stevneid).eq('kasterid', vinnarId)
+      }
+    }
   }
 
   if (kamp.er_bekreftet && sessionStorage.getItem(`ventar-neste-${kampId}`)) {
@@ -208,5 +257,5 @@ export async function render(container, { id } = {}) {
     return
   }
 
-  await renderScoreboard(sbContainer, kamp, p1ks, p2ks, { erArrangor, erDeltakar, onBekreft, omgangEl })
+  await renderScoreboard(sbContainer, kamp, p1ks, p2ks, { erArrangor, erDeltakar, onBekreft, omgangEl, p3ks })
 }

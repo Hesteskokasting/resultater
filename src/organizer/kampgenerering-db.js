@@ -1,4 +1,5 @@
 import { supabase } from '../supabase.js'
+import { beregnCupRundeParingar } from '../utils/kastemetoder-logikk.js'
 
 function genMatchId() {
   return crypto.randomUUID()
@@ -272,4 +273,205 @@ export async function genererNesteSwissRunde(stevneid) {
   if (spErr) throw new Error('Feil ved innsetting av Swiss spelarar: ' + spErr.message)
 
   return { rundeNummer, antallKampar: innsettaKampar.length }
+}
+
+// --- CUP avsluttende ---
+
+async function _insertCupParingar(stevneid, paringar, rundeNummer, gruppeNavn) {
+  const rundekampar = paringar.map((p, i) => ({
+    match_id: genMatchId(),
+    stevneid,
+    fase: 'avsluttende',
+    runde_nummer: rundeNummer,
+    gruppe_navn: gruppeNavn ?? null,
+    bane_nummer: i + 1,
+    er_bekreftet: false,
+    er_walkover: p.erWalkover,
+    er_tre_spelarar: p.erTreSpelarar,
+  }))
+
+  const { data: innsettaKampar, error: kampErr } = await supabase
+    .from('kamp').insert(rundekampar).select('id, bane_nummer')
+  if (kampErr) throw new Error('Feil ved innsetting av cup-kampar: ' + kampErr.message)
+
+  const spelarRader = []
+  const baneMap = Object.fromEntries(innsettaKampar.map(k => [k.bane_nummer, k.id]))
+
+  for (let i = 0; i < paringar.length; i++) {
+    const kampid = baneMap[i + 1]
+    paringar[i].spelarar.forEach((kasterid, pos) => {
+      spelarRader.push({ kampid, kasterid, posisjon: pos + 1, score_poeng: 0, kamp_poeng: 0, antall_ringer: 0 })
+    })
+  }
+
+  const { error: spErr } = await supabase.from('kamp_spelar').insert(spelarRader)
+  if (spErr) throw new Error('Feil ved innsetting av cup-spelarar: ' + spErr.message)
+
+  return innsettaKampar.length
+}
+
+// Hent aktive cup-spelarar (ikkje eliminerte) per gruppe
+async function _hentAktiveCupSpelarar(stevneid) {
+  const { data: resultat } = await supabase
+    .from('resultat')
+    .select('kasterid, gruppeid, gruppe:gruppeid(navn), plassering, kamp_poeng_innl, score_poeng_innl, startnummer')
+    .eq('stevneid', stevneid)
+    .is('runde_eliminert', null)
+
+  return resultat ?? []
+}
+
+// Generer runde 1 av cup avsluttende fase
+// grupper: [{gruppeNavn: 'A'|'B'|null, spelarar: [{kasterid, plassering}]}]
+export async function genererCupRunde1(stevneid, grupper, medSeeding) {
+  let totalKampar = 0
+  for (const gr of grupper) {
+    const paringar = beregnCupRundeParingar(gr.spelarar, { medSeeding, isRunde1: true })
+    totalKampar += await _insertCupParingar(stevneid, paringar, 1, gr.gruppeNavn)
+  }
+  return totalKampar
+}
+
+// Generer neste cup-runde basert på aktive spelarar (ikkje eliminerte)
+export async function genererNesteCupRunde(stevneid, medSeeding) {
+  const { data: kampar } = await supabase
+    .from('kamp')
+    .select('runde_nummer, gruppe_navn')
+    .eq('stevneid', stevneid)
+    .eq('fase', 'avsluttende')
+    .order('runde_nummer', { ascending: false })
+    .limit(1)
+
+  const sisteRunde = kampar?.[0]?.runde_nummer ?? 0
+  const rundeNummer = sisteRunde + 1
+
+  const aktive = await _hentAktiveCupSpelarar(stevneid)
+
+  // Grupper aktive spelarar per gruppe
+  const gruppeMap = {}
+  for (const sp of aktive) {
+    const gNavn = sp.gruppe?.navn ?? null
+    if (!gruppeMap[gNavn]) gruppeMap[gNavn] = []
+    gruppeMap[gNavn].push({ kasterid: sp.kasterid, plassering: sp.plassering ?? sp.startnummer ?? 0 })
+  }
+
+  // Sorter kvar gruppe etter plassering
+  for (const g of Object.values(gruppeMap)) {
+    g.sort((a, b) => a.plassering - b.plassering)
+  }
+
+  let totalKampar = 0
+  let baneOffset = 0
+
+  // Sjekk om det er 4 aktive totalt (= semfinale)
+  const totalAktive = aktive.length
+  const erSemfinale = totalAktive === 4
+
+  for (const [gNavn, spelGruppe] of Object.entries(gruppeMap)) {
+    let paringar
+    if (erSemfinale) {
+      // 2-spelar semifinale-kampar
+      paringar = [{ spelarar: spelGruppe.map(s => s.kasterid), erWalkover: false, erTreSpelarar: false }]
+    } else {
+      paringar = beregnCupRundeParingar(spelGruppe, { medSeeding, isRunde1: false })
+    }
+
+    const rundekampar = paringar.map((p, i) => ({
+      match_id: genMatchId(),
+      stevneid,
+      fase: 'avsluttende',
+      runde_nummer: rundeNummer,
+      gruppe_navn: gNavn !== 'null' ? gNavn : null,
+      bane_nummer: baneOffset + i + 1,
+      er_bekreftet: false,
+      er_walkover: p.erWalkover,
+      er_tre_spelarar: p.erTreSpelarar,
+      runde_navn: erSemfinale ? 'Semifinale' : null,
+    }))
+
+    const { data: innsettaKampar, error: kampErr } = await supabase
+      .from('kamp').insert(rundekampar).select('id, bane_nummer')
+    if (kampErr) throw new Error('Feil: ' + kampErr.message)
+
+    const spelarRader = []
+    const baneMap = Object.fromEntries(innsettaKampar.map(k => [k.bane_nummer, k.id]))
+    for (let i = 0; i < paringar.length; i++) {
+      const kampid = baneMap[baneOffset + i + 1]
+      paringar[i].spelarar.forEach((kasterid, pos) => {
+        spelarRader.push({ kampid, kasterid, posisjon: pos + 1, score_poeng: 0, kamp_poeng: 0, antall_ringer: 0 })
+      })
+    }
+    const { error: spErr } = await supabase.from('kamp_spelar').insert(spelarRader)
+    if (spErr) throw new Error('Feil: ' + spErr.message)
+
+    totalKampar += innsettaKampar.length
+    baneOffset += paringar.length
+  }
+
+  return { rundeNummer, antallKampar: totalKampar, erSemfinale }
+}
+
+// Generer finale og bronsefinale etter at semifinalar er bekrefta
+// Vinnarar av semfinale → Finale, taparar → Bronsefinale
+export async function genererFinaleOgBronsefinale(stevneid) {
+  const { data: semikampar } = await supabase
+    .from('kamp')
+    .select(`
+      id, runde_nummer,
+      spelarar:kamp_spelar(id, kasterid, score_poeng, posisjon,
+        omgangar:kamp_omgang(score))
+    `)
+    .eq('stevneid', stevneid)
+    .eq('fase', 'avsluttende')
+    .eq('runde_navn', 'Semifinale')
+    .eq('er_bekreftet', true)
+
+  if (!semikampar?.length) throw new Error('Semifinalane er ikkje bekrefta.')
+
+  const rundeNummer = semikampar[0].runde_nummer + 1
+  const vinnarar = []
+  const taparar = []
+
+  for (const kamp of semikampar) {
+    const sp = kamp.spelarar ?? []
+    const sorted = [...sp].sort((a, b) => {
+      const sA = a.omgangar?.reduce((s, o) => s + (o.score ?? 0), 0) ?? a.score_poeng ?? 0
+      const sB = b.omgangar?.reduce((s, o) => s + (o.score ?? 0), 0) ?? b.score_poeng ?? 0
+      return sB - sA
+    })
+    if (sorted[0]) vinnarar.push(sorted[0].kasterid)
+    if (sorted[1]) taparar.push(sorted[1].kasterid)
+  }
+
+  const finale = {
+    match_id: genMatchId(), stevneid, fase: 'avsluttende', runde_nummer: rundeNummer,
+    bane_nummer: 1, runde_navn: 'Finale', er_bekreftet: false,
+    er_walkover: false, er_tre_spelarar: false,
+  }
+  const bronsefinale = {
+    match_id: genMatchId(), stevneid, fase: 'avsluttende', runde_nummer: rundeNummer,
+    bane_nummer: 2, runde_navn: 'Bronsefinale', er_bekreftet: false,
+    er_walkover: false, er_tre_spelarar: false,
+  }
+
+  const { data: kampar, error } = await supabase
+    .from('kamp').insert([finale, bronsefinale]).select('id, bane_nummer')
+  if (error) throw new Error('Feil: ' + error.message)
+
+  const finaleId = kampar.find(k => k.bane_nummer === 1)?.id
+  const bronseId = kampar.find(k => k.bane_nummer === 2)?.id
+
+  const spelarRader = [
+    ...vinnarar.map((kid, i) => ({ kampid: finaleId, kasterid: kid, posisjon: i + 1, score_poeng: 0, kamp_poeng: 0, antall_ringer: 0 })),
+    ...taparar.map((kid, i) => ({ kampid: bronseId, kasterid: kid, posisjon: i + 1, score_poeng: 0, kamp_poeng: 0, antall_ringer: 0 })),
+  ]
+  const { error: spErr } = await supabase.from('kamp_spelar').insert(spelarRader)
+  if (spErr) throw new Error('Feil: ' + spErr.message)
+
+  // Sett plassering for semfinale-taparar (3.–4. plass inntil finale er spela)
+  for (const kid of taparar) {
+    await supabase.from('resultat')
+      .update({ runde_eliminert: semikampar[0].runde_nummer, plassering: 3 })
+      .eq('stevneid', stevneid).eq('kasterid', kid)
+  }
 }
