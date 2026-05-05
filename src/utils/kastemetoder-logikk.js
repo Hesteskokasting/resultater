@@ -11,28 +11,21 @@ function shuffle(arr) {
   return a
 }
 
-// Kan m spelarar nå nøyaktig 2 finalistar med berre baner av 3 og 2 (ingen walkover)?
-function kanNa2(m, memo = {}) {
-  if (m in memo) return memo[m]
-  if (m === 2) { memo[m] = true; return true }
-  if (m < 2) { memo[m] = false; return false }
-  for (let c3 = Math.floor(m / 3); c3 >= 0; c3--) {
-    const rem = m - c3 * 3
-    if (rem < 0 || rem % 2 !== 0) continue
-    const advance = c3 * 2 + rem / 2
-    if (kanNa2(advance, memo)) { memo[m] = true; return true }
-  }
-  memo[m] = false
+// Kan m spelarar nå nøyaktig 2 finalistar med reine rundar (berre 3-spelar ELLER berre 2-spelar)?
+// Kjelde: cup-logikk_referanse.js canReachTwo
+function kanNa2(n) {
+  if (n === 2 || n === 4) return true
+  if (n < 2) return false
+  if (n % 3 === 0) return kanNa2(Math.floor(n / 3) * 2)
+  if (n % 2 === 0) return kanNa2(n / 2)
   return false
 }
 
-// Finn beste splitting av n spelarar i baner av 3 og 2 (foretrekk 3)
+// Finn beste splitting av n spelarar: fortrekk reine 3-spelar rundar, så 2-spelar
 function bestSplit(n) {
-  for (let c3 = Math.floor(n / 3); c3 >= 0; c3--) {
-    const rem = n - c3 * 3
-    if (rem >= 0 && rem % 2 === 0) return { c3, c2: rem / 2 }
-  }
-  return { c3: 0, c2: 0 }
+  if (n % 3 === 0) return { c3: n / 3, c2: 0 }
+  if (n % 2 === 0) return { c3: 0, c2: n / 2 }
+  return { c3: 0, c2: 0 } // skal ikkje skje for gyldige gruppestr.
 }
 
 // --- Eksporterte funksjonar ---
