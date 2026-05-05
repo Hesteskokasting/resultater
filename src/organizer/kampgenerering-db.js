@@ -347,17 +347,21 @@ export async function genererNesteCupRunde(stevneid, medSeeding) {
 
   const aktive = await _hentAktiveCupSpelarar(stevneid)
 
-  // Grupper aktive spelarar per gruppe
+  // Grupper aktive spelarar per gruppe, sorter etter innledande rangering
   const gruppeMap = {}
   for (const sp of aktive) {
     const gNavn = sp.gruppe?.navn ?? null
     if (!gruppeMap[gNavn]) gruppeMap[gNavn] = []
-    gruppeMap[gNavn].push({ kasterid: sp.kasterid, plassering: sp.plassering ?? sp.startnummer ?? 0 })
+    gruppeMap[gNavn].push(sp)
   }
 
-  // Sorter kvar gruppe etter plassering
-  for (const g of Object.values(gruppeMap)) {
-    g.sort((a, b) => a.plassering - b.plassering)
+  for (const [gNavn, spListe] of Object.entries(gruppeMap)) {
+    spListe.sort((a, b) =>
+      (b.kamp_poeng_innl ?? 0) - (a.kamp_poeng_innl ?? 0) ||
+      (b.score_poeng_innl ?? 0) - (a.score_poeng_innl ?? 0) ||
+      (a.startnummer ?? 0) - (b.startnummer ?? 0)
+    )
+    gruppeMap[gNavn] = spListe.map((sp, i) => ({ kasterid: sp.kasterid, plassering: i + 1 }))
   }
 
   let totalKampar = 0
@@ -369,12 +373,7 @@ export async function genererNesteCupRunde(stevneid, medSeeding) {
 
   for (const [gNavn, spelGruppe] of Object.entries(gruppeMap)) {
     let paringar
-    if (erSemfinale) {
-      // 2-spelar semifinale-kampar
-      paringar = [{ spelarar: spelGruppe.map(s => s.kasterid), erWalkover: false, erTreSpelarar: false }]
-    } else {
-      paringar = beregnCupRundeParingar(spelGruppe, { medSeeding, isRunde1: false })
-    }
+    paringar = beregnCupRundeParingar(spelGruppe, { medSeeding, isRunde1: false })
 
     const rundekampar = paringar.map((p, i) => ({
       match_id: genMatchId(),
