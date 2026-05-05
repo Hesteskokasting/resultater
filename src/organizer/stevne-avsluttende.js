@@ -240,11 +240,11 @@ function renderGruppePreview(sortert, nA) {
 
   return `
     <div class="d-flex gap-3 flex-wrap">
-      <div class="flex-grow-1">
+      <div style="flex:1 1 0;min-width:0">
         <h6 class="fw-bold text-center">GRUPPE A (${gruppeA.length})</h6>
         ${tabellA}
       </div>
-      ${gruppeB.length ? `<div style="min-width:220px">
+      ${gruppeB.length ? `<div style="flex:1 1 0;min-width:0">
         <h6 class="fw-bold text-center">GRUPPE B (${gruppeB.length})</h6>
         ${tabellB}
       </div>` : ''}
@@ -258,8 +258,7 @@ function renderStrukturPreview(nA, nB) {
   function renderGruppeStruktur(label, runder) {
     if (!runder.length) return ''
     return `<div class="mb-2"><strong>${label}:</strong><ul class="mb-1 ps-3">${
-      runder.map(r => `<li>Runde ${r.runde}: ${r.spelarar} spelarar → ${r.vidare} går vidare
-        (${r.baner} ${r.treSpelarar ? '3-spelar' : '2-spelar'} baner${r.walkovers ? `, walkover: ${r.walkovers}` : ''})</li>`
+      runder.map(r => `<li>Runde ${r.runde}: ${r.spelarar} spelarar → ${r.vidare} går vidare (${r.baner} baner)</li>`
       ).join('')
     }</ul></div>`
   }
