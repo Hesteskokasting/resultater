@@ -343,6 +343,36 @@ function kampRad(kamp, startnrMap) {
 }
 
 function renderStilling(stilling) {
+  const gruppeMap = new Map()
+  for (const r of stilling) {
+    const g = r.gruppe?.navn ?? '_'
+    if (!gruppeMap.has(g)) gruppeMap.set(g, [])
+    gruppeMap.get(g).push(r)
+  }
+
+  const harFleirGrupper = gruppeMap.size > 1 || !gruppeMap.has('_')
+
+  const rows = [...gruppeMap.entries()].flatMap(([g, spelararIGruppe]) => {
+    const aktivCount = spelararIGruppe.filter(r => r.runde_eliminert == null).length
+    const gruppeHeader = harFleirGrupper && g !== '_'
+      ? `<tr class="table-secondary"><td colspan="5" class="fw-semibold ps-2">Gruppe ${g}</td></tr>`
+      : ''
+    const playerRows = spelararIGruppe.map((r, i) => {
+      const erEliminert = r.runde_eliminert != null
+      const separator = erEliminert && i === aktivCount
+        ? `<tr><td colspan="5" class="avsl-elim-separator"></td></tr>`
+        : ''
+      return separator + `<tr>
+        <td${erEliminert ? ' class="avsl-elim-plass"' : ''}>${i + 1}</td>
+        <td>${r.startnummer ?? ''}</td>
+        <td>${r._namn ?? `Spelar ${r.kasterid}`}</td>
+        <td class="text-center">${r.kamp_poeng_innl ?? 0}</td>
+        <td class="text-center">${r.score_poeng_innl ?? 0}</td>
+      </tr>`
+    }).join('')
+    return gruppeHeader + playerRows
+  }).join('')
+
   return `
     <div>
       <h6 class="text-center fw-bold mb-1">Stilling</h6>
@@ -352,31 +382,11 @@ function renderStilling(stilling) {
             <th class="th-28">#</th>
             <th class="th-28">S</th>
             <th>NAMN</th>
-            <th class="th-28 text-center">G</th>
             <th class="th-44 text-center">KP</th>
             <th class="th-44 text-center">SP</th>
           </tr>
         </thead>
-        <tbody>
-          ${(() => {
-            const aktivCount = stilling.filter(r => r.runde_eliminert == null).length
-            return stilling.map((r, i) => {
-              const erEliminert = r.runde_eliminert != null
-              const erForsteEliminerte = erEliminert && i === aktivCount
-              const separator = erForsteEliminerte
-                ? `<tr><td colspan="6" class="avsl-elim-separator"></td></tr>`
-                : ''
-              return separator + `<tr>
-                <td${erEliminert ? ' class="avsl-elim-plass"' : ''}>${i + 1}</td>
-                <td>${r.startnummer ?? ''}</td>
-                <td>${r._namn ?? `Spelar ${r.kasterid}`}</td>
-                <td class="text-center">${r.gruppe?.navn ?? ''}</td>
-                <td class="text-center">${r.kamp_poeng_innl ?? 0}</td>
-                <td class="text-center">${r.score_poeng_innl ?? 0}</td>
-              </tr>`
-            }).join('')
-          })()}
-        </tbody>
+        <tbody>${rows}</tbody>
       </table>
     </div>`
 }
