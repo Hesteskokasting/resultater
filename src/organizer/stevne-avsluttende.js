@@ -171,25 +171,30 @@ function renderGruppefordeling(resultat) {
 
   const initNa = splits[0]?.nA ?? n
   const initNb = n - initNa
-  const gruppePreview = renderGruppePreview(sortert, initNa)
-  const strukturPreview = renderStrukturPreview(initNa, initNb)
-  const formatVeljar = `
-    <div id="runde1-format-veljar" class="mt-3 avsl-maks-600">
-      ${renderRunde1FormatVeljar('Gruppe A', initNa, 'runde1-format-a')}
-      ${initNb >= 2 ? renderRunde1FormatVeljar('Gruppe B', initNb, 'runde1-format-b') : ''}
-    </div>`
+  const initOppsettA = gyldigeRunde1Oppsett(initNa)[0] ?? null
+  const initOppsettB = initNb >= 2 ? (gyldigeRunde1Oppsett(initNb)[0] ?? null) : null
+  const gruppePreview = renderGruppePreview(sortert, initNa,
+    initOppsettA?.walkovers ?? 0,
+    initOppsettB?.walkovers ?? 0
+  )
+  const strukturPreview = renderStrukturPreview(initNa, initNb, initOppsettA, initOppsettB)
 
   return `
     <div id="gruppe-val-wrapper">
       <h5 class="text-center mb-3">Velg gruppestørrelser for sluttspill</h5>
-      <div class="card mb-3 avsl-maks-600">
-        <div class="card-body">
-          ${splitOptions}
+      <div class="d-flex gap-3 align-items-stretch flex-wrap mb-3">
+        <div class="card">
+          <div class="card-body">
+            ${splitOptions}
+          </div>
         </div>
+        <div id="struktur-preview" class="flex-grow-1">${strukturPreview}</div>
+      </div>
+      <div id="runde1-format-veljar" class="d-flex gap-3 flex-wrap mb-2">
+        <div class="avsl-gruppe-kol">${renderRunde1FormatVeljar('Gruppe A', initNa, 'runde1-format-a')}</div>
+        <div class="avsl-gruppe-kol">${initNb >= 2 ? renderRunde1FormatVeljar('Gruppe B', initNb, 'runde1-format-b') : ''}</div>
       </div>
       <div id="gruppe-preview">${gruppePreview}</div>
-      <div id="struktur-preview" class="mt-3">${strukturPreview}</div>
-      ${formatVeljar}
       <div class="mt-3 d-flex gap-2">
         <button id="bekreft-gruppe-btn" class="btn btn-primary">Bekreft val</button>
       </div>
@@ -197,19 +202,22 @@ function renderGruppefordeling(resultat) {
   `
 }
 
-function renderGruppePreview(sortert, nA) {
+function renderGruppePreview(sortert, nA, woA = 0, woB = 0) {
   const gruppeA = sortert.slice(0, nA)
   const gruppeB = sortert.slice(nA)
 
-  function tabellRader(spel) {
-    return spel.map(r => `
-      <tr>
+  function tabellRader(spel, woCount = 0) {
+    return spel.map((r, i) => {
+      const erWo = i < woCount
+      return `
+      <tr${erWo ? ' class="table-info"' : ''}>
         <td>${r.cupPlassering}</td>
         <td>${r.startnummer ?? ''}</td>
-        <td>${r._namn ?? ''}</td>
+        <td>${r._namn ?? ''}${erWo ? ' <span class="badge bg-info text-dark">WO</span>' : ''}</td>
         <td class="text-center">${r.kamp_poeng_innl ?? 0}</td>
         <td class="text-center">${r.score_poeng_innl ?? 0}</td>
-      </tr>`).join('')
+      </tr>`
+    }).join('')
   }
 
   const tabellHeader = `
@@ -222,13 +230,13 @@ function renderGruppePreview(sortert, nA) {
   const tabellA = `
     <table class="table table-bordered table-sm bg-white mb-0">
       ${tabellHeader}
-      <tbody>${tabellRader(gruppeA)}</tbody>
+      <tbody>${tabellRader(gruppeA, woA)}</tbody>
     </table>`
 
   const tabellB = gruppeB.length ? `
     <table class="table table-bordered table-sm bg-white mb-0">
       ${tabellHeader}
-      <tbody>${tabellRader(gruppeB)}</tbody>
+      <tbody>${tabellRader(gruppeB, woB)}</tbody>
     </table>` : ''
 
   return `
@@ -250,18 +258,19 @@ function renderStrukturPreview(nA, nB, oppsettA = null, oppsettB = null) {
 
   function renderGruppeStruktur(label, runder) {
     if (!runder.length) return ''
-    return `<div class="mb-2"><strong>${label}:</strong><ul class="mb-1 ps-3">${
+    return `<div><strong>${label}:</strong><ul class="mb-1 ps-3">${
       runder.map(r => `<li>Runde ${r.runde}: ${r.spelarar} spelarar → ${r.vidare} går vidare (${r.baner} baner)</li>`
       ).join('')
     }</ul></div>`
   }
 
   return `
-    <div class="card avsl-maks-600">
+    <div class="card h-100">
       <div class="card-body">
-        <strong>Sluttspillstruktur:</strong>
-        ${renderGruppeStruktur('Gruppe A', strukturA)}
-        ${nB > 0 ? renderGruppeStruktur('Gruppe B', strukturB) : ''}
+        <div class="d-flex gap-4 flex-wrap">
+          ${renderGruppeStruktur('Gruppe A', strukturA)}
+          ${nB > 0 ? renderGruppeStruktur('Gruppe B', strukturB) : ''}
+        </div>
         <p class="mb-0 small text-muted">Etter semfinalar: Finale og Bronsefinale</p>
       </div>
     </div>`
@@ -460,18 +469,22 @@ function bindHeaderEvents(container, stevneid, stevne, alleInnlBekrefta, harGrup
         const nA = parseInt(radio.value)
         const nB = n - nA
         const sortmedNamn = sortert.map((r, i) => ({ ...r, cupPlassering: i + 1 }))
-        const prevEl = container.querySelector('#gruppe-preview')
-        if (prevEl) prevEl.innerHTML = renderGruppePreview(sortmedNamn, nA)
         // Oppdater format-veljar for ny gruppestørrelse
         const fmtEl = container.querySelector('#runde1-format-veljar')
         if (fmtEl) {
-          fmtEl.innerHTML = renderRunde1FormatVeljar('Gruppe A', nA, 'runde1-format-a') +
-            (nB >= 2 ? renderRunde1FormatVeljar('Gruppe B', nB, 'runde1-format-b') : '')
+          fmtEl.innerHTML =
+            `<div class="avsl-gruppe-kol">${renderRunde1FormatVeljar('Gruppe A', nA, 'runde1-format-a')}</div>` +
+            `<div class="avsl-gruppe-kol">${nB >= 2 ? renderRunde1FormatVeljar('Gruppe B', nB, 'runde1-format-b') : ''}</div>`
           // Re-bind format-radio change etter at ny HTML er sett inn
           bindFormatRadioChange(nA, nB)
         }
         const strEl = container.querySelector('#struktur-preview')
         if (strEl) strEl.innerHTML = renderStrukturPreview(nA, nB, lesValtOppsett('runde1-format-a', nA), lesValtOppsett('runde1-format-b', nB))
+        // Oppdater spelarliste med walkover-markering basert på valt format
+        const woA = lesValtOppsett('runde1-format-a', nA)?.walkovers ?? 0
+        const woB = lesValtOppsett('runde1-format-b', nB)?.walkovers ?? 0
+        const prevEl = container.querySelector('#gruppe-preview')
+        if (prevEl) prevEl.innerHTML = renderGruppePreview(sortmedNamn, nA, woA, woB)
       })
     })
 
@@ -480,6 +493,12 @@ function bindHeaderEvents(container, stevneid, stevne, alleInnlBekrefta, harGrup
         radio.addEventListener('change', () => {
           const strEl = container.querySelector('#struktur-preview')
           if (strEl) strEl.innerHTML = renderStrukturPreview(nA, nB, lesValtOppsett('runde1-format-a', nA), lesValtOppsett('runde1-format-b', nB))
+          const woA = lesValtOppsett('runde1-format-a', nA)?.walkovers ?? 0
+          const woB = lesValtOppsett('runde1-format-b', nB)?.walkovers ?? 0
+          const prevEl = container.querySelector('#gruppe-preview')
+          if (prevEl) prevEl.innerHTML = renderGruppePreview(
+            sortert.map((r, i) => ({ ...r, cupPlassering: i + 1 })), nA, woA, woB
+          )
         })
       })
     }

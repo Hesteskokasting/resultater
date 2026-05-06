@@ -40,7 +40,7 @@ export function gyldigeRunde1Oppsett(n) {
   const halvN = Math.floor(n / 2)
 
   // Pure 3-spelar (c2 = 0)
-  for (let w = n % 3; w <= halvN && oppsett.filter(o => o.c2 === 0).length < 2; w += 3) {
+  for (let w = n % 3; w <= halvN && w <= 3 && oppsett.filter(o => o.c2 === 0).length < 2; w += 3) {
     const c3 = (n - w) / 3
     if (c3 < 1) break
     const advance = w + 2 * c3
@@ -48,7 +48,7 @@ export function gyldigeRunde1Oppsett(n) {
   }
 
   // Pure 2-spelar (c3 = 0)
-  for (let w = n % 2; w <= halvN && oppsett.filter(o => o.c3 === 0).length < 2; w += 2) {
+  for (let w = n % 2; w <= halvN && w <= 3 && oppsett.filter(o => o.c3 === 0).length < 2; w += 2) {
     const c2 = (n - w) / 2
     if (c2 < 1) break
     const advance = w + c2
