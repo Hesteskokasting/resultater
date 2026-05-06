@@ -206,7 +206,7 @@ function renderGruppePreview(sortert, nA, woA = 0, woB = 0) {
     return spel.map((r, i) => {
       const erWo = i < woCount
       return `
-      <tr${erWo ? ' class="table-info"' : ''}>
+      <tr>
         <td>${r.cupPlassering}</td>
         <td>${r.startnummer ?? ''}</td>
         <td>${r._namn ?? ''}${erWo ? ' <span class="badge bg-info text-dark">WO</span>' : ''}</td>
