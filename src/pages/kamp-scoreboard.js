@@ -10,7 +10,7 @@ export async function render(container, { id } = {}) {
   const [{ data: kamp }, auth] = await Promise.all([
     supabase.from('kamp')
       .select(`
-        id, stevneid, fase, runde_nummer, bane_nummer, er_bekreftet, er_walkover,
+        id, stevneid, fase, runde_nummer, bane_nummer, er_bekreftet, er_walkover, er_tre_spelarar,
         stevne:stevneid(navn),
         spelarar:kamp_spelar(
           id, kasterid, posisjon, score_poeng, kamp_poeng, antall_ringer,

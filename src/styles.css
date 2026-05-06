@@ -1379,6 +1379,60 @@
   }
 }
 
+/* ── 3-spelar scoreboard ── */
+
+.sb-wrap--3p .sb-spelar-panel--vann {
+  background: rgba(0, 60, 0, 0.85);
+}
+
+.sb-plass-badge {
+  font-size: clamp(1rem, 2.5vw, 1.5rem);
+  font-weight: bold;
+  color: #4cff4c;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+@media (max-width: 800px) {
+  .sb-wrap--3p { flex-direction: row !important; }
+  .sb-wrap--3p .sb-spelar-panel { border-right: 1px solid #222; border-bottom: none; }
+  .sb-wrap--3p .sb-spelar-panel:last-child { border-right: none; }
+}
+
+.sb-wrap--3p .sb-poeng-btn {
+  width: clamp(42px, 9vw, 68px);
+  height: clamp(42px, 9vw, 68px);
+  font-size: clamp(1rem, 3.5vw, 1.7rem);
+}
+
+@media (min-width: 801px) {
+  .sb-wrap--3p .sb-poeng-btn {
+    width: clamp(50px, 5vw, 85px);
+    height: clamp(50px, 5vw, 85px);
+    font-size: clamp(1.3rem, 2.3vw, 2.5rem);
+  }
+}
+
+.sb-wrap--3p .sb-score {
+  font-size: clamp(3rem, 10vw, 6rem);
+}
+
+@media (min-width: 801px) {
+  .sb-wrap--3p .sb-score {
+    font-size: clamp(5rem, 12vw, 18rem);
+  }
+}
+
+.sb-wrap--3p .sb-spelar-namn {
+  font-size: clamp(1.2rem, 2.5vw, 2rem);
+}
+
+@media (min-width: 801px) {
+  .sb-wrap--3p .sb-spelar-namn {
+    font-size: clamp(1.8rem, 2.5vw, 4rem);
+  }
+}
+
 /* ── Tabellkolonne-breidder (delt) ── */
 
 .th-28  { width: 28px; }

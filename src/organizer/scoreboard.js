@@ -285,7 +285,49 @@ async function renderScoreboard3(container, kamp, p1ks, p2ks, p3ks, { erArrangor
   const spelarIds = spelarar.map(s => s.id).filter(Boolean)
 
   let omgangData = []
-  let rekkefølge = [null, null, null] // index = plass-1, value = spelarIdx (0,1,2)
+  let vinnRekkefølge = []
+  let vals = [null, null, null]
+
+  function beregnTotal(idx) {
+    return omgangData
+      .filter(o => o.kamp_spelar_id === spelarar[idx]?.id)
+      .reduce((s, o) => s + (o.score ?? 0), 0)
+  }
+
+  function namn(ks) {
+    return ks?.kaster ? `${ks.kaster.fornavn} ${ks.kaster.etternavn}` : 'Spelar'
+  }
+
+  function beregnVinnRekkefølge() {
+    if (!omgangData.length) return []
+    const maxOmgang = Math.max(...omgangData.map(o => o.omgang))
+    const aktive = new Set([0, 1, 2].filter(i => spelarar[i]))
+    const rekkefølge = []
+    const totalar = [0, 0, 0]
+
+    for (let omg = 1; omg <= maxOmgang; omg++) {
+      for (const i of aktive) {
+        const rad = omgangData.find(o => o.kamp_spelar_id === spelarar[i].id && o.omgang === omg)
+        if (rad) totalar[i] += rad.score ?? 0
+      }
+      let nySjekk = true
+      while (nySjekk && aktive.size > 1) {
+        nySjekk = false
+        for (const i of [...aktive]) {
+          const andreAktive = [...aktive].filter(j => j !== i)
+          const minAndre = Math.min(...andreAktive.map(j => totalar[j]))
+          if (totalar[i] >= 21 && totalar[i] - minAndre >= 2) {
+            rekkefølge.push(i)
+            aktive.delete(i)
+            nySjekk = true
+            break
+          }
+        }
+      }
+    }
+    if (aktive.size === 1 && rekkefølge.length === 2) rekkefølge.push([...aktive][0])
+    return rekkefølge
+  }
 
   async function lastOmgangar3() {
     if (!spelarIds.length) return
@@ -295,14 +337,7 @@ async function renderScoreboard3(container, kamp, p1ks, p2ks, p3ks, { erArrangor
       .in('kamp_spelar_id', spelarIds)
       .order('omgang')
     omgangData = data ?? []
-  }
-
-  function beregnTotal(ks) {
-    return omgangData.filter(o => o.kamp_spelar_id === ks?.id).reduce((s, o) => s + (o.score ?? 0), 0)
-  }
-
-  function namn(ks) {
-    return ks?.kaster ? `${ks.kaster.fornavn} ${ks.kaster.etternavn}` : 'Spelar'
+    vinnRekkefølge = beregnVinnRekkefølge()
   }
 
   await lastOmgangar3()
@@ -315,116 +350,137 @@ async function renderScoreboard3(container, kamp, p1ks, p2ks, p3ks, { erArrangor
 
   window.addEventListener('hashchange', () => clearInterval(pollId), { once: true })
 
+  function bereknKnappStatus3(aktiveIdxar) {
+    const disabledSets = spelarar.map(() => new Set())
+    const selectedIdxar = aktiveIdxar.filter(i => vals[i] !== null)
+    if (!selectedIdxar.length) return disabledSets
+
+    const harNonRing = selectedIdxar.some(i => [1, 2, 4].includes(vals[i]))
+    const harRing = selectedIdxar.some(i => [3, 6].includes(vals[i]))
+
+    for (const i of aktiveIdxar) {
+      if (vals[i] !== null) {
+        POENG_VERDIAR.forEach(n => { if (n !== vals[i]) disabledSets[i].add(n) })
+      } else if (harNonRing) {
+        POENG_VERDIAR.forEach(n => disabledSets[i].add(n))
+      } else if (harRing) {
+        ;[1, 2, 4].forEach(n => disabledSets[i].add(n))
+      }
+    }
+    return disabledSets
+  }
+
   function tegn3() {
     container.innerHTML = ''
-    const totalar = spelarar.map(s => beregnTotal(s))
+    const totalar = spelarar.map((_, i) => beregnTotal(i))
+    const aktiveIdxar = [0, 1, 2].filter(i => spelarar[i] && !vinnRekkefølge.includes(i))
+    const erFerdig = vinnRekkefølge.length === spelarar.length
     const maxOmgang = omgangData.length ? Math.max(...omgangData.map(o => o.omgang)) : 0
+    const disabledSets = bereknKnappStatus3(aktiveIdxar)
 
     if (omgangEl) {
-      omgangEl.textContent = kamp.er_bekreftet ? 'Fullført' : `Omgang ${maxOmgang + 1}`
+      omgangEl.textContent = kamp.er_bekreftet ? 'Fullført' : (erFerdig ? 'Ferdig' : `Omgang ${maxOmgang + 1}`)
     }
 
-    // Spelar-panel
-    const wrap = lagEl('div', null, 'sb-wrap')
+    const wrap = lagEl('div', null, 'sb-wrap sb-wrap--3p')
     spelarar.forEach((ks, i) => {
-      const panel = lagEl('div', null, 'sb-spelar-panel')
+      const erVunne = vinnRekkefølge.includes(i)
+      const plass = erVunne ? vinnRekkefølge.indexOf(i) + 1 : null
+      const panel = lagEl('div', null, `sb-spelar-panel${erVunne ? ' sb-spelar-panel--vann' : ''}`)
       panel.appendChild(lagEl('div', namn(ks), 'sb-spelar-namn'))
       panel.appendChild(lagEl('div', String(totalar[i]), 'sb-score'))
+
+      if (plass) panel.appendChild(lagEl('div', `${plass}. plass`, 'sb-plass-badge'))
+
+      if (!erVunne && kanRedigere && !erFerdig && !kamp.er_bekreftet) {
+        const knappar = lagEl('div', null, 'sb-knappar')
+        for (const n of POENG_VERDIAR) {
+          const btn = lagEl('button', String(n), 'sb-poeng-btn')
+          btn.dataset.spelar = String(i)
+          btn.dataset.val = String(n)
+          if (vals[i] === n) btn.classList.add('sb-valgt')
+          if (disabledSets[i].has(n)) btn.disabled = true
+          knappar.appendChild(btn)
+        }
+        panel.appendChild(knappar)
+      }
+
       wrap.appendChild(panel)
     })
     container.appendChild(wrap)
 
-    // Omgang-registrering (berre for redigerarar)
-    if (kanRedigere && !kamp.er_bekreftet) {
-      const omgForm = lagEl('div', null, 'sb-angre-rad')
-      omgForm.style.flexDirection = 'column'
-      omgForm.style.gap = '8px'
+    if (kanRedigere && !erFerdig && !kamp.er_bekreftet) {
+      const angreRad = lagEl('div', null, 'sb-angre-rad')
 
-      const inputRow = lagEl('div', null, 'd-flex gap-2 align-items-center flex-wrap')
-      spelarar.forEach((ks, i) => {
-        const lbl = lagEl('span', `${namn(ks).split(' ')[0]}: `, 'small')
-        const inp = lagEl('input', null, 'form-control form-control-sm')
-        inp.type = 'number'; inp.min = '0'; inp.style.width = '64px'
-        inp.id = `omg-inp-${i}`
-        inputRow.appendChild(lbl)
-        inputRow.appendChild(inp)
-      })
-      const lagreBtn = lagEl('button', 'Legg til omgang', 'btn btn-sm btn-primary')
-      lagreBtn.addEventListener('click', async () => {
-        const nr = maxOmgang + 1
-        const inserts = spelarar.map((ks, i) => {
-          const v = parseInt(container.querySelector(`#omg-inp-${i}`)?.value ?? '0') || 0
-          return { kamp_spelar_id: ks.id, omgang: nr, score: v, antall_ringer: v === 3 ? 1 : v === 6 ? 2 : 0 }
-        })
-        const { error } = await supabase.from('kamp_omgang').insert(inserts)
-        if (error) { alert('Feil: ' + error.message); return }
-        await lastOmgangar3(); tegn3()
-      })
-      inputRow.appendChild(lagreBtn)
-      omgForm.appendChild(inputRow)
-
-      // Slett siste omgang
-      if (maxOmgang > 0) {
-        const slettBtn = lagEl('button', `↩ Slett omgang ${maxOmgang}`, 'btn btn-sm btn-outline-secondary')
-        slettBtn.addEventListener('click', async () => {
-          if (!confirm(`Slett omgang ${maxOmgang}?`)) return
-          await supabase.from('kamp_omgang').delete().in('kamp_spelar_id', spelarIds).eq('omgang', maxOmgang)
-          await lastOmgangar3(); tegn3()
-        })
-        omgForm.appendChild(slettBtn)
-      }
-      container.appendChild(omgForm)
-
-      // Velg rekkefølge
-      const rekkeEl = lagEl('div', null, 'mt-3')
-      rekkeEl.innerHTML = `
-        <p class="small text-muted mb-1">Vel rekkefølgje for å bekrefte. Nr 1 og 2 går vidare, nr 3 er eliminert.</p>
-        ${[1, 2, 3].map(plass => `
-          <div class="mb-2">
-            <label class="form-label mb-0 small">${plass}. plass${plass === 3 ? ' (eliminert)' : ''}</label>
-            <select class="form-select form-select-sm" id="sb3-plass-${plass}">
-              <option value="">— vel spelar —</option>
-              ${spelarar.map((s, i) => `<option value="${s.kasterid}">${namn(s)}</option>`).join('')}
-            </select>
-          </div>`).join('')}
-      `
-      container.appendChild(rekkeEl)
-
-      // Oppdater disabled-state i dropdowns
-      function oppdaterRekke() {
-        const valt = [1, 2, 3].map(p => container.querySelector(`#sb3-plass-${p}`)?.value).filter(Boolean)
-        for (let plass = 1; plass <= 3; plass++) {
-          const sel = container.querySelector(`#sb3-plass-${plass}`)
-          if (!sel) continue
-          const andreValt = [1, 2, 3].filter(p => p !== plass).map(p => container.querySelector(`#sb3-plass-${p}`)?.value).filter(Boolean)
-          Array.from(sel.options).forEach(opt => {
-            opt.disabled = opt.value !== '' && andreValt.includes(opt.value)
-          })
+      if (omgangData.length > 0) {
+        const omgBtns = lagEl('div', null, 'sb-omg-btns')
+        const omgangarNr = [...new Set(omgangData.map(o => o.omgang))].sort((a, b) => a - b)
+        for (const nr of omgangarNr) {
+          const btn = lagEl('button', String(nr), 'sb-omg-btn')
+          btn.title = `Slett frå omgang ${nr}`
+          btn.addEventListener('click', () => slettOmgangFra3(nr))
+          omgBtns.appendChild(btn)
         }
-        const alleValt = [1, 2, 3].map(p => container.querySelector(`#sb3-plass-${p}`)?.value).every(Boolean)
-        const bekrBtn = container.querySelector('#sb3-bekreft-btn')
-        if (bekrBtn) bekrBtn.disabled = !alleValt
+        angreRad.appendChild(omgBtns)
       }
-      container.querySelectorAll('[id^="sb3-plass-"]').forEach(s => s.addEventListener('change', oppdaterRekke))
 
-      if (onBekreft) {
-        const bekrBtn = lagEl('button', 'Bekreft kamp', 'sb-neste-btn sb-neste-btn--bekreft')
-        bekrBtn.id = 'sb3-bekreft-btn'
-        bekrBtn.disabled = true
-        bekrBtn.addEventListener('click', async () => {
-          const r1 = container.querySelector('#sb3-plass-1')?.value
-          const r2 = container.querySelector('#sb3-plass-2')?.value
-          const r3 = container.querySelector('#sb3-plass-3')?.value
-          if (!r1 || !r2 || !r3) return
-          bekrBtn.disabled = true; bekrBtn.textContent = 'Lagrar…'
-          await onBekreft([parseInt(r1), parseInt(r2), parseInt(r3)])
-        })
-        container.appendChild(bekrBtn)
-      }
-    } else if (kamp.er_bekreftet) {
-      const ferdigEl = lagEl('div', 'Kamp fullført', 'alert alert-success mt-2')
-      container.appendChild(ferdigEl)
+      const angreBtn = lagEl('button', '↩', 'sb-angre-btn')
+      angreBtn.title = 'Angre val for denne omgangen'
+      angreBtn.disabled = aktiveIdxar.every(i => vals[i] === null)
+      angreBtn.addEventListener('click', () => { vals = [null, null, null]; tegn3() })
+      angreRad.appendChild(angreBtn)
+      container.appendChild(angreRad)
+
+      const kanNeste = aktiveIdxar.some(i => vals[i] !== null)
+      const nesteBtn = lagEl('button', 'Neste omgang', 'sb-neste-btn')
+      nesteBtn.disabled = !kanNeste
+      nesteBtn.addEventListener('click', nesteOmgang3)
+      container.appendChild(nesteBtn)
     }
+
+    if (erFerdig && !kamp.er_bekreftet && onBekreft && kanRedigere) {
+      const bekreftBtn = lagEl('button', 'Bekreft kamp', 'sb-neste-btn sb-neste-btn--bekreft')
+      bekreftBtn.addEventListener('click', async () => {
+        bekreftBtn.disabled = true
+        bekreftBtn.textContent = 'Lagrar…'
+        await onBekreft(vinnRekkefølge.map(i => spelarar[i].kasterid))
+      })
+      container.appendChild(bekreftBtn)
+    } else if (kamp.er_bekreftet) {
+      container.appendChild(lagEl('div', 'Kamp fullført', 'alert alert-success mt-2'))
+    }
+
+    container.querySelectorAll('[data-spelar]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        vals[parseInt(btn.dataset.spelar)] = parseInt(btn.dataset.val)
+        tegn3()
+      })
+    })
+  }
+
+  async function nesteOmgang3() {
+    const aktiveIdxar = [0, 1, 2].filter(i => spelarar[i] && !vinnRekkefølge.includes(i))
+    const nr = omgangData.length ? Math.max(...omgangData.map(o => o.omgang)) + 1 : 1
+    const inserts = aktiveIdxar.map(i => {
+      const v = vals[i] ?? 0
+      return { kamp_spelar_id: spelarar[i].id, omgang: nr, score: v, antall_ringer: v === 6 ? 2 : (v === 3 || v === 4) ? 1 : 0 }
+    })
+    const { error } = await supabase.from('kamp_omgang').insert(inserts)
+    if (error) { alert('Feil: ' + error.message); return }
+    vals = [null, null, null]
+    await lastOmgangar3()
+    tegn3()
+  }
+
+  async function slettOmgangFra3(fraNr) {
+    if (!confirm(`Slett omgang ${fraNr} og alle etter? Dette kan ikkje angrast.`)) return
+    const { error } = await supabase.from('kamp_omgang').delete()
+      .in('kamp_spelar_id', spelarIds)
+      .gte('omgang', fraNr)
+    if (error) { alert('Feil: ' + error.message); return }
+    vals = [null, null, null]
+    await lastOmgangar3()
+    tegn3()
   }
 
   tegn3()
