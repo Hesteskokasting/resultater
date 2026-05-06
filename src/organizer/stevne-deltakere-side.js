@@ -52,7 +52,7 @@ function createPlayerColumn(title) {
   tableWrapper.appendChild(table)
   column.appendChild(titleEl)
   column.appendChild(tableWrapper)
-  return { column, table }
+  return { column, table, titleEl }
 }
 
 function createSelectedPlayerRow(player, onRemove, disabled = false) {
@@ -160,13 +160,14 @@ export async function render(container, { id } = {}) {
 
   const høgreWrapper = document.createElement('div')
   høgreWrapper.className = 'col-md-6'
-  const { column: høgreKol, table: pameldtListe } = createPlayerColumn('Påmelde spelarar')
+  const { column: høgreKol, table: pameldtListe, titleEl: pameldtTittel } = createPlayerColumn('Påmelde spelarar')
   høgreWrapper.appendChild(høgreKol)
   layout.appendChild(høgreWrapper)
 
   function renderPameldtListe() {
     pameldtListe.innerHTML = ''
     const lista = sortKastere(alleSpelarar.filter(p => pameldtIds.has(p.id)))
+    pameldtTittel.textContent = `Påmelde spelarar: ${lista.length}`
     if (!lista.length) { pameldtListe.appendChild(createEmptyRow('Ingen spelarar påmelde')); return }
     for (const sp of lista) {
       pameldtListe.appendChild(createSelectedPlayerRow(sp, async (s) => {
