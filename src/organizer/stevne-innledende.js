@@ -211,12 +211,15 @@ function kampRad(kamp, startnrMap) {
     ? (p2Nr ? `Walkover (${p2Nr})` : 'Walkover')
     : (p2Nr ? `${p2Namn} (${p2Nr})` : p2Namn)
 
-  const s1 = scoreForSp(p1)
-  const s2 = scoreForSp(p2)
+  const s1Raw = scoreForSp(p1)
+  const s2Raw = scoreForSp(p2)
+  const erUbekreftaWalkover = kamp.er_walkover && !kamp.er_bekreftet
+  const s1 = erUbekreftaWalkover ? 21 : s1Raw
+  const s2 = erUbekreftaWalkover ? 0 : s2Raw
 
   const harPoeng = kamp.er_bekreftet || kamp.er_walkover
     || (p1?.omgangar?.length ?? 0) > 0 || (p2?.omgangar?.length ?? 0) > 0
-    || s1 > 0 || s2 > 0
+    || s1Raw > 0 || s2Raw > 0
 
   const harOmgangar = (p1?.omgangar?.length ?? 0) > 0 || (p2?.omgangar?.length ?? 0) > 0
   const kanBekrefte = !kamp.er_bekreftet && (kamp.er_walkover || (!harOmgangar && (s1 >= 21 || s2 >= 21)))
@@ -281,10 +284,10 @@ async function bekreftKamp(container, stevneid, kamp, startnrMap) {
 
   const [p1, p2] = hentP1P2(spelarar ?? [], startnrMap)
 
-  const s1 = scoreForSp(p1)
-  const s2 = scoreForSp(p2)
-  const r1 = ringerForSp(p1)
-  const r2 = ringerForSp(p2)
+  const s1 = kamp.er_walkover ? 21 : scoreForSp(p1)
+  const s2 = kamp.er_walkover ? 0 : scoreForSp(p2)
+  const r1 = kamp.er_walkover ? 0 : ringerForSp(p1)
+  const r2 = 0
 
   const [kp1, kp2] = beregnKampPoeng(s1, s2)
 
