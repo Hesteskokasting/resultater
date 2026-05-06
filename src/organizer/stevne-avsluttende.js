@@ -84,12 +84,12 @@ async function lastOgVis(container, stevneid) {
       ${renderOrgNav(stevneid, 'avsluttende')}
       ${renderHeader(stevne, stevneid, { alleInnlBekrefta, harAvslKampar, harGruppefordeling, erSisteRundeFullfort, aktive, harSemfinale, semfinalarBekrefta, harFinale, finaleOgBronseBekrefta })}
       ${harAvslKampar && harGruppefordeling ? renderHovudinnhald(avslKampar, stilling, startnrMap) : ''}
-      ${stevne.stevne_fase === 'avsluttende' && !harGruppefordeling ? renderGruppefordeling(resultatMedNamn) : ''}
+      ${stevne.stevne_fase === 'avsluttende' && !harGruppefordeling ? renderGruppefordeling(stilling) : ''}
       ${stevne.stevne_fase === 'avsluttende' && harGruppefordeling && !harAvslKampar ? `<div class="avsl-stilling-einzel">${renderStilling(stilling)}</div>` : ''}
     </div>
   `
 
-  bindHeaderEvents(container, stevneid, stevne, alleInnlBekrefta, harGruppefordeling, harAvslKampar, resultatMedNamn, grupper ?? [], gruppeNavnMap)
+  bindHeaderEvents(container, stevneid, stevne, alleInnlBekrefta, harGruppefordeling, harAvslKampar, stilling, grupper ?? [], gruppeNavnMap)
 
   if (harAvslKampar && harGruppefordeling) {
     bindKampEvents(container, stevneid, avslKampar, startnrMap, resultatMedNamn, aktive.length)
@@ -151,11 +151,7 @@ function renderGruppefordeling(resultat) {
   const n = resultat.length
   const splits = beregnGyldigeGruppeStorrelsar(n)
 
-  const sortert = [...resultat].sort((a, b) =>
-    (b.kamp_poeng_innl ?? 0) - (a.kamp_poeng_innl ?? 0) ||
-    (b.score_poeng_innl ?? 0) - (a.score_poeng_innl ?? 0) ||
-    (a.startnummer ?? 0) - (b.startnummer ?? 0)
-  ).map((r, i) => ({ ...r, cupPlassering: i + 1 }))
+  const sortert = resultat.map((r, i) => ({ ...r, cupPlassering: i + 1 }))
 
   const splitOptions = [
     ...splits.map((s, i) => `
@@ -450,10 +446,7 @@ function bindHeaderEvents(container, stevneid, stevne, alleInnlBekrefta, harGrup
 
   if (!harGruppefordeling && stevne.stevne_fase === 'avsluttende') {
     const n = resultat.length
-    const sortert = [...resultat].sort((a, b) =>
-      (b.kamp_poeng_innl ?? 0) - (a.kamp_poeng_innl ?? 0) ||
-      (b.score_poeng_innl ?? 0) - (a.score_poeng_innl ?? 0)
-    )
+    const sortert = [...resultat]
 
     // Hjelpefunksjon: les valt oppsett for ei gruppe frå radio-inputs
     function lesValtOppsett(radioName, nGruppe) {
@@ -538,10 +531,7 @@ function bindHeaderEvents(container, stevneid, stevne, alleInnlBekrefta, harGrup
     const medSeeding = container.querySelector('#seeding-toggle')?.checked ?? true
     try {
       if (!harAvslKampar) {
-        const sortert = [...resultat].sort((a, b) =>
-          (b.kamp_poeng_innl ?? 0) - (a.kamp_poeng_innl ?? 0) ||
-          (b.score_poeng_innl ?? 0) - (a.score_poeng_innl ?? 0)
-        )
+        const sortert = [...resultat]
         const gruppeMap = {}
         sortert.forEach((r, i) => {
           const gNavn = r.gruppe?.navn ?? null
