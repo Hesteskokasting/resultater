@@ -322,11 +322,11 @@ async function _hentAktiveCupSpelarar(stevneid) {
 }
 
 // Generer runde 1 av cup avsluttende fase
-// grupper: [{gruppeNavn: 'A'|'B'|null, spelarar: [{kasterid, plassering}]}]
+// grupper: [{gruppeNavn: 'A'|'B'|null, spelarar: [{kasterid, plassering}], runde1Oppsett?: {walkovers,c3,c2}}]
 export async function genererCupRunde1(stevneid, grupper, medSeeding) {
   let totalKampar = 0
   for (const gr of grupper) {
-    const paringar = beregnCupRundeParingar(gr.spelarar, { medSeeding, isRunde1: true })
+    const paringar = beregnCupRundeParingar(gr.spelarar, { medSeeding, isRunde1: true, runde1Oppsett: gr.runde1Oppsett ?? null })
     totalKampar += await _insertCupParingar(stevneid, paringar, 1, gr.gruppeNavn)
   }
   return totalKampar

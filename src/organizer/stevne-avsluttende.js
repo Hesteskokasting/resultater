@@ -1,6 +1,6 @@
 import { supabase } from '../supabase.js'
 import { renderOrgNav } from './org-nav.js'
-import { beregnGyldigeGruppeStorrelsar, beregnCupStruktur } from '../utils/kastemetoder-logikk.js'
+import { beregnGyldigeGruppeStorrelsar, beregnCupStruktur, gyldigeRunde1Oppsett } from '../utils/kastemetoder-logikk.js'
 import { genererCupRunde1, genererNesteCupRunde, genererFinaleOgBronsefinale } from './kampgenerering-db.js'
 import { opnNumberpad } from './score-numberpad.js'
 import { scoreForSp } from '../utils/kamp.js'
@@ -169,8 +169,15 @@ function renderGruppefordeling(resultat) {
     </div>`,
   ].join('')
 
-  const gruppePreview = renderGruppePreview(sortert, splits[0]?.nA ?? n)
-  const strukturPreview = renderStrukturPreview(splits[0]?.nA ?? n, n - (splits[0]?.nA ?? n))
+  const initNa = splits[0]?.nA ?? n
+  const initNb = n - initNa
+  const gruppePreview = renderGruppePreview(sortert, initNa)
+  const strukturPreview = renderStrukturPreview(initNa, initNb)
+  const formatVeljar = `
+    <div id="runde1-format-veljar" class="mt-3 avsl-maks-600">
+      ${renderRunde1FormatVeljar('Gruppe A', initNa, 'runde1-format-a')}
+      ${initNb >= 2 ? renderRunde1FormatVeljar('Gruppe B', initNb, 'runde1-format-b') : ''}
+    </div>`
 
   return `
     <div id="gruppe-val-wrapper">
@@ -182,6 +189,7 @@ function renderGruppefordeling(resultat) {
       </div>
       <div id="gruppe-preview">${gruppePreview}</div>
       <div id="struktur-preview" class="mt-3">${strukturPreview}</div>
+      ${formatVeljar}
       <div class="mt-3 d-flex gap-2">
         <button id="bekreft-gruppe-btn" class="btn btn-primary">Bekreft val</button>
       </div>
@@ -236,9 +244,9 @@ function renderGruppePreview(sortert, nA) {
     </div>`
 }
 
-function renderStrukturPreview(nA, nB) {
-  const strukturA = nA >= 2 ? beregnCupStruktur(nA) : []
-  const strukturB = nB >= 2 ? beregnCupStruktur(nB) : []
+function renderStrukturPreview(nA, nB, oppsettA = null, oppsettB = null) {
+  const strukturA = nA >= 2 ? beregnCupStruktur(nA, { runde1: oppsettA }) : []
+  const strukturB = nB >= 2 ? beregnCupStruktur(nB, { runde1: oppsettB }) : []
 
   function renderGruppeStruktur(label, runder) {
     if (!runder.length) return ''
@@ -256,6 +264,35 @@ function renderStrukturPreview(nA, nB) {
         ${nB > 0 ? renderGruppeStruktur('Gruppe B', strukturB) : ''}
         <p class="mb-0 small text-muted">Etter semfinalar: Finale og Bronsefinale</p>
       </div>
+    </div>`
+}
+
+// Genererer etiketten for eit runde1-oppsett
+function oppsettLabel(o) {
+  const wo = o.walkovers > 0 ? `${o.walkovers} wo` : '0 wo'
+  if (o.c3 > 0) return `${wo}, ${o.c3} baner av 3`
+  return `${wo}, ${o.c2} baner av 2`
+}
+
+// Viser radio-knapper for val av runde 1-format for éi gruppe.
+// Returnerer tom streng viss det berre finst éitt gyldig oppsett.
+function renderRunde1FormatVeljar(gruppeLabel, n, radioName) {
+  const oppsett = gyldigeRunde1Oppsett(n)
+  if (oppsett.length <= 1) return ''
+  const radios = oppsett.map((o, i) => {
+    const id = `${radioName}-${i}`
+    const val = JSON.stringify(o)
+    return `
+      <div class="form-check form-check-inline">
+        <input class="form-check-input" type="radio" name="${radioName}" id="${id}"
+          value='${val}' data-oppsett='${val}' ${i === 0 ? 'checked' : ''}>
+        <label class="form-check-label" for="${id}">${oppsettLabel(o)}</label>
+      </div>`
+  }).join('')
+  return `
+    <div class="mb-2">
+      <span class="small fw-semibold">${gruppeLabel} format:</span>
+      ${radios}
     </div>`
 }
 
@@ -409,21 +446,57 @@ function bindHeaderEvents(container, stevneid, stevne, alleInnlBekrefta, harGrup
       (b.score_poeng_innl ?? 0) - (a.score_poeng_innl ?? 0)
     )
 
+    // Hjelpefunksjon: les valt oppsett for ei gruppe frå radio-inputs
+    function lesValtOppsett(radioName, nGruppe) {
+      const valtRadio = container.querySelector(`input[name="${radioName}"]:checked`)
+      if (valtRadio?.dataset.oppsett) {
+        try { return JSON.parse(valtRadio.dataset.oppsett) } catch { /* fall through */ }
+      }
+      return gyldigeRunde1Oppsett(nGruppe)[0] ?? null
+    }
+
     container.querySelectorAll('input[name="gruppe-split"]').forEach(radio => {
       radio.addEventListener('change', () => {
         const nA = parseInt(radio.value)
+        const nB = n - nA
         const sortmedNamn = sortert.map((r, i) => ({ ...r, cupPlassering: i + 1 }))
         const prevEl = container.querySelector('#gruppe-preview')
         if (prevEl) prevEl.innerHTML = renderGruppePreview(sortmedNamn, nA)
+        // Oppdater format-veljar for ny gruppestørrelse
+        const fmtEl = container.querySelector('#runde1-format-veljar')
+        if (fmtEl) {
+          fmtEl.innerHTML = renderRunde1FormatVeljar('Gruppe A', nA, 'runde1-format-a') +
+            (nB >= 2 ? renderRunde1FormatVeljar('Gruppe B', nB, 'runde1-format-b') : '')
+          // Re-bind format-radio change etter at ny HTML er sett inn
+          bindFormatRadioChange(nA, nB)
+        }
         const strEl = container.querySelector('#struktur-preview')
-        if (strEl) strEl.innerHTML = renderStrukturPreview(nA, n - nA)
+        if (strEl) strEl.innerHTML = renderStrukturPreview(nA, nB, lesValtOppsett('runde1-format-a', nA), lesValtOppsett('runde1-format-b', nB))
       })
     })
+
+    function bindFormatRadioChange(nA, nB) {
+      container.querySelectorAll('input[name^="runde1-format"]').forEach(radio => {
+        radio.addEventListener('change', () => {
+          const strEl = container.querySelector('#struktur-preview')
+          if (strEl) strEl.innerHTML = renderStrukturPreview(nA, nB, lesValtOppsett('runde1-format-a', nA), lesValtOppsett('runde1-format-b', nB))
+        })
+      })
+    }
+    // Bind for initiell gruppestørrelse (les frå checked radio)
+    const initChecked = container.querySelector('input[name="gruppe-split"]:checked')
+    const initNa = initChecked ? parseInt(initChecked.value) : (beregnGyldigeGruppeStorrelsar(n)[0]?.nA ?? n)
+    bindFormatRadioChange(initNa, n - initNa)
 
     container.querySelector('#bekreft-gruppe-btn')?.addEventListener('click', async () => {
       const valt = container.querySelector('input[name="gruppe-split"]:checked')
       if (!valt) return
       const nA = parseInt(valt.value)
+      const nB = n - nA
+      // Lagre valt format til sessionStorage
+      const oppsettA = lesValtOppsett('runde1-format-a', nA)
+      const oppsettB = nB >= 2 ? lesValtOppsett('runde1-format-b', nB) : null
+      sessionStorage.setItem('runde1Format', JSON.stringify({ A: oppsettA, B: oppsettB }))
 
       const gruppeAId = gruppeNavnMap['A'] ?? null
       const gruppeBId = gruppeNavnMap['B'] ?? null
@@ -457,7 +530,15 @@ function bindHeaderEvents(container, stevneid, stevne, alleInnlBekrefta, harGrup
           if (!gruppeMap[key]) gruppeMap[key] = { gruppeNavn: gNavn, spelarar: [] }
           gruppeMap[key].spelarar.push({ kasterid: r.kasterid, plassering: i + 1 })
         })
-        await genererCupRunde1(stevneid, Object.values(gruppeMap), medSeeding)
+        // Les lagra runde 1-format frå sessionStorage (sett ved "Bekreft val")
+        let runde1Format = {}
+        try { runde1Format = JSON.parse(sessionStorage.getItem('runde1Format') ?? '{}') } catch { /* bruk standard */ }
+        sessionStorage.removeItem('runde1Format')
+        const grupper = Object.values(gruppeMap).map(g => ({
+          ...g,
+          runde1Oppsett: runde1Format[g.gruppeNavn ?? 'A'] ?? null,
+        }))
+        await genererCupRunde1(stevneid, grupper, medSeeding)
       } else {
         const res = await genererNesteCupRunde(stevneid, medSeeding)
         if (res.erSemfinale) alert('Semifinalar er generert!')

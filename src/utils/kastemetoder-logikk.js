@@ -30,13 +30,41 @@ function bestSplit(n) {
 
 // --- Eksporterte funksjonar ---
 
-// Er n ein gyldig gruppestr. for Cup?
-// Runde 1: floor(n/3) baner + n%3 walkover → advance = floor(n/3)*2 + n%3
-// Advance-antal må kunne nå 2 utan fleire walkover
+// Returnerer gyldige runde 1-oppsett for n spelarar som reine konfigurasjonar:
+// - Pure 3-spelar: w = n%3, n%3+3, … (maks 2 gyldige, w ≤ floor(n/2))
+// - Pure 2-spelar: w = n%2, n%2+2, … (maks 2 gyldige, w ≤ floor(n/2))
+// Returnerer [{walkovers, c3, c2}], sortert aukande walkovers, c3 synkande
+export function gyldigeRunde1Oppsett(n) {
+  if (n < 2) return []
+  const oppsett = []
+  const halvN = Math.floor(n / 2)
+
+  // Pure 3-spelar (c2 = 0)
+  for (let w = n % 3; w <= halvN && oppsett.filter(o => o.c2 === 0).length < 2; w += 3) {
+    const c3 = (n - w) / 3
+    if (c3 < 1) break
+    const advance = w + 2 * c3
+    if (kanNa2(advance)) oppsett.push({ walkovers: w, c3, c2: 0 })
+  }
+
+  // Pure 2-spelar (c3 = 0)
+  for (let w = n % 2; w <= halvN && oppsett.filter(o => o.c3 === 0).length < 2; w += 2) {
+    const c2 = (n - w) / 2
+    if (c2 < 1) break
+    const advance = w + c2
+    const erDuplikat = oppsett.some(o => o.walkovers === w && o.c3 === 0 && o.c2 === c2)
+    if (!erDuplikat && kanNa2(advance)) oppsett.push({ walkovers: w, c3: 0, c2 })
+  }
+
+  // Sorter: aukande walkovers, deretter c3 synkande (3-spelar fremst ved likt walkover-tal)
+  oppsett.sort((a, b) => a.walkovers - b.walkovers || b.c3 - a.c3)
+  return oppsett
+}
+
+// Er n ein gyldig gruppestr. for Cup? (inkl. 2-spelar-baner i runde 1)
 export function erGyldigGruppeStorrelse(n) {
-  if (n < 2) return false
-  const advance = Math.floor(n / 3) * 2 + (n % 3)
-  return kanNa2(advance)
+  if (n === 2) return true // finale-match direkte — inga runde 1 nødvendig
+  return gyldigeRunde1Oppsett(n).length > 0
 }
 
 // Returnerer alle gyldige {nA, nB} split for n spelarar
@@ -56,7 +84,9 @@ export function beregnGyldigeGruppeStorrelsar(n) {
 
 // Berekn cup-struktur (for preview av sluttspillstruktur)
 // Returnerer [{runde, spelarar, baner, treSpelarar, walkovers, vidare}]
-export function beregnCupStruktur(n) {
+// runde1: overstyrer runde 1-oppsett {walkovers, c3, c2} (standard: første gyldige frå gyldigeRunde1Oppsett)
+// walkovers1: bakoverkompatibel — vert konvertert til runde1 internt
+export function beregnCupStruktur(n, { runde1 = null, walkovers1 = null } = {}) {
   const rundar = []
   let gjenstaar = n
   let rundeNr = 1
@@ -65,9 +95,18 @@ export function beregnCupStruktur(n) {
   while (gjenstaar > 2) {
     let c3, c2, walkovers
     if (erRunde1) {
-      c3 = Math.floor(gjenstaar / 3)
-      walkovers = gjenstaar % 3
-      c2 = 0
+      // Resolve runde1-oppsett
+      let r1 = runde1
+      if (!r1 && walkovers1 !== null) {
+        // Bakoverkompatibilitet: walkovers1 styrer berre walkover-tal med pure 3-spelar
+        r1 = { walkovers: walkovers1, c3: Math.floor((gjenstaar - walkovers1) / 3), c2: 0 }
+      }
+      if (!r1) {
+        r1 = gyldigeRunde1Oppsett(gjenstaar)[0] ?? { walkovers: gjenstaar % 3, c3: Math.floor(gjenstaar / 3), c2: 0 }
+      }
+      walkovers = r1.walkovers
+      c3 = r1.c3
+      c2 = r1.c2
       erRunde1 = false
     } else {
       const s = bestSplit(gjenstaar)
@@ -85,24 +124,36 @@ export function beregnCupStruktur(n) {
 // spelarar: [{kasterid, plassering}] sortert etter plassering (beste fyrst)
 // medSeeding: fordel spelarar i seed-puljar
 // isRunde1: walkover tillate for topp-rangerte spelarar
-export function beregnCupRundeParingar(spelarar, { medSeeding = true, isRunde1 = false } = {}) {
+// runde1Oppsett: {walkovers, c3, c2} — overstyrer runde 1-oppsett fullt ut
+// walkoverTall: bakoverkompatibel — overstyrer berre walkover-tal med pure 3-spelar
+export function beregnCupRundeParingar(spelarar, { medSeeding = true, isRunde1 = false, walkoverTall = null, runde1Oppsett = null } = {}) {
   const paringar = []
   let aktive = [...spelarar]
 
   // Walkover: berre i runde 1
-  if (isRunde1 && aktive.length % 3 !== 0) {
-    const wCount = aktive.length % 3
-    const walkoverSpel = aktive.slice(0, wCount) // beste rangerte
-    aktive = aktive.slice(wCount)
-    for (const sp of walkoverSpel) {
-      paringar.push({ spelarar: [sp.kasterid], erWalkover: true, erTreSpelarar: false })
+  if (isRunde1) {
+    const wCount = runde1Oppsett?.walkovers ?? walkoverTall ?? aktive.length % 3
+    if (wCount > 0) {
+      const walkoverSpel = aktive.slice(0, wCount) // beste rangerte
+      aktive = aktive.slice(wCount)
+      for (const sp of walkoverSpel) {
+        paringar.push({ spelarar: [sp.kasterid], erWalkover: true, erTreSpelarar: false })
+      }
     }
   }
 
   const n = aktive.length
-  const { c3, c2 } = isRunde1
-    ? { c3: Math.floor(n / 3), c2: 0 }
-    : bestSplit(n)
+  let c3, c2
+  if (runde1Oppsett && isRunde1) {
+    c3 = runde1Oppsett.c3
+    c2 = runde1Oppsett.c2
+  } else if (isRunde1) {
+    c3 = Math.floor(n / 3)
+    c2 = 0
+  } else {
+    const s = bestSplit(n)
+    c3 = s.c3; c2 = s.c2
+  }
   const totalBaner = c3 + c2
 
   if (medSeeding && totalBaner > 0) {
