@@ -83,3 +83,11 @@ export async function slettKamperForFase(stevneid, fase) {
       .eq('stevneid', stevneid)
   }
 }
+
+export async function settStevneFaseTilIkkeStartet(stevneid) {
+  await supabase.from('stevne').update({ stevne_fase: 'ikke_startet' }).eq('id', stevneid)
+}
+
+export async function settStevneFaseTilInnledende(stevneid) {
+  await supabase.from('stevne').update({ stevne_fase: 'innledende' }).eq('id', stevneid)
+}

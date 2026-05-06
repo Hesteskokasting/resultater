@@ -4,7 +4,7 @@ import { beregnGyldigeGruppeStorrelsar, beregnCupStruktur } from '../utils/kaste
 import { genererCupRunde1, genererNesteCupRunde, genererFinaleOgBronsefinale } from './kampgenerering-db.js'
 import { opnNumberpad } from './score-numberpad.js'
 import { scoreForSp } from '../utils/kamp.js'
-import { slettKamperForFase } from '../utils/organizer-test-utils.js'
+import { slettKamperForFase, settStevneFaseTilInnledende } from '../utils/organizer-test-utils.js'
 import { renderOrgBanner, sorterStilling } from './org-shared.js'
 
 let kanal = null
@@ -139,6 +139,7 @@ function renderHeader(stevne, stevneid, state) {
   const knapperHtml = `
     ${handlingsHtml}
     <button id="test-slett-avsl-btn" class="btn btn-sm btn-outline-danger">TEST: Slett kamper</button>
+    <button id="test-fase-innledende-btn" class="btn btn-sm btn-outline-secondary">TEST: Fase → innledende</button>
   `
 
   return renderOrgBanner(`${stevne.navn} — Avsluttande fase`, knapperHtml)
@@ -480,6 +481,13 @@ function bindHeaderEvents(container, stevneid, stevne, alleInnlBekrefta, harGrup
     if (!confirm('Slett alle avsluttande kamper?')) return
     e.currentTarget.disabled = true
     await slettKamperForFase(stevneid, 'avsluttende')
+    await lastOgVis(container, stevneid)
+  })
+
+  container.querySelector('#test-fase-innledende-btn')?.addEventListener('click', async (e) => {
+    if (!confirm('Sett stevne_fase til "innledende"?')) return
+    e.currentTarget.disabled = true
+    await settStevneFaseTilInnledende(stevneid)
     await lastOgVis(container, stevneid)
   })
 }

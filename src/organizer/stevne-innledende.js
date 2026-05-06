@@ -3,7 +3,7 @@ import { opnNumberpad } from './score-numberpad.js'
 import { beregnKampPoeng, hentP1P2, scoreForSp, ringerForSp, oppdaterResultatInnl } from '../utils/kamp.js'
 import { renderOrgNav } from './org-nav.js'
 import { genererNesteSwissRunde } from './kampgenerering-db.js'
-import { autoFullforInnledendeKamper, slettKamperForFase } from '../utils/organizer-test-utils.js'
+import { autoFullforInnledendeKamper, slettKamperForFase, settStevneFaseTilIkkeStartet } from '../utils/organizer-test-utils.js'
 import { renderOrgBanner, byggInnledendeSpelMap, sorterStilling } from './org-shared.js'
 
 let kanal = null
@@ -71,6 +71,7 @@ async function lastOgVis(container, stevneid) {
     <button id="fullfor-btn" class="btn btn-sm btn-primary"${stevne.erfullfort || !erAlleKamperBekreftet ? ' disabled' : ''}>Fullfør turnering</button>
     <button id="test-autofullfør-btn" class="btn btn-sm btn-outline-warning">TEST: Autofullfør</button>
     <button id="test-slett-btn" class="btn btn-sm btn-outline-danger">TEST: Slett kamper</button>
+    <button id="test-fase-ikkestartet-btn" class="btn btn-sm btn-outline-secondary">TEST: Fase → ikke_startet</button>
   `
 
   container.innerHTML = `
@@ -101,6 +102,13 @@ async function lastOgVis(container, stevneid) {
     if (!confirm('Slett alle innledande kamper?')) return
     e.currentTarget.disabled = true
     await slettKamperForFase(stevneid, 'innledende')
+    await lastOgVis(container, stevneid)
+  })
+
+  container.querySelector('#test-fase-ikkestartet-btn')?.addEventListener('click', async (e) => {
+    if (!confirm('Sett stevne_fase til "ikke_startet"?')) return
+    e.currentTarget.disabled = true
+    await settStevneFaseTilIkkeStartet(stevneid)
     await lastOgVis(container, stevneid)
   })
 
