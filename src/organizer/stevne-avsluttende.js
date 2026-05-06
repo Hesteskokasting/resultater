@@ -267,7 +267,6 @@ function renderStrukturPreview(nA, nB, oppsettA = null, oppsettB = null) {
           ${renderGruppeStruktur('Gruppe A', strukturA)}
           ${nB > 0 ? renderGruppeStruktur('Gruppe B', strukturB) : ''}
         </div>
-        <p class="mb-0 small text-muted">Etter semfinalar: Finale og Bronsefinale</p>
       </div>
     </div>`
 }
