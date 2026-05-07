@@ -7,9 +7,13 @@ import { byggInnledendeSpelMap, sorterStilling, renderInnledendeKnappar, lagOnEn
 
 let kanal = null
 let bannerSlot = null
+let isAdmin = false
+let visAlleRundar = false
 
-export async function render(container, { id } = {}, _bannerSlot = null) {
+export async function render(container, { id, isAdmin: _isAdmin = false } = {}, _bannerSlot = null) {
   bannerSlot = _bannerSlot
+  isAdmin = _isAdmin
+  visAlleRundar = false
   if (kanal) { supabase.removeChannel(kanal); kanal = null }
   container.innerHTML = '<p class="laster">Laster…</p>'
   await lastOgVis(container, Number(id))
@@ -46,6 +50,7 @@ async function lastOgVis(container, stevneid) {
 
   const metodeNavn = stevne.kastemetode?.navn ?? ''
   const erSwiss = !metodeNavn.toLowerCase().includes('gloppen')
+  const erNordhordland = metodeNavn.toLowerCase().includes('nordhordland')
   const startnrMap = Object.fromEntries((resultatListe ?? []).map(r => [r.kasterid, r.startnummer]))
 
   const alleKamper = (kamper ?? []).sort(
@@ -67,20 +72,33 @@ async function lastOgVis(container, stevneid) {
 
   const erAlleKamperBekreftet = alleKamper.length > 0 && alleKamper.every(k => k.er_bekreftet)
 
-  if (bannerSlot) bannerSlot.innerHTML = renderInnledendeKnappar(stevne, erAlleKamperBekreftet, erSwiss)
+  const sisteRundeNr = rundeMap.size ? Math.max(...rundeMap.keys()) : 0
+  const harFleirRundar = erNordhordland && rundeMap.size > 1
+  const toggleKnappHtml = harFleirRundar
+    ? `<button class="btn btn-sm btn-outline-secondary" id="toggle-rundar-btn">${visAlleRundar ? 'Skjul tidlegare rundar' : `Vis alle rundar (${rundeMap.size})`}</button>`
+    : ''
 
-  const isAdmin = bannerSlot !== null
+  bannerSlot.innerHTML = (isAdmin ? renderInnledendeKnappar(stevne, erAlleKamperBekreftet, erSwiss) : '') + toggleKnappHtml
+
+  const rundarSomVisast = harFleirRundar && !visAlleRundar
+    ? new Map([[sisteRundeNr, rundeMap.get(sisteRundeNr) ?? []]])
+    : rundeMap
 
   container.innerHTML = `
     <div class="d-flex gap-3 align-items-start">
       <div class="flex-grow-1">
-        ${[...rundeMap.entries()].map(([nr, rKamper]) => renderRunde(nr, rKamper, startnrMap, isAdmin)).join('')}
+        ${[...rundarSomVisast.entries()].map(([nr, rKamper]) => renderRunde(nr, rKamper, startnrMap, isAdmin)).join('')}
       </div>
       <div class="org-stilling-sidebar">
         ${renderStilling(stilling)}
       </div>
     </div>
   `
+
+  bannerSlot.querySelector('#toggle-rundar-btn')?.addEventListener('click', () => {
+    visAlleRundar = !visAlleRundar
+    lastOgVis(container, stevneid)
+  })
 
   bannerSlot?.querySelector('#fullfor-btn')?.addEventListener('click', () => fullforTurnering(container, stevneid))
 

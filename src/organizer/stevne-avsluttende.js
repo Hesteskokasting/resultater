@@ -8,9 +8,11 @@ import { sorterStilling, renderAvsluttendeKnappar, lagOnEndringHandler } from '.
 
 let kanal = null
 let bannerSlot = null
+let isAdmin = false
 
-export async function render(container, { id } = {}, _bannerSlot = null) {
+export async function render(container, { id, isAdmin: _isAdmin = false } = {}, _bannerSlot = null) {
   bannerSlot = _bannerSlot
+  isAdmin = _isAdmin
   if (kanal) { supabase.removeChannel(kanal); kanal = null }
   container.innerHTML = '<p class="laster">Laster…</p>'
   await lastOgVis(container, Number(id))
@@ -80,8 +82,7 @@ async function lastOgVis(container, stevneid) {
     innlKampar
   )
 
-  const isAdmin = bannerSlot !== null
-  if (bannerSlot) bannerSlot.innerHTML = renderAvsluttendeKnappar(stevne, { alleInnlBekrefta, harAvslKampar, harGruppefordeling, erSisteRundeFullfort, aktive, harSemfinale, semfinalarBekrefta, harFinale, finaleOgBronseBekrefta })
+  if (isAdmin) bannerSlot.innerHTML = renderAvsluttendeKnappar(stevne, { alleInnlBekrefta, harAvslKampar, harGruppefordeling, erSisteRundeFullfort, aktive, harSemfinale, semfinalarBekrefta, harFinale, finaleOgBronseBekrefta })
 
   container.innerHTML = `
     <div class="px-3 py-2">

@@ -45,15 +45,15 @@ export async function render(container, { id, tab = 'info', basePath = 'organize
       ${renderOrgNav(stevneid, aktiv, isAdmin, basePath)}
       <div class="org-fase-header d-flex align-items-center gap-2 mb-3">
         <h5 class="mb-0 flex-grow-1">${stevne.navn} <span id="fase-badge">${badge}</span></h5>
-        ${isAdmin ? '<div id="org-banner-knappar"></div>' : ''}
+        <div id="org-banner-knappar"></div>
       </div>
       <div id="org-subside"></div>
     </div>`
 
-  const bannerSlot = isAdmin ? container.querySelector('#org-banner-knappar') : null
+  const bannerSlot = container.querySelector('#org-banner-knappar')
   const subside = container.querySelector('#org-subside')
   const renderFn = TAB_RENDER[aktiv] ?? renderInfo
-  await renderFn(subside, { id: String(stevneid) }, bannerSlot)
+  await renderFn(subside, { id: String(stevneid), isAdmin }, bannerSlot)
 
   kanal = supabase
     .channel(`stevne-fase-${stevneid}`)
