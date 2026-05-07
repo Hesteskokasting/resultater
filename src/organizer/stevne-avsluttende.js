@@ -4,7 +4,7 @@ import { genererCupRunde1, genererNesteCupRunde, genererNesteCupRundeForGruppe, 
 import { opnNumberpad } from './score-numberpad.js'
 import { scoreForSp } from '../utils/kamp.js'
 import { slettKamperForFase, settStevneFaseTilInnledende } from '../utils/organizer-test-utils.js'
-import { sorterStilling, renderAvsluttendeKnappar } from './org-shared.js'
+import { sorterStilling, renderAvsluttendeKnappar, lagOnEndringHandler } from './org-shared.js'
 
 let kanal = null
 let bannerSlot = null
@@ -806,14 +806,9 @@ async function _lagreCupKampResultat(stevneid, kamp, sp, vidareIds, eliminertId,
 
 function abonnerPaaEndringar(container, stevneid) {
   if (kanal) return
-  function onEndring() {
-    if (location.hash === `#/stevne/${stevneid}/organizer/avsluttende` ||
-        location.hash === `#/stevne/${stevneid}/live/avsluttende`) {
-      lastOgVis(container, stevneid)
-    } else {
-      supabase.removeChannel(kanal); kanal = null
-    }
-  }
+  const onEndring = lagOnEndringHandler(stevneid, ['avsluttende'], container, lastOgVis, () => {
+    supabase.removeChannel(kanal); kanal = null
+  })
   kanal = supabase
     .channel(`stevne-avsl-${stevneid}`)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'kamp_omgang' }, onEndring)

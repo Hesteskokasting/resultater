@@ -1,5 +1,20 @@
 import { scoreForSp, hentP1P2 } from '../utils/kamp.js'
 
+export function lagOnEndringHandler(stevneid, faner, container, lastOgVisFn, stopFn) {
+  return function onEndring() {
+    const hash = location.hash
+    const erPaaSide = faner.some(f =>
+      hash === `#/stevne/${stevneid}/organizer/${f}` ||
+      hash === `#/stevne/${stevneid}/live/${f}`
+    )
+    if (erPaaSide) {
+      lastOgVisFn(container, stevneid)
+    } else {
+      stopFn()
+    }
+  }
+}
+
 export function renderInnledendeKnappar(stevne, erAlleKamperBekreftet, erSwiss) {
   return `
     ${erSwiss ? `<button id="neste-runde-btn" class="btn btn-sm btn-warning"${stevne.erfullfort || !erAlleKamperBekreftet ? ' disabled' : ''}>Generer neste runde</button>` : ''}

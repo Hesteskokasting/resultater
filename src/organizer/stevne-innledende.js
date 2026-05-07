@@ -3,7 +3,7 @@ import { opnNumberpad } from './score-numberpad.js'
 import { beregnKampPoeng, hentP1P2, scoreForSp, ringerForSp, oppdaterResultatInnl } from '../utils/kamp.js'
 import { genererNesteSwissRunde } from './kampgenerering-db.js'
 import { autoFullforInnledendeKamper, slettKamperForFase, settStevneFaseTilIkkeStartet } from '../utils/organizer-test-utils.js'
-import { byggInnledendeSpelMap, sorterStilling, renderInnledendeKnappar } from './org-shared.js'
+import { byggInnledendeSpelMap, sorterStilling, renderInnledendeKnappar, lagOnEndringHandler } from './org-shared.js'
 
 let kanal = null
 let bannerSlot = null
@@ -165,22 +165,22 @@ async function lastOgVis(container, stevneid) {
     )
   }
 
-  if (!kanal) {
-    kanal = supabase
-      .channel(`stevne-innl-${stevneid}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'kamp_omgang' },
-                () => {
-      if (location.hash === `#/stevne/${stevneid}/organizer/innledende` ||
-          location.hash === `#/stevne/${stevneid}/live/innledende`) {
-        lastOgVis(container, stevneid)
-      } else {
-        supabase.removeChannel(kanal)
-        kanal = null
-      }
-    }
-      )
-      .subscribe()
-  }
+  abonnerPaaEndringar(container, stevneid)
+}
+
+function abonnerPaaEndringar(container, stevneid) {
+  if (kanal) return
+  const onEndring = lagOnEndringHandler(stevneid, ['innledende'], container, lastOgVis, () => {
+    supabase.removeChannel(kanal); kanal = null
+  })
+  kanal = supabase
+    .channel(`stevne-innl-${stevneid}`)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'kamp_omgang' }, onEndring)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'kamp' }, (payload) => {
+      const sid = payload.new?.stevneid ?? payload.old?.stevneid
+      if (sid === stevneid) onEndring()
+    })
+    .subscribe()
 }
 
 function renderRunde(nr, kamper, startnrMap, isAdmin) {
