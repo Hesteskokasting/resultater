@@ -37,13 +37,14 @@ function filterDatabasePlayers(players, search, selectedIds) {
 
 function createPlayerColumn(title) {
   const column = document.createElement('div')
+  column.className = 'd-flex flex-column flex-grow-1'
 
   const titleEl = document.createElement('h6')
   titleEl.textContent = title
   titleEl.className = 'fw-bold mb-1'
 
   const tableWrapper = document.createElement('div')
-  tableWrapper.className = 'border rounded deltaker-tabell-wrapper'
+  tableWrapper.className = 'border rounded deltaker-tabell-wrapper flex-grow-1 overflow-auto'
 
   const table = document.createElement('table')
   table.className = 'table table-sm table-hover table-bordered mb-0'
@@ -137,7 +138,6 @@ export async function render(container, { id, isAdmin = false } = {}, bannerSlot
 
   container.innerHTML = `
     <div>
-      <h4 class="mb-2">${stevne.navn} — Spelarar</h4>
       ${!kanEndrast ? `<div class="alert alert-warning py-2">Spelarar kan ikkje endrast etter at stevnet er starta.</div>` : ''}
       <div class="row g-3" id="spelarar-layout"></div>
     </div>
@@ -146,7 +146,7 @@ export async function render(container, { id, isAdmin = false } = {}, bannerSlot
   const layout = container.querySelector('#spelarar-layout')
 
   const venstreWrapper = document.createElement('div')
-  venstreWrapper.className = 'col-md-6'
+  venstreWrapper.className = 'col-md-6 d-flex flex-column'
   const søkInput = document.createElement('input')
   søkInput.type = 'text'
   søkInput.placeholder = 'Søk etter namn eller klubb…'
@@ -157,8 +157,14 @@ export async function render(container, { id, isAdmin = false } = {}, bannerSlot
   layout.appendChild(venstreWrapper)
 
   const høgreWrapper = document.createElement('div')
-  høgreWrapper.className = 'col-md-6'
+  høgreWrapper.className = 'col-md-6 d-flex flex-column'
+  const søkSpacer = document.createElement('input')
+  søkSpacer.type = 'text'
+  søkSpacer.className = 'form-control mb-2 deltaker-søk-spacer'
+  søkSpacer.tabIndex = -1
+  søkSpacer.disabled = true
   const { column: høgreKol, table: pameldtListe, titleEl: pameldtTittel } = createPlayerColumn('Påmelde spelarar')
+  høgreWrapper.appendChild(søkSpacer)
   høgreWrapper.appendChild(høgreKol)
   layout.appendChild(høgreWrapper)
 

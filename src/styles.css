@@ -731,7 +731,8 @@ a.stevne-navn {
 
 /* ── Deltakere-side ── */
 
-.deltaker-tabell-wrapper { max-height: 500px; overflow: auto; }
+.deltaker-tabell-wrapper { height: 500px; overflow: auto; }
+.deltaker-søk-spacer { visibility: hidden; pointer-events: none; }
 .deltaker-rad { cursor: pointer; }
 .deltaker-fjern-btn { width: 22px; height: 22px; font-size: 14px; }
 
