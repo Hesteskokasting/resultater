@@ -376,7 +376,7 @@ function renderKampBlock(kamp, startnrMap) {
       <table class="table table-sm table-bordered mb-0 bg-white">
         <tbody>
           ${spelarRader}
-          <tr class="table-light">
+          <tr class="">
             <td colspan="3" class="text-end pe-1">
               ${!kamp.er_walkover && !kamp.er_tre_spelarar
                 ? `<button class="btn btn-primary btn-sm" id="plus-${kamp.id}"${bekrefta ? ' disabled' : ''}>+</button> `
@@ -404,7 +404,7 @@ function renderStilling(stilling) {
   const rows = [...gruppeMap.entries()].flatMap(([g, spelararIGruppe]) => {
     const aktivCount = spelararIGruppe.filter(r => r.runde_eliminert == null).length
     const gruppeHeader = harFleirGrupper && g !== '_'
-      ? `<tr class="table-secondary"><td colspan="5" class="fw-semibold ps-2">Gruppe ${g}</td></tr>`
+      ? `<tr class=""><td colspan="5" class="fw-semibold ps-2">Gruppe ${g}</td></tr>`
       : ''
     const playerRows = spelararIGruppe.map((r, i) => {
       const erEliminert = r.runde_eliminert != null
