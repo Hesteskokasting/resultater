@@ -18,7 +18,7 @@ export async function render(container, { id } = {}) {
 async function lastOgVis(container, stevneid) {
   const [{ data: stevne }, { data: kampar }, { data: resultat }, { data: grupper }] = await Promise.all([
     supabase.from('stevne').select(`
-      id, navn, stevne_fase,
+      id, navn, stevne_fase, runde1_format,
       avsluttendemetode:avsluttendekastemetodeid(id, navn)
     `).eq('id', stevneid).single(),
     supabase.from('kamp').select(`
@@ -90,9 +90,9 @@ async function lastOgVis(container, stevneid) {
 
   bindHeaderEvents(container, stevneid, stevne, alleInnlBekrefta, harGruppefordeling, harAvslKampar, stilling, grupper ?? [], gruppeNavnMap, avslKampar)
 
-  if (harAvslKampar && harGruppefordeling) {
-    bindKampEvents(container, stevneid, avslKampar, startnrMap, resultatMedNamn, aktive.length)
+  if (harGruppefordeling) {
     abonnerPaaEndringar(container, stevneid)
+    if (harAvslKampar) bindKampEvents(container, stevneid, avslKampar, startnrMap, resultatMedNamn, aktive.length)
   }
 }
 
@@ -444,18 +444,12 @@ function renderStilling(stilling) {
 
 // --- Dialog for å generere runde per gruppe ---
 
-function opnGenererRundeDialog(container, stevneid, gruppeNavn, stillingForGruppe, avslKampar, runde) {
+function opnGenererRundeDialog(container, stevneid, gruppeNavn, stillingForGruppe, avslKampar, runde, runde1Format) {
   const aktive = stillingForGruppe.filter(r => r.runde_eliminert == null)
   const totalCount = stillingForGruppe.length
   const n = aktive.length
 
-  let runde1Oppsett = null
-  if (runde === 1) {
-    try {
-      const fmt = JSON.parse(sessionStorage.getItem('runde1Format') ?? '{}')
-      runde1Oppsett = fmt[gruppeNavn] ?? null
-    } catch { /* bruk standard */ }
-  }
+  const runde1Oppsett = runde === 1 ? (runde1Format?.[gruppeNavn] ?? null) : null
 
   const wo = runde1Oppsett?.walkovers ?? 0
   const c3 = runde1Oppsett ? runde1Oppsett.c3 : (n % 3 === 0 ? n / 3 : 0)
@@ -590,10 +584,11 @@ function bindHeaderEvents(container, stevneid, stevne, alleInnlBekrefta, harGrup
       if (!valt) return
       const nA = parseInt(valt.value)
       const nB = n - nA
-      // Lagre valt format til sessionStorage
       const oppsettA = lesValtOppsett('runde1-format-a', nA)
       const oppsettB = nB >= 2 ? lesValtOppsett('runde1-format-b', nB) : null
-      sessionStorage.setItem('runde1Format', JSON.stringify({ A: oppsettA, B: oppsettB }))
+      const { error: fmtErr } = await supabase
+        .from('stevne').update({ runde1_format: { A: oppsettA, B: oppsettB } }).eq('id', stevneid)
+      if (fmtErr) { alert('Feil: ' + fmtErr.message); return }
 
       const gruppeAId = gruppeNavnMap['A'] ?? null
       const gruppeBId = gruppeNavnMap['B'] ?? null
@@ -629,7 +624,7 @@ function bindHeaderEvents(container, stevneid, stevne, alleInnlBekrefta, harGrup
         const gNavn = btn.dataset.genererGruppe
         const runde = parseInt(btn.dataset.runde)
         const stillingForGruppe = resultat.filter(r => r.gruppe?.navn === gNavn)
-        opnGenererRundeDialog(container, stevneid, gNavn, stillingForGruppe, avslKampar, runde)
+        opnGenererRundeDialog(container, stevneid, gNavn, stillingForGruppe, avslKampar, runde, stevne.runde1_format)
       })
     })
   }
@@ -811,14 +806,16 @@ async function _lagreCupKampResultat(stevneid, kamp, sp, vidareIds, eliminertId,
 
 function abonnerPaaEndringar(container, stevneid) {
   if (kanal) return
+  function onEndring() {
+    if (location.hash === `#/stevne/${stevneid}/organizer/avsluttende`) {
+      lastOgVis(container, stevneid)
+    } else {
+      supabase.removeChannel(kanal); kanal = null
+    }
+  }
   kanal = supabase
     .channel(`stevne-avsl-${stevneid}`)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'kamp_omgang' }, () => {
-      if (location.hash === `#/stevne/${stevneid}/organizer/avsluttende`) {
-        lastOgVis(container, stevneid)
-      } else {
-        supabase.removeChannel(kanal); kanal = null
-      }
-    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'kamp_omgang' }, onEndring)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'kamp', filter: `stevneid=eq.${stevneid}` }, onEndring)
     .subscribe()
 }
