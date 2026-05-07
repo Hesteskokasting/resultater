@@ -19,7 +19,7 @@ export async function render(container, { id, isAdmin: _isAdmin = false } = {}, 
 }
 
 async function lastOgVis(container, stevneid) {
-  const [{ data: stevne }, { data: kampar }, { data: resultat }, { data: grupper }] = await Promise.all([
+  const [{ data: stevne }, { data: kampar }, { data: resultat }, { data: grupper }, { count: pameldingCount }] = await Promise.all([
     supabase.from('stevne').select(`
       id, navn, stevne_fase, erfullfort, runde1_format,
       avsluttendemetode:avsluttendekastemetodeid(id, navn)
@@ -37,6 +37,7 @@ async function lastOgVis(container, stevneid) {
       gruppe:gruppeid(id, navn)
     `).eq('stevneid', stevneid),
     supabase.from('gruppe').select('id, navn').in('navn', ['A', 'B']),
+    supabase.from('pamelding').select('id', { count: 'exact', head: true }).eq('stevneid', stevneid),
   ])
 
   if (!stevne) {
@@ -82,12 +83,23 @@ async function lastOgVis(container, stevneid) {
     innlKampar
   )
 
-  if (isAdmin) bannerSlot.innerHTML = renderAvsluttendeKnappar(stevne, { alleInnlBekrefta, harAvslKampar, harGruppefordeling, erSisteRundeFullfort, aktive, harSemfinale, semfinalarBekrefta, harFinale, finaleOgBronseBekrefta })
+  const initNa = stevne.runde1_format?.nA ?? null
+  const harPrekonfigurertFormat = stevne.runde1_format != null && stevne.stevne_fase !== 'avsluttende'
+  const previewN = pameldingCount ?? 0
+
+  if (isAdmin) bannerSlot.innerHTML = renderAvsluttendeKnappar(stevne, { alleInnlBekrefta, harAvslKampar, harGruppefordeling, erSisteRundeFullfort, aktive, harSemfinale, semfinalarBekrefta, harFinale, finaleOgBronseBekrefta, harPrekonfigurertFormat })
 
   container.innerHTML = `
     <div class="px-3 py-2">
       ${harGruppefordeling ? renderHovudinnhald(avslKampar, stilling, startnrMap, aktive.length, isAdmin) : ''}
-      ${stevne.stevne_fase === 'avsluttende' && !harGruppefordeling ? (isAdmin ? renderGruppefordeling(stilling) : '<p class="text-muted fst-italic">Gruppefordeling er ikkje klar enno.</p>') : ''}
+      ${!harGruppefordeling && stevne.stevne_fase === 'avsluttende'
+        ? (isAdmin
+            ? renderGruppefordeling(stilling, { visSpelarliste: true, initNa, initFormat: stevne.runde1_format })
+            : '<p class="text-muted fst-italic">Gruppefordeling er ikkje klar enno.</p>')
+        : ''}
+      ${!harGruppefordeling && stevne.stevne_fase !== 'avsluttende' && previewN > 0 && isAdmin
+        ? renderGruppefordeling(previewN, { visSpelarliste: false, initNa, initFormat: stevne.runde1_format })
+        : ''}
     </div>
   `
 
@@ -102,36 +114,46 @@ async function lastOgVis(container, stevneid) {
 
 // --- Gruppefordeling-UI ---
 
-function renderGruppefordeling(resultat) {
-  const n = resultat.length
+function renderGruppefordeling(resultatEllerN, { visSpelarliste = true, initNa = null, initFormat = null } = {}) {
+  const n = typeof resultatEllerN === 'number' ? resultatEllerN : resultatEllerN.length
+  const sortert = typeof resultatEllerN === 'number'
+    ? []
+    : resultatEllerN.map((r, i) => ({ ...r, cupPlassering: i + 1 }))
+
   const splits = beregnGyldigeGruppeStorrelsar(n)
 
-  const sortert = resultat.map((r, i) => ({ ...r, cupPlassering: i + 1 }))
+  const resolvedNa = (() => {
+    if (initNa === n) return n
+    if (initNa != null && splits.some(s => s.nA === initNa)) return initNa
+    return splits[0]?.nA ?? n
+  })()
+  const resolvedNb = n - resolvedNa
 
   const splitOptions = [
-    ...splits.map((s, i) => `
+    ...splits.map((s, i) => {
+      const checked = s.nA === resolvedNa && !(initNa === n)
+      return `
       <div class="form-check">
-        <input class="form-check-input" type="radio" name="gruppe-split" id="split-${i}" value="${s.nA}" ${i === 0 ? 'checked' : ''}>
+        <input class="form-check-input" type="radio" name="gruppe-split" id="split-${i}" value="${s.nA}" ${checked ? 'checked' : ''}>
         <label class="form-check-label" for="split-${i}">A:${s.nA} — B:${s.nB}</label>
-      </div>`),
+      </div>`
+    }),
     `<div class="form-check">
-      <input class="form-check-input" type="radio" name="gruppe-split" id="split-ingen" value="${n}">
+      <input class="form-check-input" type="radio" name="gruppe-split" id="split-ingen" value="${n}" ${initNa === n ? 'checked' : ''}>
       <label class="form-check-label" for="split-ingen">Ingen gruppeinndeling (alle i A)</label>
     </div>`,
   ].join('')
 
-  const initNa = splits[0]?.nA ?? n
-  const initNb = n - initNa
-  const initOppsettA = gyldigeRunde1Oppsett(initNa)[0] ?? null
-  const initOppsettB = initNb >= 2 ? (gyldigeRunde1Oppsett(initNb)[0] ?? null) : null
-  const gruppePreview = renderGruppePreview(sortert, initNa,
-    initOppsettA?.walkovers ?? 0,
-    initOppsettB?.walkovers ?? 0
-  )
-  const strukturPreview = renderStrukturPreview(initNa, initNb, initOppsettA, initOppsettB)
+  const initOppsettA = initFormat?.A ?? (gyldigeRunde1Oppsett(resolvedNa)[0] ?? null)
+  const initOppsettB = resolvedNb >= 2 ? (initFormat?.B ?? (gyldigeRunde1Oppsett(resolvedNb)[0] ?? null)) : null
+  const strukturPreview = renderStrukturPreview(resolvedNa, resolvedNb, initOppsettA, initOppsettB)
+
+  const gruppePreviewHtml = visSpelarliste
+    ? `<div id="gruppe-preview">${renderGruppePreview(sortert, resolvedNa, initOppsettA?.walkovers ?? 0, initOppsettB?.walkovers ?? 0)}</div>`
+    : ''
 
   return `
-    <div id="gruppe-val-wrapper">
+    <div id="gruppe-val-wrapper" data-n="${n}">
       <h5 class="text-center mb-3">Velg gruppestørrelser for sluttspill</h5>
       <div class="d-flex gap-3 align-items-stretch flex-wrap mb-3">
         <div class="card">
@@ -142,10 +164,10 @@ function renderGruppefordeling(resultat) {
         <div id="struktur-preview" class="flex-grow-1">${strukturPreview}</div>
       </div>
       <div id="runde1-format-veljar" class="d-flex gap-3 flex-wrap mb-2">
-        <div class="avsl-gruppe-kol">${renderRunde1FormatVeljar('Gruppe A', initNa, 'runde1-format-a')}</div>
-        <div class="avsl-gruppe-kol">${initNb >= 2 ? renderRunde1FormatVeljar('Gruppe B', initNb, 'runde1-format-b') : ''}</div>
+        <div class="avsl-gruppe-kol">${renderRunde1FormatVeljar('Gruppe A', resolvedNa, 'runde1-format-a', initOppsettA)}</div>
+        <div class="avsl-gruppe-kol">${resolvedNb >= 2 ? renderRunde1FormatVeljar('Gruppe B', resolvedNb, 'runde1-format-b', initOppsettB) : ''}</div>
       </div>
-      <div id="gruppe-preview">${gruppePreview}</div>
+      ${gruppePreviewHtml}
       <div class="mt-3 d-flex gap-2">
         <button id="bekreft-gruppe-btn" class="btn btn-primary">Bekreft val</button>
       </div>
@@ -235,16 +257,19 @@ function oppsettLabel(o) {
 
 // Viser radio-knapper for val av runde 1-format for éi gruppe.
 // Returnerer tom streng viss det berre finst éitt gyldig oppsett.
-function renderRunde1FormatVeljar(gruppeLabel, n, radioName) {
+function renderRunde1FormatVeljar(gruppeLabel, n, radioName, initOppsett = null) {
   const oppsett = gyldigeRunde1Oppsett(n)
   if (oppsett.length <= 1) return ''
   const radios = oppsett.map((o, i) => {
     const id = `${radioName}-${i}`
     const val = JSON.stringify(o)
+    const checked = initOppsett
+      ? (o.walkovers === initOppsett.walkovers && o.c3 === initOppsett.c3 && o.c2 === initOppsett.c2)
+      : i === 0
     return `
       <div class="form-check form-check-inline">
         <input class="form-check-input" type="radio" name="${radioName}" id="${id}"
-          value='${val}' data-oppsett='${val}' ${i === 0 ? 'checked' : ''}>
+          value='${val}' data-oppsett='${val}' ${checked ? 'checked' : ''}>
         <label class="form-check-label" for="${id}">${oppsettLabel(o)}</label>
       </div>`
   }).join('')
@@ -500,8 +525,9 @@ function bindHeaderEvents(container, stevneid, stevne, alleInnlBekrefta, harGrup
     await lastOgVis(container, stevneid)
   })
 
-  if (!harGruppefordeling && stevne.stevne_fase === 'avsluttende') {
-    const n = resultat.length
+  if (!harGruppefordeling) {
+    const nFromDom = parseInt(container.querySelector('#gruppe-val-wrapper')?.dataset.n ?? '0')
+    const n = nFromDom || resultat.length
     const sortert = [...resultat]
 
     // Hjelpefunksjon: les valt oppsett for ei gruppe frå radio-inputs
@@ -529,7 +555,7 @@ function bindHeaderEvents(container, stevneid, stevne, alleInnlBekrefta, harGrup
         }
         const strEl = container.querySelector('#struktur-preview')
         if (strEl) strEl.innerHTML = renderStrukturPreview(nA, nB, lesValtOppsett('runde1-format-a', nA), lesValtOppsett('runde1-format-b', nB))
-        // Oppdater spelarliste med walkover-markering basert på valt format
+        // Oppdater spelarliste med walkover-markering basert på valt format (berre synleg i avsluttende)
         const woA = lesValtOppsett('runde1-format-a', nA)?.walkovers ?? 0
         const woB = lesValtOppsett('runde1-format-b', nB)?.walkovers ?? 0
         const prevEl = container.querySelector('#gruppe-preview')
@@ -553,8 +579,8 @@ function bindHeaderEvents(container, stevneid, stevne, alleInnlBekrefta, harGrup
     }
     // Bind for initiell gruppestørrelse (les frå checked radio)
     const initChecked = container.querySelector('input[name="gruppe-split"]:checked')
-    const initNa = initChecked ? parseInt(initChecked.value) : (beregnGyldigeGruppeStorrelsar(n)[0]?.nA ?? n)
-    bindFormatRadioChange(initNa, n - initNa)
+    const initNaVal = initChecked ? parseInt(initChecked.value) : (beregnGyldigeGruppeStorrelsar(n)[0]?.nA ?? n)
+    bindFormatRadioChange(initNaVal, n - initNaVal)
 
     container.querySelector('#bekreft-gruppe-btn')?.addEventListener('click', async () => {
       const valt = container.querySelector('input[name="gruppe-split"]:checked')
@@ -564,21 +590,23 @@ function bindHeaderEvents(container, stevneid, stevne, alleInnlBekrefta, harGrup
       const oppsettA = lesValtOppsett('runde1-format-a', nA)
       const oppsettB = nB >= 2 ? lesValtOppsett('runde1-format-b', nB) : null
       const { error: fmtErr } = await supabase
-        .from('stevne').update({ runde1_format: { A: oppsettA, B: oppsettB } }).eq('id', stevneid)
+        .from('stevne').update({ runde1_format: { A: oppsettA, B: oppsettB, nA } }).eq('id', stevneid)
       if (fmtErr) { alert('Feil: ' + fmtErr.message); return }
 
-      const gruppeAId = gruppeNavnMap['A'] ?? null
-      const gruppeBId = gruppeNavnMap['B'] ?? null
+      if (stevne.stevne_fase === 'avsluttende') {
+        const gruppeAId = gruppeNavnMap['A'] ?? null
+        const gruppeBId = gruppeNavnMap['B'] ?? null
 
-      const updates = sortert.map((r, i) => {
-        const erA = i < nA
-        return supabase.from('resultat')
-          .update({ gruppeid: erA ? gruppeAId : (gruppeBId ?? gruppeAId) })
-          .eq('stevneid', stevneid).eq('kasterid', r.kasterid)
-      })
-      const results = await Promise.all(updates)
-      const err = results.find(r => r.error)?.error
-      if (err) { alert('Feil: ' + err.message); return }
+        const updates = sortert.map((r, i) => {
+          const erA = i < nA
+          return supabase.from('resultat')
+            .update({ gruppeid: erA ? gruppeAId : (gruppeBId ?? gruppeAId) })
+            .eq('stevneid', stevneid).eq('kasterid', r.kasterid)
+        })
+        const results = await Promise.all(updates)
+        const err = results.find(r => r.error)?.error
+        if (err) { alert('Feil: ' + err.message); return }
+      }
 
       await lastOgVis(container, stevneid)
     })

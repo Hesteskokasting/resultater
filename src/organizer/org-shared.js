@@ -28,7 +28,8 @@ export function renderInnledendeKnappar(stevne, erAlleKamperBekreftet, erSwiss) 
 
 export function renderAvsluttendeKnappar(stevne, state) {
   const { alleInnlBekrefta, harAvslKampar, harGruppefordeling, erSisteRundeFullfort,
-    aktive, harSemfinale, semfinalarBekrefta, harFinale, finaleOgBronseBekrefta } = state
+    aktive, harSemfinale, semfinalarBekrefta, harFinale, finaleOgBronseBekrefta,
+    harPrekonfigurertFormat = false } = state
   const fase = stevne.stevne_fase
 
   let handlingsHtml = ''
@@ -37,7 +38,9 @@ export function renderAvsluttendeKnappar(stevne, state) {
     if (!alleInnlBekrefta) {
       handlingsHtml = '<span class="badge bg-warning text-dark">Innledande fase er ikkje ferdig</span>'
     } else {
-      handlingsHtml = `<button id="start-avsl-btn" class="btn btn-sm btn-success">Start avsluttande fase</button>`
+      handlingsHtml = `
+        <button id="start-avsl-btn" class="btn btn-sm btn-success">Start avsluttande fase</button>
+        ${harPrekonfigurertFormat ? `<button id="endre-gruppeinndeling-btn" class="btn btn-sm btn-outline-secondary">Endre gruppefordeling</button>` : ''}`
     }
   } else if (!harGruppefordeling) {
     // Gruppefordeling UI = eiga seksjon under
