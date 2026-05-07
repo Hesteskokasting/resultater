@@ -112,7 +112,7 @@ function createEmptyRow(message) {
   return row
 }
 
-export async function render(container, { id } = {}) {
+export async function render(container, { id } = {}, bannerSlot = null) {
   const stevneid = Number(id)
   container.innerHTML = '<p class="laster">Laster…</p>'
 
@@ -131,7 +131,7 @@ export async function render(container, { id } = {}) {
   }
 
   const fase = stevne.stevne_fase ?? null
-  const kanEndrast = fase === null || fase === 'ikke_startet'
+  const kanEndrast = bannerSlot !== null && (fase === null || fase === 'ikke_startet')
   const alleSpelarar = cachedKasterPlayers
   const pameldtIds = new Set((pameldingar ?? []).map(p => p.kasterid))
 

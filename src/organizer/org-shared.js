@@ -1,5 +1,53 @@
 import { scoreForSp, hentP1P2 } from '../utils/kamp.js'
 
+export function renderInnledendeKnappar(stevne, erAlleKamperBekreftet, erSwiss) {
+  return `
+    ${erSwiss ? `<button id="neste-runde-btn" class="btn btn-sm btn-warning"${stevne.erfullfort || !erAlleKamperBekreftet ? ' disabled' : ''}>Generer neste runde</button>` : ''}
+    <button id="fullfor-btn" class="btn btn-sm btn-primary"${stevne.erfullfort || !erAlleKamperBekreftet ? ' disabled' : ''}>Start avsluttande fase</button>
+    <button id="fullfør-turnering-btn" class="btn btn-sm btn-danger"${stevne.erfullfort ? ' disabled' : ''}>Fullfør turnering</button>
+    <button id="test-autofullfør-btn" class="btn btn-sm btn-outline-warning">TEST: Autofullfør</button>
+    <button id="test-slett-btn" class="btn btn-sm btn-outline-danger">TEST: Slett kamper</button>
+    <button id="test-fase-ikkestartet-btn" class="btn btn-sm btn-outline-secondary">TEST: Fase → ikke_startet</button>
+  `
+}
+
+export function renderAvsluttendeKnappar(stevne, state) {
+  const { alleInnlBekrefta, harAvslKampar, harGruppefordeling, erSisteRundeFullfort,
+    aktive, harSemfinale, semfinalarBekrefta, harFinale, finaleOgBronseBekrefta } = state
+  const fase = stevne.stevne_fase
+
+  let handlingsHtml = ''
+
+  if (fase !== 'avsluttende') {
+    if (!alleInnlBekrefta) {
+      handlingsHtml = '<span class="badge bg-warning text-dark">Innledande fase er ikkje ferdig</span>'
+    } else {
+      handlingsHtml = `<button id="start-avsl-btn" class="btn btn-sm btn-success">Start avsluttande fase</button>`
+    }
+  } else if (!harGruppefordeling) {
+    // Gruppefordeling UI = eiga seksjon under
+  } else if (harGruppefordeling && !harAvslKampar) {
+    handlingsHtml = `<button id="endre-gruppeinndeling-btn" class="btn btn-sm btn-outline-secondary">Endre gruppeinndeling</button>`
+  } else if (semfinalarBekrefta && !harFinale) {
+    handlingsHtml = `<button id="generer-finale-btn" class="btn btn-sm btn-warning">Generer finale og bronsefinale</button>`
+  } else if (erSisteRundeFullfort && !semfinalarBekrefta && !harFinale && aktive.length <= 4) {
+    handlingsHtml = `
+      <label class="form-check-label me-2 small" for="seeding-toggle">Seeding</label>
+      <div class="form-check form-switch d-inline-block me-2">
+        <input class="form-check-input" type="checkbox" id="seeding-toggle" checked>
+      </div>
+      <button id="neste-runde-btn" class="btn btn-sm btn-warning">Generer semifinalar</button>
+    `
+  }
+
+  return `
+    ${handlingsHtml}
+    <button id="fullfør-turnering-btn" class="btn btn-sm btn-danger"${stevne.erfullfort ? ' disabled' : ''}>Fullfør turnering</button>
+    <button id="test-slett-avsl-btn" class="btn btn-sm btn-outline-danger">TEST: Slett kamper</button>
+    <button id="test-fase-innledende-btn" class="btn btn-sm btn-outline-secondary">TEST: Fase → innledende</button>
+  `
+}
+
 export function renderOrgBanner(stevneNavn, knapperHtml = '') {
   return `
     <div class="org-fase-header d-flex align-items-center gap-2 mb-3">

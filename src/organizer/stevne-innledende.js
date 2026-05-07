@@ -3,7 +3,7 @@ import { opnNumberpad } from './score-numberpad.js'
 import { beregnKampPoeng, hentP1P2, scoreForSp, ringerForSp, oppdaterResultatInnl } from '../utils/kamp.js'
 import { genererNesteSwissRunde } from './kampgenerering-db.js'
 import { autoFullforInnledendeKamper, slettKamperForFase, settStevneFaseTilIkkeStartet } from '../utils/organizer-test-utils.js'
-import { byggInnledendeSpelMap, sorterStilling } from './org-shared.js'
+import { byggInnledendeSpelMap, sorterStilling, renderInnledendeKnappar } from './org-shared.js'
 
 let kanal = null
 let bannerSlot = null
@@ -67,21 +67,14 @@ async function lastOgVis(container, stevneid) {
 
   const erAlleKamperBekreftet = alleKamper.length > 0 && alleKamper.every(k => k.er_bekreftet)
 
-  if (bannerSlot) {
-    bannerSlot.innerHTML = `
-      ${erSwiss ? `<button id="neste-runde-btn" class="btn btn-sm btn-warning"${stevne.erfullfort || !erAlleKamperBekreftet ? ' disabled' : ''}>Generer neste runde</button>` : ''}
-      <button id="fullfor-btn" class="btn btn-sm btn-primary"${stevne.erfullfort || !erAlleKamperBekreftet ? ' disabled' : ''}>Start avsluttande fase</button>
-      <button id="fullfør-turnering-btn" class="btn btn-sm btn-danger"${stevne.erfullfort ? ' disabled' : ''}>Fullfør turnering</button>
-      <button id="test-autofullfør-btn" class="btn btn-sm btn-outline-warning">TEST: Autofullfør</button>
-      <button id="test-slett-btn" class="btn btn-sm btn-outline-danger">TEST: Slett kamper</button>
-      <button id="test-fase-ikkestartet-btn" class="btn btn-sm btn-outline-secondary">TEST: Fase → ikke_startet</button>
-    `
-  }
+  if (bannerSlot) bannerSlot.innerHTML = renderInnledendeKnappar(stevne, erAlleKamperBekreftet, erSwiss)
+
+  const isAdmin = bannerSlot !== null
 
   container.innerHTML = `
     <div class="d-flex gap-3 align-items-start">
       <div class="flex-grow-1">
-        ${[...rundeMap.entries()].map(([nr, rKamper]) => renderRunde(nr, rKamper, startnrMap)).join('')}
+        ${[...rundeMap.entries()].map(([nr, rKamper]) => renderRunde(nr, rKamper, startnrMap, isAdmin)).join('')}
       </div>
       <div class="org-stilling-sidebar">
         ${renderStilling(stilling)}
@@ -177,7 +170,8 @@ async function lastOgVis(container, stevneid) {
       .channel(`stevne-innl-${stevneid}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'kamp_omgang' },
                 () => {
-      if (location.hash === `#/stevne/${stevneid}/organizer/innledende`) {
+      if (location.hash === `#/stevne/${stevneid}/organizer/innledende` ||
+          location.hash === `#/stevne/${stevneid}/live/innledende`) {
         lastOgVis(container, stevneid)
       } else {
         supabase.removeChannel(kanal)
@@ -189,7 +183,7 @@ async function lastOgVis(container, stevneid) {
   }
 }
 
-function renderRunde(nr, kamper, startnrMap) {
+function renderRunde(nr, kamper, startnrMap, isAdmin) {
   return `
     <div class="mb-3">
       <h6 class="text-center fw-bold mb-1">Runde ${nr}</h6>
@@ -201,17 +195,17 @@ function renderRunde(nr, kamper, startnrMap) {
             <th class="th-48 text-center">S1</th>
             <th class="th-48 text-center">S2</th>
             <th>P2</th>
-            <th class="th-148"></th>
+            ${isAdmin ? '<th class="th-148"></th>' : '<th class="th-48"></th>'}
           </tr>
         </thead>
         <tbody>
-          ${kamper.map(k => kampRad(k, startnrMap)).join('')}
+          ${kamper.map(k => kampRad(k, startnrMap, isAdmin)).join('')}
         </tbody>
       </table>
     </div>`
 }
 
-function kampRad(kamp, startnrMap) {
+function kampRad(kamp, startnrMap, isAdmin = true) {
   const [p1, p2] = hentP1P2(kamp.spelarar, startnrMap)
 
   const p1Nr = p1?.kasterid ? (startnrMap[p1.kasterid] ?? '') : ''
@@ -249,9 +243,9 @@ function kampRad(kamp, startnrMap) {
       <td class="text-center">${harPoeng ? s2 : ''}</td>
       <td>${p2Vis}</td>
       <td class="text-end pe-2">
-        <button class="btn btn-primary btn-sm" id="plus-${kamp.id}"${kamp.er_bekreftet ? ' disabled' : ''}>+</button>
+        ${isAdmin ? `<button class="btn btn-primary btn-sm" id="plus-${kamp.id}"${kamp.er_bekreftet ? ' disabled' : ''}>+</button>` : ''}
         <button class="btn btn-secondary btn-sm" id="scoreboard-${kamp.id}" data-bane="${kamp.bane_nummer ?? ''}" title="Scoreboard"${scoreboardDisabled}>S</button>
-        <button class="btn ${bekrfKlass} btn-sm" id="bekrft-${kamp.id}"${bekrfDisabled}>Bekreft</button>
+        ${isAdmin ? `<button class="btn ${bekrfKlass} btn-sm" id="bekrft-${kamp.id}"${bekrfDisabled}>Bekreft</button>` : ''}
       </td>
     </tr>`
 }

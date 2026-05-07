@@ -4,7 +4,7 @@ import { genererCupRunde1, genererNesteCupRunde, genererNesteCupRundeForGruppe, 
 import { opnNumberpad } from './score-numberpad.js'
 import { scoreForSp } from '../utils/kamp.js'
 import { slettKamperForFase, settStevneFaseTilInnledende } from '../utils/organizer-test-utils.js'
-import { sorterStilling } from './org-shared.js'
+import { sorterStilling, renderAvsluttendeKnappar } from './org-shared.js'
 
 let kanal = null
 let bannerSlot = null
@@ -80,13 +80,12 @@ async function lastOgVis(container, stevneid) {
     innlKampar
   )
 
-  if (bannerSlot) {
-    bannerSlot.innerHTML = renderHeader(stevne, stevneid, { alleInnlBekrefta, harAvslKampar, harGruppefordeling, erSisteRundeFullfort, aktive, harSemfinale, semfinalarBekrefta, harFinale, finaleOgBronseBekrefta })
-  }
+  const isAdmin = bannerSlot !== null
+  if (bannerSlot) bannerSlot.innerHTML = renderAvsluttendeKnappar(stevne, { alleInnlBekrefta, harAvslKampar, harGruppefordeling, erSisteRundeFullfort, aktive, harSemfinale, semfinalarBekrefta, harFinale, finaleOgBronseBekrefta })
 
   container.innerHTML = `
     <div class="px-3 py-2">
-      ${harGruppefordeling ? renderHovudinnhald(avslKampar, stilling, startnrMap, aktive.length) : ''}
+      ${harGruppefordeling ? renderHovudinnhald(avslKampar, stilling, startnrMap, aktive.length, isAdmin) : ''}
       ${stevne.stevne_fase === 'avsluttende' && !harGruppefordeling ? renderGruppefordeling(stilling) : ''}
     </div>
   `
@@ -97,47 +96,6 @@ async function lastOgVis(container, stevneid) {
     abonnerPaaEndringar(container, stevneid)
     if (harAvslKampar) bindKampEvents(container, stevneid, avslKampar, startnrMap, resultatMedNamn, aktive.length)
   }
-}
-
-// --- Header med handlingsknapp ---
-
-function renderHeader(stevne, stevneid, state) {
-  const { alleInnlBekrefta, harAvslKampar, harGruppefordeling, erSisteRundeFullfort,
-    aktive, harSemfinale, semfinalarBekrefta, harFinale, finaleOgBronseBekrefta } = state
-  const fase = stevne.stevne_fase
-
-  let handlingsHtml = ''
-
-  if (fase !== 'avsluttende') {
-    if (!alleInnlBekrefta) {
-      handlingsHtml = '<span class="badge bg-warning text-dark">Innledande fase er ikkje ferdig</span>'
-    } else {
-      handlingsHtml = `<button id="start-avsl-btn" class="btn btn-sm btn-success">Start avsluttande fase</button>`
-    }
-  } else if (!harGruppefordeling) {
-    // Gruppefordeling UI = eiga seksjon under
-  } else if (harGruppefordeling && !harAvslKampar) {
-    handlingsHtml = `<button id="endre-gruppeinndeling-btn" class="btn btn-sm btn-outline-secondary">Endre gruppeinndeling</button>`
-  } else if (semfinalarBekrefta && !harFinale) {
-    handlingsHtml = `<button id="generer-finale-btn" class="btn btn-sm btn-warning">Generer finale og bronsefinale</button>`
-  } else if (erSisteRundeFullfort && !semfinalarBekrefta && !harFinale && aktive.length <= 4) {
-    handlingsHtml = `
-      <label class="form-check-label me-2 small" for="seeding-toggle">Seeding</label>
-      <div class="form-check form-switch d-inline-block me-2">
-        <input class="form-check-input" type="checkbox" id="seeding-toggle" checked>
-      </div>
-      <button id="neste-runde-btn" class="btn btn-sm btn-warning">Generer semifinalar</button>
-    `
-  }
-
-  const knapperHtml = `
-    ${handlingsHtml}
-    <button id="fullfør-turnering-btn" class="btn btn-sm btn-danger"${stevne.erfullfort ? ' disabled' : ''}>Fullfør turnering</button>
-    <button id="test-slett-avsl-btn" class="btn btn-sm btn-outline-danger">TEST: Slett kamper</button>
-    <button id="test-fase-innledende-btn" class="btn btn-sm btn-outline-secondary">TEST: Fase → innledende</button>
-  `
-
-  return knapperHtml
 }
 
 // --- Gruppefordeling-UI ---
@@ -297,7 +255,7 @@ function renderRunde1FormatVeljar(gruppeLabel, n, radioName) {
 
 // --- Hovudinnhald (kampar + stilling) ---
 
-function renderHovudinnhald(avslKampar, stilling, startnrMap, totalAktive) {
+function renderHovudinnhald(avslKampar, stilling, startnrMap, totalAktive, isAdmin = true) {
   const gruppeNamn = [...new Set(stilling.map(r => r.gruppe?.navn).filter(Boolean))].sort()
 
   const gruppeKolonnar = gruppeNamn.map(g => {
@@ -308,8 +266,8 @@ function renderHovudinnhald(avslKampar, stilling, startnrMap, totalAktive) {
     const sisteRundeNr = kampar.length ? Math.max(...kampar.map(k => k.runde_nummer)) : 0
     const sisteRunde = kampar.filter(k => k.runde_nummer === sisteRundeNr)
     const sisteRundeFullfort = sisteRunde.length > 0 && sisteRunde.every(k => k.er_bekreftet || k.er_walkover)
-    const visGenerer = (kampar.length === 0 || sisteRundeFullfort) && aktiveCount > 1 && totalAktive > 4
-    return renderGruppeKolonne(g, kampar, aktiveCount, totalCount, sisteRundeNr, visGenerer, startnrMap)
+    const visGenerer = isAdmin && (kampar.length === 0 || sisteRundeFullfort) && aktiveCount > 1 && totalAktive > 4
+    return renderGruppeKolonne(g, kampar, aktiveCount, totalCount, sisteRundeNr, visGenerer, startnrMap, isAdmin)
   }).join('')
 
   return `
@@ -319,7 +277,7 @@ function renderHovudinnhald(avslKampar, stilling, startnrMap, totalAktive) {
     </div>`
 }
 
-function renderGruppeKolonne(gruppeNavn, kampar, aktiveCount, totalCount, sisteRundeNr, visGenerer, startnrMap) {
+function renderGruppeKolonne(gruppeNavn, kampar, aktiveCount, totalCount, sisteRundeNr, visGenerer, startnrMap, isAdmin = true) {
   const rundeMap = new Map()
   for (const k of kampar) {
     if (!rundeMap.has(k.runde_nummer)) rundeMap.set(k.runde_nummer, [])
@@ -333,7 +291,7 @@ function renderGruppeKolonne(gruppeNavn, kampar, aktiveCount, totalCount, sisteR
     return `
       <h6 class="fw-bold text-center mb-1">${tittel}</h6>
       <div class="d-flex flex-wrap gap-2 mb-2">
-        ${synligeKampar.map(k => renderKampBlock(k, startnrMap)).join('')}
+        ${synligeKampar.map(k => renderKampBlock(k, startnrMap, isAdmin)).join('')}
       </div>`
   }).join('')
 
@@ -353,7 +311,7 @@ function renderGruppeKolonne(gruppeNavn, kampar, aktiveCount, totalCount, sisteR
     </div>`
 }
 
-function renderKampBlock(kamp, startnrMap) {
+function renderKampBlock(kamp, startnrMap, isAdmin = true) {
   const sp = (kamp.spelarar ?? []).sort((a, b) =>
     (startnrMap[a.kasterid] ?? 999) - (startnrMap[b.kasterid] ?? 999)
   )
@@ -391,12 +349,12 @@ function renderKampBlock(kamp, startnrMap) {
           ${spelarRader}
           <tr class="">
             <td colspan="3" class="text-end pe-1">
-              ${!kamp.er_walkover && !kamp.er_tre_spelarar
+              ${isAdmin && !kamp.er_walkover && !kamp.er_tre_spelarar
                 ? `<button class="btn btn-primary btn-sm" id="plus-${kamp.id}"${bekrefta ? ' disabled' : ''}>+</button> `
                 : ''}
               <button class="btn btn-secondary btn-sm" id="scoreboard-${kamp.id}"
                 title="Scoreboard"${bekrefta && !kamp.er_tre_spelarar ? ' disabled' : ''}>S</button>
-              <button class="btn ${bekrftKlass} btn-sm" id="bekrft-${kamp.id}"${bekrftDisabled ? ' disabled' : ''}>${bekrftTekst}</button>
+              ${isAdmin ? `<button class="btn ${bekrftKlass} btn-sm" id="bekrft-${kamp.id}"${bekrftDisabled ? ' disabled' : ''}>${bekrftTekst}</button>` : ''}
             </td>
           </tr>
         </tbody>
@@ -849,7 +807,8 @@ async function _lagreCupKampResultat(stevneid, kamp, sp, vidareIds, eliminertId,
 function abonnerPaaEndringar(container, stevneid) {
   if (kanal) return
   function onEndring() {
-    if (location.hash === `#/stevne/${stevneid}/organizer/avsluttende`) {
+    if (location.hash === `#/stevne/${stevneid}/organizer/avsluttende` ||
+        location.hash === `#/stevne/${stevneid}/live/avsluttende`) {
       lastOgVis(container, stevneid)
     } else {
       supabase.removeChannel(kanal); kanal = null

@@ -1,4 +1,5 @@
 import { supabase } from '../supabase.js'
+import { erAdmin, erKlubbadmin } from '../utils/auth.js'
 import { renderOrgNav } from './org-nav.js'
 import { render as renderInfo }          from './stevne-info.js'
 import { render as renderSpillarar }     from './stevne-deltakere.js'
@@ -20,7 +21,7 @@ const TAB_RENDER = {
   innstillinger: renderInnstillingar,
 }
 
-export async function render(container, { id, tab = 'info' } = {}) {
+export async function render(container, { id, tab = 'info', basePath = 'organizer' } = {}) {
   const stevneid = Number(id)
   container.innerHTML = '<p class="laster">Laster…</p>'
 
@@ -32,20 +33,22 @@ export async function render(container, { id, tab = 'info' } = {}) {
     return
   }
 
+  const isAdmin = basePath === 'organizer' || (await erAdmin()) || (await erKlubbadmin())
+  const aktiv = !isAdmin && tab === 'innstillinger' ? 'info' : tab
   const badge = faseLabel[stevne.stevne_fase ?? 'ikke_startet'] ?? ''
 
   container.innerHTML = `
     <div class="org-shell py-3 px-3">
-      ${renderOrgNav(stevneid, tab)}
+      ${renderOrgNav(stevneid, aktiv, isAdmin, basePath)}
       <div class="org-fase-header d-flex align-items-center gap-2 mb-3">
         <h5 class="mb-0 flex-grow-1">${stevne.navn} ${badge}</h5>
-        <div id="org-banner-knappar"></div>
+        ${isAdmin ? '<div id="org-banner-knappar"></div>' : ''}
       </div>
       <div id="org-subside"></div>
     </div>`
 
-  const bannerSlot = container.querySelector('#org-banner-knappar')
+  const bannerSlot = isAdmin ? container.querySelector('#org-banner-knappar') : null
   const subside = container.querySelector('#org-subside')
-  const renderFn = TAB_RENDER[tab] ?? renderInfo
+  const renderFn = TAB_RENDER[aktiv] ?? renderInfo
   await renderFn(subside, { id: String(stevneid) }, bannerSlot)
 }
