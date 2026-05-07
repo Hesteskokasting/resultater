@@ -113,6 +113,8 @@ function renderHeader(stevne, stevneid, state) {
     }
   } else if (!harGruppefordeling) {
     // Gruppefordeling UI = eiga seksjon under
+  } else if (harGruppefordeling && !harAvslKampar) {
+    handlingsHtml = `<button id="endre-gruppeinndeling-btn" class="btn btn-sm btn-outline-secondary">Endre gruppeinndeling</button>`
   } else if (semfinalarBekrefta && !harFinale) {
     handlingsHtml = `<button id="generer-finale-btn" class="btn btn-sm btn-warning">Generer finale og bronsefinale</button>`
   } else if (erSisteRundeFullfort && !semfinalarBekrefta && !harFinale && aktive.length <= 4) {
@@ -504,7 +506,7 @@ function opnGenererRundeDialog(container, stevneid, gruppeNavn, stillingForGrupp
       try {
         if (runde === 1) {
           const spelarar = aktive.map((r, i) => ({ kasterid: r.kasterid, plassering: i + 1 }))
-          await genererCupRunde1(stevneid, [{ gruppeNavn, spelarar, runde1Oppsett }], medSeedingVal)
+          await genererCupRunde1(stevneid, [{ gruppeNavn, spelarar, runde1Oppsett }], medSeedingVal, runde1Format)
         } else {
           await genererNesteCupRundeForGruppe(stevneid, gruppeNavn, medSeedingVal)
         }
@@ -611,6 +613,15 @@ function bindHeaderEvents(container, stevneid, stevne, alleInnlBekrefta, harGrup
       await lastOgVis(container, stevneid)
     })
   }
+
+  container.querySelector('#endre-gruppeinndeling-btn')?.addEventListener('click', async () => {
+    if (!confirm('Tilbakestill gruppeinndelinga? Gruppefordeling og format vert fjerna.')) return
+    await Promise.all([
+      supabase.from('resultat').update({ gruppeid: null }).eq('stevneid', stevneid),
+      supabase.from('stevne').update({ runde1_format: null }).eq('id', stevneid),
+    ])
+    await lastOgVis(container, stevneid)
+  })
 
   container.querySelector('#neste-runde-btn')?.addEventListener('click', async () => {
     const medSeeding = container.querySelector('#seeding-toggle')?.checked ?? true
@@ -787,6 +798,21 @@ async function _lagreCupKampResultat(stevneid, kamp, sp, vidareIds, eliminertId,
   if (!eliminertId) return
 
   const erFinale = kamp.runde_navn === 'Finale' || kamp.runde_navn === 'Bronsefinale'
+  const allKasterids = sp.map(s => s.kasterid).filter(Boolean)
+
+  // Clear previous elimination result for players in this match before setting new
+  await supabase.from('resultat')
+    .update({ runde_eliminert: null })
+    .eq('stevneid', stevneid)
+    .eq('runde_eliminert', kamp.runde_nummer)
+    .in('kasterid', allKasterids)
+  if (erFinale) {
+    await supabase.from('resultat')
+      .update({ plassering: null })
+      .eq('stevneid', stevneid)
+      .in('kasterid', allKasterids)
+  }
+
   const elimUpdate = erFinale
     ? { runde_eliminert: kamp.runde_nummer, plassering: kamp.runde_navn === 'Finale' ? 2 : 4 }
     : { runde_eliminert: kamp.runde_nummer }

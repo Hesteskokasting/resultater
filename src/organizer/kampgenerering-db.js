@@ -325,13 +325,31 @@ async function _hentAktiveCupSpelarar(stevneid) {
 
 // Generer runde 1 av cup avsluttende fase
 // grupper: [{gruppeNavn: 'A'|'B'|null, spelarar: [{kasterid, plassering}], runde1Oppsett?: {walkovers,c3,c2}}]
-export async function genererCupRunde1(stevneid, grupper, medSeeding) {
+// runde1Format: {A: {walkovers,c3,c2}, B: {walkovers,c3,c2}} — brukt for å rekne ut min. baneStart
+// dersom ei gruppe vert generert før føregåande gruppe
+export async function genererCupRunde1(stevneid, grupper, medSeeding, runde1Format = null) {
+  const gruppeOrder = ['A', 'B', 'C']
   let totalKampar = 0
-  let baneStart = 0
   for (const gr of grupper) {
     const paringar = beregnCupRundeParingar(gr.spelarar, { medSeeding, isRunde1: true, runde1Oppsett: gr.runde1Oppsett ?? null })
+    const { data: maxBane } = await supabase.from('kamp')
+      .select('bane_nummer').eq('stevneid', stevneid).eq('fase', 'avsluttende')
+      .eq('runde_nummer', 1).not('bane_nummer', 'is', null)
+      .order('bane_nummer', { ascending: false }).limit(1)
+    const dbMaxBane = maxBane?.[0]?.bane_nummer ?? 0
+
+    // Sum baner for alle grupper som kjem før denne i format (uavhengig av genereringsrekkefølgje)
+    let formatBaneOffset = 0
+    if (runde1Format && gr.gruppeNavn) {
+      const myIdx = gruppeOrder.indexOf(gr.gruppeNavn)
+      for (let i = 0; i < myIdx; i++) {
+        const prev = runde1Format[gruppeOrder[i]]
+        if (prev) formatBaneOffset += (prev.c3 ?? 0) + (prev.c2 ?? 0)
+      }
+    }
+
+    const baneStart = Math.max(dbMaxBane, formatBaneOffset)
     totalKampar += await _insertCupParingar(stevneid, paringar, 1, gr.gruppeNavn, baneStart)
-    baneStart += paringar.filter(p => !p.erWalkover).length
   }
   return totalKampar
 }
