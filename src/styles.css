@@ -152,6 +152,51 @@
 
 .heimeside { padding-bottom: 40px; }
 
+.live-banner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.live-kort {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border: 1px solid var(--kant-2);
+  border-radius: 6px;
+  text-decoration: none;
+  color: var(--tekst);
+  background: var(--flate);
+  font-weight: 600;
+}
+
+.live-kort:hover { background: var(--primaer-hover); }
+
+.live-prikk {
+  position: relative;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #e74c3c;
+  flex-shrink: 0;
+}
+
+.live-prikk::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: rgba(231, 76, 60, 0.5);
+  animation: live-pulse 1.5s ease-out infinite;
+}
+
+@keyframes live-pulse {
+  0%   { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
 .heimeside-tittel {
   text-align: center;
   font-size: 1.6rem;
@@ -211,6 +256,11 @@
   font-size: 1rem;
   color: var(--lenke);
   margin-bottom: 6px;
+}
+
+a.stevne-navn {
+  display: block;
+  text-decoration: none;
 }
 
 .stevne-lenke {

@@ -16,6 +16,15 @@ async function hentSisteResultater() {
   return { data: data ?? [], error }
 }
 
+async function hentLiveStevner() {
+  const { data, error } = await supabase
+    .from('stevne')
+    .select('id, navn, stevne_fase')
+    .in('stevne_fase', ['innledende', 'avsluttende'])
+    .order('dato', { ascending: true })
+  return { data: data ?? [], error }
+}
+
 async function hentKommendeStevner() {
   const { data, error } = await supabase
     .from('stevne')
@@ -49,6 +58,15 @@ function ncTopp20Html(liste) {
     </table>`
 }
 
+function liveKortHtml(s) {
+  const tab = s.stevne_fase === 'avsluttende' ? 'avsluttende' : 'innledende'
+  return `
+    <a class="live-kort" href="#/stevne/${s.id}/live/${tab}">
+      <span class="live-prikk"></span>
+      <span>LIVE: ${s.navn}</span>
+    </a>`
+}
+
 function resultatKortHtml(s) {
   return `
     <div class="stevne-kort">
@@ -65,8 +83,9 @@ function kommendeKortHtml(s) {
   return `
     <div class="stevne-kort">
       <p class="stevne-dato">${formaterDato(s.dato)}</p>
-      <p class="stevne-navn">${s.navn}</p>
+      <a class="stevne-navn" href="#/resultat/${s.id}">${s.navn}</a>
       ${innbydelse}
+      
     </div>`
 }
 
@@ -79,11 +98,13 @@ export async function render(container) {
     { data: kommende, error: e2 },
     { data: regler, error: e3 },
     { stevner, resultater: ncResultater, error: e4 },
+    { data: live },
   ] = await Promise.all([
     hentSisteResultater(),
     hentKommendeStevner(),
     hentRegler(ar),
     hentStevnerOgResultater(ar),
+    hentLiveStevner(),
   ])
 
   if (e1 || e2 || e3 || e4) {
@@ -95,7 +116,7 @@ export async function render(container) {
 
   container.innerHTML = `
     <div class="heimeside">
-      <h1 class="heimeside-tittel">Resultatservice</h1>
+      ${live.length ? `<div class="live-banner">${live.map(liveKortHtml).join('')}</div>` : ''}
       <div class="heimeside-grid">
         <section class="heimeside-nc">
           <h2 class="heimeside-seksjon-tittel">Norgescupen Klasse 1 - Topp 20</h2>
