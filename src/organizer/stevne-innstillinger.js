@@ -1,4 +1,5 @@
 import { supabase } from '../supabase.js'
+import { nullstillStevne } from '../utils/organizer-test-utils.js'
 
 export async function render(container, { id } = {}) {
   const stevneid = Number(id)
@@ -54,6 +55,12 @@ export async function render(container, { id } = {}) {
         </div>
         <button type="submit" class="btn btn-primary">Lagre</button>
         <span id="lagre-status" class="ms-3 text-success d-none">Lagra ✓</span>
+        <hr class="my-4">
+        <div class="border border-danger rounded p-3">
+          <h6 class="text-danger mb-2">Farleg sone</h6>
+          <p class="text-muted small mb-2">Slettar alle kampar og resultat, og set stevnet tilbake til starttilstanden.</p>
+          <button type="button" id="nullstill-btn" class="btn btn-danger">Start på nytt!</button>
+        </div>
       </form>
     </div>
   `
@@ -83,5 +90,12 @@ export async function render(container, { id } = {}) {
     const status = container.querySelector('#lagre-status')
     status.classList.remove('d-none')
     setTimeout(() => { status.classList.add('d-none') }, 2000)
+  })
+
+  container.querySelector('#nullstill-btn').addEventListener('click', async (e) => {
+    if (!confirm('Er du sikker? Dette slettar alle kampar og resultat og set stevnet tilbake til starttilstanden.')) return
+    e.currentTarget.disabled = true
+    await nullstillStevne(stevneid)
+    await render(container, { id })
   })
 }

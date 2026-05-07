@@ -21,8 +21,6 @@ export function renderInnledendeKnappar(stevne, erAlleKamperBekreftet, erSwiss) 
     <button id="fullfor-btn" class="btn btn-sm btn-primary"${stevne.erfullfort || !erAlleKamperBekreftet ? ' disabled' : ''}>Start avsluttande fase</button>
     <button id="fullfør-turnering-btn" class="btn btn-sm btn-danger"${stevne.erfullfort ? ' disabled' : ''}>Fullfør turnering</button>
     <button id="test-autofullfør-btn" class="btn btn-sm btn-outline-warning">TEST: Autofullfør</button>
-    <button id="test-slett-btn" class="btn btn-sm btn-outline-danger">TEST: Slett kamper</button>
-    <button id="test-fase-ikkestartet-btn" class="btn btn-sm btn-outline-secondary">TEST: Fase → ikke_startet</button>
   `
 }
 
@@ -61,8 +59,6 @@ export function renderAvsluttendeKnappar(stevne, state) {
   return `
     ${handlingsHtml}
     <button id="fullfør-turnering-btn" class="btn btn-sm btn-danger"${stevne.erfullfort ? ' disabled' : ''}>Fullfør turnering</button>
-    <button id="test-slett-avsl-btn" class="btn btn-sm btn-outline-danger">TEST: Slett kamper</button>
-    <button id="test-fase-innledende-btn" class="btn btn-sm btn-outline-secondary">TEST: Fase → innledende</button>
   `
 }
 

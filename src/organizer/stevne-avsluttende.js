@@ -3,7 +3,6 @@ import { beregnGyldigeGruppeStorrelsar, beregnCupStruktur, gyldigeRunde1Oppsett 
 import { genererCupRunde1, genererNesteCupRunde, genererNesteCupRundeForGruppe, genererFinaleOgBronsefinale } from './kampgenerering-db.js'
 import { opnNumberpad } from './score-numberpad.js'
 import { scoreForSp } from '../utils/kamp.js'
-import { slettKamperForFase, settStevneFaseTilInnledende } from '../utils/organizer-test-utils.js'
 import { sorterStilling, renderAvsluttendeKnappar, lagOnEndringHandler } from './org-shared.js'
 
 let kanal = null
@@ -659,19 +658,6 @@ function bindHeaderEvents(container, stevneid, stevne, alleInnlBekrefta, harGrup
     await lastOgVis(container, stevneid)
   })
 
-  bannerSlot?.querySelector('#test-slett-avsl-btn')?.addEventListener('click', async (e) => {
-    if (!confirm('Slett alle avsluttande kamper?')) return
-    e.currentTarget.disabled = true
-    await slettKamperForFase(stevneid, 'avsluttende')
-    await lastOgVis(container, stevneid)
-  })
-
-  bannerSlot?.querySelector('#test-fase-innledende-btn')?.addEventListener('click', async (e) => {
-    if (!confirm('Sett stevne_fase til "innledende"?')) return
-    e.currentTarget.disabled = true
-    await settStevneFaseTilInnledende(stevneid)
-    await lastOgVis(container, stevneid)
-  })
 }
 
 function bindKampEvents(container, stevneid, avslKampar, startnrMap, resultat, antallAktive) {

@@ -2,7 +2,7 @@ import { supabase } from '../supabase.js'
 import { opnNumberpad } from './score-numberpad.js'
 import { beregnKampPoeng, hentP1P2, scoreForSp, ringerForSp, oppdaterResultatInnl } from '../utils/kamp.js'
 import { genererNesteSwissRunde } from './kampgenerering-db.js'
-import { autoFullforInnledendeKamper, slettKamperForFase, settStevneFaseTilIkkeStartet } from '../utils/organizer-test-utils.js'
+import { autoFullforInnledendeKamper } from '../utils/organizer-test-utils.js'
 import { byggInnledendeSpelMap, sorterStilling, renderInnledendeKnappar, lagOnEndringHandler } from './org-shared.js'
 
 let kanal = null
@@ -113,20 +113,6 @@ async function lastOgVis(container, stevneid) {
     if (!confirm('Autofullfør alle ubekreftede innledande kamper?')) return
     e.currentTarget.disabled = true
     await autoFullforInnledendeKamper(stevneid)
-    await lastOgVis(container, stevneid)
-  })
-
-  bannerSlot?.querySelector('#test-slett-btn')?.addEventListener('click', async (e) => {
-    if (!confirm('Slett alle innledande kamper?')) return
-    e.currentTarget.disabled = true
-    await slettKamperForFase(stevneid, 'innledende')
-    await lastOgVis(container, stevneid)
-  })
-
-  bannerSlot?.querySelector('#test-fase-ikkestartet-btn')?.addEventListener('click', async (e) => {
-    if (!confirm('Sett stevne_fase til "ikke_startet"?')) return
-    e.currentTarget.disabled = true
-    await settStevneFaseTilIkkeStartet(stevneid)
     await lastOgVis(container, stevneid)
   })
 

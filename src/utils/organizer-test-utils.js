@@ -76,18 +76,13 @@ export async function slettKamperForFase(stevneid, fase) {
     await supabase.from('kamp_spelar').delete().in('kampid', kampids)
   }
   await supabase.from('kamp').delete().in('id', kampids)
-
-  if (fase === 'innledende') {
-    await supabase.from('resultat')
-      .update({ kamp_poeng_innl: 0, score_poeng_innl: 0 })
-      .eq('stevneid', stevneid)
-  }
 }
 
-export async function settStevneFaseTilIkkeStartet(stevneid) {
-  await supabase.from('stevne').update({ stevne_fase: 'ikke_startet' }).eq('id', stevneid)
-}
-
-export async function settStevneFaseTilInnledende(stevneid) {
-  await supabase.from('stevne').update({ stevne_fase: 'innledende' }).eq('id', stevneid)
+export async function nullstillStevne(stevneid) {
+  await slettKamperForFase(stevneid, 'avsluttende')
+  await slettKamperForFase(stevneid, 'innledende')
+  await supabase.from('resultat').delete().eq('stevneid', stevneid)
+  await supabase.from('stevne')
+    .update({ stevne_fase: 'ikke_startet', runde1_format: null })
+    .eq('id', stevneid)
 }
