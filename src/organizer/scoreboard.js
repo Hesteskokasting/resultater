@@ -20,41 +20,30 @@ export async function renderScoreboard(container, kamp, p1ks, p2ks, { erArrangor
 
   const spelarIds = [p1ks?.id, p2ks?.id].filter(Boolean)
 
-  let kanal = null
-  if (!kanRedigere && spelarIds.length) {
-    kanal = supabase
-      .channel(`scoreboard-kamp-${kamp.id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'kamp_omgang' },
-        async (payload) => {
-          const endraId = payload.new?.kamp_spelar_id ?? payload.old?.kamp_spelar_id
-          if (!endraId || spelarIds.includes(endraId)) {
-            await lastOmgangar()
-            tegn()
-          }
+  const kanal = supabase
+    .channel(`scoreboard-kamp-${kamp.id}`)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'kamp_omgang' },
+      async (payload) => {
+        const endraId = payload.new?.kamp_spelar_id ?? payload.old?.kamp_spelar_id
+        if (!endraId || spelarIds.includes(endraId)) {
+          await lastOmgangar()
+          tegn()
         }
-      )
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'kamp', filter: `id=eq.${kamp.id}` },
-        async (payload) => {
-          if (payload.new?.er_bekreftet) {
-            kamp.er_bekreftet = true
-            await lastOmgangar()
-            tegn()
-          }
+      }
+    )
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'kamp', filter: `id=eq.${kamp.id}` },
+      async (payload) => {
+        if (payload.new?.er_bekreftet) {
+          kamp.er_bekreftet = true
+          await lastOmgangar()
+          tegn()
         }
-      )
-      .subscribe()
-  }
-
-  const pollId = setInterval(async () => {
-    if (document.visibilityState !== 'visible') return
-    if (kanRedigere && (val1 !== null || val2 !== null)) return
-    await lastOmgangar()
-    tegn()
-  }, 3000)
+      }
+    )
+    .subscribe()
 
   window.addEventListener('hashchange', () => {
-    clearInterval(pollId)
-    if (kanal) supabase.removeChannel(kanal)
+    supabase.removeChannel(kanal)
   }, { once: true })
 
   async function lastOmgangar() {
@@ -342,13 +331,29 @@ async function renderScoreboard3(container, kamp, p1ks, p2ks, p3ks, { erArrangor
 
   await lastOmgangar3()
 
-  const pollId = setInterval(async () => {
-    if (document.visibilityState !== 'visible') return
-    await lastOmgangar3()
-    tegn3()
-  }, 3000)
+  const kanal3 = supabase
+    .channel(`scoreboard-kamp3-${kamp.id}`)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'kamp_omgang' },
+      async (payload) => {
+        const endraId = payload.new?.kamp_spelar_id ?? payload.old?.kamp_spelar_id
+        if (!endraId || spelarIds.includes(endraId)) {
+          await lastOmgangar3()
+          tegn3()
+        }
+      }
+    )
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'kamp', filter: `id=eq.${kamp.id}` },
+      async (payload) => {
+        if (payload.new?.er_bekreftet) {
+          kamp.er_bekreftet = true
+          await lastOmgangar3()
+          tegn3()
+        }
+      }
+    )
+    .subscribe()
 
-  window.addEventListener('hashchange', () => clearInterval(pollId), { once: true })
+  window.addEventListener('hashchange', () => supabase.removeChannel(kanal3), { once: true })
 
   function bereknKnappStatus3(aktiveIdxar) {
     const disabledSets = spelarar.map(() => new Set())

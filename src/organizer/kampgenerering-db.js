@@ -277,9 +277,9 @@ export async function genererNesteSwissRunde(stevneid) {
 
 // --- CUP avsluttende ---
 
-async function _insertCupParingar(stevneid, paringar, rundeNummer, gruppeNavn) {
+async function _insertCupParingar(stevneid, paringar, rundeNummer, gruppeNavn, baneStart = 0) {
   const matchIds = paringar.map(() => genMatchId())
-  let baneNr = 0
+  let baneNr = baneStart
   const rundekampar = paringar.map((p, i) => ({
     match_id: matchIds[i],
     stevneid,
@@ -327,9 +327,11 @@ async function _hentAktiveCupSpelarar(stevneid) {
 // grupper: [{gruppeNavn: 'A'|'B'|null, spelarar: [{kasterid, plassering}], runde1Oppsett?: {walkovers,c3,c2}}]
 export async function genererCupRunde1(stevneid, grupper, medSeeding) {
   let totalKampar = 0
+  let baneStart = 0
   for (const gr of grupper) {
     const paringar = beregnCupRundeParingar(gr.spelarar, { medSeeding, isRunde1: true, runde1Oppsett: gr.runde1Oppsett ?? null })
-    totalKampar += await _insertCupParingar(stevneid, paringar, 1, gr.gruppeNavn)
+    totalKampar += await _insertCupParingar(stevneid, paringar, 1, gr.gruppeNavn, baneStart)
+    baneStart += paringar.filter(p => !p.erWalkover).length
   }
   return totalKampar
 }
@@ -430,20 +432,28 @@ export async function genererNesteCupRundeForGruppe(stevneid, gruppeNavn, medSee
   const spelarar = aktive.map((sp, i) => ({ kasterid: sp.kasterid, plassering: i + 1 }))
   const paringar = beregnCupRundeParingar(spelarar, { medSeeding, isRunde1: false })
 
+  const { data: maxBane } = await supabase.from('kamp')
+    .select('bane_nummer').eq('stevneid', stevneid).eq('fase', 'avsluttende')
+    .eq('runde_nummer', rundeNummer).not('bane_nummer', 'is', null)
+    .order('bane_nummer', { ascending: false }).limit(1)
+  const baneStart = maxBane?.[0]?.bane_nummer ?? 0
+
+  const matchIds = paringar.map(() => genMatchId())
+  let baneNr = baneStart
   const rundekampar = paringar.map((p, i) => ({
-    match_id: genMatchId(), stevneid, fase: 'avsluttende',
+    match_id: matchIds[i], stevneid, fase: 'avsluttende',
     runde_nummer: rundeNummer, gruppe_navn: gruppeNavn,
-    bane_nummer: i + 1, er_bekreftet: false,
+    bane_nummer: p.erWalkover ? null : ++baneNr, er_bekreftet: false,
     er_walkover: p.erWalkover, er_tre_spelarar: p.erTreSpelarar,
   }))
   const { data: innsetta, error } = await supabase.from('kamp')
-    .insert(rundekampar).select('id, bane_nummer')
+    .insert(rundekampar).select('id, match_id')
   if (error) throw new Error('Feil: ' + error.message)
 
-  const baneMap = Object.fromEntries(innsetta.map(k => [k.bane_nummer, k.id]))
+  const matchIdMap = Object.fromEntries(innsetta.map(k => [k.match_id, k.id]))
   const spelarRader = []
   for (let i = 0; i < paringar.length; i++) {
-    const kampid = baneMap[i + 1]
+    const kampid = matchIdMap[matchIds[i]]
     paringar[i].spelarar.forEach((kasterid, pos) => {
       spelarRader.push({ kampid, kasterid, posisjon: pos + 1, score_poeng: 0, kamp_poeng: 0, antall_ringer: 0 })
     })

@@ -320,7 +320,7 @@ function renderGruppeKolonne(gruppeNavn, kampar, aktiveCount, totalCount, sisteR
     rundeMap.get(k.runde_nummer).push(k)
   }
 
-  const rundarHtml = [...rundeMap.entries()].map(([nr, rKampar]) => {
+  const rundarHtml = [...rundeMap.entries()].reverse().map(([nr, rKampar]) => {
     const tittel = rKampar[0]?.runde_navn ?? `Runde ${nr}`
     const synligeKampar = rKampar.filter(k => !k.er_walkover)
     if (!synligeKampar.length) return ''
@@ -342,8 +342,8 @@ function renderGruppeKolonne(gruppeNavn, kampar, aktiveCount, totalCount, sisteR
   return `
     <div class="avsl-gruppe-kol">
       <h6 class="text-center fw-bold mb-2">Gruppe ${gruppeNavn} (${totalCount} spelarar)</h6>
-      ${rundarHtml}
       ${genererKnapp}
+      ${rundarHtml}
     </div>`
 }
 
@@ -370,7 +370,12 @@ function renderKampBlock(kamp, startnrMap) {
       }).join('')
 
   const bekrefta = kamp.er_bekreftet || kamp.er_walkover
-  const bekrfKlass = bekrefta ? 'btn-success' : 'btn-outline-secondary'
+  const harOmgangar = (kamp.omgangar ?? []).length > 0
+  const bekrftKlass = bekrefta ? 'btn-success' : 'btn-outline-secondary'
+  const bekrftTekst = kamp.er_tre_spelarar
+    ? (bekrefta ? 'Endre plassering' : 'Sett plassering')
+    : 'Bekreft'
+  const bekrftDisabled = (bekrefta && !kamp.er_tre_spelarar) || (!bekrefta && harOmgangar)
 
   return `
     <div class="avsl-kamp-block">
@@ -385,7 +390,7 @@ function renderKampBlock(kamp, startnrMap) {
                 : ''}
               <button class="btn btn-secondary btn-sm" id="scoreboard-${kamp.id}"
                 title="Scoreboard"${bekrefta && !kamp.er_tre_spelarar ? ' disabled' : ''}>S</button>
-              <button class="btn ${bekrfKlass} btn-sm" id="bekrft-${kamp.id}"${bekrefta ? ' disabled' : ''}>Bekreft</button>
+              <button class="btn ${bekrftKlass} btn-sm" id="bekrft-${kamp.id}"${bekrftDisabled ? ' disabled' : ''}>${bekrftTekst}</button>
             </td>
           </tr>
         </tbody>
@@ -816,6 +821,9 @@ function abonnerPaaEndringar(container, stevneid) {
   kanal = supabase
     .channel(`stevne-avsl-${stevneid}`)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'kamp_omgang' }, onEndring)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'kamp', filter: `stevneid=eq.${stevneid}` }, onEndring)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'kamp' }, (payload) => {
+      const sid = payload.new?.stevneid ?? payload.old?.stevneid
+      if (sid === stevneid) onEndring()
+    })
     .subscribe()
 }
