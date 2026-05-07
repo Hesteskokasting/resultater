@@ -1,7 +1,7 @@
 import { supabase } from '../supabase.js'
 import { renderOrgNav } from './org-nav.js'
 import { beregnGyldigeGruppeStorrelsar, beregnCupStruktur, gyldigeRunde1Oppsett } from '../utils/kastemetoder-logikk.js'
-import { genererCupRunde1, genererNesteCupRunde, genererFinaleOgBronsefinale } from './kampgenerering-db.js'
+import { genererCupRunde1, genererNesteCupRunde, genererNesteCupRundeForGruppe, genererFinaleOgBronsefinale } from './kampgenerering-db.js'
 import { opnNumberpad } from './score-numberpad.js'
 import { scoreForSp } from '../utils/kamp.js'
 import { slettKamperForFase, settStevneFaseTilInnledende } from '../utils/organizer-test-utils.js'
@@ -83,13 +83,12 @@ async function lastOgVis(container, stevneid) {
     <div class="px-3 py-2">
       ${renderOrgNav(stevneid, 'avsluttende')}
       ${renderHeader(stevne, stevneid, { alleInnlBekrefta, harAvslKampar, harGruppefordeling, erSisteRundeFullfort, aktive, harSemfinale, semfinalarBekrefta, harFinale, finaleOgBronseBekrefta })}
-      ${harAvslKampar && harGruppefordeling ? renderHovudinnhald(avslKampar, stilling, startnrMap) : ''}
+      ${harGruppefordeling ? renderHovudinnhald(avslKampar, stilling, startnrMap, aktive.length) : ''}
       ${stevne.stevne_fase === 'avsluttende' && !harGruppefordeling ? renderGruppefordeling(stilling) : ''}
-      ${stevne.stevne_fase === 'avsluttende' && harGruppefordeling && !harAvslKampar ? `<div class="avsl-stilling-einzel">${renderStilling(stilling)}</div>` : ''}
     </div>
   `
 
-  bindHeaderEvents(container, stevneid, stevne, alleInnlBekrefta, harGruppefordeling, harAvslKampar, stilling, grupper ?? [], gruppeNavnMap)
+  bindHeaderEvents(container, stevneid, stevne, alleInnlBekrefta, harGruppefordeling, harAvslKampar, stilling, grupper ?? [], gruppeNavnMap, avslKampar)
 
   if (harAvslKampar && harGruppefordeling) {
     bindKampEvents(container, stevneid, avslKampar, startnrMap, resultatMedNamn, aktive.length)
@@ -114,25 +113,15 @@ function renderHeader(stevne, stevneid, state) {
     }
   } else if (!harGruppefordeling) {
     // Gruppefordeling UI = eiga seksjon under
-  } else if (harGruppefordeling && !harAvslKampar) {
-    handlingsHtml = `
-      <label class="form-check-label me-2 small" for="seeding-toggle">Seeding</label>
-      <div class="form-check form-switch d-inline-block me-2">
-        <input class="form-check-input" type="checkbox" id="seeding-toggle" checked>
-      </div>
-      <button id="neste-runde-btn" class="btn btn-sm btn-success">Generer runde 1</button>
-    `
   } else if (semfinalarBekrefta && !harFinale) {
     handlingsHtml = `<button id="generer-finale-btn" class="btn btn-sm btn-warning">Generer finale og bronsefinale</button>`
-  } else if (erSisteRundeFullfort && !semfinalarBekrefta && !harFinale) {
-    const aktiveAnt = aktive.length
-    const label = aktiveAnt <= 4 ? 'Generer semifinalar' : 'Generer neste runde'
+  } else if (erSisteRundeFullfort && !semfinalarBekrefta && !harFinale && aktive.length <= 4) {
     handlingsHtml = `
       <label class="form-check-label me-2 small" for="seeding-toggle">Seeding</label>
       <div class="form-check form-switch d-inline-block me-2">
         <input class="form-check-input" type="checkbox" id="seeding-toggle" checked>
       </div>
-      <button id="neste-runde-btn" class="btn btn-sm btn-warning">${label}</button>
+      <button id="neste-runde-btn" class="btn btn-sm btn-warning">Generer semifinalar</button>
     `
   }
 
@@ -302,86 +291,104 @@ function renderRunde1FormatVeljar(gruppeLabel, n, radioName) {
 
 // --- Hovudinnhald (kampar + stilling) ---
 
-function renderHovudinnhald(avslKampar, stilling, startnrMap) {
-  const rundeMap = new Map()
-  for (const k of avslKampar) {
-    if (!rundeMap.has(k.runde_nummer)) rundeMap.set(k.runde_nummer, [])
-    rundeMap.get(k.runde_nummer).push(k)
-  }
+function renderHovudinnhald(avslKampar, stilling, startnrMap, totalAktive) {
+  const gruppeNamn = [...new Set(stilling.map(r => r.gruppe?.navn).filter(Boolean))].sort()
 
-  const rundeHtml = [...rundeMap.entries()].map(([nr, rKampar]) => {
-    const runde_namn = rKampar[0]?.runde_navn ?? `Runde ${nr}`
-    const etter_gruppe = {}
-    for (const k of rKampar) {
-      const g = k.gruppe_navn ?? '_'
-      if (!etter_gruppe[g]) etter_gruppe[g] = []
-      etter_gruppe[g].push(k)
-    }
-
-    return Object.entries(etter_gruppe).map(([g, gKampar]) => {
-      const tittel = runde_namn + (g !== '_' ? ` — Gruppe ${g}` : '')
-      return renderRunde(tittel, gKampar, startnrMap)
-    }).join('')
+  const gruppeKolonnar = gruppeNamn.map(g => {
+    const kampar = avslKampar.filter(k => k.gruppe_navn === g)
+    const stillingG = stilling.filter(r => r.gruppe?.navn === g)
+    const aktiveCount = stillingG.filter(r => r.runde_eliminert == null).length
+    const totalCount = stillingG.length
+    const sisteRundeNr = kampar.length ? Math.max(...kampar.map(k => k.runde_nummer)) : 0
+    const sisteRunde = kampar.filter(k => k.runde_nummer === sisteRundeNr)
+    const sisteRundeFullfort = sisteRunde.length > 0 && sisteRunde.every(k => k.er_bekreftet || k.er_walkover)
+    const visGenerer = (kampar.length === 0 || sisteRundeFullfort) && aktiveCount > 1 && totalAktive > 4
+    return renderGruppeKolonne(g, kampar, aktiveCount, totalCount, sisteRundeNr, visGenerer, startnrMap)
   }).join('')
 
   return `
-    <div class="d-flex gap-3 align-items-start">
-      <div class="flex-grow-1">${rundeHtml}</div>
+    <div class="d-flex gap-3 align-items-start flex-wrap">
+      <div class="d-flex gap-3 flex-grow-1 flex-wrap">${gruppeKolonnar}</div>
       <div class="avsl-stilling-kol">${renderStilling(stilling)}</div>
     </div>`
 }
 
-function renderRunde(tittel, kampar, startnrMap) {
+function renderGruppeKolonne(gruppeNavn, kampar, aktiveCount, totalCount, sisteRundeNr, visGenerer, startnrMap) {
+  const rundeMap = new Map()
+  for (const k of kampar) {
+    if (!rundeMap.has(k.runde_nummer)) rundeMap.set(k.runde_nummer, [])
+    rundeMap.get(k.runde_nummer).push(k)
+  }
+
+  const rundarHtml = [...rundeMap.entries()].map(([nr, rKampar]) => {
+    const tittel = rKampar[0]?.runde_navn ?? `Runde ${nr}`
+    return `
+      <h6 class="fw-bold text-center mb-1">${tittel}</h6>
+      <div class="d-flex flex-wrap gap-2 mb-2">
+        ${rKampar.map(k => renderKampBlock(k, startnrMap)).join('')}
+      </div>`
+  }).join('')
+
+  const nasteRunde = sisteRundeNr + 1
+  const genererKnapp = visGenerer
+    ? `<button class="btn btn-success w-100 mt-2"
+         data-generer-gruppe="${gruppeNavn}" data-runde="${nasteRunde}">
+         Generer runde ${nasteRunde}
+       </button>`
+    : ''
+
   return `
-    <div class="mb-3">
-      <h6 class="text-center fw-bold mb-1">${tittel}</h6>
-      <table class="table table-bordered table-sm mb-0 bg-white">
-        <thead class="table-dark">
-          <tr>
-            <th class="th-36 text-center">B</th>
-            <th>Spelarar</th>
-            <th class="th-120"></th>
-          </tr>
-        </thead>
-        <tbody>
-          ${kampar.map(k => kampRad(k, startnrMap)).join('')}
-        </tbody>
-      </table>
+    <div class="avsl-gruppe-kol">
+      <h6 class="text-center fw-bold mb-2">Gruppe ${gruppeNavn} (${totalCount} spelarar)</h6>
+      ${rundarHtml}
+      ${genererKnapp}
     </div>`
 }
 
-function kampRad(kamp, startnrMap) {
-  const sp = (kamp.spelarar ?? []).sort((a, b) => a.posisjon - b.posisjon)
+function renderKampBlock(kamp, startnrMap) {
+  const sp = (kamp.spelarar ?? []).sort((a, b) =>
+    (startnrMap[a.kasterid] ?? 999) - (startnrMap[b.kasterid] ?? 999)
+  )
 
-  const spelerNamn = (s) => {
-    if (!s?.kaster) return '—'
-    const nr = startnrMap[s.kasterid]
-    const namn = `${s.kaster.fornavn} ${s.kaster.etternavn}`
-    return nr ? `${namn} (${nr})` : namn
-  }
+  const spelarNamn = s => s?.kaster ? `${s.kaster.fornavn} ${s.kaster.etternavn}` : '—'
 
-  const spelarListe = kamp.er_walkover
-    ? `${spelerNamn(sp[0])} <span class="badge bg-secondary">Walkover</span>`
-    : sp.map((s) => {
+  const spelarRader = kamp.er_walkover
+    ? `<tr>
+        <td>${startnrMap[sp[0]?.kasterid] ?? ''}</td>
+        <td colspan="2">${spelarNamn(sp[0])} <span class="badge bg-secondary">Walkover</span></td>
+      </tr>`
+    : sp.map(s => {
         const tot = scoreForSp(s)
-        const score = kamp.er_bekreftet || tot > 0 ? ` <span class="badge bg-light text-dark">${tot}</span>` : ''
-        return `${spelerNamn(s)}${score}`
-      }).join(' — ')
+        const score = kamp.er_bekreftet || tot > 0 ? tot : '0'
+        return `<tr>
+          <td class="th-36">${startnrMap[s.kasterid] ?? ''}</td>
+          <td>${spelarNamn(s)}</td>
+          <td class="text-end">${score}</td>
+        </tr>`
+      }).join('')
 
   const bekrefta = kamp.er_bekreftet || kamp.er_walkover
   const bekrfKlass = bekrefta ? 'btn-success' : 'btn-outline-secondary'
-  const bekrfDisabled = bekrefta ? ' disabled' : ''
 
   return `
-    <tr>
-      <td class="text-center">${kamp.bane_nummer ?? ''}</td>
-      <td>${spelarListe}</td>
-      <td class="text-end pe-2">
-        ${!kamp.er_walkover && !kamp.er_tre_spelarar ? `<button class="btn btn-primary btn-sm" id="plus-${kamp.id}"${bekrefta ? ' disabled' : ''}>+</button>` : ''}
-        <button class="btn btn-secondary btn-sm" id="scoreboard-${kamp.id}" title="Scoreboard"${bekrefta && !kamp.er_tre_spelarar ? ' disabled' : ''}>S</button>
-        <button class="btn ${bekrfKlass} btn-sm" id="bekrft-${kamp.id}"${bekrfDisabled}>Bekreft</button>
-      </td>
-    </tr>`
+    <div class="avsl-kamp-block">
+      <div class="text-center small fw-semibold text-muted mb-1">Bane ${kamp.bane_nummer}</div>
+      <table class="table table-sm table-bordered mb-0 bg-white">
+        <tbody>
+          ${spelarRader}
+          <tr class="table-light">
+            <td colspan="3" class="text-end pe-1">
+              ${!kamp.er_walkover && !kamp.er_tre_spelarar
+                ? `<button class="btn btn-primary btn-sm" id="plus-${kamp.id}"${bekrefta ? ' disabled' : ''}>+</button> `
+                : ''}
+              <button class="btn btn-secondary btn-sm" id="scoreboard-${kamp.id}"
+                title="Scoreboard"${bekrefta && !kamp.er_tre_spelarar ? ' disabled' : ''}>S</button>
+              <button class="btn ${bekrfKlass} btn-sm" id="bekrft-${kamp.id}"${bekrefta ? ' disabled' : ''}>Bekreft</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>`
 }
 
 function renderStilling(stilling) {
@@ -433,9 +440,86 @@ function renderStilling(stilling) {
     </div>`
 }
 
+// --- Dialog for å generere runde per gruppe ---
+
+function opnGenererRundeDialog(container, stevneid, gruppeNavn, stillingForGruppe, avslKampar, runde) {
+  const aktive = stillingForGruppe.filter(r => r.runde_eliminert == null)
+  const totalCount = stillingForGruppe.length
+  const n = aktive.length
+
+  let runde1Oppsett = null
+  if (runde === 1) {
+    try {
+      const fmt = JSON.parse(sessionStorage.getItem('runde1Format') ?? '{}')
+      runde1Oppsett = fmt[gruppeNavn] ?? null
+    } catch { /* bruk standard */ }
+  }
+
+  const wo = runde1Oppsett?.walkovers ?? 0
+  const c3 = runde1Oppsett ? runde1Oppsett.c3 : (n % 3 === 0 ? n / 3 : 0)
+  const c2 = runde1Oppsett ? runde1Oppsett.c2 : (n % 3 === 0 ? 0 : n / 2)
+  const totalBaner = c3 + c2
+  const pool1 = aktive.slice(wo, wo + totalBaner)
+  const pool2 = aktive.slice(wo + totalBaner, wo + 2 * totalBaner)
+  const pool3 = aktive.slice(wo + 2 * totalBaner)
+
+  const modal = document.createElement('div')
+  modal.className = 'avsl-dialog-overlay'
+  document.body.appendChild(modal)
+
+  function renderModal(medSeeding) {
+    const poolsHtml = medSeeding && totalBaner > 0
+      ? [
+          { label: 'Seeding 1', pool: pool1 },
+          { label: 'Seeding 2', pool: pool2 },
+          ...(pool3.length ? [{ label: 'Seeding 3', pool: pool3 }] : []),
+        ].map(({ label, pool }) => `
+          <div class="flex-grow-1">
+            <strong class="d-block mb-1">${label}</strong>
+            ${pool.map(r => `<div class="small">${r._namn ?? ''} — ${r.kamp_poeng_innl ?? 0}p (${r.score_poeng_innl ?? 0})</div>`).join('')}
+          </div>`).join('')
+      : aktive.map((r, i) => `<div class="small">${i + 1}. ${r._namn ?? ''} — ${r.kamp_poeng_innl ?? 0}p (${r.score_poeng_innl ?? 0})</div>`).join('')
+
+    modal.innerHTML = `
+      <div class="card p-4 avsl-dialog-card-wide">
+        <h5 class="mb-1">Gruppe ${gruppeNavn} — Runde ${runde}</h5>
+        <p class="text-muted small mb-2">${n} av ${totalCount} spelarar igjen</p>
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" id="seeding-dlg" ${medSeeding ? 'checked' : ''}>
+          <label class="form-check-label" for="seeding-dlg">Bruk seeding</label>
+        </div>
+        <div class="d-flex gap-3 flex-wrap mb-3">${poolsHtml}</div>
+        <div class="d-flex gap-2">
+          <button id="bekreft-gen-btn" class="btn btn-primary">Bekreft og opprett kampar</button>
+          <button id="avbryt-gen-btn" class="btn btn-secondary">Avbryt</button>
+        </div>
+      </div>`
+
+    modal.querySelector('#seeding-dlg').addEventListener('change', e => renderModal(e.target.checked))
+    modal.querySelector('#avbryt-gen-btn').addEventListener('click', () => modal.remove())
+    modal.querySelector('#bekreft-gen-btn').addEventListener('click', async () => {
+      const medSeedingVal = modal.querySelector('#seeding-dlg').checked
+      modal.remove()
+      try {
+        if (runde === 1) {
+          const spelarar = aktive.map((r, i) => ({ kasterid: r.kasterid, plassering: i + 1 }))
+          await genererCupRunde1(stevneid, [{ gruppeNavn, spelarar, runde1Oppsett }], medSeedingVal)
+        } else {
+          await genererNesteCupRundeForGruppe(stevneid, gruppeNavn, medSeedingVal)
+        }
+        await lastOgVis(container, stevneid)
+      } catch (e) {
+        alert('Feil: ' + e.message)
+      }
+    })
+  }
+
+  renderModal(true)
+}
+
 // --- Event binding ---
 
-function bindHeaderEvents(container, stevneid, stevne, alleInnlBekrefta, harGruppefordeling, harAvslKampar, resultat, grupper, gruppeNavnMap) {
+function bindHeaderEvents(container, stevneid, stevne, alleInnlBekrefta, harGruppefordeling, harAvslKampar, resultat, grupper, gruppeNavnMap, avslKampar) {
   container.querySelector('#start-avsl-btn')?.addEventListener('click', async () => {
     if (!alleInnlBekrefta) return
     const { error } = await supabase.from('stevne').update({ stevne_fase: 'avsluttende' }).eq('id', stevneid)
@@ -529,33 +613,24 @@ function bindHeaderEvents(container, stevneid, stevne, alleInnlBekrefta, harGrup
   container.querySelector('#neste-runde-btn')?.addEventListener('click', async () => {
     const medSeeding = container.querySelector('#seeding-toggle')?.checked ?? true
     try {
-      if (!harAvslKampar) {
-        const sortert = [...resultat]
-        const gruppeMap = {}
-        sortert.forEach((r, i) => {
-          const gNavn = r.gruppe?.navn ?? null
-          const key = gNavn ?? '_ingen'
-          if (!gruppeMap[key]) gruppeMap[key] = { gruppeNavn: gNavn, spelarar: [] }
-          gruppeMap[key].spelarar.push({ kasterid: r.kasterid, plassering: i + 1 })
-        })
-        // Les lagra runde 1-format frå sessionStorage (sett ved "Bekreft val")
-        let runde1Format = {}
-        try { runde1Format = JSON.parse(sessionStorage.getItem('runde1Format') ?? '{}') } catch { /* bruk standard */ }
-        sessionStorage.removeItem('runde1Format')
-        const grupper = Object.values(gruppeMap).map(g => ({
-          ...g,
-          runde1Oppsett: runde1Format[g.gruppeNavn ?? 'A'] ?? null,
-        }))
-        await genererCupRunde1(stevneid, grupper, medSeeding)
-      } else {
-        const res = await genererNesteCupRunde(stevneid, medSeeding)
-        if (res.erSemfinale) alert('Semifinalar er generert!')
-      }
+      const res = await genererNesteCupRunde(stevneid, medSeeding)
+      if (res.erSemfinale) alert('Semifinalar er generert!')
       await lastOgVis(container, stevneid)
     } catch (e) {
       alert('Feil: ' + e.message)
     }
   })
+
+  if (harGruppefordeling) {
+    container.querySelectorAll('[data-generer-gruppe]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const gNavn = btn.dataset.genererGruppe
+        const runde = parseInt(btn.dataset.runde)
+        const stillingForGruppe = resultat.filter(r => r.gruppe?.navn === gNavn)
+        opnGenererRundeDialog(container, stevneid, gNavn, stillingForGruppe, avslKampar, runde)
+      })
+    })
+  }
 
   container.querySelector('#generer-finale-btn')?.addEventListener('click', async () => {
     try {

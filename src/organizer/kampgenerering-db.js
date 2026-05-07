@@ -410,6 +410,48 @@ export async function genererNesteCupRunde(stevneid, medSeeding) {
   return { rundeNummer, antallKampar: totalKampar, erSemfinale }
 }
 
+// Generer neste cup-runde for éi enkelt gruppe
+export async function genererNesteCupRundeForGruppe(stevneid, gruppeNavn, medSeeding) {
+  const { data: kampar } = await supabase.from('kamp')
+    .select('runde_nummer')
+    .eq('stevneid', stevneid).eq('fase', 'avsluttende').eq('gruppe_navn', gruppeNavn)
+    .order('runde_nummer', { ascending: false }).limit(1)
+  const rundeNummer = (kampar?.[0]?.runde_nummer ?? 0) + 1
+
+  const aktive = (await _hentAktiveCupSpelarar(stevneid))
+    .filter(sp => sp.gruppe?.navn === gruppeNavn)
+  aktive.sort((a, b) =>
+    (b.kamp_poeng_innl ?? 0) - (a.kamp_poeng_innl ?? 0) ||
+    (b.score_poeng_innl ?? 0) - (a.score_poeng_innl ?? 0) ||
+    (a.startnummer ?? 0) - (b.startnummer ?? 0)
+  )
+  const spelarar = aktive.map((sp, i) => ({ kasterid: sp.kasterid, plassering: i + 1 }))
+  const paringar = beregnCupRundeParingar(spelarar, { medSeeding, isRunde1: false })
+
+  const rundekampar = paringar.map((p, i) => ({
+    match_id: genMatchId(), stevneid, fase: 'avsluttende',
+    runde_nummer: rundeNummer, gruppe_navn: gruppeNavn,
+    bane_nummer: i + 1, er_bekreftet: false,
+    er_walkover: p.erWalkover, er_tre_spelarar: p.erTreSpelarar,
+  }))
+  const { data: innsetta, error } = await supabase.from('kamp')
+    .insert(rundekampar).select('id, bane_nummer')
+  if (error) throw new Error('Feil: ' + error.message)
+
+  const baneMap = Object.fromEntries(innsetta.map(k => [k.bane_nummer, k.id]))
+  const spelarRader = []
+  for (let i = 0; i < paringar.length; i++) {
+    const kampid = baneMap[i + 1]
+    paringar[i].spelarar.forEach((kasterid, pos) => {
+      spelarRader.push({ kampid, kasterid, posisjon: pos + 1, score_poeng: 0, kamp_poeng: 0, antall_ringer: 0 })
+    })
+  }
+  const { error: spErr } = await supabase.from('kamp_spelar').insert(spelarRader)
+  if (spErr) throw new Error('Feil: ' + spErr.message)
+
+  return { rundeNummer, antallKampar: innsetta.length }
+}
+
 // Generer finale og bronsefinale etter at semifinalar er bekrefta
 // Vinnarar av semfinale → Finale, taparar → Bronsefinale
 export async function genererFinaleOgBronsefinale(stevneid) {

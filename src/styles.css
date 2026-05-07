@@ -1449,6 +1449,7 @@
 
 
 .avsl-gruppe-kol  { flex: 1 1 0; min-width: 0; }
+.avsl-kamp-block  { width: calc(50% - 0.5rem); min-width: 220px; }
 .avsl-stilling-kol { width: 360px; flex-shrink: 0; }
 .avsl-stilling-einzel { max-width: 400px; }
 .avsl-maks-600 { max-width: 600px; margin-inline: auto; }
@@ -1478,5 +1479,11 @@
 .avsl-dialog-card {
   min-width: 300px;
   max-width: 420px;
+  width: 90vw;
+}
+
+.avsl-dialog-card-wide {
+  min-width: 400px;
+  max-width: 720px;
   width: 90vw;
 }
