@@ -1,14 +1,15 @@
 import { supabase } from '../supabase.js'
 import { opnNumberpad } from './score-numberpad.js'
 import { beregnKampPoeng, hentP1P2, scoreForSp, ringerForSp, oppdaterResultatInnl } from '../utils/kamp.js'
-import { renderOrgNav } from './org-nav.js'
 import { genererNesteSwissRunde } from './kampgenerering-db.js'
 import { autoFullforInnledendeKamper, slettKamperForFase, settStevneFaseTilIkkeStartet } from '../utils/organizer-test-utils.js'
-import { renderOrgBanner, byggInnledendeSpelMap, sorterStilling } from './org-shared.js'
+import { byggInnledendeSpelMap, sorterStilling } from './org-shared.js'
 
 let kanal = null
+let bannerSlot = null
 
-export async function render(container, { id } = {}) {
+export async function render(container, { id } = {}, _bannerSlot = null) {
+  bannerSlot = _bannerSlot
   if (kanal) { supabase.removeChannel(kanal); kanal = null }
   container.innerHTML = '<p class="laster">Laster…</p>'
   await lastOgVis(container, Number(id))
@@ -66,46 +67,44 @@ async function lastOgVis(container, stevneid) {
 
   const erAlleKamperBekreftet = alleKamper.length > 0 && alleKamper.every(k => k.er_bekreftet)
 
-  const knapperHtml = `
-    ${erSwiss ? `<button id="neste-runde-btn" class="btn btn-sm btn-warning"${stevne.erfullfort || !erAlleKamperBekreftet ? ' disabled' : ''}>Generer neste runde</button>` : ''}
-    <button id="fullfor-btn" class="btn btn-sm btn-primary"${stevne.erfullfort || !erAlleKamperBekreftet ? ' disabled' : ''}>Fullfør turnering</button>
-    <button id="test-autofullfør-btn" class="btn btn-sm btn-outline-warning">TEST: Autofullfør</button>
-    <button id="test-slett-btn" class="btn btn-sm btn-outline-danger">TEST: Slett kamper</button>
-    <button id="test-fase-ikkestartet-btn" class="btn btn-sm btn-outline-secondary">TEST: Fase → ikke_startet</button>
-  `
+  if (bannerSlot) {
+    bannerSlot.innerHTML = `
+      ${erSwiss ? `<button id="neste-runde-btn" class="btn btn-sm btn-warning"${stevne.erfullfort || !erAlleKamperBekreftet ? ' disabled' : ''}>Generer neste runde</button>` : ''}
+      <button id="fullfor-btn" class="btn btn-sm btn-primary"${stevne.erfullfort || !erAlleKamperBekreftet ? ' disabled' : ''}>Start avsluttande fase</button>
+      <button id="test-autofullfør-btn" class="btn btn-sm btn-outline-warning">TEST: Autofullfør</button>
+      <button id="test-slett-btn" class="btn btn-sm btn-outline-danger">TEST: Slett kamper</button>
+      <button id="test-fase-ikkestartet-btn" class="btn btn-sm btn-outline-secondary">TEST: Fase → ikke_startet</button>
+    `
+  }
 
   container.innerHTML = `
-    <div class="px-3 py-2">
-      ${renderOrgNav(stevneid, 'innledende')}
-      ${renderOrgBanner(stevne.navn, knapperHtml)}
-      <div class="d-flex gap-3 align-items-start">
-        <div class="flex-grow-1">
-          ${[...rundeMap.entries()].map(([nr, rKamper]) => renderRunde(nr, rKamper, startnrMap)).join('')}
-        </div>
-        <div class="org-stilling-sidebar">
-          ${renderStilling(stilling)}
-        </div>
+    <div class="d-flex gap-3 align-items-start">
+      <div class="flex-grow-1">
+        ${[...rundeMap.entries()].map(([nr, rKamper]) => renderRunde(nr, rKamper, startnrMap)).join('')}
+      </div>
+      <div class="org-stilling-sidebar">
+        ${renderStilling(stilling)}
       </div>
     </div>
   `
 
-  container.querySelector('#fullfor-btn').addEventListener('click', () => fullforTurnering(container, stevneid))
+  bannerSlot?.querySelector('#fullfor-btn')?.addEventListener('click', () => fullforTurnering(container, stevneid))
 
-  container.querySelector('#test-autofullfør-btn')?.addEventListener('click', async (e) => {
+  bannerSlot?.querySelector('#test-autofullfør-btn')?.addEventListener('click', async (e) => {
     if (!confirm('Autofullfør alle ubekreftede innledande kamper?')) return
     e.currentTarget.disabled = true
     await autoFullforInnledendeKamper(stevneid)
     await lastOgVis(container, stevneid)
   })
 
-  container.querySelector('#test-slett-btn')?.addEventListener('click', async (e) => {
+  bannerSlot?.querySelector('#test-slett-btn')?.addEventListener('click', async (e) => {
     if (!confirm('Slett alle innledande kamper?')) return
     e.currentTarget.disabled = true
     await slettKamperForFase(stevneid, 'innledende')
     await lastOgVis(container, stevneid)
   })
 
-  container.querySelector('#test-fase-ikkestartet-btn')?.addEventListener('click', async (e) => {
+  bannerSlot?.querySelector('#test-fase-ikkestartet-btn')?.addEventListener('click', async (e) => {
     if (!confirm('Sett stevne_fase til "ikke_startet"?')) return
     e.currentTarget.disabled = true
     await settStevneFaseTilIkkeStartet(stevneid)
@@ -113,7 +112,7 @@ async function lastOgVis(container, stevneid) {
   })
 
   if (erSwiss) {
-    container.querySelector('#neste-runde-btn')?.addEventListener('click', async () => {
+    bannerSlot?.querySelector('#neste-runde-btn')?.addEventListener('click', async () => {
       try {
         const { rundeNummer } = await genererNesteSwissRunde(stevneid)
         await lastOgVis(container, stevneid)

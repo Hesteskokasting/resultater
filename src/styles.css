@@ -664,6 +664,11 @@
 
 /* ── Organizer felles ── */
 
+#app:has(.org-shell) {
+  max-width: none;
+  padding: 0;
+}
+
 .org-fase-header {
   background: var(--primaer);
   color: var(--primaer-text);

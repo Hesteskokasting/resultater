@@ -1,15 +1,16 @@
 import { supabase } from '../supabase.js'
-import { renderOrgNav } from './org-nav.js'
 import { beregnGyldigeGruppeStorrelsar, beregnCupStruktur, gyldigeRunde1Oppsett } from '../utils/kastemetoder-logikk.js'
 import { genererCupRunde1, genererNesteCupRunde, genererNesteCupRundeForGruppe, genererFinaleOgBronsefinale } from './kampgenerering-db.js'
 import { opnNumberpad } from './score-numberpad.js'
 import { scoreForSp } from '../utils/kamp.js'
 import { slettKamperForFase, settStevneFaseTilInnledende } from '../utils/organizer-test-utils.js'
-import { renderOrgBanner, sorterStilling } from './org-shared.js'
+import { sorterStilling } from './org-shared.js'
 
 let kanal = null
+let bannerSlot = null
 
-export async function render(container, { id } = {}) {
+export async function render(container, { id } = {}, _bannerSlot = null) {
+  bannerSlot = _bannerSlot
   if (kanal) { supabase.removeChannel(kanal); kanal = null }
   container.innerHTML = '<p class="laster">Laster…</p>'
   await lastOgVis(container, Number(id))
@@ -79,10 +80,12 @@ async function lastOgVis(container, stevneid) {
     innlKampar
   )
 
+  if (bannerSlot) {
+    bannerSlot.innerHTML = renderHeader(stevne, stevneid, { alleInnlBekrefta, harAvslKampar, harGruppefordeling, erSisteRundeFullfort, aktive, harSemfinale, semfinalarBekrefta, harFinale, finaleOgBronseBekrefta })
+  }
+
   container.innerHTML = `
     <div class="px-3 py-2">
-      ${renderOrgNav(stevneid, 'avsluttende')}
-      ${renderHeader(stevne, stevneid, { alleInnlBekrefta, harAvslKampar, harGruppefordeling, erSisteRundeFullfort, aktive, harSemfinale, semfinalarBekrefta, harFinale, finaleOgBronseBekrefta })}
       ${harGruppefordeling ? renderHovudinnhald(avslKampar, stilling, startnrMap, aktive.length) : ''}
       ${stevne.stevne_fase === 'avsluttende' && !harGruppefordeling ? renderGruppefordeling(stilling) : ''}
     </div>
@@ -133,7 +136,7 @@ function renderHeader(stevne, stevneid, state) {
     <button id="test-fase-innledende-btn" class="btn btn-sm btn-outline-secondary">TEST: Fase → innledende</button>
   `
 
-  return renderOrgBanner(`${stevne.navn} — Avsluttande fase`, knapperHtml)
+  return knapperHtml
 }
 
 // --- Gruppefordeling-UI ---
@@ -523,7 +526,7 @@ function opnGenererRundeDialog(container, stevneid, gruppeNavn, stillingForGrupp
 // --- Event binding ---
 
 function bindHeaderEvents(container, stevneid, stevne, alleInnlBekrefta, harGruppefordeling, harAvslKampar, resultat, grupper, gruppeNavnMap, avslKampar) {
-  container.querySelector('#start-avsl-btn')?.addEventListener('click', async () => {
+  bannerSlot?.querySelector('#start-avsl-btn')?.addEventListener('click', async () => {
     if (!alleInnlBekrefta) return
     const { error } = await supabase.from('stevne').update({ stevne_fase: 'avsluttende' }).eq('id', stevneid)
     if (error) { alert('Feil: ' + error.message); return }
@@ -614,7 +617,7 @@ function bindHeaderEvents(container, stevneid, stevne, alleInnlBekrefta, harGrup
     })
   }
 
-  container.querySelector('#endre-gruppeinndeling-btn')?.addEventListener('click', async () => {
+  bannerSlot?.querySelector('#endre-gruppeinndeling-btn')?.addEventListener('click', async () => {
     if (!confirm('Tilbakestill gruppeinndelinga? Gruppefordeling og format vert fjerna.')) return
     await Promise.all([
       supabase.from('resultat').update({ gruppeid: null }).eq('stevneid', stevneid),
@@ -623,8 +626,8 @@ function bindHeaderEvents(container, stevneid, stevne, alleInnlBekrefta, harGrup
     await lastOgVis(container, stevneid)
   })
 
-  container.querySelector('#neste-runde-btn')?.addEventListener('click', async () => {
-    const medSeeding = container.querySelector('#seeding-toggle')?.checked ?? true
+  bannerSlot?.querySelector('#neste-runde-btn')?.addEventListener('click', async () => {
+    const medSeeding = bannerSlot?.querySelector('#seeding-toggle')?.checked ?? true
     try {
       const res = await genererNesteCupRunde(stevneid, medSeeding)
       if (res.erSemfinale) alert('Semifinalar er generert!')
@@ -645,7 +648,7 @@ function bindHeaderEvents(container, stevneid, stevne, alleInnlBekrefta, harGrup
     })
   }
 
-  container.querySelector('#generer-finale-btn')?.addEventListener('click', async () => {
+  bannerSlot?.querySelector('#generer-finale-btn')?.addEventListener('click', async () => {
     try {
       await genererFinaleOgBronsefinale(stevneid)
       await lastOgVis(container, stevneid)
@@ -654,14 +657,14 @@ function bindHeaderEvents(container, stevneid, stevne, alleInnlBekrefta, harGrup
     }
   })
 
-  container.querySelector('#test-slett-avsl-btn')?.addEventListener('click', async (e) => {
+  bannerSlot?.querySelector('#test-slett-avsl-btn')?.addEventListener('click', async (e) => {
     if (!confirm('Slett alle avsluttande kamper?')) return
     e.currentTarget.disabled = true
     await slettKamperForFase(stevneid, 'avsluttende')
     await lastOgVis(container, stevneid)
   })
 
-  container.querySelector('#test-fase-innledende-btn')?.addEventListener('click', async (e) => {
+  bannerSlot?.querySelector('#test-fase-innledende-btn')?.addEventListener('click', async (e) => {
     if (!confirm('Sett stevne_fase til "innledende"?')) return
     e.currentTarget.disabled = true
     await settStevneFaseTilInnledende(stevneid)

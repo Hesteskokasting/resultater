@@ -1,5 +1,4 @@
 import { supabase } from '../supabase.js'
-import { renderOrgNav } from './org-nav.js'
 
 let cachedKasterPlayers = []
 
@@ -137,9 +136,8 @@ export async function render(container, { id } = {}) {
   const pameldtIds = new Set((pameldingar ?? []).map(p => p.kasterid))
 
   container.innerHTML = `
-    <div class="container-fluid py-3">
-      ${renderOrgNav(stevneid, 'spillere')}
-      <h4 class="mb-2">${stevne.namn ?? stevne.navn} — Spelarar</h4>
+    <div>
+      <h4 class="mb-2">${stevne.navn} — Spelarar</h4>
       ${!kanEndrast ? `<div class="alert alert-warning py-2">Spelarar kan ikkje endrast etter at stevnet er starta.</div>` : ''}
       <div class="row g-3" id="spelarar-layout"></div>
     </div>

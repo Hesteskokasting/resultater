@@ -1,5 +1,4 @@
 import { supabase } from '../supabase.js'
-import { renderOrgNav } from './org-nav.js'
 
 export async function render(container, { id } = {}) {
   const stevneid = Number(id)
@@ -31,8 +30,7 @@ export async function render(container, { id } = {}) {
   }
 
   container.innerHTML = `
-    <div class="container-fluid py-3">
-      ${renderOrgNav(stevneid, 'innstillinger')}
+    <div>
       <h4 class="mb-3">Innstillingar</h4>
       <form id="innstillingar-form" class="org-max-480">
         <div class="mb-3">
