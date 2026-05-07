@@ -322,10 +322,12 @@ function renderGruppeKolonne(gruppeNavn, kampar, aktiveCount, totalCount, sisteR
 
   const rundarHtml = [...rundeMap.entries()].map(([nr, rKampar]) => {
     const tittel = rKampar[0]?.runde_navn ?? `Runde ${nr}`
+    const synligeKampar = rKampar.filter(k => !k.er_walkover)
+    if (!synligeKampar.length) return ''
     return `
       <h6 class="fw-bold text-center mb-1">${tittel}</h6>
       <div class="d-flex flex-wrap gap-2 mb-2">
-        ${rKampar.map(k => renderKampBlock(k, startnrMap)).join('')}
+        ${synligeKampar.map(k => renderKampBlock(k, startnrMap)).join('')}
       </div>`
   }).join('')
 

@@ -278,27 +278,29 @@ export async function genererNesteSwissRunde(stevneid) {
 // --- CUP avsluttende ---
 
 async function _insertCupParingar(stevneid, paringar, rundeNummer, gruppeNavn) {
+  const matchIds = paringar.map(() => genMatchId())
+  let baneNr = 0
   const rundekampar = paringar.map((p, i) => ({
-    match_id: genMatchId(),
+    match_id: matchIds[i],
     stevneid,
     fase: 'avsluttende',
     runde_nummer: rundeNummer,
     gruppe_navn: gruppeNavn ?? null,
-    bane_nummer: i + 1,
+    bane_nummer: p.erWalkover ? null : ++baneNr,
     er_bekreftet: false,
     er_walkover: p.erWalkover,
     er_tre_spelarar: p.erTreSpelarar,
   }))
 
   const { data: innsettaKampar, error: kampErr } = await supabase
-    .from('kamp').insert(rundekampar).select('id, bane_nummer')
+    .from('kamp').insert(rundekampar).select('id, match_id')
   if (kampErr) throw new Error('Feil ved innsetting av cup-kampar: ' + kampErr.message)
 
+  const matchIdMap = Object.fromEntries(innsettaKampar.map(k => [k.match_id, k.id]))
   const spelarRader = []
-  const baneMap = Object.fromEntries(innsettaKampar.map(k => [k.bane_nummer, k.id]))
 
   for (let i = 0; i < paringar.length; i++) {
-    const kampid = baneMap[i + 1]
+    const kampid = matchIdMap[matchIds[i]]
     paringar[i].spelarar.forEach((kasterid, pos) => {
       spelarRader.push({ kampid, kasterid, posisjon: pos + 1, score_poeng: 0, kamp_poeng: 0, antall_ringer: 0 })
     })
