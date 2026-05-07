@@ -19,7 +19,7 @@ export async function render(container, { id } = {}, _bannerSlot = null) {
 async function lastOgVis(container, stevneid) {
   const [{ data: stevne }, { data: kampar }, { data: resultat }, { data: grupper }] = await Promise.all([
     supabase.from('stevne').select(`
-      id, navn, stevne_fase, runde1_format,
+      id, navn, stevne_fase, erfullfort, runde1_format,
       avsluttendemetode:avsluttendekastemetodeid(id, navn)
     `).eq('id', stevneid).single(),
     supabase.from('kamp').select(`
@@ -132,6 +132,7 @@ function renderHeader(stevne, stevneid, state) {
 
   const knapperHtml = `
     ${handlingsHtml}
+    <button id="fullfør-turnering-btn" class="btn btn-sm btn-danger"${stevne.erfullfort ? ' disabled' : ''}>Fullfør turnering</button>
     <button id="test-slett-avsl-btn" class="btn btn-sm btn-outline-danger">TEST: Slett kamper</button>
     <button id="test-fase-innledende-btn" class="btn btn-sm btn-outline-secondary">TEST: Fase → innledende</button>
   `
@@ -655,6 +656,13 @@ function bindHeaderEvents(container, stevneid, stevne, alleInnlBekrefta, harGrup
     } catch (e) {
       alert('Feil: ' + e.message)
     }
+  })
+
+  bannerSlot?.querySelector('#fullfør-turnering-btn')?.addEventListener('click', async () => {
+    if (!confirm('Vil du fullføre turneringa? Dette kan ikkje angrast.')) return
+    const { error } = await supabase.from('stevne').update({ erfullfort: true }).eq('id', stevneid)
+    if (error) { alert('Feil: ' + error.message); return }
+    await lastOgVis(container, stevneid)
   })
 
   bannerSlot?.querySelector('#test-slett-avsl-btn')?.addEventListener('click', async (e) => {

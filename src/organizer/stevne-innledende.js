@@ -71,6 +71,7 @@ async function lastOgVis(container, stevneid) {
     bannerSlot.innerHTML = `
       ${erSwiss ? `<button id="neste-runde-btn" class="btn btn-sm btn-warning"${stevne.erfullfort || !erAlleKamperBekreftet ? ' disabled' : ''}>Generer neste runde</button>` : ''}
       <button id="fullfor-btn" class="btn btn-sm btn-primary"${stevne.erfullfort || !erAlleKamperBekreftet ? ' disabled' : ''}>Start avsluttande fase</button>
+      <button id="fullfør-turnering-btn" class="btn btn-sm btn-danger"${stevne.erfullfort ? ' disabled' : ''}>Fullfør turnering</button>
       <button id="test-autofullfør-btn" class="btn btn-sm btn-outline-warning">TEST: Autofullfør</button>
       <button id="test-slett-btn" class="btn btn-sm btn-outline-danger">TEST: Slett kamper</button>
       <button id="test-fase-ikkestartet-btn" class="btn btn-sm btn-outline-secondary">TEST: Fase → ikke_startet</button>
@@ -89,6 +90,13 @@ async function lastOgVis(container, stevneid) {
   `
 
   bannerSlot?.querySelector('#fullfor-btn')?.addEventListener('click', () => fullforTurnering(container, stevneid))
+
+  bannerSlot?.querySelector('#fullfør-turnering-btn')?.addEventListener('click', async () => {
+    if (!confirm('Vil du fullføre turneringa? Dette kan ikkje angrast.')) return
+    const { error } = await supabase.from('stevne').update({ erfullfort: true }).eq('id', stevneid)
+    if (error) { alert('Feil: ' + error.message); return }
+    await lastOgVis(container, stevneid)
+  })
 
   bannerSlot?.querySelector('#test-autofullfør-btn')?.addEventListener('click', async (e) => {
     if (!confirm('Autofullfør alle ubekreftede innledande kamper?')) return
@@ -313,7 +321,8 @@ async function bekreftKamp(container, stevneid, kamp, startnrMap) {
 }
 
 async function fullforTurnering(container, stevneid) {
-  if (!confirm('Vil du fullføre turneringa? Dette kan ikkje angrast.')) return
-  await supabase.from('stevne').update({ erfullfort: true }).eq('id', stevneid)
-  await lastOgVis(container, stevneid)
+  if (!confirm('Start avsluttande fase?')) return
+  const { error } = await supabase.from('stevne').update({ stevne_fase: 'avsluttende' }).eq('id', stevneid)
+  if (error) { alert('Feil: ' + error.message); return }
+  location.hash = `#/stevne/${stevneid}/organizer/avsluttende`
 }
