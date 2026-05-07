@@ -91,10 +91,6 @@ function createSelectedPlayerRow(player, erBekreftet, onRemove, onBekreft, disab
     removeBtn.title = 'Fjern spelar'
     removeBtn.addEventListener('click', (e) => { e.stopPropagation(); onRemove(player) })
     fjernCell.appendChild(removeBtn)
-    row.classList.add('deltaker-rad')
-    row.addEventListener('click', (e) => {
-      if (e.target !== removeBtn && !e.target.classList.contains('deltaker-bekreft-btn')) onRemove(player)
-    })
   }
 
   row.appendChild(bekreftCell)
