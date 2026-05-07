@@ -86,7 +86,7 @@ async function lastOgVis(container, stevneid) {
   container.innerHTML = `
     <div class="px-3 py-2">
       ${harGruppefordeling ? renderHovudinnhald(avslKampar, stilling, startnrMap, aktive.length, isAdmin) : ''}
-      ${stevne.stevne_fase === 'avsluttende' && !harGruppefordeling ? renderGruppefordeling(stilling) : ''}
+      ${stevne.stevne_fase === 'avsluttende' && !harGruppefordeling ? (isAdmin ? renderGruppefordeling(stilling) : '<p class="text-muted fst-italic">Gruppefordeling er ikkje klar enno.</p>') : ''}
     </div>
   `
 
