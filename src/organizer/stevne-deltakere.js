@@ -27,10 +27,10 @@ function sortKastere(players) {
   })
 }
 
-function filterDatabasePlayers(players, search, selectedIds) {
+function filterDatabasePlayers(players, search, selectedMap) {
   const q = search.toLowerCase()
   return players.filter(p => {
-    if (selectedIds.has(p.id)) return false
+    if (selectedMap.has(p.id)) return false
     return !q || kasterNavn(p).toLowerCase().includes(q) || p.klubb?.navn?.toLowerCase().includes(q)
   })
 }
@@ -55,7 +55,7 @@ function createPlayerColumn(title) {
   return { column, table, titleEl }
 }
 
-function createSelectedPlayerRow(player, onRemove, disabled = false) {
+function createSelectedPlayerRow(player, erBekreftet, onRemove, onBekreft, disabled = false) {
   const row = document.createElement('tr')
 
   const playerCell = document.createElement('td')
@@ -64,8 +64,25 @@ function createSelectedPlayerRow(player, onRemove, disabled = false) {
   const clubCell = document.createElement('td')
   clubCell.textContent = player.klubb?.navn ?? ''
 
-  const actionCell = document.createElement('td')
-  actionCell.className = 'text-center th-40'
+  const bekreftCell = document.createElement('td')
+  bekreftCell.className = 'text-center th-40'
+
+  if (erBekreftet) {
+    const checkmark = document.createElement('span')
+    checkmark.className = 'text-success fw-bold'
+    checkmark.textContent = '✓'
+    bekreftCell.appendChild(checkmark)
+  } else if (!disabled) {
+    const bekreftBtn = document.createElement('button')
+    bekreftBtn.textContent = '✓'
+    bekreftBtn.className = 'btn btn-outline-danger btn-sm rounded-circle p-0 lh-1 deltaker-bekreft-btn'
+    bekreftBtn.title = 'Bekreft spelar'
+    bekreftBtn.addEventListener('click', (e) => { e.stopPropagation(); onBekreft(player) })
+    bekreftCell.appendChild(bekreftBtn)
+  }
+
+  const fjernCell = document.createElement('td')
+  fjernCell.className = 'text-center th-40'
 
   if (!disabled) {
     const removeBtn = document.createElement('button')
@@ -73,14 +90,17 @@ function createSelectedPlayerRow(player, onRemove, disabled = false) {
     removeBtn.className = 'btn btn-danger btn-sm rounded-circle p-0 lh-1 deltaker-fjern-btn'
     removeBtn.title = 'Fjern spelar'
     removeBtn.addEventListener('click', (e) => { e.stopPropagation(); onRemove(player) })
-    actionCell.appendChild(removeBtn)
+    fjernCell.appendChild(removeBtn)
     row.classList.add('deltaker-rad')
-    row.addEventListener('click', (e) => { if (e.target !== removeBtn) onRemove(player) })
+    row.addEventListener('click', (e) => {
+      if (e.target !== removeBtn && !e.target.classList.contains('deltaker-bekreft-btn')) onRemove(player)
+    })
   }
 
+  row.appendChild(bekreftCell)
   row.appendChild(playerCell)
   row.appendChild(clubCell)
-  row.appendChild(actionCell)
+  row.appendChild(fjernCell)
   return row
 }
 
@@ -108,7 +128,7 @@ function createEmptyRow(message) {
   const cell = document.createElement('td')
   cell.className = 'text-center text-muted fst-italic py-3'
   cell.textContent = message
-  cell.colSpan = 3
+  cell.colSpan = 4
   row.appendChild(cell)
   return row
 }
@@ -120,7 +140,7 @@ export async function render(container, { id, isAdmin = false } = {}, bannerSlot
   const [{ data: stevne }, { data: pameldingar }] = await Promise.all([
     supabase.from('stevne').select('id, navn, stevne_fase').eq('id', stevneid).single(),
     supabase.from('pamelding')
-      .select('id, kasterid, kaster:kasterid(id, fornavn, etternavn, klubbid, klubb:klubbid(navn))')
+      .select('id, kasterid, er_bekreftet, kaster:kasterid(id, fornavn, etternavn, klubbid, klubb:klubbid(navn))')
       .eq('stevneid', stevneid)
       .order('id'),
   ])
@@ -134,7 +154,7 @@ export async function render(container, { id, isAdmin = false } = {}, bannerSlot
   const fase = stevne.stevne_fase ?? null
   const kanEndrast = isAdmin && (fase === null || fase === 'ikke_startet')
   const alleSpelarar = cachedKasterPlayers
-  const pameldtIds = new Set((pameldingar ?? []).map(p => p.kasterid))
+  const pameldtMap = new Map((pameldingar ?? []).map(p => [p.kasterid, p.er_bekreftet]))
 
   container.innerHTML = `
     <div>
@@ -170,27 +190,31 @@ export async function render(container, { id, isAdmin = false } = {}, bannerSlot
 
   function renderPameldtListe() {
     pameldtListe.innerHTML = ''
-    const lista = sortKastere(alleSpelarar.filter(p => pameldtIds.has(p.id)))
+    const lista = sortKastere(alleSpelarar.filter(p => pameldtMap.has(p.id)))
     pameldtTittel.textContent = `Påmelde spelarar: ${lista.length}`
     if (!lista.length) { pameldtListe.appendChild(createEmptyRow('Ingen spelarar påmelde')); return }
     for (const sp of lista) {
-      pameldtListe.appendChild(createSelectedPlayerRow(sp, async (s) => {
+      pameldtListe.appendChild(createSelectedPlayerRow(sp, pameldtMap.get(sp.id), async (s) => {
         await fjernSpelar(stevneid, s.id)
-        pameldtIds.delete(s.id)
+        pameldtMap.delete(s.id)
         renderPameldtListe()
         renderTilgjengeliListe()
+      }, async (s) => {
+        await bekreftSpelar(stevneid, s.id)
+        pameldtMap.set(s.id, true)
+        renderPameldtListe()
       }, !kanEndrast))
     }
   }
 
   function renderTilgjengeliListe() {
-    const filtrert = sortKastere(filterDatabasePlayers(alleSpelarar, søkInput.value, pameldtIds))
+    const filtrert = sortKastere(filterDatabasePlayers(alleSpelarar, søkInput.value, pameldtMap))
     tilgjengeliListe.innerHTML = ''
     if (!filtrert.length) { tilgjengeliListe.appendChild(createEmptyRow('Ingen spelarar funne')); return }
     for (const sp of filtrert) {
       tilgjengeliListe.appendChild(createAvailablePlayerRow(sp, async (s) => {
         await leggTilSpelar(stevneid, s.id)
-        pameldtIds.add(s.id)
+        pameldtMap.set(s.id, false)
         renderPameldtListe()
         renderTilgjengeliListe()
       }, !kanEndrast))
@@ -219,4 +243,13 @@ async function fjernSpelar(stevneid, kasterid) {
     .eq('stevneid', stevneid)
     .eq('kasterid', kasterid)
   if (error) alert('Feil ved fjerning: ' + error.message)
+}
+
+async function bekreftSpelar(stevneid, kasterid) {
+  const { error } = await supabase
+    .from('pamelding')
+    .update({ er_bekreftet: true })
+    .eq('stevneid', stevneid)
+    .eq('kasterid', kasterid)
+  if (error) alert('Feil ved bekreftelse: ' + error.message)
 }

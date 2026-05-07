@@ -41,6 +41,15 @@ export async function render(container, { id } = {}, bannerSlot = null) {
         alert('Du må setje antal rundar for innledande fase (Gloppen-metoden krev dette).\nGå til Innstillingar for å endre.')
         return
       }
+      const { count: ubekrefta } = await supabase
+        .from('pamelding')
+        .select('id', { count: 'exact', head: true })
+        .eq('stevneid', stevneid)
+        .eq('er_bekreftet', false)
+      if (ubekrefta > 0) {
+        const ok = confirm(`${ubekrefta} spelar(ar) er ikkje bekrefta. Vil du starte stevnet likevel?`)
+        if (!ok) return
+      }
       try {
         await genererInnledendeKamper(stevneid, metodeNavn, stevne.antall_runder_innl ?? 1)
       } catch (e) {
