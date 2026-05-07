@@ -1457,6 +1457,17 @@
 .avsl-kamp-block  { width: calc(50% - 0.5rem); min-width: 220px; }
 .avsl-stilling-kol { width: 360px; flex-shrink: 0; }
 .avsl-stilling-einzel { max-width: 400px; }
+.avsl-tab-knappar    { display: none; }
+.avsl-kampar-panel   { min-width: 0; }
+
+@media (max-width: 899px) {
+  .avsl-tab-knappar  { display: flex; margin-bottom: 0.75rem; }
+  .avsl-tab-btn      { flex: 1; }
+  .avsl-stilling-kol { width: 100%; }
+  .avsl-hovudinnhald .avsl-stilling-kol          { display: none; }
+  .avsl-hovudinnhald.avsl-vis-resultat .avsl-kampar-panel { display: none !important; }
+  .avsl-hovudinnhald.avsl-vis-resultat .avsl-stilling-kol { display: block; }
+}
 .avsl-maks-600 { max-width: 600px; margin-inline: auto; }
 
 .avsl-elim-separator {

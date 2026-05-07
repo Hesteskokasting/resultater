@@ -96,6 +96,7 @@ async function lastOgVis(container, stevneid) {
   if (harGruppefordeling) {
     abonnerPaaEndringar(container, stevneid)
     if (harAvslKampar) bindKampEvents(container, stevneid, avslKampar, startnrMap, resultatMedNamn, aktive.length)
+    bindTabKnappar(container)
   }
 }
 
@@ -272,9 +273,15 @@ function renderHovudinnhald(avslKampar, stilling, startnrMap, totalAktive, isAdm
   }).join('')
 
   return `
-    <div class="d-flex gap-3 align-items-start flex-wrap">
-      <div class="d-flex gap-3 flex-grow-1 flex-wrap">${gruppeKolonnar}</div>
-      <div class="avsl-stilling-kol">${renderStilling(stilling)}</div>
+    <div class="avsl-hovudinnhald">
+      <div class="avsl-tab-knappar btn-group w-100">
+        <button class="btn btn-primary avsl-tab-btn" data-tab="kamper">Kamper</button>
+        <button class="btn btn-outline-primary avsl-tab-btn" data-tab="resultat">Resultat</button>
+      </div>
+      <div class="d-flex gap-3 align-items-start avsl-innhald-rad">
+        <div class="d-flex gap-3 flex-grow-1 flex-wrap avsl-kampar-panel">${gruppeKolonnar}</div>
+        <div class="avsl-stilling-kol">${renderStilling(stilling)}</div>
+      </div>
     </div>`
 }
 
@@ -801,6 +808,23 @@ async function _lagreCupKampResultat(stevneid, kamp, sp, vidareIds, eliminertId,
       .update({ plassering: 3 })
       .eq('stevneid', stevneid).eq('kasterid', vidareIds[0])
   }
+}
+
+// --- Tab-toggle (mobil) ---
+
+function bindTabKnappar(container) {
+  const wrapper = container.querySelector('.avsl-hovudinnhald')
+  if (!wrapper) return
+  container.querySelectorAll('.avsl-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const isResultat = btn.dataset.tab === 'resultat'
+      wrapper.classList.toggle('avsl-vis-resultat', isResultat)
+      container.querySelectorAll('.avsl-tab-btn').forEach(b => {
+        b.classList.toggle('btn-primary', b.dataset.tab === btn.dataset.tab)
+        b.classList.toggle('btn-outline-primary', b.dataset.tab !== btn.dataset.tab)
+      })
+    })
+  })
 }
 
 // --- Sanntid ---
