@@ -124,7 +124,7 @@ function sortikonHtml(kolonne) {
 }
 
 function tabellRadHtml(s) {
-  const dato = s.dato ? new Date(s.dato).toLocaleDateString('nb-NO') : ''
+  const dato = s.dato ? new Date(s.dato + 'T12:00:00').toLocaleDateString('nb-NO') : ''
   const metode = [s.innledende?.navn, s.avsluttende?.navn].filter(Boolean).join(' \\ ')
   const nm = s.ernm ? '<span class="tl-nm-merke">NM</span> ' : ''
   const innbydelse = s.innbydelseurl
@@ -171,7 +171,7 @@ function kortHtml(s) {
     ? `<a class="stevne-lenke" href="#/resultat/${s.id}">Vis resultat</a>`
     : ''
 
-  const erKomande = s.dato && new Date(s.dato) > new Date()
+  const erKomande = s.dato && new Date(s.dato + 'T12:00:00') > new Date()
   const rolle = _auth?.profil?.rolle
   const harTilgang = _auth?.profil?.kobling_status === 'godkjent' || rolle === 'admin' || rolle === 'klubbadmin'
   const erPameldt = _pameldteIds.has(s.id)

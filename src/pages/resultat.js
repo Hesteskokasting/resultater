@@ -140,7 +140,7 @@ export async function render(container, params) {
     return
   }
 
-  const aar = stevne.dato ? new Date(stevne.dato).getFullYear() : 9999
+  const aar = stevne.dato ? new Date(stevne.dato + 'T12:00:00').getFullYear() : 9999
   const erFoer2026 = aar < 2026
   const grupper = grupperResultater(resultater ?? [], erFoer2026)
   const antallDeltakere = (resultater ?? []).length

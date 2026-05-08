@@ -23,8 +23,8 @@ export async function render(container, { id } = {}) {
     return
   }
 
-  const relaterteFraDato = stevne.dato ? new Date(new Date(stevne.dato).getTime() - 2 * 864e5) : null
-  const relaterteTimDato = stevne.dato ? new Date(new Date(stevne.dato).getTime() + 2 * 864e5) : null
+  const relaterteFraDato = stevne.dato ? new Date(new Date(stevne.dato + 'T12:00:00').getTime() - 2 * 864e5).toISOString().slice(0, 10) : null
+  const relaterteTimDato = stevne.dato ? new Date(new Date(stevne.dato + 'T12:00:00').getTime() + 2 * 864e5).toISOString().slice(0, 10) : null
 
   const hentingar = [
     supabase.from('pamelding')
@@ -40,8 +40,8 @@ export async function render(container, { id } = {}) {
         .eq('klubbid', stevne.klubbid)
         .eq('erfullfort', false)
         .neq('id', id)
-        .gte('dato', relaterteFraDato.toISOString())
-        .lte('dato', relaterteTimDato.toISOString())
+        .gte('dato', relaterteFraDato)
+        .lte('dato', relaterteTimDato)
         .order('dato')
     )
   }
@@ -64,7 +64,7 @@ export async function render(container, { id } = {}) {
   if (stevne.klubbid && relaterteFraDato) { relaterte    = resultat[idx++]?.data ?? [] }
   if (erPrivilegert)                       { klubbKastere = resultat[idx]?.data   ?? [] }
 
-  const dato      = stevne.dato ? formaterDato(stevne.dato) : ''
+  const dato = stevne.dato ? formaterDato(stevne.dato) : ''
   const erKobla   = auth?.profil?.kobling_status === 'godkjent'
   const kasterid  = auth?.profil?.kasterid
   const erPameldt = pameldingar.some(p => p.kasterid === kasterid)

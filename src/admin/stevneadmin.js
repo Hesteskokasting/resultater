@@ -32,7 +32,8 @@ export async function render(container, { id } = {}) {
   const tittel = id ? `Rediger stevne: ${stevne?.navn ?? ''}` : 'Nytt stevne'
 
   const v = stevne ?? {}
-  const datoVerdi = v.dato ? v.dato.slice(0, 16) : ''
+  const datoVerdi = v.dato ?? ''
+  const tidVerdi  = v.tid ? v.tid.slice(0, 5) : ''
 
   const klubbOpt    = _opt(klubbar, v.klubbid)
   const typeOpt     = _opt(stevnetypar, v.stevnetypeid)
@@ -46,7 +47,8 @@ export async function render(container, { id } = {}) {
       <form id="stevne-skjema">
         ${lagFormRadHtml('Namn*', `<input type="text" class="form-control" name="navn" value="${_esc(v.navn)}" required>`)}
         ${lagFormRadHtml('Stad', `<input type="text" class="form-control" name="sted" value="${_esc(v.sted)}">`)}
-        ${lagFormRadHtml('Dato og tid', `<input type="datetime-local" class="form-control" name="dato" value="${datoVerdi}">`)}
+        ${lagFormRadHtml('Dato', `<input type="date" class="form-control" name="dato" value="${datoVerdi}">`)}
+        ${lagFormRadHtml('Tid', `<input type="time" class="form-control" name="tid" value="${tidVerdi}">`)}
         ${lagFormRadHtml('Arrangørklubb', `<select class="form-select" name="klubbid">${klubbOpt}</select>`)}
         ${lagFormRadHtml('Stevnetype', `<select class="form-select" name="stevnetypeid">${typeOpt}</select>`)}
         ${lagFormRadHtml('Innleiande kastemetode', `<select class="form-select" name="innledendekastemetodeid">${metodeOpt}</select>`)}
@@ -74,6 +76,7 @@ export async function render(container, { id } = {}) {
       navn:                      fd.get('navn').trim(),
       sted:                      fd.get('sted').trim() || null,
       dato:                      fd.get('dato') || null,
+      tid:                       fd.get('tid') || null,
       klubbid:                   _num(fd.get('klubbid')),
       stevnetypeid:              _num(fd.get('stevnetypeid')),
       innledendekastemetodeid:   _num(fd.get('innledendekastemetodeid')),

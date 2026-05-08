@@ -9,7 +9,7 @@ export async function render(container, { id } = {}, bannerSlot = null) {
   const [{ data: stevne }, { count: antallSpelarar }] = await Promise.all([
     supabase.from('stevne')
       .select(`
-        id, navn, dato, sted, stevne_fase, antall_runder_innl,
+        id, navn, dato, tid, sted, stevne_fase, antall_runder_innl,
         kastemetodeInnl:innledendekastemetodeid(id, navn),
         kastemetodeAvsl:avsluttendekastemetodeid(id, navn)
       `)
@@ -70,7 +70,7 @@ export async function render(container, { id } = {}, bannerSlot = null) {
           <tbody>
             <tr><th>Stad</th><td>${stevne.sted ?? '—'}</td></tr>
             <tr><th>Dato</th><td>${stevne.dato ? formaterDatoNumeric(stevne.dato) : '—'}</td></tr>
-            <tr><th>Tid</th><td>${stevne.dato ? formaterTid(stevne.dato) : '—'}</td></tr>
+            <tr><th>Tid</th><td>${stevne.tid ? formaterTid(stevne.tid) : '—'}</td></tr>
             <tr><th>Kastemetode innledande</th><td>${metodeNavn}</td></tr>
             <tr><th>Kastemetode avsluttande</th><td>${stevne.kastemetodeAvsl?.navn ?? '—'}</td></tr>
             <tr><th>Antal rundar innledande</th><td>${stevne.antall_runder_innl ?? '—'}</td></tr>

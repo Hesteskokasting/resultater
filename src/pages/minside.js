@@ -86,7 +86,7 @@ async function _minePameldingar(brukerId) {
   })
 
   const rader = sortert.map(p => {
-    const dato = p.stevne?.dato ? new Date(p.stevne.dato).toLocaleDateString('nb-NO') : ''
+    const dato = p.stevne?.dato ? new Date(p.stevne.dato + 'T12:00:00').toLocaleDateString('nb-NO') : ''
     return `<tr>
       <td><a href="#/stevne/${p.stevne?.id}/pamelding">${p.stevne?.navn ?? ''}</a></td>
       <td>${dato}</td>

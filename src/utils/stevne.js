@@ -4,7 +4,7 @@ export async function hentStevner(ar) {
   return supabase
     .from('stevne')
     .select(`
-      id, navn, sted, dato, ernm, erfullfort, innbydelseurl, resultaturl,
+      id, navn, sted, dato, tid, ernm, erfullfort, innbydelseurl, resultaturl,
       klubb:klubbid(id, navn),
       stevnetype:stevnetypeid(id, navn),
       innledende:kastemetode!innledendekastemetodeid(id, navn),
