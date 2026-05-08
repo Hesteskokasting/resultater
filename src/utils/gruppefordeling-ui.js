@@ -31,11 +31,11 @@ export function renderGruppefordeling(resultatEllerN, { visSpelarliste = true, i
 
   const splitParts = []
   if (treSplits.length) {
-    splitParts.push(`<div class="text-muted small fw-semibold mb-1">3 spillere per bane</div>${renderSplitRadios(treSplits, 0)}`)
+    splitParts.push(`<div class="text-muted small fw-semibold mb-1">3 spillere per bane (A)</div>${renderSplitRadios(treSplits, 0)}`)
   }
   if (toSplits.length) {
     if (splitParts.length) splitParts.push('<hr class="my-2">')
-    splitParts.push(`<div class="text-muted small fw-semibold mb-1">2 spillere per bane</div>${renderSplitRadios(toSplits, treSplits.length)}`)
+    splitParts.push(`<div class="text-muted small fw-semibold mb-1">2 spillere per bane (A)</div>${renderSplitRadios(toSplits, treSplits.length)}`)
   }
   if (visIngen) {
     if (splitParts.length) splitParts.push('<hr class="my-2">')
@@ -56,7 +56,7 @@ export function renderGruppefordeling(resultatEllerN, { visSpelarliste = true, i
 
   return `
     <div id="gruppe-val-wrapper" data-n="${n}">
-      <h5 class="text-center mb-3">Velg gruppestørrelser for sluttspill</h5>
+      <h5 class="mb-3">Velg gruppeinndeling for cup</h5>
       <div class="d-flex gap-3 align-items-start flex-wrap mb-3">
         <div class="card">
           <div class="card-body">
