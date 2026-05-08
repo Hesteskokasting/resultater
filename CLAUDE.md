@@ -12,3 +12,4 @@
 
 ## CSS
 - All css skal være i .css filer. Ikke bruk css i javascript-filer, med mindre det er høgst nødvendig.
+- Applikasjon brukar css for mørk/lys modus. Ta høgde for dette. (global.css)
