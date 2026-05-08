@@ -155,18 +155,33 @@ function renderRunde1FormatVeljar(gruppeLabel, n, radioName, initOppsett = null)
 
 export function renderStrukturListeHtml(n, oppsett, suffix) {
   const runder = n >= 2 ? beregnCupStruktur(n, { runde1: oppsett }) : []
-  const items = runder.map((r, i) => {
-    let banerInfo
+  const rows = runder.map((r, i) => {
+    const wo = r.walkovers ?? 0
+    const aktive = r.spelarar - wo
+    const deltakereCell = wo > 0
+      ? `${aktive} <span class="text-muted">(${wo} w.o.)</span>`
+      : `${aktive}`
+    let perBane
     if (i === 0 && oppsett) {
-      const aktive = r.spelarar - (r.walkovers ?? 0)
-      const woInfo = (r.walkovers ?? 0) > 0 ? ` - ${r.walkovers} walkover` : ''
-      banerInfo = `${aktive} deltakere - ${r.baner} baner${woInfo}`
+      perBane = oppsett.c3 > 0 && oppsett.c2 > 0 ? '2/3' : oppsett.c3 > 0 ? '3' : '2'
     } else {
-      banerInfo = `${r.spelarar} deltakere - ${r.baner} baner`
+      perBane = r.spelarar % r.baner === 0 ? String(r.spelarar / r.baner) : '2/3'
     }
-    return `<li${r.treSpelarar ? ' class="fw-bold"' : ''}>Runde ${r.runde}: ${banerInfo}</li>`
+    return `<tr${r.treSpelarar ? ' class="fw-bold"' : ''}>
+      <td>${r.runde}</td>
+      <td>${deltakereCell}</td>
+      <td>${r.baner}</td>
+      <td>${perBane}</td>
+    </tr>`
   }).join('')
-  return `<div id="struktur-${suffix}"><ul class="mb-0 ps-3">${items}</ul></div>`
+  return `<div id="struktur-${suffix}">
+    <table class="table table-sm table-bordered mb-0">
+      <thead><tr>
+        <th>Runde</th><th>Deltakere (w.o.)</th><th>Baner</th><th>Per bane</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`
 }
 
 export function renderGruppePanelInnhald(label, n, radioName, oppsett) {
