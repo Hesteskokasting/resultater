@@ -1000,6 +1000,14 @@ a.stevne-navn {
 
 .rek-poeng-celle:hover { text-decoration: underline; }
 
+.score-redigerbar {
+  cursor: pointer;
+  text-decoration: underline dotted;
+}
+.score-redigerbar:hover {
+  background-color: var(--bs-table-hover-bg, rgba(0,0,0,.075));
+}
+
 /* ── Nummerpad ── */
 
 .np-overlay {

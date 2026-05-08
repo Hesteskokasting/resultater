@@ -200,6 +200,27 @@ async function lastOgVis(container, stevneid) {
     container.querySelector(`#bekrft-${kamp.id}`)?.addEventListener('click', () =>
       bekreftKamp(container, stevneid, kamp, startnrMap, hcpMap)
     )
+
+    if (isAdmin && kamp.er_bekreftet) {
+      const [p1, p2] = hentP1P2(kamp.spelarar, startnrMap)
+      const p1Namn = p1?.kaster ? `${p1.kaster.fornavn} ${p1.kaster.etternavn}` : '—'
+      const p2Namn = p2?.kaster ? `${p2.kaster.fornavn} ${p2.kaster.etternavn}` : '—'
+      const handler = () => {
+        opnNumberpad(p1Namn, p2Namn, p1?.score_poeng ?? 0, p2?.score_poeng ?? 0, async (nyS1, nyS2) => {
+          const [kp1, kp2] = beregnKampPoeng(nyS1, nyS2)
+          const updates = []
+          if (p1) updates.push(supabase.from('kamp_spelar').update({ score_poeng: nyS1, kamp_poeng: kp1 }).eq('id', p1.id))
+          if (p2) updates.push(supabase.from('kamp_spelar').update({ score_poeng: nyS2, kamp_poeng: kp2 }).eq('id', p2.id))
+          const results = await Promise.all(updates)
+          const dbErr = results.find(r => r.error)?.error
+          if (dbErr) { alert('DB-feil: ' + dbErr.message); return }
+          const kasterids = [p1?.kasterid, p2?.kasterid].filter(Boolean)
+          await oppdaterResultatInnl(stevneid, kasterids, kamp.fase)
+          await lastOgVis(container, stevneid)
+        })
+      }
+      container.querySelectorAll(`[data-endre-score="${kamp.id}"]`).forEach(celle => celle.addEventListener('click', handler))
+    }
   }
 
   abonnerPaaEndringar(container, stevneid)
@@ -279,12 +300,13 @@ function kampRad(kamp, startnrMap, isAdmin = true, hcpMap = {}) {
   const bekrfKlass = kamp.er_bekreftet || kanBekrefte ? 'btn-success' : 'btn-outline-secondary'
   const bekrfDisabled = kamp.er_bekreftet || !kanBekrefte ? ' disabled' : ''
   const scoreboardDisabled = kamp.er_bekreftet && !harOmgangar ? ' disabled' : ''
+  const scoreEndrAttr = isAdmin && kamp.er_bekreftet ? ` data-endre-score="${kamp.id}" class="text-center score-redigerbar"` : ' class="text-center"'
   return `
     <tr>
       <td class="text-center">${kamp.bane_nummer ?? ''}</td>
       <td>${p1Vis}</td>
-      <td class="text-center">${harPoeng ? s1 : ''}</td>
-      <td class="text-center">${harPoeng ? s2 : ''}</td>
+      <td${scoreEndrAttr}>${harPoeng ? s1 : ''}</td>
+      <td${scoreEndrAttr}>${harPoeng ? s2 : ''}</td>
       <td>${p2Vis}</td>
       <td class="text-end pe-2">
         ${isAdmin ? `<button class="btn btn-primary btn-sm" id="plus-${kamp.id}"${kamp.er_bekreftet ? ' disabled' : ''}>+</button>` : ''}
