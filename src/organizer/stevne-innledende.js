@@ -40,7 +40,7 @@ async function lastOgVis(container, stevneid) {
       .order('runde_nummer')
       .order('bane_nummer'),
     supabase.from('resultat')
-      .select('kasterid, startnummer')
+      .select('kasterid, startnummer, hcp')
       .eq('stevneid', stevneid),
   ])
 
@@ -53,6 +53,7 @@ async function lastOgVis(container, stevneid) {
   const erSwiss = !metodeNavn.toLowerCase().includes('gloppen')
   const erNordhordland = metodeNavn.toLowerCase().includes('nordhordland')
   const startnrMap = Object.fromEntries((resultatListe ?? []).map(r => [r.kasterid, r.startnummer]))
+  const hcpMap = Object.fromEntries((resultatListe ?? []).filter(r => r.hcp > 0).map(r => [r.kasterid, r.hcp]))
 
   const alleKamper = (kamper ?? []).sort(
     (a, b) => a.runde_nummer - b.runde_nummer || a.bane_nummer - b.bane_nummer
@@ -65,6 +66,9 @@ async function lastOgVis(container, stevneid) {
   }
 
   const { spelMap, ekteKasterids } = byggInnledendeSpelMap(alleKamper, startnrMap)
+  for (const r of (resultatListe ?? [])) {
+    if (spelMap[r.kasterid]) spelMap[r.kasterid].hcp = r.hcp ?? 0
+  }
 
   const stilling = sorterStilling(
     Object.values(spelMap).filter(s => ekteKasterids.has(s.kasterid)),
@@ -92,15 +96,33 @@ async function lastOgVis(container, stevneid) {
   container.innerHTML = `
     <div class="d-flex gap-3 align-items-start">
       <div class="flex-grow-1">
-        ${[...rundarSomVisast.entries()].map(([nr, rKamper]) => renderRunde(nr, rKamper, startnrMap, isAdmin)).join('')}
+        ${[...rundarSomVisast.entries()].map(([nr, rKamper]) => renderRunde(nr, rKamper, startnrMap, isAdmin, hcpMap)).join('')}
       </div>
       <div class="org-stilling-sidebar">
-        ${renderStilling(stilling, alleKamper, startnrMap)}
+        ${renderStilling(stilling, alleKamper, startnrMap, isAdmin, stevneid)}
       </div>
     </div>
   `
 
   bindStillingDetaljar(container, 'stilling-innl')
+
+  if (isAdmin) {
+    container.querySelectorAll('.stilling-hcp-celle').forEach(celle => {
+      celle.addEventListener('click', async (e) => {
+        e.stopPropagation()
+        const kid = Number(celle.dataset.kasterid)
+        const sid = Number(celle.dataset.stevneid)
+        const gjeldande = (resultatListe ?? []).find(r => r.kasterid === kid)?.hcp ?? 0
+        const input = prompt('Sett HCP for spelar:', String(gjeldande))
+        if (input === null) return
+        const nyHcp = parseInt(input, 10)
+        if (isNaN(nyHcp) || nyHcp < 0) { alert('Ugyldig HCP-verdi'); return }
+        const { error } = await supabase.from('resultat').update({ hcp: nyHcp }).eq('stevneid', sid).eq('kasterid', kid)
+        if (error) { alert('Feil ved lagring: ' + error.message); return }
+        await lastOgVis(container, stevneid)
+      })
+    })
+  }
 
   bannerSlot.querySelector('#startkort-btn')?.addEventListener('click', () => {
     printStartkort(stevne, alleKamper, rundeMap, startnrMap, stilling)
@@ -198,7 +220,7 @@ function abonnerPaaEndringar(container, stevneid) {
     .subscribe()
 }
 
-function renderRunde(nr, kamper, startnrMap, isAdmin) {
+function renderRunde(nr, kamper, startnrMap, isAdmin, hcpMap = {}) {
   return `
     <div class="mb-3">
       <h6 class="text-center fw-bold mb-1">Runde ${nr}</h6>
@@ -214,13 +236,13 @@ function renderRunde(nr, kamper, startnrMap, isAdmin) {
           </tr>
         </thead>
         <tbody>
-          ${kamper.map(k => kampRad(k, startnrMap, isAdmin)).join('')}
+          ${kamper.map(k => kampRad(k, startnrMap, isAdmin, hcpMap)).join('')}
         </tbody>
       </table>
     </div>`
 }
 
-function kampRad(kamp, startnrMap, isAdmin = true) {
+function kampRad(kamp, startnrMap, isAdmin = true, hcpMap = {}) {
   const [p1, p2] = hentP1P2(kamp.spelarar, startnrMap)
 
   const p1Nr = p1?.kasterid ? (startnrMap[p1.kasterid] ?? '') : ''
@@ -246,7 +268,9 @@ function kampRad(kamp, startnrMap, isAdmin = true) {
     || s1Raw > 0 || s2Raw > 0
 
   const harOmgangar = (p1?.omgangar?.length ?? 0) > 0 || (p2?.omgangar?.length ?? 0) > 0
-  const kanBekrefte = !kamp.er_bekreftet && (kamp.er_walkover || (!harOmgangar && (s1 >= 21 || s2 >= 21)))
+  const hcp1 = hcpMap[p1?.kasterid] ?? 0
+  const hcp2 = hcpMap[p2?.kasterid] ?? 0
+  const kanBekrefte = !kamp.er_bekreftet && (kamp.er_walkover || (!harOmgangar && (s1 + hcp1 >= 21 || s2 + hcp2 >= 21)))
   const bekrfKlass = kamp.er_bekreftet || kanBekrefte ? 'btn-success' : 'btn-outline-secondary'
   const bekrfDisabled = kamp.er_bekreftet || !kanBekrefte ? ' disabled' : ''
   const scoreboardDisabled = kamp.er_bekreftet && !harOmgangar ? ' disabled' : ''
@@ -265,7 +289,9 @@ function kampRad(kamp, startnrMap, isAdmin = true) {
     </tr>`
 }
 
-function renderStilling(stilling, alleKamper, startnrMap) {
+function renderStilling(stilling, alleKamper, startnrMap, isAdmin = false, stevneid = null) {
+  const harHcp = isAdmin || stilling.some(s => (s.hcp ?? 0) > 0)
+  const colspan = harHcp ? 7 : 6
   return `
     <div>
       <h6 class="text-center fw-bold mb-1">${stilling.length} spelarar</h6>
@@ -278,20 +304,30 @@ function renderStilling(stilling, alleKamper, startnrMap) {
             <th class="th-50 text-center">ANT.</th>
             <th class="th-44 text-center">KP</th>
             <th class="th-44 text-center">SP</th>
+            ${harHcp ? '<th class="th-44 text-center">HCP</th>' : ''}
           </tr>
         </thead>
         <tbody>
-          ${stilling.map((s, i) => `
+          ${stilling.map((s, i) => {
+            const hcp = s.hcp ?? 0
+            const effSp = s.score_poeng + s.antall_kamper * hcp
+            const hcpCelle = harHcp
+              ? (isAdmin
+                ? `<td class="text-center stilling-hcp-celle" data-kasterid="${s.kasterid}" data-stevneid="${stevneid}">${hcp > 0 ? hcp : '—'}</td>`
+                : `<td class="text-center">${hcp > 0 ? hcp : '—'}</td>`)
+              : ''
+            return `
             <tr data-kasterid="${s.kasterid}" class="stilling-spelar-rad">
               <td>${i + 1}</td>
               <td>${s.startnummer ?? ''}</td>
               <td>${s.namn}</td>
               <td class="text-center">${s.antall_kamper}</td>
               <td class="text-center">${s.kamp_poeng}</td>
-              <td class="text-center">${s.score_poeng}</td>
+              <td class="text-center">${effSp}</td>
+              ${hcpCelle}
             </tr>
             <tr class="stilling-detalj" data-kasterid="${s.kasterid}" hidden>
-              <td colspan="6" class="p-0">
+              <td colspan="${colspan}" class="p-0">
                 <table class="stilling-detalj-tabell table table-sm table-bordered mb-0">
                   <thead><tr>
                     <th class="text-center">Runde</th>
@@ -302,7 +338,8 @@ function renderStilling(stilling, alleKamper, startnrMap) {
                   <tbody>${renderSpelarkamparDetalj(s.kasterid, alleKamper, startnrMap)}</tbody>
                 </table>
               </td>
-            </tr>`).join('')}
+            </tr>`
+          }).join('')}
         </tbody>
       </table>
     </div>`

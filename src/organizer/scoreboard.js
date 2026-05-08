@@ -2,7 +2,7 @@ import { supabase } from '../supabase.js'
 
 const POENG_VERDIAR = [1, 2, 3, 4, 6]
 
-export async function renderScoreboard(container, kamp, p1ks, p2ks, { erArrangor = false, erDeltakar = false, onBekreft = null, omgangEl = null, p3ks = null } = {}) {
+export async function renderScoreboard(container, kamp, p1ks, p2ks, { erArrangor = false, erDeltakar = false, onBekreft = null, omgangEl = null, p3ks = null, hcp1 = 0, hcp2 = 0 } = {}) {
   // 3-spelar kamp: eige renderings-løp
   if (p3ks && kamp.er_tre_spelarar) {
     return renderScoreboard3(container, kamp, p1ks, p2ks, p3ks, { erArrangor, erDeltakar, onBekreft, omgangEl })
@@ -69,7 +69,7 @@ export async function renderScoreboard(container, kamp, p1ks, p2ks, { erArrangor
     }
     omgangar = Object.values(omgMap).sort((a, b) => a.omgang - b.omgang)
 
-    const [t1, t2] = beregnTotalar()
+    const [t1, t2] = beregnEffektiveTotalar()
     kampFerdig = erVinnarKondisjon(t1, t2) || kamp.er_bekreftet
   }
 
@@ -78,6 +78,11 @@ export async function renderScoreboard(container, kamp, p1ks, p2ks, { erArrangor
       omgangar.reduce((s, o) => s + o.s1, 0),
       omgangar.reduce((s, o) => s + o.s2, 0),
     ]
+  }
+
+  function beregnEffektiveTotalar() {
+    const [t1, t2] = beregnTotalar()
+    return [t1 + hcp1, t2 + hcp2]
   }
 
   function beregnRingarTotalar() {
@@ -126,7 +131,7 @@ export async function renderScoreboard(container, kamp, p1ks, p2ks, { erArrangor
   function tegn() {
     container.innerHTML = ''
 
-    const [t1, t2] = beregnTotalar()
+    const [t1, t2] = beregnEffektiveTotalar()
     const [r1, r2] = beregnRingarTotalar()
     const nr = noverAndeOmgang()
     const { p1Dis, p2Dis } = bereknKnappStatus(val1, val2)
@@ -233,7 +238,7 @@ export async function renderScoreboard(container, kamp, p1ks, p2ks, { erArrangor
     val1 = null
     val2 = null
 
-    const [newT1, newT2] = beregnTotalar()
+    const [newT1, newT2] = beregnEffektiveTotalar()
     if (erVinnarKondisjon(newT1, newT2)) kampFerdig = true
 
     tegn()
@@ -253,7 +258,7 @@ export async function renderScoreboard(container, kamp, p1ks, p2ks, { erArrangor
     val1 = null
     val2 = null
 
-    const [t1, t2] = beregnTotalar()
+    const [t1, t2] = beregnEffektiveTotalar()
     kampFerdig = erVinnarKondisjon(t1, t2)
     tegn()
   }

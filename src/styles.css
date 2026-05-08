@@ -732,6 +732,7 @@ a.stevne-navn {
 .stilling-spelar-rad { cursor: pointer; }
 .stilling-spelar-rad:hover td { background-color: var(--primaer-aktiv) !important; }
 .stilling-aktiv td { background-color: var(--primaer-selektert) !important; }
+.stilling-hcp-celle { cursor: pointer; }
 .stilling-detalj-tabell { font-size: 0.85em; }
 .stilling-detalj > td { border-top: 2px solid var(--primaer) !important; border-bottom: 2px solid var(--primaer) !important; }
 

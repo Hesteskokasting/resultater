@@ -27,6 +27,12 @@ export async function render(container, { id } = {}) {
     return
   }
 
+  const kasterids = (kamp.spelarar ?? []).map(s => s.kasterid).filter(Boolean)
+  const { data: hcpData } = kasterids.length
+    ? await supabase.from('resultat').select('kasterid, hcp').eq('stevneid', kamp.stevneid).in('kasterid', kasterids)
+    : { data: [] }
+  const hcpMap = Object.fromEntries((hcpData ?? []).map(r => [r.kasterid, r.hcp ?? 0]))
+
   const hovudHeader = document.querySelector('.topp-header')
   if (hovudHeader) hovudHeader.style.display = 'none'
   container.classList.add('sb-fullskjerm-modus')
@@ -45,6 +51,8 @@ export async function render(container, { id } = {}) {
   const p1ks = spelarar.find(s => s.posisjon === 1) ?? spelarar[0] ?? null
   const p2ks = spelarar.find(s => s.posisjon === 2) ?? spelarar[1] ?? null
   const p3ks = kamp.er_tre_spelarar ? (spelarar.find(s => s.posisjon === 3) ?? spelarar[2] ?? null) : null
+  const hcp1 = hcpMap[p1ks?.kasterid] ?? 0
+  const hcp2 = hcpMap[p2ks?.kasterid] ?? 0
 
   const stevneNavn = kamp.stevne?.navn ?? ''
 
@@ -191,7 +199,7 @@ export async function render(container, { id } = {}) {
       else { t2 += row.score ?? 0; r2 += row.antall_ringer ?? 0 }
     }
 
-    const [kp1, kp2] = beregnKampPoeng(t1, t2)
+    const [kp1, kp2] = beregnKampPoeng(t1 + hcp1, t2 + hcp2)
     const kasterids = [p1ks?.kasterid, p2ks?.kasterid].filter(Boolean)
 
     const updates = [supabase.from('kamp').update({ er_bekreftet: true }).eq('id', kampId)]
@@ -257,5 +265,5 @@ export async function render(container, { id } = {}) {
     return
   }
 
-  await renderScoreboard(sbContainer, kamp, p1ks, p2ks, { erArrangor, erDeltakar, onBekreft, omgangEl, p3ks })
+  await renderScoreboard(sbContainer, kamp, p1ks, p2ks, { erArrangor, erDeltakar, onBekreft, omgangEl, p3ks, hcp1, hcp2 })
 }
