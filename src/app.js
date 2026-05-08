@@ -90,8 +90,9 @@ async function oppdaterAuthMeny() {
 
   if (auth) {
     logginnItem.style.display  = 'none'
-    minsideItem.style.display  = ''
-    adminItem.style.display    = auth.profil?.rolle === 'admin' ? '' : 'none'
+    const erAdminBrukar = auth.profil?.rolle === 'admin'
+    minsideItem.style.display  = erAdminBrukar ? 'none' : ''
+    adminItem.style.display    = erAdminBrukar ? '' : 'none'
     loggutItem.style.display   = ''
   } else {
     logginnItem.style.display  = ''

@@ -1,5 +1,5 @@
 import { supabase } from '../supabase.js'
-import { getUser } from '../utils/auth.js'
+import { getUser, erAdmin } from '../utils/auth.js'
 
 export async function render(container) {
   const auth = await getUser()
@@ -97,7 +97,11 @@ export async function render(container) {
     }
 
     const redirect = new URLSearchParams(location.hash.split('?')[1] ?? '').get('redirect')
-    location.hash = redirect ? `#${redirect}` : '#/minside'
+    if (redirect) {
+      location.hash = `#${redirect}`
+    } else {
+      location.hash = (await erAdmin()) ? '#/admin' : '#/minside'
+    }
   })
 
   // Registrer
