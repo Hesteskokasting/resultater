@@ -203,8 +203,8 @@ export async function render(container, { id } = {}) {
     const kasterids = [p1ks?.kasterid, p2ks?.kasterid].filter(Boolean)
 
     const updates = [supabase.from('kamp').update({ er_bekreftet: true }).eq('id', kampId)]
-    if (p1ks?.id) updates.push(supabase.from('kamp_spelar').update({ score_poeng: t1, kamp_poeng: kp1, antall_ringer: r1 }).eq('id', p1ks.id))
-    if (p2ks?.id) updates.push(supabase.from('kamp_spelar').update({ score_poeng: t2, kamp_poeng: kp2, antall_ringer: r2 }).eq('id', p2ks.id))
+    if (p1ks?.id) updates.push(supabase.from('kamp_spelar').update({ score_poeng: t1 + hcp1, kamp_poeng: kp1, antall_ringer: r1 }).eq('id', p1ks.id))
+    if (p2ks?.id) updates.push(supabase.from('kamp_spelar').update({ score_poeng: t2 + hcp2, kamp_poeng: kp2, antall_ringer: r2 }).eq('id', p2ks.id))
 
     const results = await Promise.all(updates)
     const err = results.find(r => r.error)?.error

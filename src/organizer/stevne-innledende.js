@@ -198,7 +198,7 @@ async function lastOgVis(container, stevneid) {
     })
 
     container.querySelector(`#bekrft-${kamp.id}`)?.addEventListener('click', () =>
-      bekreftKamp(container, stevneid, kamp, startnrMap)
+      bekreftKamp(container, stevneid, kamp, startnrMap, hcpMap)
     )
   }
 
@@ -257,19 +257,24 @@ function kampRad(kamp, startnrMap, isAdmin = true, hcpMap = {}) {
     ? (p2Nr ? `Walkover (${p2Nr})` : 'Walkover')
     : (p2Nr ? `${p2Namn} (${p2Nr})` : p2Namn)
 
-  const s1Raw = scoreForSp(p1)
-  const s2Raw = scoreForSp(p2)
+  const harOmg1 = (p1?.omgangar?.length ?? 0) > 0
+  const harOmg2 = (p2?.omgangar?.length ?? 0) > 0
+  const harOmgangar = harOmg1 || harOmg2
+  const hcp1 = hcpMap[p1?.kasterid] ?? 0
+  const hcp2 = hcpMap[p2?.kasterid] ?? 0
+
+  // Bekreftede kampar: bruk score_poeng (inkluderer hcp)
+  // Ubekreftede med omgangar: råsum + hcp
+  // Ubekreftede utan omgangar: score_poeng frå numberpad (allereie effektiv)
+  const s1Raw = kamp.er_bekreftet ? (p1?.score_poeng ?? 0) : (scoreForSp(p1) + (harOmg1 ? hcp1 : 0))
+  const s2Raw = kamp.er_bekreftet ? (p2?.score_poeng ?? 0) : (scoreForSp(p2) + (harOmg2 ? hcp2 : 0))
+
   const erUbekreftaWalkover = kamp.er_walkover && !kamp.er_bekreftet
   const s1 = erUbekreftaWalkover ? 21 : s1Raw
   const s2 = erUbekreftaWalkover ? 0 : s2Raw
 
-  const harPoeng = kamp.er_bekreftet || kamp.er_walkover
-    || (p1?.omgangar?.length ?? 0) > 0 || (p2?.omgangar?.length ?? 0) > 0
-    || s1Raw > 0 || s2Raw > 0
+  const harPoeng = kamp.er_bekreftet || kamp.er_walkover || harOmgangar || s1Raw > 0 || s2Raw > 0
 
-  const harOmgangar = (p1?.omgangar?.length ?? 0) > 0 || (p2?.omgangar?.length ?? 0) > 0
-  const hcp1 = hcpMap[p1?.kasterid] ?? 0
-  const hcp2 = hcpMap[p2?.kasterid] ?? 0
   const kanBekrefte = !kamp.er_bekreftet && (kamp.er_walkover || (!harOmgangar && (s1 + hcp1 >= 21 || s2 + hcp2 >= 21)))
   const bekrfKlass = kamp.er_bekreftet || kanBekrefte ? 'btn-success' : 'btn-outline-secondary'
   const bekrfDisabled = kamp.er_bekreftet || !kanBekrefte ? ' disabled' : ''
@@ -310,7 +315,6 @@ function renderStilling(stilling, alleKamper, startnrMap, isAdmin = false, stevn
         <tbody>
           ${stilling.map((s, i) => {
             const hcp = s.hcp ?? 0
-            const effSp = s.score_poeng + s.antall_kamper * hcp
             const hcpCelle = harHcp
               ? (isAdmin
                 ? `<td class="text-center stilling-hcp-celle" data-kasterid="${s.kasterid}" data-stevneid="${stevneid}">${hcp > 0 ? hcp : '—'}</td>`
@@ -323,7 +327,7 @@ function renderStilling(stilling, alleKamper, startnrMap, isAdmin = false, stevn
               <td>${s.namn}</td>
               <td class="text-center">${s.antall_kamper}</td>
               <td class="text-center">${s.kamp_poeng}</td>
-              <td class="text-center">${effSp}</td>
+              <td class="text-center">${s.score_poeng}</td>
               ${hcpCelle}
             </tr>
             <tr class="stilling-detalj" data-kasterid="${s.kasterid}" hidden>
@@ -345,7 +349,7 @@ function renderStilling(stilling, alleKamper, startnrMap, isAdmin = false, stevn
     </div>`
 }
 
-async function bekreftKamp(container, stevneid, kamp, startnrMap) {
+async function bekreftKamp(container, stevneid, kamp, startnrMap, hcpMap = {}) {
   const { data: spelarar, error: spErr } = await supabase
     .from('kamp_spelar')
     .select(`
@@ -357,9 +361,15 @@ async function bekreftKamp(container, stevneid, kamp, startnrMap) {
   if (spErr) { alert('Feil ved henting av kampdata: ' + spErr.message); return }
 
   const [p1, p2] = hentP1P2(spelarar ?? [], startnrMap)
+  const hcp1 = hcpMap[p1?.kasterid] ?? 0
+  const hcp2 = hcpMap[p2?.kasterid] ?? 0
 
-  const s1 = kamp.er_walkover ? 21 : scoreForSp(p1)
-  const s2 = kamp.er_walkover ? 0 : scoreForSp(p2)
+  // Når omgangar finst (scoreboard-veg), er scoreForSp råscore → legg til hcp
+  // Utan omgangar (numberpad-veg), er scoreForSp allereie effektiv score
+  const harOmg1 = (p1?.omgangar?.length ?? 0) > 0
+  const harOmg2 = (p2?.omgangar?.length ?? 0) > 0
+  const s1 = kamp.er_walkover ? 21 : (scoreForSp(p1) + (harOmg1 ? hcp1 : 0))
+  const s2 = kamp.er_walkover ? 0 : (scoreForSp(p2) + (harOmg2 ? hcp2 : 0))
   const r1 = kamp.er_walkover ? 0 : ringerForSp(p1)
   const r2 = 0
 
