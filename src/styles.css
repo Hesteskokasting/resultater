@@ -1506,6 +1506,8 @@ a.stevne-navn {
 
 
 .avsl-gruppe-kol  { flex: 1 1 0; min-width: 0; }
+
+#gruppe-val-wrapper .form-check { min-height: 44px; display: flex; align-items: center; }
 .avsl-kamp-block  { width: calc(50% - 0.5rem); min-width: 220px; }
 .avsl-stilling-kol { width: 360px; flex-shrink: 0; }
 .avsl-stilling-einzel { max-width: 400px; }

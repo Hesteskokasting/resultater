@@ -15,24 +15,40 @@ export function renderGruppefordeling(resultatEllerN, { visSpelarliste = true, i
   })()
   const resolvedNb = n - resolvedNa
 
-  const splitOptions = [
-    ...splits.map((s, i) => {
-      const checked = s.nA === resolvedNa && !(initNa === n)
-      return `
+  const treSplits = splits.filter(s => gyldigeRunde1Oppsett(s.nA).some(o => o.c3 > 0))
+  const toSplits = splits.filter(s => !gyldigeRunde1Oppsett(s.nA).some(o => o.c3 > 0))
+  const visIngen = gyldigeRunde1Oppsett(n).length > 0
+
+  const renderSplitRadios = (arr, startIdx) => arr.map((s, i) => {
+    const checked = s.nA === resolvedNa && !(initNa === n)
+    const idx = startIdx + i
+    return `
       <div class="form-check">
-        <input class="form-check-input" type="radio" name="gruppe-split" id="split-${i}" value="${s.nA}" ${checked ? 'checked' : ''}>
-        <label class="form-check-label" for="split-${i}">A:${s.nA} — B:${s.nB}</label>
+        <input class="form-check-input" type="radio" name="gruppe-split" id="split-${idx}" value="${s.nA}" ${checked ? 'checked' : ''}>
+        <label class="form-check-label" for="split-${idx}">A:${s.nA} — B:${s.nB}</label>
       </div>`
-    }),
-    `<div class="form-check">
-      <input class="form-check-input" type="radio" name="gruppe-split" id="split-ingen" value="${n}" ${initNa === n ? 'checked' : ''}>
-      <label class="form-check-label" for="split-ingen">Ingen gruppeinndeling (alle i A)</label>
-    </div>`,
-  ].join('')
+  }).join('')
+
+  const splitParts = []
+  if (treSplits.length) {
+    splitParts.push(`<div class="text-muted small fw-semibold mb-1">3 spillere per bane</div>${renderSplitRadios(treSplits, 0)}`)
+  }
+  if (toSplits.length) {
+    if (splitParts.length) splitParts.push('<hr class="my-2">')
+    splitParts.push(`<div class="text-muted small fw-semibold mb-1">2 spillere per bane</div>${renderSplitRadios(toSplits, treSplits.length)}`)
+  }
+  if (visIngen) {
+    if (splitParts.length) splitParts.push('<hr class="my-2">')
+    splitParts.push(`
+      <div class="form-check">
+        <input class="form-check-input" type="radio" name="gruppe-split" id="split-ingen" value="${n}" ${initNa === n ? 'checked' : ''}>
+        <label class="form-check-label" for="split-ingen">Ingen gruppeinndeling (alle i A)</label>
+      </div>`)
+  }
+  const splitOptions = splitParts.join('')
 
   const initOppsettA = initFormat?.A ?? (gyldigeRunde1Oppsett(resolvedNa)[0] ?? null)
   const initOppsettB = resolvedNb >= 2 ? (initFormat?.B ?? (gyldigeRunde1Oppsett(resolvedNb)[0] ?? null)) : null
-  const strukturPreview = renderStrukturPreview(resolvedNa, resolvedNb, initOppsettA, initOppsettB)
 
   const gruppePreviewHtml = visSpelarliste
     ? `<div id="gruppe-preview">${renderGruppePreview(sortert, resolvedNa, initOppsettA?.walkovers ?? 0, initOppsettB?.walkovers ?? 0)}</div>`
@@ -41,20 +57,23 @@ export function renderGruppefordeling(resultatEllerN, { visSpelarliste = true, i
   return `
     <div id="gruppe-val-wrapper" data-n="${n}">
       <h5 class="text-center mb-3">Velg gruppestørrelser for sluttspill</h5>
-      <div class="d-flex gap-3 align-items-stretch flex-wrap mb-3">
+      <div class="d-flex gap-3 align-items-start flex-wrap mb-3">
         <div class="card">
           <div class="card-body">
             ${splitOptions}
           </div>
         </div>
-        <div id="struktur-preview" class="flex-grow-1">${strukturPreview}</div>
-      </div>
-      <div id="runde1-format-veljar" class="d-flex gap-3 flex-wrap mb-2">
-        <div class="avsl-gruppe-kol">${renderRunde1FormatVeljar('Gruppe A', resolvedNa, 'runde1-format-a', initOppsettA)}</div>
-        <div class="avsl-gruppe-kol">${resolvedNb >= 2 ? renderRunde1FormatVeljar('Gruppe B', resolvedNb, 'runde1-format-b', initOppsettB) : ''}</div>
+        <div id="gruppe-paneler" class="d-flex gap-3 flex-wrap">
+          <div id="gruppe-panel-a" class="avsl-gruppe-kol">
+            ${renderGruppePanelInnhald('Gruppe A', resolvedNa, 'runde1-format-a', initOppsettA)}
+          </div>
+          ${resolvedNb >= 2 ? `<div id="gruppe-panel-b" class="avsl-gruppe-kol">
+            ${renderGruppePanelInnhald('Gruppe B', resolvedNb, 'runde1-format-b', initOppsettB)}
+          </div>` : ''}
+        </div>
       </div>
       ${gruppePreviewHtml}
-      <div class="mt-3 d-flex gap-2">
+      <div class="mt-3 d-flex justify-content-end">
         <button id="bekreft-gruppe-btn" class="btn btn-primary">Bekreft val</button>
       </div>
     </div>
@@ -72,7 +91,7 @@ export function renderGruppePreview(sortert, nA, woA = 0, woB = 0) {
       <tr>
         <td>${r.cupPlassering}</td>
         <td>${r.startnummer ?? ''}</td>
-        <td>${r._namn ?? ''}${erWo ? ' <span class="badge bg-info text-dark">WO</span>' : ''}</td>
+        <td>${r._namn ?? ''}${erWo ? ' <span class="badge bg-info text-dark">Frirunde</span>' : ''}</td>
         <td class="text-center">${r.kamp_poeng_innl ?? 0}</td>
         <td class="text-center">${r.score_poeng_innl ?? 0}</td>
       </tr>`
@@ -111,36 +130,12 @@ export function renderGruppePreview(sortert, nA, woA = 0, woB = 0) {
     </div>`
 }
 
-export function renderStrukturPreview(nA, nB, oppsettA = null, oppsettB = null) {
-  const strukturA = nA >= 2 ? beregnCupStruktur(nA, { runde1: oppsettA }) : []
-  const strukturB = nB >= 2 ? beregnCupStruktur(nB, { runde1: oppsettB }) : []
-
-  function renderGruppeStruktur(label, runder) {
-    if (!runder.length) return ''
-    return `<div><strong>${label}:</strong><ul class="mb-1 ps-3">${
-      runder.map(r => `<li>Runde ${r.runde}: ${r.spelarar} spelarar → ${r.vidare} går vidare (${r.baner} baner)</li>`
-      ).join('')
-    }</ul></div>`
-  }
-
-  return `
-    <div class="card h-100">
-      <div class="card-body">
-        <div class="d-flex gap-4 flex-wrap">
-          ${renderGruppeStruktur('Gruppe A', strukturA)}
-          ${nB > 0 ? renderGruppeStruktur('Gruppe B', strukturB) : ''}
-        </div>
-      </div>
-    </div>`
-}
-
 function oppsettLabel(o) {
-  const wo = o.walkovers > 0 ? `${o.walkovers} wo` : '0 wo'
-  if (o.c3 > 0) return `${wo}, ${o.c3} baner av 3`
-  return `${wo}, ${o.c2} baner av 2`
+  const perBane = o.c3 > 0 ? 3 : 2
+  return `${o.walkovers} frirunde - ${perBane} deltakere per bane`
 }
 
-export function renderRunde1FormatVeljar(gruppeLabel, n, radioName, initOppsett = null) {
+function renderRunde1FormatVeljar(gruppeLabel, n, radioName, initOppsett = null) {
   const oppsett = gyldigeRunde1Oppsett(n)
   if (oppsett.length <= 1) return ''
   const radios = oppsett.map((o, i) => {
@@ -149,16 +144,41 @@ export function renderRunde1FormatVeljar(gruppeLabel, n, radioName, initOppsett 
     const checked = initOppsett
       ? (o.walkovers === initOppsett.walkovers && o.c3 === initOppsett.c3 && o.c2 === initOppsett.c2)
       : i === 0
+    const btnClass = o.c3 > 0 ? 'btn-success' : 'btn-warning'
     return `
-      <div class="form-check form-check-inline">
-        <input class="form-check-input" type="radio" name="${radioName}" id="${id}"
-          value='${val}' data-oppsett='${val}' ${checked ? 'checked' : ''}>
-        <label class="form-check-label" for="${id}">${oppsettLabel(o)}</label>
-      </div>`
+      <input type="radio" class="btn-check" name="${radioName}" id="${id}"
+        value='${val}' data-oppsett='${val}' autocomplete="off" ${checked ? 'checked' : ''}>
+      <label class="btn btn-sm ${btnClass}" for="${id}">${oppsettLabel(o)}</label>`
   }).join('')
+  return `<div class="d-flex flex-column align-items-start gap-1 mb-2">${radios}</div>`
+}
+
+export function renderStrukturListeHtml(n, oppsett, suffix) {
+  const runder = n >= 2 ? beregnCupStruktur(n, { runde1: oppsett }) : []
+  const items = runder.map((r, i) => {
+    let banerInfo
+    if (i === 0 && oppsett) {
+      const aktive = r.spelarar - (r.walkovers ?? 0)
+      const woInfo = (r.walkovers ?? 0) > 0 ? ` - ${r.walkovers} frirunde` : ''
+      banerInfo = `${aktive} deltakere - ${r.baner} baner${woInfo}`
+    } else {
+      banerInfo = `${r.spelarar} deltakere - ${r.baner} baner`
+    }
+    return `<li${r.treSpelarar ? ' class="fw-bold"' : ''}>Runde ${r.runde}: ${banerInfo}</li>`
+  }).join('')
+  return `<div id="struktur-${suffix}"><ul class="mb-0 ps-3">${items}</ul></div>`
+}
+
+export function renderGruppePanelInnhald(label, n, radioName, oppsett) {
+  const suffix = radioName.slice(-1)
+  const formatVeljar = renderRunde1FormatVeljar(label, n, radioName, oppsett)
+  const tittel = formatVeljar ? `${label}: Velg format` : `${label} (${n})`
   return `
-    <div class="mb-2">
-      <span class="small fw-semibold">${gruppeLabel} format:</span>
-      ${radios}
+    <div class="card">
+      <div class="card-body">
+        <h6 class="fw-bold mb-2">${tittel}</h6>
+        ${formatVeljar}
+        ${renderStrukturListeHtml(n, oppsett, suffix)}
+      </div>
     </div>`
 }

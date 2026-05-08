@@ -1,6 +1,6 @@
 import { supabase } from '../supabase.js'
-import { beregnGyldigeGruppeStorrelsar, gyldigeRunde1Oppsett } from '../utils/kastemetoder-logikk.js'
-import { renderGruppefordeling, renderGruppePreview, renderStrukturPreview, renderRunde1FormatVeljar } from '../utils/gruppefordeling-ui.js'
+import { gyldigeRunde1Oppsett } from '../utils/kastemetoder-logikk.js'
+import { renderGruppefordeling, renderGruppePreview, renderGruppePanelInnhald, renderStrukturListeHtml } from '../utils/gruppefordeling-ui.js'
 import { genererCupRunde1, genererNesteCupRunde, genererNesteCupRundeForGruppe, genererFinaleOgBronsefinale } from './kampgenerering-db.js'
 import { opnNumberpad } from './score-numberpad.js'
 import { scoreForSp } from '../utils/kamp.js'
@@ -371,48 +371,53 @@ function bindHeaderEvents(container, stevneid, stevne, alleInnlBekrefta, harGrup
       return gyldigeRunde1Oppsett(nGruppe)[0] ?? null
     }
 
+    // Format-panel: event delegation på #gruppe-paneler handterer alle format-radios
+    const panelerEl = container.querySelector('#gruppe-paneler')
+    if (panelerEl) {
+      panelerEl.addEventListener('change', (e) => {
+        if (!e.target.matches('input[name^="runde1-format"]')) return
+        const nA = parseInt(container.querySelector('input[name="gruppe-split"]:checked')?.value ?? n)
+        const nB = n - nA
+        const oppsettA = lesValtOppsett('runde1-format-a', nA)
+        const oppsettB = lesValtOppsett('runde1-format-b', nB)
+        if (e.target.name === 'runde1-format-a') {
+          const strEl = container.querySelector('#struktur-a')
+          if (strEl) strEl.outerHTML = renderStrukturListeHtml(nA, oppsettA, 'a')
+        } else {
+          const strEl = container.querySelector('#struktur-b')
+          if (strEl) strEl.outerHTML = renderStrukturListeHtml(nB, oppsettB, 'b')
+        }
+        const woA = oppsettA?.walkovers ?? 0
+        const woB = oppsettB?.walkovers ?? 0
+        const prevEl = container.querySelector('#gruppe-preview')
+        if (prevEl) prevEl.innerHTML = renderGruppePreview(
+          sortert.map((r, i) => ({ ...r, cupPlassering: i + 1 })), nA, woA, woB
+        )
+      })
+    }
+
     container.querySelectorAll('input[name="gruppe-split"]').forEach(radio => {
       radio.addEventListener('change', () => {
         const nA = parseInt(radio.value)
         const nB = n - nA
         const sortmedNamn = sortert.map((r, i) => ({ ...r, cupPlassering: i + 1 }))
-        // Oppdater format-veljar for ny gruppestørrelse
-        const fmtEl = container.querySelector('#runde1-format-veljar')
-        if (fmtEl) {
-          fmtEl.innerHTML =
-            `<div class="avsl-gruppe-kol">${renderRunde1FormatVeljar('Gruppe A', nA, 'runde1-format-a')}</div>` +
-            `<div class="avsl-gruppe-kol">${nB >= 2 ? renderRunde1FormatVeljar('Gruppe B', nB, 'runde1-format-b') : ''}</div>`
-          // Re-bind format-radio change etter at ny HTML er sett inn
-          bindFormatRadioChange(nA, nB)
+        const oppsettA = gyldigeRunde1Oppsett(nA)[0] ?? null
+        const oppsettB = nB >= 2 ? (gyldigeRunde1Oppsett(nB)[0] ?? null) : null
+        if (panelerEl) {
+          panelerEl.innerHTML =
+            `<div id="gruppe-panel-a" class="avsl-gruppe-kol">
+              ${renderGruppePanelInnhald('Gruppe A', nA, 'runde1-format-a', oppsettA)}
+            </div>` +
+            (nB >= 2 ? `<div id="gruppe-panel-b" class="avsl-gruppe-kol">
+              ${renderGruppePanelInnhald('Gruppe B', nB, 'runde1-format-b', oppsettB)}
+            </div>` : '')
         }
-        const strEl = container.querySelector('#struktur-preview')
-        if (strEl) strEl.innerHTML = renderStrukturPreview(nA, nB, lesValtOppsett('runde1-format-a', nA), lesValtOppsett('runde1-format-b', nB))
-        // Oppdater spelarliste med walkover-markering basert på valt format (berre synleg i avsluttende)
-        const woA = lesValtOppsett('runde1-format-a', nA)?.walkovers ?? 0
-        const woB = lesValtOppsett('runde1-format-b', nB)?.walkovers ?? 0
+        const woA = oppsettA?.walkovers ?? 0
+        const woB = oppsettB?.walkovers ?? 0
         const prevEl = container.querySelector('#gruppe-preview')
         if (prevEl) prevEl.innerHTML = renderGruppePreview(sortmedNamn, nA, woA, woB)
       })
     })
-
-    function bindFormatRadioChange(nA, nB) {
-      container.querySelectorAll('input[name^="runde1-format"]').forEach(radio => {
-        radio.addEventListener('change', () => {
-          const strEl = container.querySelector('#struktur-preview')
-          if (strEl) strEl.innerHTML = renderStrukturPreview(nA, nB, lesValtOppsett('runde1-format-a', nA), lesValtOppsett('runde1-format-b', nB))
-          const woA = lesValtOppsett('runde1-format-a', nA)?.walkovers ?? 0
-          const woB = lesValtOppsett('runde1-format-b', nB)?.walkovers ?? 0
-          const prevEl = container.querySelector('#gruppe-preview')
-          if (prevEl) prevEl.innerHTML = renderGruppePreview(
-            sortert.map((r, i) => ({ ...r, cupPlassering: i + 1 })), nA, woA, woB
-          )
-        })
-      })
-    }
-    // Bind for initiell gruppestørrelse (les frå checked radio)
-    const initChecked = container.querySelector('input[name="gruppe-split"]:checked')
-    const initNaVal = initChecked ? parseInt(initChecked.value) : (beregnGyldigeGruppeStorrelsar(n)[0]?.nA ?? n)
-    bindFormatRadioChange(initNaVal, n - initNaVal)
 
     container.querySelector('#bekreft-gruppe-btn')?.addEventListener('click', async () => {
       const valt = container.querySelector('input[name="gruppe-split"]:checked')
