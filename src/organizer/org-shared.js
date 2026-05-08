@@ -23,9 +23,7 @@ export function renderSpelarkamparDetalj(kasterid, kamper, startnrMap) {
     const myScore = erWalkoverSeier ? 21 : scoreForSp(sp)
     const oppScore = erWalkoverSeier ? 0 : scoreForSp(opp)
     const harScore = kamp.er_bekreftet || kamp.er_walkover || myScore > 0 || oppScore > 0
-    const resultat = harScore
-      ? (erWalkoverSeier ? '21 - W.O.' : `${myScore} - ${oppScore}`)
-      : '—'
+    const resultat = `${myScore} - ${oppScore}`
 
     return `<tr>
       <td class="text-center">${kamp.runde_nummer}</td>
