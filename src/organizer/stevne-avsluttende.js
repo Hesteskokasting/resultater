@@ -1,7 +1,7 @@
 import { supabase } from '../supabase.js'
 import { gyldigeRunde1Oppsett } from '../utils/kastemetoder-logikk.js'
 import { renderGruppefordeling, renderGruppePreview, renderGruppePanelInnhald, renderStrukturListeHtml } from '../utils/gruppefordeling-ui.js'
-import { genererCupRunde1, genererNesteCupRunde, genererNesteCupRundeForGruppe, genererFinaleOgBronsefinale } from './kampgenerering-db.js'
+import { genererCupRunde1, genererNesteCupRundeForGruppe, genererFinaleOgBronsefinale } from './kampgenerering-db.js'
 import { opnNumberpad } from './score-numberpad.js'
 import { scoreForSp } from '../utils/kamp.js'
 import { sorterStilling, renderAvsluttendeKnappar, lagOnEndringHandler, renderSpelarkamparDetalj, bindStillingDetaljar } from './org-shared.js'
@@ -51,15 +51,7 @@ async function lastOgVis(container, stevneid) {
   const harAvslKampar = avslKampar.length > 0
   const harGruppefordeling = (resultat ?? []).some(r => r.gruppe != null)
 
-  const sisteRundeNr = harAvslKampar ? Math.max(...avslKampar.map(k => k.runde_nummer)) : 0
-  const sisteRunde = avslKampar.filter(k => k.runde_nummer === sisteRundeNr)
-  const erSisteRundeFullfort = sisteRunde.length > 0 && sisteRunde.every(k => k.er_bekreftet || k.er_walkover)
-
   const aktive = (resultat ?? []).filter(r => r.runde_eliminert == null)
-  const harSemfinale = avslKampar.some(k => k.runde_navn === 'Semifinale')
-  const semfinalarBekrefta = harSemfinale && avslKampar.filter(k => k.runde_navn === 'Semifinale').every(k => k.er_bekreftet)
-  const harFinale = avslKampar.some(k => k.runde_navn === 'Finale')
-  const finaleOgBronseBekrefta = harFinale && avslKampar.filter(k => k.runde_navn === 'Finale' || k.runde_navn === 'Bronsefinale').every(k => k.er_bekreftet)
 
   const gruppeNavnMap = Object.fromEntries((grupper ?? []).map(g => [g.navn, g.id]))
   const startnrMap = Object.fromEntries((resultat ?? []).map(r => [r.kasterid, r.startnummer]))
@@ -87,11 +79,11 @@ async function lastOgVis(container, stevneid) {
   const harPrekonfigurertFormat = stevne.runde1_format != null && stevne.stevne_fase !== 'avsluttende'
   const previewN = pameldingCount ?? 0
 
-  if (isAdmin) bannerSlot.innerHTML = renderAvsluttendeKnappar(stevne, { alleInnlBekrefta, harAvslKampar, harGruppefordeling, erSisteRundeFullfort, aktive, harSemfinale, semfinalarBekrefta, harFinale, finaleOgBronseBekrefta, harPrekonfigurertFormat })
+  if (isAdmin) bannerSlot.innerHTML = renderAvsluttendeKnappar(stevne, { alleInnlBekrefta, harAvslKampar, harGruppefordeling, harPrekonfigurertFormat })
 
   container.innerHTML = `
     <div class="px-3 py-2">
-      ${harGruppefordeling ? renderHovudinnhald(avslKampar, stilling, startnrMap, aktive.length, isAdmin) : ''}
+      ${harGruppefordeling ? renderHovudinnhald(avslKampar, stilling, startnrMap, isAdmin) : ''}
       ${!harGruppefordeling && stevne.stevne_fase === 'avsluttende'
         ? (isAdmin
             ? renderGruppefordeling(stilling, { visSpelarliste: true, initNa, initFormat: stevne.runde1_format })
@@ -115,7 +107,7 @@ async function lastOgVis(container, stevneid) {
 
 // --- Hovudinnhald (kampar + stilling) ---
 
-function renderHovudinnhald(avslKampar, stilling, startnrMap, totalAktive, isAdmin = true) {
+function renderHovudinnhald(avslKampar, stilling, startnrMap, isAdmin = true) {
   const gruppeNamn = [...new Set(stilling.map(r => r.gruppe?.navn).filter(Boolean))].sort()
 
   const gruppeKolonnar = gruppeNamn.map(g => {
@@ -126,7 +118,8 @@ function renderHovudinnhald(avslKampar, stilling, startnrMap, totalAktive, isAdm
     const sisteRundeNr = kampar.length ? Math.max(...kampar.map(k => k.runde_nummer)) : 0
     const sisteRunde = kampar.filter(k => k.runde_nummer === sisteRundeNr)
     const sisteRundeFullfort = sisteRunde.length > 0 && sisteRunde.every(k => k.er_bekreftet || k.er_walkover)
-    const visGenerer = isAdmin && (kampar.length === 0 || sisteRundeFullfort) && aktiveCount > 1 && totalAktive > 4
+    const harSemifinaleIGruppe = kampar.some(k => k.runde_navn === 'Semifinale')
+    const visGenerer = isAdmin && (kampar.length === 0 || sisteRundeFullfort) && aktiveCount > 1 && !harSemifinaleIGruppe
     return renderGruppeKolonne(g, kampar, aktiveCount, totalCount, sisteRundeNr, visGenerer, startnrMap, isAdmin)
   }).join('')
 
@@ -472,17 +465,6 @@ function bindHeaderEvents(container, stevneid, stevne, alleInnlBekrefta, harGrup
     await lastOgVis(container, stevneid)
   })
 
-  bannerSlot?.querySelector('#neste-runde-btn')?.addEventListener('click', async () => {
-    const medSeeding = bannerSlot?.querySelector('#seeding-toggle')?.checked ?? true
-    try {
-      const res = await genererNesteCupRunde(stevneid, medSeeding)
-      if (res.erSemfinale) alert('Semifinalar er generert!')
-      await lastOgVis(container, stevneid)
-    } catch (e) {
-      alert('Feil: ' + e.message)
-    }
-  })
-
   if (harGruppefordeling) {
     container.querySelectorAll('[data-generer-gruppe]').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -493,15 +475,6 @@ function bindHeaderEvents(container, stevneid, stevne, alleInnlBekrefta, harGrup
       })
     })
   }
-
-  bannerSlot?.querySelector('#generer-finale-btn')?.addEventListener('click', async () => {
-    try {
-      await genererFinaleOgBronsefinale(stevneid)
-      await lastOgVis(container, stevneid)
-    } catch (e) {
-      alert('Feil: ' + e.message)
-    }
-  })
 
   bannerSlot?.querySelector('#fullfør-turnering-btn')?.addEventListener('click', async () => {
     if (!confirm('Vil du fullføre turneringa? Dette kan ikkje angrast.')) return
@@ -567,6 +540,7 @@ async function bekreftCupKamp2Spelar(container, stevneid, kamp, sp, antallAktive
   const tapar = s1 >= s2 ? p2 : p1
 
   await _lagreCupKampResultat(stevneid, kamp, sp, vinnar?.kasterid ? [vinnar.kasterid] : [], tapar?.kasterid ?? null, antallAktive)
+  await _autoGenererFinaleViss(stevneid, kamp)
   await lastOgVis(container, stevneid)
 }
 
@@ -626,11 +600,26 @@ function opnTreSpelarBekreftDialog(container, kamp, sp, stevneid, startnrMap, re
       const eliminertId = sp.find(s => !valt.includes(s.kasterid))?.kasterid
       modal.remove()
       await _lagreCupKampResultat(stevneid, kamp, sp, [...valt], eliminertId, antallAktive)
+      await _autoGenererFinaleViss(stevneid, kamp)
       await lastOgVis(container, stevneid)
     })
   }
 
   render()
+}
+
+// --- Auto-generer finale når alle semfinalar i gruppa er bekrefta ---
+
+async function _autoGenererFinaleViss(stevneid, kamp) {
+  if (kamp.runde_navn !== 'Semifinale' || !kamp.gruppe_navn) return
+  const { data: semis } = await supabase.from('kamp')
+    .select('er_bekreftet')
+    .eq('stevneid', stevneid)
+    .eq('gruppe_navn', kamp.gruppe_navn)
+    .eq('runde_navn', 'Semifinale')
+  if (semis?.every(s => s.er_bekreftet)) {
+    await genererFinaleOgBronsefinale(stevneid, kamp.gruppe_navn)
+  }
 }
 
 // --- Lagre cup-kamp-resultat ---

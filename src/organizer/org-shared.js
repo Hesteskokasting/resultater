@@ -78,9 +78,7 @@ export function renderInnledendeKnappar(stevne, erAlleKamperBekreftet, erSwiss) 
 }
 
 export function renderAvsluttendeKnappar(stevne, state) {
-  const { alleInnlBekrefta, harAvslKampar, harGruppefordeling, erSisteRundeFullfort,
-    aktive, harSemfinale, semfinalarBekrefta, harFinale, finaleOgBronseBekrefta,
-    harPrekonfigurertFormat = false } = state
+  const { alleInnlBekrefta, harAvslKampar, harGruppefordeling, harPrekonfigurertFormat = false } = state
   const fase = stevne.stevne_fase
 
   let handlingsHtml = ''
@@ -97,16 +95,6 @@ export function renderAvsluttendeKnappar(stevne, state) {
     // Gruppefordeling UI = eiga seksjon under
   } else if (harGruppefordeling && !harAvslKampar) {
     handlingsHtml = `<button id="endre-gruppeinndeling-btn" class="btn btn-sm btn-outline-secondary">Endre gruppeinndeling</button>`
-  } else if (semfinalarBekrefta && !harFinale) {
-    handlingsHtml = `<button id="generer-finale-btn" class="btn btn-sm btn-warning">Generer finale og bronsefinale</button>`
-  } else if (erSisteRundeFullfort && !semfinalarBekrefta && !harFinale && aktive.length <= 4) {
-    handlingsHtml = `
-      <label class="form-check-label me-2 small" for="seeding-toggle">Seeding</label>
-      <div class="form-check form-switch d-inline-block me-2">
-        <input class="form-check-input" type="checkbox" id="seeding-toggle" checked>
-      </div>
-      <button id="neste-runde-btn" class="btn btn-sm btn-warning">Generer semifinalar</button>
-    `
   }
 
   return `

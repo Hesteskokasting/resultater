@@ -277,7 +277,7 @@ export async function genererNesteSwissRunde(stevneid) {
 
 // --- CUP avsluttende ---
 
-async function _insertCupParingar(stevneid, paringar, rundeNummer, gruppeNavn, baneStart = 0) {
+async function _insertCupParingar(stevneid, paringar, rundeNummer, gruppeNavn, baneStart = 0, rundeNavn = null) {
   const matchIds = paringar.map(() => genMatchId())
   let baneNr = baneStart
   const rundekampar = paringar.map((p, i) => ({
@@ -290,6 +290,7 @@ async function _insertCupParingar(stevneid, paringar, rundeNummer, gruppeNavn, b
     er_bekreftet: false,
     er_walkover: p.erWalkover,
     er_tre_spelarar: p.erTreSpelarar,
+    runde_navn: rundeNavn,
   }))
 
   const { data: innsettaKampar, error: kampErr } = await supabase
@@ -349,7 +350,8 @@ export async function genererCupRunde1(stevneid, grupper, medSeeding, runde1Form
     }
 
     const baneStart = Math.max(dbMaxBane, formatBaneOffset)
-    totalKampar += await _insertCupParingar(stevneid, paringar, 1, gr.gruppeNavn, baneStart)
+    const erSemfinale = gr.spelarar.length === 4
+    totalKampar += await _insertCupParingar(stevneid, paringar, 1, gr.gruppeNavn, baneStart, erSemfinale ? 'Semifinale' : null)
   }
   return totalKampar
 }
@@ -448,6 +450,7 @@ export async function genererNesteCupRundeForGruppe(stevneid, gruppeNavn, medSee
     (a.startnummer ?? 0) - (b.startnummer ?? 0)
   )
   const spelarar = aktive.map((sp, i) => ({ kasterid: sp.kasterid, plassering: i + 1 }))
+  const erSemfinale = spelarar.length === 4
   const paringar = beregnCupRundeParingar(spelarar, { medSeeding, isRunde1: false })
 
   const { data: maxBane } = await supabase.from('kamp')
@@ -463,6 +466,7 @@ export async function genererNesteCupRundeForGruppe(stevneid, gruppeNavn, medSee
     runde_nummer: rundeNummer, gruppe_navn: gruppeNavn,
     bane_nummer: p.erWalkover ? null : ++baneNr, er_bekreftet: false,
     er_walkover: p.erWalkover, er_tre_spelarar: p.erTreSpelarar,
+    runde_navn: erSemfinale ? 'Semifinale' : null,
   }))
   const { data: innsetta, error } = await supabase.from('kamp')
     .insert(rundekampar).select('id, match_id')
@@ -482,9 +486,9 @@ export async function genererNesteCupRundeForGruppe(stevneid, gruppeNavn, medSee
   return { rundeNummer, antallKampar: innsetta.length }
 }
 
-// Generer finale og bronsefinale etter at semifinalar er bekrefta
+// Generer finale og bronsefinale etter at semifinalar er bekrefta i ei gruppe
 // Vinnarar av semfinale → Finale, taparar → Bronsefinale
-export async function genererFinaleOgBronsefinale(stevneid) {
+export async function genererFinaleOgBronsefinale(stevneid, gruppeNavn) {
   const { data: semikampar } = await supabase
     .from('kamp')
     .select(`
@@ -494,6 +498,7 @@ export async function genererFinaleOgBronsefinale(stevneid) {
     `)
     .eq('stevneid', stevneid)
     .eq('fase', 'avsluttende')
+    .eq('gruppe_navn', gruppeNavn)
     .eq('runde_navn', 'Semifinale')
     .eq('er_bekreftet', true)
 
@@ -506,31 +511,37 @@ export async function genererFinaleOgBronsefinale(stevneid) {
   for (const kamp of semikampar) {
     const sp = kamp.spelarar ?? []
     const sorted = [...sp].sort((a, b) => {
-      const sA = a.omgangar?.reduce((s, o) => s + (o.score ?? 0), 0) ?? a.score_poeng ?? 0
-      const sB = b.omgangar?.reduce((s, o) => s + (o.score ?? 0), 0) ?? b.score_poeng ?? 0
+      const sA = a.omgangar?.length ? a.omgangar.reduce((s, o) => s + (o.score ?? 0), 0) : (a.score_poeng ?? 0)
+      const sB = b.omgangar?.length ? b.omgangar.reduce((s, o) => s + (o.score ?? 0), 0) : (b.score_poeng ?? 0)
       return sB - sA
     })
     if (sorted[0]) vinnarar.push(sorted[0].kasterid)
     if (sorted[1]) taparar.push(sorted[1].kasterid)
   }
 
+  const { data: maxBane } = await supabase.from('kamp')
+    .select('bane_nummer').eq('stevneid', stevneid).eq('fase', 'avsluttende')
+    .eq('runde_nummer', rundeNummer).not('bane_nummer', 'is', null)
+    .order('bane_nummer', { ascending: false }).limit(1)
+  const baneStart = maxBane?.[0]?.bane_nummer ?? 0
+
   const finale = {
     match_id: genMatchId(), stevneid, fase: 'avsluttende', runde_nummer: rundeNummer,
-    bane_nummer: 1, runde_navn: 'Finale', er_bekreftet: false,
-    er_walkover: false, er_tre_spelarar: false,
+    gruppe_navn: gruppeNavn, bane_nummer: baneStart + 1, runde_navn: 'Finale',
+    er_bekreftet: false, er_walkover: false, er_tre_spelarar: false,
   }
   const bronsefinale = {
     match_id: genMatchId(), stevneid, fase: 'avsluttende', runde_nummer: rundeNummer,
-    bane_nummer: 2, runde_navn: 'Bronsefinale', er_bekreftet: false,
-    er_walkover: false, er_tre_spelarar: false,
+    gruppe_navn: gruppeNavn, bane_nummer: baneStart + 2, runde_navn: 'Bronsefinale',
+    er_bekreftet: false, er_walkover: false, er_tre_spelarar: false,
   }
 
   const { data: kampar, error } = await supabase
-    .from('kamp').insert([finale, bronsefinale]).select('id, bane_nummer')
+    .from('kamp').insert([finale, bronsefinale]).select('id, runde_navn')
   if (error) throw new Error('Feil: ' + error.message)
 
-  const finaleId = kampar.find(k => k.bane_nummer === 1)?.id
-  const bronseId = kampar.find(k => k.bane_nummer === 2)?.id
+  const finaleId = kampar.find(k => k.runde_navn === 'Finale')?.id
+  const bronseId = kampar.find(k => k.runde_navn === 'Bronsefinale')?.id
 
   const spelarRader = [
     ...vinnarar.map((kid, i) => ({ kampid: finaleId, kasterid: kid, posisjon: i + 1, score_poeng: 0, kamp_poeng: 0, antall_ringer: 0 })),
