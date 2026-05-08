@@ -729,6 +729,12 @@ a.stevne-navn {
 .org-stilling-sidebar { width: 400px; flex-shrink: 0; }
 .org-max-480 { max-width: 480px; }
 
+.stilling-spelar-rad { cursor: pointer; }
+.stilling-spelar-rad:hover td { background-color: var(--primaer-aktiv) !important; }
+.stilling-aktiv td { background-color: var(--primaer-selektert) !important; }
+.stilling-detalj-tabell { font-size: 0.85em; }
+.stilling-detalj > td { border-top: 2px solid var(--primaer) !important; border-bottom: 2px solid var(--primaer) !important; }
+
 /* ── Deltakere-side ── */
 
 .deltaker-tabell-wrapper { height: 500px; overflow: auto; }

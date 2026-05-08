@@ -11,6 +11,8 @@
   --tekst-3: #666c7d;
   --primaer: #31527E;
   --primaer-hover: rgba(49, 82, 126, 0.18);
+  --primaer-aktiv: rgba(49, 82, 126, 0.45);
+  --primaer-selektert: rgba(49, 82, 126, 0.65);
   --primaer-text: #f0f4fa;
   --lenke: #7ab3e0;
   --header-bg: #0d0f14;
@@ -29,6 +31,8 @@
   --tekst-3: #888;
   --primaer: #31527E;
   --primaer-hover: #eef1f7;
+  --primaer-aktiv: #d4e1f0;
+  --primaer-selektert: #b8cfe8;
   --primaer-text: #F6F7FB;
   --lenke: #31527E;
   --header-bg: #ffffff;

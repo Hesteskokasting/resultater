@@ -3,7 +3,7 @@ import { opnNumberpad } from './score-numberpad.js'
 import { beregnKampPoeng, hentP1P2, scoreForSp, ringerForSp, oppdaterResultatInnl } from '../utils/kamp.js'
 import { genererNesteSwissRunde } from './kampgenerering-db.js'
 import { autoFullforInnledendeKamper } from '../utils/organizer-test-utils.js'
-import { byggInnledendeSpelMap, sorterStilling, renderInnledendeKnappar, lagOnEndringHandler } from './org-shared.js'
+import { byggInnledendeSpelMap, sorterStilling, renderInnledendeKnappar, lagOnEndringHandler, renderSpelarkamparDetalj, bindStillingDetaljar } from './org-shared.js'
 import { printStartkort } from './startkort-print.js'
 
 let kanal = null
@@ -95,10 +95,12 @@ async function lastOgVis(container, stevneid) {
         ${[...rundarSomVisast.entries()].map(([nr, rKamper]) => renderRunde(nr, rKamper, startnrMap, isAdmin)).join('')}
       </div>
       <div class="org-stilling-sidebar">
-        ${renderStilling(stilling)}
+        ${renderStilling(stilling, alleKamper, startnrMap)}
       </div>
     </div>
   `
+
+  bindStillingDetaljar(container, 'stilling-innl')
 
   bannerSlot.querySelector('#startkort-btn')?.addEventListener('click', () => {
     printStartkort(stevne, alleKamper, rundeMap, startnrMap, stilling)
@@ -263,11 +265,11 @@ function kampRad(kamp, startnrMap, isAdmin = true) {
     </tr>`
 }
 
-function renderStilling(stilling) {
+function renderStilling(stilling, alleKamper, startnrMap) {
   return `
     <div>
       <h6 class="text-center fw-bold mb-1">${stilling.length} spelarar</h6>
-      <table class="table table-bordered table-sm mb-0 bg-white">
+      <table id="stilling-innl" class="table table-bordered table-sm mb-0 bg-white">
         <thead class="table-dark">
           <tr>
             <th class="th-32">#</th>
@@ -280,13 +282,26 @@ function renderStilling(stilling) {
         </thead>
         <tbody>
           ${stilling.map((s, i) => `
-            <tr>
+            <tr data-kasterid="${s.kasterid}" class="stilling-spelar-rad">
               <td>${i + 1}</td>
               <td>${s.startnummer ?? ''}</td>
               <td>${s.namn}</td>
               <td class="text-center">${s.antall_kamper}</td>
               <td class="text-center">${s.kamp_poeng}</td>
               <td class="text-center">${s.score_poeng}</td>
+            </tr>
+            <tr class="stilling-detalj" data-kasterid="${s.kasterid}" hidden>
+              <td colspan="6" class="p-0">
+                <table class="stilling-detalj-tabell table table-sm table-bordered mb-0">
+                  <thead><tr>
+                    <th class="text-center">Runde</th>
+                    <th class="text-center">Bane</th>
+                    <th>Motstandar</th>
+                    <th class="text-center">Resultat</th>
+                  </tr></thead>
+                  <tbody>${renderSpelarkamparDetalj(s.kasterid, alleKamper, startnrMap)}</tbody>
+                </table>
+              </td>
             </tr>`).join('')}
         </tbody>
       </table>

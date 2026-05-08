@@ -1,5 +1,60 @@
 import { scoreForSp, hentP1P2 } from '../utils/kamp.js'
 
+export function renderSpelarkamparDetalj(kasterid, kamper, startnrMap) {
+  const eineKamper = (kamper ?? [])
+    .filter(k => k.spelarar?.some(sp => sp.kasterid === kasterid))
+    .sort((a, b) => a.runde_nummer - b.runde_nummer)
+
+  if (!eineKamper.length) {
+    return '<tr><td colspan="4" class="text-muted small fst-italic text-center">Ingen kampar</td></tr>'
+  }
+
+  return eineKamper.map(kamp => {
+    const sp = kamp.spelarar?.find(s => s.kasterid === kasterid)
+    const opp = kamp.spelarar?.find(s => s.kasterid !== kasterid)
+    const erWalkoverSeier = kamp.er_walkover && (!opp || !opp.kaster)
+
+    const oppNamn = erWalkoverSeier
+      ? 'Walkover'
+      : (opp?.kaster ? `${opp.kaster.fornavn} ${opp.kaster.etternavn}` : '—')
+    const oppNr = erWalkoverSeier ? '' : (opp?.kasterid ? (startnrMap[opp.kasterid] ?? '') : '')
+    const oppVis = oppNr ? `${oppNamn} (${oppNr})` : oppNamn
+
+    const myScore = erWalkoverSeier ? 21 : scoreForSp(sp)
+    const oppScore = erWalkoverSeier ? 0 : scoreForSp(opp)
+    const harScore = kamp.er_bekreftet || kamp.er_walkover || myScore > 0 || oppScore > 0
+    const resultat = harScore
+      ? (erWalkoverSeier ? '21 - W.O.' : `${myScore} - ${oppScore}`)
+      : '—'
+
+    return `<tr>
+      <td class="text-center">${kamp.runde_nummer}</td>
+      <td class="text-center">${kamp.bane_nummer ?? ''}</td>
+      <td>${oppVis}</td>
+      <td class="text-center">${resultat}</td>
+    </tr>`
+  }).join('')
+}
+
+export function bindStillingDetaljar(container, tableId) {
+  const tabell = container.querySelector(`#${tableId}`)
+  if (!tabell) return
+  tabell.addEventListener('click', e => {
+    const rad = e.target.closest('tr[data-kasterid]')
+    if (!rad || rad.classList.contains('stilling-detalj')) return
+    const kid = rad.dataset.kasterid
+    const detaljRad = tabell.querySelector(`tr.stilling-detalj[data-kasterid="${kid}"]`)
+    if (!detaljRad) return
+    const erSkjult = detaljRad.hidden
+    tabell.querySelectorAll('tr.stilling-detalj').forEach(r => { r.hidden = true })
+    tabell.querySelectorAll('tr[data-kasterid]').forEach(r => r.classList.remove('stilling-aktiv'))
+    if (erSkjult) {
+      detaljRad.hidden = false
+      rad.classList.add('stilling-aktiv')
+    }
+  })
+}
+
 export function lagOnEndringHandler(stevneid, faner, container, lastOgVisFn, stopFn) {
   return function onEndring() {
     const hash = location.hash

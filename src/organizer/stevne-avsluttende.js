@@ -4,7 +4,7 @@ import { renderGruppefordeling, renderGruppePreview, renderGruppePanelInnhald, r
 import { genererCupRunde1, genererNesteCupRunde, genererNesteCupRundeForGruppe, genererFinaleOgBronsefinale } from './kampgenerering-db.js'
 import { opnNumberpad } from './score-numberpad.js'
 import { scoreForSp } from '../utils/kamp.js'
-import { sorterStilling, renderAvsluttendeKnappar, lagOnEndringHandler } from './org-shared.js'
+import { sorterStilling, renderAvsluttendeKnappar, lagOnEndringHandler, renderSpelarkamparDetalj, bindStillingDetaljar } from './org-shared.js'
 
 let kanal = null
 let bannerSlot = null
@@ -103,6 +103,7 @@ async function lastOgVis(container, stevneid) {
     </div>
   `
 
+  bindStillingDetaljar(container, 'stilling-avsl')
   bindHeaderEvents(container, stevneid, stevne, alleInnlBekrefta, harGruppefordeling, harAvslKampar, stilling, grupper ?? [], gruppeNavnMap, avslKampar)
 
   if (harGruppefordeling) {
@@ -137,7 +138,7 @@ function renderHovudinnhald(avslKampar, stilling, startnrMap, totalAktive, isAdm
       </div>
       <div class="d-flex gap-3 align-items-start avsl-innhald-rad">
         <div class="d-flex gap-3 flex-grow-1 flex-wrap avsl-kampar-panel">${gruppeKolonnar}</div>
-        <div class="avsl-stilling-kol">${renderStilling(stilling)}</div>
+        <div class="avsl-stilling-kol">${renderStilling(stilling, avslKampar, startnrMap)}</div>
       </div>
     </div>`
 }
@@ -227,7 +228,7 @@ function renderKampBlock(kamp, startnrMap, isAdmin = true) {
     </div>`
 }
 
-function renderStilling(stilling) {
+function renderStilling(stilling, avslKampar, startnrMap) {
   const gruppeMap = new Map()
   for (const r of stilling) {
     const g = r.gruppe?.navn ?? '_'
@@ -247,12 +248,25 @@ function renderStilling(stilling) {
       const separator = erEliminert && i === aktivCount
         ? `<tr><td colspan="5" class="avsl-elim-separator"></td></tr>`
         : ''
-      return separator + `<tr>
+      return separator + `<tr data-kasterid="${r.kasterid}" class="stilling-spelar-rad">
         <td${erEliminert ? ' class="avsl-elim-plass"' : ''}>${i + 1}</td>
         <td>${r.startnummer ?? ''}</td>
         <td>${r._namn ?? `Spelar ${r.kasterid}`}</td>
         <td class="text-center">${r.kamp_poeng_innl ?? 0}</td>
         <td class="text-center">${r.score_poeng_innl ?? 0}</td>
+      </tr>
+      <tr class="stilling-detalj" data-kasterid="${r.kasterid}" hidden>
+        <td colspan="5" class="p-0">
+          <table class="stilling-detalj-tabell table table-sm table-bordered mb-0">
+            <thead><tr>
+              <th class="text-center">Runde</th>
+              <th class="text-center">Bane</th>
+              <th>Motstandar</th>
+              <th class="text-center">Resultat</th>
+            </tr></thead>
+            <tbody>${renderSpelarkamparDetalj(r.kasterid, avslKampar, startnrMap)}</tbody>
+          </table>
+        </td>
       </tr>`
     }).join('')
     return gruppeHeader + playerRows
@@ -261,7 +275,7 @@ function renderStilling(stilling) {
   return `
     <div>
       <h6 class="text-center fw-bold mb-1">Stilling</h6>
-      <table class="table table-bordered table-sm mb-0 bg-white">
+      <table id="stilling-avsl" class="table table-bordered table-sm mb-0 bg-white">
         <thead class="table-dark">
           <tr>
             <th class="th-28">#</th>
