@@ -156,6 +156,10 @@ export function sorterStilling(stilling, kamper) {
     if (!aAktiv) {
       const rundeDiff = (b.runde_eliminert ?? 0) - (a.runde_eliminert ?? 0)
       if (rundeDiff !== 0) return rundeDiff
+      // Same runde: bruk plassering (finale, bronsefinale)
+      const pA = a.plassering ?? Infinity
+      const pB = b.plassering ?? Infinity
+      if (pA !== pB) return pA - pB
     }
 
     // 2. Kamppoeng DESC

@@ -632,16 +632,16 @@ async function _lagreCupKampResultat(stevneid, kamp, sp, vidareIds, eliminertId,
   const erFinale = kamp.runde_navn === 'Finale' || kamp.runde_navn === 'Bronsefinale'
   const allKasterids = sp.map(s => s.kasterid).filter(Boolean)
 
-  // Clear previous elimination result for players in this match before setting new
-  await supabase.from('resultat')
-    .update({ runde_eliminert: null })
-    .eq('stevneid', stevneid)
-    .eq('runde_eliminert', kamp.runde_nummer)
-    .in('kasterid', allKasterids)
   if (erFinale) {
     await supabase.from('resultat')
-      .update({ plassering: null })
+      .update({ runde_eliminert: null, plassering: null })
       .eq('stevneid', stevneid)
+      .in('kasterid', allKasterids)
+  } else {
+    await supabase.from('resultat')
+      .update({ runde_eliminert: null })
+      .eq('stevneid', stevneid)
+      .eq('runde_eliminert', kamp.runde_nummer)
       .in('kasterid', allKasterids)
   }
 
@@ -660,7 +660,7 @@ async function _lagreCupKampResultat(stevneid, kamp, sp, vidareIds, eliminertId,
   }
   if (kamp.runde_navn === 'Bronsefinale' && vidareIds.length > 0) {
     await supabase.from('resultat')
-      .update({ plassering: 3 })
+      .update({ plassering: 3, runde_eliminert: kamp.runde_nummer })
       .eq('stevneid', stevneid).eq('kasterid', vidareIds[0])
   }
 }
