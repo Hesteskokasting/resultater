@@ -31,7 +31,7 @@ async function lastOgVis(container, stevneid) {
         id, stevneid, runde_nummer, bane_nummer, er_bekreftet, er_walkover, fase,
         spelarar:kamp_spelar(
           id, kasterid, score_poeng, kamp_poeng, antall_ringer, posisjon,
-          kaster:kasterid(id, fornavn, etternavn, klubb:klubbid(kortnavn, namn)),
+          kaster:kasterid(id, fornavn, etternavn, klubb:klubbid(kortnavn, navn)),
           omgangar:kamp_omgang(score, antall_ringer)
         )
       `)

@@ -37,7 +37,7 @@ export function printStartkort(stevne, alleKamper, rundeMap, startnrMap, stillin
 function hentKlubbNamn(kasterid, alleKamper) {
   for (const kamp of alleKamper) {
     const sp = kamp.spelarar?.find(s => s.kasterid === kasterid)
-    if (sp?.kaster?.klubb) return sp.kaster.klubb.kortnavn || sp.kaster.klubb.namn || ''
+    if (sp?.kaster?.klubb) return sp.kaster.klubb.kortnavn || sp.kaster.klubb.navn || ''
   }
   return ''
 }
