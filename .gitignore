@@ -27,4 +27,4 @@ npm-debug.log*
 # Supabase
 supabase/.temp/
 supabase/seed.sql
-*.sql
+current-sql-schema.sql
