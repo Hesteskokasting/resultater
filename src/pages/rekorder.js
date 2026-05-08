@@ -5,9 +5,9 @@ import { lagKasterSlug } from '../utils/kaster.js'
 
 const METODAR = [
   { verdi: 'kongelag',  label: 'Kongelag',  maxPoeng: 200 },
-  { verdi: 'minimatch', label: 'Minimatch', maxPoeng: 200 },
-  { verdi: 'halvmatch', label: 'Halvmatch', maxPoeng: 200 },
-  { verdi: 'heilmatch', label: 'Heilmatch', maxPoeng: 200 },
+  { verdi: 'minimatch', label: 'Minimatch', maxPoeng: 300 },
+  { verdi: 'halvmatch', label: 'Halvmatch', maxPoeng: 500 },
+  { verdi: 'heilmatch', label: 'Heilmatch', maxPoeng: 1000 },
 ]
 
 // ── Modul-tilstand ────────────────────────────────────────────────────────────
