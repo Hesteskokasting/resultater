@@ -1,0 +1,168 @@
+/* Tving liggende A4 ved utskrift */
+@page {
+  size: A4 landscape;
+  margin: 1cm;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background: #fff;
+  margin: 0;
+  padding: 0;
+}
+
+/* Startkort-stil for to A5 stående per A4 liggende */
+.startcard {
+  width: 48%;      /* Litt mindre enn halvparten for margin */
+  height: 90%;     /* Juster etter behov */
+  display: inline-block;
+  vertical-align: top;
+  box-sizing: border-box;
+  page-break-inside: avoid;
+  margin: 1%;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+  justify-content: center;
+  gap: 16px;
+}
+.logo {
+  width: 80px;
+  height: 80px;
+  flex-shrink: 0;
+}
+.logo img {
+  width: 70px;
+  height: 70px;
+}
+.title {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.main-title {
+  font-size: 2em;
+  font-weight: bold;
+  letter-spacing: 2px;
+}
+.subtitle {
+  font-size: 1.1em;
+  margin-top: 2px;
+  letter-spacing: 1px;
+}
+
+.info-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 10px;
+}
+.info-table td {
+  padding: 2px 6px;
+  font-size: 1em;
+}
+.info-table .value {
+  border-bottom: 1px solid #000;
+  min-width: 80px;
+}
+
+.rounds-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 10px;
+  font-size: 0.95em;
+}
+.rounds-table th, .rounds-table td {
+  border: 1px solid #000;
+  text-align: center;
+  height: 36px;
+  min-height: 30px;
+  max-height: 44px;
+  padding: 2px 4px;
+  box-sizing: border-box;
+  vertical-align: middle;
+  font-size: 0.95em;
+  overflow: visible;
+  text-overflow: initial;
+}
+
+.rounds-table th {
+  white-space: pre-line;
+}
+
+.rounds-table th.allow-wrap {
+  white-space: pre-line;
+}
+
+.rounds-table td {
+  white-space: nowrap;
+}
+
+/* Small columns: BANE, RUNDE, KAMP POENG, SKÅR, NR., SKÅR (opponent) */
+.rounds-table th.small, .rounds-table td.small {
+  width: 40px;
+  min-width: 32px;
+  max-width: 56px;
+}
+
+/* Wider column for NAVN */
+.rounds-table th.wide, .rounds-table td.wide {
+  width: 216px;
+  min-width: 120px;
+  max-width: 240px;
+  white-space: nowrap;
+  overflow: visible;
+  text-overflow: initial;
+}
+.rounds-table th {
+  background: #f5f5f5;
+  font-weight: bold;
+}
+.rounds-table tfoot td {
+  font-weight: bold;
+  border-top: 2px solid #000;
+}
+
+.notes {
+  font-size: 0.95em;
+  margin: 10px 0 6px 0;
+}
+.notes .wo {
+  font-weight: bold;
+  margin-top: 2px;
+}
+
+@media (max-width: 700px) {
+  .rounds-table th,
+  .rounds-table td {
+    font-size: 0.7em;
+  }
+}
+
+.cup-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+}
+.cup-table td {
+  border: 1px solid #000;
+  text-align: center;
+  width: 32px;
+  height: 24px;
+  font-size: 1em;
+}
+.cup-table tr:first-child td {
+  border: none;
+  text-align: left;
+  font-weight: bold;
+  background: #fff;
+}
+
+.align-left {
+  text-align: left !important;
+}

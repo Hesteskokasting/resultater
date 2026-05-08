@@ -4,6 +4,7 @@ import { beregnKampPoeng, hentP1P2, scoreForSp, ringerForSp, oppdaterResultatInn
 import { genererNesteSwissRunde } from './kampgenerering-db.js'
 import { autoFullforInnledendeKamper } from '../utils/organizer-test-utils.js'
 import { byggInnledendeSpelMap, sorterStilling, renderInnledendeKnappar, lagOnEndringHandler } from './org-shared.js'
+import { printStartkort } from './startkort-print.js'
 
 let kanal = null
 let bannerSlot = null
@@ -30,7 +31,7 @@ async function lastOgVis(container, stevneid) {
         id, stevneid, runde_nummer, bane_nummer, er_bekreftet, er_walkover, fase,
         spelarar:kamp_spelar(
           id, kasterid, score_poeng, kamp_poeng, antall_ringer, posisjon,
-          kaster:kasterid(id, fornavn, etternavn),
+          kaster:kasterid(id, fornavn, etternavn, klubb:klubbid(kortnavn, namn)),
           omgangar:kamp_omgang(score, antall_ringer)
         )
       `)
@@ -78,7 +79,11 @@ async function lastOgVis(container, stevneid) {
     ? `<button class="btn btn-sm btn-outline-secondary" id="toggle-rundar-btn">${visAlleRundar ? 'Skjul tidlegare rundar' : `Vis alle rundar (${rundeMap.size})`}</button>`
     : ''
 
-  bannerSlot.innerHTML = (isAdmin ? renderInnledendeKnappar(stevne, erAlleKamperBekreftet, erSwiss) : '') + toggleKnappHtml
+  const startkortKnappHtml = isAdmin && !erSwiss
+    ? `<button class="btn btn-sm btn-outline-info" id="startkort-btn">Startkort</button>`
+    : ''
+
+  bannerSlot.innerHTML = (isAdmin ? renderInnledendeKnappar(stevne, erAlleKamperBekreftet, erSwiss) : '') + startkortKnappHtml + toggleKnappHtml
 
   const rundarSomVisast = harFleirRundar && !visAlleRundar
     ? new Map([[sisteRundeNr, rundeMap.get(sisteRundeNr) ?? []]])
@@ -94,6 +99,10 @@ async function lastOgVis(container, stevneid) {
       </div>
     </div>
   `
+
+  bannerSlot.querySelector('#startkort-btn')?.addEventListener('click', () => {
+    printStartkort(stevne, alleKamper, rundeMap, startnrMap, stilling)
+  })
 
   bannerSlot.querySelector('#toggle-rundar-btn')?.addEventListener('click', () => {
     visAlleRundar = !visAlleRundar
