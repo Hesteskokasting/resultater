@@ -91,7 +91,7 @@ export function renderGruppePreview(sortert, nA, woA = 0, woB = 0) {
       <tr>
         <td>${r.cupPlassering}</td>
         <td>${r.startnummer ?? ''}</td>
-        <td>${r._namn ?? ''}${erWo ? ' <span class="badge bg-info text-dark">Frirunde</span>' : ''}</td>
+        <td>${r._namn ?? ''}${erWo ? ' <span class="badge bg-info text-dark">Walkover</span>' : ''}</td>
         <td class="text-center">${r.kamp_poeng_innl ?? 0}</td>
         <td class="text-center">${r.score_poeng_innl ?? 0}</td>
       </tr>`
@@ -132,7 +132,7 @@ export function renderGruppePreview(sortert, nA, woA = 0, woB = 0) {
 
 function oppsettLabel(o) {
   const perBane = o.c3 > 0 ? 3 : 2
-  return `${o.walkovers} frirunde - ${perBane} deltakere per bane`
+  return `${o.walkovers} walkover - ${perBane} deltakere per bane`
 }
 
 function renderRunde1FormatVeljar(gruppeLabel, n, radioName, initOppsett = null) {
@@ -144,7 +144,7 @@ function renderRunde1FormatVeljar(gruppeLabel, n, radioName, initOppsett = null)
     const checked = initOppsett
       ? (o.walkovers === initOppsett.walkovers && o.c3 === initOppsett.c3 && o.c2 === initOppsett.c2)
       : i === 0
-    const btnClass = o.c3 > 0 ? 'btn-success' : 'btn-warning'
+    const btnClass = o.c3 > 0 ? 'btn-outline-success' : 'btn-outline-warning'
     return `
       <input type="radio" class="btn-check" name="${radioName}" id="${id}"
         value='${val}' data-oppsett='${val}' autocomplete="off" ${checked ? 'checked' : ''}>
@@ -159,7 +159,7 @@ export function renderStrukturListeHtml(n, oppsett, suffix) {
     let banerInfo
     if (i === 0 && oppsett) {
       const aktive = r.spelarar - (r.walkovers ?? 0)
-      const woInfo = (r.walkovers ?? 0) > 0 ? ` - ${r.walkovers} frirunde` : ''
+      const woInfo = (r.walkovers ?? 0) > 0 ? ` - ${r.walkovers} walkover` : ''
       banerInfo = `${aktive} deltakere - ${r.baner} baner${woInfo}`
     } else {
       banerInfo = `${r.spelarar} deltakere - ${r.baner} baner`
