@@ -110,11 +110,11 @@ function createRoundsBody(roundInfos) {
 
         tr.appendChild(createTd(info.court !== undefined ? info.court : '', 1, `court-round-${i+1}`, 'small'));
         tr.appendChild(createTd(i+1, 1, `round-${i+1}`, 'small'));
-        tr.appendChild(createTd('', 1, `match-points-round-${i+1}`, 'small'));
-        tr.appendChild(createTd('', 1, `score-points-round-${i+1}`, 'small'));
+        tr.appendChild(createTd(info.matchPoints ?? '', 1, `match-points-round-${i+1}`, 'small'));
+        tr.appendChild(createTd(info.playerScore ?? '', 1, `score-points-round-${i+1}`, 'small'));
         tr.appendChild(createTd(info.opponentId !== undefined ? info.opponentId : '', 1, `opponent-nr-round-${i+1}`, 'small'));
         tr.appendChild(createTd(info.opponentName !== undefined ? info.opponentName : '', 1, `opponent-name-round-${i+1}`, 'wide'));
-        tr.appendChild(createTd('', 1, `opp-score-round-${i+1}`, 'small'));
+        tr.appendChild(createTd(info.opponentScore ?? '', 1, `opp-score-round-${i+1}`, 'small'));
 
         tbody.appendChild(tr);
     }

@@ -47,6 +47,17 @@ function buildRoundInfos(kasterid, sortertRundar, rundeMap, startnrMap) {
     const kamp = (rundeMap.get(nr) ?? []).find(k => k.spelarar?.some(sp => sp.kasterid === kasterid))
     if (!kamp) return { court: '', opponentId: '', opponentName: '' }
     const opp = kamp.spelarar?.find(sp => sp.kasterid !== kasterid)
+    const erWalkoverSeier = kamp.er_walkover && !opp?.kaster
+    if (erWalkoverSeier) {
+      return {
+        court: kamp.bane_nummer ?? '',
+        matchPoints: '2',
+        playerScore: '21',
+        opponentId: '-',
+        opponentName: 'Walkover',
+        opponentScore: '-',
+      }
+    }
     return {
       court: kamp.bane_nummer ?? '',
       opponentId: opp?.kasterid ? (startnrMap[opp.kasterid] ?? '') : '',
