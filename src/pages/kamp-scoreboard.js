@@ -194,13 +194,18 @@ export async function render(container, { id } = {}) {
     const [kp1, kp2] = beregnKampPoeng(t1, t2)
     const kasterids = [p1ks?.kasterid, p2ks?.kasterid].filter(Boolean)
 
-    const updates = [supabase.from('kamp').update({ er_bekreftet: true }).eq('id', kampId)]
-    if (p1ks?.id) updates.push(supabase.from('kamp_spelar').update({ score_poeng: t1, kamp_poeng: kp1, antall_ringer: r1 }).eq('id', p1ks.id))
-    if (p2ks?.id) updates.push(supabase.from('kamp_spelar').update({ score_poeng: t2, kamp_poeng: kp2, antall_ringer: r2 }).eq('id', p2ks.id))
+    const spelarUpdates = []
+    if (p1ks?.id) spelarUpdates.push(supabase.from('kamp_spelar').update({ score_poeng: t1, kamp_poeng: kp1, antall_ringer: r1 }).eq('id', p1ks.id))
+    if (p2ks?.id) spelarUpdates.push(supabase.from('kamp_spelar').update({ score_poeng: t2, kamp_poeng: kp2, antall_ringer: r2 }).eq('id', p2ks.id))
 
-    const results = await Promise.all(updates)
-    const err = results.find(r => r.error)?.error
-    if (err) { alert('Feil ved bekreftelse: ' + err.message); return }
+    if (spelarUpdates.length) {
+      const spelarResults = await Promise.all(spelarUpdates)
+      const spelarErr = spelarResults.find(r => r.error)?.error
+      if (spelarErr) { alert('Feil ved lagring av spelarpoeng: ' + spelarErr.message); return }
+    }
+
+    const { error: kampErr } = await supabase.from('kamp').update({ er_bekreftet: true }).eq('id', kampId)
+    if (kampErr) { alert('Feil ved bekreftelse: ' + kampErr.message); return }
 
     if (kamp.stevneid) await oppdaterResultatInnl(kamp.stevneid, kasterids, kamp.fase)
   }
