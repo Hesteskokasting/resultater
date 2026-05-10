@@ -149,17 +149,21 @@ async function lastOgVis(container, stevneid) {
     await lastOgVis(container, stevneid)
   })
 
-  if (erSwiss) {
-    bannerSlot?.querySelector('#neste-runde-btn')?.addEventListener('click', async () => {
-      try {
-        const { rundeNummer } = await genererNesteSwissRunde(stevneid)
-        await lastOgVis(container, stevneid)
-        alert(`Runde ${rundeNummer} er generert.`)
-      } catch (e) {
-        alert('Feil: ' + e.message)
-      }
-    })
-  }
+if (erSwiss) {
+  bannerSlot?.querySelector('#neste-runde-btn')?.addEventListener('click', async () => {
+    if (!erAlleKamperBekreftet) {
+      alert("Noen kamper er ikke bekreftet!")
+      return
+    }
+
+    try {
+      const { rundeNummer } = await genererNesteSwissRunde(stevneid)
+      await lastOgVis(container, stevneid)
+    } catch (e) {
+      alert('Feil: ' + e.message)
+    }
+  })
+}
 
   for (const kamp of alleKamper) {
     container.querySelector(`#plus-${kamp.id}`)?.addEventListener('click', async () => {

@@ -70,7 +70,7 @@ export function lagOnEndringHandler(stevneid, faner, container, lastOgVisFn, sto
 
 export function renderInnledendeKnappar(stevne, erAlleKamperBekreftet, erSwiss) {
   return `
-    ${erSwiss ? `<button id="neste-runde-btn" class="btn btn-sm btn-warning"${stevne.erfullfort || !erAlleKamperBekreftet ? ' disabled' : ''}>Generer neste runde</button>` : ''}
+    ${erSwiss ? `<button id="neste-runde-btn" class="btn btn-sm btn-warning">Generer neste runde</button>` : ''}
     <button id="fullfor-btn" class="btn btn-sm btn-primary"${stevne.erfullfort || !erAlleKamperBekreftet ? ' disabled' : ''}>Start avsluttande fase</button>
     <button id="fullfør-turnering-btn" class="btn btn-sm btn-danger"${stevne.erfullfort ? ' disabled' : ''}>Fullfør turnering</button>
     <button id="test-autofullfør-btn" class="btn btn-sm btn-outline-warning">TEST: Autofullfør</button>
