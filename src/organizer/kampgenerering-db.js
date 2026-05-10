@@ -1,5 +1,6 @@
 import { supabase } from '../supabase.js'
 import { beregnCupRundeParingar } from '../utils/kastemetoder-logikk.js'
+import { sorterStilling } from './org-shared.js'
 
 function genMatchId() {
   return crypto.randomUUID()
@@ -178,18 +179,6 @@ export async function genererNesteSwissRunde(stevneid) {
     }
   }
 
-  // Bygg playerStats frå bekrefte kampar
-  const statsMap = {}
-  for (const kid of kasteridListe) statsMap[kid] = { kasterid: kid, kampPoeng: 0, scorePoeng: 0 }
-  for (const kamp of kampar) {
-    if (!kamp.er_bekreftet) continue
-    for (const sp of kamp.spelarar ?? []) {
-      if (!sp.kasterid) continue
-      statsMap[sp.kasterid].kampPoeng += sp.kamp_poeng ?? 0
-      statsMap[sp.kasterid].scorePoeng += sp.score_poeng ?? 0
-    }
-  }
-
   // Bygg byes — tel walkovers (er_walkover + posisjon 1) per kasterid
   const byes = {}
   for (const kid of kasteridListe) byes[kid] = 0
@@ -199,21 +188,32 @@ export async function genererNesteSwissRunde(stevneid) {
     if (p1?.kasterid) byes[p1.kasterid] = (byes[p1.kasterid] ?? 0) + 1
   }
 
-  // Sorter stats: høgast poeng fyrst
-  let playerStats = Object.values(statsMap).sort(
-    (a, b) => b.kampPoeng - a.kampPoeng || b.scorePoeng - a.scorePoeng || a.kasterid - b.kasterid
-  )
+  const spelarar = kasteridListe.map(kid => {
+    let kamp_poeng = 0, score_poeng = 0
+    for (const kamp of kampar) {
+      if (kamp.er_walkover) continue
+      const sp = (kamp.spelarar ?? []).find(s => s.kasterid === kid)
+      if (sp) {
+        kamp_poeng += sp.kamp_poeng ?? 0
+        score_poeng += sp.score_poeng ?? 0
+      }
+    }
+    return { kasterid: kid, kamp_poeng, score_poeng }
+  })
 
-  function getByeCandidate(stats) {
-    const eligible = stats.filter(p => (byes[p.kasterid] ?? 0) < 1)
-    if (!eligible.length) return null
-    return [...eligible].sort((a, b) => a.kampPoeng - b.kampPoeng || a.scorePoeng - b.scorePoeng)[0]
+  const playerStats = sorterStilling(spelarar, kampar)
+
+  function getByePlayer(stats) {
+    for (let i = stats.length - 1; i >= 0; i--) {
+      if ((byes[stats[i].kasterid] ?? 0) < 1) return stats[i]
+    }
+    return null
   }
 
   function tryPairing(stats, matchesSoFar) {
     if (stats.length === 0) return matchesSoFar
     if (stats.length % 2 === 1) {
-      const byePlayer = getByeCandidate(stats)
+      const byePlayer = getByePlayer(stats)
       if (!byePlayer) return null
       byes[byePlayer.kasterid]++
       matchesSoFar.push({ p1: byePlayer.kasterid, p2: null, erWalkover: true })
@@ -242,6 +242,8 @@ export async function genererNesteSwissRunde(stevneid) {
 
   const pairs = tryPairing(playerStats, [])
   if (!pairs) throw new Error('Paring er ikkje mogleg. Alle moglege motstandarar er allereie spela.')
+
+  pairs.sort((a, b) => (a.erWalkover ? 1 : 0) - (b.erWalkover ? 1 : 0))
 
   const rundekampar = pairs.map((pair, i) => ({
     match_id: genMatchId(),
