@@ -1,5 +1,3 @@
-import { supabase } from '../supabase.js'
-
 export function beregnKampPoeng(s1, s2) {
   if (s1 === s2) return [1.5, 1.5]
   if (s1 > s2) return [2, s2 >= 11 ? 1 : 0]
@@ -25,32 +23,4 @@ export function scoreForSp(sp) {
 export function ringerForSp(sp) {
   if (sp?.omgangar?.length) return sp.omgangar.reduce((sum, o) => sum + (o.antall_ringer ?? 0), 0)
   return sp?.antall_ringer ?? 0
-}
-
-export async function oppdaterResultatInnl(stevneid, kasterids, fase) {
-  const { data: kamper } = await supabase
-    .from('kamp')
-    .select('id')
-    .eq('stevneid', stevneid)
-    .eq('er_bekreftet', true)
-    .eq('fase', fase)
-
-  const kampids = (kamper ?? []).map(k => k.id)
-  if (!kampids.length) return
-
-  for (const kasterid of kasterids) {
-    const { data } = await supabase
-      .from('kamp_spelar')
-      .select('score_poeng, kamp_poeng')
-      .eq('kasterid', kasterid)
-      .in('kampid', kampids)
-
-    const scoreInnl = (data ?? []).reduce((s, r) => s + r.score_poeng, 0)
-    const kampInnl = (data ?? []).reduce((s, r) => s + r.kamp_poeng, 0)
-
-    await supabase.from('resultat')
-      .update({ score_poeng_innl: scoreInnl, kamp_poeng_innl: kampInnl })
-      .eq('stevneid', stevneid)
-      .eq('kasterid', kasterid)
-  }
 }

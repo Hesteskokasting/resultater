@@ -1,5 +1,5 @@
 import { supabase } from '../supabase.js'
-import { beregnKampPoeng, oppdaterResultatInnl } from './kamp.js'
+import { beregnKampPoeng } from './kamp.js'
 
 function tilfeldigScore() {
   const s1 = Math.floor(Math.random() * 27)
@@ -49,9 +49,6 @@ export async function autoFullforInnledendeKamper(stevneid) {
     }
   }
 
-  if (alleKasterids.size) {
-    await oppdaterResultatInnl(stevneid, [...alleKasterids], 'innledende')
-  }
 }
 
 export async function slettKamperForFase(stevneid, fase) {

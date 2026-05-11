@@ -1,6 +1,6 @@
 import { supabase } from '../supabase.js'
 import { opnNumberpad } from './score-numberpad.js'
-import { beregnKampPoeng, hentP1P2, scoreForSp, ringerForSp, oppdaterResultatInnl } from '../utils/kamp.js'
+import { beregnKampPoeng, hentP1P2, scoreForSp, ringerForSp } from '../utils/kamp.js'
 import { genererNesteSwissRunde } from './kampgenerering-db.js'
 import { autoFullforInnledendeKamper } from '../utils/organizer-test-utils.js'
 import { byggInnledendeSpelMap, sorterStilling, renderInnledendeKnappar, lagOnEndringHandler, renderSpelarkamparDetalj, bindStillingDetaljar } from './org-shared.js'
@@ -218,8 +218,6 @@ if (erSwiss) {
           const results = await Promise.all(updates)
           const dbErr = results.find(r => r.error)?.error
           if (dbErr) { alert('DB-feil: ' + dbErr.message); return }
-          const kasterids = [p1?.kasterid, p2?.kasterid].filter(Boolean)
-          await oppdaterResultatInnl(stevneid, kasterids, kamp.fase)
           await lastOgVis(container, stevneid)
         })
       }
@@ -401,16 +399,15 @@ async function bekreftKamp(container, stevneid, kamp, startnrMap, hcpMap = {}) {
 
   const [kp1, kp2] = beregnKampPoeng(s1, s2)
 
-  const updates = [supabase.from('kamp').update({ er_bekreftet: true }).eq('id', kamp.id)]
-  if (p1) updates.push(supabase.from('kamp_spelar').update({ score_poeng: s1, kamp_poeng: kp1, antall_ringer: r1 }).eq('id', p1.id))
-  if (p2) updates.push(supabase.from('kamp_spelar').update({ score_poeng: s2, kamp_poeng: kp2, antall_ringer: r2 }).eq('id', p2.id))
+  const spelarUpdates = []
+  if (p1) spelarUpdates.push(supabase.from('kamp_spelar').update({ score_poeng: s1, kamp_poeng: kp1, antall_ringer: r1 }).eq('id', p1.id))
+  if (p2) spelarUpdates.push(supabase.from('kamp_spelar').update({ score_poeng: s2, kamp_poeng: kp2, antall_ringer: r2 }).eq('id', p2.id))
+  const spelarResultat = await Promise.all(spelarUpdates)
+  const spelarErr = spelarResultat.find(r => r.error)?.error
+  if (spelarErr) { alert('DB-feil: ' + spelarErr.message); return }
 
-  const dbResultat = await Promise.all(updates)
-  const dbErr = dbResultat.find(r => r.error)?.error
-  if (dbErr) { alert('DB-feil: ' + dbErr.message); return }
-
-  const kasterids = [p1?.kasterid, p2?.kasterid].filter(Boolean)
-  await oppdaterResultatInnl(stevneid, kasterids, kamp.fase)
+  const { error: kampErr } = await supabase.from('kamp').update({ er_bekreftet: true }).eq('id', kamp.id)
+  if (kampErr) { alert('DB-feil: ' + kampErr.message); return }
 
   await lastOgVis(container, stevneid)
 }

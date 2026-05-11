@@ -1,6 +1,6 @@
 import { supabase } from '../supabase.js'
 import { getUser } from '../utils/auth.js'
-import { beregnKampPoeng, oppdaterResultatInnl } from '../utils/kamp.js'
+import { beregnKampPoeng } from '../utils/kamp.js'
 import { renderScoreboard } from '../organizer/scoreboard.js'
 
 export async function render(container, { id } = {}) {
@@ -215,7 +215,6 @@ export async function render(container, { id } = {}) {
     const { error: kampErr } = await supabase.from('kamp').update({ er_bekreftet: true }).eq('id', kampId)
     if (kampErr) { alert('Feil ved bekreftelse: ' + kampErr.message); return }
 
-    if (kamp.stevneid) await oppdaterResultatInnl(kamp.stevneid, kasterids, kamp.fase)
   }
 
   async function _bekreftAvsluttendeFraScoreboard(orderedKasterids) {
