@@ -120,12 +120,15 @@ async function _mineKamparHtml(kasterid) {
     `)
     .eq('kasterid', kasterid)
 
-  const aktiveKampar = (data ?? [])
-    .filter(ks => ks.kamp?.stevne?.erfullfort === false && !ks.kamp?.er_walkover)
+  const alleKampar = (data ?? []).filter(ks => !ks.kamp?.er_walkover)
+
+  const kommande = alleKampar
+    .filter(ks => ks.kamp?.stevne?.erfullfort === false && !ks.kamp?.er_bekreftet)
     .sort((a, b) => (a.kamp?.runde_nummer ?? 0) - (b.kamp?.runde_nummer ?? 0))
 
-  const kommande = aktiveKampar.filter(ks => !ks.kamp?.er_bekreftet)
-  const ferdige  = aktiveKampar.filter(ks =>  ks.kamp?.er_bekreftet)
+  const ferdige = alleKampar
+    .filter(ks => ks.kamp?.er_bekreftet)
+    .sort((a, b) => (a.kamp?.runde_nummer ?? 0) - (b.kamp?.runde_nummer ?? 0))
 
   const lagKampRad = (ks, knapp) => {
     const kamp = ks.kamp
