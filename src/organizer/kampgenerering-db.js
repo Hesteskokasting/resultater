@@ -191,7 +191,6 @@ export async function genererNesteSwissRunde(stevneid) {
   const spelarar = kasteridListe.map(kid => {
     let kamp_poeng = 0, score_poeng = 0
     for (const kamp of kampar) {
-      if (kamp.er_walkover) continue
       const sp = (kamp.spelarar ?? []).find(s => s.kasterid === kid)
       if (sp) {
         kamp_poeng += sp.kamp_poeng ?? 0
