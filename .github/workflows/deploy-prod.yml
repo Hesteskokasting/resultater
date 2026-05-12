@@ -10,10 +10,9 @@ permissions:
 jobs:
   godkjenn:
     runs-on: ubuntu-latest
-    environment: github-pages
+    environment: prod-godkjenning
     steps:
       - run: echo "Godkjenning gitt – startar produksjonsdeploy"
-
   build-and-deploy:
     needs: godkjenn
     runs-on: ubuntu-latest
