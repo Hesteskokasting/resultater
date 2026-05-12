@@ -10,6 +10,7 @@ permissions:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    environment: dev
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -19,8 +20,8 @@ jobs:
       - run: npm ci
       - run: npm run build -- --base /dev/
         env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL_DEV }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY_DEV }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
       - uses: JamesIves/github-pages-deploy-action@v4
         with:
           folder: dist
