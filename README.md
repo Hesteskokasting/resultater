@@ -40,11 +40,18 @@ Appen er tilgjengeleg på `http://localhost:5173`.
 
 ## Kommandoar
 
-| Kommando | Skildring |
+| Kommando | Når du brukar det |
 |---|---|
-| `npm run dev` | Start lokal Vite-dev-server |
-| `npm run build` | Bygg for produksjon til `dist/` |
-| `npm run preview` | Førehandsvising av prod-bygget lokalt |
+| `npm run dev` | Under utvikling — startar lokal Vite-dev-server med hot reload |
+| `npm run build` | For å sjekke at prod-bygget fungerer lokalt før du pushar |
+| `npm run preview` | Køyrer det ferdige `dist/`-bygget lokalt, nyttig for å teste prod-åtferd |
+
+**Du treng ikkje køyre `build` eller `dev` før du pushar.** GitHub Actions byggjer automatisk når du pushar:
+
+- Push til `dev` → GitHub Actions byggjer og deployer til `res.hesteskokasting.no/dev`
+- Push til `main` → GitHub Actions byggjer, ventar på manuell godkjenning, deployer til `res.hesteskokasting.no`
+
+`npm run build` lokalt er berre nyttig viss du vil stadfeste at koden kompilerer utan å pushe, eller feilsøke byggfeil.
 
 ---
 
@@ -56,6 +63,11 @@ Appen er tilgjengeleg på `http://localhost:5173`.
 | `dev` | Dev | `res.hesteskokasting.no/dev` |
 
 Push til `main` triggar GitHub Actions-workflow som byggjer og deployer til GitHub Pages. **Produksjon krev manuell godkjenning** i GitHub → Environments → `github-pages`.
+
+**Angrar du etter push til `main`?** Du har to val:
+
+- **Før du har godkjent deployen:** Gå til GitHub → Actions → den køyrande workflowen → klikk **"Reject"** i godkjenningssteget. Ingenting vert publisert, og du kan rette opp med ein ny commit.
+- **Etter godkjenning (feil allereie live):** Køyr `git revert HEAD` lokalt og push til `main`. Dette lagar ein ny commit som angrar endringane, og triggrar ein ny deploy med den forrige versjonen.
 
 Push til `dev` deployer automatisk til dev-miljøet utan godkjenning.
 
