@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="nb" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hesteskokasting Resultater</title>
+  <script>
+    (function () {
+      var tema = localStorage.getItem('tema') || 'dark';
+      if (tema === 'light') {
+        document.documentElement.setAttribute('data-theme', 'light');
+        document.documentElement.setAttribute('data-bs-theme', 'light');
+      }
+    })();
+  </script>
+  <script type="module" crossorigin src="/dev/assets/index-MTzEmwIi.js"></script>
+  <link rel="stylesheet" crossorigin href="/dev/assets/index-BMNg36-s.css">
+</head>
+<body>
+
+  <header class="topp-header">
+    <span class="header-tittel-gruppe">
+      <span class="header-tittel">NHF Resultater</span><span class="header-versjon">0.5c</span>
+    </span>
+    <div class="header-kontroller">
+      <button class="tema-knapp" id="temaKnapp" aria-label="Bytt tema"></button>
+      <button class="meny-knapp" id="menyKnapp" aria-label="Åpne meny">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Mørk bakgrunn bak menyen -->
+  <div class="meny-bakgrunn" id="menyBakgrunn"></div>
+
+  <!-- Slideout-meny fra høyre -->
+  <nav class="sidepanel" id="sidepanel">
+    <ul class="meny-liste">
+      <li><a href="https://hesteskokasting.no" target="_blank" rel="noopener">Til hesteskokasting.no</a></li>
+      <li class="meny-skillelinje"></li>
+      <li><a href="#/">Hjem</a></li>
+      <li><a href="#/terminliste">Terminliste og Resultat</a></li>
+      <li><a href="#/norgescupen">Norgescupen</a></li>
+      <li><a href="#/norgesranking">Norgesranking</a></li>
+      <li><a href="#/klubber">Klubber</a></li>
+      <li><a href="#/kastere">Utøvere</a></li>
+      <li class="meny-dropdown-item">
+        <button class="meny-dropdown-knapp" id="statistikk-knapp" aria-expanded="false">
+          Statistikk <span class="meny-chevron">▼</span>
+        </button>
+        <ul class="meny-undermeny" id="statistikk-undermeny" style="display:none">
+          <li><a href="#/nmvinnere">NM-vinnere</a></li>
+          <li><a href="#/rekorder">Rekorder</a></li>
+        </ul>
+      </li>
+      <li><a href="#/dokumenter">Dokumenter</a></li>
+      <li class="meny-skillelinje"></li>
+      <li id="meny-logginn-item" style="display:none"><a href="#/logginn">Logg inn</a></li>
+      <li id="meny-minside-item" style="display:none"><a href="#/minside">Min side</a></li>
+      <li id="meny-admin-item"   style="display:none"><a href="#/admin">Admin</a></li>
+      <li id="meny-loggut-item"  style="display:none">
+        <button id="menyLoggUtKnapp" class="btn btn-link p-0 text-start w-100" style="font-size:inherit;color:inherit;">Logg ut</button>
+      </li>
+    </ul>
+  </nav>
+
+  <div id="app"></div>
+
+  <script>
+    const temaKnapp = document.getElementById('temaKnapp')
+    function oppdaterTemaKnapp() {
+      const erMork = document.documentElement.getAttribute('data-theme') !== 'light'
+      temaKnapp.textContent = erMork ? 'Lys modus' : 'Mork modus'
+      temaKnapp.setAttribute('aria-label', erMork ? 'Bytt til lys modus' : 'Bytt til mork modus')
+    }
+    temaKnapp.addEventListener('click', function () {
+      const erMork = document.documentElement.getAttribute('data-theme') !== 'light'
+      const nytt = erMork ? 'light' : 'dark'
+      document.documentElement.setAttribute('data-theme', nytt)
+      document.documentElement.setAttribute('data-bs-theme', nytt)
+      localStorage.setItem('tema', nytt)
+      oppdaterTemaKnapp()
+    })
+    oppdaterTemaKnapp()
+
+    const knapp = document.getElementById('menyKnapp')
+    const panel = document.getElementById('sidepanel')
+    const bakgrunn = document.getElementById('menyBakgrunn')
+
+    function apneMeny() {
+      panel.classList.add('aktiv')
+      bakgrunn.classList.add('aktiv')
+      knapp.classList.add('aktiv')
+    }
+
+    function lukkMeny() {
+      panel.classList.remove('aktiv')
+      bakgrunn.classList.remove('aktiv')
+      knapp.classList.remove('aktiv')
+    }
+
+    knapp.addEventListener('click', () => {
+      panel.classList.contains('aktiv') ? lukkMeny() : apneMeny()
+    })
+
+    bakgrunn.addEventListener('click', lukkMeny)
+
+    document.querySelectorAll('.sidepanel a').forEach(a => {
+      a.addEventListener('click', lukkMeny)
+    })
+
+    document.getElementById('menyLoggUtKnapp').addEventListener('click', lukkMeny)
+
+    document.getElementById('statistikk-knapp').addEventListener('click', () => {
+      const undermeny = document.getElementById('statistikk-undermeny')
+      const knapp = document.getElementById('statistikk-knapp')
+      const open = undermeny.style.display !== 'none'
+      undermeny.style.display = open ? 'none' : 'block'
+      knapp.setAttribute('aria-expanded', !open)
+      knapp.querySelector('.meny-chevron').textContent = open ? '▼' : '▲'
+    })
+  </script>
+</body>
+</html>
