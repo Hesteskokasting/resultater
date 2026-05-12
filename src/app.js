@@ -1,4 +1,13 @@
 import 'bootstrap'
+
+if (import.meta.env.VITE_ENV === 'dev') {
+  const versjonEl = document.querySelector('.header-versjon')
+  if (versjonEl) versjonEl.textContent += ' [DEV]'
+  const banner = document.createElement('span')
+  banner.className = 'dev-banner'
+  banner.textContent = 'TEST TEST TEST'
+  document.querySelector('.header-versjon').after(banner)
+}
 import { render as renderHome }          from './pages/home.js'
 import { render as renderResultat }       from './pages/resultat.js'
 import { render as renderTerminliste }    from './pages/terminliste.js'
