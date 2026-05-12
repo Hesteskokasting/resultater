@@ -313,7 +313,7 @@ function kampRad(kamp, startnrMap, isAdmin = true, hcpMap = {}) {
       <td${scoreEndrAttr}>${harPoeng ? s1 : ''}</td>
       <td${scoreEndrAttr}>${harPoeng ? s2 : ''}</td>
       <td>${p2Vis}</td>
-      <td class="text-end pe-2">
+      <td class="text-end pe-2 text-nowrap">
         ${isAdmin ? `<button class="btn btn-primary btn-sm" id="plus-${kamp.id}"${kamp.er_bekreftet ? ' disabled' : ''}>+</button>` : ''}
         <button class="btn btn-secondary btn-sm" id="scoreboard-${kamp.id}" data-bane="${kamp.bane_nummer ?? ''}" title="Scoreboard"${scoreboardDisabled}>S</button>
         ${isAdmin ? `<button class="btn ${bekrfKlass} btn-sm btn-bekreft" id="bekrft-${kamp.id}"${bekrfDisabled}>${bekrfTekst}</button>` : ''}

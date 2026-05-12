@@ -741,8 +741,8 @@ a.stevne-navn {
   .org-hovud-innhald.org-vis-stilling .org-stilling-kol   { display: block; }
 }
 
-.kamp-vidare td    { background: color-mix(in srgb, #28a745 10%, transparent) !important; }
-.kamp-eliminert td { background: color-mix(in srgb, var(--feil) 10%, transparent) !important; }
+.kamp-vidare td    { background: var(--kamp-vidare-bg) !important; }
+.kamp-eliminert td { background: var(--kamp-eliminert-bg) !important; }
 
 .stilling-spelar-rad { cursor: pointer; }
 .stilling-spelar-rad:hover td { background-color: var(--primaer-aktiv) !important; }
@@ -1542,7 +1542,7 @@ a.stevne-navn {
 .avsl-maks-600 { max-width: 600px; margin-inline: auto; }
 
 .avsl-elim-plass {
-  background: color-mix(in srgb, var(--feil) 15%, transparent);
+  background: var(--kamp-eliminert-bg) !important;
 }
 
 .avsl-dialog-overlay {

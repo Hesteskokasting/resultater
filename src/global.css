@@ -20,6 +20,8 @@
   --header-bg: #0d0f14;
   --input-bg: #1c1f2a;
   --feil: #ff6b6b;
+  --kamp-vidare-bg: color-mix(in srgb, #4CAF50 22%, var(--flate));
+  --kamp-eliminert-bg: color-mix(in srgb, #ff6b6b 22%, var(--flate));
 }
 
 [data-theme="light"] {
@@ -40,6 +42,8 @@
   --header-bg: #ffffff;
   --input-bg: #ffffff;
   --feil: #cc0000;
+  --kamp-vidare-bg: color-mix(in srgb, #28a745 14%, var(--flate));
+  --kamp-eliminert-bg: color-mix(in srgb, #cc0000 14%, var(--flate));
 }
 
 body {
