@@ -8,9 +8,15 @@ permissions:
   contents: write
 
 jobs:
-  build-and-deploy:
+  godkjenn:
     runs-on: ubuntu-latest
     environment: github-pages
+    steps:
+      - run: echo "Godkjenning gitt – startar produksjonsdeploy"
+
+  build-and-deploy:
+    needs: godkjenn
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
