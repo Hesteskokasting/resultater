@@ -1,4 +1,9 @@
 import 'bootstrap'
+
+if (import.meta.env.VITE_ENV === 'dev') {
+  const versjonEl = document.querySelector('.header-versjon')
+  if (versjonEl) versjonEl.textContent += ' [DEV]'
+}
 import { render as renderHome }          from './pages/home.js'
 import { render as renderResultat }       from './pages/resultat.js'
 import { render as renderTerminliste }    from './pages/terminliste.js'
