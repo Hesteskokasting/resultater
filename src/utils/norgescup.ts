@@ -1,0 +1,202 @@
+import { supabase } from '../supabase.js'
+import type { Tables } from '../types'
+import type { ResultatMedRelasjonar, Kaster, Klubb, SingelListeRad, LagListeRad } from '../types'
+import { kasterNavn } from './kaster'
+
+const NC_TYPER = ['NC', 'SNC', 'DNC']
+
+type Regler = Tables<'antallTellendeNc'>
+
+interface StevneMetadata {
+  navn: string
+  dato: string | null
+  typeNavn: string
+}
+
+type StevnerMap = Map<number, StevneMetadata>
+
+type BeregnFn = (
+  rader: ResultatMedRelasjonar[],
+  regler: Regler,
+  stevnerMap: StevnerMap
+) => ResultatMedRelasjonar[]
+
+export function formaterPoeng(p: number | null | undefined): string {
+  if (p == null) return '–'
+  const n = Number(p)
+  return Number.isInteger(n) ? String(n) : n.toFixed(1)
+}
+
+export async function hentRegler(ar: number) {
+  const { data, error } = await supabase
+    .from('antallTellendeNc')
+    .select('*')
+    .eq('year', ar)
+    .maybeSingle()
+  return { data, error }
+}
+
+export async function hentStevnerOgResultater(ar: number) {
+  const { data: allStevner, error: e1 } = await supabase
+    .from('stevne')
+    .select('id, navn, dato, stevnetype:stevnetypeid(id, navn)')
+    .gte('dato', `${ar}-01-01`)
+    .lte('dato', `${ar}-12-31`)
+
+  if (e1) return { stevner: [], resultater: [], error: e1 }
+
+  const ncStevner = (allStevner ?? []).filter(s => NC_TYPER.includes((s.stevnetype as { navn: string } | null)?.navn ?? ''))
+  const ids = ncStevner.map(s => s.id)
+
+  if (ids.length === 0) return { stevner: ncStevner, resultater: [], error: null }
+
+  const { data: resultater, error: e2 } = await supabase
+    .from('resultat')
+    .select(`
+      id, nc_poeng, plassering, kasterid, klubbid, klasseid, stevneid,
+      kaster:kasterid(id, fornavn, etternavn),
+      klubb:klubbid(id, navn),
+      klasse:klasseid(id, navn)
+    `)
+    .in('stevneid', ids)
+    .not('nc_poeng', 'is', null)
+    .gt('nc_poeng', 0)
+
+  return { stevner: ncStevner, resultater: (resultater ?? []) as ResultatMedRelasjonar[], error: e2 }
+}
+
+function lagStevnerMap(stevner: { id: number; navn: string; dato: string | null; stevnetype: { navn: string } | null }[]): StevnerMap {
+  const m: StevnerMap = new Map()
+  for (const s of stevner) {
+    m.set(s.id, { navn: s.navn, dato: s.dato, typeNavn: s.stevnetype?.navn ?? '' })
+  }
+  return m
+}
+
+function sorterDesc(arr: ResultatMedRelasjonar[]): ResultatMedRelasjonar[] {
+  return [...arr].sort((a, b) => (b.nc_poeng ?? 0) - (a.nc_poeng ?? 0))
+}
+
+function beregnNcPoeng(rader: ResultatMedRelasjonar[], regler: Regler, stevnerMap: StevnerMap): ResultatMedRelasjonar[] {
+  const nc: ResultatMedRelasjonar[] = [], snc: ResultatMedRelasjonar[] = [], dnc: ResultatMedRelasjonar[] = []
+  for (const r of rader) {
+    const t = stevnerMap.get(r.stevneid ?? -1)?.typeNavn ?? ''
+    if (t === 'NC') nc.push(r)
+    else if (t === 'SNC') snc.push(r)
+    else if (t === 'DNC') dnc.push(r)
+  }
+  const tellNc = sorterDesc(nc).slice(0, regler.max_nc_total)
+  const tellSnc = sorterDesc(snc).slice(0, regler.max_snc_total)
+  const maxDnc = regler.max_dnc_total > 0 ? regler.max_dnc_total : Infinity
+  const tellDnc = sorterDesc(dnc).slice(0, maxDnc)
+  return sorterDesc([...tellNc, ...tellSnc, ...tellDnc]).slice(0, regler.maxtotal)
+}
+
+function beregnSncPoeng(rader: ResultatMedRelasjonar[], regler: Regler, stevnerMap: StevnerMap): ResultatMedRelasjonar[] {
+  const snc = rader.filter(r => stevnerMap.get(r.stevneid ?? -1)?.typeNavn === 'SNC')
+  return sorterDesc(snc).slice(0, regler.max_snc)
+}
+
+function beregnDncPoeng(rader: ResultatMedRelasjonar[], regler: Regler, stevnerMap: StevnerMap): ResultatMedRelasjonar[] {
+  const dnc = rader.filter(r => stevnerMap.get(r.stevneid ?? -1)?.typeNavn === 'DNC')
+  return sorterDesc(dnc).slice(0, regler.max_dnc)
+}
+
+export function velgBeregnFunksjon(cupType: string): BeregnFn {
+  if (cupType === 'SNC') return beregnSncPoeng
+  if (cupType === 'DNC') return beregnDncPoeng
+  return beregnNcPoeng
+}
+
+function tildelPlassering<T extends { totalPoeng?: number; lagTotal?: number }>(liste: (T & { plassering: number })[], poengFelt: keyof T): void {
+  let pl = 1
+  for (let i = 0; i < liste.length; i++) {
+    if (i > 0 && (liste[i][poengFelt] as number) < (liste[i - 1][poengFelt] as number)) pl = i + 1
+    liste[i].plassering = pl
+  }
+}
+
+export function byggSingelListe(
+  resultater: ResultatMedRelasjonar[],
+  stevner: { id: number; navn: string; dato: string | null; stevnetype: { navn: string } | null }[],
+  regler: Regler,
+  cupType: string,
+  klasse: number
+): SingelListeRad[] {
+  const stevnerMap = lagStevnerMap(stevner)
+  const beregn = velgBeregnFunksjon(cupType)
+  const klasseNavn = klasse === 1 ? 'Klasse 1' : 'Klasse 2'
+
+  const filtrert = resultater.filter(r => (r.klasse as { navn: string } | null)?.navn === klasseNavn)
+
+  const kasterMap = new Map<number, { kaster: Kaster; rader: ResultatMedRelasjonar[] }>()
+  for (const r of filtrert) {
+    if (r.kasterid == null) continue
+    if (!kasterMap.has(r.kasterid)) kasterMap.set(r.kasterid, { kaster: r.kaster, rader: [] })
+    kasterMap.get(r.kasterid)!.rader.push(r)
+  }
+
+  const liste: SingelListeRad[] = []
+  for (const [, entry] of kasterMap) {
+    const tellendeRader = beregn(entry.rader, regler, stevnerMap)
+    const totalPoeng = tellendeRader.reduce((s, r) => s + (r.nc_poeng ?? 0), 0)
+    const klubber = [...new Set(tellendeRader.map(r => (r.klubb as Klubb | null)?.navn).filter(Boolean))] as string[]
+    const detaljRader = tellendeRader
+      .map(r => ({ ...r, _stevne: stevnerMap.get(r.stevneid ?? -1) }))
+      .sort((a, b) => (a._stevne?.dato ?? '').localeCompare(b._stevne?.dato ?? ''))
+    liste.push({ navn: kasterNavn(entry.kaster), klubb: klubber.join(' / '), totalPoeng, detaljRader, plassering: 0 })
+  }
+
+  liste.sort((a, b) => b.totalPoeng - a.totalPoeng || a.namn.localeCompare(b.namn))
+  tildelPlassering(liste, 'totalPoeng')
+  return liste
+}
+
+export function byggLagListe(
+  resultater: ResultatMedRelasjonar[],
+  stevner: { id: number; navn: string; dato: string | null; stevnetype: { navn: string } | null }[],
+  regler: Regler
+): LagListeRad[] {
+  const stevnerMap = lagStevnerMap(stevner)
+  const filtrert = resultater.filter(r => (r.klasse as { navn: string } | null)?.navn === 'Klasse 1')
+
+  const kasterMap = new Map<number, { kaster: Kaster; rader: ResultatMedRelasjonar[] }>()
+  for (const r of filtrert) {
+    if (r.kasterid == null) continue
+    if (!kasterMap.has(r.kasterid)) kasterMap.set(r.kasterid, { kaster: r.kaster, rader: [] })
+    kasterMap.get(r.kasterid)!.rader.push(r)
+  }
+
+  const bidragMap = new Map<string, { kaster: Kaster; klubbId: number; sum: number }>()
+  const klubbInfoMap = new Map<number, Klubb>()
+
+  for (const [, entry] of kasterMap) {
+    const tellendeRader = beregnNcPoeng(entry.rader, regler, stevnerMap)
+    const perKlubb = new Map<number, number>()
+    for (const r of tellendeRader) {
+      const klubb = r.klubb as Klubb | null
+      if (klubb && r.klubbid != null && !klubbInfoMap.has(r.klubbid)) klubbInfoMap.set(r.klubbid, klubb)
+      if (r.klubbid != null) perKlubb.set(r.klubbid, (perKlubb.get(r.klubbid) ?? 0) + (r.nc_poeng ?? 0))
+    }
+    for (const [klubbId, sum] of perKlubb) {
+      bidragMap.set(`${entry.kaster.id}_${klubbId}`, { kaster: entry.kaster, klubbId, sum })
+    }
+  }
+
+  const klubbMap = new Map<number, { klubb: Klubb; bidragsytere: { kaster: Kaster; klubbId: number; sum: number }[] }>()
+  for (const [, b] of bidragMap) {
+    if (!klubbMap.has(b.klubbId)) klubbMap.set(b.klubbId, { klubb: klubbInfoMap.get(b.klubbId)!, bidragsytere: [] })
+    klubbMap.get(b.klubbId)!.bidragsytere.push(b)
+  }
+
+  const lagListe: LagListeRad[] = []
+  for (const [, entry] of klubbMap) {
+    entry.bidragsytere.sort((a, b) => b.sum - a.sum)
+    const topp4 = entry.bidragsytere.slice(0, 4)
+    lagListe.push({ klubb: entry.klubb, lagTotal: topp4.reduce((s, b) => s + b.sum, 0), bidragsytere: topp4, plassering: 0 })
+  }
+
+  lagListe.sort((a, b) => b.lagTotal - a.lagTotal)
+  tildelPlassering(lagListe, 'lagTotal')
+  return lagListe
+}

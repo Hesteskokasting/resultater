@@ -1,6 +1,7 @@
 import { supabase } from '../supabase.js'
+import type { Stevnetype, Kastemetode, Klubb, Kategori } from '../types'
 
-export async function hentStevner(ar) {
+export async function hentStevner(ar: number) {
   return supabase
     .from('stevne')
     .select(`
@@ -16,7 +17,14 @@ export async function hentStevner(ar) {
     .order('dato')
 }
 
-export async function hentFiltervalg() {
+export interface Filtervalg {
+  stevnetyper: Stevnetype[]
+  kastemetoder: Kastemetode[]
+  klubber: Klubb[]
+  kategorier: Kategori[]
+}
+
+export async function hentFiltervalg(): Promise<Filtervalg> {
   const [stevnetyper, kastemetoder, klubber, kategorier] = await Promise.all([
     supabase.from('stevnetype').select('id, navn').order('navn'),
     supabase.from('kastemetode').select('id, navn').order('navn'),
@@ -24,14 +32,14 @@ export async function hentFiltervalg() {
     supabase.from('kategori').select('id, navn').order('navn'),
   ])
   return {
-    stevnetyper: stevnetyper.data ?? [],
-    kastemetoder: kastemetoder.data ?? [],
-    klubber: klubber.data ?? [],
-    kategorier: kategorier.data ?? [],
+    stevnetyper: (stevnetyper.data ?? []) as Stevnetype[],
+    kastemetoder: (kastemetoder.data ?? []) as Kastemetode[],
+    klubber: (klubber.data ?? []) as Klubb[],
+    kategorier: (kategorier.data ?? []) as Kategori[],
   }
 }
 
-export async function hentPameldte(userId) {
+export async function hentPameldte(userId: string): Promise<Set<number>> {
   const { data } = await supabase
     .from('pamelding')
     .select('stevneid')

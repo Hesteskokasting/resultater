@@ -1,9 +1,10 @@
 import { supabase } from '../supabase.js'
+import type { AuthUser, Profil, Rolle } from '../types'
 
 // Cache per sesjon. Tømt ved SIGNED_OUT / ny innlogging.
-let _cache = null
+let _cache: AuthUser | null = null
 
-async function _hentCache() {
+async function _hentCache(): Promise<AuthUser | null> {
   if (_cache) return _cache
 
   const { data: { session } } = await supabase.auth.getSession()
@@ -15,7 +16,7 @@ async function _hentCache() {
     .eq('id', session.user.id)
     .maybeSingle()
 
-  let klubber = []
+  let klubber: number[] = []
   if (profil?.rolle === 'klubbadmin') {
     const { data } = await supabase
       .from('klubbadmin_klubber')
@@ -24,35 +25,35 @@ async function _hentCache() {
     klubber = (data ?? []).map(r => r.klubbid)
   }
 
-  _cache = { user: session.user, profil: profil ?? null, klubber }
+  _cache = { user: session.user, profil: profil as Profil | null, klubber }
   return _cache
 }
 
-export async function getUser() {
+export async function getUser(): Promise<AuthUser | null> {
   return _hentCache()
 }
 
-export async function getRolle() {
+export async function getRolle(): Promise<Rolle | null> {
   const auth = await _hentCache()
-  return auth?.profil?.rolle ?? null
+  return (auth?.profil?.rolle as Rolle) ?? null
 }
 
-export async function erInnlogget() {
+export async function erInnlogget(): Promise<boolean> {
   return (await _hentCache()) !== null
 }
 
-export async function erAdmin() {
+export async function erAdmin(): Promise<boolean> {
   return (await getRolle()) === 'admin'
 }
 
-export async function erKlubbadmin(klubbId = null) {
+export async function erKlubbadmin(klubbId: number | string | null = null): Promise<boolean> {
   const auth = await _hentCache()
   if (!auth || auth.profil?.rolle !== 'klubbadmin') return false
   if (klubbId === null) return true
   return auth.klubber.includes(Number(klubbId))
 }
 
-export async function loggUt() {
+export async function loggUt(): Promise<void> {
   _cache = null
   await supabase.auth.signOut()
 }
