@@ -4,7 +4,7 @@ import { renderGruppefordeling, renderGruppePreview, renderGruppePanelInnhald, r
 import { genererCupRunde1, genererNesteCupRundeForGruppe, genererFinaleOgBronsefinale } from './kampgenerering-db.js'
 import { opnNumberpad } from './score-numberpad.js'
 import { scoreForSp } from '../utils/kamp.js'
-import { sorterStilling, renderAvsluttendeKnappar, lagOnEndringHandler, bindStillingDetaljar, renderHovudInnhald, bindTabToggle, renderStillingTabell } from './org-shared.js'
+import { sorterStilling, renderAvsluttendeKnappar, lagOnEndringHandler, bindStillingDetaljar, renderHovudInnhald, bindTabToggle, renderStillingTabell, beregnKanBekrefte } from './org-shared.js'
 
 let kanal = null
 let bannerSlot = null
@@ -199,12 +199,20 @@ function renderKampBlock(kamp, startnrMap, isAdmin = true, stillingMap = {}) {
       }).join('')
 
   const harOmgangar = (kamp.spelarar ?? []).some(s => (s.omgangar?.length ?? 0) > 0)
-  const bekrftKlass = bekrefta && !kamp.er_tre_spelarar ? 'btn-secondary' : (bekrefta ? 'btn-success' : 'btn-outline-secondary')
-  const bekrftTekst = kamp.er_tre_spelarar
-    ? (bekrefta ? 'Endre plassering' : 'Sett plassering')
-    : (bekrefta ? 'Bekreftet' : 'Bekreft')
-  const bekrftDisabled = (bekrefta && !kamp.er_tre_spelarar) || (!bekrefta && harOmgangar)
-  const bekreftKnappKlass = kamp.er_tre_spelarar ? '' : ' btn-bekreft'
+
+  let bekrftKlass, bekrftTekst, bekrftDisabled, bekreftKnappKlass
+  if (kamp.er_tre_spelarar) {
+    bekrftKlass = bekrefta ? 'btn-success' : 'btn-outline-secondary'
+    bekrftTekst = bekrefta ? 'Endre plassering' : 'Sett plassering'
+    bekrftDisabled = false
+    bekreftKnappKlass = ''
+  } else {
+    const kanBekrefte = beregnKanBekrefte(kamp, sp, harOmgangar)
+    bekrftKlass = bekrefta ? 'btn-secondary' : (kanBekrefte ? 'btn-success' : 'btn-outline-secondary')
+    bekrftTekst = bekrefta ? 'Bekreftet' : 'Bekreft'
+    bekrftDisabled = bekrefta || !kanBekrefte
+    bekreftKnappKlass = ' btn-bekreft'
+  }
 
   return `
     <div class="avsl-kamp-block">

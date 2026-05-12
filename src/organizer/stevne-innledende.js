@@ -3,7 +3,7 @@ import { opnNumberpad } from './score-numberpad.js'
 import { beregnKampPoeng, hentP1P2, scoreForSp, ringerForSp } from '../utils/kamp.js'
 import { genererNesteSwissRunde } from './kampgenerering-db.js'
 import { autoFullforInnledendeKamper } from '../utils/organizer-test-utils.js'
-import { byggInnledendeSpelMap, sorterStilling, renderInnledendeKnappar, lagOnEndringHandler, bindStillingDetaljar, renderHovudInnhald, bindTabToggle, renderStillingTabell } from './org-shared.js'
+import { byggInnledendeSpelMap, sorterStilling, renderInnledendeKnappar, lagOnEndringHandler, bindStillingDetaljar, renderHovudInnhald, bindTabToggle, renderStillingTabell, beregnKanBekrefte } from './org-shared.js'
 import { printStartkort } from './startkort-print.js'
 
 let kanal = null
@@ -300,7 +300,7 @@ function kampRad(kamp, startnrMap, isAdmin = true, hcpMap = {}) {
 
   const harPoeng = kamp.er_bekreftet || kamp.er_walkover || harOmgangar || s1Raw > 0 || s2Raw > 0
 
-  const kanBekrefte = !kamp.er_bekreftet && (kamp.er_walkover || (!harOmgangar && (s1 + hcp1 >= 21 || s2 + hcp2 >= 21)))
+  const kanBekrefte = beregnKanBekrefte(kamp, [p1, p2], harOmgangar, hcpMap)
   const bekrfKlass = kamp.er_bekreftet ? 'btn-secondary' : (kanBekrefte ? 'btn-success' : 'btn-outline-secondary')
   const bekrfTekst = kamp.er_bekreftet ? 'Bekreftet' : 'Bekreft'
   const bekrfDisabled = kamp.er_bekreftet || !kanBekrefte ? ' disabled' : ''

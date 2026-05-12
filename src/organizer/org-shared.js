@@ -34,6 +34,18 @@ export function renderSpelarkamparDetalj(kasterid, kamper, startnrMap) {
   }).join('')
 }
 
+export function beregnKanBekrefte(kamp, sp, harOmgangar, hcpMap = {}) {
+  const bekrefta = kamp.er_bekreftet || kamp.er_walkover
+  if (bekrefta) return false
+  if (kamp.er_walkover) return true
+  if (harOmgangar) return false
+  const hcp1 = hcpMap[sp[0]?.kasterid] ?? 0
+  const hcp2 = hcpMap[sp[1]?.kasterid] ?? 0
+  const s1 = scoreForSp(sp[0])
+  const s2 = sp[1] ? scoreForSp(sp[1]) : 0
+  return s1 + hcp1 >= 21 || s2 + hcp2 >= 21
+}
+
 export function renderHovudInnhald(kamperHtml, stillingHtml) {
   return `
     <div class="org-hovud-innhald">
