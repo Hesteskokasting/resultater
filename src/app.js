@@ -1,3 +1,4 @@
+import 'bootstrap'
 import { render as renderHome }          from './pages/home.js'
 import { render as renderResultat }       from './pages/resultat.js'
 import { render as renderTerminliste }    from './pages/terminliste.js'

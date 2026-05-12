@@ -1,3 +1,5 @@
+import * as XLSX from 'xlsx'
+
 // ── Dato-formatering ──────────────────────────────────────────────────────────
 
 const datoFmtKort    = new Intl.DateTimeFormat('nb-NO', { day: '2-digit', month: '2-digit', year: 'numeric' })

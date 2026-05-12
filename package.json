@@ -1,15 +1,25 @@
 {
-  "name": "resultater-frontend",
+  "name": "resultater",
   "version": "1.0.0",
   "description": "",
-  "main": "app.js",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/zonaren/resultater.git"
+    "url": "git+https://github.com/hesteskokasting/resultater.git"
   },
   "license": "ISC",
-  "type": "commonjs",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
   "devDependencies": {
-    "supabase": "^2.93.0"
+    "supabase": "^2.93.0",
+    "vite": "^8.0.12"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.105.4",
+    "bootstrap": "^5.3.8",
+    "chart.js": "^4.5.1",
+    "xlsx": "^0.18.5"
   }
 }

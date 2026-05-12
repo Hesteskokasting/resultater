@@ -1,7 +1,10 @@
+import { Chart, registerables } from 'chart.js'
 import { supabase } from '../supabase.js'
 import { kasterNavn, lagKasterSlug as lagSlug } from '../utils/kaster.js'
 import { getUser } from '../utils/auth.js'
 import { formaterDato } from '../utils/shared.js'
+
+Chart.register(...registerables)
 
 // ── Konstanter ────────────────────────────────────────────────────────────────
 
