@@ -475,13 +475,18 @@ function bindKampEvents(container, stevneid, avslKampar, startnrMap, resultat, a
       const p1Namn = p1?.kaster ? `${p1.kaster.fornavn} ${p1.kaster.etternavn}` : '—'
       const p2Namn = p2?.kaster ? `${p2.kaster.fornavn} ${p2.kaster.etternavn}` : '—'
       const handler = () => {
-        opnNumberpad(p1Namn, p2Namn, p1?.score_poeng ?? 0, p2?.score_poeng ?? 0, async (nyS1, nyS2) => {
+        opnNumberpad(p1Namn, p2Namn, scoreForSp(p1), scoreForSp(p2), async (nyS1, nyS2) => {
+          const spelarIds = [p1?.id, p2?.id].filter(Boolean)
+          if (spelarIds.length) await supabase.from('kamp_omgang').delete().in('kamp_spelar_id', spelarIds)
           const updates = []
           if (p1) updates.push(supabase.from('kamp_spelar').update({ score_poeng: nyS1 }).eq('id', p1.id))
           if (p2) updates.push(supabase.from('kamp_spelar').update({ score_poeng: nyS2 }).eq('id', p2.id))
           const results = await Promise.all(updates)
           const dbErr = results.find(r => r.error)?.error
           if (dbErr) { alert('DB-feil: ' + dbErr.message); return }
+          const nyVinnar = nyS1 >= nyS2 ? p1 : p2
+          const nyTapar = nyS1 >= nyS2 ? p2 : p1
+          await _oppdaterVinnarTapar(stevneid, kamp, sp, nyVinnar?.kasterid, nyTapar?.kasterid)
           await lastOgVis(container, stevneid)
         })
       }
@@ -592,6 +597,40 @@ async function _autoGenererFinaleViss(stevneid, kamp) {
     .eq('runde_navn', 'Semifinale')
   if (semis?.every(s => s.er_bekreftet)) {
     await genererFinaleOgBronsefinale(stevneid, kamp.gruppe_navn)
+  }
+}
+
+// --- Oppdater vinnar/tapar etter score-endring på bekrefta kamp ---
+
+async function _oppdaterVinnarTapar(stevneid, kamp, sp, nyVinnarId, nyTaparId) {
+  const allKasterids = sp.map(s => s.kasterid).filter(Boolean)
+  const erFinale = kamp.runde_navn === 'Finale'
+  const erBronsefinale = kamp.runde_navn === 'Bronsefinale'
+
+  if (erFinale || erBronsefinale) {
+    await supabase.from('resultat')
+      .update({ runde_eliminert: null, plassering: null })
+      .eq('stevneid', stevneid)
+      .in('kasterid', allKasterids)
+    const tapPlass = erFinale ? 2 : 4
+    if (nyTaparId) await supabase.from('resultat')
+      .update({ runde_eliminert: kamp.runde_nummer, plassering: tapPlass })
+      .eq('stevneid', stevneid).eq('kasterid', nyTaparId)
+    const vinUpdate = erFinale
+      ? { plassering: 1 }
+      : { runde_eliminert: kamp.runde_nummer, plassering: 3 }
+    if (nyVinnarId) await supabase.from('resultat')
+      .update(vinUpdate)
+      .eq('stevneid', stevneid).eq('kasterid', nyVinnarId)
+  } else {
+    await supabase.from('resultat')
+      .update({ runde_eliminert: null })
+      .eq('stevneid', stevneid)
+      .eq('runde_eliminert', kamp.runde_nummer)
+      .in('kasterid', allKasterids)
+    if (nyTaparId) await supabase.from('resultat')
+      .update({ runde_eliminert: kamp.runde_nummer })
+      .eq('stevneid', stevneid).eq('kasterid', nyTaparId)
   }
 }
 

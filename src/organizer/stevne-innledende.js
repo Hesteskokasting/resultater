@@ -23,7 +23,7 @@ export async function render(container, { id, isAdmin: _isAdmin = false } = {}, 
 async function lastOgVis(container, stevneid) {
   const [{ data: stevne }, { data: kamper }, { data: resultatListe }] = await Promise.all([
     supabase.from('stevne').select(`
-      id, navn, erfullfort,
+      id, navn, erfullfort, stevne_fase,
       kastemetode:innledendekastemetodeid(id, navn)
     `).eq('id', stevneid).single(),
     supabase.from('kamp')
@@ -76,6 +76,7 @@ async function lastOgVis(container, stevneid) {
   )
 
   const erAlleKamperBekreftet = alleKamper.length > 0 && alleKamper.every(k => k.er_bekreftet)
+  const kanEndreKampar = isAdmin && stevne.stevne_fase !== 'avsluttende'
 
   const sisteRundeNr = rundeMap.size ? Math.max(...rundeMap.keys()) : 0
   const harFleirRundar = erNordhordland && rundeMap.size > 1
@@ -93,7 +94,7 @@ async function lastOgVis(container, stevneid) {
     ? new Map([[sisteRundeNr, rundeMap.get(sisteRundeNr) ?? []]])
     : rundeMap
 
-  const kamperHtml = [...rundarSomVisast.entries()].map(([nr, rKamper]) => renderRunde(nr, rKamper, startnrMap, isAdmin, hcpMap)).join('')
+  const kamperHtml = [...rundarSomVisast.entries()].map(([nr, rKamper]) => renderRunde(nr, rKamper, startnrMap, kanEndreKampar, hcpMap)).join('')
   const harHcp = isAdmin || stilling.some(s => (s.hcp ?? 0) > 0)
   const stillingHtml = renderStillingTabell(stilling, alleKamper, startnrMap, {
     tableId: 'stilling-innl',
@@ -207,7 +208,7 @@ if (erSwiss) {
       bekreftKamp(container, stevneid, kamp, startnrMap, hcpMap)
     )
 
-    if (isAdmin && kamp.er_bekreftet) {
+    if (kanEndreKampar && kamp.er_bekreftet) {
       const [p1, p2] = hentP1P2(kamp.spelarar, startnrMap)
       const p1Namn = p1?.kaster ? `${p1.kaster.fornavn} ${p1.kaster.etternavn}` : '—'
       const p2Namn = p2?.kaster ? `${p2.kaster.fornavn} ${p2.kaster.etternavn}` : '—'
