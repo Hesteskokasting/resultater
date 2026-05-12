@@ -184,15 +184,15 @@ function renderKampBlock(kamp, startnrMap, isAdmin = true, stillingMap = {}) {
       </tr>`
     : sp.map(s => {
         const tot = scoreForSp(s)
-        const score = kamp.er_bekreftet || tot > 0 ? tot : '0'
+        const score = tot > 0 ? tot : '—'
         const erEliminert = kamp.er_bekreftet && stillingMap[s.kasterid]?.runde_eliminert === kamp.runde_nummer
         const erVidare = kamp.er_bekreftet && !erEliminert
         const radKlass = erEliminert ? 'kamp-eliminert' : (erVidare ? 'kamp-vidare' : '')
         const scoreAttr = kanEndreScore
-          ? ` data-endre-score="${kamp.id}" class="text-end score-redigerbar"`
-          : ' class="text-end"'
+          ? ` data-endre-score="${kamp.id}" class="text-center score-redigerbar"`
+          : ' class="text-center"'
         return `<tr${radKlass ? ` class="${radKlass}"` : ''}>
-          <td class="th-36">${startnrMap[s.kasterid] ?? ''}</td>
+          <td class="th-36 text-center">${startnrMap[s.kasterid] ?? ''}</td>
           <td>${spelarNamn(s)}</td>
           <td${scoreAttr}>${score}</td>
         </tr>`
