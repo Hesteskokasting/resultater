@@ -34,6 +34,123 @@ export function renderSpelarkamparDetalj(kasterid, kamper, startnrMap) {
   }).join('')
 }
 
+export function renderHovudInnhald(kamperHtml, stillingHtml) {
+  return `
+    <div class="org-hovud-innhald">
+      <div class="org-tab-knappar btn-group w-100 mb-2">
+        <button class="btn btn-primary org-tab-btn" data-tab="kamper">Kampar</button>
+        <button class="btn btn-outline-primary org-tab-btn" data-tab="stilling">Stilling</button>
+      </div>
+      <div class="d-flex gap-3 align-items-start org-innhald-rad">
+        <div class="flex-grow-1 org-kampar-panel">${kamperHtml}</div>
+        <div class="org-stilling-kol">${stillingHtml}</div>
+      </div>
+    </div>`
+}
+
+export function bindTabToggle(container) {
+  const wrapper = container.querySelector('.org-hovud-innhald')
+  if (!wrapper) return
+  container.querySelectorAll('.org-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const isStilling = btn.dataset.tab === 'stilling'
+      wrapper.classList.toggle('org-vis-stilling', isStilling)
+      container.querySelectorAll('.org-tab-btn').forEach(b => {
+        b.classList.toggle('btn-primary', b.dataset.tab === btn.dataset.tab)
+        b.classList.toggle('btn-outline-primary', b.dataset.tab !== btn.dataset.tab)
+      })
+    })
+  })
+}
+
+export function renderStillingTabell(stilling, kamper, startnrMap, opts = {}) {
+  const {
+    tableId = 'stilling-tabell',
+    isAdmin = false,
+    stevneid = null,
+    harHcp = false,
+    harGrupper = false,
+    harEliminasjon = false,
+    harAntallKamper = false,
+  } = opts
+
+  const extraCols = (harHcp ? 1 : 0) + (harAntallKamper ? 1 : 0)
+  const colspan = 5 + extraCols
+  const thW = harAntallKamper ? 'th-32' : 'th-28'
+
+  const gruppeMap = new Map()
+  for (const r of stilling) {
+    const g = harGrupper ? (r.gruppe?.navn ?? '_') : '_'
+    if (!gruppeMap.has(g)) gruppeMap.set(g, [])
+    gruppeMap.get(g).push(r)
+  }
+
+  const harFleirGrupper = gruppeMap.size > 1 || !gruppeMap.has('_')
+  const tittel = harAntallKamper ? `${stilling.length} spelarar` : 'Stilling'
+
+  const rows = [...gruppeMap.entries()].flatMap(([g, spelararIGruppe]) => {
+    const aktivCount = spelararIGruppe.filter(r => r.runde_eliminert == null).length
+    const gruppeHeader = harFleirGrupper && g !== '_'
+      ? `<tr><td colspan="${colspan}" class="fw-semibold ps-2">Gruppe ${g}</td></tr>`
+      : ''
+    const playerRows = spelararIGruppe.map((r, i) => {
+      const erEliminert = harEliminasjon && r.runde_eliminert != null
+      const hcp = r.hcp ?? 0
+      const hcpCelle = harHcp
+        ? (isAdmin
+          ? `<td class="text-center stilling-hcp-celle" data-kasterid="${r.kasterid}" data-stevneid="${stevneid}">${hcp > 0 ? hcp : '—'}</td>`
+          : `<td class="text-center">${hcp > 0 ? hcp : '—'}</td>`)
+        : ''
+      const antallCelle = harAntallKamper
+        ? `<td class="text-center">${r.antall_kamper ?? 0}</td>`
+        : ''
+      return `
+        <tr data-kasterid="${r.kasterid}" class="stilling-spelar-rad">
+          <td${erEliminert ? ' class="avsl-elim-plass"' : ''}>${i + 1}</td>
+          <td>${r.startnummer ?? ''}</td>
+          <td>${r.namn ?? `Spelar ${r.kasterid}`}</td>
+          ${antallCelle}
+          <td class="text-center">${r.kamp_poeng ?? 0}</td>
+          <td class="text-center">${r.score_poeng ?? 0}</td>
+          ${hcpCelle}
+        </tr>
+        <tr class="stilling-detalj" data-kasterid="${r.kasterid}" hidden>
+          <td colspan="${colspan}" class="p-0">
+            <table class="stilling-detalj-tabell table table-sm table-bordered mb-0">
+              <thead><tr>
+                <th class="text-center">Runde</th>
+                <th class="text-center">Bane</th>
+                <th>Motstandar</th>
+                <th class="text-center">Resultat</th>
+              </tr></thead>
+              <tbody>${renderSpelarkamparDetalj(r.kasterid, kamper, startnrMap)}</tbody>
+            </table>
+          </td>
+        </tr>`
+    }).join('')
+    return gruppeHeader + playerRows
+  }).join('')
+
+  return `
+    <div>
+      <h6 class="text-center fw-bold mb-1">${tittel}</h6>
+      <table id="${tableId}" class="table table-bordered table-sm mb-0 bg-white">
+        <thead class="table-dark">
+          <tr>
+            <th class="${thW}">#</th>
+            <th class="${thW}">S</th>
+            <th>NAMN</th>
+            ${harAntallKamper ? '<th class="th-50 text-center">ANT.</th>' : ''}
+            <th class="th-44 text-center">KP</th>
+            <th class="th-44 text-center">SP</th>
+            ${harHcp ? '<th class="th-44 text-center">HCP</th>' : ''}
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`
+}
+
 export function bindStillingDetaljar(container, tableId) {
   const tabell = container.querySelector(`#${tableId}`)
   if (!tabell) return

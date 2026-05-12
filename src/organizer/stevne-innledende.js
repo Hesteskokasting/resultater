@@ -3,7 +3,7 @@ import { opnNumberpad } from './score-numberpad.js'
 import { beregnKampPoeng, hentP1P2, scoreForSp, ringerForSp } from '../utils/kamp.js'
 import { genererNesteSwissRunde } from './kampgenerering-db.js'
 import { autoFullforInnledendeKamper } from '../utils/organizer-test-utils.js'
-import { byggInnledendeSpelMap, sorterStilling, renderInnledendeKnappar, lagOnEndringHandler, renderSpelarkamparDetalj, bindStillingDetaljar } from './org-shared.js'
+import { byggInnledendeSpelMap, sorterStilling, renderInnledendeKnappar, lagOnEndringHandler, bindStillingDetaljar, renderHovudInnhald, bindTabToggle, renderStillingTabell } from './org-shared.js'
 import { printStartkort } from './startkort-print.js'
 
 let kanal = null
@@ -93,17 +93,19 @@ async function lastOgVis(container, stevneid) {
     ? new Map([[sisteRundeNr, rundeMap.get(sisteRundeNr) ?? []]])
     : rundeMap
 
-  container.innerHTML = `
-    <div class="d-flex gap-3 align-items-start">
-      <div class="flex-grow-1">
-        ${[...rundarSomVisast.entries()].map(([nr, rKamper]) => renderRunde(nr, rKamper, startnrMap, isAdmin, hcpMap)).join('')}
-      </div>
-      <div class="org-stilling-sidebar">
-        ${renderStilling(stilling, alleKamper, startnrMap, isAdmin, stevneid)}
-      </div>
-    </div>
-  `
+  const kamperHtml = [...rundarSomVisast.entries()].map(([nr, rKamper]) => renderRunde(nr, rKamper, startnrMap, isAdmin, hcpMap)).join('')
+  const harHcp = isAdmin || stilling.some(s => (s.hcp ?? 0) > 0)
+  const stillingHtml = renderStillingTabell(stilling, alleKamper, startnrMap, {
+    tableId: 'stilling-innl',
+    isAdmin,
+    stevneid,
+    harHcp,
+    harAntallKamper: true,
+  })
 
+  container.innerHTML = renderHovudInnhald(kamperHtml, stillingHtml)
+
+  bindTabToggle(container)
   bindStillingDetaljar(container, 'stilling-innl')
 
   if (isAdmin) {
@@ -299,7 +301,8 @@ function kampRad(kamp, startnrMap, isAdmin = true, hcpMap = {}) {
   const harPoeng = kamp.er_bekreftet || kamp.er_walkover || harOmgangar || s1Raw > 0 || s2Raw > 0
 
   const kanBekrefte = !kamp.er_bekreftet && (kamp.er_walkover || (!harOmgangar && (s1 + hcp1 >= 21 || s2 + hcp2 >= 21)))
-  const bekrfKlass = kamp.er_bekreftet || kanBekrefte ? 'btn-success' : 'btn-outline-secondary'
+  const bekrfKlass = kamp.er_bekreftet ? 'btn-secondary' : (kanBekrefte ? 'btn-success' : 'btn-outline-secondary')
+  const bekrfTekst = kamp.er_bekreftet ? 'Bekreftet' : 'Bekreft'
   const bekrfDisabled = kamp.er_bekreftet || !kanBekrefte ? ' disabled' : ''
   const scoreboardDisabled = kamp.er_bekreftet && !harOmgangar ? ' disabled' : ''
   const scoreEndrAttr = isAdmin && kamp.er_bekreftet ? ` data-endre-score="${kamp.id}" class="text-center score-redigerbar"` : ' class="text-center"'
@@ -313,65 +316,11 @@ function kampRad(kamp, startnrMap, isAdmin = true, hcpMap = {}) {
       <td class="text-end pe-2">
         ${isAdmin ? `<button class="btn btn-primary btn-sm" id="plus-${kamp.id}"${kamp.er_bekreftet ? ' disabled' : ''}>+</button>` : ''}
         <button class="btn btn-secondary btn-sm" id="scoreboard-${kamp.id}" data-bane="${kamp.bane_nummer ?? ''}" title="Scoreboard"${scoreboardDisabled}>S</button>
-        ${isAdmin ? `<button class="btn ${bekrfKlass} btn-sm" id="bekrft-${kamp.id}"${bekrfDisabled}>Bekreft</button>` : ''}
+        ${isAdmin ? `<button class="btn ${bekrfKlass} btn-sm btn-bekreft" id="bekrft-${kamp.id}"${bekrfDisabled}>${bekrfTekst}</button>` : ''}
       </td>
     </tr>`
 }
 
-function renderStilling(stilling, alleKamper, startnrMap, isAdmin = false, stevneid = null) {
-  const harHcp = isAdmin || stilling.some(s => (s.hcp ?? 0) > 0)
-  const colspan = harHcp ? 7 : 6
-  return `
-    <div>
-      <h6 class="text-center fw-bold mb-1">${stilling.length} spelarar</h6>
-      <table id="stilling-innl" class="table table-bordered table-sm mb-0 bg-white">
-        <thead class="table-dark">
-          <tr>
-            <th class="th-32">#</th>
-            <th class="th-32">S</th>
-            <th>NAMN</th>
-            <th class="th-50 text-center">ANT.</th>
-            <th class="th-44 text-center">KP</th>
-            <th class="th-44 text-center">SP</th>
-            ${harHcp ? '<th class="th-44 text-center">HCP</th>' : ''}
-          </tr>
-        </thead>
-        <tbody>
-          ${stilling.map((s, i) => {
-            const hcp = s.hcp ?? 0
-            const hcpCelle = harHcp
-              ? (isAdmin
-                ? `<td class="text-center stilling-hcp-celle" data-kasterid="${s.kasterid}" data-stevneid="${stevneid}">${hcp > 0 ? hcp : '—'}</td>`
-                : `<td class="text-center">${hcp > 0 ? hcp : '—'}</td>`)
-              : ''
-            return `
-            <tr data-kasterid="${s.kasterid}" class="stilling-spelar-rad">
-              <td>${i + 1}</td>
-              <td>${s.startnummer ?? ''}</td>
-              <td>${s.namn}</td>
-              <td class="text-center">${s.antall_kamper}</td>
-              <td class="text-center">${s.kamp_poeng}</td>
-              <td class="text-center">${s.score_poeng}</td>
-              ${hcpCelle}
-            </tr>
-            <tr class="stilling-detalj" data-kasterid="${s.kasterid}" hidden>
-              <td colspan="${colspan}" class="p-0">
-                <table class="stilling-detalj-tabell table table-sm table-bordered mb-0">
-                  <thead><tr>
-                    <th class="text-center">Runde</th>
-                    <th class="text-center">Bane</th>
-                    <th>Motstandar</th>
-                    <th class="text-center">Resultat</th>
-                  </tr></thead>
-                  <tbody>${renderSpelarkamparDetalj(s.kasterid, alleKamper, startnrMap)}</tbody>
-                </table>
-              </td>
-            </tr>`
-          }).join('')}
-        </tbody>
-      </table>
-    </div>`
-}
 
 async function bekreftKamp(container, stevneid, kamp, startnrMap, hcpMap = {}) {
   const { data: spelarar, error: spErr } = await supabase

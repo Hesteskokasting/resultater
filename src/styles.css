@@ -726,8 +726,23 @@ a.stevne-navn {
   border-radius: 0.375rem;
 }
 
-.org-stilling-sidebar { width: 400px; flex-shrink: 0; }
 .org-max-480 { max-width: 480px; }
+.org-tab-knappar  { display: none; }
+.org-stilling-kol { width: 360px; flex-shrink: 0; }
+.org-kampar-panel { min-width: 0; }
+.btn-bekreft      { min-width: 5rem; }
+
+@media (max-width: 899px) {
+  .org-tab-knappar  { display: flex; margin-bottom: 0.75rem; }
+  .org-tab-btn      { flex: 1; }
+  .org-stilling-kol { width: 100%; }
+  .org-hovud-innhald .org-stilling-kol                    { display: none; }
+  .org-hovud-innhald.org-vis-stilling .org-kampar-panel   { display: none !important; }
+  .org-hovud-innhald.org-vis-stilling .org-stilling-kol   { display: block; }
+}
+
+.kamp-vidare td    { background: color-mix(in srgb, #28a745 10%, transparent) !important; }
+.kamp-eliminert td { background: color-mix(in srgb, var(--feil) 10%, transparent) !important; }
 
 .stilling-spelar-rad { cursor: pointer; }
 .stilling-spelar-rad:hover td { background-color: var(--primaer-aktiv) !important; }
@@ -1519,33 +1534,12 @@ a.stevne-navn {
 
 /* ── Avsluttande fase ── */
 
-
 .avsl-gruppe-kol  { flex: 1 1 0; min-width: 0; }
 
 #gruppe-val-wrapper .form-check { min-height: 44px; display: flex; align-items: center; }
 .avsl-kamp-block  { width: calc(50% - 0.5rem); min-width: 220px; }
-.avsl-stilling-kol { width: 360px; flex-shrink: 0; }
 .avsl-stilling-einzel { max-width: 400px; }
-.avsl-tab-knappar    { display: none; }
-.avsl-kampar-panel   { min-width: 0; }
-
-@media (max-width: 899px) {
-  .avsl-tab-knappar  { display: flex; margin-bottom: 0.75rem; }
-  .avsl-tab-btn      { flex: 1; }
-  .avsl-stilling-kol { width: 100%; }
-  .avsl-hovudinnhald .avsl-stilling-kol          { display: none; }
-  .avsl-hovudinnhald.avsl-vis-resultat .avsl-kampar-panel { display: none !important; }
-  .avsl-hovudinnhald.avsl-vis-resultat .avsl-stilling-kol { display: block; }
-}
 .avsl-maks-600 { max-width: 600px; margin-inline: auto; }
-
-.avsl-elim-separator {
-  padding: 0 !important;
-  border-top: 2px solid var(--feil) !important;
-  border-left: none !important;
-  border-right: none !important;
-  border-bottom: none !important;
-}
 
 .avsl-elim-plass {
   background: color-mix(in srgb, var(--feil) 15%, transparent);
