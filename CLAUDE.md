@@ -15,6 +15,14 @@
 
 ---
 
+## Type Checking
+
+- Run `npm run typecheck` (which calls `tsc --noEmit`) to verify types.
+- Vite does not type-check — it only strips types. Always typecheck before considering work done.
+- The `build` script includes typecheck and will fail on type errors.
+
+---
+
 ## Component-First Architecture
 
 - **ALWAYS create reusable components** for UI elements. This includes (but is not limited to): buttons, modals, tables, forms, inputs, toasts, cards, dropdowns.
