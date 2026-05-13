@@ -1,7 +1,6 @@
 # Project Instructions for Claude
 
-> These rules are **mandatory**, not suggestions. Follow them strictly unless I explicitly tell you otherwise in a specific request. 
-> Be critical to my suggestions and/or prioritations. Don't blindly accept without considering the consequenses first
+> These rules are **mandatory**, not suggestions. Follow them strictly unless I explicitly tell you otherwise in a specific request.
 
 ---
 
@@ -130,6 +129,40 @@ src/
 
 - **NEVER** run `git add`, `git commit`, `git push`, `git pull`, or any branch/remote operation unless I explicitly ask.
 - If you think a commit is appropriate, suggest it — don't execute it.
+
+---
+
+## Critical Thinking & Pushback
+
+**Do not blindly accept my plans or proposals.** I want a thinking collaborator, not a yes-man.
+
+- **Challenge my ideas** when you see issues. If my proposed approach has a flaw, a simpler alternative, a performance problem, a security risk, or violates the rules above — say so *before* writing code.
+- **Suggest alternatives** when relevant. Frame them clearly: "You proposed X. An alternative is Y, which trades off A for B. I'd recommend Y because..."
+- **Prioritize ruthlessly.** When I give you a list of things to fix, tell me which ones matter most and which can wait. Don't just work top-to-bottom.
+- **Point out scope creep.** If I'm asking for something bigger than I seem to realize, say so before starting.
+- **Flag technical debt** you notice along the way, even if I didn't ask. Don't fix it silently — mention it so I can decide.
+- **Disagree respectfully but clearly.** "I'd push back on this because..." is better than silent compliance.
+- **Don't apologize for disagreeing.** If you have a reasoned objection, state it directly.
+
+---
+
+## Ask Questions When Unclear
+
+**When something is ambiguous, ASK before writing code.** Wrong assumptions waste more time than a clarifying question.
+
+Ask when:
+- The requirement is ambiguous ("make it better" — better how?)
+- There are multiple reasonable interpretations
+- The request conflicts with existing code or the rules in this file
+- You're about to make a decision that's hard to reverse (schema change, new dependency, architectural pattern)
+- You're missing context that would meaningfully change the implementation
+
+**Do not ask** when:
+- The answer is obvious from context
+- It's a trivial choice that can easily be changed later
+- You're stalling instead of just trying something
+
+Prefer **one focused question** over a long list. If you genuinely need multiple answers, number them.
 
 ---
 
