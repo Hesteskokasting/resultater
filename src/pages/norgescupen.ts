@@ -7,6 +7,7 @@ import {
   byggLagListe,
 } from '../utils/norgescup'
 import { formaterDato, arOptions } from '../utils/shared'
+import { lasterHtml, feilHtml } from '../utils/pageStates'
 import type { Tables } from '../types'
 import type { ResultatMedRelasjonar, SingelListeRad, LagListeRad, StevneForNc } from '../utils/norgescup'
 
@@ -193,11 +194,11 @@ export async function render(container: HTMLElement): Promise<void> {
   filtre.visning = 'singel'
   cache = { ar: null, regler: null, stevner: [], resultater: [] }
 
-  container.innerHTML = '<p class="laster">Laster Norgescupen...</p>'
+  container.innerHTML = lasterHtml('Laster Norgescupen...')
 
   const feil = await hentOgBufferData(filtre.ar)
   if (feil) {
-    container.innerHTML = '<p class="feil">Kunne ikkje laste data for Norgescupen.</p>'
+    container.innerHTML = feilHtml('Kunne ikkje laste data for Norgescupen.')
     return
   }
 
@@ -286,10 +287,10 @@ export async function render(container: HTMLElement): Promise<void> {
       filtre.visning = 'singel'
       container.querySelector<HTMLSelectElement>('#nc-cuptype')!.value = 'NC'
     }
-    container.querySelector<HTMLElement>('#nc-content')!.innerHTML = '<p class="laster">Laster...</p>'
+    container.querySelector<HTMLElement>('#nc-content')!.innerHTML = lasterHtml()
     const feil = await hentOgBufferData(filtre.ar)
     if (feil) {
-      container.querySelector<HTMLElement>('#nc-content')!.innerHTML = '<p class="feil">Feil ved henting av data.</p>'
+      container.querySelector<HTMLElement>('#nc-content')!.innerHTML = feilHtml('Feil ved henting av data.')
       return
     }
     oppdaterVisning()
