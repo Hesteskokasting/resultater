@@ -4,10 +4,10 @@ import { lasterHtml, feilHtml } from '../utils/pageStates'
 import { escHtml } from '../utils/escHtml'
 import { logError } from '../utils/logError'
 import { hentKlubbar, hentKlubbById } from '../services/klubbService'
-import { hentAktiveKastere, hentMedlemmar } from '../services/kasterService'
+import { hentKastereListeAktive, hentKlubbMedlemmar } from '../services/kasterService'
 import type { PageRenderFn } from '../types'
 import type { KlubbListeRow } from '../services/klubbService'
-import type { AktivKasterRow, MedlemRow } from '../services/kasterService'
+import type { MedlemRow } from '../services/kasterService'
 
 const PLACEHOLDER_LOGO = 'https://placehold.co/200x200/444/888?text=?'
 
@@ -91,9 +91,9 @@ async function renderListe(container: HTMLElement): Promise<void> {
   container.innerHTML = lasterHtml('Laster klubbar...')
 
   try {
-    const [{ data: alleKlubbar, error }, alleKastere] = await Promise.all([
+    const [{ data: alleKlubbar, error }, { data: alleKastere }] = await Promise.all([
       hentKlubbar(),
-      hentAktiveKastere(),
+      hentKastereListeAktive(),
     ])
 
     if (error) {
@@ -162,7 +162,7 @@ async function renderDetalj(container: HTMLElement, id: number): Promise<void> {
   try {
     const [klubbRes, { data: medlemmar }] = await Promise.all([
       hentKlubbById(id),
-      hentMedlemmar(id),
+      hentKlubbMedlemmar(id),
     ])
 
     if (klubbRes.error || !klubbRes.data) {
