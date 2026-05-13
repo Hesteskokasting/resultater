@@ -1567,3 +1567,27 @@ a.stevne-navn {
 /* ── Logg inn / Konto ────────────────────────────────────────────────────────── */
 
 .konto-container { max-width: 480px; }
+
+/* ── Klubbar ─────────────────────────────────────────────────────────────────── */
+
+.klubb-detalj-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.klubb-logo-stor {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  background: var(--kant-2);
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.klubb-detalj-tittel {
+  font-size: 1.8rem;
+  font-weight: bold;
+  margin: 0;
+}

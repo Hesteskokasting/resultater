@@ -132,14 +132,14 @@ Start with smaller, more isolated files. Bigger pages last, when you've found yo
 **Pages:**
 - [x] `src/pages/home.js` → `.ts`
 - [x] `src/pages/logginn.js` → `.ts`
-- [ ] `src/pages/klubber.js` → `.ts`
+- [x] `src/pages/klubber.js` → `.ts`
+- [ ] `src/pages/kastere.js` → `.ts` _(consider adding kastere-details to both pages and service. KEEP SINGEL FILE)_
 - [ ] `src/pages/rekorder.js` → `.ts` _(known bug: `klubb_namn`/`klubb_navn` typo to fix)_
 - [ ] `src/pages/nmvinnere.js` → `.ts`
 - [ ] `src/pages/minside.js` → `.ts`
 - [ ] `src/pages/pamelding.js` → `.ts`
 - [ ] `src/pages/terminliste.js` → `.ts`
-- [ ] `src/pages/resultat.js` → `.ts` _(unescaped `kasternavn()` injection — fix during migration)_
-- [ ] `src/pages/kastere.js` → `.ts`
+- [ ] `src/pages/resultat.js` → `.ts` _(unescaped `kasternavn()` injection — fix during migration. consider changing this from resultat to stevne, since this is actually the stevne with resultat in it. Get recommendation for claude)_
 - [ ] `src/pages/norgesranking.js` → `.ts`
 - [ ] `src/pages/kamp-scoreboard.js` → `.ts` _(do alongside Phase 3 scoreboard CSS fix)_
 
