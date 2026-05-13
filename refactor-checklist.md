@@ -1,196 +1,198 @@
-# Refactor Checklist
+# Refactor Checklist (Vertical Strategy)
 
-A step-by-step plan for cleaning up the codebase. Work through phases in order. Don't skip ahead — each phase builds on the previous one.
+A file-by-file plan for cleaning up the codebase. Based on the codebase analysis report.
+
+**Core principle:** Work **vertically** (one file at a time, fix everything in it) rather than **horizontally** (one issue across all files). This way each file is "done" when you close it, and you avoid opening the same file five times.
 
 **Rules:**
-- Commit after every meaningful change (small commits, not big ones).
-- Run the app and test after each round.
-- If a step feels too big, split it.
+- One file = one commit (or a few small commits per file).
+- Don't move to the next file until the current one passes the Definition of Done.
+- Run the app and test after each file.
 - Ask Claude Code for a **plan first**, code second.
 
 ---
 
-## Phase 0: Setup & Safety Net
+## Phase 0: Safety Net
 
-- [ X] Create a refactor branch: `git checkout -b refactor/cleanup`
-- [ X] Commit current state as snapshot: `git commit -am "Snapshot before refactor"`
-- [ X] Make sure the app still runs from a clean install (`npm install && npm run dev`)
-- [ X] Note down 2-3 critical user flows to test manually after each phase (e.g. "log in", "view stevne list", "create new utøver")
-
----
-
-## Phase 1: Analysis (don't change code yet)
-
-- [ X] Run this prompt in Claude Code:
-
-  > "Read the entire codebase and produce a report. I want:
-  > 1. Top 10 problems ranked by severity (duplication, type issues, structure, CSS mess, performance)
-  > 2. For each problem: where it is, why it's a problem, suggested fix
-  > 3. A prioritized order to fix them
-  >
-  > Don't write code yet. Just analyze."
-
-- [ X] Save the report somewhere (paste into `REFACTOR_NOTES.md` or similar)
-- [ X] Review and adjust priorities based on your own judgment
+- [ X] Create branch: `git checkout -b refactor/cleanup`
+- [ X] Snapshot commit: `git commit -am "Snapshot before refactor"`
+- [ X] Verify clean install works: `npm install && npm run dev`
+- [ X] Write down 3 critical flows to test after each file:
+  - [ X] Flow 1: log in
+  - [ X] Flow 2: add results to match (kamp)
+  - [ X] Flow 3: verify all files and routing in /pages work
 
 ---
 
-## Phase 2: Foundation (do this once, before anything else)
+## Phase 1: Build the Toolbox (do this FIRST, once)
 
-- [ X] Enable `"strict": true` in `tsconfig.json`
-- [ X] Note how many type errors appear: 0
-- [ X] Generate Supabase types: Already done
-  ```bash
-  supabase gen types typescript --project-id <id> > src/types/supabase.ts
+These are shared utilities you'll use when migrating every file. Build them now so they exist when you need them.
+
+### 1a. Error logging utility
+- [ ] Create `src/utils/logError.ts`:
+  ```ts
+  export function logError(context: string, error: unknown): void {
+    console.error(`[${context}]`, error);
+  }
   ```
-- [ X] Set up folder structure (create empty folders if they don't exist):
-  - [ X] `src/components/`
-  - [ X] `src/pages/`
-  - [ X] `src/services/`
-  - [ X] `src/utils/`
-  - [ X] `src/types/`
-  - [ X] `src/styles/`
-- [ X] Commit: `"Enable strict mode, generate types, set up folder structure"`
+- [ ] Commit: `"Add logError utility"`
+
+### 1b. HTML escape utility
+- [ ] Create `src/utils/escHtml.ts` with proper escaping (`&`, `<`, `>`, `"`, `'`)
+- [ ] **Delete** the existing `escAttr()` in `rekorder.js` (line ~29) and `_esc()` in `stevneadmin.js`
+- [ ] Update those two files' imports to use the new utility
+- [ ] Commit: `"Consolidate HTML escaping into escHtml utility"`
+
+### 1c. Date parsing utility
+- [ ] Create `src/utils/parseLocalDate.ts` for the `+ 'T12:00:00'` pattern
+- [ ] Commit: `"Add parseLocalDate utility"`
+
+### 1d. Dropdown options utility
+- [ ] Create `src/utils/buildDropdownOptions.ts` consolidating `_opt()` and `dropdownOptions()`
+- [ ] Commit: `"Add buildDropdownOptions utility"`
+
+### 1e. Type guards for auth (security-critical, do isolated)
+- [ ] In `src/utils/auth.ts`, add `isProfil(obj): obj is Profil` and `isRolle(value): value is Rolle`
+- [ ] Replace `as Profil` and `as Rolle` casts with validated narrowing
+- [ ] Test login + admin access carefully
+- [ ] Commit: `"Add runtime validation to auth type assertions"`
+
+> **Stop and verify:** all 5 utilities exist, app still runs, login still works.
 
 ---
 
-## Phase 3: Fix Type Errors
+## Phase 2: Per-File Migration
 
-> Goal: get to **zero** type errors before refactoring structure.
+Work through these files in order. For **each** file, complete the full Definition of Done before moving on.
 
-- [ ] Ask Claude Code:
-  > "I have X type errors after enabling strict mode. Go through them one by one and fix them. Explain each fix — what was wrong, why the new type is correct. Don't refactor structure yet, just fix types."
+### File order (easiest → hardest)
 
-- [ ] Replace all `any` with proper types or `unknown`
-- [ ] Remove all `as unknown as Type` casts — fix the underlying issue
-- [ ] Use generated Supabase types instead of hand-written duplicates
-- [ ] Commit in small batches as you go
+Start with smaller, more isolated files. Bigger pages last, when you've found your rhythm.
 
-**Tip:** If errors are overwhelming, ask Claude Code to group them by type (e.g. "all Supabase return type issues first").
+- [ ] `src/pages/logginn.js` → `.ts`
+- [ ] `src/pages/klubber.js` → `.ts`
+- [ ] `src/pages/rekorder.js` → `.ts` _(has known `klubb_namn`/`klubb_navn` bug to fix)_
+- [ ] `src/pages/nmvinnere.js` → `.ts`
+- [ ] `src/pages/minside.js` → `.ts`
+- [ ] `src/pages/pamelding.js` → `.ts`
+- [ ] `src/pages/terminliste.js` → `.ts`
+- [ ] `src/pages/resultat.js` → `.ts` _(has unescaped `kasternavn()` injection — fix during migration)_
+- [ ] `src/pages/kastere.js` → `.ts`
+- [ ] `src/pages/norgesranking.js` → `.ts`
+- [ ] `src/pages/kamp-scoreboard.js` → `.ts`
+- [ ] `src/admin/stevneadmin.js` → `.ts`
+- [ ] `src/admin/klubbadmin-side.js` → `.ts`
+- [ ] `src/admin/kasteradmin.js` → `.ts`
+- [ ] `src/app.js` → `.ts` _(do last — it's the entry point)_
 
----
-
-## Phase 4: Extract Components
-
-> Goal: every UI element appears in exactly one place.
-
-Work through these one at a time. Don't do all at once.
-
-- [ ] **Buttons**
-  - [ ] Find all manual `document.createElement('button')` calls
-  - [ ] Create `src/components/Button.ts` with a `createButton()` factory
-  - [ ] Replace all occurrences
-  - [ ] Test, commit
-
-- [ ] **Inputs / form fields**
-  - [ ] Create `createInput()`, `createSelect()`, etc.
-  - [ ] Replace all occurrences
-  - [ ] Test, commit
-
-- [ ] **Tables**
-  - [ ] Find table-building code
-  - [ ] Create `createTable()` with typed column definitions
-  - [ ] Replace all occurrences
-  - [ ] Test, commit
-
-- [ ] **Modals / dialogs**
-  - [ ] Create `createModal()` with open/close logic
-  - [ ] Replace all ad-hoc modal code
-  - [ ] Test, commit
-
-- [ ] **Cards / list items** (e.g. `StevneKort`)
-  - [ ] Identify repeating layout patterns
-  - [ ] Extract to components
-  - [ ] Test, commit
-
-- [ ] **Toasts / notifications**
-  - [ ] Remove all `alert()` calls
-  - [ ] Create `showToast()` with variants (success, error, info)
-  - [ ] Test, commit
-
-**Per-component prompt template:**
-> "Find all places where we manually build a [button/table/modal] in the codebase. Show me the list first. Then propose a `create[Name]` component. Wait for approval before replacing usages."
+> Adjust order as you learn. Promote dependencies of the file you're touching if needed.
 
 ---
 
-## Phase 5: Extract Services
+### Definition of Done (per file)
 
-> Goal: no Supabase calls outside `src/services/`.
+For **every** file you migrate, all of these must be checked off:
 
-- [ ] Ask Claude Code:
-  > "Find all Supabase calls in the codebase. Group them by table or feature. Propose a service-file structure in `src/services/`. Don't move anything yet — just show the plan."
+```
+□ Renamed .js → .ts
+□ Zero TypeScript errors (npm run typecheck passes)
+□ No `any` (explicit or implicit)
+□ No `as unknown as ...` casts
+□ All Supabase queries use explicit column lists (no select("*"))
+□ All Supabase errors go through logError()
+□ All user-sourced strings interpolated into innerHTML use escHtml()
+□ No inline styles in the .ts file
+□ All colors use CSS variables (var(--...))
+□ Duplicated helpers removed → import from src/utils/
+□ Manually tested in browser
+□ Tested all 3 critical flows from Phase 0
+□ Committed as a logical unit
+```
 
-- [ ] For each service file (one at a time):
-  - [ ] Create `src/services/<feature>Service.ts`
-  - [ ] Move related Supabase queries there as named exports
-  - [ ] Replace all direct Supabase calls with service imports
-  - [ ] Make sure `select(...)` only fetches columns actually used
-  - [ ] Test, commit
+### Per-file prompt template for Claude Code
 
-**Suggested services to create:**
-- [ ] `stevneService.ts`
-- [ ] `utøverService.ts`
-- [ ] `authService.ts`
-- [ ] (others based on your features)
-
----
-
-## Phase 6: Deduplicate Logic
-
-> Goal: no copy-pasted helper code.
-
-- [ ] Ask Claude Code:
-  > "Scan the codebase for duplicated logic that should be extracted into `src/utils/`. List candidates with: where the duplicates are, what they do, suggested function name. Don't change code yet."
-
-- [ ] Review the list, pick the highest-value extractions
-- [ ] For each one:
-  - [ ] Create utility function in `src/utils/`
-  - [ ] Add unit-testable signature (pure function, no side effects)
-  - [ ] Replace duplicates one at a time
-  - [ ] Test, commit
-
-**Common candidates:**
-- [ ] Date formatting (`formatDate`, `formatTime`)
-- [ ] Validation (`isValidEmail`, `isValidPhone`)
-- [ ] Sorting/filtering helpers
-- [ ] Error-to-message converters
+> "I want to migrate `src/pages/<filename>.js` to TypeScript. Before writing code:
+> 1. Read the file and list every issue you see based on the Definition of Done in `REFACTOR_CHECKLIST.md`.
+> 2. Propose a step-by-step migration plan.
+> 3. Highlight anything risky or unclear — ask me before making those decisions.
+>
+> Wait for my approval before changing code."
 
 ---
 
-## Phase 7: CSS Cleanup
+## Phase 3: CSS Cleanup (parallel track — do between files when you need a break)
 
-> Goal: no CSS in `.ts` files, dark/light mode works everywhere.
+These are CSS-only and self-contained. Good to interleave with the heavy migration work.
 
-- [ ] Ask Claude Code:
-  > "Find all inline CSS in .ts files (style.cssText, element.style.foo, etc.). List them. Then propose how to move each to a .css file. Show the plan first."
-
-- [ ] Move inline styles to `.css` files
-- [ ] Replace hardcoded colors with CSS variables (`var(--bg-color)`, etc.)
-- [ ] Test dark mode AND light mode on every screen
-- [ ] Consolidate duplicate CSS rules
-- [ ] Test, commit
-
----
-
-## Phase 8: Performance Pass
-
-> Goal: catch obvious inefficiencies now that the code is organized.
-
-- [ ] Ask Claude Code:
-  > "Look for performance issues: unnecessary re-renders/DOM rebuilds, missing debounce on inputs, `select('*')` queries, memory leaks from missing event-listener cleanup, expensive operations in loops. List findings, prioritize, then we'll fix together."
-
-- [ ] Fix top 3-5 findings
-- [ ] Test, commit
+- [ ] **Scoreboard dark/light mode**: refactor `.sb-*` classes in `styles.css` (lines ~1140–1522)
+  - [ ] Define scoreboard CSS variables in `global.css` for both themes
+  - [ ] Replace all hardcoded hex values with `var(--...)`
+  - [ ] Rename `.sb-rod` → `.sb-negativ`, `.sb-groen` → `.sb-positiv`
+  - [ ] Test in both light and dark mode
+- [ ] Audit `styles.css` for other hardcoded colors → replace with variables
+- [ ] Consolidate the repeated `text-align:center;margin-top:40px;` pattern into a utility class (e.g., `.loading-state`)
 
 ---
 
-## Phase 9: Final Review
+## Phase 4: Extract Components (do LAST, after migration is done)
 
-- [ ] Manually walk through every page/feature
-- [ ] Check dark mode and light mode
-- [ ] Run TypeScript check with no errors: `tsc --noEmit`
-- [ ] Make sure all critical flows from Phase 0 still work
-- [ ] Merge `refactor/cleanup` into main:
+> Now that every file is `.ts` and patterns are clear, you can see which abstractions are worth building. Don't do this earlier — you'd be abstracting the wrong things.
+
+Look for patterns that appeared repeatedly during migration:
+
+- [ ] `createErrorBanner({ message })` — replace the `<p class="feil">...</p>` pattern
+- [ ] `createLoadingState({ message })` — replace the centered "Lastar..." pattern
+- [ ] `createKortKort()` / `createKasterKort()` — for repeated card layouts
+- [ ] `createTable({ columns, rows })` — typed columns, generic rows
+- [ ] `createDropdown()` — wraps `buildDropdownOptions`
+- [ ] `createTabs({ tabs })` — with built-in ARIA support (tablist/tab/aria-selected)
+- [ ] `createExpandableRow()` — with built-in keyboard support (Enter/Space/tabindex)
+
+**Per-component process:**
+1. List every place this pattern appears
+2. Design the component API (`Props` interface)
+3. Build the component in `src/components/`
+4. Replace usages one file at a time
+5. Test after each replacement
+6. Commit
+
+---
+
+## Phase 5: Accessibility Pass
+
+Best done **after** components exist, because then you fix ARIA in one place.
+
+- [ ] Audit `.nc-poeng-celle`, `.rek-poeng-celle`, and similar — add `tabindex="0"` + keydown handler
+  - [ ] If you built `createExpandableRow()`, this is automatic
+- [ ] Audit tab implementations — use `role="tablist"`, `role="tab"`, `aria-selected`
+  - [ ] If you built `createTabs()`, this is automatic
+- [ ] Verify all form inputs have associated `<label>`
+- [ ] Verify all interactive elements are reachable by Tab key
+
+---
+
+## Phase 6: Tighten `tsconfig.json`
+
+Once all files are `.ts`:
+
+- [ ] Remove `"allowJs": true` and `"checkJs": false`
+- [ ] Verify `npm run typecheck` still passes
+- [ ] Commit: `"Disable JS in tsconfig — fully TypeScript now"`
+
+---
+
+## Phase 7: Final Review
+
+- [ ] Manual walkthrough of every page in both light AND dark mode
+- [ ] `npm run typecheck` returns 0 errors
+- [ ] `npm run build` succeeds
+- [ ] All 3 critical flows from Phase 0 work
+- [ ] Search codebase for forbidden patterns to verify zero remain:
+  - [ ] `grep -r "select('\\*')" src/` → empty
+  - [ ] `grep -r ": any" src/` → empty (or only intentional)
+  - [ ] `grep -r "as unknown as" src/` → empty
+  - [ ] `grep -r "style=" src/pages src/admin` → only in CSS-related utilities
+- [ ] Merge into main:
   ```bash
   git checkout main
   git merge refactor/cleanup
@@ -200,16 +202,26 @@ Work through these one at a time. Don't do all at once.
 
 ## After the Refactor
 
-- [ ] Update `CLAUDE.md` if you discovered new rules during refactoring
-- [ ] Add any project-specific conventions you settled on
-- [ ] Document the folder structure in a `README.md` if you don't have one
+- [ ] Update `CLAUDE.md` with any new conventions discovered
+- [ ] Add a `README.md` documenting the folder structure
+- [ ] Document any non-obvious decisions in a `DECISIONS.md`
 - [ ] Celebrate 🎉
+
+---
+
+## Progress Tracker
+
+**Files migrated:** ___ / 15
+
+**Utilities built:** ___ / 5
+
+**Components extracted:** ___ / 7
 
 ---
 
 ## Notes & Decisions Log
 
-Use this space to record decisions made during refactoring (so future-you remembers why):
+_Record decisions made during refactoring so future-you remembers why:_
 
 - _Decision 1: ..._
 - _Decision 2: ..._
