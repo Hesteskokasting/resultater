@@ -1,4 +1,5 @@
 import { supabase } from '../supabase.js'
+import { logError } from './logError'
 import type { Stevnetype, Kastemetode, Klubb, Kategori } from '../types'
 
 export async function hentStevner(ar: number) {
@@ -25,17 +26,22 @@ export interface Filtervalg {
 }
 
 export async function hentFiltervalg(): Promise<Filtervalg> {
-  const [stevnetyper, kastemetoder, klubber, kategorier] = await Promise.all([
-    supabase.from('stevnetype').select('id, navn').order('navn'),
-    supabase.from('kastemetode').select('id, navn').order('navn'),
-    supabase.from('klubb').select('id, navn').order('navn'),
-    supabase.from('kategori').select('id, navn').order('navn'),
-  ])
-  return {
-    stevnetyper: stevnetyper.data ?? [],
-    kastemetoder: kastemetoder.data ?? [],
-    klubber: klubber.data ?? [],
-    kategorier: kategorier.data ?? [],
+  try {
+    const [stevnetyper, kastemetoder, klubber, kategorier] = await Promise.all([
+      supabase.from('stevnetype').select('id, navn').order('navn'),
+      supabase.from('kastemetode').select('id, navn').order('navn'),
+      supabase.from('klubb').select('id, navn').order('navn'),
+      supabase.from('kategori').select('id, navn').order('navn'),
+    ])
+    return {
+      stevnetyper: stevnetyper.data ?? [],
+      kastemetoder: kastemetoder.data ?? [],
+      klubber: klubber.data ?? [],
+      kategorier: kategorier.data ?? [],
+    }
+  } catch (error) {
+    logError('hentFiltervalg', error)
+    return { stevnetyper: [], kastemetoder: [], klubber: [], kategorier: [] }
   }
 }
 
