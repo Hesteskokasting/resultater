@@ -2,25 +2,28 @@
 
 A file-by-file plan for cleaning up the codebase. Based on the codebase analysis report.
 
-**Core principle:** Work **vertically** (one file at a time, fix everything in it) rather than **horizontally** (one issue across all files). This way each file is "done" when you close it, and you avoid opening the same file five times.
+**Core principle:** Work **vertically** (one file at a time, fix everything in it) rather than **horizontally** (one issue across all files). Each file is "done" when you close it — you don't open it again for follow-up cleanup.
+
+**Reference file:** `src/pages/norgescupen.ts` is your template. It's the only properly-written TypeScript file in the codebase. Read it before each migration. Match its patterns.
 
 **Rules:**
 - One file = one commit (or a few small commits per file).
 - Don't move to the next file until the current one passes the Definition of Done.
 - Run the app and test after each file.
 - Ask Claude Code for a **plan first**, code second.
+- **Before creating any utility — check if it already exists.** `utils/kaster.ts` already has `formatKasterNavn()`. Don't duplicate.
 
 ---
 
 ## Phase 0: Safety Net
 
-- [ X] Create branch: `git checkout -b refactor/cleanup`
-- [ X] Snapshot commit: `git commit -am "Snapshot before refactor"`
-- [ X] Verify clean install works: `npm install && npm run dev`
-- [ X] Write down 3 critical flows to test after each file:
-  - [ X] Flow 1: log in
-  - [ X] Flow 2: add results to match (kamp)
-  - [ X] Flow 3: verify all files and routing in /pages work
+- [x] Create branch: `git checkout -b refactor/cleanup`
+- [x] Snapshot commit: `git commit -am "Snapshot before refactor"`
+- [x] Verify clean install works: `npm install && npm run dev`
+- [x] Write down 3 critical flows to test after each file:
+  - [ X] Flow 1: __________________________
+  - [ X] Flow 2: __________________________
+  - [ X] Flow 3: __________________________
 
 ---
 
@@ -29,22 +32,22 @@ A file-by-file plan for cleaning up the codebase. Based on the codebase analysis
 These are shared utilities you'll use when migrating every file. Build them now so they exist when you need them.
 
 ### 1a. Error logging utility
-- [ ] Create `src/utils/logError.ts`:
+- [ X] Create `src/utils/logError.ts`:
   ```ts
   export function logError(context: string, error: unknown): void {
     console.error(`[${context}]`, error);
   }
   ```
-- [ ] Commit: `"Add logError utility"`
+- [ X] Commit: `"Add logError utility"`
 
 ### 1b. HTML escape utility
-- [ ] Create `src/utils/escHtml.ts` with proper escaping (`&`, `<`, `>`, `"`, `'`)
-- [ ] **Delete** the existing `escAttr()` in `rekorder.js` (line ~29) and `_esc()` in `stevneadmin.js`
-- [ ] Update those two files' imports to use the new utility
-- [ ] Commit: `"Consolidate HTML escaping into escHtml utility"`
+- [ X] Create `src/utils/escHtml.ts` with proper escaping (`&`, `<`, `>`, `"`, `'`)
+- [ X] **Delete** the existing `escAttr()` in `rekorder.js` (line ~29) and `_esc()` in `stevneadmin.js`
+- [ X] Update those two files' imports to use the new utility
+- [ X] Commit: `"Consolidate HTML escaping into escHtml utility"`
 
 ### 1c. Date parsing utility
-- [ ] Create `src/utils/parseLocalDate.ts` for the `+ 'T12:00:00'` pattern
+- [ ] Create `src/utils/parseLocalDate.ts` for the `+ 'T12:00:00'` pattern. stevne.date has been split into date and time columns now
 - [ ] Commit: `"Add parseLocalDate utility"`
 
 ### 1d. Dropdown options utility
@@ -57,7 +60,15 @@ These are shared utilities you'll use when migrating every file. Build them now 
 - [ ] Test login + admin access carefully
 - [ ] Commit: `"Add runtime validation to auth type assertions"`
 
-> **Stop and verify:** all 5 utilities exist, app still runs, login still works.
+### 1f. Fix existing `.ts` files that are already broken
+These are `.ts` already so they won't be touched by Phase 2 migration. Fix them here.
+
+- [ ] **`src/utils/norgescup.ts`**: replace `select('*')` (line ~61) with explicit columns; add validation for the `as string[]` (line ~171) and `as number` (line ~142) casts
+- [ ] **`src/utils/stevne.ts`**: wrap the `Promise.all()` at line ~27 in try/catch with `logError()`
+- [ ] **`src/utils/kaster.ts`**: read it. Verify `formatKasterNavn()` (or equivalent) is exported. Note the function name for use during migration.
+- [ ] Commit each as separate logical units
+
+> **Stop and verify:** all utilities exist, app still runs, login still works, `npm run typecheck` passes.
 
 ---
 
@@ -65,25 +76,74 @@ These are shared utilities you'll use when migrating every file. Build them now 
 
 Work through these files in order. For **each** file, complete the full Definition of Done before moving on.
 
+### Service architecture (read this before starting Phase 2)
+
+Services live in `src/services/<feature>Service.ts`. They wrap all Supabase calls for a given table or domain.
+
+**Pattern:**
+- First time you touch a table during migration → create the service file with the queries you need.
+- Next file that touches the same table → add functions to the existing service file.
+- Services use the generated Supabase types from `src/types/supabase.ts`.
+- Services handle their own error logging via `logError()`.
+- Services return typed data; never `any`.
+
+**Example service skeleton:**
+```ts
+// src/services/klubbService.ts
+import { supabase } from "@/supabaseClient";
+import { logError } from "@/utils/logError";
+import type { Database } from "@/types/supabase";
+
+type Klubb = Database["public"]["Tables"]["klubb"]["Row"];
+
+export async function getAllKlubber(): Promise<Klubb[]> {
+  const { data, error } = await supabase
+    .from("klubb")
+    .select("id, namn, logo_url, krets");
+  if (error) {
+    logError("getAllKlubber", error);
+    return [];
+  }
+  return data;
+}
+```
+
+**Expected services to grow during migration:**
+- [ ] `klubbService.ts`
+- [ ] `kasterService.ts`
+- [ ] `stevneService.ts`
+- [ ] `rekorderService.ts`
+- [ ] `resultatService.ts`
+- [ ] `authService.ts` (may absorb parts of `utils/auth.ts`)
+- [ ] _(others as discovered)_
+
 ### File order (easiest → hardest)
 
 Start with smaller, more isolated files. Bigger pages last, when you've found your rhythm.
 
+**Pages:**
 - [ ] `src/pages/logginn.js` → `.ts`
 - [ ] `src/pages/klubber.js` → `.ts`
-- [ ] `src/pages/rekorder.js` → `.ts` _(has known `klubb_namn`/`klubb_navn` bug to fix)_
+- [ ] `src/pages/rekorder.js` → `.ts` _(known bug: `klubb_namn`/`klubb_navn` typo to fix)_
 - [ ] `src/pages/nmvinnere.js` → `.ts`
 - [ ] `src/pages/minside.js` → `.ts`
 - [ ] `src/pages/pamelding.js` → `.ts`
 - [ ] `src/pages/terminliste.js` → `.ts`
-- [ ] `src/pages/resultat.js` → `.ts` _(has unescaped `kasternavn()` injection — fix during migration)_
+- [ ] `src/pages/resultat.js` → `.ts` _(unescaped `kasternavn()` injection — fix during migration)_
 - [ ] `src/pages/kastere.js` → `.ts`
 - [ ] `src/pages/norgesranking.js` → `.ts`
-- [ ] `src/pages/kamp-scoreboard.js` → `.ts`
+- [ ] `src/pages/kamp-scoreboard.js` → `.ts` _(do alongside Phase 3 scoreboard CSS fix)_
+
+**Admin:**
 - [ ] `src/admin/stevneadmin.js` → `.ts`
 - [ ] `src/admin/klubbadmin-side.js` → `.ts`
 - [ ] `src/admin/kasteradmin.js` → `.ts`
-- [ ] `src/app.js` → `.ts` _(do last — it's the entry point)_
+
+**Organizer:**
+- [ ] All files in `src/organizer/` → `.ts` _(list them when you reach this section)_
+
+**Entry point (do last):**
+- [ ] `src/app.js` → `.ts`
 
 > Adjust order as you learn. Promote dependencies of the file you're touching if needed.
 
@@ -98,13 +158,17 @@ For **every** file you migrate, all of these must be checked off:
 □ Zero TypeScript errors (npm run typecheck passes)
 □ No `any` (explicit or implicit)
 □ No `as unknown as ...` casts
+□ All Supabase queries moved to src/services/<feature>Service.ts
+□ The file imports from services/, NOT directly from supabaseClient
 □ All Supabase queries use explicit column lists (no select("*"))
-□ All Supabase errors go through logError()
+□ All Supabase errors go through logError() (in the service)
+□ All Promise.all() calls wrapped in try/catch with logError()
 □ All user-sourced strings interpolated into innerHTML use escHtml()
+□ Existing utilities are reused (formatKasterNavn from utils/kaster.ts, etc.) — no re-implementation
 □ No inline styles in the .ts file
 □ All colors use CSS variables (var(--...))
 □ Duplicated helpers removed → import from src/utils/
-□ Manually tested in browser
+□ Manually tested in browser (both light and dark mode)
 □ Tested all 3 critical flows from Phase 0
 □ Committed as a logical unit
 ```
@@ -112,9 +176,12 @@ For **every** file you migrate, all of these must be checked off:
 ### Per-file prompt template for Claude Code
 
 > "I want to migrate `src/pages/<filename>.js` to TypeScript. Before writing code:
-> 1. Read the file and list every issue you see based on the Definition of Done in `REFACTOR_CHECKLIST.md`.
-> 2. Propose a step-by-step migration plan.
-> 3. Highlight anything risky or unclear — ask me before making those decisions.
+> 1. Read `src/pages/norgescupen.ts` first — it's the template for how files should look.
+> 2. Read the file I want to migrate and list every issue you see based on the Definition of Done in `REFACTOR_CHECKLIST.md`.
+> 3. Check if a relevant service file exists in `src/services/`. If yes, plan to extend it. If no, plan to create one.
+> 4. Check `src/utils/` for existing utilities to reuse — don't propose new ones if something equivalent exists.
+> 5. Propose a step-by-step migration plan.
+> 6. Highlight anything risky or unclear — ask me before making those decisions.
 >
 > Wait for my approval before changing code."
 
@@ -147,6 +214,7 @@ Look for patterns that appeared repeatedly during migration:
 - [ ] `createDropdown()` — wraps `buildDropdownOptions`
 - [ ] `createTabs({ tabs })` — with built-in ARIA support (tablist/tab/aria-selected)
 - [ ] `createExpandableRow()` — with built-in keyboard support (Enter/Space/tabindex)
+- [ ] `createFilterableList()` — wraps the filter/search event handler boilerplate from `kastere.js`, `terminliste.js`, `norgesranking.js`, `minside.js`
 
 **Per-component process:**
 1. List every place this pattern appears
@@ -191,7 +259,8 @@ Once all files are `.ts`:
   - [ ] `grep -r "select('\\*')" src/` → empty
   - [ ] `grep -r ": any" src/` → empty (or only intentional)
   - [ ] `grep -r "as unknown as" src/` → empty
-  - [ ] `grep -r "style=" src/pages src/admin` → only in CSS-related utilities
+  - [ ] `grep -r "style=" src/pages src/admin src/organizer` → empty
+  - [ ] `grep -rE "from\\(.*\\)\\.select" src/pages src/admin src/organizer` → empty (all queries should be in services/)
 - [ ] Merge into main:
   ```bash
   git checkout main
@@ -211,11 +280,11 @@ Once all files are `.ts`:
 
 ## Progress Tracker
 
-**Files migrated:** ___ / 15
+**Files migrated:** ___ / ___ (count `.js` files in `src/` to fill in denominator)
 
-**Utilities built:** ___ / 5
+**Services created:** ___
 
-**Components extracted:** ___ / 7
+**Components extracted:** ___ / 8
 
 ---
 

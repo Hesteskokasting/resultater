@@ -1,6 +1,7 @@
 import { supabase } from '../supabase.js'
 import { lagFormRadHtml, visLagreFeil, visSuksess } from '../utils/adminForms.js'
 import { erAdmin, erKlubbadmin } from '../utils/auth.js'
+import { escHtml } from '../utils/escHtml.js'
 
 export async function render(container, { id } = {}) {
   container.innerHTML = '<p class="laster" style="text-align:center;margin-top:40px;">Laster…</p>'
@@ -45,8 +46,8 @@ export async function render(container, { id } = {}) {
     <div class="container py-4" style="max-width:640px">
       <h2 class="mb-4">${tittel}</h2>
       <form id="stevne-skjema">
-        ${lagFormRadHtml('Namn*', `<input type="text" class="form-control" name="navn" value="${_esc(v.navn)}" required>`)}
-        ${lagFormRadHtml('Stad', `<input type="text" class="form-control" name="sted" value="${_esc(v.sted)}">`)}
+        ${lagFormRadHtml('Namn*', `<input type="text" class="form-control" name="navn" value="${escHtml(v.navn)}" required>`)}
+        ${lagFormRadHtml('Stad', `<input type="text" class="form-control" name="sted" value="${escHtml(v.sted)}">`)}
         ${lagFormRadHtml('Dato', `<input type="date" class="form-control" name="dato" value="${datoVerdi}">`)}
         ${lagFormRadHtml('Tid', `<input type="time" class="form-control" name="tid" value="${tidVerdi}">`)}
         ${lagFormRadHtml('Arrangørklubb', `<select class="form-select" name="klubbid">${klubbOpt}</select>`)}
@@ -60,8 +61,8 @@ export async function render(container, { id } = {}) {
           <div class="form-check"><input class="form-check-input" type="checkbox" name="erfullfort" id="erfullfort"${v.erfullfort ? ' checked' : ''}><label class="form-check-label" for="erfullfort">Er fullført</label></div>
           <div class="form-check"><input class="form-check-input" type="checkbox" name="erekskludertfrarekorder" id="ekskl"${v.erekskludertfrarekorder ? ' checked' : ''}><label class="form-check-label" for="ekskl">Ekskl. frå rekorder</label></div>
         </div>
-        ${lagFormRadHtml('Innbydelses-URL', `<input type="url" class="form-control" name="innbydelseurl" value="${_esc(v.innbydelseurl)}">`)}
-        ${lagFormRadHtml('Resultat-URL', `<input type="url" class="form-control" name="resultaturl" value="${_esc(v.resultaturl)}">`)}
+        ${lagFormRadHtml('Innbydelses-URL', `<input type="url" class="form-control" name="innbydelseurl" value="${escHtml(v.innbydelseurl)}">`)}
+        ${lagFormRadHtml('Resultat-URL', `<input type="url" class="form-control" name="resultaturl" value="${escHtml(v.resultaturl)}">`)}
         <div class="d-flex gap-2 mt-4">
           <button type="submit" class="btn btn-primary">Lagre</button>
           ${id ? `<button type="button" id="slett-knapp" class="btn btn-outline-danger ms-auto">Slett stevne</button>` : ''}
@@ -115,4 +116,3 @@ function _opt(liste, vald) {
 }
 
 function _num(v) { return v ? Number(v) : null }
-function _esc(v) { return (v ?? '').replace(/"/g, '&quot;') }

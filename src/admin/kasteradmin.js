@@ -1,6 +1,7 @@
 import { supabase } from '../supabase.js'
 import { lagFormRadHtml, visLagreFeil, visSuksess } from '../utils/adminForms.js'
 import { erAdmin, erKlubbadmin } from '../utils/auth.js'
+import { escHtml } from '../utils/escHtml.js'
 
 export async function render(container, { id } = {}) {
   container.innerHTML = '<p class="laster" style="text-align:center;margin-top:40px;">Laster…</p>'
@@ -33,13 +34,13 @@ export async function render(container, { id } = {}) {
     <div class="container py-4" style="max-width:560px">
       <h2 class="mb-4">${tittel}</h2>
       <form id="kaster-skjema">
-        ${lagFormRadHtml('Fornamn*', `<input type="text" class="form-control" name="fornavn" value="${_esc(v.fornavn)}" required>`)}
-        ${lagFormRadHtml('Etternamn*', `<input type="text" class="form-control" name="etternavn" value="${_esc(v.etternavn)}" required>`)}
+        ${lagFormRadHtml('Fornamn*', `<input type="text" class="form-control" name="fornavn" value="${escHtml(v.fornavn)}" required>`)}
+        ${lagFormRadHtml('Etternamn*', `<input type="text" class="form-control" name="etternavn" value="${escHtml(v.etternavn)}" required>`)}
         ${lagFormRadHtml('Kjønn*', `<select class="form-select" name="kjonnid">${_opt(kjonn, v.kjonnid)}</select>`)}
         ${lagFormRadHtml('Klubb', `<select class="form-select" name="klubbid"><option value="">— vel —</option>${(klubbar ?? []).map(k => `<option value="${k.id}"${k.id === v.klubbid ? ' selected' : ''}>${k.navn}</option>`).join('')}</select>`)}
         ${lagFormRadHtml('Klasse', `<select class="form-select" name="klasseid">${_opt(klassar, v.klasseid)}</select>`)}
-        ${lagFormRadHtml('E-post', `<input type="email" class="form-control" name="epost" value="${_esc(v.epost)}">`)}
-        ${lagFormRadHtml('Telefon', `<input type="tel" class="form-control" name="telefon" value="${_esc(v.telefon)}">`)}
+        ${lagFormRadHtml('E-post', `<input type="email" class="form-control" name="epost" value="${escHtml(v.epost)}">`)}
+        ${lagFormRadHtml('Telefon', `<input type="tel" class="form-control" name="telefon" value="${escHtml(v.telefon)}">`)}
         ${lagFormRadHtml('Medlemsnummer', `<input type="number" class="form-control" name="medlemsnummer" value="${v.medlemsnummer ?? ''}">`)}
         <div class="mb-3 form-check">
           <input class="form-check-input" type="checkbox" name="eraktiv" id="eraktiv"${v.eraktiv !== false ? ' checked' : ''}>
@@ -91,4 +92,3 @@ function _opt(liste, vald) {
 }
 
 function _num(v) { return v ? Number(v) : null }
-function _esc(v) { return (v ?? '').replace(/"/g, '&quot;') }

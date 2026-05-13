@@ -1,5 +1,6 @@
 import { supabase } from '../supabase.js'
 import { lagKasterSlug } from '../utils/kaster.js'
+import { escHtml } from '../utils/escHtml.js'
 
 // ── Konstanter ────────────────────────────────────────────────────────────────
 
@@ -26,9 +27,6 @@ function kasterNamn(item) {
   return [item.fornavn, item.etternavn].filter(Boolean).join(' ')
 }
 
-function escAttr(s) {
-  return String(s ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;')
-}
 
 // ── Data-henting ──────────────────────────────────────────────────────────────
 
@@ -80,7 +78,7 @@ function tabellHtml(liste) {
     const dameCls = erDame(item) ? ' class="rek-dame-rad"' : ''
     const klubbNamn = item.klubb_namn ?? item.klubb_navn ?? '–'
     const poengHtml = item.stevne_id
-      ? `<span class="rek-poeng-celle" title="${escAttr(item.stevne_namn ?? item.stevne_navn)}" data-stevneid="${item.stevne_id}">${item.poeng}</span>`
+      ? `<span class="rek-poeng-celle" title="${escHtml(item.stevne_namn ?? item.stevne_navn)}" data-stevneid="${item.stevne_id}">${item.poeng}</span>`
       : item.poeng
     return `
       <tr${dameCls}>
