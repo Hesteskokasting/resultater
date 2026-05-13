@@ -64,7 +64,7 @@ export function formaterPoeng(p: number | null | undefined): string {
 export async function hentRegler(ar: number) {
   const { data, error } = await supabase
     .from('antallTellendeNc')
-    .select('*')
+    .select('id, year, max_nc_total, max_snc_total, max_dnc_total, maxtotal, max_snc, max_dnc')
     .eq('year', ar)
     .maybeSingle()
   return { data, error }
@@ -142,10 +142,10 @@ export function velgBeregnFunksjon(cupType: string): BeregnFn {
   return beregnNcPoeng
 }
 
-function tildelPlassering<T extends { totalPoeng?: number; lagTotal?: number }>(liste: (T & { plassering: number })[], poengFelt: keyof T): void {
+function tildelPlassering<T extends { plassering: number }>(liste: T[], getPoeng: (item: T) => number): void {
   let pl = 1
   for (let i = 0; i < liste.length; i++) {
-    if (i > 0 && (liste[i][poengFelt] as number) < (liste[i - 1][poengFelt] as number)) pl = i + 1
+    if (i > 0 && getPoeng(liste[i]) < getPoeng(liste[i - 1])) pl = i + 1
     liste[i].plassering = pl
   }
 }
@@ -182,7 +182,7 @@ export function byggSingelListe(
   }
 
   liste.sort((a, b) => b.totalPoeng - a.totalPoeng || a.navn.localeCompare(b.navn))
-  tildelPlassering(liste, 'totalPoeng')
+  tildelPlassering(liste, r => r.totalPoeng)
   return liste
 }
 
@@ -231,6 +231,6 @@ export function byggLagListe(
   }
 
   lagListe.sort((a, b) => b.lagTotal - a.lagTotal)
-  tildelPlassering(lagListe, 'lagTotal')
+  tildelPlassering(lagListe, r => r.lagTotal)
   return lagListe
 }
