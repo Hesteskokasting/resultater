@@ -21,9 +21,9 @@ A file-by-file plan for cleaning up the codebase. Based on the codebase analysis
 - [x] Snapshot commit: `git commit -am "Snapshot before refactor"`
 - [x] Verify clean install works: `npm install && npm run dev`
 - [x] Write down 3 critical flows to test after each file:
-  - [ X] Flow 1: __________________________
-  - [ X] Flow 2: __________________________
-  - [ X] Flow 3: __________________________
+  - [ ] Flow 1: __________________________
+  - [ ] Flow 2: __________________________
+  - [ ] Flow 3: __________________________
 
 ---
 
@@ -32,22 +32,22 @@ A file-by-file plan for cleaning up the codebase. Based on the codebase analysis
 These are shared utilities you'll use when migrating every file. Build them now so they exist when you need them.
 
 ### 1a. Error logging utility
-- [ X] Create `src/utils/logError.ts`:
+- [ ] Create `src/utils/logError.ts`:
   ```ts
   export function logError(context: string, error: unknown): void {
     console.error(`[${context}]`, error);
   }
   ```
-- [ X] Commit: `"Add logError utility"`
+- [ ] Commit: `"Add logError utility"`
 
 ### 1b. HTML escape utility
-- [ X] Create `src/utils/escHtml.ts` with proper escaping (`&`, `<`, `>`, `"`, `'`)
-- [ X] **Delete** the existing `escAttr()` in `rekorder.js` (line ~29) and `_esc()` in `stevneadmin.js`
-- [ X] Update those two files' imports to use the new utility
-- [ X] Commit: `"Consolidate HTML escaping into escHtml utility"`
+- [ ] Create `src/utils/escHtml.ts` with proper escaping (`&`, `<`, `>`, `"`, `'`)
+- [ ] **Delete** the existing `escAttr()` in `rekorder.js` (line ~29) and `_esc()` in `stevneadmin.js`
+- [ ] Update those two files' imports to use the new utility
+- [ ] Commit: `"Consolidate HTML escaping into escHtml utility"`
 
 ### 1c. Date parsing utility
-- [ ] Create `src/utils/parseLocalDate.ts` for the `+ 'T12:00:00'` pattern. stevne.date has been split into date and time columns now
+- [ ] Create `src/utils/parseLocalDate.ts` for the `+ 'T12:00:00'` pattern
 - [ ] Commit: `"Add parseLocalDate utility"`
 
 ### 1d. Dropdown options utility
@@ -80,7 +80,15 @@ Work through these files in order. For **each** file, complete the full Definiti
 
 Services live in `src/services/<feature>Service.ts`. They wrap all Supabase calls for a given table or domain.
 
-**Pattern:**
+**Pragmatic rule for this refactor:**
+- **New Supabase calls** extracted from `.js` files during migration → go in `src/services/`.
+- **Existing Supabase calls in `utils/norgescup.ts` and `utils/stevne.ts`** → leave alone for now. They work. They will be migrated to `services/` in Phase 8 at the very end.
+- **`utils/kaster.ts`** is a pure utility (no Supabase calls) → stays in `utils/` forever.
+- **`utils/auth.ts`** was fixed in Phase 1e. It can stay in `utils/` for now and be moved to `services/authService.ts` in Phase 8.
+
+Why this split: keeps each file migration small. Don't retrofit working code during migration; clean it up at the end when patterns are clear.
+
+**Pattern for new services:**
 - First time you touch a table during migration → create the service file with the queries you need.
 - Next file that touches the same table → add functions to the existing service file.
 - Services use the generated Supabase types from `src/types/supabase.ts`.
@@ -122,7 +130,8 @@ export async function getAllKlubber(): Promise<Klubb[]> {
 Start with smaller, more isolated files. Bigger pages last, when you've found your rhythm.
 
 **Pages:**
-- [ ] `src/pages/logginn.js` → `.ts`
+- [ ] `src/pages/home.js` → `.ts`
+- [x] `src/pages/logginn.js` → `.ts`
 - [ ] `src/pages/klubber.js` → `.ts`
 - [ ] `src/pages/rekorder.js` → `.ts` _(known bug: `klubb_namn`/`klubb_navn` typo to fix)_
 - [ ] `src/pages/nmvinnere.js` → `.ts`
@@ -239,7 +248,45 @@ Best done **after** components exist, because then you fix ARIA in one place.
 
 ---
 
-## Phase 6: Tighten `tsconfig.json`
+## Phase 6: Retrofit `utils/*` → `services/*`
+
+> The Phase 1f and Phase 2 work intentionally left old `utils/*.ts` files alone. Now is when we clean them up.
+
+This phase moves data-fetching files from `utils/` to `services/` so the architecture is consistent. Pure utility files (no Supabase calls) stay in `utils/`.
+
+### 6a. Move `utils/norgescup.ts` → `services/norgescupService.ts`
+- [ ] Rename file
+- [ ] Update all imports (`grep -r "from.*utils/norgescup"` to find them)
+- [ ] Replace any remaining `select('*')` with explicit columns
+- [ ] Move pure helpers (non-Supabase functions) to a new `utils/norgescupHelpers.ts` if needed
+- [ ] Test all pages that use norgescup data
+- [ ] Commit: `"Move norgescup data layer to services/"`
+
+### 6b. Move `utils/stevne.ts` → `services/stevneService.ts`
+- [ ] Rename file
+- [ ] Update all imports
+- [ ] Verify `Promise.all()` calls are properly wrapped in try/catch with `logError()`
+- [ ] Test all pages that use stevne data
+- [ ] Commit: `"Move stevne data layer to services/"`
+
+### 6c. Move `utils/auth.ts` → `services/authService.ts`
+- [ ] Rename file
+- [ ] Update all imports
+- [ ] Type guards from Phase 1e move with the file
+- [ ] Pure auth helpers (no side effects, no Supabase) can stay in `utils/authHelpers.ts` if useful to split
+- [ ] Test login flow + admin access carefully
+- [ ] Commit: `"Move auth to services/"`
+
+### 6d. Audit what's left in `utils/`
+- [ ] After moves, every file in `utils/` should be a pure function (no side effects, no Supabase, no DOM)
+- [ ] If not, move it to the appropriate `services/` or `components/` location
+- [ ] Commit: `"Final utils/ cleanup — pure functions only"`
+
+> **Verification:** `grep -r "from.*supabase" src/utils/` should return zero results.
+
+---
+
+## Phase 7: Tighten `tsconfig.json`
 
 Once all files are `.ts`:
 
@@ -249,7 +296,7 @@ Once all files are `.ts`:
 
 ---
 
-## Phase 7: Final Review
+## Phase 8: Final Review
 
 - [ ] Manual walkthrough of every page in both light AND dark mode
 - [ ] `npm run typecheck` returns 0 errors
@@ -261,6 +308,7 @@ Once all files are `.ts`:
   - [ ] `grep -r "as unknown as" src/` → empty
   - [ ] `grep -r "style=" src/pages src/admin src/organizer` → empty
   - [ ] `grep -rE "from\\(.*\\)\\.select" src/pages src/admin src/organizer` → empty (all queries should be in services/)
+  - [ ] `grep -r "supabase" src/utils/` → empty (utils/ is pure functions only)
 - [ ] Merge into main:
   ```bash
   git checkout main

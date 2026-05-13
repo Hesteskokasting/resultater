@@ -1563,3 +1563,7 @@ a.stevne-navn {
   max-width: 720px;
   width: 90vw;
 }
+
+/* ── Logg inn / Konto ────────────────────────────────────────────────────────── */
+
+.konto-container { max-width: 480px; }
