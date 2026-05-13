@@ -1,6 +1,16 @@
 import { supabase } from '../supabase.js'
 import type { AuthUser, Profil, Rolle } from '../types'
 
+const ROLLER = ['admin', 'klubbadmin', 'bruker'] as const
+
+export function isRolle(value: unknown): value is Rolle {
+  return typeof value === 'string' && (ROLLER as readonly string[]).includes(value)
+}
+
+export function isProfil(obj: unknown): obj is Profil {
+  return obj !== null && typeof obj === 'object' && isRolle((obj as Record<string, unknown>).rolle)
+}
+
 // Cache per sesjon. Tømt ved SIGNED_OUT / ny innlogging.
 let _cache: AuthUser | null = null
 
@@ -25,7 +35,7 @@ async function _hentCache(): Promise<AuthUser | null> {
     klubber = (data ?? []).map(r => r.klubbid)
   }
 
-  _cache = { user: session.user, profil: profil as Profil | null, klubber }
+  _cache = { user: session.user, profil: isProfil(profil) ? profil : null, klubber }
   return _cache
 }
 
