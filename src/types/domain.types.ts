@@ -76,7 +76,7 @@ export interface SingelListeRad {
   navn: string
   klubb: string
   totalPoeng: number
-  detaljRader: (ResultatMedRelasjonar & { _stevne?: Pick<Tables<'stevne'>, 'id' | 'navn' | 'dato'> })[]
+  detaljRader: (ResultatMedRelasjonar & { _stevne?: { navn: string; dato: string | null; typeNavn: string } })[]
   plassering: number
 }
 

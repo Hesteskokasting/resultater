@@ -45,7 +45,7 @@ export async function hentStevnerOgResultater(ar: number) {
 
   if (e1) return { stevner: [], resultater: [], error: e1 }
 
-  const ncStevner = (allStevner ?? []).filter(s => NC_TYPER.includes((s.stevnetype as { navn: string } | null)?.navn ?? ''))
+  const ncStevner = (allStevner ?? []).filter(s => NC_TYPER.includes((s.stevnetype as unknown as { navn: string } | null)?.navn ?? ''))
   const ids = ncStevner.map(s => s.id)
 
   if (ids.length === 0) return { stevner: ncStevner, resultater: [], error: null }
@@ -62,7 +62,7 @@ export async function hentStevnerOgResultater(ar: number) {
     .not('nc_poeng', 'is', null)
     .gt('nc_poeng', 0)
 
-  return { stevner: ncStevner, resultater: (resultater ?? []) as ResultatMedRelasjonar[], error: e2 }
+  return { stevner: ncStevner, resultater: (resultater ?? []) as unknown as ResultatMedRelasjonar[], error: e2 }
 }
 
 function lagStevnerMap(stevner: { id: number; navn: string; dato: string | null; stevnetype: { navn: string } | null }[]): StevnerMap {
@@ -147,7 +147,7 @@ export function byggSingelListe(
     liste.push({ navn: kasterNavn(entry.kaster), klubb: klubber.join(' / '), totalPoeng, detaljRader, plassering: 0 })
   }
 
-  liste.sort((a, b) => b.totalPoeng - a.totalPoeng || a.namn.localeCompare(b.namn))
+  liste.sort((a, b) => b.totalPoeng - a.totalPoeng || a.navn.localeCompare(b.navn))
   tildelPlassering(liste, 'totalPoeng')
   return liste
 }
