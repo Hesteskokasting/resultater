@@ -8,12 +8,10 @@ import {
 } from '../utils/norgescup'
 import { formaterDato, arOptions } from '../utils/shared'
 import type { Tables } from '../types'
-import type { ResultatMedRelasjonar, SingelListeRad, LagListeRad } from '../utils/norgescup'
+import type { ResultatMedRelasjonar, SingelListeRad, LagListeRad, StevneForNc } from '../utils/norgescup'
 
 const FOERSTE_AR = 2007
 const FOERSTE_AR_MULTI_CUP = 2024
-
-type StevneForNc = { id: number; navn: string; dato: string | null; stevnetype: { id: number; navn: string } | null }
 
 interface Filtre {
   ar: number

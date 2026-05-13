@@ -16,7 +16,7 @@ interface StevneMetadata {
 
 type StevnerMap = Map<number, StevneMetadata>
 
-// Spørje-builder brukt berre for type-inferens — ingen HTTP-kall
+// Spørje-buildarar brukt berre for type-inferens — ingen HTTP-kall
 const _resultaterQuery = supabase
   .from('resultat')
   .select(`
@@ -27,6 +27,12 @@ const _resultaterQuery = supabase
   `)
 
 export type ResultatMedRelasjonar = QueryData<typeof _resultaterQuery>[number]
+
+const _stevneNcQuery = supabase
+  .from('stevne')
+  .select('id, navn, dato, stevnetype:stevnetypeid(id, navn)')
+
+export type StevneForNc = QueryData<typeof _stevneNcQuery>[number]
 
 export interface SingelListeRad {
   navn: string
@@ -93,7 +99,7 @@ export async function hentStevnerOgResultater(ar: number) {
   return { stevner: ncStevner, resultater: resultater ?? [], error: e2 }
 }
 
-function lagStevnerMap(stevner: { id: number; navn: string; dato: string | null; stevnetype: { navn: string } | null }[]): StevnerMap {
+function lagStevnerMap(stevner: StevneForNc[]): StevnerMap {
   const m: StevnerMap = new Map()
   for (const s of stevner) {
     m.set(s.id, { navn: s.navn, dato: s.dato, typeNavn: s.stevnetype?.navn ?? '' })
@@ -146,7 +152,7 @@ function tildelPlassering<T extends { totalPoeng?: number; lagTotal?: number }>(
 
 export function byggSingelListe(
   resultater: ResultatMedRelasjonar[],
-  stevner: { id: number; navn: string; dato: string | null; stevnetype: { navn: string } | null }[],
+  stevner: StevneForNc[],
   regler: Regler,
   cupType: string,
   klasse: number
@@ -168,7 +174,7 @@ export function byggSingelListe(
   for (const [, entry] of kasterMap) {
     const tellendeRader = beregn(entry.rader, regler, stevnerMap)
     const totalPoeng = tellendeRader.reduce((s, r) => s + (r.nc_poeng ?? 0), 0)
-    const klubber = [...new Set(tellendeRader.map(r => r.klubb?.navn).filter(Boolean))] as string[]
+    const klubber = [...new Set(tellendeRader.map(r => r.klubb?.navn).filter((n): n is string => n != null))]
     const detaljRader = tellendeRader
       .map(r => ({ ...r, _stevne: stevnerMap.get(r.stevneid ?? -1) }))
       .sort((a, b) => (a._stevne?.dato ?? '').localeCompare(b._stevne?.dato ?? ''))
@@ -182,7 +188,7 @@ export function byggSingelListe(
 
 export function byggLagListe(
   resultater: ResultatMedRelasjonar[],
-  stevner: { id: number; navn: string; dato: string | null; stevnetype: { navn: string } | null }[],
+  stevner: StevneForNc[],
   regler: Regler
 ): LagListeRad[] {
   const stevnerMap = lagStevnerMap(stevner)

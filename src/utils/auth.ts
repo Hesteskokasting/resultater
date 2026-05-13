@@ -35,7 +35,7 @@ export async function getUser(): Promise<AuthUser | null> {
 
 export async function getRolle(): Promise<Rolle | null> {
   const auth = await _hentCache()
-  return (auth?.profil?.rolle as Rolle) ?? null
+  return auth?.profil?.rolle ?? null
 }
 
 export async function erInnlogget(): Promise<boolean> {
