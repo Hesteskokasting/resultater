@@ -130,7 +130,7 @@ export async function getAllKlubber(): Promise<Klubb[]> {
 Start with smaller, more isolated files. Bigger pages last, when you've found your rhythm.
 
 **Pages:**
-- [ ] `src/pages/home.js` → `.ts`
+- [x] `src/pages/home.js` → `.ts`
 - [x] `src/pages/logginn.js` → `.ts`
 - [ ] `src/pages/klubber.js` → `.ts`
 - [ ] `src/pages/rekorder.js` → `.ts` _(known bug: `klubb_namn`/`klubb_navn` typo to fix)_
