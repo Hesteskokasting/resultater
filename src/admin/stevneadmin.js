@@ -2,6 +2,7 @@ import { supabase } from '../supabase.js'
 import { lagFormRadHtml, visLagreFeil, visSuksess } from '../utils/adminForms.js'
 import { erAdmin, erKlubbadmin } from '../utils/auth.js'
 import { escHtml } from '../utils/escHtml.js'
+import { buildDropdownOptions } from '../utils/buildDropdownOptions.js'
 
 export async function render(container, { id } = {}) {
   container.innerHTML = '<p class="laster" style="text-align:center;margin-top:40px;">Laster…</p>'
@@ -36,11 +37,11 @@ export async function render(container, { id } = {}) {
   const datoVerdi = v.dato ?? ''
   const tidVerdi  = v.tid ? v.tid.slice(0, 5) : ''
 
-  const klubbOpt    = _opt(klubbar, v.klubbid)
-  const typeOpt     = _opt(stevnetypar, v.stevnetypeid)
-  const metodeOpt   = _opt(kastemetodar, v.innledendekastemetodeid)
-  const metodeOpt2  = _opt(kastemetodar, v.avsluttendekastemetodeid)
-  const katOpt      = _opt(kategoriar, v.kategoriid)
+  const klubbOpt    = buildDropdownOptions(klubbar, v.klubbid)
+  const typeOpt     = buildDropdownOptions(stevnetypar, v.stevnetypeid)
+  const metodeOpt   = buildDropdownOptions(kastemetodar, v.innledendekastemetodeid)
+  const metodeOpt2  = buildDropdownOptions(kastemetodar, v.avsluttendekastemetodeid)
+  const katOpt      = buildDropdownOptions(kategoriar, v.kategoriid)
 
   container.innerHTML = `
     <div class="container py-4" style="max-width:640px">
@@ -108,11 +109,5 @@ export async function render(container, { id } = {}) {
   })
 }
 
-function _opt(liste, vald) {
-  const tom = `<option value="">— vel —</option>`
-  return tom + (liste ?? []).map(r =>
-    `<option value="${r.id}"${r.id === vald ? ' selected' : ''}>${r.navn}</option>`
-  ).join('')
-}
 
 function _num(v) { return v ? Number(v) : null }

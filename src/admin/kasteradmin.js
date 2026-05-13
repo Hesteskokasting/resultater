@@ -2,6 +2,7 @@ import { supabase } from '../supabase.js'
 import { lagFormRadHtml, visLagreFeil, visSuksess } from '../utils/adminForms.js'
 import { erAdmin, erKlubbadmin } from '../utils/auth.js'
 import { escHtml } from '../utils/escHtml.js'
+import { buildDropdownOptions } from '../utils/buildDropdownOptions.js'
 
 export async function render(container, { id } = {}) {
   container.innerHTML = '<p class="laster" style="text-align:center;margin-top:40px;">Laster…</p>'
@@ -36,9 +37,9 @@ export async function render(container, { id } = {}) {
       <form id="kaster-skjema">
         ${lagFormRadHtml('Fornamn*', `<input type="text" class="form-control" name="fornavn" value="${escHtml(v.fornavn)}" required>`)}
         ${lagFormRadHtml('Etternamn*', `<input type="text" class="form-control" name="etternavn" value="${escHtml(v.etternavn)}" required>`)}
-        ${lagFormRadHtml('Kjønn*', `<select class="form-select" name="kjonnid">${_opt(kjonn, v.kjonnid)}</select>`)}
+        ${lagFormRadHtml('Kjønn*', `<select class="form-select" name="kjonnid">${buildDropdownOptions(kjonn, v.kjonnid)}</select>`)}
         ${lagFormRadHtml('Klubb', `<select class="form-select" name="klubbid"><option value="">— vel —</option>${(klubbar ?? []).map(k => `<option value="${k.id}"${k.id === v.klubbid ? ' selected' : ''}>${k.navn}</option>`).join('')}</select>`)}
-        ${lagFormRadHtml('Klasse', `<select class="form-select" name="klasseid">${_opt(klassar, v.klasseid)}</select>`)}
+        ${lagFormRadHtml('Klasse', `<select class="form-select" name="klasseid">${buildDropdownOptions(klassar, v.klasseid)}</select>`)}
         ${lagFormRadHtml('E-post', `<input type="email" class="form-control" name="epost" value="${escHtml(v.epost)}">`)}
         ${lagFormRadHtml('Telefon', `<input type="tel" class="form-control" name="telefon" value="${escHtml(v.telefon)}">`)}
         ${lagFormRadHtml('Medlemsnummer', `<input type="number" class="form-control" name="medlemsnummer" value="${v.medlemsnummer ?? ''}">`)}
@@ -85,10 +86,5 @@ export async function render(container, { id } = {}) {
   })
 }
 
-function _opt(liste, vald) {
-  return `<option value="">— vel —</option>` + (liste ?? []).map(r =>
-    `<option value="${r.id}"${r.id === vald ? ' selected' : ''}>${r.navn}</option>`
-  ).join('')
-}
 
 function _num(v) { return v ? Number(v) : null }

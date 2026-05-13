@@ -1,6 +1,7 @@
 import { getUser } from '../utils/auth.js'
 import { hentStevner, hentFiltervalg, hentPameldte } from '../utils/stevne.js'
 import { formaterDatoLang as formaterDato, arOptions, lastNedExcel as lastNedExcelFil } from '../utils/shared.js'
+import { buildDropdownOptions } from '../utils/buildDropdownOptions.js'
 
 // ── Sortering ─────────────────────────────────────────────────────────────────
 
@@ -96,13 +97,6 @@ function lastNedExcel(filtrert) {
 
 // ── HTML-bygging ──────────────────────────────────────────────────────────────
 
-function dropdownOptions(liste, valgtId, tomLabel) {
-  let html = `<option value="">${tomLabel}</option>`
-  for (const item of liste) {
-    html += `<option value="${item.id}" ${String(item.id) === String(valgtId) ? 'selected' : ''}>${item.navn ?? item.klubbnavn}</option>`
-  }
-  return html
-}
 
 // ── Tabell (desktop) ──────────────────────────────────────────────────────────
 
@@ -231,10 +225,10 @@ export async function render(container) {
       <div class="tl-filter-rad">
         <select class="tl-select" id="tl-ar">${arOptions(filtre.ar, 1983, new Date().getFullYear() + 1)}</select>
         <input class="tl-input" id="tl-tekst" type="search" placeholder="Søk..." value="${filtre.tekst}">
-        <select class="tl-select" id="tl-stevnetype">${dropdownOptions(filtervalg.stevnetyper, filtre.stevnetypeId, 'Alle typer')}</select>
-        <select class="tl-select" id="tl-kastemetode">${dropdownOptions(filtervalg.kastemetoder, filtre.kastemetodeId, 'Alle metoder')}</select>
-        <select class="tl-select" id="tl-arrangorklubb">${dropdownOptions(filtervalg.klubber, filtre.klubbId, 'Alle arrangører')}</select>
-        <select class="tl-select" id="tl-kategori">${dropdownOptions(filtervalg.kategorier, filtre.kategoriId, 'Alle kategorier')}</select>
+        <select class="tl-select" id="tl-stevnetype">${buildDropdownOptions(filtervalg.stevnetyper, filtre.stevnetypeId, 'Alle typer')}</select>
+        <select class="tl-select" id="tl-kastemetode">${buildDropdownOptions(filtervalg.kastemetoder, filtre.kastemetodeId, 'Alle metoder')}</select>
+        <select class="tl-select" id="tl-arrangorklubb">${buildDropdownOptions(filtervalg.klubber, filtre.klubbId, 'Alle arrangører')}</select>
+        <select class="tl-select" id="tl-kategori">${buildDropdownOptions(filtervalg.kategorier, filtre.kategoriId, 'Alle kategorier')}</select>
         <button class="tl-excel-knapp" id="tl-excel-desktop">⬇ Excel</button>
       </div>
 
@@ -259,16 +253,16 @@ export async function render(container) {
           <select class="tl-select" id="tl-ar-mobil">${arOptions(filtre.ar, 1983, new Date().getFullYear() + 1)}</select>
         </label>
         <label class="tl-label">Stevnetype
-          <select class="tl-select" id="tl-stevnetype-mobil">${dropdownOptions(filtervalg.stevnetyper, filtre.stevnetypeId, 'Alle typer')}</select>
+          <select class="tl-select" id="tl-stevnetype-mobil">${buildDropdownOptions(filtervalg.stevnetyper, filtre.stevnetypeId, 'Alle typer')}</select>
         </label>
         <label class="tl-label">Kastemetode
-          <select class="tl-select" id="tl-kastemetode-mobil">${dropdownOptions(filtervalg.kastemetoder, filtre.kastemetodeId, 'Alle metoder')}</select>
+          <select class="tl-select" id="tl-kastemetode-mobil">${buildDropdownOptions(filtervalg.kastemetoder, filtre.kastemetodeId, 'Alle metoder')}</select>
         </label>
         <label class="tl-label">Arrangør
-          <select class="tl-select" id="tl-arrangorklubb-mobil">${dropdownOptions(filtervalg.klubber, filtre.klubbId, 'Alle arrangører')}</select>
+          <select class="tl-select" id="tl-arrangorklubb-mobil">${buildDropdownOptions(filtervalg.klubber, filtre.klubbId, 'Alle arrangører')}</select>
         </label>
         <label class="tl-label">Kategori
-          <select class="tl-select" id="tl-kategori-mobil">${dropdownOptions(filtervalg.kategorier, filtre.kategoriId, 'Alle kategorier')}</select>
+          <select class="tl-select" id="tl-kategori-mobil">${buildDropdownOptions(filtervalg.kategorier, filtre.kategoriId, 'Alle kategorier')}</select>
         </label>
         <div class="tl-bunnark-knapper">
           <button class="tl-tilbakestill-knapp" id="tl-tilbakestill">Tilbakestill</button>
