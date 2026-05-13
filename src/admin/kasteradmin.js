@@ -3,6 +3,7 @@ import { lagFormRadHtml, visLagreFeil, visSuksess } from '../utils/adminForms.js
 import { erAdmin, erKlubbadmin } from '../utils/auth.js'
 import { escHtml } from '../utils/escHtml.js'
 import { buildDropdownOptions } from '../utils/buildDropdownOptions.js'
+import { formNum } from '../utils/formNum.js'
 
 export async function render(container, { id } = {}) {
   container.innerHTML = '<p class="laster" style="text-align:center;margin-top:40px;">Laster…</p>'
@@ -60,9 +61,9 @@ export async function render(container, { id } = {}) {
     const payload = {
       fornavn:       fd.get('fornavn').trim(),
       etternavn:     fd.get('etternavn').trim(),
-      kjonnid:       _num(fd.get('kjonnid')),
-      klubbid:       _num(fd.get('klubbid')),
-      klasseid:      _num(fd.get('klasseid')),
+      kjonnid:       formNum(fd.get('kjonnid')),
+      klubbid:       formNum(fd.get('klubbid')),
+      klasseid:      formNum(fd.get('klasseid')),
       epost:         fd.get('epost').trim() || null,
       telefon:       fd.get('telefon').trim() || null,
       medlemsnummer: fd.get('medlemsnummer') ? Number(fd.get('medlemsnummer')) : null,
@@ -87,4 +88,3 @@ export async function render(container, { id } = {}) {
 }
 
 
-function _num(v) { return v ? Number(v) : null }

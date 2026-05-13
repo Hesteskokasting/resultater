@@ -3,6 +3,7 @@ import { lagFormRadHtml, visLagreFeil, visSuksess } from '../utils/adminForms.js
 import { erAdmin, erKlubbadmin } from '../utils/auth.js'
 import { escHtml } from '../utils/escHtml.js'
 import { buildDropdownOptions } from '../utils/buildDropdownOptions.js'
+import { formNum } from '../utils/formNum.js'
 
 export async function render(container, { id } = {}) {
   container.innerHTML = '<p class="laster" style="text-align:center;margin-top:40px;">Laster…</p>'
@@ -79,11 +80,11 @@ export async function render(container, { id } = {}) {
       sted:                      fd.get('sted').trim() || null,
       dato:                      fd.get('dato') || null,
       tid:                       fd.get('tid') || null,
-      klubbid:                   _num(fd.get('klubbid')),
-      stevnetypeid:              _num(fd.get('stevnetypeid')),
-      innledendekastemetodeid:   _num(fd.get('innledendekastemetodeid')),
-      avsluttendekastemetodeid:  _num(fd.get('avsluttendekastemetodeid')),
-      kategoriid:                _num(fd.get('kategoriid')),
+      klubbid:                   formNum(fd.get('klubbid')),
+      stevnetypeid:              formNum(fd.get('stevnetypeid')),
+      innledendekastemetodeid:   formNum(fd.get('innledendekastemetodeid')),
+      avsluttendekastemetodeid:  formNum(fd.get('avsluttendekastemetodeid')),
+      kategoriid:                formNum(fd.get('kategoriid')),
       ernm:                      fd.get('ernm') === 'on',
       ernorgesranking:           fd.get('ernorgesranking') === 'on',
       erfullfort:                fd.get('erfullfort') === 'on',
@@ -110,4 +111,3 @@ export async function render(container, { id } = {}) {
 }
 
 
-function _num(v) { return v ? Number(v) : null }
