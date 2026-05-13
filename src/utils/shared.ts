@@ -1,4 +1,5 @@
 import * as XLSX from 'xlsx'
+import { parseLocalDate } from './parseLocalDate'
 
 // ── Dato-formatering ──────────────────────────────────────────────────────────
 
@@ -6,25 +7,19 @@ const datoFmtKort    = new Intl.DateTimeFormat('nb-NO', { day: '2-digit', month:
 const datoFmtNumeric = new Intl.DateTimeFormat('nb-NO', { day: 'numeric', month: 'numeric', year: 'numeric' })
 const datoFmtLang    = new Intl.DateTimeFormat('nb-NO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 
-// Bare date strings (YYYY-MM-DD) are parsed as UTC midnight by JS, which shifts
-// the display date by one day for Norwegian users (UTC+1/+2). Use local noon instead.
-function _parseDate(datoStr: string): Date {
-  return datoStr.length === 10 ? new Date(datoStr + 'T12:00:00') : new Date(datoStr)
-}
-
 export function formaterDato(datoStr: string | null | undefined): string {
   if (!datoStr) return ''
-  return datoFmtKort.format(_parseDate(datoStr))
+  return datoFmtKort.format(parseLocalDate(datoStr))
 }
 
 export function formaterDatoNumeric(datoStr: string | null | undefined): string {
   if (!datoStr) return ''
-  return datoFmtNumeric.format(_parseDate(datoStr))
+  return datoFmtNumeric.format(parseLocalDate(datoStr))
 }
 
 export function formaterDatoLang(datoStr: string | null | undefined): string {
   if (!datoStr) return ''
-  return datoFmtLang.format(_parseDate(datoStr))
+  return datoFmtLang.format(parseLocalDate(datoStr))
 }
 
 export function formaterTid(tidStr: string | null | undefined): string {
