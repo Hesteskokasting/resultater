@@ -996,6 +996,46 @@ a.stevne-navn {
 .kd-tab { display: block; }
 .kd-skjult { display: none; }
 
+.kaster-detalj-tittel {
+  font-size: 1.8rem;
+  font-weight: bold;
+  margin-bottom: 4px;
+  line-height: 1.2;
+}
+
+.kaster-detalj-klubb {
+  font-size: 1.1rem;
+  color: var(--tekst-2);
+  margin-bottom: 12px;
+}
+
+.kaster-graf-wrapper {
+  position: relative;
+  height: 320px;
+}
+
+.kaster-resultat-info {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.kaster-resultat-hint {
+  color: var(--tekst-2);
+  font-size: 0.85em;
+}
+
+.kaster-stat-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 32px;
+  align-items: flex-start;
+}
+
+.kaster-tidlegare-klubbar { margin-top: 20px; }
+
+.kaster-tidlegare-tittel { color: var(--lenke); }
+
 .tl-lenkje {
   color: var(--lenke);
   text-decoration: none;
