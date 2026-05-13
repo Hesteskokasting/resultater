@@ -1,6 +1,7 @@
+import type { QueryData } from '@supabase/supabase-js'
 import { supabase } from '../supabase.js'
 import type { Tables } from '../types'
-import type { ResultatMedRelasjonar, Kaster, Klubb, SingelListeRad, LagListeRad } from '../types'
+import type { Kaster, Klubb } from '../types'
 import { kasterNavn } from './kaster'
 
 const NC_TYPER = ['NC', 'SNC', 'DNC']
@@ -14,6 +15,33 @@ interface StevneMetadata {
 }
 
 type StevnerMap = Map<number, StevneMetadata>
+
+// Spørje-builder brukt berre for type-inferens — ingen HTTP-kall
+const _resultaterQuery = supabase
+  .from('resultat')
+  .select(`
+    id, nc_poeng, plassering, kasterid, klubbid, klasseid, stevneid,
+    kaster:kasterid(id, fornavn, etternavn),
+    klubb:klubbid(id, navn),
+    klasse:klasseid(id, navn)
+  `)
+
+export type ResultatMedRelasjonar = QueryData<typeof _resultaterQuery>[number]
+
+export interface SingelListeRad {
+  navn: string
+  klubb: string
+  totalPoeng: number
+  detaljRader: (ResultatMedRelasjonar & { _stevne?: StevneMetadata })[]
+  plassering: number
+}
+
+export interface LagListeRad {
+  klubb: Klubb
+  lagTotal: number
+  plassering: number
+  bidragsytere: { kaster: Kaster; klubbId: number; sum: number }[]
+}
 
 type BeregnFn = (
   rader: ResultatMedRelasjonar[],
@@ -45,7 +73,7 @@ export async function hentStevnerOgResultater(ar: number) {
 
   if (e1) return { stevner: [], resultater: [], error: e1 }
 
-  const ncStevner = (allStevner ?? []).filter(s => NC_TYPER.includes((s.stevnetype as unknown as { navn: string } | null)?.navn ?? ''))
+  const ncStevner = (allStevner ?? []).filter(s => NC_TYPER.includes(s.stevnetype?.navn ?? ''))
   const ids = ncStevner.map(s => s.id)
 
   if (ids.length === 0) return { stevner: ncStevner, resultater: [], error: null }
@@ -62,7 +90,7 @@ export async function hentStevnerOgResultater(ar: number) {
     .not('nc_poeng', 'is', null)
     .gt('nc_poeng', 0)
 
-  return { stevner: ncStevner, resultater: (resultater ?? []) as unknown as ResultatMedRelasjonar[], error: e2 }
+  return { stevner: ncStevner, resultater: resultater ?? [], error: e2 }
 }
 
 function lagStevnerMap(stevner: { id: number; navn: string; dato: string | null; stevnetype: { navn: string } | null }[]): StevnerMap {
@@ -127,11 +155,11 @@ export function byggSingelListe(
   const beregn = velgBeregnFunksjon(cupType)
   const klasseNavn = klasse === 1 ? 'Klasse 1' : 'Klasse 2'
 
-  const filtrert = resultater.filter(r => (r.klasse as { navn: string } | null)?.navn === klasseNavn)
+  const filtrert = resultater.filter(r => r.klasse?.navn === klasseNavn)
 
   const kasterMap = new Map<number, { kaster: Kaster; rader: ResultatMedRelasjonar[] }>()
   for (const r of filtrert) {
-    if (r.kasterid == null) continue
+    if (r.kasterid == null || r.kaster == null) continue
     if (!kasterMap.has(r.kasterid)) kasterMap.set(r.kasterid, { kaster: r.kaster, rader: [] })
     kasterMap.get(r.kasterid)!.rader.push(r)
   }
@@ -140,7 +168,7 @@ export function byggSingelListe(
   for (const [, entry] of kasterMap) {
     const tellendeRader = beregn(entry.rader, regler, stevnerMap)
     const totalPoeng = tellendeRader.reduce((s, r) => s + (r.nc_poeng ?? 0), 0)
-    const klubber = [...new Set(tellendeRader.map(r => (r.klubb as Klubb | null)?.navn).filter(Boolean))] as string[]
+    const klubber = [...new Set(tellendeRader.map(r => r.klubb?.navn).filter(Boolean))] as string[]
     const detaljRader = tellendeRader
       .map(r => ({ ...r, _stevne: stevnerMap.get(r.stevneid ?? -1) }))
       .sort((a, b) => (a._stevne?.dato ?? '').localeCompare(b._stevne?.dato ?? ''))
@@ -158,11 +186,11 @@ export function byggLagListe(
   regler: Regler
 ): LagListeRad[] {
   const stevnerMap = lagStevnerMap(stevner)
-  const filtrert = resultater.filter(r => (r.klasse as { navn: string } | null)?.navn === 'Klasse 1')
+  const filtrert = resultater.filter(r => r.klasse?.navn === 'Klasse 1')
 
   const kasterMap = new Map<number, { kaster: Kaster; rader: ResultatMedRelasjonar[] }>()
   for (const r of filtrert) {
-    if (r.kasterid == null) continue
+    if (r.kasterid == null || r.kaster == null) continue
     if (!kasterMap.has(r.kasterid)) kasterMap.set(r.kasterid, { kaster: r.kaster, rader: [] })
     kasterMap.get(r.kasterid)!.rader.push(r)
   }
@@ -174,7 +202,7 @@ export function byggLagListe(
     const tellendeRader = beregnNcPoeng(entry.rader, regler, stevnerMap)
     const perKlubb = new Map<number, number>()
     for (const r of tellendeRader) {
-      const klubb = r.klubb as Klubb | null
+      const klubb = r.klubb
       if (klubb && r.klubbid != null && !klubbInfoMap.has(r.klubbid)) klubbInfoMap.set(r.klubbid, klubb)
       if (r.klubbid != null) perKlubb.set(r.klubbid, (perKlubb.get(r.klubbid) ?? 0) + (r.nc_poeng ?? 0))
     }

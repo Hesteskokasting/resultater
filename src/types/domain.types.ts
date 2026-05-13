@@ -32,12 +32,6 @@ export type StevneMedRelasjonar = Tables<'stevne'> & {
   kategori: Kategori | null
 }
 
-export type ResultatMedRelasjonar = Tables<'resultat'> & {
-  kaster: Kaster
-  klubb: Klubb
-  klasse: Klasse
-}
-
 export type KampMedSpelararOgOmgangar = Tables<'kamp'> & {
   kamp_spelar: KampSpelarMedOmgangar[]
 }
@@ -68,23 +62,6 @@ export interface CupParing {
   spelarar: (string | number)[]
   erWalkover: boolean
   erTreSpelarar: boolean
-}
-
-// --- Norgescup-typar ---
-
-export interface SingelListeRad {
-  navn: string
-  klubb: string
-  totalPoeng: number
-  detaljRader: (ResultatMedRelasjonar & { _stevne?: { navn: string; dato: string | null; typeNavn: string } })[]
-  plassering: number
-}
-
-export interface LagListeRad {
-  klubb: Klubb
-  lagTotal: number
-  plassering: number
-  bidragsytere: { kaster: Kaster; klubbId: number; sum: number }[]
 }
 
 // --- Auth ---

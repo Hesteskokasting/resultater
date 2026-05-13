@@ -8,7 +8,7 @@ import {
 } from '../utils/norgescup'
 import { formaterDato, arOptions } from '../utils/shared'
 import type { Tables } from '../types'
-import type { ResultatMedRelasjonar, SingelListeRad, LagListeRad } from '../types'
+import type { ResultatMedRelasjonar, SingelListeRad, LagListeRad } from '../utils/norgescup'
 
 const FOERSTE_AR = 2007
 const FOERSTE_AR_MULTI_CUP = 2024
@@ -57,8 +57,8 @@ async function hentOgBufferData(ar: number): Promise<Error | null> {
 
   cache.ar = ar
   cache.regler = regler
-  cache.stevner = stevner as StevneForNc[]
-  cache.resultater = resultater as ResultatMedRelasjonar[]
+  cache.stevner = stevner
+  cache.resultater = resultater
   return null
 }
 

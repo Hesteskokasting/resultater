@@ -12,14 +12,11 @@ export type {
   Stevnetype,
   Kategori,
   StevneMedRelasjonar,
-  ResultatMedRelasjonar,
   KampMedSpelararOgOmgangar,
   KampSpelarMedOmgangar,
   RundeOppsett,
   CupRunde,
   CupParing,
-  SingelListeRad,
-  LagListeRad,
   Profil,
 } from './domain.types'
 export type { PageRenderFn, Rute, AuthUser } from './app.types'

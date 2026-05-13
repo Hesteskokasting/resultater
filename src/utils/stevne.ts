@@ -32,10 +32,10 @@ export async function hentFiltervalg(): Promise<Filtervalg> {
     supabase.from('kategori').select('id, navn').order('navn'),
   ])
   return {
-    stevnetyper: (stevnetyper.data ?? []) as Stevnetype[],
-    kastemetoder: (kastemetoder.data ?? []) as Kastemetode[],
-    klubber: (klubber.data ?? []) as Klubb[],
-    kategorier: (kategorier.data ?? []) as Kategori[],
+    stevnetyper: stevnetyper.data ?? [],
+    kastemetoder: kastemetoder.data ?? [],
+    klubber: klubber.data ?? [],
+    kategorier: kategorier.data ?? [],
   }
 }
 
