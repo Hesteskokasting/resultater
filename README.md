@@ -86,6 +86,18 @@ npx supabase link --project-ref <PROJECT_REF>
 
 Project ref finn du på [supabase.com](https://supabase.com) → prosjektet → Settings → General.
 
+### Oppdater TypeScript-typar
+
+Når du gjer endringar i databaseskjemaet, regenerer `src/types/database.types.ts`:
+
+```bash
+npx supabase gen types typescript --project-id abcdefghijkl123456 > src/types/database.types.ts
+```
+
+**Viktig:** Bruk `>` og ikkje `2>&1`. Supabase MCP-pluginen kan injisere ein `<claude-code-hint>`-tag på slutten av fila viss stderr vert omdirigert — denne taggen gjer fila ugyldig TypeScript.
+
+---
+
 ### Lag ein ny migrasjon
 
 ```bash
@@ -129,7 +141,7 @@ Når du koplar inn Supabase-migrering i CI, trengst òg:
 src/
 ├── index.html          # Inngangspunkt
 ├── app.js              # SPA-ruter
-├── supabase.js         # Supabase-klient
+├── supabase.ts         # Supabase-klient
 ├── global.css          # Globale stilar og tema (mørk/lys)
 ├── styles.css          # App-stilar
 ├── pages/              # Sider (home, resultat, kastere, osv.)
