@@ -1,6 +1,19 @@
+import type { QueryData } from '@supabase/supabase-js'
 import { supabase } from '../supabase'
 import { logError } from '../utils/logError'
 import type { Tables } from '../types'
+
+// ── Info-tab typar ────────────────────────────────────────────────────────────
+
+const _infoStevneQuery = supabase
+  .from('stevne')
+  .select(`
+    id, navn, dato, tid, sted, stevne_fase, antall_runder_innl, erfullfort, klubbid,
+    kastemetodeInnl:kastemetode!stevne_innledendekastemetodeid_fkey(id, navn),
+    kastemetodeAvsl:kastemetode!stevne_avsluttendekastemetodeid_fkey(id, navn)
+  `)
+
+export type InfoStevneRow = QueryData<typeof _infoStevneQuery>[number]
 
 type SisteResultatRow  = Pick<Tables<'stevne'>, 'id' | 'navn' | 'dato'>
 type LiveStevneRow     = Pick<Tables<'stevne'>, 'id' | 'navn' | 'stevne_fase'>
@@ -69,4 +82,24 @@ export async function hentRelaterteStevner(
     .order('dato')
   if (error) logError('hentRelaterteStevner', error)
   return { data: data ?? [], error }
+}
+
+export async function hentInfoStevne(id: number): Promise<{ data: InfoStevneRow | null; error: unknown }> {
+  const { data, error } = await supabase
+    .from('stevne')
+    .select(`
+      id, navn, dato, tid, sted, stevne_fase, antall_runder_innl, erfullfort, klubbid,
+      kastemetodeInnl:kastemetode!stevne_innledendekastemetodeid_fkey(id, navn),
+      kastemetodeAvsl:kastemetode!stevne_avsluttendekastemetodeid_fkey(id, navn)
+    `)
+    .eq('id', id)
+    .maybeSingle()
+  if (error) logError('hentInfoStevne', error)
+  return { data, error }
+}
+
+export async function oppdaterStevneFase(id: number, fase: string): Promise<{ error: unknown }> {
+  const { error } = await supabase.from('stevne').update({ stevne_fase: fase }).eq('id', id)
+  if (error) logError('oppdaterStevneFase', error)
+  return { error }
 }
