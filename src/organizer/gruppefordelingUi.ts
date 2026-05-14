@@ -1,8 +1,30 @@
-import { beregnGyldigeGruppeStorrelsar, gyldigeRunde1Oppsett, beregnCupStruktur } from './kastemetoder-logikk.js'
+import { escHtml } from '../utils/escHtml.js'
+import type { RundeOppsett } from '../types'
+import { beregnGyldigeGruppeStorrelsar, gyldigeRunde1Oppsett, beregnCupStruktur } from '../utils/kastemetoder-logikk.js'
 
-export function renderGruppefordeling(resultatEllerN, { visSpelarliste = true, initNa = null, initFormat = null } = {}) {
+interface StillingradForGruppe {
+  startnummer?: number | string | null
+  _namn?: string | null
+  kamp_poeng_innl?: number | null
+  score_poeng_innl?: number | null
+}
+
+interface StillingradMedCupPlassering extends StillingradForGruppe {
+  cupPlassering: number
+}
+
+interface GruppefordelingOpts {
+  visSpelarliste?: boolean
+  initNa?: number | null
+  initFormat?: { A?: RundeOppsett | null; B?: RundeOppsett | null } | null
+}
+
+export function renderGruppefordeling(
+  resultatEllerN: number | StillingradForGruppe[],
+  { visSpelarliste = true, initNa = null, initFormat = null }: GruppefordelingOpts = {},
+): string {
   const n = typeof resultatEllerN === 'number' ? resultatEllerN : resultatEllerN.length
-  const sortert = typeof resultatEllerN === 'number'
+  const sortert: StillingradMedCupPlassering[] = typeof resultatEllerN === 'number'
     ? []
     : resultatEllerN.map((r, i) => ({ ...r, cupPlassering: i + 1 }))
 
@@ -19,17 +41,18 @@ export function renderGruppefordeling(resultatEllerN, { visSpelarliste = true, i
   const toSplits = splits.filter(s => !gyldigeRunde1Oppsett(s.nA).some(o => o.c3 > 0))
   const visIngen = gyldigeRunde1Oppsett(n).length > 0
 
-  const renderSplitRadios = (arr, startIdx) => arr.map((s, i) => {
-    const checked = s.nA === resolvedNa && !(initNa === n)
-    const idx = startIdx + i
-    return `
+  const renderSplitRadios = (arr: { nA: number; nB: number }[], startIdx: number): string =>
+    arr.map((s, i) => {
+      const checked = s.nA === resolvedNa && !(initNa === n)
+      const idx = startIdx + i
+      return `
       <div class="form-check">
         <input class="form-check-input" type="radio" name="gruppe-split" id="split-${idx}" value="${s.nA}" ${checked ? 'checked' : ''}>
         <label class="form-check-label" for="split-${idx}">A:${s.nA} — B:${s.nB}</label>
       </div>`
-  }).join('')
+    }).join('')
 
-  const splitParts = []
+  const splitParts: string[] = []
   if (treSplits.length) {
     splitParts.push(`<div class="text-muted small fw-semibold mb-1">3 spillere per bane (A)</div>${renderSplitRadios(treSplits, 0)}`)
   }
@@ -47,8 +70,8 @@ export function renderGruppefordeling(resultatEllerN, { visSpelarliste = true, i
   }
   const splitOptions = splitParts.join('')
 
-  const initOppsettA = initFormat?.A ?? (gyldigeRunde1Oppsett(resolvedNa)[0] ?? null)
-  const initOppsettB = resolvedNb >= 2 ? (initFormat?.B ?? (gyldigeRunde1Oppsett(resolvedNb)[0] ?? null)) : null
+  const initOppsettA: RundeOppsett | null = initFormat?.A ?? (gyldigeRunde1Oppsett(resolvedNa)[0] ?? null)
+  const initOppsettB: RundeOppsett | null = resolvedNb >= 2 ? (initFormat?.B ?? (gyldigeRunde1Oppsett(resolvedNb)[0] ?? null)) : null
 
   const gruppePreviewHtml = visSpelarliste
     ? `<div id="gruppe-preview">${renderGruppePreview(sortert, resolvedNa, initOppsettA?.walkovers ?? 0, initOppsettB?.walkovers ?? 0)}</div>`
@@ -80,18 +103,23 @@ export function renderGruppefordeling(resultatEllerN, { visSpelarliste = true, i
   `
 }
 
-export function renderGruppePreview(sortert, nA, woA = 0, woB = 0) {
+export function renderGruppePreview(
+  sortert: StillingradMedCupPlassering[],
+  nA: number,
+  woA = 0,
+  woB = 0,
+): string {
   const gruppeA = sortert.slice(0, nA)
   const gruppeB = sortert.slice(nA)
 
-  function tabellRader(spel, woCount = 0) {
+  function tabellRader(spel: StillingradMedCupPlassering[], woCount = 0): string {
     return spel.map((r, i) => {
       const erWo = i < woCount
       return `
       <tr>
         <td>${r.cupPlassering}</td>
-        <td>${r.startnummer ?? ''}</td>
-        <td>${r._namn ?? ''}${erWo ? ' <span class="badge bg-info text-dark">Walkover</span>' : ''}</td>
+        <td>${escHtml(String(r.startnummer ?? ''))}</td>
+        <td>${escHtml(r._namn ?? '')}${erWo ? ' <span class="badge bg-info text-dark">Walkover</span>' : ''}</td>
         <td class="text-center">${r.kamp_poeng_innl ?? 0}</td>
         <td class="text-center">${r.score_poeng_innl ?? 0}</td>
       </tr>`
@@ -130,12 +158,17 @@ export function renderGruppePreview(sortert, nA, woA = 0, woB = 0) {
     </div>`
 }
 
-function oppsettLabel(o) {
+function oppsettLabel(o: RundeOppsett): string {
   const perBane = o.c3 > 0 ? 3 : 2
   return `${o.walkovers} walkover - ${perBane} deltakere per bane`
 }
 
-function renderRunde1FormatVeljar(gruppeLabel, n, radioName, initOppsett = null) {
+function renderRunde1FormatVeljar(
+  _gruppeLabel: string,
+  n: number,
+  radioName: string,
+  initOppsett: RundeOppsett | null = null,
+): string {
   const oppsett = gyldigeRunde1Oppsett(n)
   if (oppsett.length <= 1) return ''
   const radios = oppsett.map((o, i) => {
@@ -153,7 +186,7 @@ function renderRunde1FormatVeljar(gruppeLabel, n, radioName, initOppsett = null)
   return `<div class="d-flex flex-column align-items-start gap-1 mb-2">${radios}</div>`
 }
 
-export function renderStrukturListeHtml(n, oppsett, suffix) {
+export function renderStrukturListeHtml(n: number, oppsett: RundeOppsett | null, suffix: string): string {
   const runder = n >= 2 ? beregnCupStruktur(n, { runde1: oppsett }) : []
   const rows = runder.map((r, i) => {
     const wo = r.walkovers ?? 0
@@ -161,7 +194,7 @@ export function renderStrukturListeHtml(n, oppsett, suffix) {
     const deltakereCell = wo > 0
       ? `${aktive} <span class="text-muted">(${wo} w.o.)</span>`
       : `${aktive}`
-    let perBane
+    let perBane: string
     if (i === 0 && oppsett) {
       perBane = oppsett.c3 > 0 && oppsett.c2 > 0 ? '2/3' : oppsett.c3 > 0 ? '3' : '2'
     } else {
@@ -184,7 +217,12 @@ export function renderStrukturListeHtml(n, oppsett, suffix) {
   </div>`
 }
 
-export function renderGruppePanelInnhald(label, n, radioName, oppsett) {
+export function renderGruppePanelInnhald(
+  label: string,
+  n: number,
+  radioName: string,
+  oppsett: RundeOppsett | null,
+): string {
   const suffix = radioName.slice(-1)
   const formatVeljar = renderRunde1FormatVeljar(label, n, radioName, oppsett)
   const tittel = formatVeljar ? `${label}: Velg format` : `${label} (${n})`
