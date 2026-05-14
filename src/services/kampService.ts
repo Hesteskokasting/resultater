@@ -1,6 +1,7 @@
 import type { QueryData } from '@supabase/supabase-js'
 import { supabase } from '../supabase'
 import { logError } from '../utils/logError'
+import { beregnKampPoeng } from '../utils/kamp'
 
 const _kampSpelarQuery = supabase.from('kamp_spelar').select(`
   id, kasterid, posisjon,
@@ -33,4 +34,256 @@ export async function hentMineKampar(kasterid: number): Promise<{ data: KampSpel
     .eq('kasterid', kasterid)
   if (error) logError('hentMineKampar', error)
   return { data: data ?? [], error }
+}
+
+// ── Scoreboard types ──────────────────────────────────────────────────────────
+
+const _kampScoreboardQuery = supabase
+  .from('kamp')
+  .select(`
+    id, stevneid, fase, runde_nummer, runde_navn, bane_nummer,
+    er_bekreftet, er_walkover, er_tre_spelarar,
+    stevne:stevneid(navn),
+    spelarar:kamp_spelar(
+      id, kasterid, posisjon, score_poeng, kamp_poeng, antall_ringer,
+      kaster:kasterid(id, fornavn, etternavn)
+    )
+  `)
+
+export type KampRow = QueryData<typeof _kampScoreboardQuery>[number]
+export type KampSpelarIKamp = KampRow['spelarar'][number]
+
+// ── Scoreboard read ───────────────────────────────────────────────────────────
+
+export async function hentKamp(id: number): Promise<{ data: KampRow | null; error: unknown }> {
+  const { data, error } = await supabase
+    .from('kamp')
+    .select(`
+      id, stevneid, fase, runde_nummer, runde_navn, bane_nummer,
+      er_bekreftet, er_walkover, er_tre_spelarar,
+      stevne:stevneid(navn),
+      spelarar:kamp_spelar(
+        id, kasterid, posisjon, score_poeng, kamp_poeng, antall_ringer,
+        kaster:kasterid(id, fornavn, etternavn)
+      )
+    `)
+    .eq('id', id)
+    .maybeSingle()
+  if (error) logError('hentKamp', error)
+  return { data, error }
+}
+
+export async function hentHcp(
+  stevneId: number,
+  kasterids: number[],
+): Promise<Map<number, number>> {
+  if (!kasterids.length) return new Map()
+  const { data, error } = await supabase
+    .from('resultat')
+    .select('kasterid, hcp')
+    .eq('stevneid', stevneId)
+    .in('kasterid', kasterids)
+  if (error) logError('hentHcp', error)
+  return new Map(
+    (data ?? [])
+      .filter((r): r is typeof r & { kasterid: number } => r.kasterid != null)
+      .map(r => [r.kasterid, r.hcp ?? 0]),
+  )
+}
+
+export async function hentNesteKampOrganisator(
+  stevneId: number,
+  baneNummer: number,
+): Promise<{ data: { id: number } | null; error: unknown }> {
+  const { data, error } = await supabase
+    .from('kamp')
+    .select('id')
+    .eq('stevneid', stevneId)
+    .eq('bane_nummer', baneNummer)
+    .eq('er_bekreftet', false)
+    .eq('er_walkover', false)
+    .order('runde_nummer')
+    .limit(1)
+    .maybeSingle()
+  if (error) logError('hentNesteKampOrganisator', error)
+  return { data, error }
+}
+
+export async function hentNesteKampDeltakar(
+  stevneId: number,
+  kasterid: number,
+): Promise<{ data: { id: number } | null; error: unknown }> {
+  const { data: mine, error: mineErr } = await supabase
+    .from('kamp_spelar')
+    .select('kampid')
+    .eq('kasterid', kasterid)
+  if (mineErr) {
+    logError('hentNesteKampDeltakar:minekampar', mineErr)
+    return { data: null, error: mineErr }
+  }
+
+  const kampIds = (mine ?? []).map(ks => ks.kampid).filter((id): id is number => id != null)
+  if (!kampIds.length) return { data: null, error: null }
+
+  const { data, error } = await supabase
+    .from('kamp')
+    .select('id')
+    .in('id', kampIds)
+    .eq('stevneid', stevneId)
+    .eq('er_bekreftet', false)
+    .eq('er_walkover', false)
+    .order('runde_nummer')
+    .limit(1)
+    .maybeSingle()
+  if (error) logError('hentNesteKampDeltakar', error)
+  return { data, error }
+}
+
+export async function erDeltakarIKamp(kampId: number, kasterid: number): Promise<boolean> {
+  const { data } = await supabase
+    .from('kamp_spelar')
+    .select('id')
+    .eq('kampid', kampId)
+    .eq('kasterid', kasterid)
+    .maybeSingle()
+  return !!data
+}
+
+// ── Scoreboard write ──────────────────────────────────────────────────────────
+
+export type KampSpelarBekreftData = {
+  spelarId: number    // kamp_spelar.id
+  kasterid: number
+  scorePoeng: number  // fallback if omgang data is missing
+}
+
+export async function bekreftInnledendeKamp(params: {
+  kampId: number
+  p1: KampSpelarBekreftData | null
+  p2: KampSpelarBekreftData | null
+  hcp1: number
+  hcp2: number
+}): Promise<{ error: unknown }> {
+  const { kampId, p1, p2, hcp1, hcp2 } = params
+  const spelarIds = [p1?.spelarId, p2?.spelarId].filter((id): id is number => id != null)
+
+  const { data: omgData, error: omgErr } = await supabase
+    .from('kamp_omgang')
+    .select('kamp_spelar_id, score, antall_ringer')
+    .in('kamp_spelar_id', spelarIds)
+  if (omgErr) {
+    logError('bekreftInnledendeKamp:omgangar', omgErr)
+    return { error: omgErr }
+  }
+
+  let t1 = 0, t2 = 0, r1 = 0, r2 = 0
+  for (const row of (omgData ?? [])) {
+    if (row.kamp_spelar_id === p1?.spelarId) {
+      t1 += row.score ?? 0
+      r1 += row.antall_ringer ?? 0
+    } else {
+      t2 += row.score ?? 0
+      r2 += row.antall_ringer ?? 0
+    }
+  }
+
+  const [kp1, kp2] = beregnKampPoeng(t1 + hcp1, t2 + hcp2)
+
+  const spelarUpdates = []
+  if (p1) spelarUpdates.push(
+    supabase.from('kamp_spelar')
+      .update({ score_poeng: t1 + hcp1, kamp_poeng: kp1, antall_ringer: r1 })
+      .eq('id', p1.spelarId),
+  )
+  if (p2) spelarUpdates.push(
+    supabase.from('kamp_spelar')
+      .update({ score_poeng: t2 + hcp2, kamp_poeng: kp2, antall_ringer: r2 })
+      .eq('id', p2.spelarId),
+  )
+
+  if (spelarUpdates.length) {
+    const results = await Promise.all(spelarUpdates)
+    const spelarErr = results.find(r => r.error)?.error
+    if (spelarErr) {
+      logError('bekreftInnledendeKamp:spelarar', spelarErr)
+      return { error: spelarErr }
+    }
+  }
+
+  const { error } = await supabase.from('kamp').update({ er_bekreftet: true }).eq('id', kampId)
+  if (error) logError('bekreftInnledendeKamp:kamp', error)
+  return { error }
+}
+
+export async function bekreftAvsluttendeKamp(params: {
+  kampId: number
+  stevneId: number
+  rundeNavn: string | null
+  rundeNummer: number
+  p1: KampSpelarBekreftData | null
+  p2: KampSpelarBekreftData | null
+  orderedKasterids: number[] | null  // 3-player: [1st, 2nd, 3rd] kasterids
+}): Promise<{ error: unknown }> {
+  const { kampId, stevneId, rundeNavn, rundeNummer, p1, p2, orderedKasterids } = params
+
+  const { error: kampErr } = await supabase
+    .from('kamp')
+    .update({ er_bekreftet: true })
+    .eq('id', kampId)
+  if (kampErr) {
+    logError('bekreftAvsluttendeKamp:kamp', kampErr)
+    return { error: kampErr }
+  }
+
+  let eliminertId: number | null = null
+  if (orderedKasterids?.length === 3) {
+    eliminertId = orderedKasterids[2]
+  } else {
+    const spelarIds = [p1?.spelarId, p2?.spelarId].filter((id): id is number => id != null)
+    const { data: omgData } = await supabase
+      .from('kamp_omgang')
+      .select('kamp_spelar_id, score')
+      .in('kamp_spelar_id', spelarIds)
+
+    const totalar: Record<number, number> = {}
+    for (const o of (omgData ?? [])) {
+      if (o.kamp_spelar_id != null) {
+        totalar[o.kamp_spelar_id] = (totalar[o.kamp_spelar_id] ?? 0) + (o.score ?? 0)
+      }
+    }
+    const t1 = p1 ? (totalar[p1.spelarId] ?? p1.scorePoeng) : 0
+    const t2 = p2 ? (totalar[p2.spelarId] ?? p2.scorePoeng) : 0
+    eliminertId = t1 >= t2 ? (p2?.kasterid ?? null) : (p1?.kasterid ?? null)
+  }
+
+  if (eliminertId == null) return { error: null }
+
+  const erFinale = rundeNavn === 'Finale'
+  const erBronsefinale = rundeNavn === 'Bronsefinale'
+  const elimUpdate = (erFinale || erBronsefinale)
+    ? { runde_eliminert: rundeNummer, plassering: erFinale ? 2 : 4 }
+    : { runde_eliminert: rundeNummer }
+
+  const { error: elimErr } = await supabase
+    .from('resultat')
+    .update(elimUpdate)
+    .eq('stevneid', stevneId)
+    .eq('kasterid', eliminertId)
+  if (elimErr) logError('bekreftAvsluttendeKamp:eliminert', elimErr)
+
+  if (erFinale || erBronsefinale) {
+    const vinnarId = orderedKasterids
+      ? orderedKasterids[0]
+      : (eliminertId === p2?.kasterid ? p1?.kasterid : p2?.kasterid)
+    if (vinnarId != null) {
+      const { error: vinnarErr } = await supabase
+        .from('resultat')
+        .update({ plassering: erFinale ? 1 : 3 })
+        .eq('stevneid', stevneId)
+        .eq('kasterid', vinnarId)
+      if (vinnarErr) logError('bekreftAvsluttendeKamp:vinnar', vinnarErr)
+    }
+  }
+
+  return { error: null }
 }
