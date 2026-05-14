@@ -1,6 +1,50 @@
-import { scoreForSp, hentP1P2 } from '../utils/kamp.js'
+import { scoreForSp, hentP1P2 } from '../utils/kamp'
+import { escHtml } from '../utils/escHtml'
+import type { Tables } from '../types'
 
-export function renderSpelarkamparDetalj(kasterid, kamper, startnrMap) {
+// Minimal shapes for organizer kamp data (spelarar is an aliased join from kamp_spelar)
+export interface OrgKampSpelar {
+  kasterid: number
+  kamp_poeng: number
+  score_poeng: number
+  posisjon?: number | null
+  antall_ringer?: number | null
+  omgangar?: Pick<Tables<'kamp_omgang'>, 'score' | 'antall_ringer'>[] | null
+  kaster?: { fornavn: string; etternavn: string } | null
+}
+
+export interface OrgKamp extends Pick<Tables<'kamp'>, 'er_bekreftet' | 'er_walkover' | 'runde_nummer' | 'bane_nummer'> {
+  spelarar?: OrgKampSpelar[] | null
+}
+
+export interface StillingRad {
+  kasterid: number
+  namn?: string | null
+  startnummer?: number | null
+  kamp_poeng?: number | null
+  score_poeng?: number | null
+  runde_eliminert?: number | null
+  plassering?: number | null
+  hcp?: number | null
+  gruppe?: { navn: string } | null
+  antall_kamper?: number | null
+}
+
+interface StillingOpts {
+  tableId?: string
+  isAdmin?: boolean
+  stevneid?: number | null
+  harHcp?: boolean
+  harGrupper?: boolean
+  harEliminasjon?: boolean
+  harAntallKamper?: boolean
+}
+
+export function renderSpelarkamparDetalj(
+  kasterid: number,
+  kamper: OrgKamp[] | null | undefined,
+  startnrMap: Record<number, number>,
+): string {
   const eineKamper = (kamper ?? [])
     .filter(k => k.spelarar?.some(sp => sp.kasterid === kasterid))
     .sort((a, b) => a.runde_nummer - b.runde_nummer)
@@ -10,19 +54,18 @@ export function renderSpelarkamparDetalj(kasterid, kamper, startnrMap) {
   }
 
   return eineKamper.map(kamp => {
-    const sp = kamp.spelarar?.find(s => s.kasterid === kasterid)
+    const sp  = kamp.spelarar?.find(s => s.kasterid === kasterid)
     const opp = kamp.spelarar?.find(s => s.kasterid !== kasterid)
     const erWalkoverSeier = kamp.er_walkover && (!opp || !opp.kaster)
 
     const oppNamn = erWalkoverSeier
       ? 'Walkover'
-      : (opp?.kaster ? `${opp.kaster.fornavn} ${opp.kaster.etternavn}` : '—')
+      : (opp?.kaster ? `${escHtml(opp.kaster.fornavn)} ${escHtml(opp.kaster.etternavn)}` : '—')
     const oppNr = erWalkoverSeier ? '' : (opp?.kasterid ? (startnrMap[opp.kasterid] ?? '') : '')
     const oppVis = oppNr ? `${oppNamn} (${oppNr})` : oppNamn
 
-    const myScore = erWalkoverSeier ? 21 : scoreForSp(sp)
-    const oppScore = erWalkoverSeier ? 0 : scoreForSp(opp)
-    const harScore = kamp.er_bekreftet || kamp.er_walkover || myScore > 0 || oppScore > 0
+    const myScore  = erWalkoverSeier ? 21 : scoreForSp(sp)
+    const oppScore = erWalkoverSeier ? 0  : scoreForSp(opp)
     const resultat = `${myScore} - ${oppScore}`
 
     return `<tr>
@@ -34,7 +77,12 @@ export function renderSpelarkamparDetalj(kasterid, kamper, startnrMap) {
   }).join('')
 }
 
-export function beregnKanBekrefte(kamp, sp, harOmgangar, hcpMap = {}) {
+export function beregnKanBekrefte(
+  kamp: OrgKamp,
+  sp: OrgKampSpelar[],
+  harOmgangar: boolean,
+  hcpMap: Record<number, number> = {},
+): boolean {
   const bekrefta = kamp.er_bekreftet || kamp.er_walkover
   if (bekrefta) return false
   if (kamp.er_walkover) return true
@@ -46,7 +94,7 @@ export function beregnKanBekrefte(kamp, sp, harOmgangar, hcpMap = {}) {
   return s1 + hcp1 >= 21 || s2 + hcp2 >= 21
 }
 
-export function renderHovudInnhald(kamperHtml, stillingHtml) {
+export function renderHovudInnhald(kamperHtml: string, stillingHtml: string): string {
   return `
     <div class="org-hovud-innhald">
       <div class="org-tab-knappar btn-group w-100 mb-2">
@@ -60,14 +108,14 @@ export function renderHovudInnhald(kamperHtml, stillingHtml) {
     </div>`
 }
 
-export function bindTabToggle(container) {
-  const wrapper = container.querySelector('.org-hovud-innhald')
+export function bindTabToggle(container: HTMLElement): void {
+  const wrapper = container.querySelector<HTMLElement>('.org-hovud-innhald')
   if (!wrapper) return
-  container.querySelectorAll('.org-tab-btn').forEach(btn => {
+  container.querySelectorAll<HTMLButtonElement>('.org-tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const isStilling = btn.dataset.tab === 'stilling'
       wrapper.classList.toggle('org-vis-stilling', isStilling)
-      container.querySelectorAll('.org-tab-btn').forEach(b => {
+      container.querySelectorAll<HTMLButtonElement>('.org-tab-btn').forEach(b => {
         b.classList.toggle('btn-primary', b.dataset.tab === btn.dataset.tab)
         b.classList.toggle('btn-outline-primary', b.dataset.tab !== btn.dataset.tab)
       })
@@ -75,35 +123,39 @@ export function bindTabToggle(container) {
   })
 }
 
-export function renderStillingTabell(stilling, kamper, startnrMap, opts = {}) {
+export function renderStillingTabell(
+  stilling: StillingRad[],
+  kamper: OrgKamp[],
+  startnrMap: Record<number, number>,
+  opts: StillingOpts = {},
+): string {
   const {
-    tableId = 'stilling-tabell',
-    isAdmin = false,
-    stevneid = null,
-    harHcp = false,
-    harGrupper = false,
+    tableId        = 'stilling-tabell',
+    isAdmin        = false,
+    stevneid       = null,
+    harHcp         = false,
+    harGrupper     = false,
     harEliminasjon = false,
     harAntallKamper = false,
   } = opts
 
   const extraCols = (harHcp ? 1 : 0) + (harAntallKamper ? 1 : 0)
-  const colspan = 5 + extraCols
-  const thW = harAntallKamper ? 'th-32' : 'th-28'
+  const colspan   = 5 + extraCols
+  const thW       = harAntallKamper ? 'th-32' : 'th-28'
 
-  const gruppeMap = new Map()
+  const gruppeMap = new Map<string, StillingRad[]>()
   for (const r of stilling) {
     const g = harGrupper ? (r.gruppe?.navn ?? '_') : '_'
     if (!gruppeMap.has(g)) gruppeMap.set(g, [])
-    gruppeMap.get(g).push(r)
+    gruppeMap.get(g)!.push(r)
   }
 
   const harFleirGrupper = gruppeMap.size > 1 || !gruppeMap.has('_')
   const tittel = harAntallKamper ? `${stilling.length} spelarar` : 'Stilling'
 
   const rows = [...gruppeMap.entries()].flatMap(([g, spelararIGruppe]) => {
-    const aktivCount = spelararIGruppe.filter(r => r.runde_eliminert == null).length
     const gruppeHeader = harFleirGrupper && g !== '_'
-      ? `<tr><td colspan="${colspan}" class="fw-semibold ps-2">Gruppe ${g}</td></tr>`
+      ? `<tr><td colspan="${colspan}" class="fw-semibold ps-2">Gruppe ${escHtml(g)}</td></tr>`
       : ''
     const playerRows = spelararIGruppe.map((r, i) => {
       const erEliminert = harEliminasjon && r.runde_eliminert != null
@@ -120,7 +172,7 @@ export function renderStillingTabell(stilling, kamper, startnrMap, opts = {}) {
         <tr data-kasterid="${r.kasterid}" class="stilling-spelar-rad">
           <td${erEliminert ? ' class="avsl-elim-plass"' : ''}>${i + 1}</td>
           <td>${r.startnummer ?? ''}</td>
-          <td>${r.namn ?? `Spelar ${r.kasterid}`}</td>
+          <td>${escHtml(r.namn ?? `Spelar ${r.kasterid}`)}</td>
           ${antallCelle}
           <td class="text-center">${r.kamp_poeng ?? 0}</td>
           <td class="text-center">${r.score_poeng ?? 0}</td>
@@ -163,18 +215,18 @@ export function renderStillingTabell(stilling, kamper, startnrMap, opts = {}) {
     </div>`
 }
 
-export function bindStillingDetaljar(container, tableId) {
-  const tabell = container.querySelector(`#${tableId}`)
+export function bindStillingDetaljar(container: HTMLElement, tableId: string): void {
+  const tabell = container.querySelector<HTMLElement>(`#${tableId}`)
   if (!tabell) return
   tabell.addEventListener('click', e => {
-    const rad = e.target.closest('tr[data-kasterid]')
+    const rad = (e.target as HTMLElement).closest<HTMLElement>('tr[data-kasterid]')
     if (!rad || rad.classList.contains('stilling-detalj')) return
     const kid = rad.dataset.kasterid
-    const detaljRad = tabell.querySelector(`tr.stilling-detalj[data-kasterid="${kid}"]`)
+    const detaljRad = tabell.querySelector<HTMLElement>(`tr.stilling-detalj[data-kasterid="${kid}"]`)
     if (!detaljRad) return
     const erSkjult = detaljRad.hidden
-    tabell.querySelectorAll('tr.stilling-detalj').forEach(r => { r.hidden = true })
-    tabell.querySelectorAll('tr[data-kasterid]').forEach(r => r.classList.remove('stilling-aktiv'))
+    tabell.querySelectorAll<HTMLElement>('tr.stilling-detalj').forEach(r => { r.hidden = true })
+    tabell.querySelectorAll<HTMLElement>('tr[data-kasterid]').forEach(r => r.classList.remove('stilling-aktiv'))
     if (erSkjult) {
       detaljRad.hidden = false
       rad.classList.add('stilling-aktiv')
@@ -182,12 +234,18 @@ export function bindStillingDetaljar(container, tableId) {
   })
 }
 
-export function lagOnEndringHandler(stevneid, faner, container, lastOgVisFn, stopFn) {
+export function lagOnEndringHandler(
+  stevneid: number,
+  faner: string[],
+  container: HTMLElement,
+  lastOgVisFn: (container: HTMLElement, stevneid: number) => void,
+  stopFn: () => void,
+): () => void {
   return function onEndring() {
     const hash = location.hash
     const erPaaSide = faner.some(f =>
       hash === `#/stevne/${stevneid}/organizer/${f}` ||
-      hash === `#/stevne/${stevneid}/live/${f}`
+      hash === `#/stevne/${stevneid}/live/${f}`,
     )
     if (erPaaSide) {
       lastOgVisFn(container, stevneid)
@@ -197,7 +255,11 @@ export function lagOnEndringHandler(stevneid, faner, container, lastOgVisFn, sto
   }
 }
 
-export function renderInnledendeKnappar(stevne, erAlleKamperBekreftet, erSwiss) {
+export function renderInnledendeKnappar(
+  stevne: Pick<Tables<'stevne'>, 'erfullfort'>,
+  erAlleKamperBekreftet: boolean,
+  erSwiss: boolean,
+): string {
   return `
     ${erSwiss ? `<button id="neste-runde-btn" class="btn btn-sm btn-warning">Generer neste runde</button>` : ''}
     <button id="fullfor-btn" class="btn btn-sm btn-primary"${stevne.erfullfort || !erAlleKamperBekreftet ? ' disabled' : ''}>Start avsluttande fase</button>
@@ -206,7 +268,17 @@ export function renderInnledendeKnappar(stevne, erAlleKamperBekreftet, erSwiss) 
   `
 }
 
-export function renderAvsluttendeKnappar(stevne, state) {
+interface AvsluttendeState {
+  alleInnlBekrefta: boolean
+  harAvslKampar: boolean
+  harGruppefordeling: boolean
+  harPrekonfigurertFormat?: boolean
+}
+
+export function renderAvsluttendeKnappar(
+  stevne: Pick<Tables<'stevne'>, 'erfullfort' | 'stevne_fase'>,
+  state: AvsluttendeState,
+): string {
   const { alleInnlBekrefta, harAvslKampar, harGruppefordeling, harPrekonfigurertFormat = false } = state
   const fase = stevne.stevne_fase
 
@@ -232,38 +304,50 @@ export function renderAvsluttendeKnappar(stevne, state) {
   `
 }
 
-export function renderOrgBanner(stevneNavn, knapperHtml = '') {
+export function renderOrgBanner(stevneNavn: string, knapperHtml = ''): string {
   return `
     <div class="org-fase-header d-flex align-items-center gap-2 mb-3">
-      <h5 class="mb-0 flex-grow-1">${stevneNavn}</h5>
+      <h5 class="mb-0 flex-grow-1">${escHtml(stevneNavn)}</h5>
       ${knapperHtml}
     </div>
   `
 }
 
-export function byggInnledendeSpelMap(alleKamper, startnrMap) {
-  const spelMap = {}
-  const ekteKasterids = new Set()
+export interface SpelMapRad {
+  kasterid: number
+  namn: string
+  startnummer: number | null
+  kamp_poeng: number
+  score_poeng: number
+  antall_kamper: number
+}
+
+export function byggInnledendeSpelMap(
+  alleKamper: OrgKamp[],
+  startnrMap: Record<number, number>,
+): { spelMap: Record<number, SpelMapRad>; ekteKasterids: Set<number> } {
+  const spelMap: Record<number, SpelMapRad> = {}
+  const ekteKasterids = new Set<number>()
 
   for (const kamp of alleKamper) {
-    const [, byeP2] = kamp.er_walkover ? hentP1P2(kamp.spelarar, startnrMap) : []
+    const [, byeP2] = kamp.er_walkover ? hentP1P2(kamp.spelarar, startnrMap) : [null, null]
     for (const sp of kamp.spelarar ?? []) {
       if (!sp.kasterid || !sp.kaster) continue
       if (kamp.er_walkover && sp.kasterid === byeP2?.kasterid) continue
       ekteKasterids.add(sp.kasterid)
       if (!spelMap[sp.kasterid]) {
         spelMap[sp.kasterid] = {
-          kasterid: sp.kasterid,
-          namn: `${sp.kaster.fornavn} ${sp.kaster.etternavn}`,
-          startnummer: startnrMap[sp.kasterid] ?? null,
-          kamp_poeng: 0,
-          score_poeng: 0,
+          kasterid:      sp.kasterid,
+          namn:          `${sp.kaster.fornavn} ${sp.kaster.etternavn}`,
+          startnummer:   startnrMap[sp.kasterid] ?? null,
+          kamp_poeng:    0,
+          score_poeng:   0,
           antall_kamper: 0,
         }
       }
       if (kamp.er_bekreftet) {
-        spelMap[sp.kasterid].kamp_poeng += sp.kamp_poeng
-        spelMap[sp.kasterid].score_poeng += sp.score_poeng
+        spelMap[sp.kasterid].kamp_poeng    += sp.kamp_poeng
+        spelMap[sp.kasterid].score_poeng   += sp.score_poeng
         spelMap[sp.kasterid].antall_kamper += 1
       }
     }
@@ -272,11 +356,11 @@ export function byggInnledendeSpelMap(alleKamper, startnrMap) {
   return { spelMap, ekteKasterids }
 }
 
-export function sorterStilling(stilling, kamper) {
+export function sorterStilling(stilling: StillingRad[], kamper: OrgKamp[]): StillingRad[] {
   const bekrefta = kamper.filter(k => k.er_bekreftet)
 
   return [...stilling].sort((a, b) => {
-    // 1. Aktive (runde_eliminert == null) kjem alltid først
+    // Aktive (runde_eliminert == null) kjem alltid først
     const aAktiv = a.runde_eliminert == null
     const bAktiv = b.runde_eliminert == null
     if (aAktiv !== bAktiv) return aAktiv ? -1 : 1
@@ -285,19 +369,15 @@ export function sorterStilling(stilling, kamper) {
     if (!aAktiv) {
       const rundeDiff = (b.runde_eliminert ?? 0) - (a.runde_eliminert ?? 0)
       if (rundeDiff !== 0) return rundeDiff
-      // Same runde: bruk plassering (finale, bronsefinale)
       const pA = a.plassering ?? Infinity
       const pB = b.plassering ?? Infinity
       if (pA !== pB) return pA - pB
     }
 
-    // 2. Kamppoeng DESC
-    if (b.kamp_poeng !== a.kamp_poeng) return b.kamp_poeng - a.kamp_poeng
+    if (b.kamp_poeng !== a.kamp_poeng) return (b.kamp_poeng ?? 0) - (a.kamp_poeng ?? 0)
+    if (b.score_poeng !== a.score_poeng) return (b.score_poeng ?? 0) - (a.score_poeng ?? 0)
 
-    // 3. Scorepoeng DESC
-    if (b.score_poeng !== a.score_poeng) return b.score_poeng - a.score_poeng
-
-    // 4. Innbyrdes (kamppoeng i kampar der begge møttest)
+    // Innbyrdes (kamppoeng i kampar der begge møttest)
     let kpA = 0, kpB = 0
     for (const kamp of bekrefta) {
       const spA = kamp.spelarar?.find(s => s.kasterid === a.kasterid)
@@ -306,8 +386,8 @@ export function sorterStilling(stilling, kamper) {
     }
     if (kpA !== kpB) return kpB - kpA
 
-    // 5. Høgaste score i ein enkeltkamp (samanlikn sorterte lister)
-    const scoresFor = (kid) => bekrefta
+    // Høgaste score i ein enkeltkamp
+    const scoresFor = (kid: number) => bekrefta
       .flatMap(k => k.spelarar?.filter(s => s.kasterid === kid) ?? [])
       .map(s => scoreForSp(s))
       .sort((x, y) => y - x)
@@ -317,7 +397,6 @@ export function sorterStilling(stilling, kamper) {
       if (sB[i] !== sA[i]) return sB[i] - sA[i]
     }
 
-    // 6. Startnummer ASC
     return (a.startnummer ?? Infinity) - (b.startnummer ?? Infinity)
   })
 }

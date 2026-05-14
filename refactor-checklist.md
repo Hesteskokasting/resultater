@@ -32,41 +32,41 @@ A file-by-file plan for cleaning up the codebase. Based on the codebase analysis
 These are shared utilities you'll use when migrating every file. Build them now so they exist when you need them.
 
 ### 1a. Error logging utility
-- [ ] Create `src/utils/logError.ts`:
+- [x ] Create `src/utils/logError.ts`:
   ```ts
   export function logError(context: string, error: unknown): void {
     console.error(`[${context}]`, error);
   }
   ```
-- [ ] Commit: `"Add logError utility"`
+- [x ] Commit: `"Add logError utility"`
 
 ### 1b. HTML escape utility
-- [ ] Create `src/utils/escHtml.ts` with proper escaping (`&`, `<`, `>`, `"`, `'`)
-- [ ] **Delete** the existing `escAttr()` in `rekorder.js` (line ~29) and `_esc()` in `stevneadmin.js`
-- [ ] Update those two files' imports to use the new utility
-- [ ] Commit: `"Consolidate HTML escaping into escHtml utility"`
+- [x ] Create `src/utils/escHtml.ts` with proper escaping (`&`, `<`, `>`, `"`, `'`)
+- [ x] **Delete** the existing `escAttr()` in `rekorder.js` (line ~29) and `_esc()` in `stevneadmin.js`
+- [ x] Update those two files' imports to use the new utility
+- [ x] Commit: `"Consolidate HTML escaping into escHtml utility"`
 
 ### 1c. Date parsing utility
-- [ ] Create `src/utils/parseLocalDate.ts` for the `+ 'T12:00:00'` pattern
-- [ ] Commit: `"Add parseLocalDate utility"`
+- [x] Create `src/utils/parseLocalDate.ts` for the `+ 'T12:00:00'` pattern
+- [ x] Commit: `"Add parseLocalDate utility"`
 
 ### 1d. Dropdown options utility
-- [ ] Create `src/utils/buildDropdownOptions.ts` consolidating `_opt()` and `dropdownOptions()`
-- [ ] Commit: `"Add buildDropdownOptions utility"`
+- [ x] Create `src/utils/buildDropdownOptions.ts` consolidating `_opt()` and `dropdownOptions()`
+- [x ] Commit: `"Add buildDropdownOptions utility"`
 
 ### 1e. Type guards for auth (security-critical, do isolated)
-- [ ] In `src/utils/auth.ts`, add `isProfil(obj): obj is Profil` and `isRolle(value): value is Rolle`
-- [ ] Replace `as Profil` and `as Rolle` casts with validated narrowing
-- [ ] Test login + admin access carefully
-- [ ] Commit: `"Add runtime validation to auth type assertions"`
+- [x ] In `src/utils/auth.ts`, add `isProfil(obj): obj is Profil` and `isRolle(value): value is Rolle`
+- [x ] Replace `as Profil` and `as Rolle` casts with validated narrowing
+- [x ] Test login + admin access carefully
+- [x ] Commit: `"Add runtime validation to auth type assertions"`
 
 ### 1f. Fix existing `.ts` files that are already broken
 These are `.ts` already so they won't be touched by Phase 2 migration. Fix them here.
 
-- [ ] **`src/utils/norgescup.ts`**: replace `select('*')` (line ~61) with explicit columns; add validation for the `as string[]` (line ~171) and `as number` (line ~142) casts
-- [ ] **`src/utils/stevne.ts`**: wrap the `Promise.all()` at line ~27 in try/catch with `logError()`
-- [ ] **`src/utils/kaster.ts`**: read it. Verify `formatKasterNavn()` (or equivalent) is exported. Note the function name for use during migration.
-- [ ] Commit each as separate logical units
+- [ x] **`src/utils/norgescup.ts`**: replace `select('*')` (line ~61) with explicit columns; add validation for the `as string[]` (line ~171) and `as number` (line ~142) casts
+- [ x] **`src/utils/stevne.ts`**: wrap the `Promise.all()` at line ~27 in try/catch with `logError()`
+- [ x] **`src/utils/kaster.ts`**: read it. Verify `formatKasterNavn()` (or equivalent) is exported. Note the function name for use during migration.
+- [x ] Commit each as separate logical units
 
 > **Stop and verify:** all utilities exist, app still runs, login still works, `npm run typecheck` passes.
 
@@ -143,15 +143,29 @@ Start with smaller, more isolated files. Bigger pages last, when you've found yo
 
 
 - [x] `src/pages/resultat.js` → deleted; content moved to `src/pages/stevne/stevne-resultat.ts` (tab in stevne view)
-- [ ] `src/pages/kamp-scoreboard.js` → `.ts` _(do alongside Phase 3 scoreboard CSS fix. Consider moving all scoreboard functionality to folder /scoreboard since this is not a page (organizer/scoreboard.js ))_
+- [x] `src/pages/kamp-scoreboard.js` → `.ts` _(do alongside Phase 3 scoreboard CSS fix.)_
 
-**Admin:**
-- [ ] `src/admin/stevneadmin.js` → `.ts`
-- [ ] `src/admin/klubbadmin-side.js` → `.ts`
-- [ ] `src/admin/kasteradmin.js` → `.ts`
+**Admin:** - 
+- [ x] `src/admin/admin.js` → `.ts`
+- [ x] `src/admin/stevneadmin.js` → `.ts`
+- [ x] `src/admin/klubbadmin-side.js` → `.ts` _(klubbadmin.ts)_
+- [ x] `src/admin/kasteradmin.js` → `.ts`
 
-**Organizer:**
-- [ ] All files in `src/organizer/` → `.ts` _(list them when you reach this section)_
+**Organizer:** _(stevne*.js already migrated)
+- [x] `src/organizer/org-nav.js` → `.ts`
+- [x] `src/organizer/org-shared.js` → `.ts`
+- [x] `src/organizer/score-numberpad.js` → `src/components/ScoreNumberpad.ts`
+- [x] `src/organizer/startkort-print.js` → `.ts`
+
+**to be clarified** - needs refactoring
+- [ ] `src/organizer/kampgenerering.js` → `.ts`
+- [ ] `src/organizer/stevne-avsluttende.js` → `.ts` 
+- [ ] `src/organizer/stevne-innledende.js` → `.ts`
+
+**UTILS**
+- [ ] `src/utils/adminforms.js` → `.ts` _(can this be deleted?)_
+- [ ] `src/utils/gruppefordeling-ui.js` → `.ts` _(move to /organizer)
+- [ ] `src/utils/organizer-test-utils.js` → `.ts` -(move to organizer/utils)
 
 **Entry point (do last):**
 - [ ] `src/app.js` → `.ts`
@@ -202,15 +216,15 @@ For **every** file you migrate, all of these must be checked off:
 
 These are CSS-only and self-contained. Good to interleave with the heavy migration work.
 
-- [ ] **Scoreboard dark/light mode**: refactor `.sb-*` classes in `styles.css` (lines ~1140–1522)
-  - [ ] Define scoreboard CSS variables in `global.css` for both themes
-  - [ ] Replace all hardcoded hex values with `var(--...)`
-  - [ ] Rename `.sb-rod` → `.sb-negativ`, `.sb-groen` → `.sb-positiv`
-  - [ ] Test in both light and dark mode
+- [ x] **Scoreboard dark/light mode**: refactor `.sb-*` classes in `styles.css` (lines ~1140–1522)
+  - [ x] Define scoreboard CSS variables in `global.css` for both themes
+  - [ x] Replace all hardcoded hex values with `var(--...)`
+  - [ x] Rename `.sb-rod` → `.sb-negativ`, `.sb-groen` → `.sb-positiv`
+  - [ x] Test in both light and dark mode
 - [ ] Audit `styles.css` for other hardcoded colors → replace with variables
 - [ ] Consolidate the repeated `text-align:center;margin-top:40px;` pattern into a utility class (e.g., `.loading-state`)
 - [ ] Remove unused css in global.css and styles.css
-- [ ] Find 
+- [ ] Find specific styles that can be shared across. e.g. terminliste, norgesranking, norgescupen.
 
 
 ---
@@ -348,4 +362,5 @@ _Record decisions made during refactoring so future-you remembers why:_
 - _Decision 1: "DB schema: audit nullable columns for NOT NULL candidates (separate initiative, not part of this refactor)"
 - _Decision 2: "DB schema: set unique values, e.g. kaster.fornavn + kaster.etternavn
 - _Decision 3: "DB schema: consider changing table.id from integer to uuid, e.g. kamp.id (tiny UUID ?)
-- _Decision 2: "Convert code and db from norwegian to english"
+- _Decision 4: "Convert code and db from norwegian to english"
+- _Decision 5: "Refactor admin-pages"
