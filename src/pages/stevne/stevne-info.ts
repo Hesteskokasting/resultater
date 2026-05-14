@@ -4,7 +4,7 @@ import { feilHtml } from '../../utils/pageStates'
 import { logError } from '../../utils/logError'
 import { hentInfoStevne, oppdaterStevneFase } from '../../services/stevneService'
 import { hentAntallPameldingar, hentAntallUbekrefta } from '../../services/pameldingService'
-import { genererInnledendeKamper } from '../../organizer/kampgenerering-db'
+import { genererInnledendeKamper } from '../../organizer/kampgenereringDb.js'
 
 // ── Render ────────────────────────────────────────────────────────────────────
 

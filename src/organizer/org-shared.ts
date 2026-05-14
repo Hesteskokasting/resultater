@@ -17,6 +17,16 @@ export interface OrgKamp extends Pick<Tables<'kamp'>, 'er_bekreftet' | 'er_walko
   spelarar?: OrgKampSpelar[] | null
 }
 
+export interface KampForSortering {
+  er_bekreftet: boolean
+  spelarar?: {
+    kasterid: number | null
+    kamp_poeng: number | null
+    score_poeng?: number | null
+    omgangar?: { score?: number | null }[] | null
+  }[] | null
+}
+
 export interface StillingRad {
   kasterid: number
   namn?: string | null
@@ -356,7 +366,7 @@ export function byggInnledendeSpelMap(
   return { spelMap, ekteKasterids }
 }
 
-export function sorterStilling(stilling: StillingRad[], kamper: OrgKamp[]): StillingRad[] {
+export function sorterStilling(stilling: StillingRad[], kamper: KampForSortering[]): StillingRad[] {
   const bekrefta = kamper.filter(k => k.er_bekreftet)
 
   return [...stilling].sort((a, b) => {
