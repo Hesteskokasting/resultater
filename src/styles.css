@@ -915,6 +915,33 @@ a.stevne-navn {
 
 .nc-info-tekst--advarsel { color: var(--feil); margin-bottom: 0; }
 
+/* ── NM-vinnere ── */
+
+.nm-tittel {
+  text-align: center;
+  font-size: 1.6rem;
+  font-weight: bold;
+  margin: 16px 0 4px;
+}
+
+.nm-undertittel {
+  text-align: center;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.nm-merknad {
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--tekst-3);
+  margin-bottom: 12px;
+}
+
+.nm-tabell-wrapper { overflow-x: auto; }
+
+.nm-td-ar { width: 60px; }
+
 /* ── Påmelding ── */
 
 .pm-side { max-width: 720px; }
