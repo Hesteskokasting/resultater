@@ -140,8 +140,10 @@ Start with smaller, more isolated files. Bigger pages last, when you've found yo
 - [x] `src/pages/pamelding.js` → `.ts`
 - [x] `src/pages/nmvinnere.js` → `.ts`
 - [x] `src/pages/rekorder.js` → `.ts` _(known bug: `klubb_namn`/`klubb_navn` typo to fix. uses database view "kaster_rekorder")_
-- [ ] `src/pages/resultat.js` → `.ts` _(unescaped `kasternavn()` injection — fix during migration. consider changing this from resultat to stevne, since this is actually the stevne with resultat in it. Get recommendation for claude)_
-- [ ] `src/pages/kamp-scoreboard.js` → `.ts` _(do alongside Phase 3 scoreboard CSS fix)_
+
+
+- [x] `src/pages/resultat.js` → deleted; content moved to `src/pages/stevne/stevne-resultat.ts` (tab in stevne view)
+- [ ] `src/pages/kamp-scoreboard.js` → `.ts` _(do alongside Phase 3 scoreboard CSS fix. Consider moving all scoreboard functionality to folder /scoreboard since this is not a page)_
 
 **Admin:**
 - [ ] `src/admin/stevneadmin.js` → `.ts`
@@ -340,5 +342,7 @@ Once all files are `.ts`:
 
 _Record decisions made during refactoring so future-you remembers why:_
 
-- _Decision 1: ..._
-- _Decision 2: ..._
+- _Decision 1: "DB schema: audit nullable columns for NOT NULL candidates (separate initiative, not part of this refactor)"
+- _Decision 2: "DB schema: set unique values, e.g. kaster.fornavn + kaster.etternavn
+- _Decision 3: "DB schema: consider changing table.id from integer to uuid, e.g. kamp.id (tiny UUID ?)
+- _Decision 2: "Convert code and db from norwegian to english"

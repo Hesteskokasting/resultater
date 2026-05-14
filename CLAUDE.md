@@ -73,6 +73,14 @@ src/
 
 ---
 
+## Large structural changes
+
+- Do not make large structural changes in one go. Create a checklist with steps that will be executed on my approval.
+- Suggest making a plan when large changes are requested
+- save approved plans/checklists to /plans/"plan-name.md"
+
+---
+
 ## Optimization & Performance
 
 - **Avoid unnecessary DOM operations.** Build a subtree in memory, then append once — don't append element-by-element in a loop to a mounted parent.
@@ -137,6 +145,8 @@ src/
 
 - **NEVER** run `git add`, `git commit`, `git push`, `git pull`, or any branch/remote operation unless I explicitly ask.
 - If you think a commit is appropriate, suggest it — don't execute it.
+- Provide suggestions for commit text. These should be short.
+- For complex changes create checklist with small steps that can be committed. Complete each steps separately and wait for my approval to proceed.
 
 ---
 
@@ -176,7 +186,7 @@ Prefer **one focused question** over a long list. If you genuinely need multiple
 
 ## When in Doubt
 
-- Ask before making large structural changes.
+- Ask before making large structural changes. Large changes needs to be completed in steps separately.
 - Ask before adding new dependencies.
 - Ask before deleting files.
 - If a rule above seems to conflict with what I'm asking for in a specific message, ask which should win.

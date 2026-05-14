@@ -5,7 +5,9 @@
       "Bash(Remove-Item \"d:\\\\repos\\\\NY-resultat-app\\\\src\\\\pages\\\\pamelding.js\")",
       "mcp__claude_ai_Supabase__list_projects",
       "mcp__claude_ai_Supabase__execute_sql",
-      "Bash(Remove-Item \"d:\\\\repos\\\\NY-resultat-app\\\\src\\\\pages\\\\rekorder.js\")"
+      "Bash(Remove-Item \"d:\\\\repos\\\\NY-resultat-app\\\\src\\\\pages\\\\rekorder.js\")",
+      "Bash(Get-ChildItem -Path \"d:\\\\repos\\\\NY-resultat-app\\\\src\\\\organizer\" -File)",
+      "Bash(Select-Object Name)"
     ]
   }
 }
