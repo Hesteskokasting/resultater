@@ -3,27 +3,30 @@ import { supabase } from '../supabase'
 import { logError } from '../utils/logError'
 
 // Query builders used only for type inference — no HTTP calls at module load
-const _medlemQuery         = supabase.from('kaster').select('id, fornavn, etternavn, avatarurl, medlemsnummer, klasse:klasseid(id, navn)')
-const _kasterListeQuery    = supabase.from('kaster').select('id, fornavn, etternavn, eraktiv, avatarurl, klubb:klubbid(id, navn)')
-const _kasterDetaljQuery   = supabase.from('kaster').select('id, fornavn, etternavn, eraktiv, avatarurl, medlemsnummer, klubbid, klubb:klubbid(id, navn), klasse:klasseid(id, navn)')
-const _resultatDetaljQuery = supabase.from('resultat').select(`
+const _medlemQuery          = supabase.from('kaster').select('id, fornavn, etternavn, avatarurl, medlemsnummer, klasse:klasseid(id, navn)')
+const _kasterListeQuery     = supabase.from('kaster').select('id, fornavn, etternavn, eraktiv, avatarurl, klubb:klubbid(id, navn)')
+const _kasterDetaljQuery    = supabase.from('kaster').select('id, fornavn, etternavn, eraktiv, avatarurl, medlemsnummer, klubbid, klubb:klubbid(id, navn), klasse:klasseid(id, navn)')
+const _kasterForKoblingQuery = supabase.from('kaster').select('id, fornavn, etternavn, klubb:klubbid(navn)')
+const _resultatDetaljQuery  = supabase.from('resultat').select(`
   id, plassering, poeng_kongelag, poeng_xkast, antall_ring_kongelag, antall_ring_xkast,
   klubb:klubbid(id, navn),
   stevne:stevneid(id, navn, dato, stevnetype:stevnetypeid(id, navn), innledendekastemetode:kastemetode!stevne_innledendekastemetodeid_fkey(navn), avsluttendekastemetode:kastemetode!stevne_avsluttendekastemetodeid_fkey(navn))
 `)
 
-export type MedlemRow         = QueryData<typeof _medlemQuery>[number]
-export type KasterListeRow    = QueryData<typeof _kasterListeQuery>[number]
-export type KasterDetaljRow   = QueryData<typeof _kasterDetaljQuery>[number]
-export type ResultatDetaljRow = QueryData<typeof _resultatDetaljQuery>[number]
+export type MedlemRow            = QueryData<typeof _medlemQuery>[number]
+export type KasterListeRow       = QueryData<typeof _kasterListeQuery>[number]
+export type KasterDetaljRow      = QueryData<typeof _kasterDetaljQuery>[number]
+export type KasterForKoblingRow  = QueryData<typeof _kasterForKoblingQuery>[number]
+export type ResultatDetaljRow    = QueryData<typeof _resultatDetaljQuery>[number]
 
 // ── Caches ────────────────────────────────────────────────────────────────────
 
 let _kasterListeAktivCache: KasterListeRow[] | null = null
 let _kasterListeAlleCache:  KasterListeRow[] | null = null
 
-const _klubbDetaljCache  = new Map<number, { data: MedlemRow[];         error: unknown }>()
-const _kasterDetaljCache = new Map<number, { kaster: KasterDetaljRow | null; resultater: ResultatDetaljRow[]; error: unknown }>()
+const _klubbDetaljCache    = new Map<number, { data: MedlemRow[];            error: unknown }>()
+const _kasterDetaljCache   = new Map<number, { kaster: KasterDetaljRow | null; resultater: ResultatDetaljRow[]; error: unknown }>()
+const _kasterKoblingCache  = new Map<number, { data: KasterForKoblingRow | null; error: unknown }>()
 
 // ── Eksporterte funksjonar ────────────────────────────────────────────────────
 
@@ -36,7 +39,7 @@ export async function hentKlubbMedlemmar(klubbId: number): Promise<{ data: Medle
     .eq('eraktiv', true)
     .order('etternavn')
     .order('fornavn')
-  if (error) logError('hentMedlemmar', error)
+  if (error) logError('hentKlubbMedlemmar', error)
   const entry = { data: data ?? [], error }
   _klubbDetaljCache.set(klubbId, entry)
   return entry
@@ -99,5 +102,18 @@ export async function hentKasterDetalj(id: number): Promise<{
 
   const entry = { kaster: kasterRes.data, resultater, error }
   _kasterDetaljCache.set(id, entry)
+  return entry
+}
+
+export async function hentKasterForKobling(id: number): Promise<{ data: KasterForKoblingRow | null; error: unknown }> {
+  if (_kasterKoblingCache.has(id)) return _kasterKoblingCache.get(id)!
+  const { data, error } = await supabase
+    .from('kaster')
+    .select('id, fornavn, etternavn, klubb:klubbid(navn)')
+    .eq('id', id)
+    .single()
+  if (error) logError('hentKasterForKobling', error)
+  const entry = { data, error }
+  _kasterKoblingCache.set(id, entry)
   return entry
 }

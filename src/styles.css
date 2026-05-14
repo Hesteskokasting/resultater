@@ -1608,6 +1608,10 @@ a.stevne-navn {
 
 .konto-container { max-width: 480px; }
 
+/* ── Min side ── */
+
+.minside-container { max-width: 640px; }
+
 /* ── Klubbar ─────────────────────────────────────────────────────────────────── */
 
 .klubb-detalj-header {
