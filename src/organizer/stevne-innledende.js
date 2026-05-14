@@ -1,5 +1,5 @@
 import { supabase } from '../supabase.js'
-import { opnNumberpad } from './score-numberpad.js'
+import { opnNumberpad } from '../components/ScoreNumberpad.js'
 import { beregnKampPoeng, hentP1P2, scoreForSp, ringerForSp } from '../utils/kamp.js'
 import { genererNesteSwissRunde } from './kampgenerering-db.js'
 import { autoFullforInnledendeKamper } from '../utils/organizer-test-utils.js'

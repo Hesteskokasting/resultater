@@ -2,7 +2,7 @@ import { supabase } from '../supabase.js'
 import { gyldigeRunde1Oppsett } from '../utils/kastemetoder-logikk.js'
 import { renderGruppefordeling, renderGruppePreview, renderGruppePanelInnhald, renderStrukturListeHtml } from '../utils/gruppefordeling-ui.js'
 import { genererCupRunde1, genererNesteCupRundeForGruppe, genererFinaleOgBronsefinale } from './kampgenerering-db.js'
-import { opnNumberpad } from './score-numberpad.js'
+import { opnNumberpad } from '../components/ScoreNumberpad.js'
 import { scoreForSp } from '../utils/kamp.js'
 import { sorterStilling, renderAvsluttendeKnappar, lagOnEndringHandler, bindStillingDetaljar, renderHovudInnhald, bindTabToggle, renderStillingTabell, beregnKanBekrefte } from './org-shared.js'
 
