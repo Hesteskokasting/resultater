@@ -127,7 +127,7 @@ function tabellRadHtml(s: StevneRow): string {
     ? `<a href="${escHtml(s.innbydelseurl)}" target="_blank" rel="noopener" class="tl-innbydelse-ikon" title="Innbydelse">📄</a>`
     : ''
   return `<tr class="tl-tr">
-    <td><a class="tl-lenkje" href="#/resultat/${s.id}">${nm}${escHtml(s.navn ?? '')}</a></td>
+    <td><a class="tl-lenkje" href="#/stevne/${s.id}/resultat">${nm}${escHtml(s.navn ?? '')}</a></td>
     <td>${dato}</td>
     <td>${escHtml(s.sted ?? '')}</td>
     <td>${escHtml(metode)}</td>
@@ -164,7 +164,7 @@ function kortHtml(s: StevneRow): string {
     ? `<a class="tl-innbydelse-lenke" href="${escHtml(s.innbydelseurl)}" target="_blank" rel="noopener">Innbydelse 📄</a>`
     : ''
   const resultat = s.resultaturl
-    ? `<a class="stevne-lenke" href="#/resultat/${s.id}">Vis resultat</a>`
+    ? `<a class="stevne-lenke" href="#/stevne/${s.id}/resultat">Vis resultat</a>`
     : ''
 
   const erKomande = s.dato && new Date(s.dato + 'T12:00:00') > new Date()
@@ -180,7 +180,7 @@ function kortHtml(s: StevneRow): string {
 
   return `
     <div class="stevne-kort tl-kort">
-      <a class="tl-navn tl-navn-lenke" href="#/resultat/${s.id}">${nm}${escHtml(s.navn ?? '')}</a>
+      <a class="tl-navn tl-navn-lenke" href="#/stevne/${s.id}/resultat">${nm}${escHtml(s.navn ?? '')}</a>
       <p class="stevne-dato">${dato}</p>
       ${sted}${arrangør}${type}
       ${innbydelse}${resultat}${pameldingLenke}

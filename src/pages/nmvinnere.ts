@@ -79,7 +79,7 @@ function tabellHtml(liste: VinnareEntry[]): string {
   const rader = liste.map(({ ar, stevneId, kastere, klubb }) => {
     const namnHtml = kastere.map(kasterLenkjeHtml).join(' og ') || '–'
     const arHtml = stevneId
-      ? `<a href="#/resultat/${stevneId}" class="tl-lenkje">${ar ?? '–'}</a>`
+      ? `<a href="#/stevne/${stevneId}/resultat" class="tl-lenkje">${ar ?? '–'}</a>`
       : String(ar ?? '–')
     return `
       <tr>

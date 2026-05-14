@@ -310,7 +310,7 @@ function resultatTabellHtml(resultater: ResultatDetaljRow[], arFilter: string, t
   const rader = filtrert.map(r => {
     const s = r.stevne
     const stevneHtml = s?.id
-      ? `<a href="#/resultat/${s.id}" class="tl-lenkje">${escHtml(s.navn ?? '')}</a>`
+      ? `<a href="#/stevne/${s.id}/resultat" class="tl-lenkje">${escHtml(s.navn ?? '')}</a>`
       : escHtml(s?.navn ?? '–')
     return `
       <tr>

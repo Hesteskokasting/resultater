@@ -175,7 +175,7 @@ export async function render(container: HTMLElement): Promise<void> {
     container.addEventListener('click', e => {
       const celle = (e.target as Element).closest<HTMLElement>('.rek-poeng-celle')
       if (celle?.dataset.stevneid) {
-        location.hash = `#/resultat/${celle.dataset.stevneid}`
+        location.hash = `#/stevne/${celle.dataset.stevneid}/resultat`
       }
     })
   } catch (err) {
