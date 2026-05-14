@@ -1,7 +1,7 @@
 import { supabase } from '../../supabase'
 import { logError } from '../../utils/logError'
 import { feilHtml } from '../../utils/pageStates'
-import { nullstillStevne } from '../../utils/organizer-test-utils'
+import { nullstillStevne } from '../../organizer/organizerTestUtils.js'
 
 // ── Render ────────────────────────────────────────────────────────────────────
 

@@ -1,7 +1,10 @@
 import { supabase } from '../supabase.js'
-import { beregnKampPoeng } from './kamp.js'
+import { beregnKampPoeng } from '../utils/kamp.js'
 
-function tilfeldigScore() {
+interface KampSpelarRow { id: number; kasterid: number | null }
+interface KampForAutoFullfor { id: number; er_walkover: boolean | null; spelarar: KampSpelarRow[] }
+
+function tilfeldigScore(): [number, number] {
   const s1 = Math.floor(Math.random() * 27)
   const s2 = Math.floor(Math.random() * 27)
   if (s1 < 21 && s2 < 21) {
@@ -11,7 +14,7 @@ function tilfeldigScore() {
   return [s1, s2]
 }
 
-export async function autoFullforInnledendeKamper(stevneid) {
+export async function autoFullforInnledendeKamper(stevneid: number): Promise<void> {
   const { data: kamper } = await supabase
     .from('kamp')
     .select('id, er_walkover, spelarar:kamp_spelar(id, kasterid)')
@@ -21,37 +24,25 @@ export async function autoFullforInnledendeKamper(stevneid) {
 
   if (!kamper?.length) return
 
-  const alleKasterids = new Set()
-
-  for (const kamp of kamper) {
+  for (const kamp of (kamper as KampForAutoFullfor[])) {
     const spelarar = kamp.spelarar ?? []
 
     if (kamp.er_walkover) {
       await supabase.from('kamp').update({ er_bekreftet: true }).eq('id', kamp.id)
-      for (const sp of spelarar) {
-        if (sp.kasterid) alleKasterids.add(sp.kasterid)
-      }
     } else {
       const [sp1, sp2] = spelarar
       const [s1, s2] = tilfeldigScore()
       const [kp1, kp2] = beregnKampPoeng(s1, s2)
 
-      const updates = [supabase.from('kamp').update({ er_bekreftet: true }).eq('id', kamp.id)]
-      if (sp1) {
-        updates.push(supabase.from('kamp_spelar').update({ score_poeng: s1, kamp_poeng: kp1 }).eq('id', sp1.id))
-        if (sp1.kasterid) alleKasterids.add(sp1.kasterid)
-      }
-      if (sp2) {
-        updates.push(supabase.from('kamp_spelar').update({ score_poeng: s2, kamp_poeng: kp2 }).eq('id', sp2.id))
-        if (sp2.kasterid) alleKasterids.add(sp2.kasterid)
-      }
+      const updates: PromiseLike<unknown>[] = [supabase.from('kamp').update({ er_bekreftet: true }).eq('id', kamp.id)]
+      if (sp1) updates.push(supabase.from('kamp_spelar').update({ score_poeng: s1, kamp_poeng: kp1 }).eq('id', sp1.id))
+      if (sp2) updates.push(supabase.from('kamp_spelar').update({ score_poeng: s2, kamp_poeng: kp2 }).eq('id', sp2.id))
       await Promise.all(updates)
     }
   }
-
 }
 
-export async function slettKamperForFase(stevneid, fase) {
+export async function slettKamperForFase(stevneid: number, fase: string): Promise<void> {
   const { data: kamper } = await supabase
     .from('kamp')
     .select('id')
@@ -75,7 +66,7 @@ export async function slettKamperForFase(stevneid, fase) {
   await supabase.from('kamp').delete().in('id', kampids)
 }
 
-export async function nullstillStevne(stevneid) {
+export async function nullstillStevne(stevneid: number): Promise<void> {
   await slettKamperForFase(stevneid, 'avsluttende')
   await slettKamperForFase(stevneid, 'innledende')
   await supabase.from('resultat').delete().eq('stevneid', stevneid)
