@@ -13,6 +13,20 @@
 - Prefer `type` for unions and simple shapes, `interface` for objects that may be extended.
 - Enable and respect `strict: true` in `tsconfig.json`.
 
+## IMPORTANT
+
+□ No `any` (explicit or implicit)
+□ No `as unknown as ...` casts
+□ All Supabase queries must bein src/services/<feature>Service.ts
+□ The file imports from services/, NOT directly from supabaseClient
+□ All Supabase queries use explicit column lists (no select("*"))
+□ All Supabase errors go through logError() (in the service)
+□ All Promise.all() calls wrapped in try/catch with logError()
+□ All user-sourced strings interpolated into innerHTML use escHtml()
+□ Existing utilities are reused (formatKasterNavn from utils/kaster.ts, etc.) — no re-implementation
+□ No inline styles in the .ts file
+□ Duplicated helpers removed → import from src/utils/
+
 ---
 
 ## Type Checking
