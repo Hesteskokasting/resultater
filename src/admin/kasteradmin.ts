@@ -1,11 +1,17 @@
-import { supabase } from '../supabase.js'
+import { supabase } from '../supabase'
 import { lagFormRadHtml, visLagreFeil, visSuksess } from '../utils/adminForms.js'
-import { erAdmin, erKlubbadmin } from '../utils/auth.js'
-import { escHtml } from '../utils/escHtml.js'
-import { buildDropdownOptions } from '../utils/buildDropdownOptions.js'
-import { formNum } from '../utils/formNum.js'
+import { erAdmin, erKlubbadmin } from '../utils/auth'
+import { escHtml } from '../utils/escHtml'
+import { buildDropdownOptions } from '../utils/buildDropdownOptions'
+import { formNum } from '../utils/formNum'
+import type { Database } from '../types/database.types'
 
-export async function render(container, { id } = {}) {
+type KasterRow = Database['public']['Tables']['kaster']['Row']
+
+export async function render(
+  container: HTMLElement,
+  { id }: { id?: number } = {},
+): Promise<void> {
   container.innerHTML = '<p class="laster" style="text-align:center;margin-top:40px;">Laster…</p>'
 
   const [
@@ -18,19 +24,25 @@ export async function render(container, { id } = {}) {
     supabase.from('kjonn').select('id, navn').order('id'),
   ])
 
-  let kaster = null
+  let kaster: KasterRow | null = null
   if (id) {
-    const { data } = await supabase.from('kaster').select('*').eq('id', id).single()
-    kaster = data
+    const { data } = await supabase
+      .from('kaster')
+      .select('id, fornavn, etternavn, kjonnid, klasseid, klubbid, epost, telefon, medlemsnummer, eraktiv')
+      .eq('id', id)
+      .single()
+    kaster = data as KasterRow | null
 
-    if (!(await erAdmin()) && !(await erKlubbadmin(kaster?.klubbid))) {
+    if (!(await erAdmin()) && !(await erKlubbadmin(kaster?.klubbid ?? undefined))) {
       container.innerHTML = '<p class="feil" style="text-align:center;margin-top:40px;">Ingen tilgang til denne utøvaren.</p>'
       return
     }
   }
 
-  const tittel = id ? `Rediger utøvar: ${kaster ? `${kaster.fornavn} ${kaster.etternavn}` : ''}` : 'Ny utøvar'
-  const v = kaster ?? {}
+  const tittel = id
+    ? `Rediger utøvar: ${kaster ? `${kaster.fornavn} ${kaster.etternavn}` : ''}`
+    : 'Ny utøvar'
+  const v = kaster ?? ({} as Partial<KasterRow>)
 
   container.innerHTML = `
     <div class="container py-4" style="max-width:560px">
@@ -55,17 +67,17 @@ export async function render(container, { id } = {}) {
       </form>
     </div>`
 
-  container.querySelector('#kaster-skjema').addEventListener('submit', async e => {
+  container.querySelector<HTMLFormElement>('#kaster-skjema')!.addEventListener('submit', async e => {
     e.preventDefault()
-    const fd = new FormData(e.target)
+    const fd = new FormData(e.target as HTMLFormElement)
     const payload = {
-      fornavn:       fd.get('fornavn').trim(),
-      etternavn:     fd.get('etternavn').trim(),
-      kjonnid:       formNum(fd.get('kjonnid')),
+      fornavn:       (fd.get('fornavn') as string).trim(),
+      etternavn:     (fd.get('etternavn') as string).trim(),
+      kjonnid:       formNum(fd.get('kjonnid'))!,
       klubbid:       formNum(fd.get('klubbid')),
       klasseid:      formNum(fd.get('klasseid')),
-      epost:         fd.get('epost').trim() || null,
-      telefon:       fd.get('telefon').trim() || null,
+      epost:         (fd.get('epost') as string).trim() || null,
+      telefon:       (fd.get('telefon') as string).trim() || null,
       medlemsnummer: fd.get('medlemsnummer') ? Number(fd.get('medlemsnummer')) : null,
       eraktiv:       fd.get('eraktiv') === 'on',
     }
@@ -76,15 +88,13 @@ export async function render(container, { id } = {}) {
 
     if (error) { visLagreFeil(container, error.message); return }
     visSuksess(container, 'Utøvaren er lagra.')
-    if (!id) setTimeout(() => { location.hash = `#/kaster/${lagra.id}/admin` }, 1500)
+    if (!id) setTimeout(() => { location.hash = `#/kaster/${lagra!.id}/admin` }, 1500)
   })
 
-  container.querySelector('#slett-knapp')?.addEventListener('click', async () => {
+  container.querySelector<HTMLButtonElement>('#slett-knapp')?.addEventListener('click', async () => {
     if (!confirm(`Slett utøvaren «${kaster?.fornavn} ${kaster?.etternavn}»? Dette kan ikkje angrast.`)) return
-    const { error } = await supabase.from('kaster').delete().eq('id', id)
+    const { error } = await supabase.from('kaster').delete().eq('id', id!)
     if (error) { visLagreFeil(container, error.message); return }
     location.hash = '#/kastere'
   })
 }
-
-

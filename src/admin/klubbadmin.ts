@@ -1,22 +1,31 @@
-import { supabase } from '../supabase.js'
+import { supabase } from '../supabase'
 import { lagFormRadHtml, visLagreFeil, visSuksess } from '../utils/adminForms.js'
-import { erAdmin, erKlubbadmin } from '../utils/auth.js'
-import { escHtml } from '../utils/escHtml.js'
+import { erAdmin, erKlubbadmin } from '../utils/auth'
+import { escHtml } from '../utils/escHtml'
 
-export async function render(container, { id } = {}) {
-  if (!id) { container.innerHTML = '<p class="feil" style="text-align:center;margin-top:40px;">Manglande ID.</p>'; return }
+export async function render(
+  container: HTMLElement,
+  { id }: { id?: number } = {},
+): Promise<void> {
+  if (!id) {
+    container.innerHTML = '<p class="feil" style="text-align:center;margin-top:40px;">Manglande ID.</p>'
+    return
+  }
 
   container.innerHTML = '<p class="laster" style="text-align:center;margin-top:40px;">Laster…</p>'
 
   const { data: klubb } = await supabase
     .from('klubb')
-    .select('*')
+    .select('id, navn, kortnavn, logourl, eraktiv')
     .eq('id', id)
     .single()
 
-  if (!klubb) { container.innerHTML = '<p class="feil" style="text-align:center;margin-top:40px;">Klubb ikkje funne.</p>'; return }
+  if (!klubb) {
+    container.innerHTML = '<p class="feil" style="text-align:center;margin-top:40px;">Klubb ikkje funne.</p>'
+    return
+  }
 
-  if (!(await erAdmin()) && !(await erKlubbadmin(Number(id)))) {
+  if (!(await erAdmin()) && !(await erKlubbadmin(id))) {
     container.innerHTML = '<p class="feil" style="text-align:center;margin-top:40px;">Ingen tilgang til denne klubben.</p>'
     return
   }
@@ -36,16 +45,16 @@ export async function render(container, { id } = {}) {
       </form>
     </div>`
 
-  container.querySelector('#klubb-skjema').addEventListener('submit', async e => {
+  container.querySelector<HTMLFormElement>('#klubb-skjema')!.addEventListener('submit', async e => {
     e.preventDefault()
-    const fd = new FormData(e.target)
+    const fd = new FormData(e.target as HTMLFormElement)
     const { error } = await supabase
       .from('klubb')
       .update({
-        navn:      fd.get('navn').trim(),
-        kortnavn:  fd.get('kortnavn').trim(),
-        logourl:   fd.get('logourl').trim() || null,
-        eraktiv:   fd.get('eraktiv') === 'on',
+        navn:     (fd.get('navn') as string).trim(),
+        kortnavn: (fd.get('kortnavn') as string).trim(),
+        logourl:  (fd.get('logourl') as string).trim() || null,
+        eraktiv:  fd.get('eraktiv') === 'on',
       })
       .eq('id', id)
 
@@ -53,4 +62,3 @@ export async function render(container, { id } = {}) {
     visSuksess(container, 'Klubben er lagra.')
   })
 }
-

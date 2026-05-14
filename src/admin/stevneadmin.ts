@@ -1,11 +1,17 @@
-import { supabase } from '../supabase.js'
+import { supabase } from '../supabase'
 import { lagFormRadHtml, visLagreFeil, visSuksess } from '../utils/adminForms.js'
-import { erAdmin, erKlubbadmin } from '../utils/auth.js'
-import { escHtml } from '../utils/escHtml.js'
-import { buildDropdownOptions } from '../utils/buildDropdownOptions.js'
-import { formNum } from '../utils/formNum.js'
+import { erAdmin, erKlubbadmin } from '../utils/auth'
+import { escHtml } from '../utils/escHtml'
+import { buildDropdownOptions } from '../utils/buildDropdownOptions'
+import { formNum } from '../utils/formNum'
+import type { Database } from '../types/database.types'
 
-export async function render(container, { id } = {}) {
+type StevneRow = Database['public']['Tables']['stevne']['Row']
+
+export async function render(
+  container: HTMLElement,
+  { id }: { id?: number } = {},
+): Promise<void> {
   container.innerHTML = '<p class="laster" style="text-align:center;margin-top:40px;">Laster…</p>'
 
   const [
@@ -20,29 +26,31 @@ export async function render(container, { id } = {}) {
     supabase.from('kategori').select('id, navn').order('navn'),
   ])
 
-  let stevne = null
+  let stevne: StevneRow | null = null
   if (id) {
-    const { data } = await supabase.from('stevne').select('*').eq('id', id).single()
-    stevne = data
+    const { data } = await supabase
+      .from('stevne')
+      .select('id, navn, sted, dato, tid, klubbid, stevnetypeid, innledendekastemetodeid, avsluttendekastemetodeid, kategoriid, ernm, ernorgesranking, erfullfort, erekskludertfrarekorder, innbydelseurl, resultaturl')
+      .eq('id', id)
+      .single()
+    stevne = data as StevneRow | null
 
-    // Klubbadmin: sjekk at dei har tilgang til denne klubben
-    if (!(await erAdmin()) && !(await erKlubbadmin(stevne?.klubbid))) {
+    if (!(await erAdmin()) && !(await erKlubbadmin(stevne?.klubbid ?? undefined))) {
       container.innerHTML = '<p class="feil" style="text-align:center;margin-top:40px;">Ingen tilgang til dette stevnet.</p>'
       return
     }
   }
 
   const tittel = id ? `Rediger stevne: ${stevne?.navn ?? ''}` : 'Nytt stevne'
-
-  const v = stevne ?? {}
+  const v = stevne ?? ({} as Partial<StevneRow>)
   const datoVerdi = v.dato ?? ''
   const tidVerdi  = v.tid ? v.tid.slice(0, 5) : ''
 
-  const klubbOpt    = buildDropdownOptions(klubbar, v.klubbid)
-  const typeOpt     = buildDropdownOptions(stevnetypar, v.stevnetypeid)
-  const metodeOpt   = buildDropdownOptions(kastemetodar, v.innledendekastemetodeid)
-  const metodeOpt2  = buildDropdownOptions(kastemetodar, v.avsluttendekastemetodeid)
-  const katOpt      = buildDropdownOptions(kategoriar, v.kategoriid)
+  const klubbOpt   = buildDropdownOptions(klubbar, v.klubbid)
+  const typeOpt    = buildDropdownOptions(stevnetypar, v.stevnetypeid)
+  const metodeOpt  = buildDropdownOptions(kastemetodar, v.innledendekastemetodeid)
+  const metodeOpt2 = buildDropdownOptions(kastemetodar, v.avsluttendekastemetodeid)
+  const katOpt     = buildDropdownOptions(kategoriar, v.kategoriid)
 
   container.innerHTML = `
     <div class="container py-4" style="max-width:640px">
@@ -72,25 +80,25 @@ export async function render(container, { id } = {}) {
       </form>
     </div>`
 
-  container.querySelector('#stevne-skjema').addEventListener('submit', async e => {
+  container.querySelector<HTMLFormElement>('#stevne-skjema')!.addEventListener('submit', async e => {
     e.preventDefault()
-    const fd = new FormData(e.target)
+    const fd = new FormData(e.target as HTMLFormElement)
     const payload = {
-      navn:                      fd.get('navn').trim(),
-      sted:                      fd.get('sted').trim() || null,
-      dato:                      fd.get('dato') || null,
-      tid:                       fd.get('tid') || null,
-      klubbid:                   formNum(fd.get('klubbid')),
-      stevnetypeid:              formNum(fd.get('stevnetypeid')),
-      innledendekastemetodeid:   formNum(fd.get('innledendekastemetodeid')),
-      avsluttendekastemetodeid:  formNum(fd.get('avsluttendekastemetodeid')),
-      kategoriid:                formNum(fd.get('kategoriid')),
-      ernm:                      fd.get('ernm') === 'on',
-      ernorgesranking:           fd.get('ernorgesranking') === 'on',
-      erfullfort:                fd.get('erfullfort') === 'on',
-      erekskludertfrarekorder:   fd.get('erekskludertfrarekorder') === 'on',
-      innbydelseurl:             fd.get('innbydelseurl').trim() || null,
-      resultaturl:               fd.get('resultaturl').trim() || null,
+      navn:                     (fd.get('navn') as string).trim(),
+      sted:                     (fd.get('sted') as string).trim() || null,
+      dato:                     (fd.get('dato') as string) || null,
+      tid:                      (fd.get('tid') as string) || null,
+      klubbid:                  formNum(fd.get('klubbid')),
+      stevnetypeid:             formNum(fd.get('stevnetypeid')),
+      innledendekastemetodeid:  formNum(fd.get('innledendekastemetodeid')),
+      avsluttendekastemetodeid: formNum(fd.get('avsluttendekastemetodeid')),
+      kategoriid:               formNum(fd.get('kategoriid')),
+      ernm:                     fd.get('ernm') === 'on',
+      ernorgesranking:          fd.get('ernorgesranking') === 'on',
+      erfullfort:               fd.get('erfullfort') === 'on',
+      erekskludertfrarekorder:  fd.get('erekskludertfrarekorder') === 'on',
+      innbydelseurl:            (fd.get('innbydelseurl') as string).trim() || null,
+      resultaturl:              (fd.get('resultaturl') as string).trim() || null,
     }
 
     const { data: lagra, error } = id
@@ -99,15 +107,13 @@ export async function render(container, { id } = {}) {
 
     if (error) { visLagreFeil(container, error.message); return }
     visSuksess(container, 'Stevnet er lagra.')
-    if (!id) setTimeout(() => { location.hash = `#/stevne/${lagra.id}/admin` }, 1500)
+    if (!id) setTimeout(() => { location.hash = `#/stevne/${lagra!.id}/admin` }, 1500)
   })
 
-  container.querySelector('#slett-knapp')?.addEventListener('click', async () => {
+  container.querySelector<HTMLButtonElement>('#slett-knapp')?.addEventListener('click', async () => {
     if (!confirm(`Slett stevnet «${stevne?.navn}»? Dette kan ikkje angrast.`)) return
-    const { error } = await supabase.from('stevne').delete().eq('id', id)
+    const { error } = await supabase.from('stevne').delete().eq('id', id!)
     if (error) { visLagreFeil(container, error.message); return }
     location.hash = '#/terminliste'
   })
 }
-
-

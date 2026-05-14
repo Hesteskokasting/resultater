@@ -1,9 +1,15 @@
-import { supabase } from '../supabase.js'
+import { supabase } from '../supabase'
 
-const FANER = ['kobling', 'brukarar', 'klubbadmin']
-const FANE_LABEL = { kobling: 'Koblingforespørslar', brukarar: 'Brukarar', klubbadmin: 'Klubbadmin-tilgang' }
+type Fane = 'kobling' | 'brukarar' | 'klubbadmin'
 
-export async function render(container) {
+const FANER: Fane[] = ['kobling', 'brukarar', 'klubbadmin']
+const FANE_LABEL: Record<Fane, string> = {
+  kobling:    'Koblingforespørslar',
+  brukarar:   'Brukarar',
+  klubbadmin: 'Klubbadmin-tilgang',
+}
+
+export async function render(container: HTMLElement): Promise<void> {
   container.innerHTML = `
     <div class="container py-4" style="max-width:860px">
       <h2 class="mb-3">Administrasjon</h2>
@@ -15,48 +21,57 @@ export async function render(container) {
       <div id="admin-innhald"></div>
     </div>`
 
-  const innhald = container.querySelector('#admin-innhald')
-  let aktivFane = 'kobling'
+  const innhald = container.querySelector<HTMLElement>('#admin-innhald')!
 
-  async function visFane(fane) {
-    aktivFane = fane
-    container.querySelectorAll('[data-fane]').forEach(k => {
+  async function visFane(fane: Fane): Promise<void> {
+    container.querySelectorAll<HTMLElement>('[data-fane]').forEach(k => {
       k.classList.toggle('active', k.dataset.fane === fane)
     })
     innhald.innerHTML = '<p class="laster">Laster…</p>'
-    if (fane === 'kobling')     await _visKobling(innhald)
-    if (fane === 'brukarar')    await _visBrukarar(innhald)
-    if (fane === 'klubbadmin')  await _visKlubbadmin(innhald)
+    if (fane === 'kobling')    await _visKobling(innhald)
+    if (fane === 'brukarar')   await _visBrukarar(innhald)
+    if (fane === 'klubbadmin') await _visKlubbadmin(innhald)
   }
 
-  container.querySelector('#admin-faner').addEventListener('click', e => {
-    const knapp = e.target.closest('[data-fane]')
-    if (knapp) visFane(knapp.dataset.fane)
+  container.querySelector('#admin-faner')!.addEventListener('click', e => {
+    const knapp = (e.target as HTMLElement).closest<HTMLElement>('[data-fane]')
+    if (knapp?.dataset.fane) visFane(knapp.dataset.fane as Fane)
   })
 
   visFane('kobling')
 }
 
 // ── Koblingforespørslar ──────────────────────────────────────
-async function _visKobling(el) {
+
+async function _visKobling(el: HTMLElement): Promise<void> {
   const { data, error } = await supabase
     .from('bruker_profil')
-    .select('id, kobling_kasterid, kaster:kobling_kasterid(id, fornavn, etternavn, klubb:klubbid(navn))')
+    .select('id, kobling_kasterid')
     .eq('kobling_status', 'venter')
 
   if (error) { el.innerHTML = `<div class="alert alert-danger">${error.message}</div>`; return }
   if (!data?.length) { el.innerHTML = '<p class="text-muted">Ingen ventande forespørslar.</p>'; return }
 
-  const ids = data.map(r => r.id)
-  const { data: epostar } = await supabase.rpc('hent_bruker_epost', { bruker_ids: ids })
-  const epostMap = Object.fromEntries((epostar ?? []).map(r => [r.id, r.epost]))
+  const brukarIds  = data.map(r => r.id)
+  const kasterIds  = data.map(r => r.kobling_kasterid).filter((x): x is number => x !== null)
+
+  const [{ data: epostar }, { data: kastere }] = await Promise.all([
+    supabase.rpc('hent_bruker_epost', { bruker_ids: brukarIds }),
+    kasterIds.length
+      ? supabase.from('kaster').select('id, fornavn, etternavn, klubb:klubbid(navn)').in('id', kasterIds)
+      : Promise.resolve({ data: [] }),
+  ])
+
+  const epostMap  = Object.fromEntries((epostar ?? []).map(r => [r.id, r.epost]))
+  const kasterMap = new Map((kastere ?? []).map(k => [k.id, k] as const))
 
   el.innerHTML = `<table class="table table-hover">
     <thead><tr><th>E-post</th><th>Vil koblast til</th><th>Handling</th></tr></thead>
     <tbody>
       ${data.map(r => {
-        const k = r.kaster
-        const kastNamn = k ? `${k.fornavn} ${k.etternavn} (${k.klubb?.navn ?? ''})` : '—'
+        const k = r.kobling_kasterid ? kasterMap.get(r.kobling_kasterid) : null
+        const klubb = k?.klubb as { navn: string } | null | undefined
+        const kastNamn = k ? `${k.fornavn} ${k.etternavn} (${klubb?.navn ?? ''})` : '—'
         return `<tr data-id="${r.id}" data-kasterid="${r.kobling_kasterid}">
           <td>${epostMap[r.id] ?? r.id}</td>
           <td>${kastNamn}</td>
@@ -69,23 +84,27 @@ async function _visKobling(el) {
     </tbody>
   </table>`
 
-  el.querySelectorAll('.godkjenn-knapp').forEach(knapp => {
+  el.querySelectorAll<HTMLButtonElement>('.godkjenn-knapp').forEach(knapp => {
     knapp.addEventListener('click', async () => {
-      const rad = knapp.closest('tr')
-      await _oppdaterKobling(rad.dataset.id, rad.dataset.kasterid, 'godkjent')
+      const rad = knapp.closest<HTMLElement>('tr')!
+      await _oppdaterKobling(rad.dataset.id!, rad.dataset.kasterid!, 'godkjent')
       _visKobling(el)
     })
   })
-  el.querySelectorAll('.avvis-knapp').forEach(knapp => {
+  el.querySelectorAll<HTMLButtonElement>('.avvis-knapp').forEach(knapp => {
     knapp.addEventListener('click', async () => {
-      const rad = knapp.closest('tr')
-      await _oppdaterKobling(rad.dataset.id, null, 'avvist')
+      const rad = knapp.closest<HTMLElement>('tr')!
+      await _oppdaterKobling(rad.dataset.id!, null, 'avvist')
       _visKobling(el)
     })
   })
 }
 
-async function _oppdaterKobling(brukerId, kasterid, status) {
+async function _oppdaterKobling(
+  brukerId: string,
+  kasterid: string | null,
+  status: string,
+): Promise<void> {
   await supabase
     .from('bruker_profil')
     .update({ kobling_status: status, kasterid: kasterid ? Number(kasterid) : null })
@@ -93,7 +112,8 @@ async function _oppdaterKobling(brukerId, kasterid, status) {
 }
 
 // ── Brukarar ────────────────────────────────────────────────
-async function _visBrukarar(el) {
+
+async function _visBrukarar(el: HTMLElement): Promise<void> {
   const { data, error } = await supabase
     .from('bruker_profil')
     .select('id, rolle, kobling_status')
@@ -127,22 +147,21 @@ async function _visBrukarar(el) {
       </tbody>
     </table>`
 
-  // Set noverande verdiar
   data.forEach(r => {
-    const rad = el.querySelector(`tr[data-id="${r.id}"]`)
-    if (rad) rad.querySelector('.rolle-vel').value = r.rolle
+    const rad = el.querySelector<HTMLElement>(`tr[data-id="${r.id}"]`)
+    if (rad) rad.querySelector<HTMLSelectElement>('.rolle-vel')!.value = r.rolle
   })
 
-  el.querySelectorAll('.lagre-rolle').forEach(knapp => {
+  el.querySelectorAll<HTMLButtonElement>('.lagre-rolle').forEach(knapp => {
     knapp.addEventListener('click', async () => {
-      const rad     = knapp.closest('tr')
-      const nyRolle = rad.querySelector('.rolle-vel').value
-      const feil    = el.querySelector('#brukar-feil')
+      const rad     = knapp.closest<HTMLElement>('tr')!
+      const nyRolle = rad.querySelector<HTMLSelectElement>('.rolle-vel')!.value
+      const feil    = el.querySelector<HTMLElement>('#brukar-feil')!
       feil.classList.add('d-none')
       const { error } = await supabase
         .from('bruker_profil')
         .update({ rolle: nyRolle })
-        .eq('id', rad.dataset.id)
+        .eq('id', rad.dataset.id!)
       if (error) {
         feil.textContent = error.message
         feil.classList.remove('d-none')
@@ -155,7 +174,8 @@ async function _visBrukarar(el) {
 }
 
 // ── Klubbadmin-tilgang ───────────────────────────────────────
-async function _visKlubbadmin(el) {
+
+async function _visKlubbadmin(el: HTMLElement): Promise<void> {
   const [{ data: brukarar }, { data: klubbar }, { data: tildelte }] = await Promise.all([
     supabase.from('bruker_profil').select('id').eq('rolle', 'klubbadmin'),
     supabase.from('klubb').select('id, navn').eq('eraktiv', true).order('navn'),
@@ -168,14 +188,14 @@ async function _visKlubbadmin(el) {
   const { data: epostar } = await supabase.rpc('hent_bruker_epost', { bruker_ids: ids })
   const epostMap = Object.fromEntries((epostar ?? []).map(r => [r.id, r.epost]))
 
-  const tildelteMap = {}
+  const tildelteMap: Record<string, Set<number>> = {}
   tildelte?.forEach(r => {
     if (!tildelteMap[r.bruker_id]) tildelteMap[r.bruker_id] = new Set()
     tildelteMap[r.bruker_id].add(r.klubbid)
   })
 
   const klubbOptions = (klubbar ?? []).map(k =>
-    `<option value="${k.id}">${k.navn}</option>`
+    `<option value="${k.id}">${k.navn}</option>`,
   ).join('')
 
   el.innerHTML = `
@@ -201,16 +221,16 @@ async function _visKlubbadmin(el) {
       </div>`
     }).join('')}`
 
-  el.querySelectorAll('.legg-til-knapp').forEach(knapp => {
+  el.querySelectorAll<HTMLButtonElement>('.legg-til-knapp').forEach(knapp => {
     knapp.addEventListener('click', async () => {
-      const kort    = knapp.closest('[data-bruker]')
-      const velg    = kort.querySelector('.legg-til-vel')
+      const kort    = knapp.closest<HTMLElement>('[data-bruker]')!
+      const velg    = kort.querySelector<HTMLSelectElement>('.legg-til-vel')!
       const klubbid = Number(velg.value)
       if (!klubbid) return
-      const feil = el.querySelector('#ka-feil')
+      const feil = el.querySelector<HTMLElement>('#ka-feil')!
       feil.classList.add('d-none')
       const { error } = await supabase.from('klubbadmin_klubber').insert({
-        bruker_id: kort.dataset.bruker,
+        bruker_id: kort.dataset.bruker!,
         klubbid,
       })
       if (error) { feil.textContent = error.message; feil.classList.remove('d-none'); return }
@@ -218,17 +238,17 @@ async function _visKlubbadmin(el) {
     })
   })
 
-  el.querySelectorAll('.fjern-klubb').forEach(knapp => {
+  el.querySelectorAll<HTMLButtonElement>('.fjern-klubb').forEach(knapp => {
     knapp.addEventListener('click', async e => {
       e.stopPropagation()
-      const badge  = knapp.closest('[data-kid]')
-      const kort   = knapp.closest('[data-bruker]')
-      const feil   = el.querySelector('#ka-feil')
+      const badge = knapp.closest<HTMLElement>('[data-kid]')!
+      const kort  = knapp.closest<HTMLElement>('[data-bruker]')!
+      const feil  = el.querySelector<HTMLElement>('#ka-feil')!
       feil.classList.add('d-none')
       const { error } = await supabase
         .from('klubbadmin_klubber')
         .delete()
-        .eq('bruker_id', kort.dataset.bruker)
+        .eq('bruker_id', kort.dataset.bruker!)
         .eq('klubbid', Number(badge.dataset.kid))
       if (error) { feil.textContent = error.message; feil.classList.remove('d-none'); return }
       _visKlubbadmin(el)
