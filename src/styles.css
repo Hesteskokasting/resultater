@@ -862,6 +862,7 @@ a.stevne-navn {
 .nc-td-poeng {
   width: 80px;
   text-align: right;
+  white-space: nowrap;
 }
 
 .nc-poeng-celle,
@@ -901,6 +902,18 @@ a.stevne-navn {
   border-bottom: 1px solid var(--kant);
   color: var(--tekst);
 }
+
+.nc-rad--ugyldig { color: var(--feil); }
+
+.nc-td-sentrum { text-align: center; }
+
+.nc-info-knapp-rad { text-align: center; margin-bottom: 8px; }
+
+.nc-klikk-hint-rad { text-align: right; margin-bottom: 4px; }
+
+.nc-info-tekst { text-align: center; margin-bottom: 4px; }
+
+.nc-info-tekst--advarsel { color: var(--feil); margin-bottom: 0; }
 
 /* ── Kastere: liste ── */
 

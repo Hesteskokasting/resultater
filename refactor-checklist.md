@@ -135,7 +135,7 @@ Start with smaller, more isolated files. Bigger pages last, when you've found yo
 - [x] `src/pages/klubber.js` → `.ts`
 - [x] `src/pages/kastere.js` → `.ts`
 - [x] `src/pages/minside.js` → `.ts`
-- [ ] `src/pages/terminliste.js` → `.ts`
+- [x] `src/pages/terminliste.js` → `.ts`
 - [ ] `src/pages/norgesranking.js` → `.ts`
 - [ ] `src/pages/rekorder.js` → `.ts` _(known bug: `klubb_namn`/`klubb_navn` typo to fix. uses database view "kaster_rekorder")_
 - [ ] `src/pages/nmvinnere.js` → `.ts`
