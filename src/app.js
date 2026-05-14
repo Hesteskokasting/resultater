@@ -9,7 +9,6 @@ if (import.meta.env.VITE_ENV === 'dev') {
   document.querySelector('.header-versjon').after(banner)
 }
 import { render as renderHome }          from './pages/home.js'
-import { render as renderResultat }       from './pages/resultat.js'
 import { render as renderTerminliste }    from './pages/terminliste.js'
 import { render as renderNorgescupen }    from './pages/norgescupen.js'
 import { render as renderNorgesranking }  from './pages/norgesranking.js'
@@ -25,7 +24,7 @@ import { render as renderKasterAdmin }    from './admin/kasteradmin.js'
 import { render as renderKlubbAdminSide } from './admin/klubbadmin-side.js'
 import { render as renderPamelding }      from './pages/pamelding.js'
 import { render as renderKampScoreboard }    from './pages/kamp-scoreboard.js'
-import { render as renderOrgDashboard }      from './organizer/stevne-dashboard.js'
+import { render as renderStevne }            from './pages/stevne.js'
 import { getUser, erAdmin, erKlubbadmin, loggUt } from './utils/auth.js'
 
 const container = document.getElementById('app')
@@ -57,14 +56,13 @@ const ruter = [
   { mønster: /^\/stevne\/ny$/,                side: authGuard('klubbadmin', renderStevneAdmin),     params: () => ({}) },
   { mønster: /^\/stevne\/(\d+)\/admin$/,      side: authGuard('klubbadmin', renderStevneAdmin),     params: m => ({ id: m[1] }) },
   { mønster: /^\/kamp\/(\d+)$/,                              side: renderKampScoreboard,                                params: m => ({ id: m[1] }) },
-  { mønster: /^\/stevne\/(\d+)\/organizer(?:\/([^/]*))?$/,  side: authGuard('klubbadmin', renderOrgDashboard),      params: m => ({ id: m[1], tab: m[2] ?? 'info', basePath: 'organizer' }) },
-  { mønster: /^\/stevne\/(\d+)\/live(?:\/([^/]*))?$/,     side: renderOrgDashboard,                                params: m => ({ id: m[1], tab: m[2] ?? 'info', basePath: 'live' }) },
-  { mønster: /^\/stevne\/(\d+)\/pamelding$/,  side: renderPamelding,                               params: m => ({ id: m[1] }) },
+  { mønster: /^\/stevne\/(\d+)\/organizer(?:\/([^/]*))?$/,  side: authGuard('klubbadmin', renderStevne),  params: m => ({ id: Number(m[1]), tab: m[2] ?? 'info', basePath: 'organizer' }) },
+  { mønster: /^\/stevne\/(\d+)\/pamelding$/,               side: renderPamelding,                        params: m => ({ id: m[1] }) },
+  { mønster: /^\/stevne\/(\d+)(?:\/([^/]*))?$/,           side: renderStevne,                           params: m => ({ id: Number(m[1]), tab: m[2] ?? 'info', basePath: '' }) },
   { mønster: /^\/kaster\/ny$/,                side: authGuard('klubbadmin', renderKasterAdmin),     params: () => ({}) },
   { mønster: /^\/kaster\/(\d+)\/admin$/,      side: authGuard('klubbadmin', renderKasterAdmin),     params: m => ({ id: m[1] }) },
   { mønster: /^\/klubber\/(\d+)\/admin$/,     side: authGuard('klubbadmin', renderKlubbAdminSide),  params: m => ({ id: m[1] }) },
   // Eksisterande ruter
-  { mønster: /^\/resultat\/(\d+)$/,           side: renderResultat,     params: m => ({ id: m[1] }) },
   { mønster: /^\/terminliste$/,               side: renderTerminliste,  params: () => ({}) },
   { mønster: /^\/norgescupen$/,               side: renderNorgescupen,  params: () => ({}) },
   { mønster: /^\/norgesranking$/,             side: renderNorgesranking, params: () => ({}) },
