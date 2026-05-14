@@ -143,7 +143,7 @@ Start with smaller, more isolated files. Bigger pages last, when you've found yo
 
 
 - [x] `src/pages/resultat.js` → deleted; content moved to `src/pages/stevne/stevne-resultat.ts` (tab in stevne view)
-- [ ] `src/pages/kamp-scoreboard.js` → `.ts` _(do alongside Phase 3 scoreboard CSS fix. Consider moving all scoreboard functionality to folder /scoreboard since this is not a page)_
+- [ ] `src/pages/kamp-scoreboard.js` → `.ts` _(do alongside Phase 3 scoreboard CSS fix. Consider moving all scoreboard functionality to folder /scoreboard since this is not a page (organizer/scoreboard.js ))_
 
 **Admin:**
 - [ ] `src/admin/stevneadmin.js` → `.ts`
@@ -209,6 +209,9 @@ These are CSS-only and self-contained. Good to interleave with the heavy migrati
   - [ ] Test in both light and dark mode
 - [ ] Audit `styles.css` for other hardcoded colors → replace with variables
 - [ ] Consolidate the repeated `text-align:center;margin-top:40px;` pattern into a utility class (e.g., `.loading-state`)
+- [ ] Remove unused css in global.css and styles.css
+- [ ] Find 
+
 
 ---
 
