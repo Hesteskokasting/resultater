@@ -5,6 +5,8 @@ import type { Tables } from '../types'
 type SisteResultatRow  = Pick<Tables<'stevne'>, 'id' | 'navn' | 'dato'>
 type LiveStevneRow     = Pick<Tables<'stevne'>, 'id' | 'navn' | 'stevne_fase'>
 type KommendeStevneRow = Pick<Tables<'stevne'>, 'id' | 'navn' | 'dato' | 'innbydelseurl'>
+export type PameldingStevneRow = Pick<Tables<'stevne'>, 'id' | 'navn' | 'dato' | 'sted' | 'erfullfort' | 'klubbid'>
+export type RelatertStevneRow  = Pick<Tables<'stevne'>, 'id' | 'navn' | 'dato'>
 
 export async function hentSisteResultater(): Promise<{ data: SisteResultatRow[]; error: unknown }> {
   const dagsdato = new Date().toISOString().slice(0, 10)
@@ -37,5 +39,34 @@ export async function hentKommendeStevner(): Promise<{ data: KommendeStevneRow[]
     .order('dato', { ascending: true })
     .limit(5)
   if (error) logError('hentKommendeStevner', error)
+  return { data: data ?? [], error }
+}
+
+export async function hentStevneForPamelding(id: number): Promise<{ data: PameldingStevneRow | null; error: unknown }> {
+  const { data, error } = await supabase
+    .from('stevne')
+    .select('id, navn, dato, sted, erfullfort, klubbid')
+    .eq('id', id)
+    .maybeSingle()
+  if (error) logError('hentStevneForPamelding', error)
+  return { data, error }
+}
+
+export async function hentRelaterteStevner(
+  klubbId: number,
+  fraDato: string,
+  tilDato: string,
+  unntaId: number,
+): Promise<{ data: RelatertStevneRow[]; error: unknown }> {
+  const { data, error } = await supabase
+    .from('stevne')
+    .select('id, navn, dato')
+    .eq('klubbid', klubbId)
+    .eq('erfullfort', false)
+    .neq('id', unntaId)
+    .gte('dato', fraDato)
+    .lte('dato', tilDato)
+    .order('dato')
+  if (error) logError('hentRelaterteStevner', error)
   return { data: data ?? [], error }
 }

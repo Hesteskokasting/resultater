@@ -915,6 +915,10 @@ a.stevne-navn {
 
 .nc-info-tekst--advarsel { color: var(--feil); margin-bottom: 0; }
 
+/* ── Påmelding ── */
+
+.pm-side { max-width: 720px; }
+
 /* ── Kastere: liste ── */
 
 .kaster-liste-kontroller { margin-bottom: 12px; }

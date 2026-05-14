@@ -105,6 +105,18 @@ export async function hentKasterDetalj(id: number): Promise<{
   return entry
 }
 
+export async function hentKastereForKlubbar(klubbIds: number[]): Promise<{ data: KasterListeRow[]; error: unknown }> {
+  const { data, error } = await supabase
+    .from('kaster')
+    .select('id, fornavn, etternavn, eraktiv, avatarurl, klubb:klubbid(id, navn)')
+    .in('klubbid', klubbIds)
+    .eq('eraktiv', true)
+    .order('etternavn')
+    .order('fornavn')
+  if (error) logError('hentKastereForKlubbar', error)
+  return { data: data ?? [], error }
+}
+
 export async function hentKasterForKobling(id: number): Promise<{ data: KasterForKoblingRow | null; error: unknown }> {
   if (_kasterKoblingCache.has(id)) return _kasterKoblingCache.get(id)!
   const { data, error } = await supabase
