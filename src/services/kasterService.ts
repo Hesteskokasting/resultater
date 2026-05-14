@@ -1,6 +1,7 @@
 import type { QueryData } from '@supabase/supabase-js'
 import { supabase } from '../supabase'
 import { logError } from '../utils/logError'
+import type { Tables } from '../types'
 
 // Query builders used only for type inference — no HTTP calls at module load
 const _medlemQuery          = supabase.from('kaster').select('id, fornavn, etternavn, avatarurl, medlemsnummer, klasse:klasseid(id, navn)')
@@ -128,4 +129,70 @@ export async function hentKasterForKobling(id: number): Promise<{ data: KasterFo
   const entry = { data, error }
   _kasterKoblingCache.set(id, entry)
   return entry
+}
+
+// ── Admin-funksjonar ──────────────────────────────────────────────────────────
+
+export type KlasseRow = Pick<Tables<'klasse'>, 'id' | 'navn'>
+export type KjonnRow  = Pick<Tables<'kjonn'>,  'id' | 'navn'>
+
+export type KasterAdminRow = Pick<Tables<'kaster'>,
+  'id' | 'fornavn' | 'etternavn' | 'kjonnid' | 'klasseid' | 'klubbid' |
+  'epost' | 'telefon' | 'medlemsnummer' | 'eraktiv'
+>
+export type KasterAdminPayload = Omit<KasterAdminRow, 'id'>
+
+export async function hentKlassar(): Promise<{ data: KlasseRow[]; error: unknown }> {
+  const { data, error } = await supabase.from('klasse').select('id, navn').order('navn')
+  if (error) logError('hentKlassar', error)
+  return { data: data ?? [], error }
+}
+
+export async function hentKjonn(): Promise<{ data: KjonnRow[]; error: unknown }> {
+  const { data, error } = await supabase.from('kjonn').select('id, navn').order('id')
+  if (error) logError('hentKjonn', error)
+  return { data: data ?? [], error }
+}
+
+export async function hentKastereByIds(ids: number[]): Promise<{ data: KasterForKoblingRow[]; error: unknown }> {
+  if (!ids.length) return { data: [], error: null }
+  const { data, error } = await supabase
+    .from('kaster')
+    .select('id, fornavn, etternavn, klubb:klubbid(navn)')
+    .in('id', ids)
+  if (error) logError('hentKastereByIds', error)
+  return { data: data ?? [], error }
+}
+
+export async function hentKasterForAdmin(id: number): Promise<{ data: KasterAdminRow | null; error: unknown }> {
+  const { data, error } = await supabase
+    .from('kaster')
+    .select('id, fornavn, etternavn, kjonnid, klasseid, klubbid, epost, telefon, medlemsnummer, eraktiv')
+    .eq('id', id)
+    .single()
+  if (error) logError('hentKasterForAdmin', error)
+  return { data, error }
+}
+
+export async function opprettKaster(
+  payload: KasterAdminPayload,
+): Promise<{ data: { id: number } | null; error: unknown }> {
+  const { data, error } = await supabase.from('kaster').insert(payload).select('id').single()
+  if (error) logError('opprettKaster', error)
+  return { data, error }
+}
+
+export async function oppdaterKaster(
+  id: number,
+  payload: KasterAdminPayload,
+): Promise<{ data: { id: number } | null; error: unknown }> {
+  const { data, error } = await supabase.from('kaster').update(payload).eq('id', id).select('id').single()
+  if (error) logError('oppdaterKaster', error)
+  return { data, error }
+}
+
+export async function slettKaster(id: number): Promise<{ error: unknown }> {
+  const { error } = await supabase.from('kaster').delete().eq('id', id)
+  if (error) logError('slettKaster', error)
+  return { error }
 }

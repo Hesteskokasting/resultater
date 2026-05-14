@@ -1688,3 +1688,11 @@ a.stevne-navn {
   font-weight: bold;
   margin: 0;
 }
+
+/* ── Admin-skjema ─────────────────────────────────────────────────────────── */
+.admin-skjema-sm { max-width: 520px; }
+.admin-skjema-md { max-width: 560px; }
+.admin-skjema-lg { max-width: 640px; }
+.admin-skjema-xl { max-width: 860px; }
+.sel-auto { width: auto; }
+.btn-close-xs { font-size: 0.6rem; }

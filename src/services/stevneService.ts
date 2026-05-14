@@ -3,6 +3,20 @@ import { supabase } from '../supabase'
 import { logError } from '../utils/logError'
 import type { Tables } from '../types'
 
+// ── Admin-typar ───────────────────────────────────────────────────────────────
+
+export type StevneAdminRow = Pick<Tables<'stevne'>,
+  'id' | 'navn' | 'sted' | 'dato' | 'tid' | 'klubbid' | 'stevnetypeid' |
+  'innledendekastemetodeid' | 'avsluttendekastemetodeid' | 'kategoriid' |
+  'ernm' | 'ernorgesranking' | 'erfullfort' | 'erekskludertfrarekorder' |
+  'innbydelseurl' | 'resultaturl'
+>
+export type StevneAdminPayload = Omit<StevneAdminRow, 'id'>
+
+export type StevnetypeRow  = Pick<Tables<'stevnetype'>,  'id' | 'navn'>
+export type KastemetodeRow = Pick<Tables<'kastemetode'>, 'id' | 'navn'>
+export type KategoriRow    = Pick<Tables<'kategori'>,    'id' | 'navn'>
+
 // ── Info-tab typar ────────────────────────────────────────────────────────────
 
 const _infoStevneQuery = supabase
@@ -101,5 +115,60 @@ export async function hentInfoStevne(id: number): Promise<{ data: InfoStevneRow 
 export async function oppdaterStevneFase(id: number, fase: string): Promise<{ error: unknown }> {
   const { error } = await supabase.from('stevne').update({ stevne_fase: fase }).eq('id', id)
   if (error) logError('oppdaterStevneFase', error)
+  return { error }
+}
+
+// ── Oppslag for admin-skjema ──────────────────────────────────────────────────
+
+export async function hentStevnetypar(): Promise<{ data: StevnetypeRow[]; error: unknown }> {
+  const { data, error } = await supabase.from('stevnetype').select('id, navn').order('navn')
+  if (error) logError('hentStevnetypar', error)
+  return { data: data ?? [], error }
+}
+
+export async function hentKastemetodar(): Promise<{ data: KastemetodeRow[]; error: unknown }> {
+  const { data, error } = await supabase.from('kastemetode').select('id, navn').order('navn')
+  if (error) logError('hentKastemetodar', error)
+  return { data: data ?? [], error }
+}
+
+export async function hentKategoriar(): Promise<{ data: KategoriRow[]; error: unknown }> {
+  const { data, error } = await supabase.from('kategori').select('id, navn').order('navn')
+  if (error) logError('hentKategoriar', error)
+  return { data: data ?? [], error }
+}
+
+// ── Stevne-admin CRUD ─────────────────────────────────────────────────────────
+
+export async function hentStevneForAdmin(id: number): Promise<{ data: StevneAdminRow | null; error: unknown }> {
+  const { data, error } = await supabase
+    .from('stevne')
+    .select('id, navn, sted, dato, tid, klubbid, stevnetypeid, innledendekastemetodeid, avsluttendekastemetodeid, kategoriid, ernm, ernorgesranking, erfullfort, erekskludertfrarekorder, innbydelseurl, resultaturl')
+    .eq('id', id)
+    .single()
+  if (error) logError('hentStevneForAdmin', error)
+  return { data, error }
+}
+
+export async function opprettStevne(
+  payload: StevneAdminPayload,
+): Promise<{ data: { id: number } | null; error: unknown }> {
+  const { data, error } = await supabase.from('stevne').insert(payload).select('id').single()
+  if (error) logError('opprettStevne', error)
+  return { data, error }
+}
+
+export async function oppdaterStevne(
+  id: number,
+  payload: StevneAdminPayload,
+): Promise<{ data: { id: number } | null; error: unknown }> {
+  const { data, error } = await supabase.from('stevne').update(payload).eq('id', id).select('id').single()
+  if (error) logError('oppdaterStevne', error)
+  return { data, error }
+}
+
+export async function slettStevne(id: number): Promise<{ error: unknown }> {
+  const { error } = await supabase.from('stevne').delete().eq('id', id)
+  if (error) logError('slettStevne', error)
   return { error }
 }

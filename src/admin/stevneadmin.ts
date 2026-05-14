@@ -1,59 +1,79 @@
-import { supabase } from '../supabase'
 import { lagFormRadHtml, visLagreFeil, visSuksess } from '../utils/adminForms.js'
 import { erAdmin, erKlubbadmin } from '../utils/auth'
 import { escHtml } from '../utils/escHtml'
 import { buildDropdownOptions } from '../utils/buildDropdownOptions'
 import { formNum } from '../utils/formNum'
-import type { Database } from '../types/database.types'
+import { logError } from '../utils/logError'
+import { lasterHtml, feilHtml } from '../utils/pageStates'
+import {
+  hentStevneForAdmin,
+  hentStevnetypar,
+  hentKastemetodar,
+  hentKategoriar,
+  opprettStevne,
+  oppdaterStevne,
+  slettStevne,
+  type StevneAdminRow,
+} from '../services/stevneService'
+import { hentKlubbar } from '../services/klubbService'
 
-type StevneRow = Database['public']['Tables']['stevne']['Row']
+function errMsg(e: unknown): string {
+  return e && typeof e === 'object' && 'message' in e ? String((e as { message: unknown }).message) : 'Ukjend feil'
+}
 
 export async function render(
   container: HTMLElement,
   { id }: { id?: number } = {},
 ): Promise<void> {
-  container.innerHTML = '<p class="laster" style="text-align:center;margin-top:40px;">Laster…</p>'
+  container.innerHTML = lasterHtml()
 
-  const [
-    { data: klubbar },
-    { data: stevnetypar },
-    { data: kastemetodar },
-    { data: kategoriar },
-  ] = await Promise.all([
-    supabase.from('klubb').select('id, navn').eq('eraktiv', true).order('navn'),
-    supabase.from('stevnetype').select('id, navn').order('navn'),
-    supabase.from('kastemetode').select('id, navn').order('navn'),
-    supabase.from('kategori').select('id, navn').order('navn'),
-  ])
+  let klubbar:      { id: number; navn: string; logourl: string | null }[] = []
+  let stevnetypar:  { id: number; navn: string }[] = []
+  let kastemetodar: { id: number; navn: string }[] = []
+  let kategoriar:   { id: number; navn: string }[] = []
 
-  let stevne: StevneRow | null = null
+  try {
+    const results = await Promise.all([
+      hentKlubbar(),
+      hentStevnetypar(),
+      hentKastemetodar(),
+      hentKategoriar(),
+    ])
+    klubbar      = results[0].data
+    stevnetypar  = results[1].data
+    kastemetodar = results[2].data
+    kategoriar   = results[3].data
+  } catch (err) {
+    logError('stevneadmin.render', err)
+    container.innerHTML = feilHtml('Kunne ikkje laste skjema.')
+    return
+  }
+
+  let stevne: StevneAdminRow | null = null
   if (id) {
-    const { data } = await supabase
-      .from('stevne')
-      .select('id, navn, sted, dato, tid, klubbid, stevnetypeid, innledendekastemetodeid, avsluttendekastemetodeid, kategoriid, ernm, ernorgesranking, erfullfort, erekskludertfrarekorder, innbydelseurl, resultaturl')
-      .eq('id', id)
-      .single()
-    stevne = data as StevneRow | null
+    const { data, error } = await hentStevneForAdmin(id)
+    if (error || !data) { container.innerHTML = feilHtml('Stevne ikkje funne.'); return }
+    stevne = data
 
-    if (!(await erAdmin()) && !(await erKlubbadmin(stevne?.klubbid ?? undefined))) {
-      container.innerHTML = '<p class="feil" style="text-align:center;margin-top:40px;">Ingen tilgang til dette stevnet.</p>'
+    if (!(await erAdmin()) && !(await erKlubbadmin(stevne.klubbid ?? undefined))) {
+      container.innerHTML = feilHtml('Ingen tilgang til dette stevnet.')
       return
     }
   }
 
-  const tittel = id ? `Rediger stevne: ${stevne?.navn ?? ''}` : 'Nytt stevne'
-  const v = stevne ?? ({} as Partial<StevneRow>)
+  const tittel = id ? `Rediger stevne: ${escHtml(stevne?.navn ?? '')}` : 'Nytt stevne'
+  const v      = stevne ?? ({} as Partial<StevneAdminRow>)
   const datoVerdi = v.dato ?? ''
   const tidVerdi  = v.tid ? v.tid.slice(0, 5) : ''
 
-  const klubbOpt   = buildDropdownOptions(klubbar, v.klubbid)
-  const typeOpt    = buildDropdownOptions(stevnetypar, v.stevnetypeid)
+  const klubbOpt   = buildDropdownOptions(klubbar,      v.klubbid)
+  const typeOpt    = buildDropdownOptions(stevnetypar,  v.stevnetypeid)
   const metodeOpt  = buildDropdownOptions(kastemetodar, v.innledendekastemetodeid)
   const metodeOpt2 = buildDropdownOptions(kastemetodar, v.avsluttendekastemetodeid)
-  const katOpt     = buildDropdownOptions(kategoriar, v.kategoriid)
+  const katOpt     = buildDropdownOptions(kategoriar,   v.kategoriid)
 
   container.innerHTML = `
-    <div class="container py-4" style="max-width:640px">
+    <div class="container py-4 admin-skjema-lg">
       <h2 class="mb-4">${tittel}</h2>
       <form id="stevne-skjema">
         ${lagFormRadHtml('Namn*', `<input type="text" class="form-control" name="navn" value="${escHtml(v.navn)}" required>`)}
@@ -102,18 +122,18 @@ export async function render(
     }
 
     const { data: lagra, error } = id
-      ? await supabase.from('stevne').update(payload).eq('id', id).select('id').single()
-      : await supabase.from('stevne').insert(payload).select('id').single()
+      ? await oppdaterStevne(id, payload)
+      : await opprettStevne(payload)
 
-    if (error) { visLagreFeil(container, error.message); return }
+    if (error) { visLagreFeil(container, errMsg(error)); return }
     visSuksess(container, 'Stevnet er lagra.')
     if (!id) setTimeout(() => { location.hash = `#/stevne/${lagra!.id}/admin` }, 1500)
   })
 
   container.querySelector<HTMLButtonElement>('#slett-knapp')?.addEventListener('click', async () => {
     if (!confirm(`Slett stevnet «${stevne?.navn}»? Dette kan ikkje angrast.`)) return
-    const { error } = await supabase.from('stevne').delete().eq('id', id!)
-    if (error) { visLagreFeil(container, error.message); return }
+    const { error } = await slettStevne(id!)
+    if (error) { visLagreFeil(container, errMsg(error)); return }
     location.hash = '#/terminliste'
   })
 }
