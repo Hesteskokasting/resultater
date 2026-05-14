@@ -22,6 +22,25 @@
   --feil: #ff6b6b;
   --kamp-vidare-bg: color-mix(in srgb, #4CAF50 22%, var(--flate));
   --kamp-eliminert-bg: color-mix(in srgb, #ff6b6b 22%, var(--flate));
+
+  /* Scoreboard — intentionally dark in both themes */
+  --sb-bg: #000;
+  --sb-topbar-bg: #111;
+  --sb-border: #333;
+  --sb-border-subtle: #222;
+  --sb-border-btn: #555;
+  --sb-tekst: #fff;
+  --sb-tekst-subtil: #ccc;
+  --sb-tekst-subtil-2: #aaa;
+  --sb-positiv: #4cff4c;
+  --sb-negativ: #ff6b6b;
+  --sb-knapp-bg: #fff;
+  --sb-knapp-tekst: #111;
+  --sb-knapp-dis-bg: #333;
+  --sb-knapp-slett-hover: #c0392b;
+  --sb-bekreft-bg: #1a8f2d;
+  --sb-bekreft-hover: #157a24;
+  --sb-vann-bg: rgba(0, 60, 0, 0.85);
 }
 
 [data-theme="light"] {
@@ -44,6 +63,25 @@
   --feil: #cc0000;
   --kamp-vidare-bg: color-mix(in srgb, #28a745 14%, var(--flate));
   --kamp-eliminert-bg: color-mix(in srgb, #cc0000 14%, var(--flate));
+
+  /* Scoreboard — same as dark; scoreboard is always dark by design */
+  --sb-bg: #000;
+  --sb-topbar-bg: #111;
+  --sb-border: #333;
+  --sb-border-subtle: #222;
+  --sb-border-btn: #555;
+  --sb-tekst: #fff;
+  --sb-tekst-subtil: #ccc;
+  --sb-tekst-subtil-2: #aaa;
+  --sb-positiv: #4cff4c;
+  --sb-negativ: #ff6b6b;
+  --sb-knapp-bg: #fff;
+  --sb-knapp-tekst: #111;
+  --sb-knapp-dis-bg: #333;
+  --sb-knapp-slett-hover: #c0392b;
+  --sb-bekreft-bg: #1a8f2d;
+  --sb-bekreft-hover: #157a24;
+  --sb-vann-bg: rgba(0, 60, 0, 0.85);
 }
 
 body {
