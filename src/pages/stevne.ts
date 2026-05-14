@@ -76,7 +76,7 @@ export async function render(
   container: HTMLElement,
   { id, tab = 'info', basePath = 'organizer' }: { id: number; tab?: string; basePath?: string },
 ): Promise<void> {
-  if (kanal) { supabase.removeChannel(kanal); kanal = null }
+  if (kanal) { await supabase.removeChannel(kanal); kanal = null }
   container.innerHTML = '<p class="laster">Laster…</p>'
 
   try {
