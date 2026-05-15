@@ -7,29 +7,13 @@
 ## TypeScript
 
 - **ALWAYS use TypeScript.** Never write `.js` files. Never write JavaScript inside `.ts` files without proper types.
-- **NEVER use `any`.** If a type is unknown, use `unknown` and narrow it, or define a proper type/interface.
+- **NEVER use `any`** (explicit or implicit). If a type is unknown, use `unknown` and narrow it, or define a proper type/interface.
 - **NEVER cast with `as unknown as SomeType`** to silence errors. Fix the underlying type mismatch instead.
 - Use Supabase's generated types (`Database` type from `supabase gen types`) as the source of truth for database shapes. Do not hand-write types that duplicate the schema.
 - Prefer `type` for unions and simple shapes, `interface` for objects that may be extended.
 - Enable and respect `strict: true` in `tsconfig.json`.
 
-## IMPORTANT
-
-□ No `any` (explicit or implicit)
-□ No `as unknown as ...` casts
-□ All Supabase queries must bein src/services/<feature>Service.ts
-□ The file imports from services/, NOT directly from supabaseClient
-□ All Supabase queries use explicit column lists (no select("*"))
-□ All Supabase errors go through logError() (in the service)
-□ All Promise.all() calls wrapped in try/catch with logError()
-□ All user-sourced strings interpolated into innerHTML use escHtml()
-□ Existing utilities are reused (formatKasterNavn from utils/kaster.ts, etc.) — no re-implementation
-□ No inline styles in the .ts file
-□ Duplicated helpers removed → import from src/utils/
-
----
-
-## Type Checking
+### Type checking
 
 - Run `npm run typecheck` (which calls `tsc --noEmit`) to verify types.
 - Vite does not type-check — it only strips types. Always typecheck before considering work done.
@@ -39,9 +23,9 @@
 
 ## Component-First Architecture
 
-- **ALWAYS create reusable components** for UI elements. This includes (but is not limited to): buttons, modals, tables, forms, inputs, toasts, cards, dropdowns.
+- **ALWAYS create reusable components** for UI elements: buttons, modals, tables, forms, inputs, toasts, cards, dropdowns, etc.
 - Components live in `src/components/` and export a `create<Name>()` factory function returning an `HTMLElement` (or a more specific subtype like `HTMLButtonElement`).
-- A component file exposes **one** component. If a component grows beyond ~150 lines, consider splitting it.
+- One component per file. If a component grows beyond ~150 lines, consider splitting it.
 - Components take a typed `Props` interface as their only argument:
   ```ts
   interface ButtonProps {
@@ -53,13 +37,14 @@
   export function createButton(props: ButtonProps): HTMLButtonElement { ... }
   ```
 - **NEVER inline HTML creation** (`document.createElement` chains) inside page/route files when the same element appears elsewhere. Extract to a component.
+- Remove event listeners when components are destroyed to prevent memory leaks.
 
 ---
 
 ## DRY — No Duplicated Code
 
 - **NEVER copy-paste code.** If you find yourself writing the same logic twice, stop and extract it.
-- Before writing new code, search the codebase for existing helpers that do the same thing. Reuse first, write second.
+- Before writing new code, search the codebase for existing helpers. Reuse first, write second. Examples of existing utilities to reuse: `formatKasterNavn` from `utils/kaster.ts`, `escHtml` for any user-sourced string interpolated into `innerHTML`.
 - Shared logic goes in `src/utils/` (pure functions) or `src/services/` (side-effects like Supabase calls).
 - If you see duplicated code that I haven't asked you to touch, mention it — don't silently leave it.
 
@@ -82,48 +67,89 @@ src/
 
 - One responsibility per file. One responsibility per function.
 - Use **composition** over inheritance.
-- Group by **feature** when a feature grows large enough (e.g. `src/features/stevne/` containing its own components, services, types).
+- Services use a flat layout: `src/services/stevneService.ts`, `src/services/kasterService.ts`. No feature subfolders inside `services/`.
+- Pages should be thin. If a page file grows past ~200 lines, a sub-component or service is hiding in there — extract it.
+- Promote to a `src/features/<name>/` folder only when a feature has at least 3 of: its own components, its own services, its own types, its own utils. Below that threshold, code stays in the top-level folders.
 - File names: `camelCase.ts` for utilities/services, `PascalCase.ts` for component factories (e.g. `Button.ts`, `StevneKort.ts`).
 
 ---
 
-## Large structural changes
+## Database (Supabase / Postgres)
 
-- Do not make large structural changes in one go. Create a checklist with steps that will be executed on my approval.
-- Suggest making a plan when large changes are requested
-- save approved plans/checklists to /plans/"plan-name.md"
+### Data integrity lives in the database, not in TypeScript
 
----
+- Constraints belong in the database. If a value must be non-null, unique, or within a range, add a `not null` / `unique` / `check` constraint via a migration.
+- Multi-step writes that must be atomic go in a Postgres function (`rpc`), not a sequence of client-side queries.
+- Never trust client-side validation alone for anything that matters. Mirror critical rules in RLS policies or constraints.
+- Foreign key `on delete` behavior is a deliberate choice — never accept the default without thinking about it (`restrict`, `cascade`, `set null` — pick one consciously).
+- When changing schema, write a migration. Never edit tables through the dashboard for production data.
 
-## Optimization & Performance
+### Queries
 
-- **Avoid unnecessary DOM operations.** Build a subtree in memory, then append once — don't append element-by-element in a loop to a mounted parent.
-- **Cache Supabase queries** where it makes sense. Don't refetch the same data on every interaction.
-- Use `select()` to fetch only the columns you need from Supabase. Never `select("*")` in production code.
-- Debounce expensive event handlers (search inputs, resize, scroll).
-- Remove event listeners when components are destroyed to prevent memory leaks.
-- Lazy-load heavy modules with dynamic `import()` where applicable.
+- All Supabase queries must live in `src/services/<name>Service.ts`. Pages and components import from services — never directly from `supabaseClient`.
+- Use **explicit column lists**. `select("*")` is forbidden — it breaks when the schema grows and ships data the client doesn't need.
+- All Supabase errors must be handled and surfaced through `logError()` in the service:
+  ```ts
+  const { data, error } = await supabase.from("stevne").select("id, navn, dato");
+  if (error) { logError(error); /* surface to user via Toast */ }
+  ```
+- Use `.single()` or `.maybeSingle()` when expecting one row. Don't fetch an array and index into `[0]`.
+- All `Promise.all()` calls must be wrapped in `try/catch` with `logError()`.
+
+### Performance
+
+- **N+1 is a bug.** If you're fetching a list and then looping to fetch related rows, use a join (`select("..., related(...)")`) or a single query with `.in()`.
+- Pagination: never fetch unbounded lists. Use `.range()` or keyset pagination. Set a hard upper limit even on "small" tables — small tables grow.
+- Indexes: any column used in a `where`, `order by`, or as a foreign key needs an index.
+- Read-heavy aggregations (counts, dashboards) belong in a view or materialized view, not assembled in TypeScript.
+- Cache Supabase results in memory where it makes sense. Don't refetch the same data on every interaction.
+- Run the Supabase advisor (`get_advisors`) before considering a data-touching feature done. It catches missing indexes, unused indexes, and RLS gaps.
 
 ---
 
 ## Error Handling
 
-- Always handle Supabase errors explicitly:
-  ```ts
-  const { data, error } = await supabase.from("stevne").select(...);
-  if (error) { /* handle, log, surface to user */ }
-  ```
 - Never swallow errors silently with empty `catch {}`.
-- User-facing errors should be shown via a `Toast` (or equivalent) component — never `alert()`.
+- User-facing errors are shown via the `Toast` component — never `alert()`.
+- All errors that hit a catch block go through `logError()`.
 
 ---
 
 ## CSS
 
-- All CSS lives in `.css` files. **NEVER write CSS inside `.ts` files** unless absolutely required (e.g. computed positioning).
-- The app supports **dark/light mode** via `global.css`. Use CSS variables (`var(--bg-color)`, etc.) instead of hardcoded colors.
+- All CSS lives in `.css` files. **NEVER write CSS inside `.ts` files** (no inline styles) unless absolutely required (e.g. computed positioning).
+- The app supports dark/light mode via `global.css`. Use CSS variables (`var(--bg-color)`, etc.) — never hardcoded colors.
 - Component-specific styles go in a matching `.css` file next to the component, or in a clearly scoped section of `global.css`.
 - Use semantic class names (`.stevne-kort__title`), not utility-style names (`.text-red-bold`).
+
+---
+
+## Accessibility
+
+- Buttons must be `<button>` elements, not styled `<div>`s.
+- Interactive elements must be keyboard-accessible.
+- Form inputs need associated `<label>` elements.
+- Use semantic HTML (`<nav>`, `<main>`, `<article>`) over generic `<div>` wrappers.
+
+---
+
+## Optimization & Performance
+
+- Avoid unnecessary DOM operations. Build a subtree in memory, then append once — don't append element-by-element in a loop to a mounted parent.
+- Debounce expensive event handlers (search inputs, resize, scroll).
+- Lazy-load heavy modules with dynamic `import()` where applicable.
+
+---
+
+## Tests
+
+Test scope is deliberately small. Don't expand it without my say-so.
+
+- Test pure functions in `src/utils/`. These are cheap, deterministic, and where real bugs hide (date math, formatting, parsing, sorting).
+- Test services that contain non-trivial logic — not thin Supabase wrappers, but anything that combines data, branches on conditions, or transforms results.
+- **Do not** write tests for UI factories, pages, or thin wrappers.
+- When adding a function with edge cases (money, dates, parsing, sorting), write the tests first.
+- If a bug is found, write a failing test that reproduces it, then fix it.
 
 ---
 
@@ -146,12 +172,11 @@ src/
 
 ---
 
-## Accessibility
+## Large Structural Changes
 
-- Buttons must be `<button>` elements, not styled `<div>`s.
-- Interactive elements must be keyboard-accessible.
-- Form inputs need associated `<label>` elements.
-- Use semantic HTML (`<nav>`, `<main>`, `<article>`) over generic `<div>` wrappers.
+- Do not make large structural changes in one go. Create a checklist with steps to be executed on my approval.
+- Suggest making a plan when large changes are requested.
+- Save approved plans/checklists to `/plans/<plan-name>.md`.
 
 ---
 
@@ -159,8 +184,8 @@ src/
 
 - **NEVER** run `git add`, `git commit`, `git push`, `git pull`, or any branch/remote operation unless I explicitly ask.
 - If you think a commit is appropriate, suggest it — don't execute it.
-- Provide suggestions for commit text. These should be short.
-- For complex changes create checklist with small steps that can be committed. Complete each steps separately and wait for my approval to proceed.
+- Provide short commit message suggestions.
+- For complex changes, create a checklist of small commitable steps. Complete each separately and wait for my approval before proceeding.
 
 ---
 
@@ -200,7 +225,7 @@ Prefer **one focused question** over a long list. If you genuinely need multiple
 
 ## When in Doubt
 
-- Ask before making large structural changes. Large changes needs to be completed in steps separately.
+- Ask before making large structural changes (and split them into steps).
 - Ask before adding new dependencies.
 - Ask before deleting files.
 - If a rule above seems to conflict with what I'm asking for in a specific message, ask which should win.
