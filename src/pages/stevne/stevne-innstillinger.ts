@@ -1,6 +1,13 @@
-import { supabase } from '../../supabase'
 import { logError } from '../../utils/logError'
+import { escHtml } from '../../utils/escHtml'
 import { createErrorBanner } from '../../components/ErrorBanner'
+import { createLoadingState } from '../../components/LoadingState'
+import {
+  hentStevneInnstillingar,
+  hentAktiveKastemetodar,
+  oppdaterStevneInnstillingar,
+} from '../../services/stevneService'
+import type { AktivKastemetodeRow } from '../../services/stevneService'
 import { nullstillStevne } from '../../organizer/organizerTestUtils.js'
 
 // ── Render ────────────────────────────────────────────────────────────────────
@@ -9,20 +16,12 @@ export async function render(
   container: HTMLElement,
   { id }: { id: number; isAdmin?: boolean },
 ): Promise<void> {
-  container.innerHTML = '<p class="laster">Laster…</p>'
+  container.replaceChildren(createLoadingState())
 
   try {
     const [stevneRes, metodarRes] = await Promise.all([
-      supabase
-        .from('stevne')
-        .select('id, stevne_fase, antall_runder_innl, innledendekastemetodeid, avsluttendekastemetodeid')
-        .eq('id', id)
-        .single(),
-      supabase
-        .from('kastemetode')
-        .select('id, navn, er_innledende, er_avsluttende')
-        .eq('eraktiv', true)
-        .order('navn'),
+      hentStevneInnstillingar(id),
+      hentAktiveKastemetodar(),
     ])
 
     if (stevneRes.error || !stevneRes.data) {
@@ -30,14 +29,14 @@ export async function render(
       return
     }
 
-    const stevne  = stevneRes.data
-    const metodar = metodarRes.data ?? []
+    const stevne      = stevneRes.data
+    const metodar     = metodarRes.data
     const innlMetodar = metodar.filter(m => m.er_innledende)
     const avslMetodar = metodar.filter(m => m.er_avsluttende)
 
-    function optionsHtml(liste: typeof metodar, valdId: number | null): string {
+    function optionsHtml(liste: AktivKastemetodeRow[], valdId: number | null): string {
       return liste.map(m =>
-        `<option value="${m.id}"${m.id === valdId ? ' selected' : ''}>${m.navn}</option>`
+        `<option value="${m.id}"${m.id === valdId ? ' selected' : ''}>${escHtml(m.navn)}</option>`
       ).join('')
     }
 
@@ -78,23 +77,19 @@ export async function render(
     container.querySelector<HTMLFormElement>('#innstillingar-form')!.addEventListener('submit', async e => {
       e.preventDefault()
 
-      const innlId = (container.querySelector<HTMLSelectElement>('#innl-metode')!).value || null
-      const avslId = (container.querySelector<HTMLSelectElement>('#avsl-metode')!).value || null
-      const rundar = (container.querySelector<HTMLInputElement>('#antall-rundar')!).value
-      const antall = rundar ? Number(rundar) : null
+      const innlId = container.querySelector<HTMLSelectElement>('#innl-metode')!.value || null
+      const avslId = container.querySelector<HTMLSelectElement>('#avsl-metode')!.value || null
+      const rundar = container.querySelector<HTMLInputElement>('#antall-rundar')!.value
 
-      const { error } = await supabase
-        .from('stevne')
-        .update({
-          innledendekastemetodeid:  innlId ? Number(innlId) : null,
-          avsluttendekastemetodeid: avslId ? Number(avslId) : null,
-          antall_runder_innl:       antall,
-        })
-        .eq('id', id)
+      const { error } = await oppdaterStevneInnstillingar(id, {
+        innledendekastemetodeid:  innlId ? Number(innlId) : null,
+        avsluttendekastemetodeid: avslId ? Number(avslId) : null,
+        antall_runder_innl:       rundar ? Number(rundar) : null,
+      })
 
       if (error) {
         logError('stevne-innstillingar.lagre', error)
-        alert('Feil ved lagring: ' + error.message)
+        alert('Feil ved lagring: ' + (error instanceof Error ? error.message : String(error)))
         return
       }
 

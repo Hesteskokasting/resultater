@@ -221,7 +221,7 @@ For **every** file you migrate, all of these must be checked off:
 - [x] `src/pages/stevne/stevne-deltakere.ts` — `createLoadingState`; swapped `hentInfoStevne` → `hentStevneHeader`; renamed tab key/label to `deltakere`/`Deltakere`
 - [x] `src/pages/stevne/stevne-info.ts` — `createLoadingState`; `escHtml` on sted/kastemetode names; fixed stale `organizer/innledende` hash → `innledende`
 - [x] `src/pages/stevne/stevne-innledende.ts` — refactored to thin router; logic extracted to `innledende/gloppen.ts` + `innledende/nordhordland.ts` (+ xkast stub)
-- [ ] `src/pages/stevne/stevne-innstillinger.ts`
+- [x] `src/pages/stevne/stevne-innstillinger.ts` — extracted 3 service fns (`hentStevneInnstillingar`, `hentAktiveKastemetodar`, `oppdaterStevneInnstillingar`); `escHtml` on kastemetode names; `createLoadingState`
 - [ ] `src/pages/stevne/stevne-resultat.ts`
 
 **admin:**

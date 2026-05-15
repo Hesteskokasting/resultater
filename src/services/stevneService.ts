@@ -266,6 +266,45 @@ export async function avmeldKanal(channel: RealtimeChannel): Promise<void> {
   await supabase.removeChannel(channel)
 }
 
+// ── Innstillingar-tab ─────────────────────────────────────────────────────────
+
+export type InnstillingarStevneRow = Pick<Tables<'stevne'>,
+  'id' | 'stevne_fase' | 'antall_runder_innl' | 'innledendekastemetodeid' | 'avsluttendekastemetodeid'
+>
+export type AktivKastemetodeRow = Pick<Tables<'kastemetode'>, 'id' | 'navn' | 'er_innledende' | 'er_avsluttende'>
+export type InnstillingarUpdatePayload = Pick<Tables<'stevne'>,
+  'innledendekastemetodeid' | 'avsluttendekastemetodeid' | 'antall_runder_innl'
+>
+
+export async function hentStevneInnstillingar(id: number): Promise<{ data: InnstillingarStevneRow | null; error: unknown }> {
+  const { data, error } = await supabase
+    .from('stevne')
+    .select('id, stevne_fase, antall_runder_innl, innledendekastemetodeid, avsluttendekastemetodeid')
+    .eq('id', id)
+    .single()
+  if (error) logError('hentStevneInnstillingar', error)
+  return { data, error }
+}
+
+export async function hentAktiveKastemetodar(): Promise<{ data: AktivKastemetodeRow[]; error: unknown }> {
+  const { data, error } = await supabase
+    .from('kastemetode')
+    .select('id, navn, er_innledende, er_avsluttende')
+    .eq('eraktiv', true)
+    .order('navn')
+  if (error) logError('hentAktiveKastemetodar', error)
+  return { data: data ?? [], error }
+}
+
+export async function oppdaterStevneInnstillingar(
+  id: number,
+  payload: InnstillingarUpdatePayload,
+): Promise<{ error: unknown }> {
+  const { error } = await supabase.from('stevne').update(payload).eq('id', id)
+  if (error) logError('oppdaterStevneInnstillingar', error)
+  return { error }
+}
+
 export async function hentPameldteForBruker(userId: string): Promise<Set<number>> {
   const { data, error } = await supabase
     .from('pamelding')
