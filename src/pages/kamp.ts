@@ -1,4 +1,4 @@
-import { getUser } from '../utils/auth'
+import { getUser } from '../services/authService'
 import { logError } from '../utils/logError'
 import { lasterHtml, feilHtml } from '../utils/pageStates'
 import { escHtml } from '../utils/escHtml'

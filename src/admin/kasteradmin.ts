@@ -1,5 +1,5 @@
 import { lagFormRadHtml, visLagreFeil, visSuksess, errMsg } from '../utils/adminForms'
-import { erAdmin, erKlubbadmin } from '../utils/auth'
+import { erAdmin, erKlubbadmin } from '../services/authService'
 import { escHtml } from '../utils/escHtml'
 import { buildDropdownOptions } from '../utils/buildDropdownOptions'
 import { formNum } from '../utils/formNum'

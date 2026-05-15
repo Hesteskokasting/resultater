@@ -1,5 +1,4 @@
-import { getUser, erAdmin } from '../utils/auth'
-import { signIn, signUp } from '../services/authService'
+import { getUser, erAdmin, signIn, signUp } from '../services/authService'
 import { escHtml } from '../utils/escHtml'
 
 export async function render(container: HTMLElement): Promise<void> {

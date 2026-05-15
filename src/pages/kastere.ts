@@ -1,6 +1,6 @@
 import { Chart, registerables } from 'chart.js'
 import { kasterNavn, lagKasterSlug as lagSlug } from '../utils/kaster'
-import { getUser } from '../utils/auth'
+import { getUser } from '../services/authService'
 import { formaterDato } from '../utils/shared'
 import { lasterHtml, feilHtml } from '../utils/pageStates'
 import { escHtml } from '../utils/escHtml'

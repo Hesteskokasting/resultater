@@ -16,7 +16,7 @@ import { render as renderKlubbAdminSide } from './admin/klubbadmin'
 import { render as renderPamelding }      from './pages/pamelding'
 import { render as renderKamp }           from './pages/kamp'
 import { render as renderStevne }         from './pages/stevne'
-import { getUser, erAdmin, erKlubbadmin, loggUt } from './utils/auth'
+import { getUser, erAdmin, erKlubbadmin, loggUt } from './services/authService'
 import { feilHtml } from './utils/pageStates'
 
 if (import.meta.env.VITE_ENV === 'dev') {

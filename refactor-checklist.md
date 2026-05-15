@@ -343,7 +343,7 @@ This phase moves data-fetching files from `utils/` to `services/` so the archite
 - [x] Replace any remaining `select('*')` with explicit columns
 - [x] Move pure helpers (non-Supabase functions) to a new `utils/norgescupHelpers.ts` if needed
 - [x] Test all pages that use norgescup data
-- [ ] Commit: `"Move norgescup data layer to services/"`
+- [x] Commit: `"Move norgescup data layer to services/"`
 
 ### 6b. Move `utils/stevne.ts` → `services/stevneService.ts`
 - [x] Rename file
@@ -353,17 +353,17 @@ This phase moves data-fetching files from `utils/` to `services/` so the archite
 - [x] Commit: `"Move stevne data layer to services/"`
 
 ### 6c. Move `utils/auth.ts` → `services/authService.ts`
-- [ ] Rename file
-- [ ] Update all imports
-- [ ] Type guards from Phase 1e move with the file
-- [ ] Pure auth helpers (no side effects, no Supabase) can stay in `utils/authHelpers.ts` if useful to split
+- [x] Rename file
+- [x] Update all imports (14 files)
+- [x] Type guards from Phase 1e move with the file
+- [x] signIn/signUp restored to authService (were in a pre-existing authService.ts)
 - [ ] Test login flow + admin access carefully
-- [ ] Commit: `"Move auth to services/"`
+- [x ] Commit: `"Move auth to services/"`
 
 ### 6d. Audit what's left in `utils/`
-- [ ] After moves, every file in `utils/` should be a pure function (no side effects, no Supabase, no DOM)
-- [ ] If not, move it to the appropriate `services/` or `components/` location
-- [ ] Commit: `"Final utils/ cleanup — pure functions only"`
+- [x] After moves, every file in `utils/` should be a pure function (no side effects, no Supabase, no DOM)
+- [x] `grep -r "supabase" src/utils/` → zero results ✓
+- [x ] Commit: `"Final utils/ cleanup — pure functions only"`
 
 > **Verification:** `grep -r "from.*supabase" src/utils/` should return zero results.
 

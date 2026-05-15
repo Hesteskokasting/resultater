@@ -1,5 +1,5 @@
 import { kasterNavn, lagKasterSlug } from '../utils/kaster'
-import { getUser } from '../utils/auth'
+import { getUser } from '../services/authService'
 import { lasterHtml, feilHtml } from '../utils/pageStates'
 import { escHtml } from '../utils/escHtml'
 import { logError } from '../utils/logError'

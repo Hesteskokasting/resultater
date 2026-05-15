@@ -1,4 +1,4 @@
-import { getUser } from '../../utils/auth'
+import { getUser } from '../../services/authService'
 import { formaterDatoNumeric, formaterTid } from '../../utils/shared'
 import { feilHtml } from '../../utils/pageStates'
 import { logError } from '../../utils/logError'

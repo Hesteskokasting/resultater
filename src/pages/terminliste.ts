@@ -1,5 +1,5 @@
 import type { AuthUser } from '../types'
-import { getUser } from '../utils/auth'
+import { getUser } from '../services/authService'
 import { hentTerminlisteStevner, hentFiltervalg, hentPameldteForBruker } from '../services/stevneService'
 import type { TerminlisteStevneRow } from '../services/stevneService'
 import { formaterDatoLang as formaterDato, arOptions, lastNedExcel as lastNedExcelFil } from '../utils/shared'

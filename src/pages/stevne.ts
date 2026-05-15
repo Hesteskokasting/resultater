@@ -1,6 +1,6 @@
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '../supabase'
-import { erAdmin, erKlubbadmin } from '../utils/auth'
+import { erAdmin, erKlubbadmin } from '../services/authService'
 import { feilHtml } from '../utils/pageStates'
 import { logError } from '../utils/logError'
 import { render as renderInfo }          from './stevne/stevne-info'
