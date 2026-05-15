@@ -258,17 +258,17 @@ For **every** file you migrate, all of these must be checked off:
 **utils:**
 - [x] `src/utils/adminForms.ts`
 - [x] `src/utils/auth.ts`
-- [ ] `src/utils/buildDropdownOptions.ts`
-- [ ] `src/utils/escHtml.ts`
-- [ ] `src/utils/formNum.ts`
-- [ ] `src/utils/kamp.ts`
-- [ ] `src/utils/kastemetoder-logikk.ts`
-- [ ] `src/utils/kaster.ts`
-- [ ] `src/utils/logError.ts`
-- [ ] `src/utils/norgescup.ts`
-- [ ] `src/utils/pageStates.ts`
-- [ ] `src/utils/parseLocalDate.ts`
-- [ ] `src/utils/shared.ts`
+- [x] `src/utils/buildDropdownOptions.ts`
+- [x] `src/utils/escHtml.ts`
+- [x] `src/utils/formNum.ts`
+- [x] `src/utils/kamp.ts` — rename to `kampBeregning.ts` when stevne pages are un-deferred (update imports in org-shared.ts, kampService.ts, Scoreboard.ts, stevne pages)
+- [x] `src/utils/kastemetoder-logikk.ts`
+- [x] `src/utils/kaster.ts`
+- [x] `src/utils/logError.ts`
+- [x] `src/utils/norgescup.ts`
+- [x] `src/utils/pageStates.ts`
+- [x] `src/utils/parseLocalDate.ts`
+- [x] `src/utils/shared.ts`
 - [x] `src/utils/stevne.ts` (deleted — migrated to stevneService.ts)
 - [ ] `src/utils/startcard/startcard-template.ts`
 

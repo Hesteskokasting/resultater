@@ -1,5 +1,4 @@
-import type { Tables } from '../types'
-import type { Kaster, Klubb } from '../types'
+import type { Tables, Kaster, Klubb } from '../types'
 import { kasterNavn } from './kaster'
 import type { ResultatMedRelasjonar, StevneForNc } from '../services/norgescupService'
 
