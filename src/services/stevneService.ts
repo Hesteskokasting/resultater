@@ -29,9 +29,9 @@ const _infoStevneQuery = supabase
 
 export type InfoStevneRow = QueryData<typeof _infoStevneQuery>[number]
 
-type SisteResultatRow  = Pick<Tables<'stevne'>, 'id' | 'navn' | 'dato'>
-type LiveStevneRow     = Pick<Tables<'stevne'>, 'id' | 'navn' | 'stevne_fase'>
-type KommendeStevneRow = Pick<Tables<'stevne'>, 'id' | 'navn' | 'dato' | 'innbydelseurl'>
+export type SisteResultatRow  = Pick<Tables<'stevne'>, 'id' | 'navn' | 'dato'>
+export type LiveStevneRow     = Pick<Tables<'stevne'>, 'id' | 'navn' | 'stevne_fase'>
+export type KommendeStevneRow = Pick<Tables<'stevne'>, 'id' | 'navn' | 'dato' | 'innbydelseurl'>
 export type PameldingStevneRow = Pick<Tables<'stevne'>, 'id' | 'navn' | 'dato' | 'sted' | 'erfullfort' | 'klubbid'>
 export type RelatertStevneRow  = Pick<Tables<'stevne'>, 'id' | 'navn' | 'dato'>
 

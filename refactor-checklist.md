@@ -199,18 +199,79 @@ For **every** file you migrate, all of these must be checked off:
 □ Committed as a logical unit
 ```
 
-### Per-file prompt template for Claude Code
+** Do Definition of done per file separately
 
-> "I want to migrate `src/pages/<filename>.js` to TypeScript. Before writing code:
-> 1. Read `src/pages/norgescupen.ts` first — it's the template for how files should look.
-> 2. Read the file I want to migrate and list every issue you see based on the Definition of Done in `REFACTOR_CHECKLIST.md`.
-> 3. Check if a relevant service file exists in `src/services/`. If yes, plan to extend it. If no, plan to create one.
-> 4. Check `src/utils/` for existing utilities to reuse — don't propose new ones if something equivalent exists.
-> 5. Propose a step-by-step migration plan.
-> 6. Highlight anything risky or unclear — ask me before making those decisions.
->
-> Wait for my approval before changing code."
+**pages:**
+- [x] `src/pages/home.ts`
+- [ ] `src/pages/kamp.ts`
+- [ ] `src/pages/kastere.ts`
+- [ ] `src/pages/klubber.ts`
+- [ ] `src/pages/logginn.ts`
+- [ ] `src/pages/minside.ts`
+- [ ] `src/pages/nmvinnere.ts`
+- [ ] `src/pages/norgescupen.ts`
+- [ ] `src/pages/norgesranking.ts`
+- [ ] `src/pages/pamelding.ts`
+- [ ] `src/pages/rekorder.ts`
+- [ ] `src/pages/terminliste.ts`
+- [ ] `src/pages/stevne.ts`
+- [ ] `src/pages/stevne/stevne-avsluttende.ts`
+- [ ] `src/pages/stevne/stevne-deltakere.ts`
+- [ ] `src/pages/stevne/stevne-info.ts`
+- [ ] `src/pages/stevne/stevne-innledende.ts`
+- [ ] `src/pages/stevne/stevne-innstillinger.ts`
+- [ ] `src/pages/stevne/stevne-resultat.ts`
 
+**admin:**
+- [ ] `src/admin/admin.ts`
+- [ ] `src/admin/kasteradmin.ts`
+- [ ] `src/admin/klubbadmin.ts`
+- [ ] `src/admin/stevneadmin.ts`
+
+**components:**
+- [ ] `src/components/Scoreboard.ts`
+- [ ] `src/components/ScoreNumberpad.ts`
+
+**organizer:**
+- [ ] `src/organizer/gruppefordelingUi.ts`
+- [ ] `src/organizer/kampgenereringDb.ts`
+- [ ] `src/organizer/organizerTestUtils.ts`
+- [ ] `src/organizer/org-shared.ts`
+- [ ] `src/organizer/startkort-print.ts`
+
+**services:**
+- [ ] `src/services/adminService.ts`
+- [ ] `src/services/authService.ts`
+- [ ] `src/services/brukerProfilService.ts`
+- [ ] `src/services/kampService.ts`
+- [ ] `src/services/kasterService.ts`
+- [ ] `src/services/klubbService.ts`
+- [ ] `src/services/nmvinnereService.ts`
+- [ ] `src/services/norgesrankingService.ts`
+- [ ] `src/services/pameldingService.ts`
+- [ ] `src/services/rekorderService.ts`
+- [ ] `src/services/resultatService.ts`
+- [ ] `src/services/stevneService.ts`
+
+**utils:**
+- [ ] `src/utils/adminForms.ts`
+- [ ] `src/utils/auth.ts`
+- [ ] `src/utils/buildDropdownOptions.ts`
+- [ ] `src/utils/escHtml.ts`
+- [ ] `src/utils/formNum.ts`
+- [ ] `src/utils/kamp.ts`
+- [ ] `src/utils/kastemetoder-logikk.ts`
+- [ ] `src/utils/kaster.ts`
+- [ ] `src/utils/logError.ts`
+- [ ] `src/utils/norgescup.ts`
+- [ ] `src/utils/pageStates.ts`
+- [ ] `src/utils/parseLocalDate.ts`
+- [ ] `src/utils/shared.ts`
+- [ ] `src/utils/stevne.ts`
+- [ ] `src/utils/startcard/startcard-template.ts`
+
+**other:**
+- [ ] `src/app.ts`
 ---
 
 ## Phase 3: CSS Cleanup (parallel track — do between files when you need a break)

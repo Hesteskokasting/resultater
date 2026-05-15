@@ -3,13 +3,9 @@ import { formaterDatoLang as formaterDato } from '../utils/shared'
 import { lasterHtml, feilHtml } from '../utils/pageStates'
 import { escHtml } from '../utils/escHtml'
 import { hentSisteResultater, hentLiveStevner, hentKommendeStevner } from '../services/stevneService'
+import type { SisteResultatRow, LiveStevneRow, KommendeStevneRow } from '../services/stevneService'
 import { logError } from '../utils/logError'
 import type { SingelListeRad } from '../utils/norgescup'
-import type { Tables } from '../types'
-
-type SisteResultatRow  = Pick<Tables<'stevne'>, 'id' | 'navn' | 'dato'>
-type LiveStevneRow     = Pick<Tables<'stevne'>, 'id' | 'navn' | 'stevne_fase'>
-type KommendeStevneRow = Pick<Tables<'stevne'>, 'id' | 'navn' | 'dato' | 'innbydelseurl'>
 
 // ── HTML-byggjarar ────────────────────────────────────────────────────────────
 
@@ -85,7 +81,7 @@ export async function render(container: HTMLElement): Promise<void> {
       { data: r2, error: e2 },
       { data: r3, error: e3 },
       { stevner: s4, resultater: r4, error: e4 },
-      { data: r5 },
+      { data: r5, error: _e5 },
     ] = await Promise.all([
       hentSisteResultater(),
       hentKommendeStevner(),
