@@ -212,8 +212,8 @@ For **every** file you migrate, all of these must be checked off:
 - [x] `src/pages/norgescupen.ts`
 - [x] `src/pages/norgesranking.ts`
 - [x] `src/pages/pamelding.ts`
-- [ ] `src/pages/rekorder.ts`
-- [ ] `src/pages/terminliste.ts`
+- [x] `src/pages/rekorder.ts`
+- [x] `src/pages/terminliste.ts`
 - [ ] `src/pages/stevne.ts`
 - [ ] `src/pages/stevne/stevne-avsluttende.ts`
 - [ ] `src/pages/stevne/stevne-deltakere.ts`
@@ -267,7 +267,7 @@ For **every** file you migrate, all of these must be checked off:
 - [ ] `src/utils/pageStates.ts`
 - [ ] `src/utils/parseLocalDate.ts`
 - [ ] `src/utils/shared.ts`
-- [ ] `src/utils/stevne.ts`
+- [x] `src/utils/stevne.ts` (deleted — migrated to stevneService.ts)
 - [ ] `src/utils/startcard/startcard-template.ts`
 
 **other:**
@@ -344,11 +344,11 @@ This phase moves data-fetching files from `utils/` to `services/` so the archite
 - [ ] Commit: `"Move norgescup data layer to services/"`
 
 ### 6b. Move `utils/stevne.ts` → `services/stevneService.ts`
-- [ ] Rename file
-- [ ] Update all imports
-- [ ] Verify `Promise.all()` calls are properly wrapped in try/catch with `logError()`
-- [ ] Test all pages that use stevne data
-- [ ] Commit: `"Move stevne data layer to services/"`
+- [x] Rename file
+- [x] Update all imports
+- [x] Verify `Promise.all()` calls are properly wrapped in try/catch with `logError()`
+- [x] Test all pages that use stevne data
+- [x] Commit: `"Move stevne data layer to services/"`
 
 ### 6c. Move `utils/auth.ts` → `services/authService.ts`
 - [ ] Rename file

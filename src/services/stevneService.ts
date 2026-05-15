@@ -172,3 +172,74 @@ export async function slettStevne(id: number): Promise<{ error: unknown }> {
   if (error) logError('slettStevne', error)
   return { error }
 }
+
+// ── Terminliste ───────────────────────────────────────────────────────────────
+
+export type KlubbRow = Pick<Tables<'klubb'>, 'id' | 'navn'>
+
+export interface Filtervalg {
+  stevnetyper: StevnetypeRow[]
+  kastemetoder: KastemetodeRow[]
+  klubber: KlubbRow[]
+  kategorier: KategoriRow[]
+}
+
+const _terminlisteStevneQuery = supabase
+  .from('stevne')
+  .select(`
+    id, navn, sted, dato, tid, ernm, erfullfort, innbydelseurl, resultaturl,
+    klubb:klubbid(id, navn),
+    stevnetype:stevnetypeid(id, navn),
+    innledende:kastemetode!innledendekastemetodeid(id, navn),
+    avsluttende:kastemetode!avsluttendekastemetodeid(id, navn),
+    kategori:kategoriid(id, navn)
+  `)
+
+export type TerminlisteStevneRow = QueryData<typeof _terminlisteStevneQuery>[number]
+
+export async function hentTerminlisteStevner(ar: number): Promise<{ data: TerminlisteStevneRow[]; error: unknown }> {
+  const { data, error } = await supabase
+    .from('stevne')
+    .select(`
+      id, navn, sted, dato, tid, ernm, erfullfort, innbydelseurl, resultaturl,
+      klubb:klubbid(id, navn),
+      stevnetype:stevnetypeid(id, navn),
+      innledende:kastemetode!innledendekastemetodeid(id, navn),
+      avsluttende:kastemetode!avsluttendekastemetodeid(id, navn),
+      kategori:kategoriid(id, navn)
+    `)
+    .gte('dato', `${ar}-01-01`)
+    .lte('dato', `${ar}-12-31`)
+    .order('dato')
+  if (error) logError('hentTerminlisteStevner', error)
+  return { data: data ?? [], error }
+}
+
+export async function hentFiltervalg(): Promise<{ data: Filtervalg; error: unknown }> {
+  const [r1, r2, r3, r4] = await Promise.all([
+    supabase.from('stevnetype').select('id, navn').order('navn'),
+    supabase.from('kastemetode').select('id, navn').order('navn'),
+    supabase.from('klubb').select('id, navn').order('navn'),
+    supabase.from('kategori').select('id, navn').order('navn'),
+  ])
+  const firstError = r1.error ?? r2.error ?? r3.error ?? r4.error ?? null
+  if (firstError) logError('hentFiltervalg', firstError)
+  return {
+    data: {
+      stevnetyper: r1.data ?? [],
+      kastemetoder: r2.data ?? [],
+      klubber: r3.data ?? [],
+      kategorier: r4.data ?? [],
+    },
+    error: firstError,
+  }
+}
+
+export async function hentPameldteForBruker(userId: string): Promise<Set<number>> {
+  const { data, error } = await supabase
+    .from('pamelding')
+    .select('stevneid')
+    .eq('bruker_id', userId)
+  if (error) logError('hentPameldteForBruker', error)
+  return new Set((data ?? []).map(r => r.stevneid).filter((id): id is number => id != null))
+}

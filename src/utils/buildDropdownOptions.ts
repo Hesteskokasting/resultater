@@ -1,3 +1,5 @@
+import { escHtml } from './escHtml'
+
 interface DropdownItem {
   id: number | string;
   navn?: string | null;
@@ -12,7 +14,7 @@ export function buildDropdownOptions(
   let html = `<option value="">${emptyLabel}</option>`
   for (const item of (items ?? [])) {
     const selected = String(item.id) === String(selectedId) ? ' selected' : ''
-    const label = item.navn ?? item.klubbnavn ?? ''
+    const label = escHtml(item.navn ?? item.klubbnavn ?? '')
     html += `<option value="${item.id}"${selected}>${label}</option>`
   }
   return html

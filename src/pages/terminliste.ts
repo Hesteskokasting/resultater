@@ -1,13 +1,14 @@
 import type { AuthUser } from '../types'
 import { getUser } from '../utils/auth'
-import { hentStevner, hentFiltervalg, hentPameldte } from '../utils/stevne'
+import { hentTerminlisteStevner, hentFiltervalg, hentPameldteForBruker } from '../services/stevneService'
+import type { TerminlisteStevneRow } from '../services/stevneService'
 import { formaterDatoLang as formaterDato, arOptions, lastNedExcel as lastNedExcelFil } from '../utils/shared'
 import { buildDropdownOptions } from '../utils/buildDropdownOptions'
 import { lasterHtml, feilHtml } from '../utils/pageStates'
 import { escHtml } from '../utils/escHtml'
 import { logError } from '../utils/logError'
 
-type StevneRow = NonNullable<Awaited<ReturnType<typeof hentStevner>>['data']>[number]
+type StevneRow = TerminlisteStevneRow
 
 // ── Sortering ─────────────────────────────────────────────────────────────────
 
@@ -201,13 +202,13 @@ export async function render(container: HTMLElement): Promise<void> {
   container.innerHTML = lasterHtml('Laster terminliste…')
 
   try {
-    const [{ data, error }, filtervalg, auth] = await Promise.all([
-      hentStevner(filtre.ar),
+    const [{ data, error }, { data: filtervalg }, auth] = await Promise.all([
+      hentTerminlisteStevner(filtre.ar),
       hentFiltervalg(),
       getUser(),
     ])
     _auth = auth
-    _pameldteIds = auth?.user ? await hentPameldte(auth.user.id) : new Set()
+    _pameldteIds = auth?.user ? await hentPameldteForBruker(auth.user.id) : new Set()
 
     if (error) {
       logError('terminliste.render', error)
@@ -335,10 +336,10 @@ export async function render(container: HTMLElement): Promise<void> {
       filtre.ar = Number(arSelect.value)
       container.querySelector('.tl-tittel')!.textContent = `Terminliste ${filtre.ar}`
       container.querySelector('.tl-liste-container')!.innerHTML = '<p class="laster">Laster...</p>'
-      const { data: nyData, error: nyFeil } = await hentStevner(filtre.ar)
+      const { data: nyData, error: nyFeil } = await hentTerminlisteStevner(filtre.ar)
       if (nyFeil) {
         logError('terminliste.arChange', nyFeil)
-        container.querySelector('.tl-liste-container')!.innerHTML = '<p class="feil">Feil ved henting.</p>'
+        container.querySelector<HTMLElement>('.tl-liste-container')!.innerHTML = feilHtml('Feil ved henting.')
         return
       }
       allData = nyData ?? []
@@ -399,10 +400,10 @@ export async function render(container: HTMLElement): Promise<void> {
       if (arEndret) {
         container.querySelector('.tl-tittel')!.textContent = `Terminliste ${filtre.ar}`
         container.querySelector('.tl-liste-container')!.innerHTML = '<p class="laster">Laster...</p>'
-        const { data: nyData, error: nyFeil } = await hentStevner(filtre.ar)
+        const { data: nyData, error: nyFeil } = await hentTerminlisteStevner(filtre.ar)
         if (nyFeil) {
           logError('terminliste.brukFilter', nyFeil)
-          container.querySelector('.tl-liste-container')!.innerHTML = '<p class="feil">Feil ved henting.</p>'
+          container.querySelector<HTMLElement>('.tl-liste-container')!.innerHTML = feilHtml('Feil ved henting.')
           return
         }
         allData = nyData ?? []
