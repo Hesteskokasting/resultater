@@ -1,4 +1,4 @@
-import { lagFormRadHtml, visLagreFeil, visSuksess } from '../utils/adminForms.js'
+import { lagFormRadHtml, visLagreFeil, visSuksess, errMsg } from '../utils/adminForms'
 import { erAdmin, erKlubbadmin } from '../utils/auth'
 import { escHtml } from '../utils/escHtml'
 import { buildDropdownOptions } from '../utils/buildDropdownOptions'
@@ -16,10 +16,6 @@ import {
   type StevneAdminRow,
 } from '../services/stevneService'
 import { hentKlubbar } from '../services/klubbService'
-
-function errMsg(e: unknown): string {
-  return e && typeof e === 'object' && 'message' in e ? String((e as { message: unknown }).message) : 'Ukjend feil'
-}
 
 export async function render(
   container: HTMLElement,
