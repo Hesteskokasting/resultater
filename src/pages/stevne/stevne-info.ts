@@ -1,6 +1,8 @@
 import { getUser } from '../../services/authService'
 import { formaterDatoNumeric, formaterTid } from '../../utils/shared'
 import { createErrorBanner } from '../../components/ErrorBanner'
+import { createLoadingState } from '../../components/LoadingState'
+import { escHtml } from '../../utils/escHtml'
 import { logError } from '../../utils/logError'
 import { hentInfoStevne, oppdaterStevneFase } from '../../services/stevneService'
 import { hentAntallPameldingar, hentAntallUbekrefta } from '../../services/pameldingService'
@@ -13,7 +15,7 @@ export async function render(
   { id, isAdmin = false }: { id: number; isAdmin?: boolean },
   bannerSlot: HTMLElement | null = null,
 ): Promise<void> {
-  container.innerHTML = '<p class="laster">Laster…</p>'
+  container.replaceChildren(createLoadingState())
 
   try {
     const [stevneRes, antall, auth] = await Promise.all([
@@ -62,7 +64,7 @@ export async function render(
           alert('Feil ved oppdatering av fase.')
           return
         }
-        location.hash = `#/stevne/${id}/organizer/innledende`
+        location.hash = `#/stevne/${id}/innledende`
       })
     }
 
@@ -73,11 +75,11 @@ export async function render(
         <div class="card-body">
           <table class="table table-sm mb-0">
             <tbody>
-              <tr><th>Stad</th><td>${stevne.sted ?? '—'}</td></tr>
+              <tr><th>Stad</th><td>${escHtml(stevne.sted ?? '—')}</td></tr>
               <tr><th>Dato</th><td>${stevne.dato ? formaterDatoNumeric(stevne.dato) : '—'}</td></tr>
               <tr><th>Tid</th><td>${stevne.tid ? formaterTid(stevne.tid) : '—'}</td></tr>
-              <tr><th>Kastemetode innledande</th><td>${metodeNavn}</td></tr>
-              <tr><th>Kastemetode avsluttande</th><td>${stevne.kastemetodeAvsl?.navn ?? '—'}</td></tr>
+              <tr><th>Kastemetode innledande</th><td>${escHtml(metodeNavn)}</td></tr>
+              <tr><th>Kastemetode avsluttande</th><td>${escHtml(stevne.kastemetodeAvsl?.navn ?? '—')}</td></tr>
               <tr><th>Antal rundar innledande</th><td>${stevne.antall_runder_innl ?? '—'}</td></tr>
               <tr><th>Påmelde spelarar</th><td>${antall}</td></tr>
             </tbody>

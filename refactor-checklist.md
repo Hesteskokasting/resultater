@@ -219,7 +219,7 @@ For **every** file you migrate, all of these must be checked off:
 - [x] `src/pages/stevne.ts` — query + channel extracted to `stevneService`; `escHtml` on navn; `createLoadingState`; no direct supabase import
 - [x] `src/pages/stevne/stevne-avsluttende.ts` — refactored to thin router; logic extracted to `avsluttende/cup.ts` (+ kongelag/nordhordland stubs)
 - [x] `src/pages/stevne/stevne-deltakere.ts` — `createLoadingState`; swapped `hentInfoStevne` → `hentStevneHeader`; renamed tab key/label to `deltakere`/`Deltakere`
-- [ ] `src/pages/stevne/stevne-info.ts`
+- [x] `src/pages/stevne/stevne-info.ts` — `createLoadingState`; `escHtml` on sted/kastemetode names; fixed stale `organizer/innledende` hash → `innledende`
 - [x] `src/pages/stevne/stevne-innledende.ts` — refactored to thin router; logic extracted to `innledende/gloppen.ts` + `innledende/nordhordland.ts` (+ xkast stub)
 - [ ] `src/pages/stevne/stevne-innstillinger.ts`
 - [ ] `src/pages/stevne/stevne-resultat.ts`
@@ -301,6 +301,7 @@ Look for patterns that appeared repeatedly during migration:
 
 - [x] `createErrorBanner({ message })` — replace the `<p class="feil">...</p>` pattern
 - [x] `createLoadingState({ message })` — replace the centered "Lastar..." pattern
+- [ ] `createToast({ message, type })` — replace all `alert()` / `confirm()` calls; unblocks error UX in stevne-info, stevne-deltakere, avsluttende/cup, innledende/gloppen, innledende/nordhordland
 - [ ] `createKortKort()` / `createKasterKort()` — for repeated card layouts
 - [ ] `createTable({ columns, rows })` — typed columns, generic rows
 - [~] `createDropdown()` — skipped: callers use innerHTML templates; no value without refactoring forms to DOM APIs
