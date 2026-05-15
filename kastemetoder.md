@@ -1,12 +1,49 @@
-Traidsjonelle metoder (kamp):
+Tradisjonelle metoder (kamp): Gloppen, Nordhordlandsmetoden og Cup
+- Spillerne konkurrer mot hverandre (kamp)
+- Spillerne som får 21 score poeng først vinner kampen (må vinne med 2 score poeng i cup)
+- Spillerne bruker 2 sko hver
+Andre metoder: X-kast og kongelag
+- Spillerne bruker 4 sko hver
+- Total poengsum blir lagt sammen for hver spiller og danner en resultatliste
 
 ## INNLEDENDE KASTEMETODER
 
 ## Gloppenmetoden (Gloppen)
 
+- Kan kombineres med følgende avsluttende metoder:
+    - Cup
+    - Kongelag
+    - Nordhordlandsmetoden
+
 ## Nordhordlandsmetoden (NHM) -- samme som swiss. OBS! Kan også brukes som en helhetlig konkurranse og som avsluttende metode
 
-## X-kast (Minimatch, Halvmatch og Heilmatch) -- Kan også brukes som en helhetlig konkurranse
+- Kan kombineres med følgende avsluttende metoder:
+    - Cup
+    - Kongelag
+
+## X-kast (Minimatch, Halvmatch og Heilmatch) -- Kan også brukes som en helhetlig konkurranse (brukes også i SNC konkurranser. Se informasjon lenger nede om SNC)
+
+- Spillerne 
+
+- Spillerne får poeng basert på avstand til stikken:
+    - Ring: 5 poeng
+    - 0-5cm: 3 poeng
+    - 5-20cm: 2 poeng
+    - 20-50cm: 1 poeng
+
+- Spillerne bytter på å kaste en runde hver helt til konkurransen er ferdig.
+
+- Kan kombineres med følgende avsluttende metoder:
+    - Cup
+    - Kongelag
+    - Nordhordlandsmetoden
+
+Viktig! Dersom avsluttende metode er Kongelag, tar spillerne med seg en viss prosent videre fra X-kast
+- Minimatch: 33.33%
+- Halvmatch: 20%
+- Heilmatch: 10%
+
+Poengsummen rundes av til nærmeste heltall.
 
 ## AVSLUTTENDE KASTEMETODER
 
@@ -57,7 +94,20 @@ WALKOVER I CUP
 2. Eventuell walkover skal kun brukes i første cuprunde.
 3. Det er maks. 3 spillere som kan få walkover i første runde.
 
-## Kongelag -- OBS! i NM Kongelag brukes den metoden som en helhetlig konkurranse, med en kvalifisering først. De 12 beste går til finale
+## Kongelag -- OBS! i NM Kongelag brukes metoden som en helhetlig konkurranse, med en kvalifisering først. De 12 beste går til finale. Kongelag brukes også i SNC (se nedenfor om SNC)
+
+- Kongelag består av 10 omganger. Spillerne kaster 4 sko per omgang på kommando fra konkurranseleder.
+- 
 
 ## Nordhordlandsmetoden (NHM) -- samme som swiss. OBS! Kan også brukes som en helhetlig konkurranse og som innledende metode
 
+## SNC
+
+- SNC er en nasjonalt konkurranse som blir blir arrangert på flere steder samtidig. Resultatene blir samlet til en liste etter at konkurransene er ferdig.
+
+- SNC kan kun arrangeres med X-kast eller Kongelag med følgende kombinasjoner:
+    - Minimatch + Kongelag
+    - Halvmatch + Kongelag
+    - Heilmatch + Kongelag
+    - Xkast som helhetlig (stort sett NM X-kast)
+    - Kongelag som helhetlig (kun kvalifiseringen i NM Kongelag. Finalen gjelder ikke i SNC)
