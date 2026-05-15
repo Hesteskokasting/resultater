@@ -158,11 +158,11 @@ Start with smaller, more isolated files. Bigger pages last, when you've found yo
 - [x] `src/organizer/startkort-print.js` → `.ts`
 
 **to be clarified** - needs refactoring
-- [ ] `src/organizer/kampgenerering.js` → `.ts`
-- [ ] `src/organizer/stevne-avsluttende.js` → `.ts` 
-- [ ] `src/organizer/stevne-innledende.js` → `.ts`
-- [ ] `src/utils/gruppefordeling-ui.js` → `.ts` _(move to /organizer)
-- [ ] `src/utils/organizer-test-utils.js` → `.ts` -(move to organizer/utils)
+- [x ] `src/organizer/kampgenerering.js` → `.ts`
+- [x ] `src/organizer/stevne-avsluttende.js` → `.ts` 
+- [x ] `src/organizer/stevne-innledende.js` → `.ts`
+- [x ] `src/utils/gruppefordeling-ui.js` → `.ts` _(move to /organizer)
+- [x ] `src/utils/organizer-test-utils.js` → `.ts` -(move to organizer/utils)
 
 **UTILS**
 - [x ] `src/utils/adminforms.js` → `.ts` _(can this be deleted?)_
