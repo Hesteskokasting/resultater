@@ -1,5 +1,5 @@
 import { kasterNavn } from '../../utils/kaster'
-import { feilHtml } from '../../utils/pageStates'
+import { createErrorBanner } from '../../components/ErrorBanner'
 import { logError } from '../../utils/logError'
 import { hentKastereListeAktive } from '../../services/kasterService'
 import type { KasterListeRow } from '../../services/kasterService'
@@ -161,11 +161,11 @@ export async function render(
     ])
 
     if (stevneRes.error || !stevneRes.data) {
-      container.innerHTML = feilHtml('Stevne ikkje funne.')
+      container.replaceChildren(createErrorBanner('Stevne ikkje funne.'))
       return
     }
     if (kastereRes.error) {
-      container.innerHTML = feilHtml('Kunne ikkje laste kasterliste.')
+      container.replaceChildren(createErrorBanner('Kunne ikkje laste kasterliste.'))
       return
     }
 
@@ -276,6 +276,6 @@ export async function render(
     renderTilgjengeliListe()
   } catch (err) {
     logError('stevne-deltakere.render', err)
-    container.innerHTML = feilHtml('Kunne ikkje laste deltakarliste.')
+    container.replaceChildren(createErrorBanner('Kunne ikkje laste deltakarliste.'))
   }
 }

@@ -1,6 +1,6 @@
 import { supabase } from '../../supabase'
 import { logError } from '../../utils/logError'
-import { feilHtml } from '../../utils/pageStates'
+import { createErrorBanner } from '../../components/ErrorBanner'
 import { nullstillStevne } from '../../organizer/organizerTestUtils.js'
 
 // ── Render ────────────────────────────────────────────────────────────────────
@@ -26,7 +26,7 @@ export async function render(
     ])
 
     if (stevneRes.error || !stevneRes.data) {
-      container.innerHTML = feilHtml('Stevne ikkje funne.')
+      container.replaceChildren(createErrorBanner('Stevne ikkje funne.'))
       return
     }
 
@@ -111,6 +111,6 @@ export async function render(
     })
   } catch (err) {
     logError('stevne-innstillingar.render', err)
-    container.innerHTML = feilHtml('Kunne ikkje laste innstillingar.')
+    container.replaceChildren(createErrorBanner('Kunne ikkje laste innstillingar.'))
   }
 }

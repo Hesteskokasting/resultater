@@ -1,6 +1,6 @@
 import { getUser } from '../services/authService'
 import { logError } from '../utils/logError'
-import { feilHtml } from '../utils/pageStates'
+import { createErrorBanner } from '../components/ErrorBanner'
 import { createLoadingState } from '../components/LoadingState'
 import { escHtml } from '../utils/escHtml'
 import { renderScoreboard } from '../components/Scoreboard'
@@ -29,14 +29,14 @@ export async function render(container: HTMLElement, { id }: { id: number }): Pr
   try {
     const [kampResult, authResult] = await Promise.all([hentKamp(kampId), getUser()])
     if (!kampResult.data) {
-      container.innerHTML = feilHtml('Kamp ikkje funne.')
+      container.replaceChildren(createErrorBanner('Kamp ikkje funne.'))
       return
     }
     kamp = kampResult.data
     auth = authResult
   } catch (err) {
     logError('render:kamp', err)
-    container.innerHTML = feilHtml('Feil ved lasting av kamp.')
+    container.replaceChildren(createErrorBanner('Feil ved lasting av kamp.'))
     return
   }
 

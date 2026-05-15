@@ -1,5 +1,5 @@
 import { lagKasterSlug, kasterNavn } from '../utils/kaster'
-import { feilHtml } from '../utils/pageStates'
+import { createErrorBanner } from '../components/ErrorBanner'
 import { createLoadingState } from '../components/LoadingState'
 import { escHtml } from '../utils/escHtml'
 import { logError } from '../utils/logError'
@@ -149,7 +149,7 @@ async function renderKategori(container: HTMLElement): Promise<void> {
     const { data, error } = await hentNmData(kategori, filtre.kjonn)
     if (error) {
       logError('nmvinnere.renderKategori', error)
-      container.innerHTML = feilHtml('Kunne ikkje laste NM-vinnere.')
+      container.replaceChildren(createErrorBanner('Kunne ikkje laste NM-vinnere.'))
       return
     }
 
@@ -172,7 +172,7 @@ async function renderKategori(container: HTMLElement): Promise<void> {
     })
   } catch (err) {
     logError('nmvinnere.renderKategori', err)
-    container.innerHTML = feilHtml('Kunne ikkje laste NM-vinnere.')
+    container.replaceChildren(createErrorBanner('Kunne ikkje laste NM-vinnere.'))
   }
 }
 

@@ -1,6 +1,6 @@
 import { kasterNavn, lagKasterSlug, lagKlubbSlug } from '../utils/kaster'
 import { getUser } from '../services/authService'
-import { feilHtml } from '../utils/pageStates'
+import { createErrorBanner } from '../components/ErrorBanner'
 import { createLoadingState } from '../components/LoadingState'
 import { escHtml } from '../utils/escHtml'
 import { logError } from '../utils/logError'
@@ -98,7 +98,7 @@ async function renderListe(container: HTMLElement): Promise<void> {
     ])
 
     if (error) {
-      container.innerHTML = feilHtml('Kunne ikkje laste klubbar.')
+      container.replaceChildren(createErrorBanner('Kunne ikkje laste klubbar.'))
       return
     }
 
@@ -150,7 +150,7 @@ async function renderListe(container: HTMLElement): Promise<void> {
     })
   } catch (err) {
     logError('renderListe', err)
-    container.innerHTML = feilHtml('Kunne ikkje laste klubbar.')
+    container.replaceChildren(createErrorBanner('Kunne ikkje laste klubbar.'))
   }
 }
 
@@ -167,7 +167,7 @@ async function renderDetalj(container: HTMLElement, id: number): Promise<void> {
     ])
 
     if (klubbRes.error || !klubbRes.data) {
-      container.innerHTML = feilHtml('Kunne ikkje laste klubb.')
+      container.replaceChildren(createErrorBanner('Kunne ikkje laste klubb.'))
       return
     }
 
@@ -208,7 +208,7 @@ async function renderDetalj(container: HTMLElement, id: number): Promise<void> {
     })
   } catch (err) {
     logError('renderDetalj', err)
-    container.innerHTML = feilHtml('Kunne ikkje laste klubb.')
+    container.replaceChildren(createErrorBanner('Kunne ikkje laste klubb.'))
   }
 }
 

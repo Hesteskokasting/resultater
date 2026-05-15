@@ -4,7 +4,7 @@ import { escHtml } from '../utils/escHtml'
 import { buildDropdownOptions } from '../utils/buildDropdownOptions'
 import { formNum } from '../utils/formNum'
 import { logError } from '../utils/logError'
-import { feilHtml } from '../utils/pageStates'
+import { createErrorBanner } from '../components/ErrorBanner'
 import { createLoadingState } from '../components/LoadingState'
 import {
   hentStevneForAdmin,
@@ -42,18 +42,18 @@ export async function render(
     kategoriar   = results[3].data
   } catch (err) {
     logError('stevneadmin.render', err)
-    container.innerHTML = feilHtml('Kunne ikkje laste skjema.')
+    container.replaceChildren(createErrorBanner('Kunne ikkje laste skjema.'))
     return
   }
 
   let stevne: StevneAdminRow | null = null
   if (id) {
     const { data, error } = await hentStevneForAdmin(id)
-    if (error || !data) { container.innerHTML = feilHtml('Stevne ikkje funne.'); return }
+    if (error || !data) { container.replaceChildren(createErrorBanner('Stevne ikkje funne.')); return }
     stevne = data
 
     if (!(await erAdmin()) && !(await erKlubbadmin(stevne.klubbid ?? undefined))) {
-      container.innerHTML = feilHtml('Ingen tilgang til dette stevnet.')
+      container.replaceChildren(createErrorBanner('Ingen tilgang til dette stevnet.'))
       return
     }
   }

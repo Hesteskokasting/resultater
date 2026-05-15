@@ -17,7 +17,7 @@ import { render as renderPamelding }      from './pages/pamelding'
 import { render as renderKamp }           from './pages/kamp'
 import { render as renderStevne }         from './pages/stevne'
 import { getUser, erAdmin, erKlubbadmin, loggUt } from './services/authService'
-import { feilHtml } from './utils/pageStates'
+import { createErrorBanner } from './components/ErrorBanner'
 
 if (import.meta.env.VITE_ENV === 'dev') {
   const versjonEl = document.querySelector('.header-versjon')
@@ -50,11 +50,11 @@ function authGuard(minRolle: MinRolle, renderFn: RenderFn): RenderFn {
       return
     }
     if (minRolle === 'admin' && !(await erAdmin())) {
-      cont.innerHTML = feilHtml('Ingen tilgang.')
+      cont.replaceChildren(createErrorBanner('Ingen tilgang.'))
       return
     }
     if (minRolle === 'klubbadmin' && !(await erAdmin()) && !(await erKlubbadmin())) {
-      cont.innerHTML = feilHtml('Ingen tilgang.')
+      cont.replaceChildren(createErrorBanner('Ingen tilgang.'))
       return
     }
     await renderFn(cont, params)
@@ -98,7 +98,7 @@ function naviger(): void {
     }
   }
 
-  container.innerHTML = feilHtml('Side ikkje funne.')
+  container.replaceChildren(createErrorBanner('Side ikkje funne.'))
 }
 
 async function oppdaterAuthMeny(): Promise<void> {

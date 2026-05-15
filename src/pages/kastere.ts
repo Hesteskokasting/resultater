@@ -2,7 +2,7 @@ import { Chart, registerables } from 'chart.js'
 import { kasterNavn, lagKasterSlug as lagSlug } from '../utils/kaster'
 import { getUser } from '../services/authService'
 import { formaterDato } from '../utils/shared'
-import { feilHtml } from '../utils/pageStates'
+import { createErrorBanner } from '../components/ErrorBanner'
 import { createLoadingState } from '../components/LoadingState'
 import { escHtml } from '../utils/escHtml'
 import { logError } from '../utils/logError'
@@ -450,7 +450,7 @@ async function renderListe(container: HTMLElement): Promise<void> {
   try {
     const init = await hentKastereListeAktive()
     if (init.error) {
-      container.innerHTML = feilHtml('Kunne ikkje laste utøvarar.')
+      container.replaceChildren(createErrorBanner('Kunne ikkje laste utøvarar.'))
       return
     }
 
@@ -522,7 +522,7 @@ async function renderListe(container: HTMLElement): Promise<void> {
     })
   } catch (err) {
     logError('renderListe', err)
-    container.innerHTML = feilHtml('Kunne ikkje laste utøvarar.')
+    container.replaceChildren(createErrorBanner('Kunne ikkje laste utøvarar.'))
   }
 }
 
@@ -543,7 +543,7 @@ async function renderDetalj(container: HTMLElement, id: number): Promise<void> {
   try {
     const { kaster: kasterNullable, resultater, error } = await hentKasterDetalj(id)
     if (error || !kasterNullable) {
-      container.innerHTML = feilHtml('Kunne ikkje laste utøvar.')
+      container.replaceChildren(createErrorBanner('Kunne ikkje laste utøvar.'))
       return
     }
     // Re-assign to const so TypeScript narrows the type into closures below
@@ -636,7 +636,7 @@ async function renderDetalj(container: HTMLElement, id: number): Promise<void> {
     })
   } catch (err) {
     logError('renderDetalj', err)
-    container.innerHTML = feilHtml('Kunne ikkje laste utøvar.')
+    container.replaceChildren(createErrorBanner('Kunne ikkje laste utøvar.'))
   }
 }
 

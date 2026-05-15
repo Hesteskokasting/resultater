@@ -4,7 +4,7 @@ import { logError } from '../utils/logError'
 import { formaterPoeng, byggSingelListe, byggLagListe } from '../utils/norgescup'
 import { hentRegler, hentStevnerOgResultater } from '../services/norgescupService'
 import { formaterDato, arOptions } from '../utils/shared'
-import { feilHtml } from '../utils/pageStates'
+import { createErrorBanner } from '../components/ErrorBanner'
 import { createLoadingState } from '../components/LoadingState'
 import type { Tables } from '../types'
 import type { ResultatMedRelasjonar, StevneForNc } from '../services/norgescupService'
@@ -202,7 +202,7 @@ export async function render(container: HTMLElement): Promise<void> {
 
   const ok = await hentOgBufferData(filtre.ar)
   if (!ok) {
-    container.innerHTML = feilHtml('Kunne ikkje laste data for Norgescupen.')
+    container.replaceChildren(createErrorBanner('Kunne ikkje laste data for Norgescupen.'))
     return
   }
 
@@ -294,7 +294,7 @@ export async function render(container: HTMLElement): Promise<void> {
     container.querySelector<HTMLElement>('#nc-content')!.replaceChildren(createLoadingState())
     const ok = await hentOgBufferData(filtre.ar)
     if (!ok) {
-      container.querySelector<HTMLElement>('#nc-content')!.innerHTML = feilHtml('Feil ved henting av data.')
+      container.querySelector<HTMLElement>('#nc-content')!.replaceChildren(createErrorBanner('Feil ved henting av data.'))
       return
     }
     oppdaterVisning()

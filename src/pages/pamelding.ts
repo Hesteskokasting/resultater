@@ -1,6 +1,6 @@
 import { getUser } from '../services/authService'
 import { formaterDato } from '../utils/shared'
-import { feilHtml } from '../utils/pageStates'
+import { createErrorBanner } from '../components/ErrorBanner'
 import { createLoadingState } from '../components/LoadingState'
 import { escHtml } from '../utils/escHtml'
 import { logError } from '../utils/logError'
@@ -184,7 +184,7 @@ function bindEventHandlers(
 export async function render(container: HTMLElement, params: Record<string, string> = {}): Promise<void> {
   const rawId = params.id
   if (!rawId) {
-    container.innerHTML = feilHtml('Manglande stevne-ID.')
+    container.replaceChildren(createErrorBanner('Manglande stevne-ID.'))
     return
   }
   const stevneId = Number(rawId)
@@ -198,7 +198,7 @@ export async function render(container: HTMLElement, params: Record<string, stri
     ])
 
     if (stevneRes.error || !stevneRes.data) {
-      container.innerHTML = feilHtml('Stevnet finst ikkje.')
+      container.replaceChildren(createErrorBanner('Stevnet finst ikkje.'))
       return
     }
     const stevne = stevneRes.data
@@ -254,6 +254,6 @@ export async function render(container: HTMLElement, params: Record<string, stri
     }
   } catch (err) {
     logError('pamelding.render', err)
-    container.innerHTML = feilHtml('Kunne ikkje laste påmelding.')
+    container.replaceChildren(createErrorBanner('Kunne ikkje laste påmelding.'))
   }
 }

@@ -4,7 +4,7 @@ import { hentTerminlisteStevner, hentFiltervalg, hentPameldteForBruker } from '.
 import type { TerminlisteStevneRow } from '../services/stevneService'
 import { formaterDatoLang as formaterDato, arOptions, lastNedExcel as lastNedExcelFil } from '../utils/shared'
 import { buildDropdownOptions } from '../utils/buildDropdownOptions'
-import { feilHtml } from '../utils/pageStates'
+import { createErrorBanner } from '../components/ErrorBanner'
 import { createLoadingState } from '../components/LoadingState'
 import { escHtml } from '../utils/escHtml'
 import { logError } from '../utils/logError'
@@ -213,7 +213,7 @@ export async function render(container: HTMLElement): Promise<void> {
 
     if (error) {
       logError('terminliste.render', error)
-      container.innerHTML = feilHtml('Kunne ikkje laste terminliste.')
+      container.replaceChildren(createErrorBanner('Kunne ikkje laste terminliste.'))
       return
     }
 
@@ -340,7 +340,7 @@ export async function render(container: HTMLElement): Promise<void> {
       const { data: nyData, error: nyFeil } = await hentTerminlisteStevner(filtre.ar)
       if (nyFeil) {
         logError('terminliste.arChange', nyFeil)
-        container.querySelector<HTMLElement>('.tl-liste-container')!.innerHTML = feilHtml('Feil ved henting.')
+        container.querySelector<HTMLElement>('.tl-liste-container')!.replaceChildren(createErrorBanner('Feil ved henting.'))
         return
       }
       allData = nyData ?? []
@@ -404,7 +404,7 @@ export async function render(container: HTMLElement): Promise<void> {
         const { data: nyData, error: nyFeil } = await hentTerminlisteStevner(filtre.ar)
         if (nyFeil) {
           logError('terminliste.brukFilter', nyFeil)
-          container.querySelector<HTMLElement>('.tl-liste-container')!.innerHTML = feilHtml('Feil ved henting.')
+          container.querySelector<HTMLElement>('.tl-liste-container')!.replaceChildren(createErrorBanner('Feil ved henting.'))
           return
         }
         allData = nyData ?? []
@@ -413,6 +413,6 @@ export async function render(container: HTMLElement): Promise<void> {
     })
   } catch (err) {
     logError('terminliste.render', err)
-    container.innerHTML = feilHtml('Kunne ikkje laste terminliste.')
+    container.replaceChildren(createErrorBanner('Kunne ikkje laste terminliste.'))
   }
 }

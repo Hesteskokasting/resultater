@@ -1,6 +1,6 @@
 import { getUser } from '../../services/authService'
 import { formaterDatoNumeric, formaterTid } from '../../utils/shared'
-import { feilHtml } from '../../utils/pageStates'
+import { createErrorBanner } from '../../components/ErrorBanner'
 import { logError } from '../../utils/logError'
 import { hentInfoStevne, oppdaterStevneFase } from '../../services/stevneService'
 import { hentAntallPameldingar, hentAntallUbekrefta } from '../../services/pameldingService'
@@ -23,7 +23,7 @@ export async function render(
     ])
 
     if (stevneRes.error || !stevneRes.data) {
-      container.innerHTML = feilHtml('Stevne ikkje funne.')
+      container.replaceChildren(createErrorBanner('Stevne ikkje funne.'))
       return
     }
 
@@ -106,6 +106,6 @@ export async function render(
     knapper.appendChild(sjaaLenke)
   } catch (err) {
     logError('stevne-info.render', err)
-    container.innerHTML = feilHtml('Kunne ikkje laste info.')
+    container.replaceChildren(createErrorBanner('Kunne ikkje laste info.'))
   }
 }

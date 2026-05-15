@@ -1,7 +1,7 @@
 import { formaterPoeng, byggSingelListe } from '../utils/norgescup'
 import { hentRegler, hentStevnerOgResultater } from '../services/norgescupService'
 import { formaterDatoLang as formaterDato } from '../utils/shared'
-import { feilHtml } from '../utils/pageStates'
+import { createErrorBanner } from '../components/ErrorBanner'
 import { createLoadingState } from '../components/LoadingState'
 import { escHtml } from '../utils/escHtml'
 import { hentSisteResultater, hentLiveStevner, hentKommendeStevner } from '../services/stevneService'
@@ -93,7 +93,7 @@ export async function render(container: HTMLElement): Promise<void> {
     ])
 
     if (e1 || e2 || e3 || e4) {
-      container.innerHTML = feilHtml('Kunne ikkje laste framsida.')
+      container.replaceChildren(createErrorBanner('Kunne ikkje laste framsida.'))
       return
     }
 
@@ -105,7 +105,7 @@ export async function render(container: HTMLElement): Promise<void> {
     live        = r5
   } catch (err) {
     logError('home.render', err)
-    container.innerHTML = feilHtml('Kunne ikkje laste framsida.')
+    container.replaceChildren(createErrorBanner('Kunne ikkje laste framsida.'))
     return
   }
 

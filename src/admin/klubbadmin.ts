@@ -1,7 +1,7 @@
 import { lagFormRadHtml, visLagreFeil, visSuksess, errMsg } from '../utils/adminForms'
 import { erAdmin, erKlubbadmin } from '../services/authService'
 import { escHtml } from '../utils/escHtml'
-import { feilHtml } from '../utils/pageStates'
+import { createErrorBanner } from '../components/ErrorBanner'
 import { createLoadingState } from '../components/LoadingState'
 import {
   hentKlubbForAdmin,
@@ -13,16 +13,16 @@ export async function render(
   container: HTMLElement,
   { id }: { id?: number } = {},
 ): Promise<void> {
-  if (!id) { container.innerHTML = feilHtml('Manglande ID.'); return }
+  if (!id) { container.replaceChildren(createErrorBanner('Manglande ID.')); return }
 
   container.replaceChildren(createLoadingState())
 
   const { data: klubb, error } = await hentKlubbForAdmin(id)
 
-  if (error || !klubb) { container.innerHTML = feilHtml('Klubb ikkje funne.'); return }
+  if (error || !klubb) { container.replaceChildren(createErrorBanner('Klubb ikkje funne.')); return }
 
   if (!(await erAdmin()) && !(await erKlubbadmin(id))) {
-    container.innerHTML = feilHtml('Ingen tilgang til denne klubben.')
+    container.replaceChildren(createErrorBanner('Ingen tilgang til denne klubben.'))
     return
   }
 

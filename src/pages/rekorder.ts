@@ -1,5 +1,5 @@
 import { kasterNavn, lagKasterSlug } from '../utils/kaster'
-import { feilHtml } from '../utils/pageStates'
+import { createErrorBanner } from '../components/ErrorBanner'
 import { createLoadingState } from '../components/LoadingState'
 import { escHtml } from '../utils/escHtml'
 import { logError } from '../utils/logError'
@@ -139,7 +139,7 @@ export async function render(container: HTMLElement): Promise<void> {
   try {
     const { data, error } = await hentAlleRekorder()
     if (error) {
-      container.innerHTML = feilHtml('Kunne ikkje laste rekorder.')
+      container.replaceChildren(createErrorBanner('Kunne ikkje laste rekorder.'))
       return
     }
 
@@ -181,6 +181,6 @@ export async function render(container: HTMLElement): Promise<void> {
     })
   } catch (err) {
     logError('rekorder.render', err)
-    container.innerHTML = feilHtml('Kunne ikkje laste rekorder.')
+    container.replaceChildren(createErrorBanner('Kunne ikkje laste rekorder.'))
   }
 }

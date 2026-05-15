@@ -1,5 +1,5 @@
 import { kasterNavn, lagKasterSlug } from '../../utils/kaster'
-import { feilHtml } from '../../utils/pageStates'
+import { createErrorBanner } from '../../components/ErrorBanner'
 import { createLoadingState } from '../../components/LoadingState'
 import { escHtml } from '../../utils/escHtml'
 import { logError } from '../../utils/logError'
@@ -99,11 +99,11 @@ export async function render(
     ])
 
     if (stevneRes.error || !stevneRes.data) {
-      container.innerHTML = feilHtml('Kunne ikkje laste stevnet.')
+      container.replaceChildren(createErrorBanner('Kunne ikkje laste stevnet.'))
       return
     }
     if (resultatRes.error) {
-      container.innerHTML = feilHtml('Kunne ikkje laste resultat.')
+      container.replaceChildren(createErrorBanner('Kunne ikkje laste resultat.'))
       return
     }
 
@@ -145,6 +145,6 @@ export async function render(
       </div>`
   } catch (err) {
     logError('stevne-resultat.render', err)
-    container.innerHTML = feilHtml('Kunne ikkje laste resultat.')
+    container.replaceChildren(createErrorBanner('Kunne ikkje laste resultat.'))
   }
 }

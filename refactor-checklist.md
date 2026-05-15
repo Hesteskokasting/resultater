@@ -299,8 +299,8 @@ These are CSS-only and self-contained. Good to interleave with the heavy migrati
 
 Look for patterns that appeared repeatedly during migration:
 
-- [ ] `createErrorBanner({ message })` — replace the `<p class="feil">...</p>` pattern
-- [ ] `createLoadingState({ message })` — replace the centered "Lastar..." pattern
+- [x] `createErrorBanner({ message })` — replace the `<p class="feil">...</p>` pattern
+- [x] `createLoadingState({ message })` — replace the centered "Lastar..." pattern
 - [ ] `createKortKort()` / `createKasterKort()` — for repeated card layouts
 - [ ] `createTable({ columns, rows })` — typed columns, generic rows
 - [ ] `createDropdown()` — wraps `buildDropdownOptions`

@@ -1,6 +1,6 @@
 import { kasterNavn, lagKasterSlug } from '../utils/kaster'
 import { getUser } from '../services/authService'
-import { feilHtml } from '../utils/pageStates'
+import { createErrorBanner } from '../components/ErrorBanner'
 import { createLoadingState } from '../components/LoadingState'
 import { escHtml } from '../utils/escHtml'
 import { logError } from '../utils/logError'
@@ -268,6 +268,6 @@ export async function render(container: HTMLElement): Promise<void> {
     }
   } catch (err) {
     logError('minside.render', err)
-    container.innerHTML = feilHtml('Kunne ikkje laste min side.')
+    container.replaceChildren(createErrorBanner('Kunne ikkje laste min side.'))
   }
 }

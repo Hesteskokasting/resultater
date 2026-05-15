@@ -1,7 +1,7 @@
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '../supabase'
 import { erAdmin, erKlubbadmin } from '../services/authService'
-import { feilHtml } from '../utils/pageStates'
+import { createErrorBanner } from '../components/ErrorBanner'
 import { logError } from '../utils/logError'
 import { render as renderInfo }          from './stevne/stevne-info'
 import { render as renderSpillarar }     from './stevne/stevne-deltakere'
@@ -81,7 +81,7 @@ export async function render(
       .single()
 
     if (error || !stevne) {
-      container.innerHTML = feilHtml('Stevne ikkje funne.')
+      container.replaceChildren(createErrorBanner('Stevne ikkje funne.'))
       return
     }
 
@@ -116,6 +116,6 @@ export async function render(
       .subscribe()
   } catch (err) {
     logError('stevne.render', err)
-    container.innerHTML = feilHtml('Kunne ikkje laste stevnet.')
+    container.replaceChildren(createErrorBanner('Kunne ikkje laste stevnet.'))
   }
 }

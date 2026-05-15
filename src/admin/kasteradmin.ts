@@ -4,7 +4,7 @@ import { escHtml } from '../utils/escHtml'
 import { buildDropdownOptions } from '../utils/buildDropdownOptions'
 import { formNum } from '../utils/formNum'
 import { logError } from '../utils/logError'
-import { feilHtml } from '../utils/pageStates'
+import { createErrorBanner } from '../components/ErrorBanner'
 import { createLoadingState } from '../components/LoadingState'
 import {
   hentKasterForAdmin,
@@ -38,18 +38,18 @@ export async function render(
     kjonn   = results[2].data
   } catch (err) {
     logError('kasteradmin.render', err)
-    container.innerHTML = feilHtml('Kunne ikkje laste skjema.')
+    container.replaceChildren(createErrorBanner('Kunne ikkje laste skjema.'))
     return
   }
 
   let kaster: KasterAdminRow | null = null
   if (id) {
     const { data, error } = await hentKasterForAdmin(id)
-    if (error || !data) { container.innerHTML = feilHtml('Utøvar ikkje funne.'); return }
+    if (error || !data) { container.replaceChildren(createErrorBanner('Utøvar ikkje funne.')); return }
     kaster = data
 
     if (!(await erAdmin()) && !(await erKlubbadmin(kaster.klubbid ?? undefined))) {
-      container.innerHTML = feilHtml('Ingen tilgang til denne utøvaren.')
+      container.replaceChildren(createErrorBanner('Ingen tilgang til denne utøvaren.'))
       return
     }
   }

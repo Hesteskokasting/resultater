@@ -1,6 +1,6 @@
 import { kasterNavn } from '../utils/kaster'
 import { formaterDato, arOptions, lastNedExcel as lastNedExcelFil } from '../utils/shared'
-import { feilHtml } from '../utils/pageStates'
+import { createErrorBanner } from '../components/ErrorBanner'
 import { createLoadingState } from '../components/LoadingState'
 import { escHtml } from '../utils/escHtml'
 import { logError } from '../utils/logError'
@@ -292,7 +292,7 @@ export async function render(container: HTMLElement): Promise<void> {
   try {
     const ok = await hentOgBufferData(filtre.ar)
     if (!ok) {
-      container.innerHTML = feilHtml('Kunne ikkje laste data for Norgesranking.')
+      container.replaceChildren(createErrorBanner('Kunne ikkje laste data for Norgesranking.'))
       return
     }
 
@@ -332,13 +332,13 @@ export async function render(container: HTMLElement): Promise<void> {
       try {
         const ok = await hentOgBufferData(filtre.ar)
         if (!ok) {
-          container.querySelector('#nr-tabell-container')!.innerHTML = feilHtml('Feil ved henting av data.')
+          container.querySelector('#nr-tabell-container')!.replaceChildren(createErrorBanner('Feil ved henting av data.'))
           return
         }
         oppdaterTabell()
       } catch (err) {
         logError('norgesranking.arChange', err)
-        container.querySelector('#nr-tabell-container')!.innerHTML = feilHtml('Feil ved henting av data.')
+        container.querySelector('#nr-tabell-container')!.replaceChildren(createErrorBanner('Feil ved henting av data.'))
       }
     })
 
@@ -356,6 +356,6 @@ export async function render(container: HTMLElement): Promise<void> {
     })
   } catch (err) {
     logError('norgesranking.render', err)
-    container.innerHTML = feilHtml('Kunne ikkje laste Norgesranking.')
+    container.replaceChildren(createErrorBanner('Kunne ikkje laste Norgesranking.'))
   }
 }
