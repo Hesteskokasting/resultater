@@ -1,13 +1,4 @@
-import { startcardTemplate } from '../utils/startcard/startcard-template.js'
-
-interface RoundInfo {
-  court?: number | string | null
-  matchPoints?: string
-  playerScore?: string
-  opponentId?: number | string | null
-  opponentName?: string
-  opponentScore?: string
-}
+import { startcardTemplate, type RoundInfo } from '../utils/startcard/startcard-template'
 
 interface StartkortKlubb {
   kortnavn?: string | null
