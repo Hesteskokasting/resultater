@@ -12,11 +12,11 @@ export function visLagreFeil(container: HTMLElement, melding: string): void {
   let el = container.querySelector<HTMLDivElement>('.admin-feil')
   if (!el) {
     el = document.createElement('div')
-    el.className = 'alert alert-danger admin-feil mt-3'
+    el.className = 'alert alert-danger admin-feil mt-3 d-none'
     container.querySelector('form')?.append(el)
   }
   el.textContent = melding
-  el.style.display = ''
+  el.classList.remove('d-none')
   el.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
 }
 
@@ -24,11 +24,11 @@ export function visSuksess(container: HTMLElement, melding: string): void {
   let el = container.querySelector<HTMLDivElement>('.admin-suksess')
   if (!el) {
     el = document.createElement('div')
-    el.className = 'alert alert-success admin-suksess mt-3'
+    el.className = 'alert alert-success admin-suksess mt-3 d-none'
     container.querySelector('form')?.append(el)
   }
   el.textContent = melding
-  el.style.display = ''
+  el.classList.remove('d-none')
   const elRef = el
-  setTimeout(() => { elRef.style.display = 'none' }, 4000)
+  setTimeout(() => { elRef.classList.add('d-none') }, 4000)
 }

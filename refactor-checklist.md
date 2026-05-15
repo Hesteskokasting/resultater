@@ -256,7 +256,7 @@ For **every** file you migrate, all of these must be checked off:
 - [x] `src/services/stevneService.ts`
 
 **utils:**
-- [ ] `src/utils/adminForms.ts`
+- [x] `src/utils/adminForms.ts`
 - [ ] `src/utils/auth.ts`
 - [ ] `src/utils/buildDropdownOptions.ts`
 - [ ] `src/utils/escHtml.ts`
