@@ -85,6 +85,15 @@ export async function leggTilKlubbadminTilgang(
   return { error }
 }
 
+export async function hentKlubbadminKlubbarForBruker(brukerId: string): Promise<{ data: number[]; error: unknown }> {
+  const { data, error } = await supabase
+    .from('klubbadmin_klubber')
+    .select('klubbid')
+    .eq('bruker_id', brukerId)
+  if (error) logError('hentKlubbadminKlubbarForBruker', error)
+  return { data: (data ?? []).map(r => r.klubbid).filter((id): id is number => id != null), error }
+}
+
 export async function fjernKlubbadminTilgang(
   brukerId: string,
   klubbid: number,

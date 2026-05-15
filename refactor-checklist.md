@@ -257,7 +257,7 @@ For **every** file you migrate, all of these must be checked off:
 
 **utils:**
 - [x] `src/utils/adminForms.ts`
-- [ ] `src/utils/auth.ts`
+- [x] `src/utils/auth.ts`
 - [ ] `src/utils/buildDropdownOptions.ts`
 - [ ] `src/utils/escHtml.ts`
 - [ ] `src/utils/formNum.ts`
@@ -288,7 +288,7 @@ These are CSS-only and self-contained. Good to interleave with the heavy migrati
 - [ ] Audit `styles.css` for other hardcoded colors → replace with variables
 - [ ] Consolidate the repeated `text-align:center;margin-top:40px;` pattern into a utility class (e.g., `.loading-state`)
 - [ ] Remove unused css in global.css and styles.css
-- [ ] Find specific styles that can be shared across. e.g. terminliste, norgesranking, norgescupen.
+- [ ] Find specific styles that can be shared across files. e.g. terminliste, norgesranking, norgescupen.
 
 
 ---

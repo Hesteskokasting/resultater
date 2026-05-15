@@ -1,5 +1,7 @@
-import { supabase } from '../supabase.js'
+import { supabase } from '../supabase'
 import type { AuthUser, Profil, Rolle } from '../types'
+import { hentProfilForBruker } from '../services/brukerProfilService'
+import { hentKlubbadminKlubbarForBruker } from '../services/adminService'
 
 const ROLLER = ['admin', 'klubbadmin', 'bruker'] as const
 
@@ -20,19 +22,12 @@ async function _hentCache(): Promise<AuthUser | null> {
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) return null
 
-  const { data: profil } = await supabase
-    .from('bruker_profil')
-    .select('rolle, kasterid, kobling_status, kobling_kasterid')
-    .eq('id', session.user.id)
-    .maybeSingle()
+  const { data: profil } = await hentProfilForBruker(session.user.id)
 
   let klubber: number[] = []
   if (profil?.rolle === 'klubbadmin') {
-    const { data } = await supabase
-      .from('klubbadmin_klubber')
-      .select('klubbid')
-      .eq('bruker_id', session.user.id)
-    klubber = (data ?? []).map(r => r.klubbid)
+    const { data: klubbIds } = await hentKlubbadminKlubbarForBruker(session.user.id)
+    klubber = klubbIds
   }
 
   _cache = { user: session.user, profil: isProfil(profil) ? profil : null, klubber }
