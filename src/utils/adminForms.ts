@@ -1,4 +1,8 @@
-import { escHtml } from './escHtml.js'
+import { escHtml } from './escHtml'
+
+export function errMsg(e: unknown): string {
+  return e && typeof e === 'object' && 'message' in e ? String((e as { message: unknown }).message) : 'Ukjend feil'
+}
 
 export function lagFormRadHtml(label: string, inputHtml: string): string {
   return `<div class="mb-3"><label class="form-label fw-semibold">${escHtml(label)}</label>${inputHtml}</div>`

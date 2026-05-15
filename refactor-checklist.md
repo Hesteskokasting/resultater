@@ -226,8 +226,8 @@ For **every** file you migrate, all of these must be checked off:
 
 **admin:**
 - [x] `src/admin/admin.ts`
-- [ ] `src/admin/kasteradmin.ts`
-- [ ] `src/admin/klubbadmin.ts`
+- [x] `src/admin/kasteradmin.ts`
+- [x] `src/admin/klubbadmin.ts`
 - [ ] `src/admin/stevneadmin.ts`
 
 **components:**

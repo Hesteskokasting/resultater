@@ -1,5 +1,6 @@
 import { logError } from '../utils/logError'
 import { escHtml } from '../utils/escHtml'
+import { errMsg } from '../utils/adminForms'
 import {
   hentVentandeKoblingar,
   hentBrukarEpost,
@@ -21,10 +22,6 @@ const FANE_LABEL: Record<Fane, string> = {
   kobling:    'Koblingforespørslar',
   brukarar:   'Brukarar',
   klubbadmin: 'Klubbadmin-tilgang',
-}
-
-function errMsg(e: unknown): string {
-  return e && typeof e === 'object' && 'message' in e ? String((e as { message: unknown }).message) : 'Ukjend feil'
 }
 
 export async function render(container: HTMLElement): Promise<void> {
