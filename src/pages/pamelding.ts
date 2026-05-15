@@ -161,7 +161,8 @@ function bindEventHandlers(
     if (kasterid == null) return
     const min = pameldingar.find(p => p.kasterid === kasterid)
     if (!min || !confirm('Vil du melde deg av?')) return
-    await fjernPamelding(min.id)
+    const { error } = await fjernPamelding(min.id)
+    if (error) return
     render(container, params)
   })
 
@@ -170,7 +171,8 @@ function bindEventHandlers(
       if (!confirm('Fjern påmelding?')) return
       const id = Number(knapp.dataset.id)
       if (!id) return
-      await fjernPamelding(id)
+      const { error } = await fjernPamelding(id)
+      if (error) return
       render(container, params)
     })
   })
