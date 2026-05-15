@@ -102,14 +102,16 @@ async function _visKobling(el: HTMLElement): Promise<void> {
     knapp.addEventListener('click', async () => {
       const rad      = knapp.closest<HTMLElement>('tr')!
       const kasterid = rad.dataset.kasterid ? Number(rad.dataset.kasterid) : null
-      await oppdaterKoblingStatus(rad.dataset.id!, kasterid, 'godkjent')
+      const { error } = await oppdaterKoblingStatus(rad.dataset.id!, kasterid, 'godkjent')
+      if (error) { el.innerHTML = `<div class="alert alert-danger">${escHtml(errMsg(error))}</div>`; return }
       _visKobling(el)
     })
   })
   el.querySelectorAll<HTMLButtonElement>('.avvis-knapp').forEach(knapp => {
     knapp.addEventListener('click', async () => {
       const rad = knapp.closest<HTMLElement>('tr')!
-      await oppdaterKoblingStatus(rad.dataset.id!, null, 'avvist')
+      const { error } = await oppdaterKoblingStatus(rad.dataset.id!, null, 'avvist')
+      if (error) { el.innerHTML = `<div class="alert alert-danger">${escHtml(errMsg(error))}</div>`; return }
       _visKobling(el)
     })
   })

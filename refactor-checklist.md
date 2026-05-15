@@ -214,6 +214,8 @@ For **every** file you migrate, all of these must be checked off:
 - [x] `src/pages/pamelding.ts`
 - [x] `src/pages/rekorder.ts`
 - [x] `src/pages/terminliste.ts`
+
+**Skip until refactor**
 - [ ] `src/pages/stevne.ts`
 - [ ] `src/pages/stevne/stevne-avsluttende.ts`
 - [ ] `src/pages/stevne/stevne-deltakere.ts`
@@ -223,7 +225,7 @@ For **every** file you migrate, all of these must be checked off:
 - [ ] `src/pages/stevne/stevne-resultat.ts`
 
 **admin:**
-- [ ] `src/admin/admin.ts`
+- [x] `src/admin/admin.ts`
 - [ ] `src/admin/kasteradmin.ts`
 - [ ] `src/admin/klubbadmin.ts`
 - [ ] `src/admin/stevneadmin.ts`
