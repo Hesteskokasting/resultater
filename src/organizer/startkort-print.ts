@@ -1,4 +1,5 @@
 import { startcardTemplate, type RoundInfo } from '../utils/startcard/startcard-template'
+import { logError } from '../utils/logError'
 
 interface StartkortKlubb {
   kortnavn?: string | null
@@ -60,7 +61,7 @@ export function printStartkort(
     .sort((a, b) => (Number(a.startnummer) || Infinity) - (Number(b.startnummer) || Infinity))
 
   const printWindow = window.open('', '_blank')
-  if (!printWindow) { alert('Kunne ikkje opne utskriftsvindu.'); return }
+  if (!printWindow) { logError('printStartkort', 'Popup blocked — could not open print window'); return }
 
   printWindow.document.title = `Startkort – ${stevne.navn}`
   const styleLink = printWindow.document.createElement('link')

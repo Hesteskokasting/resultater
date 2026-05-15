@@ -230,16 +230,16 @@ For **every** file you migrate, all of these must be checked off:
 - [x] `src/admin/klubbadmin.ts`
 - [x] `src/admin/stevneadmin.ts`
 
-**components:**
+**components: Deferred — tightly coupled to stevne pages, will change with kastemetode formats**
 - [ ] `src/components/Scoreboard.ts`
 - [ ] `src/components/ScoreNumberpad.ts`
 
 **organizer:**
-- [ ] `src/organizer/gruppefordelingUi.ts`
-- [ ] `src/organizer/kampgenereringDb.ts`
-- [ ] `src/organizer/organizerTestUtils.ts`
-- [ ] `src/organizer/org-shared.ts`
-- [ ] `src/organizer/startkort-print.ts`
+- [x] `src/organizer/gruppefordelingUi.ts`
+- [ ] `src/organizer/kampgenereringDb.ts` — deferred (direct supabase, coupled to stevne pages)
+- [ ] `src/organizer/organizerTestUtils.ts` — deferred (direct supabase, coupled to stevne pages)
+- [x] `src/organizer/org-shared.ts`
+- [x] `src/organizer/startkort-print.ts`
 
 **services:**
 - [ ] `src/services/adminService.ts`
