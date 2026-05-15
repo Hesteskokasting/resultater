@@ -218,7 +218,7 @@ For **every** file you migrate, all of these must be checked off:
 **Skip until refactor**
 - [x] `src/pages/stevne.ts` — query + channel extracted to `stevneService`; `escHtml` on navn; `createLoadingState`; no direct supabase import
 - [x] `src/pages/stevne/stevne-avsluttende.ts` — refactored to thin router; logic extracted to `avsluttende/cup.ts` (+ kongelag/nordhordland stubs)
-- [ ] `src/pages/stevne/stevne-deltakere.ts`
+- [x] `src/pages/stevne/stevne-deltakere.ts` — `createLoadingState`; swapped `hentInfoStevne` → `hentStevneHeader`; renamed tab key/label to `deltakere`/`Deltakere`
 - [ ] `src/pages/stevne/stevne-info.ts`
 - [x] `src/pages/stevne/stevne-innledende.ts` — refactored to thin router; logic extracted to `innledende/gloppen.ts` + `innledende/nordhordland.ts` (+ xkast stub)
 - [ ] `src/pages/stevne/stevne-innstillinger.ts`

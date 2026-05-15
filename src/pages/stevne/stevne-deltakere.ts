@@ -9,7 +9,8 @@ import {
   bekreftPameldingForKaster,
   fjernPameldingForKaster,
 } from '../../services/pameldingService'
-import { hentInfoStevne } from '../../services/stevneService'
+import { hentStevneHeader } from '../../services/stevneService'
+import { createLoadingState } from '../../components/LoadingState'
 
 // ── Hjelpefunksjonar ──────────────────────────────────────────────────────────
 
@@ -151,11 +152,11 @@ export async function render(
   container: HTMLElement,
   { id, isAdmin = false }: { id: number; isAdmin?: boolean },
 ): Promise<void> {
-  container.innerHTML = '<p class="laster">Laster…</p>'
+  container.replaceChildren(createLoadingState())
 
   try {
     const [stevneRes, kastereRes, pameldingRes] = await Promise.all([
-      hentInfoStevne(id),
+      hentStevneHeader(id),
       hentKastereListeAktive(),
       hentPameldingStatusForStevne(id),
     ])

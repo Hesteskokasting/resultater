@@ -6,7 +6,7 @@ import { createLoadingState } from '../components/LoadingState'
 import { logError } from '../utils/logError'
 import { escHtml } from '../utils/escHtml'
 import { render as renderInfo }          from './stevne/stevne-info'
-import { render as renderSpillarar }     from './stevne/stevne-deltakere'
+import { render as renderDeltakere }     from './stevne/stevne-deltakere'
 import { render as renderInnledende }    from './stevne/stevne-innledende'
 import { render as renderAvsluttende }   from './stevne/stevne-avsluttende'
 import { render as renderInnstillingar } from './stevne/stevne-innstillinger'
@@ -24,7 +24,7 @@ type TabRender = (
 
 const FANER = [
   { nøkkel: 'info',          label: 'Info',          adminOnly: false },
-  { nøkkel: 'spillere',      label: 'Spelarar',      adminOnly: true  },
+  { nøkkel: 'deltakere',     label: 'Deltakere',     adminOnly: true  },
   { nøkkel: 'innledende',    label: 'Innledande',    adminOnly: false },
   { nøkkel: 'avsluttende',   label: 'Avsluttande',   adminOnly: false },
   { nøkkel: 'resultat',      label: 'Sluttresultat', adminOnly: false },
@@ -37,7 +37,7 @@ const ADMIN_FANER = new Set<string>(FANER.filter(f => f.adminOnly).map(f => f.n�
 
 const TAB_RENDER: Record<TabNøkkel, TabRender> = {
   info:          renderInfo,
-  spillere:      renderSpillarar as TabRender,
+  deltakere:     renderDeltakere as TabRender,
   innledende:    renderInnledende,
   avsluttende:   renderAvsluttende,
   innstillinger: renderInnstillingar as TabRender,
