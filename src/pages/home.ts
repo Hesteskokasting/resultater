@@ -39,7 +39,7 @@ function ncTopp20Html(liste: SingelListeRad[]): string {
 function liveKortHtml(s: LiveStevneRow): string {
   const tab = s.stevne_fase === 'avsluttende' ? 'avsluttende' : 'innledende'
   return `
-    <a class="live-kort" href="#/stevne/${s.id}/live/${tab}">
+    <a class="live-kort" href="#/stevne/${s.id}/${tab}">
       <span class="live-prikk"></span>
       <span>LIVE: ${escHtml(s.navn)}</span>
     </a>`

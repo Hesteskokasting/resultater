@@ -253,10 +253,7 @@ export function lagOnEndringHandler(
 ): () => void {
   return function onEndring() {
     const hash = location.hash
-    const erPaaSide = faner.some(f =>
-      hash === `#/stevne/${stevneid}/organizer/${f}` ||
-      hash === `#/stevne/${stevneid}/live/${f}`,
-    )
+    const erPaaSide = faner.some(f => hash === `#/stevne/${stevneid}/${f}`)
     if (erPaaSide) {
       lastOgVisFn(container, stevneid)
     } else {

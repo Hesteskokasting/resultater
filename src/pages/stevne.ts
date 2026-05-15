@@ -50,19 +50,13 @@ const FASE_LABEL: Record<string, string> = {
 
 // ── Hjelpefunksjonar ──────────────────────────────────────────────────────────
 
-function tabUrl(stevneid: number, nøkkel: string, basePath: string): string {
-  return basePath
-    ? `#/stevne/${stevneid}/${basePath}/${nøkkel}`
-    : `#/stevne/${stevneid}/${nøkkel}`
-}
-
-function renderNav(stevneid: number, aktiv: string, isAdmin: boolean, basePath: string): string {
+function renderNav(stevneid: number, aktiv: string, isAdmin: boolean): string {
   const items = FANER
     .filter(f => isAdmin || !f.adminOnly)
     .map(({ nøkkel, label }) => `
       <li class="nav-item">
         <a class="nav-link${aktiv === nøkkel ? ' active' : ''}"
-           href="${tabUrl(stevneid, nøkkel, basePath)}">${label}</a>
+           href="#/stevne/${stevneid}/${nøkkel}">${label}</a>
       </li>`)
     .join('')
   return `<ul class="nav nav-tabs mb-3">${items}</ul>`
@@ -74,7 +68,7 @@ let kanal: RealtimeChannel | null = null
 
 export async function render(
   container: HTMLElement,
-  { id, tab = 'info', basePath = 'organizer' }: { id: number; tab?: string; basePath?: string },
+  { id, tab = 'info' }: { id: number; tab?: string },
 ): Promise<void> {
   if (kanal) { await supabase.removeChannel(kanal); kanal = null }
   container.innerHTML = '<p class="laster">Laster…</p>'
@@ -91,13 +85,13 @@ export async function render(
       return
     }
 
-    const isAdmin = basePath === 'organizer' || (await erAdmin()) || (await erKlubbadmin())
+    const isAdmin = (await erAdmin()) || (await erKlubbadmin())
     const aktiv = (!isAdmin && ADMIN_FANER.has(tab)) ? 'info' : tab as TabNøkkel
     const badge = FASE_LABEL[stevne.stevne_fase ?? 'ikke_startet'] ?? ''
 
     container.innerHTML = `
       <div class="org-shell py-3 px-3">
-        ${renderNav(id, aktiv, isAdmin, basePath)}
+        ${renderNav(id, aktiv, isAdmin)}
         <div class="org-fase-header d-flex align-items-center gap-2 mb-3">
           <h5 class="mb-0 flex-grow-1">${stevne.navn} <span id="fase-badge">${badge}</span></h5>
           <div id="org-banner-knappar"></div>
