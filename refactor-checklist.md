@@ -208,8 +208,8 @@ For **every** file you migrate, all of these must be checked off:
 - [x] `src/pages/klubber.ts`
 - [x] `src/pages/logginn.ts`
 - [x] `src/pages/minside.ts`
-- [ ] `src/pages/nmvinnere.ts`
-- [ ] `src/pages/norgescupen.ts`
+- [x] `src/pages/nmvinnere.ts`
+- [x] `src/pages/norgescupen.ts`
 - [ ] `src/pages/norgesranking.ts`
 - [ ] `src/pages/pamelding.ts`
 - [ ] `src/pages/rekorder.ts`
@@ -336,11 +336,11 @@ Best done **after** components exist, because then you fix ARIA in one place.
 This phase moves data-fetching files from `utils/` to `services/` so the architecture is consistent. Pure utility files (no Supabase calls) stay in `utils/`.
 
 ### 6a. Move `utils/norgescup.ts` → `services/norgescupService.ts`
-- [ ] Rename file
-- [ ] Update all imports (`grep -r "from.*utils/norgescup"` to find them)
-- [ ] Replace any remaining `select('*')` with explicit columns
-- [ ] Move pure helpers (non-Supabase functions) to a new `utils/norgescupHelpers.ts` if needed
-- [ ] Test all pages that use norgescup data
+- [x] Rename file
+- [x] Update all imports (`grep -r "from.*utils/norgescup"` to find them)
+- [x] Replace any remaining `select('*')` with explicit columns
+- [x] Move pure helpers (non-Supabase functions) to a new `utils/norgescupHelpers.ts` if needed
+- [x] Test all pages that use norgescup data
 - [ ] Commit: `"Move norgescup data layer to services/"`
 
 ### 6b. Move `utils/stevne.ts` → `services/stevneService.ts`

@@ -807,6 +807,8 @@ a.stevne-navn {
   gap: 4px;
 }
 
+.nc-visning-tabs { margin-bottom: 12px; }
+
 .nc-klasse-tab {
   padding: 4px 12px;
   border: 1px solid var(--primaer);

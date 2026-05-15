@@ -1,4 +1,5 @@
-import { formaterPoeng, hentRegler, hentStevnerOgResultater, byggSingelListe } from '../utils/norgescup'
+import { formaterPoeng, byggSingelListe } from '../utils/norgescup'
+import { hentRegler, hentStevnerOgResultater } from '../services/norgescupService'
 import { formaterDatoLang as formaterDato } from '../utils/shared'
 import { lasterHtml, feilHtml } from '../utils/pageStates'
 import { escHtml } from '../utils/escHtml'

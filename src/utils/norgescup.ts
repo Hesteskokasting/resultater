@@ -1,10 +1,11 @@
-import type { QueryData } from '@supabase/supabase-js'
-import { supabase } from '../supabase.js'
 import type { Tables } from '../types'
 import type { Kaster, Klubb } from '../types'
 import { kasterNavn } from './kaster'
+import type { ResultatMedRelasjonar, StevneForNc } from '../services/norgescupService'
 
-const NC_TYPER = ['NC', 'SNC', 'DNC']
+export type { ResultatMedRelasjonar, StevneForNc }
+
+// ── Private typar ─────────────────────────────────────────────────────────────
 
 type Regler = Tables<'antallTellendeNc'>
 
@@ -16,23 +17,7 @@ interface StevneMetadata {
 
 type StevnerMap = Map<number, StevneMetadata>
 
-// Spørje-buildarar brukt berre for type-inferens — ingen HTTP-kall
-const _resultaterQuery = supabase
-  .from('resultat')
-  .select(`
-    id, nc_poeng, plassering, kasterid, klubbid, klasseid, stevneid,
-    kaster:kasterid(id, fornavn, etternavn),
-    klubb:klubbid(id, navn),
-    klasse:klasseid(id, navn)
-  `)
-
-export type ResultatMedRelasjonar = QueryData<typeof _resultaterQuery>[number]
-
-const _stevneNcQuery = supabase
-  .from('stevne')
-  .select('id, navn, dato, stevnetype:stevnetypeid(id, navn)')
-
-export type StevneForNc = QueryData<typeof _stevneNcQuery>[number]
+// ── Eksporterte typar ─────────────────────────────────────────────────────────
 
 export interface SingelListeRad {
   navn: string
@@ -55,49 +40,15 @@ type BeregnFn = (
   stevnerMap: StevnerMap
 ) => ResultatMedRelasjonar[]
 
+// ── Eksporterte hjelpefunksjonar ──────────────────────────────────────────────
+
 export function formaterPoeng(p: number | null | undefined): string {
   if (p == null) return '–'
   const n = Number(p)
   return Number.isInteger(n) ? String(n) : n.toFixed(1)
 }
 
-export async function hentRegler(ar: number) {
-  const { data, error } = await supabase
-    .from('antallTellendeNc')
-    .select('id, year, max_nc_total, max_snc_total, max_dnc_total, maxtotal, max_snc, max_dnc')
-    .eq('year', ar)
-    .maybeSingle()
-  return { data, error }
-}
-
-export async function hentStevnerOgResultater(ar: number) {
-  const { data: allStevner, error: e1 } = await supabase
-    .from('stevne')
-    .select('id, navn, dato, stevnetype:stevnetypeid(id, navn)')
-    .gte('dato', `${ar}-01-01`)
-    .lte('dato', `${ar}-12-31`)
-
-  if (e1) return { stevner: [], resultater: [], error: e1 }
-
-  const ncStevner = (allStevner ?? []).filter(s => NC_TYPER.includes(s.stevnetype?.navn ?? ''))
-  const ids = ncStevner.map(s => s.id)
-
-  if (ids.length === 0) return { stevner: ncStevner, resultater: [], error: null }
-
-  const { data: resultater, error: e2 } = await supabase
-    .from('resultat')
-    .select(`
-      id, nc_poeng, plassering, kasterid, klubbid, klasseid, stevneid,
-      kaster:kasterid(id, fornavn, etternavn),
-      klubb:klubbid(id, navn),
-      klasse:klasseid(id, navn)
-    `)
-    .in('stevneid', ids)
-    .not('nc_poeng', 'is', null)
-    .gt('nc_poeng', 0)
-
-  return { stevner: ncStevner, resultater: resultater ?? [], error: e2 }
-}
+// ── Private hjelpefunksjonar ──────────────────────────────────────────────────
 
 function lagStevnerMap(stevner: StevneForNc[]): StevnerMap {
   const m: StevnerMap = new Map()
@@ -149,6 +100,8 @@ function tildelPlassering<T extends { plassering: number }>(liste: T[], getPoeng
     liste[i].plassering = pl
   }
 }
+
+// ── Eksporterte listebyggarar ─────────────────────────────────────────────────
 
 export function byggSingelListe(
   resultater: ResultatMedRelasjonar[],
