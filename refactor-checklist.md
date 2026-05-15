@@ -210,7 +210,7 @@ For **every** file you migrate, all of these must be checked off:
 - [x] `src/pages/minside.ts`
 - [x] `src/pages/nmvinnere.ts`
 - [x] `src/pages/norgescupen.ts`
-- [ ] `src/pages/norgesranking.ts`
+- [x] `src/pages/norgesranking.ts`
 - [ ] `src/pages/pamelding.ts`
 - [ ] `src/pages/rekorder.ts`
 - [ ] `src/pages/terminliste.ts`

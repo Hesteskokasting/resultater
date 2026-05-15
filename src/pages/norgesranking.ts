@@ -63,16 +63,21 @@ function formaterProsent(p: number | null | undefined): string {
 
 // ── Data-buffer ───────────────────────────────────────────────────────────────
 
-async function hentOgBufferData(ar: number): Promise<unknown> {
-  if (cache.ar === ar) return null
+async function hentOgBufferData(ar: number): Promise<boolean> {
+  if (cache.ar === ar) return true
 
-  const { stevner, resultater, error } = await hentStevnerOgResultater(ar)
-  if (error) return error
+  try {
+    const { stevner, resultater, error } = await hentStevnerOgResultater(ar)
+    if (error) return false
 
-  cache.ar = ar
-  cache.stevner = stevner
-  cache.resultater = resultater
-  return null
+    cache.ar = ar
+    cache.stevner = stevner
+    cache.resultater = resultater
+    return true
+  } catch (err) {
+    logError('hentOgBufferData', err)
+    return false
+  }
 }
 
 // ── Ranking-algoritme ─────────────────────────────────────────────────────────
@@ -284,9 +289,8 @@ export async function render(container: HTMLElement): Promise<void> {
   container.innerHTML = lasterHtml('Laster Norgesranking…')
 
   try {
-    const feil = await hentOgBufferData(filtre.ar)
-    if (feil) {
-      logError('norgesranking.render', feil)
+    const ok = await hentOgBufferData(filtre.ar)
+    if (!ok) {
       container.innerHTML = feilHtml('Kunne ikkje laste data for Norgesranking.')
       return
     }
@@ -324,13 +328,17 @@ export async function render(container: HTMLElement): Promise<void> {
       sokInput.value = ''
       container.querySelector('.nc-hovudtittel')!.textContent = `Norgesranking ${filtre.ar}`
       container.querySelector('#nr-tabell-container')!.innerHTML = '<p class="laster">Laster...</p>'
-      const feil = await hentOgBufferData(filtre.ar)
-      if (feil) {
-        logError('norgesranking.arChange', feil)
-        container.querySelector('#nr-tabell-container')!.innerHTML = '<p class="feil">Feil ved henting av data.</p>'
-        return
+      try {
+        const ok = await hentOgBufferData(filtre.ar)
+        if (!ok) {
+          container.querySelector('#nr-tabell-container')!.innerHTML = feilHtml('Feil ved henting av data.')
+          return
+        }
+        oppdaterTabell()
+      } catch (err) {
+        logError('norgesranking.arChange', err)
+        container.querySelector('#nr-tabell-container')!.innerHTML = feilHtml('Feil ved henting av data.')
       }
-      oppdaterTabell()
     })
 
     sokInput.addEventListener('input', () => {
