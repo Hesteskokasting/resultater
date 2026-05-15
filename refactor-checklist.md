@@ -169,7 +169,7 @@ Start with smaller, more isolated files. Bigger pages last, when you've found yo
 
 
 **Entry point (do last):**
-- [ ] `src/app.js` → `.ts`
+- [x] `src/app.js` → `.ts`
 
 > Adjust order as you learn. Promote dependencies of the file you're touching if needed.
 
