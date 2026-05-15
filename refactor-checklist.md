@@ -217,10 +217,10 @@ For **every** file you migrate, all of these must be checked off:
 
 **Skip until refactor**
 - [ ] `src/pages/stevne.ts`
-- [ ] `src/pages/stevne/stevne-avsluttende.ts`
+- [x] `src/pages/stevne/stevne-avsluttende.ts` — refactored to thin router; logic extracted to `avsluttende/cup.ts` (+ kongelag/nordhordland stubs)
 - [ ] `src/pages/stevne/stevne-deltakere.ts`
 - [ ] `src/pages/stevne/stevne-info.ts`
-- [ ] `src/pages/stevne/stevne-innledende.ts`
+- [x] `src/pages/stevne/stevne-innledende.ts` — refactored to thin router; logic extracted to `innledende/gloppen.ts` + `innledende/nordhordland.ts` (+ xkast stub)
 - [ ] `src/pages/stevne/stevne-innstillinger.ts`
 - [ ] `src/pages/stevne/stevne-resultat.ts`
 
@@ -303,10 +303,10 @@ Look for patterns that appeared repeatedly during migration:
 - [x] `createLoadingState({ message })` — replace the centered "Lastar..." pattern
 - [ ] `createKortKort()` / `createKasterKort()` — for repeated card layouts
 - [ ] `createTable({ columns, rows })` — typed columns, generic rows
-- [ ] `createDropdown()` — wraps `buildDropdownOptions`
+- [~] `createDropdown()` — skipped: callers use innerHTML templates; no value without refactoring forms to DOM APIs
 - [ ] `createTabs({ tabs })` — with built-in ARIA support (tablist/tab/aria-selected)
 - [ ] `createExpandableRow()` — with built-in keyboard support (Enter/Space/tabindex)
-- [ ] `createFilterableList()` — wraps the filter/search event handler boilerplate from `kastere.js`, `terminliste.js`, `norgesranking.js`, `minside.js`
+- [~] `createFilterableList()` — skipped: patterns too different across files (debounce, pagination, filter count); not a real abstraction
 
 **Per-component process:**
 1. List every place this pattern appears
