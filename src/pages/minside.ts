@@ -3,6 +3,7 @@ import { getUser } from '../utils/auth'
 import { lasterHtml, feilHtml } from '../utils/pageStates'
 import { escHtml } from '../utils/escHtml'
 import { logError } from '../utils/logError'
+import { formaterDato } from '../utils/shared'
 import { hentKastereListeAktive, hentKasterForKobling } from '../services/kasterService'
 import { hentMinePameldingar } from '../services/pameldingService'
 import { hentMineKampar } from '../services/kampService'
@@ -10,6 +11,7 @@ import { sendKoblingForespørsel } from '../services/brukerProfilService'
 import type { Rolle, KoblingStatus } from '../types'
 import type { PameldingRow } from '../services/pameldingService'
 import type { KampSpelarRow } from '../services/kampService'
+import type { KasterListeRow } from '../services/kasterService'
 
 const rolleLabel: Record<Rolle, string> = {
   admin: 'Administrator',
@@ -55,16 +57,12 @@ async function pameldingListeHtml(brukerId: string): Promise<string> {
   if (error) return '<p class="text-muted">Kunne ikkje laste påmeldingar.</p>'
   if (!data.length) return '<p class="text-muted">Ingen påmeldingar enno.</p>'
 
-  const sortert = [...data].sort((a: PameldingRow, b: PameldingRow) => {
-    const da = a.stevne?.dato ? new Date(a.stevne.dato).getTime() : 0
-    const db = b.stevne?.dato ? new Date(b.stevne.dato).getTime() : 0
-    return da - db
-  })
+  const sortert = [...data].sort((a: PameldingRow, b: PameldingRow) =>
+    (a.stevne?.dato ?? '').localeCompare(b.stevne?.dato ?? ''),
+  )
 
   const rader = sortert.map(p => {
-    const dato = p.stevne?.dato
-      ? new Date(p.stevne.dato + 'T12:00:00').toLocaleDateString('nb-NO')
-      : ''
+    const dato = formaterDato(p.stevne?.dato)
     return `<tr>
       <td><a href="#/stevne/${p.stevne?.id ?? ''}/pamelding">${escHtml(p.stevne?.navn ?? '')}</a></td>
       <td>${escHtml(dato)}</td>
@@ -180,6 +178,7 @@ function bindMineKampar(container: HTMLElement): void {
 
 function bindKasterSok(container: HTMLElement, brukerId: string): void {
   let timer: number | null = null
+  let kastereCache: KasterListeRow[] | null = null
   const sokInput = container.querySelector<HTMLInputElement>('#kaster-sok')!
   const treffDiv = container.querySelector<HTMLElement>('#kaster-treff')!
   const feilDiv  = container.querySelector<HTMLElement>('#kasting-feil')!
@@ -190,8 +189,11 @@ function bindKasterSok(container: HTMLElement, brukerId: string): void {
     if (q.length < 2) { treffDiv.innerHTML = ''; return }
 
     timer = setTimeout(async () => {
-      const { data: alleKastere } = await hentKastereListeAktive()
-      const treff = alleKastere
+      if (!kastereCache) {
+        const { data } = await hentKastereListeAktive()
+        kastereCache = data
+      }
+      const treff = kastereCache
         .filter(k => k.fornavn.toLowerCase().includes(q) || k.etternavn.toLowerCase().includes(q))
         .slice(0, 8)
 

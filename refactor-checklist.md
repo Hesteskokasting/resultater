@@ -205,9 +205,9 @@ For **every** file you migrate, all of these must be checked off:
 - [x] `src/pages/home.ts`
 - [x] `src/pages/kamp.ts`
 - [x] `src/pages/kastere.ts`
-- [ ] `src/pages/klubber.ts`
-- [ ] `src/pages/logginn.ts`
-- [ ] `src/pages/minside.ts`
+- [x] `src/pages/klubber.ts`
+- [x] `src/pages/logginn.ts`
+- [x] `src/pages/minside.ts`
 - [ ] `src/pages/nmvinnere.ts`
 - [ ] `src/pages/norgescupen.ts`
 - [ ] `src/pages/norgesranking.ts`
