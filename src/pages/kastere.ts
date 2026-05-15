@@ -261,7 +261,7 @@ function detaljSkelettHtml(kaster: KasterDetaljRow, resultater: ResultatDetaljRo
       </div>
 
       <div id="kd-tab-graf" class="kd-tab${filtreDetalj.aktiv === 'graf' ? '' : ' kd-skjult'}">
-        <div class="nc-filter-rad mb-3" style="flex-wrap:wrap;gap:8px">
+        <div class="nc-filter-rad mb-3">
           <select id="kd-graf-metrikk" class="tl-select">
             <option value="plassering"${filtreDetalj.grafMetrikk === 'plassering' ? ' selected' : ''}>Plassering</option>
             <option value="prosent"${filtreDetalj.grafMetrikk === 'prosent' ? ' selected' : ''}>% Ring (frå 2017)</option>
