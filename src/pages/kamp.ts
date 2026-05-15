@@ -1,7 +1,7 @@
-import type { RealtimeChannel } from '@supabase/supabase-js'
-import { supabase } from '../supabase'
 import { getUser } from '../utils/auth'
 import { logError } from '../utils/logError'
+import { lasterHtml, feilHtml } from '../utils/pageStates'
+import { escHtml } from '../utils/escHtml'
 import { renderScoreboard } from '../components/Scoreboard'
 import {
   hentKamp,
@@ -11,6 +11,8 @@ import {
   erDeltakarIKamp,
   bekreftInnledendeKamp,
   bekreftAvsluttendeKamp,
+  subscribeToNesteKamp,
+  unsubscribeKampChannel,
 } from '../services/kampService'
 import type { KampRow, KampSpelarIKamp } from '../services/kampService'
 
@@ -18,7 +20,7 @@ const KAMP_POINT_VALUES = [1, 2, 3, 4, 6]
 
 export async function render(container: HTMLElement, { id }: { id: number }): Promise<void> {
   const kampId = id
-  container.innerHTML = '<p style="text-align:center;margin-top:40px;">Laster…</p>'
+  container.innerHTML = lasterHtml('Laster…')
 
   let kamp: KampRow
   let auth: Awaited<ReturnType<typeof getUser>>
@@ -26,14 +28,14 @@ export async function render(container: HTMLElement, { id }: { id: number }): Pr
   try {
     const [kampResult, authResult] = await Promise.all([hentKamp(kampId), getUser()])
     if (!kampResult.data) {
-      container.innerHTML = '<p style="text-align:center;margin-top:40px;color:red;">Kamp ikkje funne.</p>'
+      container.innerHTML = feilHtml('Kamp ikkje funne.')
       return
     }
     kamp = kampResult.data
     auth = authResult
   } catch (err) {
     logError('render:kamp', err)
-    container.innerHTML = '<p style="text-align:center;margin-top:40px;color:red;">Feil ved lasting av kamp.</p>'
+    container.innerHTML = feilHtml('Feil ved lasting av kamp.')
     return
   }
 
@@ -71,7 +73,7 @@ export async function render(container: HTMLElement, { id }: { id: number }): Pr
         <div class="sb-kamp-topbar">
           <div class="sb-kamp-topbar-venstre">
             <button class="sb-tilbake-btn" aria-label="Tilbake">←</button>
-            <span class="sb-kamp-stevnenavn">${stevneNavn}</span>
+            <span class="sb-kamp-stevnenavn">${escHtml(stevneNavn)}</span>
           </div>
           <div${midtenId ? ` id="${midtenId}"` : ''} class="sb-kamp-topbar-midten">${midten}</div>
           <div class="sb-kamp-topbar-høgre">
@@ -118,31 +120,22 @@ export async function render(container: HTMLElement, { id }: { id: number }): Pr
     sessionStorage.setItem(`ventar-neste-${kampId}`, '1')
     container.innerHTML = lagKampWrapper(
       'Fullført',
-      `<div style="padding:20px">
+      `<div class="sb-ventar-innhald">
         <div class="alert alert-success mb-3"><strong>Kampen er ferdig!</strong></div>
         <div class="alert alert-info">Ventar på neste kamp…</div>
       </div>`,
     )
 
-    const kanal: RealtimeChannel = supabase
-      .channel(`neste-kamp-${kampId}`)
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'kamp',
-        filter: `stevneid=eq.${kamp.stevneid}`,
-      }, async (payload) => {
-        const nyKamp = payload.new as { id: number; bane_nummer: number | null; er_walkover: boolean }
-        if (await erRelevantKamp(nyKamp)) {
-          supabase.removeChannel(kanal)
-          location.hash = `#/kamp/${nyKamp.id}`
-        }
-      })
-      .subscribe()
+    const kanal = subscribeToNesteKamp(kamp.stevneid, kampId, async (nyKamp) => {
+      if (await erRelevantKamp(nyKamp)) {
+        unsubscribeKampChannel(kanal)
+        location.hash = `#/kamp/${nyKamp.id}`
+      }
+    })
 
     window.addEventListener('hashchange', () => {
       sessionStorage.removeItem(`ventar-neste-${kampId}`)
-      supabase.removeChannel(kanal)
+      unsubscribeKampChannel(kanal)
     }, { once: true })
   }
 
@@ -155,6 +148,14 @@ export async function render(container: HTMLElement, { id }: { id: number }): Pr
     } else {
       render(container, { id })
     }
+  }
+
+  function visKampFeil(melding: string): void {
+    container.querySelector('.sb-feil-banner')?.remove()
+    const banner = document.createElement('div')
+    banner.className = 'sb-feil-banner alert alert-danger m-2'
+    banner.textContent = melding
+    container.prepend(banner)
   }
 
   async function onBekreft(orderedKasterids?: number[] | null): Promise<void> {
@@ -172,10 +173,10 @@ export async function render(container: HTMLElement, { id }: { id: number }): Pr
         ...bekreftData,
         orderedKasterids: orderedKasterids ?? null,
       })
-      if (error) { alert('Feil ved bekreftelse av kamp.'); return }
+      if (error) { visKampFeil('Feil ved bekreftelse av kamp.'); return }
     } else {
       const { error } = await bekreftInnledendeKamp({ kampId, ...bekreftData, hcp1, hcp2 })
-      if (error) { alert('Feil ved bekreftelse av kamp.'); return }
+      if (error) { visKampFeil('Feil ved bekreftelse av kamp.'); return }
     }
 
     await navigerTilNesteKamp()

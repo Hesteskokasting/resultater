@@ -1,4 +1,4 @@
-import type { QueryData } from '@supabase/supabase-js'
+import type { QueryData, RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '../supabase'
 import { logError } from '../utils/logError'
 import { beregnKampPoeng } from '../utils/kamp'
@@ -286,4 +286,30 @@ export async function bekreftAvsluttendeKamp(params: {
   }
 
   return { error: null }
+}
+
+// ── Realtime ──────────────────────────────────────────────────────────────────
+
+export type NesteKampPayload = { id: number; bane_nummer: number | null; er_walkover: boolean }
+
+export function subscribeToNesteKamp(
+  stevneId: number,
+  kampId: number,
+  onNewKamp: (kamp: NesteKampPayload) => void,
+): RealtimeChannel {
+  return supabase
+    .channel(`neste-kamp-${kampId}`)
+    .on('postgres_changes', {
+      event: 'INSERT',
+      schema: 'public',
+      table: 'kamp',
+      filter: `stevneid=eq.${stevneId}`,
+    }, (payload) => {
+      onNewKamp(payload.new as NesteKampPayload)
+    })
+    .subscribe()
+}
+
+export function unsubscribeKampChannel(channel: RealtimeChannel): void {
+  supabase.removeChannel(channel)
 }

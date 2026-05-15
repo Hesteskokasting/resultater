@@ -1310,6 +1310,8 @@ a.stevne-navn {
   .sb-kamp-info-kort { display: inline; }
 }
 
+.sb-ventar-innhald { padding: 20px; }
+
 /* ── Overlay-variant (fixed, full-screen) ── */
 
 .sb-overlay {

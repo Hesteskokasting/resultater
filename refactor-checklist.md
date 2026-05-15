@@ -203,7 +203,7 @@ For **every** file you migrate, all of these must be checked off:
 
 **pages:**
 - [x] `src/pages/home.ts`
-- [ ] `src/pages/kamp.ts`
+- [x] `src/pages/kamp.ts`
 - [ ] `src/pages/kastere.ts`
 - [ ] `src/pages/klubber.ts`
 - [ ] `src/pages/logginn.ts`
