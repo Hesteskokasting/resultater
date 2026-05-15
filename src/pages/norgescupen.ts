@@ -4,7 +4,8 @@ import { logError } from '../utils/logError'
 import { formaterPoeng, byggSingelListe, byggLagListe } from '../utils/norgescup'
 import { hentRegler, hentStevnerOgResultater } from '../services/norgescupService'
 import { formaterDato, arOptions } from '../utils/shared'
-import { lasterHtml, feilHtml } from '../utils/pageStates'
+import { feilHtml } from '../utils/pageStates'
+import { createLoadingState } from '../components/LoadingState'
 import type { Tables } from '../types'
 import type { ResultatMedRelasjonar, StevneForNc } from '../services/norgescupService'
 import type { SingelListeRad, LagListeRad } from '../utils/norgescup'
@@ -197,7 +198,7 @@ export async function render(container: HTMLElement): Promise<void> {
   filtre.visning = 'singel'
   cache = { ar: null, regler: null, stevner: [], resultater: [] }
 
-  container.innerHTML = lasterHtml('Laster Norgescupen...')
+  container.replaceChildren(createLoadingState('Laster Norgescupen...'))
 
   const ok = await hentOgBufferData(filtre.ar)
   if (!ok) {
@@ -290,7 +291,7 @@ export async function render(container: HTMLElement): Promise<void> {
       filtre.visning = 'singel'
       container.querySelector<HTMLSelectElement>('#nc-cuptype')!.value = 'NC'
     }
-    container.querySelector<HTMLElement>('#nc-content')!.innerHTML = lasterHtml()
+    container.querySelector<HTMLElement>('#nc-content')!.replaceChildren(createLoadingState())
     const ok = await hentOgBufferData(filtre.ar)
     if (!ok) {
       container.querySelector<HTMLElement>('#nc-content')!.innerHTML = feilHtml('Feil ved henting av data.')

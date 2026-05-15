@@ -1,6 +1,7 @@
 import { kasterNavn } from '../utils/kaster'
 import { formaterDato, arOptions, lastNedExcel as lastNedExcelFil } from '../utils/shared'
-import { lasterHtml, feilHtml } from '../utils/pageStates'
+import { feilHtml } from '../utils/pageStates'
+import { createLoadingState } from '../components/LoadingState'
 import { escHtml } from '../utils/escHtml'
 import { logError } from '../utils/logError'
 import { hentStevnerOgResultater } from '../services/norgesrankingService'
@@ -286,7 +287,7 @@ export async function render(container: HTMLElement): Promise<void> {
   filtre.infoSynleg = false
   cache = { ar: null, stevner: [], resultater: [] }
 
-  container.innerHTML = lasterHtml('Laster Norgesranking…')
+  container.replaceChildren(createLoadingState('Laster Norgesranking…'))
 
   try {
     const ok = await hentOgBufferData(filtre.ar)

@@ -1,7 +1,8 @@
 import { formaterPoeng, byggSingelListe } from '../utils/norgescup'
 import { hentRegler, hentStevnerOgResultater } from '../services/norgescupService'
 import { formaterDatoLang as formaterDato } from '../utils/shared'
-import { lasterHtml, feilHtml } from '../utils/pageStates'
+import { feilHtml } from '../utils/pageStates'
+import { createLoadingState } from '../components/LoadingState'
 import { escHtml } from '../utils/escHtml'
 import { hentSisteResultater, hentLiveStevner, hentKommendeStevner } from '../services/stevneService'
 import type { SisteResultatRow, LiveStevneRow, KommendeStevneRow } from '../services/stevneService'
@@ -67,7 +68,7 @@ function kommendeKortHtml(s: KommendeStevneRow): string {
 
 export async function render(container: HTMLElement): Promise<void> {
   const ar = new Date().getFullYear()
-  container.innerHTML = lasterHtml('Laster framsida...')
+  container.replaceChildren(createLoadingState('Laster framsida...'))
 
   let resultater: SisteResultatRow[]
   let kommende: KommendeStevneRow[]

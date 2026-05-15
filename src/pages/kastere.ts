@@ -2,7 +2,8 @@ import { Chart, registerables } from 'chart.js'
 import { kasterNavn, lagKasterSlug as lagSlug } from '../utils/kaster'
 import { getUser } from '../services/authService'
 import { formaterDato } from '../utils/shared'
-import { lasterHtml, feilHtml } from '../utils/pageStates'
+import { feilHtml } from '../utils/pageStates'
+import { createLoadingState } from '../components/LoadingState'
 import { escHtml } from '../utils/escHtml'
 import { logError } from '../utils/logError'
 import {
@@ -444,7 +445,7 @@ function teiknGraf(canvas: HTMLCanvasElement, resultater: ResultatDetaljRow[]): 
 
 async function renderListe(container: HTMLElement): Promise<void> {
   filtreListe.side = 1
-  container.innerHTML = lasterHtml('Laster utøvarar...')
+  container.replaceChildren(createLoadingState('Laster utøvarar...'))
 
   try {
     const init = await hentKastereListeAktive()
@@ -537,7 +538,7 @@ async function renderDetalj(container: HTMLElement, id: number): Promise<void> {
   filtreDetalj.grafTil     = null
   ødeleggChart()
 
-  container.innerHTML = lasterHtml('Laster utøvar...')
+  container.replaceChildren(createLoadingState('Laster utøvar...'))
 
   try {
     const { kaster: kasterNullable, resultater, error } = await hentKasterDetalj(id)

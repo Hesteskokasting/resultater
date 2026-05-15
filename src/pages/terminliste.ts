@@ -4,7 +4,8 @@ import { hentTerminlisteStevner, hentFiltervalg, hentPameldteForBruker } from '.
 import type { TerminlisteStevneRow } from '../services/stevneService'
 import { formaterDatoLang as formaterDato, arOptions, lastNedExcel as lastNedExcelFil } from '../utils/shared'
 import { buildDropdownOptions } from '../utils/buildDropdownOptions'
-import { lasterHtml, feilHtml } from '../utils/pageStates'
+import { feilHtml } from '../utils/pageStates'
+import { createLoadingState } from '../components/LoadingState'
 import { escHtml } from '../utils/escHtml'
 import { logError } from '../utils/logError'
 
@@ -199,7 +200,7 @@ function byggListe(filtrert: StevneRow[]): string {
 // ── Render ────────────────────────────────────────────────────────────────────
 
 export async function render(container: HTMLElement): Promise<void> {
-  container.innerHTML = lasterHtml('Laster terminliste…')
+  container.replaceChildren(createLoadingState('Laster terminliste…'))
 
   try {
     const [{ data, error }, { data: filtervalg }, auth] = await Promise.all([

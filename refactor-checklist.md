@@ -373,9 +373,9 @@ This phase moves data-fetching files from `utils/` to `services/` so the archite
 
 Once all files are `.ts`:
 
-- [ ] Remove `"allowJs": true` and `"checkJs": false`
-- [ ] Verify `npm run typecheck` still passes
-- [ ] Commit: `"Disable JS in tsconfig — fully TypeScript now"`
+- [x ] Remove `"allowJs": true` and `"checkJs": false`
+- [x ] Verify `npm run typecheck` still passes
+- [x ] Commit: `"Disable JS in tsconfig — fully TypeScript now"`
 
 ---
 

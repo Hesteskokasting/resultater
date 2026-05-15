@@ -1,7 +1,8 @@
 import { lagFormRadHtml, visLagreFeil, visSuksess, errMsg } from '../utils/adminForms'
 import { erAdmin, erKlubbadmin } from '../services/authService'
 import { escHtml } from '../utils/escHtml'
-import { lasterHtml, feilHtml } from '../utils/pageStates'
+import { feilHtml } from '../utils/pageStates'
+import { createLoadingState } from '../components/LoadingState'
 import {
   hentKlubbForAdmin,
   oppdaterKlubb,
@@ -14,7 +15,7 @@ export async function render(
 ): Promise<void> {
   if (!id) { container.innerHTML = feilHtml('Manglande ID.'); return }
 
-  container.innerHTML = lasterHtml()
+  container.replaceChildren(createLoadingState())
 
   const { data: klubb, error } = await hentKlubbForAdmin(id)
 

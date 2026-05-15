@@ -1,6 +1,7 @@
 import { getUser } from '../services/authService'
 import { logError } from '../utils/logError'
-import { lasterHtml, feilHtml } from '../utils/pageStates'
+import { feilHtml } from '../utils/pageStates'
+import { createLoadingState } from '../components/LoadingState'
 import { escHtml } from '../utils/escHtml'
 import { renderScoreboard } from '../components/Scoreboard'
 import {
@@ -20,7 +21,7 @@ const KAMP_POINT_VALUES = [1, 2, 3, 4, 6]
 
 export async function render(container: HTMLElement, { id }: { id: number }): Promise<void> {
   const kampId = id
-  container.innerHTML = lasterHtml('Laster…')
+  container.replaceChildren(createLoadingState('Laster…'))
 
   let kamp: KampRow
   let auth: Awaited<ReturnType<typeof getUser>>

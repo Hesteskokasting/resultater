@@ -1,5 +1,6 @@
 import { lagKasterSlug, kasterNavn } from '../utils/kaster'
-import { lasterHtml, feilHtml } from '../utils/pageStates'
+import { feilHtml } from '../utils/pageStates'
+import { createLoadingState } from '../components/LoadingState'
 import { escHtml } from '../utils/escHtml'
 import { logError } from '../utils/logError'
 import { hentNmData } from '../services/nmvinnereService'
@@ -140,7 +141,7 @@ function sideSkelettHtml(kategori: NmKategoriKonfig, maxAr: number): string {
 // ── Render ────────────────────────────────────────────────────────────────────
 
 async function renderKategori(container: HTMLElement): Promise<void> {
-  container.innerHTML = lasterHtml('Laster NM-vinnere…')
+  container.replaceChildren(createLoadingState('Laster NM-vinnere…'))
 
   const kategori = KATEGORIAR.find(k => k.id === filtre.kategoriId)!
 

@@ -1,5 +1,6 @@
 import { kasterNavn, lagKasterSlug } from '../../utils/kaster'
-import { lasterHtml, feilHtml } from '../../utils/pageStates'
+import { feilHtml } from '../../utils/pageStates'
+import { createLoadingState } from '../../components/LoadingState'
 import { escHtml } from '../../utils/escHtml'
 import { logError } from '../../utils/logError'
 import { hentStevneMedDetaljer, hentResultaterForStevne } from '../../services/resultatService'
@@ -89,7 +90,7 @@ export async function render(
   container: HTMLElement,
   { id }: { id: number; isAdmin?: boolean },
 ): Promise<void> {
-  container.innerHTML = lasterHtml('Laster resultat…')
+  container.replaceChildren(createLoadingState('Laster resultat…'))
 
   try {
     const [stevneRes, resultatRes] = await Promise.all([

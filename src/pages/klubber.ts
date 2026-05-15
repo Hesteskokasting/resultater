@@ -1,6 +1,7 @@
 import { kasterNavn, lagKasterSlug, lagKlubbSlug } from '../utils/kaster'
 import { getUser } from '../services/authService'
-import { lasterHtml, feilHtml } from '../utils/pageStates'
+import { feilHtml } from '../utils/pageStates'
+import { createLoadingState } from '../components/LoadingState'
 import { escHtml } from '../utils/escHtml'
 import { logError } from '../utils/logError'
 import { hentKlubbar, hentKlubbById } from '../services/klubbService'
@@ -88,7 +89,7 @@ function medlemTabellHtml(medlemmar: MedlemRow[], sokeTekst: string): string {
 // ── Render: Liste ─────────────────────────────────────────────────────────────
 
 async function renderListe(container: HTMLElement): Promise<void> {
-  container.innerHTML = lasterHtml('Laster klubbar...')
+  container.replaceChildren(createLoadingState('Laster klubbar...'))
 
   try {
     const [{ data: alleKlubbar, error }, { data: alleKastere }] = await Promise.all([
@@ -157,7 +158,7 @@ async function renderListe(container: HTMLElement): Promise<void> {
 
 async function renderDetalj(container: HTMLElement, id: number): Promise<void> {
   filtreDetalj.sokeTekst = ''
-  container.innerHTML = lasterHtml('Laster klubb...')
+  container.replaceChildren(createLoadingState('Laster klubb...'))
 
   try {
     const [klubbRes, { data: medlemmar }] = await Promise.all([

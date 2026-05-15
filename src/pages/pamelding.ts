@@ -1,6 +1,7 @@
 import { getUser } from '../services/authService'
 import { formaterDato } from '../utils/shared'
-import { lasterHtml, feilHtml } from '../utils/pageStates'
+import { feilHtml } from '../utils/pageStates'
+import { createLoadingState } from '../components/LoadingState'
 import { escHtml } from '../utils/escHtml'
 import { logError } from '../utils/logError'
 import { hentStevneForPamelding, hentRelaterteStevner } from '../services/stevneService'
@@ -188,7 +189,7 @@ export async function render(container: HTMLElement, params: Record<string, stri
   }
   const stevneId = Number(rawId)
 
-  container.innerHTML = lasterHtml('Laster påmelding…')
+  container.replaceChildren(createLoadingState('Laster påmelding…'))
 
   try {
     const [auth, stevneRes] = await Promise.all([

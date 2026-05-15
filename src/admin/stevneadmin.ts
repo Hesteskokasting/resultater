@@ -4,7 +4,8 @@ import { escHtml } from '../utils/escHtml'
 import { buildDropdownOptions } from '../utils/buildDropdownOptions'
 import { formNum } from '../utils/formNum'
 import { logError } from '../utils/logError'
-import { lasterHtml, feilHtml } from '../utils/pageStates'
+import { feilHtml } from '../utils/pageStates'
+import { createLoadingState } from '../components/LoadingState'
 import {
   hentStevneForAdmin,
   hentStevnetypar,
@@ -21,7 +22,7 @@ export async function render(
   container: HTMLElement,
   { id }: { id?: number } = {},
 ): Promise<void> {
-  container.innerHTML = lasterHtml()
+  container.replaceChildren(createLoadingState())
 
   let klubbar:      { id: number; navn: string; logourl: string | null }[] = []
   let stevnetypar:  { id: number; navn: string }[] = []

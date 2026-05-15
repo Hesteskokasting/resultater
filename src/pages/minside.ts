@@ -1,6 +1,7 @@
 import { kasterNavn, lagKasterSlug } from '../utils/kaster'
 import { getUser } from '../services/authService'
-import { lasterHtml, feilHtml } from '../utils/pageStates'
+import { feilHtml } from '../utils/pageStates'
+import { createLoadingState } from '../components/LoadingState'
 import { escHtml } from '../utils/escHtml'
 import { logError } from '../utils/logError'
 import { formaterDato } from '../utils/shared'
@@ -227,7 +228,7 @@ function bindKasterSok(container: HTMLElement, brukerId: string): void {
 // ── Hovudfunksjon ─────────────────────────────────────────────────────────────
 
 export async function render(container: HTMLElement): Promise<void> {
-  container.innerHTML = lasterHtml('Laster min side…')
+  container.replaceChildren(createLoadingState('Laster min side…'))
 
   try {
     const auth = await getUser()

@@ -1,5 +1,6 @@
 import { kasterNavn, lagKasterSlug } from '../utils/kaster'
-import { lasterHtml, feilHtml } from '../utils/pageStates'
+import { feilHtml } from '../utils/pageStates'
+import { createLoadingState } from '../components/LoadingState'
 import { escHtml } from '../utils/escHtml'
 import { logError } from '../utils/logError'
 import { hentAlleRekorder } from '../services/rekorderService'
@@ -133,7 +134,7 @@ export async function render(container: HTMLElement): Promise<void> {
   filtre.kjonn = 'alle'
   filtre.sokeTekst = ''
 
-  container.innerHTML = lasterHtml('Laster rekorder…')
+  container.replaceChildren(createLoadingState('Laster rekorder…'))
 
   try {
     const { data, error } = await hentAlleRekorder()
