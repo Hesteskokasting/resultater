@@ -109,16 +109,16 @@ async function oppdaterAuthMeny(): Promise<void> {
   const loggutItem  = document.getElementById('meny-loggut-item')!
 
   if (auth) {
-    logginnItem.style.display = 'none'
+    logginnItem.classList.add('d-none')
     const erAdminBrukar = auth.profil?.rolle === 'admin'
-    minsideItem.style.display = erAdminBrukar ? 'none' : ''
-    adminItem.style.display   = erAdminBrukar ? '' : 'none'
-    loggutItem.style.display  = ''
+    minsideItem.classList.toggle('d-none', erAdminBrukar)
+    adminItem.classList.toggle('d-none', !erAdminBrukar)
+    loggutItem.classList.remove('d-none')
   } else {
-    logginnItem.style.display = ''
-    minsideItem.style.display = 'none'
-    adminItem.style.display   = 'none'
-    loggutItem.style.display  = 'none'
+    logginnItem.classList.remove('d-none')
+    minsideItem.classList.add('d-none')
+    adminItem.classList.add('d-none')
+    loggutItem.classList.add('d-none')
   }
 }
 

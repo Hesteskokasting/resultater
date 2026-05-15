@@ -270,10 +270,10 @@ For **every** file you migrate, all of these must be checked off:
 - [x] `src/utils/parseLocalDate.ts`
 - [x] `src/utils/shared.ts`
 - [x] `src/utils/stevne.ts` (deleted — migrated to stevneService.ts)
-- [ ] `src/utils/startcard/startcard-template.ts`
+- [x] `src/utils/startcard/startcard-template.ts`
 
 **other:**
-- [ ] `src/app.ts`
+- [x] `src/app.ts`
 ---
 
 ## Phase 3: CSS Cleanup (parallel track — do between files when you need a break)
