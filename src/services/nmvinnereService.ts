@@ -32,7 +32,8 @@ const ALLE_GYLDIGE_KLASSAR = [1, 3, 4, 13, 16, 21, 23, 24, 27, 29, 32]
 
 async function hentKjonnIder(): Promise<{ id: number; navn: string }[]> {
   if (_kjonnCache) return _kjonnCache
-  const { data } = await supabase.from('kjonn').select('id, navn')
+  const { data, error } = await supabase.from('kjonn').select('id, navn')
+  if (error) logError('hentKjonnIder', error)
   _kjonnCache = data ?? []
   return _kjonnCache
 }

@@ -269,7 +269,10 @@ export async function bekreftAvsluttendeKamp(params: {
     .update(elimUpdate)
     .eq('stevneid', stevneId)
     .eq('kasterid', eliminertId)
-  if (elimErr) logError('bekreftAvsluttendeKamp:eliminert', elimErr)
+  if (elimErr) {
+    logError('bekreftAvsluttendeKamp:eliminert', elimErr)
+    return { error: elimErr }
+  }
 
   if (erFinale || erBronsefinale) {
     const vinnarId = orderedKasterids
@@ -281,7 +284,10 @@ export async function bekreftAvsluttendeKamp(params: {
         .update({ plassering: erFinale ? 1 : 3 })
         .eq('stevneid', stevneId)
         .eq('kasterid', vinnarId)
-      if (vinnarErr) logError('bekreftAvsluttendeKamp:vinnar', vinnarErr)
+      if (vinnarErr) {
+        logError('bekreftAvsluttendeKamp:vinnar', vinnarErr)
+        return { error: vinnarErr }
+      }
     }
   }
 

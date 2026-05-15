@@ -242,18 +242,18 @@ For **every** file you migrate, all of these must be checked off:
 - [x] `src/organizer/startkort-print.ts`
 
 **services:**
-- [ ] `src/services/adminService.ts`
-- [ ] `src/services/authService.ts`
-- [ ] `src/services/brukerProfilService.ts`
-- [ ] `src/services/kampService.ts`
-- [ ] `src/services/kasterService.ts`
-- [ ] `src/services/klubbService.ts`
-- [ ] `src/services/nmvinnereService.ts`
-- [ ] `src/services/norgesrankingService.ts`
-- [ ] `src/services/pameldingService.ts`
-- [ ] `src/services/rekorderService.ts`
-- [ ] `src/services/resultatService.ts`
-- [ ] `src/services/stevneService.ts`
+- [x] `src/services/adminService.ts`
+- [x] `src/services/authService.ts`
+- [x] `src/services/brukerProfilService.ts`
+- [x] `src/services/kampService.ts`
+- [x] `src/services/kasterService.ts`
+- [x] `src/services/klubbService.ts`
+- [x] `src/services/nmvinnereService.ts`
+- [x] `src/services/norgesrankingService.ts`
+- [x] `src/services/pameldingService.ts`
+- [x] `src/services/rekorderService.ts`
+- [x] `src/services/resultatService.ts`
+- [x] `src/services/stevneService.ts`
 
 **utils:**
 - [ ] `src/utils/adminForms.ts`

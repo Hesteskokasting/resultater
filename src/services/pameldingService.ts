@@ -50,19 +50,21 @@ export async function fjernPamelding(pameldingId: number): Promise<{ error: unkn
 }
 
 export async function hentAntallPameldingar(stevneId: number): Promise<number> {
-  const { count } = await supabase
+  const { count, error } = await supabase
     .from('pamelding')
     .select('id', { count: 'exact', head: true })
     .eq('stevneid', stevneId)
+  if (error) logError('hentAntallPameldingar', error)
   return count ?? 0
 }
 
 export async function hentAntallUbekrefta(stevneId: number): Promise<number> {
-  const { count } = await supabase
+  const { count, error } = await supabase
     .from('pamelding')
     .select('id', { count: 'exact', head: true })
     .eq('stevneid', stevneId)
     .eq('er_bekreftet', false)
+  if (error) logError('hentAntallUbekrefta', error)
   return count ?? 0
 }
 
