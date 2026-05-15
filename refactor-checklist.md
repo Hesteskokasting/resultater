@@ -216,7 +216,7 @@ For **every** file you migrate, all of these must be checked off:
 - [x] `src/pages/terminliste.ts`
 
 **Skip until refactor**
-- [ ] `src/pages/stevne.ts`
+- [x] `src/pages/stevne.ts` — query + channel extracted to `stevneService`; `escHtml` on navn; `createLoadingState`; no direct supabase import
 - [x] `src/pages/stevne/stevne-avsluttende.ts` — refactored to thin router; logic extracted to `avsluttende/cup.ts` (+ kongelag/nordhordland stubs)
 - [ ] `src/pages/stevne/stevne-deltakere.ts`
 - [ ] `src/pages/stevne/stevne-info.ts`

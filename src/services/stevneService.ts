@@ -1,4 +1,4 @@
-import type { QueryData } from '@supabase/supabase-js'
+import type { QueryData, RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '../supabase'
 import { logError } from '../utils/logError'
 import type { Tables } from '../types'
@@ -233,6 +233,37 @@ export async function hentFiltervalg(): Promise<{ data: Filtervalg; error: unkno
     },
     error: firstError,
   }
+}
+
+// ── Stevne-side header ────────────────────────────────────────────────────────
+
+export type StevneHeaderRow = Pick<Tables<'stevne'>, 'id' | 'navn' | 'stevne_fase'>
+
+export async function hentStevneHeader(id: number): Promise<{ data: StevneHeaderRow | null; error: unknown }> {
+  const { data, error } = await supabase
+    .from('stevne')
+    .select('id, navn, stevne_fase')
+    .eq('id', id)
+    .single()
+  if (error) logError('hentStevneHeader', error)
+  return { data, error }
+}
+
+export function subscribeToStevneFase(
+  id: number,
+  onUpdate: (fase: string | undefined) => void,
+): RealtimeChannel {
+  return supabase
+    .channel(`stevne-fase-${id}`)
+    .on('postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'stevne', filter: `id=eq.${id}` },
+      payload => onUpdate((payload.new as { stevne_fase?: string }).stevne_fase),
+    )
+    .subscribe()
+}
+
+export async function avmeldKanal(channel: RealtimeChannel): Promise<void> {
+  await supabase.removeChannel(channel)
 }
 
 export async function hentPameldteForBruker(userId: string): Promise<Set<number>> {

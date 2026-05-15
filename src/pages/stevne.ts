@@ -1,8 +1,10 @@
 import type { RealtimeChannel } from '@supabase/supabase-js'
-import { supabase } from '../supabase'
 import { erAdmin, erKlubbadmin } from '../services/authService'
+import { hentStevneHeader, subscribeToStevneFase, avmeldKanal } from '../services/stevneService'
 import { createErrorBanner } from '../components/ErrorBanner'
+import { createLoadingState } from '../components/LoadingState'
 import { logError } from '../utils/logError'
+import { escHtml } from '../utils/escHtml'
 import { render as renderInfo }          from './stevne/stevne-info'
 import { render as renderSpillarar }     from './stevne/stevne-deltakere'
 import { render as renderInnledende }    from './stevne/stevne-innledende'
@@ -70,15 +72,11 @@ export async function render(
   container: HTMLElement,
   { id, tab = 'info' }: { id: number; tab?: string },
 ): Promise<void> {
-  if (kanal) { await supabase.removeChannel(kanal); kanal = null }
-  container.innerHTML = '<p class="laster">Laster…</p>'
+  if (kanal) { await avmeldKanal(kanal); kanal = null }
+  container.replaceChildren(createLoadingState())
 
   try {
-    const { data: stevne, error } = await supabase
-      .from('stevne')
-      .select('id, navn, stevne_fase')
-      .eq('id', id)
-      .single()
+    const { data: stevne, error } = await hentStevneHeader(id)
 
     if (error || !stevne) {
       container.replaceChildren(createErrorBanner('Stevne ikkje funne.'))
@@ -93,7 +91,7 @@ export async function render(
       <div class="org-shell py-3 px-3">
         ${renderNav(id, aktiv, isAdmin)}
         <div class="org-fase-header d-flex align-items-center gap-2 mb-3">
-          <h5 class="mb-0 flex-grow-1">${stevne.navn} <span id="fase-badge">${badge}</span></h5>
+          <h5 class="mb-0 flex-grow-1">${escHtml(stevne.navn)} <span id="fase-badge">${badge}</span></h5>
           <div id="org-banner-knappar"></div>
         </div>
         <div id="org-subside"></div>
@@ -105,15 +103,10 @@ export async function render(
 
     await renderFn(subside, { id, isAdmin }, bannerSlot)
 
-    kanal = supabase
-      .channel(`stevne-fase-${id}`)
-      .on('postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'stevne', filter: `id=eq.${id}` },
-        payload => {
-          const el = container.querySelector('#fase-badge')
-          if (el) el.innerHTML = FASE_LABEL[(payload.new as { stevne_fase?: string }).stevne_fase ?? 'ikke_startet'] ?? ''
-        })
-      .subscribe()
+    kanal = subscribeToStevneFase(id, fase => {
+      const el = container.querySelector('#fase-badge')
+      if (el) el.innerHTML = FASE_LABEL[fase ?? 'ikke_startet'] ?? ''
+    })
   } catch (err) {
     logError('stevne.render', err)
     container.replaceChildren(createErrorBanner('Kunne ikkje laste stevnet.'))
