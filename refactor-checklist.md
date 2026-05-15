@@ -222,7 +222,16 @@ For **every** file you migrate, all of these must be checked off:
 - [x] `src/pages/stevne/stevne-info.ts` — `createLoadingState`; `escHtml` on sted/kastemetode names; fixed stale `organizer/innledende` hash → `innledende`
 - [x] `src/pages/stevne/stevne-innledende.ts` — refactored to thin router; logic extracted to `innledende/gloppen.ts` + `innledende/nordhordland.ts` (+ xkast stub)
 - [x] `src/pages/stevne/stevne-innstillinger.ts` — extracted 3 service fns (`hentStevneInnstillingar`, `hentAktiveKastemetodar`, `oppdaterStevneInnstillingar`); `escHtml` on kastemetode names; `createLoadingState`
-- [ ] `src/pages/stevne/stevne-resultat.ts`
+- [x] `src/pages/stevne/stevne-resultat.ts` — already DoD-compliant; no changes needed
+
+*Per-kastemetode modules (created during stevne refactor — need own DoD pass):*
+- [ ] `src/pages/stevne/innledende/gloppen.ts` — full Gloppen innledende logic; direct supabase calls, alert(), inline HTML
+- [ ] `src/pages/stevne/innledende/nordhordland.ts` — full NHM innledende logic; same issues as gloppen
+- [ ] `src/pages/stevne/innledende/xkast.ts` — stub only; likely already clean
+- [ ] `src/pages/stevne/innledende/types.ts` — shared interfaces only; no logic to migrate
+- [ ] `src/pages/stevne/avsluttende/cup.ts` — full Cup avsluttende logic; direct supabase calls, alert(), inline HTML
+- [ ] `src/pages/stevne/avsluttende/kongelag.ts` — stub only; likely already clean
+- [ ] `src/pages/stevne/avsluttende/nordhordland.ts` — stub only; likely already clean
 
 **admin:**
 - [x] `src/admin/admin.ts`
@@ -236,7 +245,7 @@ For **every** file you migrate, all of these must be checked off:
 
 **organizer:**
 - [x] `src/organizer/gruppefordelingUi.ts`
-- [ ] `src/organizer/kampgenereringDb.ts` — deferred (direct supabase, coupled to stevne pages)
+- [x] `src/organizer/kampgenereringDb.ts` — moved to `src/services/kampGenereringService.ts`; old file deleted; 3 importers updated
 - [ ] `src/organizer/organizerTestUtils.ts` — deferred (direct supabase, coupled to stevne pages)
 - [x] `src/organizer/org-shared.ts`
 - [x] `src/organizer/startkort-print.ts`
@@ -245,6 +254,7 @@ For **every** file you migrate, all of these must be checked off:
 - [x] `src/services/adminService.ts`
 - [x] `src/services/authService.ts`
 - [x] `src/services/brukerProfilService.ts`
+- [x] `src/services/kampGenereringService.ts` — moved from `organizer/kampgenereringDb.ts`; as-casts deferred (Supabase insert type limitation)
 - [x] `src/services/kampService.ts`
 - [x] `src/services/kasterService.ts`
 - [x] `src/services/klubbService.ts`

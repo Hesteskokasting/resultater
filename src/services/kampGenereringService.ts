@@ -1,6 +1,6 @@
-import { supabase } from '../supabase.js'
-import { beregnCupRundeParingar } from '../utils/kastemetoder-logikk.js'
-import { sorterStilling, type KampForSortering } from './org-shared.js'
+import { supabase } from '../supabase'
+import { beregnCupRundeParingar } from '../utils/kastemetoder-logikk'
+import { sorterStilling, type KampForSortering } from '../organizer/org-shared'
 import type { RundeOppsett } from '../types'
 
 function genMatchId(): string {
@@ -323,7 +323,7 @@ export async function genererNesteSwissRunde(
   return { rundeNummer, antallKampar: (innsettaKampar as KampMedBane[]).length }
 }
 
-// --- CUP avsluttende ---
+// ── Cup avsluttende ───────────────────────────────────────────────────────────
 
 async function _insertCupParingar(
   stevneid: number,

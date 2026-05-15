@@ -11,7 +11,7 @@ import {
   genererCupRunde1,
   genererNesteCupRundeForGruppe,
   genererFinaleOgBronsefinale,
-} from '../../../organizer/kampgenereringDb.js'
+} from '../../../services/kampGenereringService'
 import { opnNumberpad } from '../../../components/ScoreNumberpad.js'
 import { scoreForSp } from '../../../utils/kamp.js'
 import {

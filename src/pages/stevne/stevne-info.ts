@@ -6,7 +6,7 @@ import { escHtml } from '../../utils/escHtml'
 import { logError } from '../../utils/logError'
 import { hentInfoStevne, oppdaterStevneFase } from '../../services/stevneService'
 import { hentAntallPameldingar, hentAntallUbekrefta } from '../../services/pameldingService'
-import { genererInnledendeKamper } from '../../organizer/kampgenereringDb.js'
+import { genererInnledendeKamper } from '../../services/kampGenereringService'
 
 // ── Render ────────────────────────────────────────────────────────────────────
 
