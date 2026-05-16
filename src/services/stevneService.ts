@@ -313,3 +313,42 @@ export async function hentPameldteForBruker(userId: string): Promise<Set<number>
   if (error) logError('hentPameldteForBruker', error)
   return new Set((data ?? []).map(r => r.stevneid).filter((id): id is number => id != null))
 }
+
+// ── Innledande fase ───────────────────────────────────────────────────────────
+
+const _innlStevneQuery = supabase
+  .from('stevne')
+  .select('id, navn, erfullfort, stevne_fase, antall_runder_innl, kastemetodeInnl:innledendekastemetodeid(id, navn)')
+
+export type InnlStevneRow = QueryData<typeof _innlStevneQuery>[number]
+
+export async function hentInnledendeStevne(stevneid: number): Promise<{ data: InnlStevneRow | null; error: unknown }> {
+  const { data, error } = await supabase
+    .from('stevne')
+    .select('id, navn, erfullfort, stevne_fase, antall_runder_innl, kastemetodeInnl:innledendekastemetodeid(id, navn)')
+    .eq('id', stevneid)
+    .maybeSingle()
+  if (error) logError('hentInnledendeStevne', error)
+  return { data, error }
+}
+
+export async function setStevneErfullfort(stevneid: number): Promise<{ error: unknown }> {
+  const { error } = await supabase.from('stevne').update({ erfullfort: true }).eq('id', stevneid)
+  if (error) logError('setStevneErfullfort', error)
+  return { error }
+}
+
+export function subscribeToInnledendeEndringar(
+  stevneid: number,
+  channelName: string,
+  onChange: () => void,
+): RealtimeChannel {
+  return supabase
+    .channel(channelName)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'kamp_omgang' }, onChange)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'kamp' }, (payload) => {
+      const sid = (payload.new as { stevneid?: number })?.stevneid ?? (payload.old as { stevneid?: number })?.stevneid
+      if (sid === stevneid) onChange()
+    })
+    .subscribe()
+}

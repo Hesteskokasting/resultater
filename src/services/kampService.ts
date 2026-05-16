@@ -53,6 +53,69 @@ const _kampScoreboardQuery = supabase
 export type KampRow = QueryData<typeof _kampScoreboardQuery>[number]
 export type KampSpelarIKamp = KampRow['spelarar'][number]
 
+// ── Innledande fase ───────────────────────────────────────────────────────────
+
+const _innlKamperQuery = supabase.from('kamp').select(`
+  id, stevneid, runde_nummer, bane_nummer, er_bekreftet, er_walkover, fase,
+  spelarar:kamp_spelar(
+    id, kasterid, score_poeng, kamp_poeng, antall_ringer, posisjon,
+    kaster:kasterid(id, fornavn, etternavn, klubb:klubbid(kortnavn, navn)),
+    omgangar:kamp_omgang(score, antall_ringer)
+  )
+`)
+export type InnlKampRow = QueryData<typeof _innlKamperQuery>[number]
+export type InnlKampSpelarRow = InnlKampRow['spelarar'][number]
+
+export async function hentInnledendeKamper(stevneid: number): Promise<{ data: InnlKampRow[]; error: unknown }> {
+  const { data, error } = await supabase
+    .from('kamp')
+    .select(`
+      id, stevneid, runde_nummer, bane_nummer, er_bekreftet, er_walkover, fase,
+      spelarar:kamp_spelar(
+        id, kasterid, score_poeng, kamp_poeng, antall_ringer, posisjon,
+        kaster:kasterid(id, fornavn, etternavn, klubb:klubbid(kortnavn, navn)),
+        omgangar:kamp_omgang(score, antall_ringer)
+      )
+    `)
+    .eq('stevneid', stevneid)
+    .eq('fase', 'innledende')
+    .order('runde_nummer')
+    .order('bane_nummer')
+  if (error) logError('hentInnledendeKamper', error)
+  return { data: data ?? [], error }
+}
+
+export async function harKampOmgangar(spelarIds: number[]): Promise<boolean> {
+  if (!spelarIds.length) return false
+  const { data, error } = await supabase
+    .from('kamp_omgang')
+    .select('id')
+    .in('kamp_spelar_id', spelarIds)
+    .limit(1)
+  if (error) logError('harKampOmgangar', error)
+  return (data?.length ?? 0) > 0
+}
+
+export async function slettKampOmgangar(spelarIds: number[]): Promise<{ error: unknown }> {
+  if (!spelarIds.length) return { error: null }
+  const { error } = await supabase.from('kamp_omgang').delete().in('kamp_spelar_id', spelarIds)
+  if (error) logError('slettKampOmgangar', error)
+  return { error }
+}
+
+export async function oppdaterKampSpelarScoreRask(
+  id: number,
+  scorePoeng: number,
+  kampPoeng?: number,
+): Promise<{ error: unknown }> {
+  const update = kampPoeng !== undefined
+    ? { score_poeng: scorePoeng, kamp_poeng: kampPoeng }
+    : { score_poeng: scorePoeng }
+  const { error } = await supabase.from('kamp_spelar').update(update).eq('id', id)
+  if (error) logError('oppdaterKampSpelarScoreRask', error)
+  return { error }
+}
+
 // ── Scoreboard read ───────────────────────────────────────────────────────────
 
 export async function hentKamp(id: number): Promise<{ data: KampRow | null; error: unknown }> {
@@ -163,41 +226,47 @@ export async function bekreftInnledendeKamp(params: {
   p2: KampSpelarBekreftData | null
   hcp1: number
   hcp2: number
+  erWalkover?: boolean
 }): Promise<{ error: unknown }> {
-  const { kampId, p1, p2, hcp1, hcp2 } = params
-  const spelarIds = [p1?.spelarId, p2?.spelarId].filter((id): id is number => id != null)
-
-  const { data: omgData, error: omgErr } = await supabase
-    .from('kamp_omgang')
-    .select('kamp_spelar_id, score, antall_ringer')
-    .in('kamp_spelar_id', spelarIds)
-  if (omgErr) {
-    logError('bekreftInnledendeKamp:omgangar', omgErr)
-    return { error: omgErr }
-  }
-
+  const { kampId, p1, p2, hcp1, hcp2, erWalkover = false } = params
   let t1 = 0, t2 = 0, r1 = 0, r2 = 0
-  for (const row of (omgData ?? [])) {
-    if (row.kamp_spelar_id === p1?.spelarId) {
-      t1 += row.score ?? 0
-      r1 += row.antall_ringer ?? 0
-    } else {
-      t2 += row.score ?? 0
-      r2 += row.antall_ringer ?? 0
+
+  if (erWalkover) {
+    t1 = 21
+  } else {
+    const spelarIds = [p1?.spelarId, p2?.spelarId].filter((id): id is number => id != null)
+    const { data: omgData, error: omgErr } = await supabase
+      .from('kamp_omgang')
+      .select('kamp_spelar_id, score, antall_ringer')
+      .in('kamp_spelar_id', spelarIds)
+    if (omgErr) {
+      logError('bekreftInnledendeKamp:omgangar', omgErr)
+      return { error: omgErr }
     }
+    for (const row of (omgData ?? [])) {
+      if (row.kamp_spelar_id === p1?.spelarId) {
+        t1 += row.score ?? 0
+        r1 += row.antall_ringer ?? 0
+      } else {
+        t2 += row.score ?? 0
+        r2 += row.antall_ringer ?? 0
+      }
+    }
+    t1 += hcp1
+    t2 += hcp2
   }
 
-  const [kp1, kp2] = beregnKampPoeng(t1 + hcp1, t2 + hcp2)
+  const [kp1, kp2] = beregnKampPoeng(t1, t2)
 
   const spelarUpdates = []
   if (p1) spelarUpdates.push(
     supabase.from('kamp_spelar')
-      .update({ score_poeng: t1 + hcp1, kamp_poeng: kp1, antall_ringer: r1 })
+      .update({ score_poeng: t1, kamp_poeng: kp1, antall_ringer: r1 })
       .eq('id', p1.spelarId),
   )
   if (p2) spelarUpdates.push(
     supabase.from('kamp_spelar')
-      .update({ score_poeng: t2 + hcp2, kamp_poeng: kp2, antall_ringer: r2 })
+      .update({ score_poeng: t2, kamp_poeng: kp2, antall_ringer: r2 })
       .eq('id', p2.spelarId),
   )
 

@@ -48,6 +48,28 @@ export async function hentStevneMedDetaljer(id: number): Promise<{ data: StevneD
   return { data, error }
 }
 
+// ── Innledande fase ───────────────────────────────────────────────────────────
+
+const _innlResultatQuery = supabase.from('resultat').select('kasterid, startnummer, hcp')
+export type InnlResultatRow = QueryData<typeof _innlResultatQuery>[number]
+
+export async function hentResultatForInnledende(stevneid: number): Promise<{ data: InnlResultatRow[]; error: unknown }> {
+  const { data, error } = await supabase
+    .from('resultat')
+    .select('kasterid, startnummer, hcp')
+    .eq('stevneid', stevneid)
+  if (error) logError('hentResultatForInnledende', error)
+  return { data: data ?? [], error }
+}
+
+export async function oppdaterResultatHcp(stevneid: number, kasterid: number, hcp: number): Promise<{ error: unknown }> {
+  const { error } = await supabase.from('resultat').update({ hcp }).eq('stevneid', stevneid).eq('kasterid', kasterid)
+  if (error) logError('oppdaterResultatHcp', error)
+  return { error }
+}
+
+// ── Resultat-side ─────────────────────────────────────────────────────────────
+
 export async function hentResultaterForStevne(stevneId: number): Promise<{ data: ResultatRad[]; error: unknown }> {
   const { data, error } = await supabase
     .from('resultat')
