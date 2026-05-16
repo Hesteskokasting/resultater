@@ -17,16 +17,16 @@ Final cleanup pass based on detailed codebase analysis. The vertical migration i
 These are small, isolated fixes that should happen before any larger work. They remove noise and prevent confusion later.
 
 ### A1. Delete zombie `.d.ts` files
-- [ ] Delete `src/organizer/stevne-avsluttende.d.ts` (no imports)
-- [ ] Delete `src/utils/organizer-test-utils.d.ts` (no imports)
-- [ ] Run `npm run typecheck` — should still pass
-- [ ] Commit: `"Remove zombie .d.ts files left over from JS migration"`
+- [ x] Delete `src/organizer/stevne-avsluttende.d.ts` (no imports)
+- [ x] Delete `src/utils/organizer-test-utils.d.ts` (no imports)
+- [ x] Run `npm run typecheck` — should still pass
+- [ x] Commit: `"Remove zombie .d.ts files left over from JS migration"`
 
 ### A2. Fix `.js` import extensions
-- [ ] Fix `src/pages/stevne/stevne-innstillinger.ts:11` — change `'../../organizer/organizerTestUtils.js'` → `'../../organizer/organizerTestUtils'`
-- [ ] Fix `src/organizer/organizerTestUtils.ts:1` — change `'../supabase.js'` → `'../supabase'`
-- [ ] Fix `src/organizer/organizerTestUtils.ts:2` — change `'../utils/kamp.js'` → `'../utils/kamp'`
-- [ ] Commit: `"Remove .js extensions from TypeScript imports"`
+- [ x] Fix `src/pages/stevne/stevne-innstillinger.ts:11` — change `'../../organizer/organizerTestUtils.js'` → `'../../organizer/organizerTestUtils'`
+- [ x] Fix `src/organizer/organizerTestUtils.ts:1` — change `'../supabase.js'` → `'../supabase'`
+- [ x] Fix `src/organizer/organizerTestUtils.ts:2` — change `'../utils/kamp.js'` → `'../utils/kamp'`
+- [ x] Commit: `"Remove .js extensions from TypeScript imports"`
 
 ### A3. Use `createLoadingState` where it should be used
 > You built the component but 4 places still use the raw HTML. Fix them.

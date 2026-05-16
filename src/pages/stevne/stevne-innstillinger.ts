@@ -8,7 +8,7 @@ import {
   oppdaterStevneInnstillingar,
 } from '../../services/stevneService'
 import type { AktivKastemetodeRow } from '../../services/stevneService'
-import { nullstillStevne } from '../../organizer/organizerTestUtils.js'
+import { nullstillStevne } from '../../organizer/organizerTestUtils'
 
 // ── Render ────────────────────────────────────────────────────────────────────
 

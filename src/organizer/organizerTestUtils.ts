@@ -1,5 +1,5 @@
-import { supabase } from '../supabase.js'
-import { beregnKampPoeng } from '../utils/kamp.js'
+import { supabase } from '../supabase'
+import { beregnKampPoeng } from '../utils/kamp'
 
 interface KampSpelarRow { id: number; kasterid: number | null }
 interface KampForAutoFullfor { id: number; er_walkover: boolean | null; spelarar: KampSpelarRow[] }
