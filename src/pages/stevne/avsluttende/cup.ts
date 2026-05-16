@@ -11,7 +11,7 @@ import {
   genererNesteCupRundeForGruppe,
   genererFinaleOgBronsefinale,
 } from '../../../services/kampGenereringService'
-import { opnNumberpad } from '../../../components/ScoreNumberpad'
+import { showNumberpad } from '../../../components/ScoreNumberpad'
 import { scoreForSp } from '../../../utils/kamp'
 import {
   sorterStilling,
@@ -611,7 +611,7 @@ function bindKampEvents(
       const p2 = sp[1]
       const p1Namn = p1?.kaster ? `${p1.kaster.fornavn} ${p1.kaster.etternavn}` : '—'
       const p2Namn = p2?.kaster ? `${p2.kaster.fornavn} ${p2.kaster.etternavn}` : '—'
-      opnNumberpad(p1Namn, p2Namn, scoreForSp(p1), scoreForSp(p2), async (s1, s2) => {
+      showNumberpad(p1Namn, p2Namn, scoreForSp(p1), scoreForSp(p2), async (s1, s2) => {
         const updates: Promise<unknown>[] = []
         if (p1?.id) updates.push(oppdaterKampSpelarScoreRask(p1.id, s1))
         if (p2?.id) updates.push(oppdaterKampSpelarScoreRask(p2.id, s2))
@@ -639,7 +639,7 @@ function bindKampEvents(
       const p2Namn = p2?.kaster ? `${p2.kaster.fornavn} ${p2.kaster.etternavn}` : '—'
       const allKasterids = sp.map(s => s.kasterid).filter((id): id is number => id != null)
       const handler = (): void => {
-        opnNumberpad(p1Namn, p2Namn, scoreForSp(p1), scoreForSp(p2), async (nyS1, nyS2) => {
+        showNumberpad(p1Namn, p2Namn, scoreForSp(p1), scoreForSp(p2), async (nyS1, nyS2) => {
           const spelarIds = [p1?.id, p2?.id].filter((x): x is number => x != null)
           if (spelarIds.length) {
             const { error } = await slettKampOmgangar(spelarIds)

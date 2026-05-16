@@ -238,7 +238,7 @@ For **every** file you migrate, all of these must be checked off:
 
 **components: Deferred — tightly coupled to stevne pages, will change with kastemetode formats**
 - [ ] `src/components/Scoreboard.ts`
-- [ ] `src/components/ScoreNumberpad.ts`
+- [x] `src/components/ScoreNumberpad.ts` — CSS vars added (--np-* pattern, same in both themes); `opnNumberpad` → `showNumberpad` (consistent with showToast); call sites updated in gloppen, nordhordland, cup
 
 **organizer:**
 - [x] `src/organizer/gruppefordelingUi.ts` — stays in `organizer/` for now; returns HTML strings (not `HTMLElement`), so doesn't fit the `components/` factory pattern yet

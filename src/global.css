@@ -23,6 +23,15 @@
   --kamp-vidare-bg: color-mix(in srgb, #4CAF50 22%, var(--flate));
   --kamp-eliminert-bg: color-mix(in srgb, #ff6b6b 22%, var(--flate));
 
+  /* Nummerpad — intentionally blue in both themes */
+  --np-bg: #1e4976;
+  --np-tekst: #ffffff;
+  --np-knapp-bg: #ffffff;
+  --np-knapp-tekst: #1e4976;
+  --np-pad-bg: rgba(255, 255, 255, 0.1);
+  --np-reset-bg: rgba(255, 255, 255, 0.25);
+  --np-nav-bg: rgba(255, 255, 255, 0.15);
+
   /* Scoreboard — intentionally dark in both themes */
   --sb-bg: #000;
   --sb-topbar-bg: #111;
@@ -63,6 +72,15 @@
   --feil: #cc0000;
   --kamp-vidare-bg: color-mix(in srgb, #28a745 14%, var(--flate));
   --kamp-eliminert-bg: color-mix(in srgb, #cc0000 14%, var(--flate));
+
+  /* Nummerpad — same as dark; numberpad is always blue by design */
+  --np-bg: #1e4976;
+  --np-tekst: #ffffff;
+  --np-knapp-bg: #ffffff;
+  --np-knapp-tekst: #1e4976;
+  --np-pad-bg: rgba(255, 255, 255, 0.1);
+  --np-reset-bg: rgba(255, 255, 255, 0.25);
+  --np-nav-bg: rgba(255, 255, 255, 0.15);
 
   /* Scoreboard — same as dark; scoreboard is always dark by design */
   --sb-bg: #000;

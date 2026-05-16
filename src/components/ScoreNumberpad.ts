@@ -1,4 +1,4 @@
-export function opnNumberpad(
+export function showNumberpad(
   p1Namn: string,
   p2Namn: string,
   s1Init: number,

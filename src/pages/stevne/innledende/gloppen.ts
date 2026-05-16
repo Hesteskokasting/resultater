@@ -1,4 +1,4 @@
-import { opnNumberpad } from '../../../components/ScoreNumberpad'
+import { showNumberpad } from '../../../components/ScoreNumberpad'
 import { showToast } from '../../../components/Toast'
 import { beregnKampPoeng, hentP1P2, scoreForSp } from '../../../utils/kamp'
 import { autoFullforInnledendeKamper } from '../../../organizer/organizerTestUtils'
@@ -158,7 +158,7 @@ async function lastOgVis(container: HTMLElement, stevneid: number): Promise<void
         const p1Namn = p1?.kaster ? `${escHtml(p1.kaster.fornavn)} ${escHtml(p1.kaster.etternavn)}` : '—'
         const p2Namn = p2?.kaster ? `${escHtml(p2.kaster.fornavn)} ${escHtml(p2.kaster.etternavn)}` : '—'
 
-        opnNumberpad(p1Namn, p2Namn, scoreForSp(p1), scoreForSp(p2), async (s1, s2) => {
+        showNumberpad(p1Namn, p2Namn, scoreForSp(p1), scoreForSp(p2), async (s1, s2) => {
           try {
             if (harOmgangar && spelarIds.length) await slettKampOmgangar(spelarIds)
             await Promise.all([
@@ -187,7 +187,7 @@ async function lastOgVis(container: HTMLElement, stevneid: number): Promise<void
         const p1Namn = p1?.kaster ? `${escHtml(p1.kaster.fornavn)} ${escHtml(p1.kaster.etternavn)}` : '—'
         const p2Namn = p2?.kaster ? `${escHtml(p2.kaster.fornavn)} ${escHtml(p2.kaster.etternavn)}` : '—'
         const handler = () => {
-          opnNumberpad(p1Namn, p2Namn, p1?.score_poeng ?? 0, p2?.score_poeng ?? 0, async (nyS1, nyS2) => {
+          showNumberpad(p1Namn, p2Namn, p1?.score_poeng ?? 0, p2?.score_poeng ?? 0, async (nyS1, nyS2) => {
             const [kp1, kp2] = beregnKampPoeng(nyS1, nyS2)
             try {
               await Promise.all([
