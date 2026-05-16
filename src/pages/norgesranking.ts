@@ -328,7 +328,7 @@ export async function render(container: HTMLElement): Promise<void> {
       filtre.sokeTekst = ''
       sokInput.value = ''
       container.querySelector('.nc-hovudtittel')!.textContent = `Norgesranking ${filtre.ar}`
-      container.querySelector('#nr-tabell-container')!.innerHTML = '<p class="laster">Laster...</p>'
+      container.querySelector('#nr-tabell-container')!.replaceChildren(createLoadingState("Laster..."))
       try {
         const ok = await hentOgBufferData(filtre.ar)
         if (!ok) {

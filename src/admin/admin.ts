@@ -14,6 +14,7 @@ import {
 } from '../services/adminService'
 import { hentKlubbar } from '../services/klubbService'
 import { hentKastereByIds } from '../services/kasterService'
+import { createLoadingState } from '../components/LoadingState'
 
 type Fane = 'kobling' | 'brukarar' | 'klubbadmin'
 
@@ -42,7 +43,7 @@ export async function render(container: HTMLElement): Promise<void> {
     container.querySelectorAll<HTMLElement>('[data-fane]').forEach(k => {
       k.classList.toggle('active', k.dataset.fane === fane)
     })
-    innhald.innerHTML = '<p class="laster">Laster…</p>'
+    createLoadingState("Laster...")
     if (fane === 'kobling')    await _visKobling(innhald)
     if (fane === 'brukarar')   await _visBrukarar(innhald)
     if (fane === 'klubbadmin') await _visKlubbadmin(innhald)

@@ -31,12 +31,12 @@ These are small, isolated fixes that should happen before any larger work. They 
 ### A3. Use `createLoadingState` where it should be used
 > You built the component but 4 places still use the raw HTML. Fix them.
 
-- [ ] `src/admin/admin.ts:45` — replace `innhald.innerHTML = '<p class="laster">Laster…</p>'`
-- [ ] `src/pages/terminliste.ts:339` — replace
-- [ ] `src/pages/terminliste.ts:403` — replace
-- [ ] `src/pages/norgesranking.ts:331` — replace
-- [ ] Run app, verify the loading state still looks identical
-- [ ] Commit: `"Use createLoadingState everywhere (no more raw HTML)"`
+- [ x] `src/admin/admin.ts:45` — replace `innhald.innerHTML = '<p class="laster">Laster…</p>'`
+- [ x] `src/pages/terminliste.ts:339` — replace
+- [ x] `src/pages/terminliste.ts:403` — replace
+- [ x] `src/pages/norgesranking.ts:331` — replace
+- [ x] Run app, verify the loading state still looks identical
+- [ x] Commit: `"Use createLoadingState everywhere (no more raw HTML)"`
 
 ### A4. Fix inline styles in `kamp.ts`
 - [ ] `src/pages/kamp.ts:47` and `:51` — `hovudHeader.style.display = 'none'/''`

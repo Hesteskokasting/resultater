@@ -336,7 +336,7 @@ export async function render(container: HTMLElement): Promise<void> {
     arSelect.addEventListener('change', async () => {
       filtre.ar = Number(arSelect.value)
       container.querySelector('.tl-tittel')!.textContent = `Terminliste ${filtre.ar}`
-      container.querySelector('.tl-liste-container')!.innerHTML = '<p class="laster">Laster...</p>'
+      container.querySelector('.tl-liste-container')!.replaceChildren(createLoadingState("Laster..."))
       const { data: nyData, error: nyFeil } = await hentTerminlisteStevner(filtre.ar)
       if (nyFeil) {
         logError('terminliste.arChange', nyFeil)
@@ -400,7 +400,7 @@ export async function render(container: HTMLElement): Promise<void> {
 
       if (arEndret) {
         container.querySelector('.tl-tittel')!.textContent = `Terminliste ${filtre.ar}`
-        container.querySelector('.tl-liste-container')!.innerHTML = '<p class="laster">Laster...</p>'
+        container.querySelector('.tl-liste-container')!.replaceChildren(createLoadingState("Laster..."))
         const { data: nyData, error: nyFeil } = await hentTerminlisteStevner(filtre.ar)
         if (nyFeil) {
           logError('terminliste.brukFilter', nyFeil)
