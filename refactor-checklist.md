@@ -396,12 +396,12 @@ Once all files are `.ts`:
 - [ ] `npm run build` succeeds
 - [ ] All 3 critical flows from Phase 0 work
 - [ ] Search codebase for forbidden patterns to verify zero remain:
-  - [ ] `grep -r "select('\\*')" src/` → empty
-  - [ ] `grep -r ": any" src/` → empty (or only intentional)
-  - [ ] `grep -r "as unknown as" src/` → empty
-  - [ ] `grep -r "style=" src/pages src/admin src/organizer` → empty
-  - [ ] `grep -rE "from\\(.*\\)\\.select" src/pages src/admin src/organizer` → empty (all queries should be in services/)
-  - [ ] `grep -r "supabase" src/utils/` → empty (utils/ is pure functions only)
+  - [x] `grep -r "select('\\*')" src/` → empty
+  - [x] `grep -r ": any" src/` → empty (or only intentional)
+  - [ ] `grep -r "as unknown as" src/` → empty _(failed)_
+  - [x] `grep -r "style=" src/pages src/admin src/organizer` → empty
+  - [x] `grep -rE "from\\(.*\\)\\.select" src/pages src/admin src/organizer` → empty (all queries should be in services/)
+  - [x] `grep -r "supabase" src/utils/` → empty (utils/ is pure functions only)
 - [ ] Merge into main:
   ```bash
   git checkout main
