@@ -97,7 +97,7 @@ function relaterteStevnerHtml(relaterte: RelatertStevneRow[]): string {
 }
 
 function pameldingListeHtml(pameldingar: PameldingMedKasterRow[], erPrivilegert: boolean): string {
-  if (!pameldingar.length) return '<p class="text-muted">Ingen påmeldingar enno.</p>'
+  if (!pameldingar.length) return '<p class="empty-state">Ingen påmeldingar enno.</p>'
   const rader = pameldingar.map(p => `<tr>
     <td>${p.kaster
       ? `<a href="#/kastere/${p.kaster.id}">${escHtml(p.kaster.fornavn)} ${escHtml(p.kaster.etternavn)}</a>`

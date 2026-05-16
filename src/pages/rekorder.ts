@@ -70,7 +70,7 @@ function byggOgFiltrerListe(alleData: RekorderRow[]): RangetRad[] {
 // ── HTML-byggjarar ────────────────────────────────────────────────────────────
 
 function tabellHtml(liste: RangetRad[]): string {
-  if (!liste.length) return '<p class="nc-ingen">Ingen rekorder funnet.</p>'
+  if (!liste.length) return '<p class="empty-state">Ingen rekorder funnet.</p>'
 
   const rader = liste.map(item => {
     const slug = lagKasterSlug({ id: item.kasterid ?? 0, fornavn: item.fornavn ?? '', etternavn: item.etternavn ?? '' })

@@ -4,6 +4,7 @@ import { getUser } from '../services/authService'
 import { formaterDato } from '../utils/shared'
 import { createErrorBanner } from '../components/ErrorBanner'
 import { createLoadingState } from '../components/LoadingState'
+import { createEmptyState } from '../components/EmptyState'
 import { escHtml } from '../utils/escHtml'
 import { logError } from '../utils/logError'
 import {
@@ -301,7 +302,7 @@ function resultatTabellHtml(resultater: ResultatDetaljRow[], arFilter: string, t
       <span class="kaster-resultat-hint">Antal ringar i parentes (frå ${FOERSTE_RING_AR})</span>
     </div>`
 
-  if (!ant) return infoHtml + '<p class="nc-ingen">Ingen resultat funnet.</p>'
+  if (!ant) return infoHtml + '<p class="empty-state">Ingen resultat funnet.</p>'
 
   const ringTekst = (poeng: number | null, ring: number | null): string => {
     if (poeng == null) return ''
@@ -390,7 +391,11 @@ function teiknGraf(canvas: HTMLCanvasElement, resultater: ResultatDetaljRow[]): 
 
   if (!verdiar.length) {
     const wrapper = canvas.parentElement
-    if (wrapper) wrapper.innerHTML = '<p class="nc-ingen pt-3">Ingen data for valt filter.</p>'
+    if (wrapper) {
+      const el = createEmptyState('Ingen data for valt filter.')
+      el.classList.add('pt-3')
+      wrapper.replaceChildren(el)
+    }
     return
   }
 

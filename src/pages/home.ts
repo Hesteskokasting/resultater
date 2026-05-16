@@ -12,7 +12,7 @@ import type { SingelListeRad } from '../utils/norgescup'
 // ── HTML-byggjarar ────────────────────────────────────────────────────────────
 
 function ncTopp20Html(liste: SingelListeRad[]): string {
-  if (liste.length === 0) return '<p class="nc-ingen">Ingen data.</p>'
+  if (liste.length === 0) return '<p class="empty-state">Ingen data.</p>'
   const rader = liste.slice(0, 20).map(k => `
     <tr>
       <td class="nc-td-pl">${k.plassering}</td>

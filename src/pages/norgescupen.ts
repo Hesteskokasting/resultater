@@ -6,6 +6,7 @@ import { hentRegler, hentStevnerOgResultater } from '../services/norgescupServic
 import { formaterDato, arOptions } from '../utils/shared'
 import { createErrorBanner } from '../components/ErrorBanner'
 import { createLoadingState } from '../components/LoadingState'
+import { createEmptyState } from '../components/EmptyState'
 import type { Tables } from '../types'
 import type { ResultatMedRelasjonar, StevneForNc } from '../services/norgescupService'
 import type { SingelListeRad, LagListeRad } from '../utils/norgescup'
@@ -93,7 +94,7 @@ function klasseTabsHtml(valgtKlasse: number, ar: number): string {
 }
 
 function singelTabellHtml(liste: SingelListeRad[]): string {
-  if (liste.length === 0) return '<p class="nc-ingen">Ingen resultater funnet.</p>'
+  if (liste.length === 0) return '<p class="empty-state">Ingen resultater funnet.</p>'
 
   const rader = liste.map((k, i) => {
     const detaljer = k.detaljRader.map(r => `
@@ -137,7 +138,7 @@ function singelTabellHtml(liste: SingelListeRad[]): string {
 }
 
 function lagTabellHtml(lagListe: LagListeRad[]): string {
-  if (lagListe.length === 0) return '<p class="nc-ingen">Ingen lag funnet.</p>'
+  if (lagListe.length === 0) return '<p class="empty-state">Ingen lag funnet.</p>'
 
   const rader = lagListe.map((lag, i) => {
     const bidrag = lag.bidragsytere.map(b =>
@@ -230,7 +231,7 @@ export async function render(container: HTMLElement): Promise<void> {
 
       const lagContainer = content.querySelector<HTMLElement>('#nc-lag-tabell-container')!
       if (!regler) {
-        lagContainer.innerHTML = '<p class="nc-ingen">Ingen data.</p>'
+        lagContainer.replaceChildren(createEmptyState('Ingen data.'))
       } else {
         const lagListe = byggLagListe(cache.resultater, cache.stevner, regler)
         lagContainer.innerHTML = lagTabellHtml(lagListe)
@@ -256,7 +257,7 @@ export async function render(container: HTMLElement): Promise<void> {
 
       const singelContainer = content.querySelector<HTMLElement>('#nc-singel-tabell-container')!
       if (!regler) {
-        singelContainer.innerHTML = '<p class="nc-ingen">Ingen data.</p>'
+        singelContainer.replaceChildren(createEmptyState('Ingen data.'))
       } else {
         const singelListe = byggSingelListe(cache.resultater, cache.stevner, regler, cupType, klasse)
         singelContainer.innerHTML = singelTabellHtml(singelListe)

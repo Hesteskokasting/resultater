@@ -75,7 +75,7 @@ function kasterLenkjeHtml(k: NmKaster): string {
 }
 
 function tabellHtml(liste: VinnareEntry[]): string {
-  if (!liste.length) return '<p class="nc-ingen">Ingen vinnere funnet.</p>'
+  if (!liste.length) return '<p class="empty-state">Ingen vinnere funnet.</p>'
 
   const rader = liste.map(({ ar, stevneId, kastere, klubb }) => {
     const namnHtml = kastere.map(kasterLenkjeHtml).join(' og ') || '–'

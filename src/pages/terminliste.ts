@@ -141,7 +141,7 @@ function tabellRadHtml(s: StevneRow): string {
 }
 
 function tabellHtml(filtrert: StevneRow[]): string {
-  if (filtrert.length === 0) return '<p class="laster">Ingen stevner funnet med valgte filtre.</p>'
+  if (filtrert.length === 0) return '<p class="empty-state">Ingen stevner funnet med valgte filtre.</p>'
   const thead = `<thead><tr>
     ${tabellKolonner.map(k => `<th class="tl-th" data-kolonne="${k.id}">${k.label}${sortikonHtml(k.id)}</th>`).join('')}
     <th class="tl-th">Innbydelse</th>
@@ -192,7 +192,7 @@ function kortHtml(s: StevneRow): string {
 
 function byggListe(filtrert: StevneRow[]): string {
   if (filtrert.length === 0) {
-    return '<p class="laster">Ingen stevner funnet med valgte filtre.</p>'
+    return '<p class="empty-state">Ingen stevner funnet med valgte filtre.</p>'
   }
   return `<div class="stevne-liste">${filtrert.map(kortHtml).join('')}</div>`
 }

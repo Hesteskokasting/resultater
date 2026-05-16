@@ -211,7 +211,7 @@ function rankingTabellHtml(liste: RankingItem[], sokeTekst: string): string {
     ? liste.filter(k => k.namn.toLowerCase().includes(sok) || k.klubb.toLowerCase().includes(sok))
     : liste
 
-  if (filtrert.length === 0) return '<p class="nc-ingen">Ingen resultater funnet.</p>'
+  if (filtrert.length === 0) return '<p class="empty-state">Ingen resultater funnet.</p>'
 
   const rader = filtrert.map((k, i) => {
     const detaljer = k.detaljRader.map(r => `

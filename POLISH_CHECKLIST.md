@@ -56,10 +56,12 @@ These are small, isolated fixes that should happen before any larger work. They 
 - [x] Commit: `"Move organizer test-data Supabase calls to service layer"`
 
 > **Verify after Phase A:**
-> - [ ] `grep -r "from '.*\\.js'" src/ --include="*.ts"` → empty (or only `chart.js`/external)
-> - [ ] `grep -rn "supabase\\.\\(from\\|rpc\\)" src/ --exclude-dir=services --exclude=supabase.ts` → empty
-> - [ ] `grep -rn '<p class="laster">' src/` → empty (only `createLoadingState`)
-> - [ ] `npm run typecheck` passes, app works.
+> - [x] `grep -r "from '.*\\.js'" src/ --include="*.ts"` → empty (or only `chart.js`/external)
+> - [x] `grep -rn "supabase\\.\\(from\\|rpc\\)" src/ --exclude-dir=services --exclude=supabase.ts` → empty
+> - [x] `grep -rn '<p class="laster">' src/` → empty (only `createLoadingState`)
+> - [x] `npm run typecheck` passes, app works.
+>
+> **Note (Phase A bonus):** Added `createEmptyState` component (`src/components/EmptyState.ts`). Replaced `.nc-ingen`, `.laster`, and `.text-muted` empty-state misuses across 12 files. 7 DOM-context cases use `replaceChildren(createEmptyState(...))` properly; 13 string-building functions use `<p class="empty-state">` inline and are candidates for full component migration in Phase D.
 
 ---
 

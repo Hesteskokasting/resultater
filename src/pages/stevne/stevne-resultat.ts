@@ -1,6 +1,7 @@
 import { kasterNavn, lagKasterSlug } from '../../utils/kaster'
 import { createErrorBanner } from '../../components/ErrorBanner'
 import { createLoadingState } from '../../components/LoadingState'
+import { createEmptyState } from '../../components/EmptyState'
 import { escHtml } from '../../utils/escHtml'
 import { logError } from '../../utils/logError'
 import { hentStevneMedDetaljer, hentResultaterForStevne } from '../../services/resultatService'
@@ -111,9 +112,9 @@ export async function render(
     const resultater = resultatRes.data
 
     if (!resultater.length) {
-      container.innerHTML = stevne.erfullfort
-        ? '<p class="nc-ingen">Ingen resultat registrert.</p>'
-        : '<p class="nc-ingen">Turneringa er ikkje avslutta enno.</p>'
+      container.replaceChildren(createEmptyState(
+        stevne.erfullfort ? 'Ingen resultat registrert.' : 'Turneringa er ikkje avslutta enno.',
+      ))
       return
     }
 

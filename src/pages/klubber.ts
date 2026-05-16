@@ -65,7 +65,7 @@ function medlemTabellHtml(medlemmar: MedlemRow[], sokeTekst: string): string {
     ? medlemmar.filter(k => kasterNavn(k).toLowerCase().includes(sok))
     : medlemmar
 
-  if (!filtrert.length) return '<p class="nc-ingen">Ingen aktive utøvarar funnet.</p>'
+  if (!filtrert.length) return '<p class="empty-state">Ingen aktive utøvarar funnet.</p>'
 
   const rader = filtrert.map((k, i) => `
     <tr>
@@ -124,7 +124,7 @@ async function renderListe(container: HTMLElement): Promise<void> {
         : alleKlubbar
       grid.innerHTML = filtrert.length
         ? filtrert.map(klubbKortHtml).join('')
-        : '<p class="nc-ingen">Ingen klubbar funnet.</p>'
+        : '<p class="empty-state">Ingen klubbar funnet.</p>'
     }
 
     filtrerOgVis()

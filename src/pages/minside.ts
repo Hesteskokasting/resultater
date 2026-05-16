@@ -2,6 +2,7 @@ import { kasterNavn, lagKasterSlug } from '../utils/kaster'
 import { getUser } from '../services/authService'
 import { createErrorBanner } from '../components/ErrorBanner'
 import { createLoadingState } from '../components/LoadingState'
+import { createEmptyState } from '../components/EmptyState'
 import { escHtml } from '../utils/escHtml'
 import { logError } from '../utils/logError'
 import { formaterDato } from '../utils/shared'
@@ -56,7 +57,7 @@ async function koblaKortHtml(kasterid: number): Promise<string> {
 async function pameldingListeHtml(brukerId: string): Promise<string> {
   const { data, error } = await hentMinePameldingar(brukerId)
   if (error) return '<p class="text-muted">Kunne ikkje laste påmeldingar.</p>'
-  if (!data.length) return '<p class="text-muted">Ingen påmeldingar enno.</p>'
+  if (!data.length) return '<p class="empty-state">Ingen påmeldingar enno.</p>'
 
   const sortert = [...data].sort((a: PameldingRow, b: PameldingRow) =>
     (a.stevne?.dato ?? '').localeCompare(b.stevne?.dato ?? ''),
@@ -199,7 +200,9 @@ function bindKasterSok(container: HTMLElement, brukerId: string): void {
         .slice(0, 8)
 
       if (!treff.length) {
-        treffDiv.innerHTML = '<p class="text-muted small">Ingen treff.</p>'
+        const el = createEmptyState('Ingen treff.')
+        el.classList.add('small')
+        treffDiv.replaceChildren(el)
         return
       }
       treffDiv.innerHTML = treff.map(k =>

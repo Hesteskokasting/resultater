@@ -15,6 +15,7 @@ import {
 import { hentKlubbar } from '../services/klubbService'
 import { hentKastereByIds } from '../services/kasterService'
 import { createLoadingState } from '../components/LoadingState'
+import { createEmptyState } from '../components/EmptyState'
 
 type Fane = 'kobling' | 'brukarar' | 'klubbadmin'
 
@@ -62,7 +63,7 @@ export async function render(container: HTMLElement): Promise<void> {
 async function _visKobling(el: HTMLElement): Promise<void> {
   const { data, error } = await hentVentandeKoblingar()
   if (error) { el.innerHTML = `<div class="alert alert-danger">${escHtml(errMsg(error))}</div>`; return }
-  if (!data.length) { el.innerHTML = '<p class="text-muted">Ingen ventande forespørslar.</p>'; return }
+  if (!data.length) { el.replaceChildren(createEmptyState('Ingen ventande forespørslar.')); return }
 
   const brukarIds = data.map(r => r.id)
   const kasterIds = data.map(r => r.kobling_kasterid).filter((x): x is number => x !== null)
@@ -120,7 +121,7 @@ async function _visKobling(el: HTMLElement): Promise<void> {
 async function _visBrukarar(el: HTMLElement): Promise<void> {
   const { data, error } = await hentAlleBrukarar()
   if (error) { el.innerHTML = `<div class="alert alert-danger">${escHtml(errMsg(error))}</div>`; return }
-  if (!data.length) { el.innerHTML = '<p class="text-muted">Ingen brukarar.</p>'; return }
+  if (!data.length) { el.replaceChildren(createEmptyState('Ingen brukarar.')); return }
 
   const ids = data.map(r => r.id)
   const { data: epostar } = await hentBrukarEpost(ids)
@@ -192,7 +193,7 @@ async function _visKlubbadmin(el: HTMLElement): Promise<void> {
     return
   }
 
-  if (!brukarar.length) { el.innerHTML = '<p class="text-muted">Ingen brukarar med rolle "klubbadmin".</p>'; return }
+  if (!brukarar.length) { el.replaceChildren(createEmptyState('Ingen brukarar med rolle "klubbadmin".')); return }
 
   const ids = brukarar.map(r => r.id)
   const { data: epostar } = await hentBrukarEpost(ids)

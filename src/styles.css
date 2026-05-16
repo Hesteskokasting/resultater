@@ -833,7 +833,7 @@ a.stevne-navn {
   color: var(--tekst-3);
 }
 
-.nc-ingen {
+.empty-state {
   text-align: center;
   color: var(--tekst-3);
   margin-top: 20px;
