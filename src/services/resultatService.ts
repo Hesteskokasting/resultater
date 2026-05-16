@@ -68,6 +68,55 @@ export async function oppdaterResultatHcp(stevneid: number, kasterid: number, hc
   return { error }
 }
 
+// ── Avsluttande fase ──────────────────────────────────────────────────────────
+
+const _avslResultatQuery = supabase.from('resultat').select(`
+  kasterid, startnummer, plassering, runde_eliminert,
+  kamp_poeng_innl, score_poeng_innl,
+  gruppe:gruppeid(id, navn)
+`)
+export type AvslResultatRow = QueryData<typeof _avslResultatQuery>[number]
+
+export async function hentResultatForAvsluttende(stevneid: number): Promise<{ data: AvslResultatRow[]; error: unknown }> {
+  const { data, error } = await supabase
+    .from('resultat')
+    .select(`
+      kasterid, startnummer, plassering, runde_eliminert,
+      kamp_poeng_innl, score_poeng_innl,
+      gruppe:gruppeid(id, navn)
+    `)
+    .eq('stevneid', stevneid)
+  if (error) logError('hentResultatForAvsluttende', error)
+  return { data: data ?? [], error }
+}
+
+export async function hentGrupper(gruppeNamn: string[]): Promise<{ data: { id: number; navn: string }[]; error: unknown }> {
+  const { data, error } = await supabase.from('gruppe').select('id, navn').in('navn', gruppeNamn)
+  if (error) logError('hentGrupper', error)
+  return { data: data ?? [], error }
+}
+
+export async function setGruppeInndeling(
+  stevneid: number,
+  updates: { kasterid: number; gruppeid: number | null }[],
+): Promise<{ error: unknown }> {
+  if (!updates.length) return { error: null }
+  const results = await Promise.all(
+    updates.map(u =>
+      supabase.from('resultat').update({ gruppeid: u.gruppeid }).eq('stevneid', stevneid).eq('kasterid', u.kasterid),
+    ),
+  )
+  const err = results.find(r => r.error)?.error ?? null
+  if (err) logError('setGruppeInndeling', err)
+  return { error: err }
+}
+
+export async function clearGruppeInndeling(stevneid: number): Promise<{ error: unknown }> {
+  const { error } = await supabase.from('resultat').update({ gruppeid: null }).eq('stevneid', stevneid)
+  if (error) logError('clearGruppeInndeling', error)
+  return { error }
+}
+
 // ── Resultat-side ─────────────────────────────────────────────────────────────
 
 export async function hentResultaterForStevne(stevneId: number): Promise<{ data: ResultatRad[]; error: unknown }> {

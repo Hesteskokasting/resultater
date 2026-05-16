@@ -1,7 +1,7 @@
 import type { QueryData, RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '../supabase'
 import { logError } from '../utils/logError'
-import type { Tables } from '../types'
+import type { Tables, Json, Runde1FormatTyped } from '../types'
 
 // ── Admin-typar ───────────────────────────────────────────────────────────────
 
@@ -266,6 +266,43 @@ export async function avmeldKanal(channel: RealtimeChannel): Promise<void> {
   await supabase.removeChannel(channel)
 }
 
+// ── Avsluttande fase ──────────────────────────────────────────────────────────
+
+const _avslStevneQuery = supabase
+  .from('stevne')
+  .select('id, navn, stevne_fase, erfullfort, runde1_format, avsluttendemetode:avsluttendekastemetodeid(id, navn)')
+
+export type AvslStevneRow = QueryData<typeof _avslStevneQuery>[number]
+
+export async function hentAvsluttendeStevne(stevneid: number): Promise<{ data: AvslStevneRow | null; error: unknown }> {
+  const { data, error } = await supabase
+    .from('stevne')
+    .select('id, navn, stevne_fase, erfullfort, runde1_format, avsluttendemetode:avsluttendekastemetodeid(id, navn)')
+    .eq('id', stevneid)
+    .maybeSingle()
+  if (error) logError('hentAvsluttendeStevne', error)
+  return { data, error }
+}
+
+export async function setRunde1Format(stevneid: number, format: Runde1FormatTyped | null): Promise<{ error: unknown }> {
+  // Runde1FormatTyped serialises cleanly to JSON; cast is justified at this DB boundary
+  const { error } = await supabase
+    .from('stevne')
+    .update({ runde1_format: format as unknown as Json })
+    .eq('id', stevneid)
+  if (error) logError('setRunde1Format', error)
+  return { error }
+}
+
+export async function hentPameldingCount(stevneid: number): Promise<{ count: number; error: unknown }> {
+  const { count, error } = await supabase
+    .from('pamelding')
+    .select('id', { count: 'exact', head: true })
+    .eq('stevneid', stevneid)
+  if (error) logError('hentPameldingCount', error)
+  return { count: count ?? 0, error }
+}
+
 // ── Innstillingar-tab ─────────────────────────────────────────────────────────
 
 export type InnstillingarStevneRow = Pick<Tables<'stevne'>,
@@ -338,7 +375,7 @@ export async function setStevneErfullfort(stevneid: number): Promise<{ error: un
   return { error }
 }
 
-export function subscribeToInnledendeEndringar(
+export function subscribeToKampEndringar(
   stevneid: number,
   channelName: string,
   onChange: () => void,

@@ -363,6 +363,160 @@ export async function bekreftAvsluttendeKamp(params: {
   return { error: null }
 }
 
+// ── Avsluttande fase ──────────────────────────────────────────────────────────
+
+const _avslKamperQuery = supabase.from('kamp').select(`
+  id, fase, runde_nummer, bane_nummer, gruppe_navn, runde_navn,
+  er_bekreftet, er_walkover, er_tre_spelarar,
+  spelarar:kamp_spelar(
+    id, kasterid, posisjon, score_poeng, kamp_poeng, antall_ringer,
+    kaster:kasterid(fornavn, etternavn),
+    omgangar:kamp_omgang(score, antall_ringer)
+  )
+`)
+export type AvslKampRow = QueryData<typeof _avslKamperQuery>[number]
+export type AvslKampSpelarRow = AvslKampRow['spelarar'][number]
+
+const _kampSpelarerQuery = supabase.from('kamp_spelar').select(
+  'id, kasterid, score_poeng, antall_ringer, omgangar:kamp_omgang(score, antall_ringer)',
+)
+export type KampSpelarScoreRow = QueryData<typeof _kampSpelarerQuery>[number]
+
+export async function hentAvsluttendeKamper(stevneid: number): Promise<{ data: AvslKampRow[]; error: unknown }> {
+  const { data, error } = await supabase
+    .from('kamp')
+    .select(`
+      id, fase, runde_nummer, bane_nummer, gruppe_navn, runde_navn,
+      er_bekreftet, er_walkover, er_tre_spelarar,
+      spelarar:kamp_spelar(
+        id, kasterid, posisjon, score_poeng, kamp_poeng, antall_ringer,
+        kaster:kasterid(fornavn, etternavn),
+        omgangar:kamp_omgang(score, antall_ringer)
+      )
+    `)
+    .eq('stevneid', stevneid)
+    .order('runde_nummer')
+    .order('bane_nummer')
+  if (error) logError('hentAvsluttendeKamper', error)
+  return { data: data ?? [], error }
+}
+
+export async function hentKampSpelarar(kampId: number): Promise<{ data: KampSpelarScoreRow[]; error: unknown }> {
+  const { data, error } = await supabase
+    .from('kamp_spelar')
+    .select('id, kasterid, score_poeng, antall_ringer, omgangar:kamp_omgang(score, antall_ringer)')
+    .eq('kampid', kampId)
+  if (error) logError('hentKampSpelarar', error)
+  return { data: data ?? [], error }
+}
+
+export async function harAlleSemifinalarBekrefta(stevneid: number, gruppeNavn: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('kamp')
+    .select('er_bekreftet')
+    .eq('stevneid', stevneid)
+    .eq('gruppe_navn', gruppeNavn)
+    .eq('runde_navn', 'Semifinale')
+  if (error) logError('harAlleSemifinalarBekrefta', error)
+  return !!(data?.length && data.every(s => s.er_bekreftet))
+}
+
+export async function bekreftCupKamp(params: {
+  kampId: number
+  stevneId: number
+  rundeNummer: number
+  rundeNavn: string | null
+  allKasterids: number[]
+  eliminertId: number | null
+  vidareIds: number[]
+}): Promise<{ error: unknown }> {
+  const { kampId, stevneId, rundeNummer, rundeNavn, allKasterids, eliminertId, vidareIds } = params
+  const erFinale = rundeNavn === 'Finale' || rundeNavn === 'Bronsefinale'
+
+  const { error: kampErr } = await supabase.from('kamp').update({ er_bekreftet: true }).eq('id', kampId)
+  if (kampErr) { logError('bekreftCupKamp:kamp', kampErr); return { error: kampErr } }
+
+  if (!eliminertId) return { error: null }
+
+  if (erFinale) {
+    const { error } = await supabase.from('resultat')
+      .update({ runde_eliminert: null, plassering: null })
+      .eq('stevneid', stevneId).in('kasterid', allKasterids)
+    if (error) { logError('bekreftCupKamp:reset', error); return { error } }
+  } else {
+    const { error } = await supabase.from('resultat')
+      .update({ runde_eliminert: null })
+      .eq('stevneid', stevneId).eq('runde_eliminert', rundeNummer).in('kasterid', allKasterids)
+    if (error) { logError('bekreftCupKamp:reset', error); return { error } }
+  }
+
+  const elimUpdate = erFinale
+    ? { runde_eliminert: rundeNummer, plassering: rundeNavn === 'Finale' ? 2 : 4 }
+    : { runde_eliminert: rundeNummer }
+  const { error: elimErr } = await supabase.from('resultat')
+    .update(elimUpdate).eq('stevneid', stevneId).eq('kasterid', eliminertId)
+  if (elimErr) { logError('bekreftCupKamp:eliminert', elimErr); return { error: elimErr } }
+
+  if (rundeNavn === 'Finale' && vidareIds.length > 0) {
+    const { error } = await supabase.from('resultat')
+      .update({ plassering: 1 }).eq('stevneid', stevneId).eq('kasterid', vidareIds[0])
+    if (error) { logError('bekreftCupKamp:vinnar', error); return { error } }
+  }
+  if (rundeNavn === 'Bronsefinale' && vidareIds.length > 0) {
+    const { error } = await supabase.from('resultat')
+      .update({ plassering: 3, runde_eliminert: rundeNummer })
+      .eq('stevneid', stevneId).eq('kasterid', vidareIds[0])
+    if (error) { logError('bekreftCupKamp:bronsefinale', error); return { error } }
+  }
+
+  return { error: null }
+}
+
+export async function oppdaterVinnarTapar(params: {
+  stevneId: number
+  rundeNummer: number
+  rundeNavn: string | null
+  allKasterids: number[]
+  nyVinnarId: number | null | undefined
+  nyTaparId: number | null | undefined
+}): Promise<{ error: unknown }> {
+  const { stevneId, rundeNummer, rundeNavn, allKasterids, nyVinnarId, nyTaparId } = params
+  const erFinale = rundeNavn === 'Finale'
+  const erBronsefinale = rundeNavn === 'Bronsefinale'
+
+  if (erFinale || erBronsefinale) {
+    const { error: resetErr } = await supabase.from('resultat')
+      .update({ runde_eliminert: null, plassering: null })
+      .eq('stevneid', stevneId).in('kasterid', allKasterids)
+    if (resetErr) { logError('oppdaterVinnarTapar:reset', resetErr); return { error: resetErr } }
+    if (nyTaparId) {
+      const { error } = await supabase.from('resultat')
+        .update({ runde_eliminert: rundeNummer, plassering: erFinale ? 2 : 4 })
+        .eq('stevneid', stevneId).eq('kasterid', nyTaparId)
+      if (error) { logError('oppdaterVinnarTapar:tapar', error); return { error } }
+    }
+    const vinUpdate = erFinale ? { plassering: 1 } : { runde_eliminert: rundeNummer, plassering: 3 }
+    if (nyVinnarId) {
+      const { error } = await supabase.from('resultat')
+        .update(vinUpdate).eq('stevneid', stevneId).eq('kasterid', nyVinnarId)
+      if (error) { logError('oppdaterVinnarTapar:vinnar', error); return { error } }
+    }
+  } else {
+    const { error: resetErr } = await supabase.from('resultat')
+      .update({ runde_eliminert: null })
+      .eq('stevneid', stevneId).eq('runde_eliminert', rundeNummer).in('kasterid', allKasterids)
+    if (resetErr) { logError('oppdaterVinnarTapar:reset', resetErr); return { error: resetErr } }
+    if (nyTaparId) {
+      const { error } = await supabase.from('resultat')
+        .update({ runde_eliminert: rundeNummer })
+        .eq('stevneid', stevneId).eq('kasterid', nyTaparId)
+      if (error) { logError('oppdaterVinnarTapar:tapar', error); return { error } }
+    }
+  }
+
+  return { error: null }
+}
+
 // ── Realtime ──────────────────────────────────────────────────────────────────
 
 export type NesteKampPayload = { id: number; bane_nummer: number | null; er_walkover: boolean }
