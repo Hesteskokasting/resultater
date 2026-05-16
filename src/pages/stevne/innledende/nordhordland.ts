@@ -1,16 +1,17 @@
-import { supabase } from '../../../supabase.js'
-import { opnNumberpad } from '../../../components/ScoreNumberpad.js'
-import { beregnKampPoeng, hentP1P2, scoreForSp, ringerForSp } from '../../../utils/kamp.js'
+import { supabase } from '../../../supabase'
+import { opnNumberpad } from '../../../components/ScoreNumberpad'
+import { beregnKampPoeng, hentP1P2, scoreForSp, ringerForSp } from '../../../utils/kamp'
 import { genererNesteSwissRunde } from '../../../services/kampGenereringService'
-import { autoFullforInnledendeKamper } from '../../../organizer/organizerTestUtils.js'
+import { autoFullforInnledendeKamper } from '../../../organizer/organizerTestUtils'
 import {
   byggInnledendeSpelMap, sorterStilling, renderInnledendeKnappar, lagOnEndringHandler,
   bindStillingDetaljar, renderHovudInnhald, bindTabToggle, renderStillingTabell, beregnKanBekrefte,
   type OrgKamp, type OrgKampSpelar,
-} from '../../../organizer/org-shared.js'
-import { escHtml } from '../../../utils/escHtml.js'
+} from '../../../organizer/org-shared'
+import { escHtml } from '../../../utils/escHtml'
 import { createLoadingState } from '../../../components/LoadingState'
 import { createErrorBanner } from '../../../components/ErrorBanner'
+import { logError } from '../../../utils/logError'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import type { InnlKamp, InnlKampSpelar, InnlResultat, InnlStevne } from './types'
 
@@ -39,6 +40,7 @@ export async function render(
 // ── Data fetch + render ───────────────────────────────────────────────────────
 
 async function lastOgVis(container: HTMLElement, stevneid: number): Promise<void> {
+  try {
   const [{ data: stevne }, { data: rawKamper }, { data: resultatListe }] = await Promise.all([
     supabase.from('stevne').select(`
       id, navn, erfullfort, stevne_fase,
@@ -238,6 +240,10 @@ async function lastOgVis(container: HTMLElement, stevneid: number): Promise<void
   }
 
   abonnerPaaEndringar(container, stevneid)
+  } catch (err) {
+    logError('nordhordland.lastOgVis', err)
+    container.replaceChildren(createErrorBanner('Kunne ikkje laste innledande fase.'))
+  }
 }
 
 // ── Realtime ──────────────────────────────────────────────────────────────────
@@ -400,5 +406,5 @@ async function fullforTurnering(_container: HTMLElement, stevneid: number): Prom
   if (!confirm('Start avsluttande fase?')) return
   const { error } = await supabase.from('stevne').update({ stevne_fase: 'avsluttende' }).eq('id', stevneid)
   if (error) { alert('Feil: ' + error.message); return }
-  location.hash = `#/stevne/${stevneid}/organizer/avsluttende`
+  location.hash = `#/stevne/${stevneid}/avsluttende`
 }

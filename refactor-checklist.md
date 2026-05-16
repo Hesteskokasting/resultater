@@ -225,8 +225,8 @@ For **every** file you migrate, all of these must be checked off:
 - [x] `src/pages/stevne/stevne-resultat.ts` — already DoD-compliant; no changes needed
 
 *Per-kastemetode modules (created during stevne refactor — need own DoD pass):*
-- [ ] `src/pages/stevne/innledende/gloppen.ts` — full Gloppen innledende logic; direct supabase calls, alert(), inline HTML
-- [ ] `src/pages/stevne/innledende/nordhordland.ts` — full NHM innledende logic; same issues as gloppen
+- [~] `src/pages/stevne/innledende/gloppen.ts` — quick wins done: .js imports fixed, try/catch on Promise.all, dead route fixed (`organizer/avsluttende` → `avsluttende`); deferred: direct supabase calls → services, alert()/confirm()/prompt() → Toast, as unknown as casts
+- [~] `src/pages/stevne/innledende/nordhordland.ts` — same quick wins applied; same deferred items
 - [ ] `src/pages/stevne/innledende/xkast.ts` — stub only; likely already clean
 - [ ] `src/pages/stevne/innledende/types.ts` — shared interfaces only; no logic to migrate
 - [ ] `src/pages/stevne/avsluttende/cup.ts` — full Cup avsluttende logic; direct supabase calls, alert(), inline HTML
@@ -244,9 +244,11 @@ For **every** file you migrate, all of these must be checked off:
 - [ ] `src/components/ScoreNumberpad.ts`
 
 **organizer:**
-- [x] `src/organizer/gruppefordelingUi.ts`
+- [x] `src/organizer/gruppefordelingUi.ts` — stays in `organizer/` for now; returns HTML strings (not `HTMLElement`), so doesn't fit the `components/` factory pattern yet
+  - [ ] **Deferred:** refactor exports (`renderGruppefordeling` etc.) to `createGruppefordeling()` returning `HTMLElement`; rename to `src/components/GruppefordelingUi.ts`; update importers in `avsluttende/cup.ts`. Do this after `cup.ts` is fully DoD-clean.
 - [x] `src/organizer/kampgenereringDb.ts` — moved to `src/services/kampGenereringService.ts`; old file deleted; 3 importers updated
-- [ ] `src/organizer/organizerTestUtils.ts` — deferred (direct supabase, coupled to stevne pages)
+  - Tech debt noted (unchanged): the as KampMedBane[] / as KampMedMatchId[] casts are forced by Supabase's insert+select return types — fixing them requires QueryData on insert shapes, which isn't straightforward today.
+- [ ] `src/organizer/organizerTestUtils.ts` — deferred (direct supabase, coupled to stevne pages. Do last)
 - [x] `src/organizer/org-shared.ts`
 - [x] `src/organizer/startkort-print.ts`
 
