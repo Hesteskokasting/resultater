@@ -19,7 +19,7 @@ import {
 } from '../../../services/kampService'
 import {
   hentInnledendeStevne, setStevneErfullfort, oppdaterStevneFase,
-  subscribeToInnledendeEndringar, avmeldKanal,
+  subscribeToKampEndringar, avmeldKanal,
 } from '../../../services/stevneService'
 import {
   hentResultatForInnledende, oppdaterResultatHcp,
@@ -220,7 +220,7 @@ function abonnerPaaEndringar(container: HTMLElement, stevneid: number): void {
   const onEndring = lagOnEndringHandler(stevneid, ['innledende'], container, lastOgVis, () => {
     if (kanal) { void avmeldKanal(kanal); kanal = null }
   })
-  kanal = subscribeToInnledendeEndringar(stevneid, `stevne-innl-gloppen-${stevneid}`, onEndring)
+  kanal = subscribeToKampEndringar(stevneid, `stevne-innl-gloppen-${stevneid}`, onEndring)
 }
 
 // ── Round rendering ───────────────────────────────────────────────────────────
