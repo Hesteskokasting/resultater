@@ -1,6 +1,12 @@
-import type { RealtimeChannel } from '@supabase/supabase-js'
-import { supabase } from '../supabase'
-import type { KampRow, KampSpelarIKamp } from '../services/kampService'
+import type { KampOmgangRow, KampRow, KampSpelarIKamp } from '../services/kampService'
+import {
+  hentKampOmgangar,
+  lagreKampOmgang,
+  slettKampOmgangarFra,
+  subscribeToScoreboardEndringar,
+  unsubscribeKampChannel,
+} from '../services/kampService'
+import { showToast } from './Toast'
 
 interface ScoreboardOptions {
   pointValues: number[]
@@ -49,44 +55,23 @@ export async function renderScoreboard(
 
   const spelarIds = [p1ks?.id, p2ks?.id].filter((id): id is number => id != null)
 
-  const kanal: RealtimeChannel = supabase
-    .channel(`scoreboard-kamp-${kamp.id}`)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'kamp_omgang' },
-      async (payload) => {
-        const p = payload.new as Record<string, unknown>
-        const o = payload.old as Record<string, unknown>
-        const endraId = p.kamp_spelar_id ?? o.kamp_spelar_id
-        if (!endraId || spelarIds.includes(endraId as number)) {
-          await lastOmgangar()
-          tegn()
-        }
-      },
-    )
-    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'kamp', filter: `id=eq.${kamp.id}` },
-      async (payload) => {
-        if ((payload.new as { er_bekreftet?: boolean })?.er_bekreftet) {
-          kamp.er_bekreftet = true
-          await lastOmgangar()
-          tegn()
-        }
-      },
-    )
-    .subscribe()
+  const kanal = subscribeToScoreboardEndringar(
+    kamp.id,
+    spelarIds,
+    async () => { await lastOmgangar(); tegn() },
+    async () => { kamp.er_bekreftet = true; await lastOmgangar(); tegn() },
+  )
 
-  window.addEventListener('hashchange', () => supabase.removeChannel(kanal), { once: true })
+  window.addEventListener('hashchange', () => unsubscribeKampChannel(kanal), { once: true })
 
   async function lastOmgangar(): Promise<void> {
     const ids = [p1ks?.id, p2ks?.id].filter((id): id is number => id != null)
     if (!ids.length) return
 
-    const { data } = await supabase
-      .from('kamp_omgang')
-      .select('id, kamp_spelar_id, omgang, score, antall_ringer')
-      .in('kamp_spelar_id', ids)
-      .order('omgang')
+    const { data } = await hentKampOmgangar(ids)
 
     const omgMap: Record<number, OmgangRad> = {}
-    for (const r of (data ?? [])) {
+    for (const r of data) {
       if (!omgMap[r.omgang]) omgMap[r.omgang] = { omgang: r.omgang, s1: 0, s2: 0, r1: 0, r2: 0 }
       if (r.kamp_spelar_id === p1ks?.id) {
         omgMap[r.omgang].s1 = r.score ?? 0
@@ -265,8 +250,8 @@ export async function renderScoreboard(
     if (p1ks?.id) inserts.push({ kamp_spelar_id: p1ks.id, omgang: nr, score: s1, antall_ringer: r1 })
     if (p2ks?.id) inserts.push({ kamp_spelar_id: p2ks.id, omgang: nr, score: s2, antall_ringer: r2 })
 
-    const { error } = await supabase.from('kamp_omgang').insert(inserts)
-    if (error) { alert('Feil ved lagring: ' + error.message); return }
+    const { error } = await lagreKampOmgang(inserts)
+    if (error) { showToast('Feil ved lagring', 'error'); return }
 
     omgangar.push({ omgang: nr, s1, s2, r1, r2 })
     val1 = null
@@ -282,11 +267,8 @@ export async function renderScoreboard(
     if (!confirm(`Slett omgang ${fraNr} og alle etter? Dette kan ikkje angrast.`)) return
 
     const ids = [p1ks?.id, p2ks?.id].filter((id): id is number => id != null)
-    const { error } = await supabase.from('kamp_omgang').delete()
-      .in('kamp_spelar_id', ids)
-      .gte('omgang', fraNr)
-
-    if (error) { alert('Feil ved sletting: ' + error.message); return }
+    const { error } = await slettKampOmgangarFra(ids, fraNr)
+    if (error) { showToast('Feil ved sletting', 'error'); return }
 
     omgangar = omgangar.filter(o => o.omgang < fraNr)
     val1 = null
@@ -324,8 +306,7 @@ async function renderScoreboard3(
   const spelarar = [p1ks, p2ks, p3ks].filter((s): s is KampSpelarIKamp => s != null)
   const spelarIds = spelarar.map(s => s.id).filter((id): id is number => id != null)
 
-  type OmgRad3 = { id: number; kamp_spelar_id: number | null; omgang: number; score: number | null; antall_ringer: number | null }
-  let omgangData: OmgRad3[] = []
+  let omgangData: KampOmgangRow[] = []
   let vinnRekkefølge: number[] = []
   let vals: (number | null)[] = [null, null, null]
 
@@ -372,42 +353,21 @@ async function renderScoreboard3(
 
   async function lastOmgangar3(): Promise<void> {
     if (!spelarIds.length) return
-    const { data } = await supabase
-      .from('kamp_omgang')
-      .select('id, kamp_spelar_id, omgang, score, antall_ringer')
-      .in('kamp_spelar_id', spelarIds)
-      .order('omgang')
-    omgangData = data ?? []
+    const { data } = await hentKampOmgangar(spelarIds)
+    omgangData = data
     vinnRekkefølge = beregnVinnRekkefølge()
   }
 
   await lastOmgangar3()
 
-  const kanal3: RealtimeChannel = supabase
-    .channel(`scoreboard-kamp3-${kamp.id}`)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'kamp_omgang' },
-      async (payload) => {
-        const p = payload.new as Record<string, unknown>
-        const o = payload.old as Record<string, unknown>
-        const endraId = p.kamp_spelar_id ?? o.kamp_spelar_id
-        if (!endraId || spelarIds.includes(endraId as number)) {
-          await lastOmgangar3()
-          tegn3()
-        }
-      },
-    )
-    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'kamp', filter: `id=eq.${kamp.id}` },
-      async (payload) => {
-        if ((payload.new as { er_bekreftet?: boolean })?.er_bekreftet) {
-          kamp.er_bekreftet = true
-          await lastOmgangar3()
-          tegn3()
-        }
-      },
-    )
-    .subscribe()
+  const kanal3 = subscribeToScoreboardEndringar(
+    kamp.id,
+    spelarIds,
+    async () => { await lastOmgangar3(); tegn3() },
+    async () => { kamp.er_bekreftet = true; await lastOmgangar3(); tegn3() },
+  )
 
-  window.addEventListener('hashchange', () => supabase.removeChannel(kanal3), { once: true })
+  window.addEventListener('hashchange', () => unsubscribeKampChannel(kanal3), { once: true })
 
   function bereknKnappStatus3(aktiveIdxar: number[]): Set<number>[] {
     const disabledSets = spelarar.map(() => new Set<number>())
@@ -524,8 +484,8 @@ async function renderScoreboard3(
       const v = vals[i] ?? 0
       return { kamp_spelar_id: spelarar[i].id, omgang: nr, score: v, antall_ringer: v === 6 ? 2 : (v === 3 || v === 4) ? 1 : 0 }
     })
-    const { error } = await supabase.from('kamp_omgang').insert(inserts)
-    if (error) { alert('Feil: ' + error.message); return }
+    const { error } = await lagreKampOmgang(inserts)
+    if (error) { showToast('Feil ved lagring', 'error'); return }
     vals = [null, null, null]
     await lastOmgangar3()
     tegn3()
@@ -533,10 +493,8 @@ async function renderScoreboard3(
 
   async function slettOmgangFra3(fraNr: number): Promise<void> {
     if (!confirm(`Slett omgang ${fraNr} og alle etter? Dette kan ikkje angrast.`)) return
-    const { error } = await supabase.from('kamp_omgang').delete()
-      .in('kamp_spelar_id', spelarIds)
-      .gte('omgang', fraNr)
-    if (error) { alert('Feil: ' + error.message); return }
+    const { error } = await slettKampOmgangarFra(spelarIds, fraNr)
+    if (error) { showToast('Feil ved sletting', 'error'); return }
     vals = [null, null, null]
     await lastOmgangar3()
     tegn3()

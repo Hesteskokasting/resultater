@@ -237,7 +237,7 @@ For **every** file you migrate, all of these must be checked off:
 - [x] `src/admin/stevneadmin.ts`
 
 **components: Deferred — tightly coupled to stevne pages, will change with kastemetode formats**
-- [ ] `src/components/Scoreboard.ts`
+- [x] `src/components/Scoreboard.ts` — CSS was already using --sb-* vars; supabase import removed; hentKampOmgangar/lagreKampOmgang/slettKampOmgangarFra/subscribeToScoreboardEndringar added to kampService; OmgRad3 replaced by KampOmgangRow; alert()→showToast(); unsubscribeKampChannel on hashchange
 - [x] `src/components/ScoreNumberpad.ts` — CSS vars added (--np-* pattern, same in both themes); `opnNumberpad` → `showNumberpad` (consistent with showToast); call sites updated in gloppen, nordhordland, cup
 
 **organizer:**
