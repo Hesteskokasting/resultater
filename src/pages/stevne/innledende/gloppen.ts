@@ -5,7 +5,6 @@ import { autoFullforInnledendeKamper } from '../../../organizer/organizerTestUti
 import {
   byggInnledendeSpelMap, sorterStilling, renderInnledendeKnappar, lagOnEndringHandler,
   bindStillingDetaljar, renderHovudInnhald, bindTabToggle, renderStillingTabell, beregnKanBekrefte,
-  type OrgKamp, type OrgKampSpelar,
 } from '../../../organizer/org-shared'
 import { printStartkort } from '../../../organizer/startkort-print'
 import { escHtml } from '../../../utils/escHtml'
@@ -74,13 +73,13 @@ async function lastOgVis(container: HTMLElement, stevneid: number): Promise<void
       rundeMap.get(kamp.runde_nummer)!.push(kamp)
     }
 
-    const { spelMap, ekteKasterids } = byggInnledendeSpelMap(alleKamper as unknown as OrgKamp[], startnrMap)
+    const { spelMap, ekteKasterids } = byggInnledendeSpelMap(alleKamper, startnrMap)
 
     const stilling = sorterStilling(
       Object.values(spelMap)
         .filter(s => ekteKasterids.has(s.kasterid))
         .map(s => ({ ...s, hcp: resultat.find(r => r.kasterid === s.kasterid)?.hcp ?? 0 })),
-      alleKamper as unknown as OrgKamp[],
+      alleKamper,
     )
 
     const erAlleKamperBekreftet = alleKamper.length > 0 && alleKamper.every(k => k.er_bekreftet)
@@ -96,7 +95,7 @@ async function lastOgVis(container: HTMLElement, stevneid: number): Promise<void
 
     const kamperHtml = [...rundeMap.entries()].map(([nr, rKamper]) => renderRunde(nr, rKamper, startnrMap, kanEndreKampar, hcpMap)).join('')
     const harHcp = isAdmin || stilling.some(s => (s.hcp ?? 0) > 0)
-    const stillingHtml = renderStillingTabell(stilling, alleKamper as unknown as OrgKamp[], startnrMap, {
+    const stillingHtml = renderStillingTabell(stilling, alleKamper, startnrMap, {
       tableId: 'stilling-innl',
       isAdmin,
       stevneid,
@@ -290,7 +289,7 @@ function kampRad(
   const harPoeng = kamp.er_bekreftet || kamp.er_walkover || harOmgangar || s1Raw > 0 || s2Raw > 0
 
   const sp = [p1, p2].filter((s): s is InnlKampSpelarRow => s != null)
-  const kanBekrefte = beregnKanBekrefte(kamp as unknown as OrgKamp, sp as unknown as OrgKampSpelar[], harOmgangar, hcpMap)
+  const kanBekrefte = beregnKanBekrefte(kamp, sp, harOmgangar, hcpMap)
   const bekrfKlass = kamp.er_bekreftet ? 'btn-secondary' : (kanBekrefte ? 'btn-success' : 'btn-outline-secondary')
   const bekrfTekst = kamp.er_bekreftet ? 'Bekreftet' : 'Bekreft'
   const bekrfDisabled = kamp.er_bekreftet || !kanBekrefte ? ' disabled' : ''

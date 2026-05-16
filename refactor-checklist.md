@@ -225,7 +225,7 @@ For **every** file you migrate, all of these must be checked off:
 - [x] `src/pages/stevne/stevne-resultat.ts` — already DoD-compliant; no changes needed
 
 *Per-kastemetode modules (created during stevne refactor — need own DoD pass):*
-- [x] `src/pages/stevne/innledende/gloppen.ts` — fully DoD-clean: service extraction done, alert()→Toast, as unknown as InnlStevne/InnlKamp[]/InnlResultat[] casts removed; remaining `as unknown as OrgKamp[]` casts are structural (OrgKampSpelar.kasterid non-null vs InnlKampSpelarRow — deferred to org-shared audit)
+- [x] `src/pages/stevne/innledende/gloppen.ts` — fully DoD-clean: service extraction done, alert()→Toast, all as-unknown-as casts removed (InnlKampRow/InnlKampSpelarRow are structurally compatible with OrgKamp/OrgKampSpelar)
 - [x] `src/pages/stevne/innledende/nordhordland.ts` — same as gloppen; #neste-runde-btn alert→Toast
 - [ ] `src/pages/stevne/innledende/xkast.ts` — stub only; likely already clean
 - [x] `src/pages/stevne/innledende/types.ts` — deleted; types moved to kampService (InnlKampRow, InnlKampSpelarRow), stevneService (InnlStevneRow), resultatService (InnlResultatRow)
