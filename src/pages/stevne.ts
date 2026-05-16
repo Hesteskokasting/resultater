@@ -1,6 +1,7 @@
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { erAdmin, erKlubbadmin } from '../services/authService'
-import { hentStevneHeader, subscribeToStevneFase, avmeldKanal } from '../services/stevneService'
+import { hentStevneHeader, subscribeToStevneFase } from '../services/stevneService'
+import { avmeldKanal } from '../utils/realtime'
 import { createErrorBanner } from '../components/ErrorBanner'
 import { createLoadingState } from '../components/LoadingState'
 import { logError } from '../utils/logError'

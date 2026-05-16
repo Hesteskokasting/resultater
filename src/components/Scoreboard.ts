@@ -4,8 +4,8 @@ import {
   lagreKampOmgang,
   slettKampOmgangarFra,
   subscribeToScoreboardEndringar,
-  unsubscribeKampChannel,
 } from '../services/kampService'
+import { avmeldKanal } from '../utils/realtime'
 import { showToast } from './Toast'
 
 interface ScoreboardOptions {
@@ -62,7 +62,7 @@ export async function renderScoreboard(
     async () => { kamp.er_bekreftet = true; await lastOmgangar(); tegn() },
   )
 
-  window.addEventListener('hashchange', () => unsubscribeKampChannel(kanal), { once: true })
+  window.addEventListener('hashchange', () => void avmeldKanal(kanal), { once: true })
 
   async function lastOmgangar(): Promise<void> {
     const ids = [p1ks?.id, p2ks?.id].filter((id): id is number => id != null)
@@ -367,7 +367,7 @@ async function renderScoreboard3(
     async () => { kamp.er_bekreftet = true; await lastOmgangar3(); tegn3() },
   )
 
-  window.addEventListener('hashchange', () => unsubscribeKampChannel(kanal3), { once: true })
+  window.addEventListener('hashchange', () => void avmeldKanal(kanal3), { once: true })
 
   function bereknKnappStatus3(aktiveIdxar: number[]): Set<number>[] {
     const disabledSets = spelarar.map(() => new Set<number>())

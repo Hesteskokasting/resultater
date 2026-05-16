@@ -13,8 +13,8 @@ import {
   bekreftInnledendeKamp,
   bekreftAvsluttendeKamp,
   subscribeToNesteKamp,
-  unsubscribeKampChannel,
 } from '../services/kampService'
+import { avmeldKanal } from '../utils/realtime'
 import type { KampRow, KampSpelarIKamp } from '../services/kampService'
 
 const KAMP_POINT_VALUES = [1, 2, 3, 4, 6]
@@ -129,14 +129,14 @@ export async function render(container: HTMLElement, { id }: { id: number }): Pr
 
     const kanal = subscribeToNesteKamp(kamp.stevneid, kampId, async (nyKamp) => {
       if (await erRelevantKamp(nyKamp)) {
-        unsubscribeKampChannel(kanal)
+        await avmeldKanal(kanal)
         location.hash = `#/kamp/${nyKamp.id}`
       }
     })
 
     window.addEventListener('hashchange', () => {
       sessionStorage.removeItem(`ventar-neste-${kampId}`)
-      unsubscribeKampChannel(kanal)
+      void avmeldKanal(kanal)
     }, { once: true })
   }
 

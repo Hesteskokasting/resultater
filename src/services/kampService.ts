@@ -577,8 +577,19 @@ export function subscribeToNesteKamp(
     .subscribe()
 }
 
-export function unsubscribeKampChannel(channel: RealtimeChannel): void {
-  supabase.removeChannel(channel)
+export function subscribeToKampEndringar(
+  stevneid: number,
+  channelName: string,
+  onChange: () => void,
+): RealtimeChannel {
+  return supabase
+    .channel(channelName)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'kamp_omgang' }, onChange)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'kamp' }, (payload) => {
+      const sid = (payload.new as { stevneid?: number })?.stevneid ?? (payload.old as { stevneid?: number })?.stevneid
+      if (sid === stevneid) onChange()
+    })
+    .subscribe()
 }
 
 export function subscribeToScoreboardEndringar(

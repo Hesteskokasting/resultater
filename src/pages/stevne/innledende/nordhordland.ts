@@ -14,13 +14,13 @@ import { logError } from '../../../utils/logError'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import {
   hentInnledendeKamper, harKampOmgangar, slettKampOmgangar,
-  oppdaterKampSpelarScoreRask, bekreftInnledendeKamp,
+  oppdaterKampSpelarScoreRask, bekreftInnledendeKamp, subscribeToKampEndringar,
   type InnlKampRow, type InnlKampSpelarRow,
 } from '../../../services/kampService'
 import {
   hentInnledendeStevne, setStevneErfullfort, oppdaterStevneFase,
-  subscribeToKampEndringar, avmeldKanal,
 } from '../../../services/stevneService'
+import { avmeldKanal } from '../../../utils/realtime'
 import {
   hentResultatForInnledende, oppdaterResultatHcp,
 } from '../../../services/resultatService'

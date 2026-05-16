@@ -39,6 +39,7 @@ import {
   oppdaterVinnarTapar,
   oppdaterKampSpelarScoreRask,
   slettKampOmgangar,
+  subscribeToKampEndringar,
   type AvslKampRow,
   type AvslKampSpelarRow,
 } from '../../../services/kampService'
@@ -48,10 +49,9 @@ import {
   hentPameldingCount,
   oppdaterStevneFase,
   setStevneErfullfort,
-  subscribeToKampEndringar,
-  avmeldKanal,
   type AvslStevneRow,
 } from '../../../services/stevneService'
+import { avmeldKanal } from '../../../utils/realtime'
 import {
   hentResultatForAvsluttende,
   hentGrupper,

@@ -262,10 +262,6 @@ export function subscribeToStevneFase(
     .subscribe()
 }
 
-export async function avmeldKanal(channel: RealtimeChannel): Promise<void> {
-  await supabase.removeChannel(channel)
-}
-
 // ── Avsluttande fase ──────────────────────────────────────────────────────────
 
 const _avslStevneQuery = supabase
@@ -375,17 +371,3 @@ export async function setStevneErfullfort(stevneid: number): Promise<{ error: un
   return { error }
 }
 
-export function subscribeToKampEndringar(
-  stevneid: number,
-  channelName: string,
-  onChange: () => void,
-): RealtimeChannel {
-  return supabase
-    .channel(channelName)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'kamp_omgang' }, onChange)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'kamp' }, (payload) => {
-      const sid = (payload.new as { stevneid?: number })?.stevneid ?? (payload.old as { stevneid?: number })?.stevneid
-      if (sid === stevneid) onChange()
-    })
-    .subscribe()
-}
