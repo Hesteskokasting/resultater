@@ -2,7 +2,7 @@ import { showNumberpad } from '../../../components/ScoreNumberpad'
 import { showToast } from '../../../components/Toast'
 import { beregnKampPoeng, hentP1P2, scoreForSp } from '../../../utils/kamp'
 import { genererNesteSwissRunde } from '../../../services/kampGenereringService'
-import { autoFullforInnledendeKamper } from '../../../organizer/organizerTestUtils'
+import { autoFullforInnledendeKamper } from '../../../services/testDataService'
 import {
   byggInnledendeSpelMap, sorterStilling, renderInnledendeKnappar, lagOnEndringHandler,
   bindStillingDetaljar, renderHovudInnhald, bindTabToggle, renderStillingTabell, beregnKanBekrefte,

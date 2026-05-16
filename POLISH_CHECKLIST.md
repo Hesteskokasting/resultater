@@ -46,14 +46,14 @@ These are small, isolated fixes that should happen before any larger work. They 
 ### A5. Move `organizerTestUtils.ts` Supabase code to a service
 > 9 direct `supabase.from()` calls in a non-service file. Architectural violation that survived Phase 6.
 
-- [ ] Decide: does this belong in `adminService.ts`, or its own `testDataService.ts`? (My vote: own file — it's clearly admin-test-only, not regular admin)
-- [ ] Move all 9 Supabase calls to the chosen service
-- [ ] Update the 3 import sites:
+- [x] Decide: does this belong in `adminService.ts`, or its own `testDataService.ts`? (My vote: own file — it's clearly admin-test-only, not regular admin)
+- [x] Move all 9 Supabase calls to the chosen service
+- [x] Update the 3 import sites:
   - `src/pages/stevne/innledende/gloppen.ts`
   - `src/pages/stevne/innledende/nordhordland.ts`
   - `src/pages/stevne/stevne-innstillinger.ts`
-- [ ] If `organizerTestUtils.ts` is left empty after the move, delete it
-- [ ] Commit: `"Move organizer test-data Supabase calls to service layer"`
+- [x] If `organizerTestUtils.ts` is left empty after the move, delete it
+- [x] Commit: `"Move organizer test-data Supabase calls to service layer"`
 
 > **Verify after Phase A:**
 > - [ ] `grep -r "from '.*\\.js'" src/ --include="*.ts"` → empty (or only `chart.js`/external)
