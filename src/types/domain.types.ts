@@ -49,6 +49,12 @@ export interface RundeOppsett {
   c2: number
 }
 
+export interface Runde1FormatTyped {
+  A?: RundeOppsett | null
+  B?: RundeOppsett | null
+  nA?: number | null
+}
+
 export interface CupRunde {
   runde: number
   spelarar: number

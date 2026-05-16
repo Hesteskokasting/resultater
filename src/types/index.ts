@@ -15,6 +15,7 @@ export type {
   KampMedSpelararOgOmgangar,
   KampSpelarMedOmgangar,
   RundeOppsett,
+  Runde1FormatTyped,
   CupRunde,
   CupParing,
   Profil,
