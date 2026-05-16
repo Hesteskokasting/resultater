@@ -225,10 +225,10 @@ For **every** file you migrate, all of these must be checked off:
 - [x] `src/pages/stevne/stevne-resultat.ts` — already DoD-compliant; no changes needed
 
 *Per-kastemetode modules (created during stevne refactor — need own DoD pass):*
-- [~] `src/pages/stevne/innledende/gloppen.ts` — quick wins done: .js imports fixed, try/catch on Promise.all, dead route fixed (`organizer/avsluttende` → `avsluttende`); deferred: direct supabase calls → services, alert()/confirm()/prompt() → Toast, as unknown as casts
-- [~] `src/pages/stevne/innledende/nordhordland.ts` — same quick wins applied; same deferred items
+- [x] `src/pages/stevne/innledende/gloppen.ts` — fully DoD-clean: service extraction done, alert()→Toast, as unknown as InnlStevne/InnlKamp[]/InnlResultat[] casts removed; remaining `as unknown as OrgKamp[]` casts are structural (OrgKampSpelar.kasterid non-null vs InnlKampSpelarRow — deferred to org-shared audit)
+- [x] `src/pages/stevne/innledende/nordhordland.ts` — same as gloppen; #neste-runde-btn alert→Toast
 - [ ] `src/pages/stevne/innledende/xkast.ts` — stub only; likely already clean
-- [ ] `src/pages/stevne/innledende/types.ts` — shared interfaces only; no logic to migrate
+- [x] `src/pages/stevne/innledende/types.ts` — deleted; types moved to kampService (InnlKampRow, InnlKampSpelarRow), stevneService (InnlStevneRow), resultatService (InnlResultatRow)
 - [ ] `src/pages/stevne/avsluttende/cup.ts` — full Cup avsluttende logic; direct supabase calls, alert(), inline HTML
 - [ ] `src/pages/stevne/avsluttende/kongelag.ts` — stub only; likely already clean
 - [ ] `src/pages/stevne/avsluttende/nordhordland.ts` — stub only; likely already clean
@@ -313,7 +313,7 @@ Look for patterns that appeared repeatedly during migration:
 
 - [x] `createErrorBanner({ message })` — replace the `<p class="feil">...</p>` pattern
 - [x] `createLoadingState({ message })` — replace the centered "Lastar..." pattern
-- [ ] `createToast({ message, type })` — replace all `alert()` / `confirm()` calls; unblocks error UX in stevne-info, stevne-deltakere, avsluttende/cup, innledende/gloppen, innledende/nordhordland
+- [x] `showToast(message, type)` — `src/components/Toast.ts` created; CSS in `global.css`; alert()→Toast done in gloppen + nordhordland; confirm()/prompt() stay native (need separate modal component); remaining callers: stevne-info, stevne-deltakere, avsluttende/cup
 - [ ] `createKortKort()` / `createKasterKort()` — for repeated card layouts
 - [ ] `createTable({ columns, rows })` — typed columns, generic rows
 - [~] `createDropdown()` — skipped: callers use innerHTML templates; no value without refactoring forms to DOM APIs
