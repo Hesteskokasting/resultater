@@ -517,6 +517,44 @@ export async function oppdaterVinnarTapar(params: {
   return { error: null }
 }
 
+// ── Scoreboard omgangar ───────────────────────────────────────────────────────
+
+const _kampOmgangQuery = supabase
+  .from('kamp_omgang')
+  .select('id, kamp_spelar_id, omgang, score, antall_ringer')
+export type KampOmgangRow = QueryData<typeof _kampOmgangQuery>[number]
+
+export async function hentKampOmgangar(spelarIds: number[]): Promise<{ data: KampOmgangRow[]; error: unknown }> {
+  if (!spelarIds.length) return { data: [], error: null }
+  const { data, error } = await supabase
+    .from('kamp_omgang')
+    .select('id, kamp_spelar_id, omgang, score, antall_ringer')
+    .in('kamp_spelar_id', spelarIds)
+    .order('omgang')
+  if (error) logError('hentKampOmgangar', error)
+  return { data: data ?? [], error }
+}
+
+export async function lagreKampOmgang(
+  inserts: { kamp_spelar_id: number; omgang: number; score: number; antall_ringer: number }[],
+): Promise<{ error: unknown }> {
+  if (!inserts.length) return { error: null }
+  const { error } = await supabase.from('kamp_omgang').insert(inserts)
+  if (error) logError('lagreKampOmgang', error)
+  return { error }
+}
+
+export async function slettKampOmgangarFra(spelarIds: number[], fraOmgang: number): Promise<{ error: unknown }> {
+  if (!spelarIds.length) return { error: null }
+  const { error } = await supabase
+    .from('kamp_omgang')
+    .delete()
+    .in('kamp_spelar_id', spelarIds)
+    .gte('omgang', fraOmgang)
+  if (error) logError('slettKampOmgangarFra', error)
+  return { error }
+}
+
 // ── Realtime ──────────────────────────────────────────────────────────────────
 
 export type NesteKampPayload = { id: number; bane_nummer: number | null; er_walkover: boolean }
@@ -541,4 +579,32 @@ export function subscribeToNesteKamp(
 
 export function unsubscribeKampChannel(channel: RealtimeChannel): void {
   supabase.removeChannel(channel)
+}
+
+export function subscribeToScoreboardEndringar(
+  kampId: number,
+  spelarIds: number[],
+  onOmgangChange: () => Promise<void>,
+  onKampBekreft: () => Promise<void>,
+): RealtimeChannel {
+  return supabase
+    .channel(`scoreboard-kamp-${kampId}`)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'kamp_omgang' },
+      async (payload) => {
+        const p = payload.new as Record<string, unknown>
+        const o = payload.old as Record<string, unknown>
+        const endraId = p.kamp_spelar_id ?? o.kamp_spelar_id
+        if (!endraId || spelarIds.includes(endraId as number)) {
+          await onOmgangChange()
+        }
+      },
+    )
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'kamp', filter: `id=eq.${kampId}` },
+      async (payload) => {
+        if ((payload.new as { er_bekreftet?: boolean })?.er_bekreftet) {
+          await onKampBekreft()
+        }
+      },
+    )
+    .subscribe()
 }
