@@ -1,19 +1,18 @@
 import type { RealtimeChannel } from '@supabase/supabase-js'
-import { supabase } from '../../../supabase.js'
-import { gyldigeRunde1Oppsett } from '../../../utils/kastemetoder-logikk.js'
+import { gyldigeRunde1Oppsett } from '../../../utils/kastemetoder-logikk'
 import {
   renderGruppefordeling,
   renderGruppePreview,
   renderGruppePanelInnhald,
   renderStrukturListeHtml,
-} from '../../../organizer/gruppefordelingUi.js'
+} from '../../../organizer/gruppefordelingUi'
 import {
   genererCupRunde1,
   genererNesteCupRundeForGruppe,
   genererFinaleOgBronsefinale,
 } from '../../../services/kampGenereringService'
-import { opnNumberpad } from '../../../components/ScoreNumberpad.js'
-import { scoreForSp } from '../../../utils/kamp.js'
+import { opnNumberpad } from '../../../components/ScoreNumberpad'
+import { scoreForSp } from '../../../utils/kamp'
 import {
   sorterStilling,
   renderAvsluttendeKnappar,
@@ -23,79 +22,63 @@ import {
   bindTabToggle,
   renderStillingTabell,
   beregnKanBekrefte,
-  type OrgKamp,
   type OrgKampSpelar,
   type StillingRad,
-} from '../../../organizer/org-shared.js'
-import { escHtml } from '../../../utils/escHtml.js'
+} from '../../../organizer/org-shared'
+import { escHtml } from '../../../utils/escHtml'
 import { createLoadingState } from '../../../components/LoadingState'
 import { createErrorBanner } from '../../../components/ErrorBanner'
-import type { RundeOppsett, Json } from '../../../types'
+import { showToast } from '../../../components/Toast'
+import { logError } from '../../../utils/logError'
+import type { RundeOppsett, Runde1FormatTyped, Json } from '../../../types'
+import {
+  hentAvsluttendeKamper,
+  hentKampSpelarar,
+  harAlleSemifinalarBekrefta,
+  bekreftCupKamp,
+  oppdaterVinnarTapar,
+  oppdaterKampSpelarScoreRask,
+  slettKampOmgangar,
+  type AvslKampRow,
+  type AvslKampSpelarRow,
+} from '../../../services/kampService'
+import {
+  hentAvsluttendeStevne,
+  setRunde1Format,
+  hentPameldingCount,
+  oppdaterStevneFase,
+  setStevneErfullfort,
+  subscribeToKampEndringar,
+  avmeldKanal,
+  type AvslStevneRow,
+} from '../../../services/stevneService'
+import {
+  hentResultatForAvsluttende,
+  hentGrupper,
+  setGruppeInndeling,
+  clearGruppeInndeling,
+  type AvslResultatRow,
+} from '../../../services/resultatService'
 
-// ── Interfaces ────────────────────────────────────────────────────────────────
+// ── Local types ───────────────────────────────────────────────────────────────
 
-interface Runde1FormatTyped {
-  A?: RundeOppsett | null
-  B?: RundeOppsett | null
-  nA?: number | null
+type AvslResultatKjent = AvslResultatRow & { kasterid: number }
+type AvslResultatMedNavn = AvslResultatKjent & { namn: string }
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function parseRunde1Format(json: Json | null): Runde1FormatTyped | null {
+  if (json == null || typeof json !== 'object' || Array.isArray(json)) return null
+  // runde1_format is always written as Runde1FormatTyped; safe to cast at this read boundary
+  return json as unknown as Runde1FormatTyped
 }
 
-interface AvslKampOmgang {
-  score: number | null
-  antall_ringer: number | null
-}
-
-interface AvslKampSpelar extends OrgKampSpelar {
-  id: number
-  kasterid: number
-  posisjon: number | null
-  score_poeng: number
-  kamp_poeng: number
-  antall_ringer: number
-  kaster: { fornavn: string; etternavn: string } | null
-  omgangar: AvslKampOmgang[] | null
-}
-
-interface AvslKamp extends OrgKamp {
-  id: number
-  fase: string
-  runde_nummer: number
-  bane_nummer: number | null
-  gruppe_navn: string | null
-  runde_navn: string | null
-  er_tre_spelarar: boolean | null
-  spelarar: AvslKampSpelar[] | null
-}
-
-interface AvslResultat {
-  kasterid: number
-  startnummer: number | null
-  plassering: number | null
-  runde_eliminert: number | null
-  kamp_poeng_innl: number | null
-  score_poeng_innl: number | null
-  gruppe: { id: number; navn: string } | null
-}
-
-interface AvslResultatMedNavn extends AvslResultat {
-  namn: string
-}
-
-interface AvslStevne {
-  id: number
-  navn: string
-  stevne_fase: string | null
-  erfullfort: boolean
-  runde1_format: Runde1FormatTyped | null
-  avsluttendemetode: { id: number; navn: string } | null
-}
-
-interface AktuellSpelarRow {
-  id: number
-  kasterid: number
-  score_poeng: number | null
-  antall_ringer: number | null
-  omgangar: { score: number | null; antall_ringer: number | null }[] | null
+function toOrgSp(sp: AvslKampSpelarRow[]): OrgKampSpelar[] {
+  return sp.map(s => ({
+    ...s,
+    score_poeng: s.score_poeng ?? 0,
+    kamp_poeng: s.kamp_poeng ?? 0,
+  }))
 }
 
 // ── Module state ──────────────────────────────────────────────────────────────
@@ -113,7 +96,7 @@ export async function render(
 ): Promise<void> {
   bannerSlot = _bannerSlot
   isAdmin = _isAdmin
-  if (kanal) { supabase.removeChannel(kanal); kanal = null }
+  if (kanal) { await avmeldKanal(kanal); kanal = null }
   container.replaceChildren(createLoadingState('Laster…'))
   await lastOgVis(container, id)
 }
@@ -122,49 +105,32 @@ export async function render(
 
 async function lastOgVis(container: HTMLElement, stevneid: number): Promise<void> {
   const [
-    { data: rawStevne },
+    { data: stevne },
     { data: rawKampar },
     { data: rawResultat },
     { data: rawGrupper },
     { count: pameldingCount },
   ] = await Promise.all([
-    supabase.from('stevne').select(`
-      id, navn, stevne_fase, erfullfort, runde1_format,
-      avsluttendemetode:avsluttendekastemetodeid(id, navn)
-    `).eq('id', stevneid).single(),
-    supabase.from('kamp').select(`
-      id, fase, runde_nummer, bane_nummer, gruppe_navn, runde_navn,
-      er_bekreftet, er_walkover, er_tre_spelarar,
-      spelarar:kamp_spelar(id, kasterid, posisjon, score_poeng, kamp_poeng, antall_ringer,
-        kaster:kasterid(fornavn, etternavn),
-        omgangar:kamp_omgang(score, antall_ringer))
-    `).eq('stevneid', stevneid).order('runde_nummer').order('bane_nummer'),
-    supabase.from('resultat').select(`
-      kasterid, startnummer, plassering, runde_eliminert,
-      kamp_poeng_innl, score_poeng_innl,
-      gruppe:gruppeid(id, navn)
-    `).eq('stevneid', stevneid),
-    supabase.from('gruppe').select('id, navn').in('navn', ['A', 'B']),
-    supabase.from('pamelding').select('id', { count: 'exact', head: true }).eq('stevneid', stevneid),
+    hentAvsluttendeStevne(stevneid),
+    hentAvsluttendeKamper(stevneid),
+    hentResultatForAvsluttende(stevneid),
+    hentGrupper(['A', 'B']),
+    hentPameldingCount(stevneid),
   ])
 
-  if (!rawStevne) {
+  if (!stevne) {
     container.replaceChildren(createErrorBanner('Stevne ikkje funne.'))
     return
   }
 
-  const stevne = rawStevne as unknown as AvslStevne
-  const typedKampar = (rawKampar ?? []) as unknown as AvslKamp[]
-  const typedResultat = (rawResultat ?? []) as unknown as AvslResultat[]
-  const typedGrupper = (rawGrupper ?? []) as { id: number; navn: string }[]
+  const typedResultat = rawResultat.filter((r): r is AvslResultatKjent => r.kasterid != null)
+  const typedGrupper = rawGrupper
 
-  const innlKampar = typedKampar.filter(k => k.fase === 'innledende')
-  const avslKampar = typedKampar.filter(k => k.fase === 'avsluttende')
+  const innlKampar = rawKampar.filter(k => k.fase === 'innledende')
+  const avslKampar = rawKampar.filter(k => k.fase === 'avsluttende')
   const alleInnlBekrefta = innlKampar.length > 0 && innlKampar.every(k => k.er_bekreftet)
   const harAvslKampar = avslKampar.length > 0
   const harGruppefordeling = typedResultat.some(r => r.gruppe != null)
-
-  const aktive = typedResultat.filter(r => r.runde_eliminert == null)
 
   const gruppeNavnMap: Record<string, number> = Object.fromEntries(typedGrupper.map(g => [g.navn, g.id]))
   const startnrMap: Record<number, number> = {}
@@ -173,8 +139,8 @@ async function lastOgVis(container: HTMLElement, stevneid: number): Promise<void
   }
 
   const namnMap: Record<number, string> = {}
-  for (const k of typedKampar) {
-    for (const sp of k.spelarar ?? []) {
+  for (const k of rawKampar) {
+    for (const sp of k.spelarar) {
       if (sp.kasterid && sp.kaster && !namnMap[sp.kasterid]) {
         namnMap[sp.kasterid] = `${sp.kaster.fornavn} ${sp.kaster.etternavn}`
       }
@@ -197,9 +163,10 @@ async function lastOgVis(container: HTMLElement, stevneid: number): Promise<void
   }))
   const stilling = sorterStilling(stillingInput, innlKampar)
 
-  const initNa = stevne.runde1_format?.nA ?? null
-  const harPrekonfigurertFormat = stevne.runde1_format != null && stevne.stevne_fase !== 'avsluttende'
-  const previewN = pameldingCount ?? 0
+  const runde1Format = parseRunde1Format(stevne.runde1_format)
+  const initNa = runde1Format?.nA ?? null
+  const harPrekonfigurertFormat = runde1Format != null && stevne.stevne_fase !== 'avsluttende'
+  const previewN = pameldingCount
 
   if (isAdmin && bannerSlot) {
     bannerSlot.innerHTML = renderAvsluttendeKnappar(stevne, {
@@ -215,11 +182,11 @@ async function lastOgVis(container: HTMLElement, stevneid: number): Promise<void
       ${harGruppefordeling ? renderHovudinnhald(avslKampar, stilling, startnrMap, isAdmin) : ''}
       ${!harGruppefordeling && stevne.stevne_fase === 'avsluttende'
         ? (isAdmin
-            ? renderGruppefordeling(stilling, { visSpelarliste: true, initNa, initFormat: stevne.runde1_format })
+            ? renderGruppefordeling(stilling, { visSpelarliste: true, initNa, initFormat: runde1Format })
             : '<p class="text-muted fst-italic">Gruppefordeling er ikkje klar enno.</p>')
         : ''}
       ${!harGruppefordeling && stevne.stevne_fase !== 'avsluttende' && previewN > 0 && isAdmin
-        ? renderGruppefordeling(previewN, { visSpelarliste: false, initNa, initFormat: stevne.runde1_format })
+        ? renderGruppefordeling(previewN, { visSpelarliste: false, initNa, initFormat: runde1Format })
         : ''}
     </div>
   `
@@ -229,9 +196,9 @@ async function lastOgVis(container: HTMLElement, stevneid: number): Promise<void
     container,
     stevneid,
     stevne,
+    runde1Format,
     alleInnlBekrefta,
     harGruppefordeling,
-    harAvslKampar,
     resultatMedNavn,
     typedGrupper,
     gruppeNavnMap,
@@ -240,7 +207,7 @@ async function lastOgVis(container: HTMLElement, stevneid: number): Promise<void
 
   if (harGruppefordeling) {
     abonnerPaaEndringar(container, stevneid)
-    if (harAvslKampar) bindKampEvents(container, stevneid, avslKampar, startnrMap, resultatMedNavn, aktive.length, isAdmin)
+    if (harAvslKampar) bindKampEvents(container, stevneid, avslKampar, resultatMedNavn, isAdmin)
     bindTabToggle(container)
   }
 }
@@ -248,7 +215,7 @@ async function lastOgVis(container: HTMLElement, stevneid: number): Promise<void
 // ── Main content (matches + standings) ───────────────────────────────────────
 
 function renderHovudinnhald(
-  avslKampar: AvslKamp[],
+  avslKampar: AvslKampRow[],
   stilling: StillingRad[],
   startnrMap: Record<number, number>,
   isAdminLocal = true,
@@ -270,7 +237,7 @@ function renderHovudinnhald(
   }).join('')
 
   const kamperHtml = `<div class="d-flex gap-3 flex-wrap">${gruppeKolonnar}</div>`
-  const stillingHtml = renderStillingTabell(stilling, avslKampar, startnrMap, {
+  const stillingHtml = renderStillingTabell(stilling, innlKamparFraStilling(avslKampar), startnrMap, {
     tableId: 'stilling-avsl',
     harGrupper: true,
     harEliminasjon: true,
@@ -279,9 +246,14 @@ function renderHovudinnhald(
   return renderHovudInnhald(kamperHtml, stillingHtml)
 }
 
+// renderStillingTabell expects OrgKamp[]; AvslKampRow satisfies the shape structurally
+function innlKamparFraStilling(avslKampar: AvslKampRow[]) {
+  return avslKampar as unknown as Parameters<typeof renderStillingTabell>[1]
+}
+
 function renderGruppeKolonne(
   gruppeNavn: string,
-  kampar: AvslKamp[],
+  kampar: AvslKampRow[],
   _aktiveCount: number,
   totalCount: number,
   sisteRundeNr: number,
@@ -290,7 +262,7 @@ function renderGruppeKolonne(
   isAdminLocal = true,
   stillingMap: Record<number, StillingRad> = {},
 ): string {
-  const rundeMap = new Map<number, AvslKamp[]>()
+  const rundeMap = new Map<number, AvslKampRow[]>()
   for (const k of kampar) {
     if (!rundeMap.has(k.runde_nummer)) rundeMap.set(k.runde_nummer, [])
     rundeMap.get(k.runde_nummer)!.push(k)
@@ -324,16 +296,16 @@ function renderGruppeKolonne(
 }
 
 function renderKampBlock(
-  kamp: AvslKamp,
+  kamp: AvslKampRow,
   startnrMap: Record<number, number>,
   isAdminLocal = true,
   stillingMap: Record<number, StillingRad> = {},
 ): string {
-  const sp = (kamp.spelarar ?? []).sort((a, b) =>
-    (startnrMap[a.kasterid] ?? 999) - (startnrMap[b.kasterid] ?? 999)
+  const sp = kamp.spelarar.slice().sort((a, b) =>
+    (startnrMap[a.kasterid ?? 0] ?? 999) - (startnrMap[b.kasterid ?? 0] ?? 999)
   )
 
-  const spelarNamn = (s: AvslKampSpelar | undefined): string =>
+  const spelarNamn = (s: AvslKampSpelarRow | undefined): string =>
     s?.kaster ? `${escHtml(s.kaster.fornavn)} ${escHtml(s.kaster.etternavn)}` : '—'
 
   const bekrefta = kamp.er_bekreftet || kamp.er_walkover
@@ -341,26 +313,26 @@ function renderKampBlock(
 
   const spelarRader = kamp.er_walkover
     ? `<tr>
-        <td>${startnrMap[sp[0]?.kasterid] ?? ''}</td>
+        <td>${startnrMap[sp[0]?.kasterid ?? 0] ?? ''}</td>
         <td colspan="2">${spelarNamn(sp[0])} <span class="badge bg-secondary">Walkover</span></td>
       </tr>`
     : sp.map(s => {
         const tot = scoreForSp(s)
         const score = tot > 0 ? tot : '—'
-        const erEliminert = kamp.er_bekreftet && stillingMap[s.kasterid]?.runde_eliminert === kamp.runde_nummer
+        const erEliminert = kamp.er_bekreftet && stillingMap[s.kasterid ?? 0]?.runde_eliminert === kamp.runde_nummer
         const erVidare = kamp.er_bekreftet && !erEliminert
         const radKlass = erEliminert ? 'kamp-eliminert' : (erVidare ? 'kamp-vidare' : '')
         const scoreAttr = kanEndreScore
           ? ` data-endre-score="${kamp.id}" class="text-center score-redigerbar"`
           : ' class="text-center"'
         return `<tr${radKlass ? ` class="${radKlass}"` : ''}>
-          <td class="th-36 text-center">${startnrMap[s.kasterid] ?? ''}</td>
+          <td class="th-36 text-center">${startnrMap[s.kasterid ?? 0] ?? ''}</td>
           <td>${spelarNamn(s)}</td>
           <td${scoreAttr}>${score}</td>
         </tr>`
       }).join('')
 
-  const harOmgangar = (kamp.spelarar ?? []).some(s => (s.omgangar?.length ?? 0) > 0)
+  const harOmgangar = sp.some(s => (s.omgangar?.length ?? 0) > 0)
 
   let bekrftKlass: string, bekrftTekst: string, bekrftDisabled: boolean, bekreftKnappKlass: string
   if (kamp.er_tre_spelarar) {
@@ -369,7 +341,7 @@ function renderKampBlock(
     bekrftDisabled = false
     bekreftKnappKlass = ''
   } else {
-    const kanBekrefte = beregnKanBekrefte(kamp, sp as unknown as OrgKampSpelar[], harOmgangar)
+    const kanBekrefte = beregnKanBekrefte(kamp, toOrgSp(sp), harOmgangar)
     bekrftKlass = bekrefta ? 'btn-secondary' : (kanBekrefte ? 'btn-success' : 'btn-outline-secondary')
     bekrftTekst = bekrefta ? 'Bekreftet' : 'Bekreft'
     bekrftDisabled = bekrefta || !kanBekrefte
@@ -404,7 +376,7 @@ function opnGenererRundeDialog(
   stevneid: number,
   gruppeNavn: string,
   stillingForGruppe: AvslResultatMedNavn[],
-  _avslKampar: AvslKamp[],
+  _avslKampar: AvslKampRow[],
   runde: number,
   runde1Format: Runde1FormatTyped | null,
 ): void {
@@ -464,18 +436,24 @@ function opnGenererRundeDialog(
       try {
         if (runde === 1) {
           const spelarar = aktive.map((r, i) => ({ kasterid: r.kasterid, plassering: i + 1 }))
+          // Convert to the Record<string, RundeOppsett | undefined> shape expected by genererCupRunde1
+          const runde1FormatRecord: Record<string, RundeOppsett | undefined> = {
+            A: runde1Format?.A ?? undefined,
+            B: runde1Format?.B ?? undefined,
+          }
           await genererCupRunde1(
             stevneid,
             [{ gruppeNavn, spelarar, runde1Oppsett }],
             medSeedingVal,
-            runde1Format as unknown as Record<string, RundeOppsett | undefined>,
+            runde1Format ? runde1FormatRecord : null,
           )
         } else {
           await genererNesteCupRundeForGruppe(stevneid, gruppeNavn, medSeedingVal)
         }
         await lastOgVis(container, stevneid)
       } catch (e) {
-        alert('Feil: ' + (e instanceof Error ? e.message : String(e)))
+        logError('cup:genererRunde', e)
+        showToast('Feil ved generering av runde', 'error')
       }
     })
   }
@@ -488,19 +466,19 @@ function opnGenererRundeDialog(
 function bindHeaderEvents(
   container: HTMLElement,
   stevneid: number,
-  stevne: AvslStevne,
+  stevne: AvslStevneRow,
+  runde1Format: Runde1FormatTyped | null,
   alleInnlBekrefta: boolean,
   harGruppefordeling: boolean,
-  _harAvslKampar: boolean,
   resultat: AvslResultatMedNavn[],
   _grupper: { id: number; navn: string }[],
   gruppeNavnMap: Record<string, number>,
-  avslKampar: AvslKamp[],
+  avslKampar: AvslKampRow[],
 ): void {
   bannerSlot?.querySelector('#start-avsl-btn')?.addEventListener('click', async () => {
     if (!alleInnlBekrefta) return
-    const { error } = await supabase.from('stevne').update({ stevne_fase: 'avsluttende' }).eq('id', stevneid)
-    if (error) { alert('Feil: ' + error.message); return }
+    const { error } = await oppdaterStevneFase(stevneid, 'avsluttende')
+    if (error) { showToast('Feil ved oppstart av avsluttande fase', 'error'); return }
     await lastOgVis(container, stevneid)
   })
 
@@ -572,23 +550,18 @@ function bindHeaderEvents(
       const nB = n - nA
       const oppsettA = lesValtOppsett('runde1-format-a', nA)
       const oppsettB = nB >= 2 ? lesValtOppsett('runde1-format-b', nB) : null
-      const { error: fmtErr } = await supabase
-        .from('stevne').update({ runde1_format: { A: oppsettA, B: oppsettB, nA } as unknown as Json }).eq('id', stevneid)
-      if (fmtErr) { alert('Feil: ' + fmtErr.message); return }
+      const { error: fmtErr } = await setRunde1Format(stevneid, { A: oppsettA, B: oppsettB, nA })
+      if (fmtErr) { showToast('Feil ved lagring av format', 'error'); return }
 
       if (stevne.stevne_fase === 'avsluttende') {
         const gruppeAId = gruppeNavnMap['A'] ?? null
         const gruppeBId = gruppeNavnMap['B'] ?? null
-
-        const updates = sortert.map((r, i) => {
-          const erA = i < nA
-          return supabase.from('resultat')
-            .update({ gruppeid: erA ? gruppeAId : (gruppeBId ?? gruppeAId) })
-            .eq('stevneid', stevneid).eq('kasterid', r.kasterid)
-        })
-        const results = await Promise.all(updates)
-        const err = results.find(r => r.error)?.error
-        if (err) { alert('Feil: ' + err.message); return }
+        const updates = sortert.map((r, i) => ({
+          kasterid: r.kasterid,
+          gruppeid: i < nA ? gruppeAId : (gruppeBId ?? gruppeAId),
+        }))
+        const { error } = await setGruppeInndeling(stevneid, updates)
+        if (error) { showToast('Feil ved lagring av gruppefordeling', 'error'); return }
       }
 
       await lastOgVis(container, stevneid)
@@ -598,8 +571,8 @@ function bindHeaderEvents(
   bannerSlot?.querySelector('#endre-gruppeinndeling-btn')?.addEventListener('click', async () => {
     if (!confirm('Tilbakestill gruppeinndelinga? Gruppefordeling og format vert fjerna.')) return
     await Promise.all([
-      supabase.from('resultat').update({ gruppeid: null }).eq('stevneid', stevneid),
-      supabase.from('stevne').update({ runde1_format: null }).eq('id', stevneid),
+      clearGruppeInndeling(stevneid),
+      setRunde1Format(stevneid, null),
     ])
     await lastOgVis(container, stevneid)
   })
@@ -610,15 +583,15 @@ function bindHeaderEvents(
         const gNavn = btn.dataset.genererGruppe ?? ''
         const runde = parseInt(btn.dataset.runde ?? '1')
         const stillingForGruppe = resultat.filter(r => r.gruppe?.navn === gNavn)
-        opnGenererRundeDialog(container, stevneid, gNavn, stillingForGruppe, avslKampar, runde, stevne.runde1_format)
+        opnGenererRundeDialog(container, stevneid, gNavn, stillingForGruppe, avslKampar, runde, runde1Format)
       })
     })
   }
 
   bannerSlot?.querySelector('#fullfør-turnering-btn')?.addEventListener('click', async () => {
     if (!confirm('Vil du fullføre turneringa? Dette kan ikkje angrast.')) return
-    const { error } = await supabase.from('stevne').update({ erfullfort: true }).eq('id', stevneid)
-    if (error) { alert('Feil: ' + error.message); return }
+    const { error } = await setStevneErfullfort(stevneid)
+    if (error) { showToast('Feil ved fullføring av turnering', 'error'); return }
     await lastOgVis(container, stevneid)
   })
 }
@@ -626,14 +599,12 @@ function bindHeaderEvents(
 function bindKampEvents(
   container: HTMLElement,
   stevneid: number,
-  avslKampar: AvslKamp[],
-  startnrMap: Record<number, number>,
+  avslKampar: AvslKampRow[],
   resultat: AvslResultatMedNavn[],
-  antallAktive: number,
   _isAdmin = false,
 ): void {
   for (const kamp of avslKampar) {
-    const sp = (kamp.spelarar ?? []).slice().sort((a, b) => a.posisjon ?? 0 - (b.posisjon ?? 0))
+    const sp = kamp.spelarar.slice().sort((a, b) => (a.posisjon ?? 0) - (b.posisjon ?? 0))
 
     container.querySelector(`#plus-${kamp.id}`)?.addEventListener('click', async () => {
       const p1 = sp[0]
@@ -641,9 +612,9 @@ function bindKampEvents(
       const p1Namn = p1?.kaster ? `${p1.kaster.fornavn} ${p1.kaster.etternavn}` : '—'
       const p2Namn = p2?.kaster ? `${p2.kaster.fornavn} ${p2.kaster.etternavn}` : '—'
       opnNumberpad(p1Namn, p2Namn, scoreForSp(p1), scoreForSp(p2), async (s1, s2) => {
-        const updates: PromiseLike<unknown>[] = []
-        if (p1) updates.push(supabase.from('kamp_spelar').update({ score_poeng: s1 }).eq('id', p1.id))
-        if (p2) updates.push(supabase.from('kamp_spelar').update({ score_poeng: s2 }).eq('id', p2.id))
+        const updates: Promise<unknown>[] = []
+        if (p1?.id) updates.push(oppdaterKampSpelarScoreRask(p1.id, s1))
+        if (p2?.id) updates.push(oppdaterKampSpelarScoreRask(p2.id, s2))
         await Promise.all(updates)
         await lastOgVis(container, stevneid)
       })
@@ -655,9 +626,9 @@ function bindKampEvents(
 
     container.querySelector(`#bekrft-${kamp.id}`)?.addEventListener('click', () => {
       if (kamp.er_tre_spelarar) {
-        opnTreSpelarBekreftDialog(container, kamp, sp, stevneid, startnrMap, resultat, antallAktive)
+        opnTreSpelarBekreftDialog(container, kamp, sp, stevneid, resultat)
       } else {
-        bekreftCupKamp2Spelar(container, stevneid, kamp, sp, antallAktive)
+        void bekreftCupKamp2Spelar(container, stevneid, kamp, sp)
       }
     })
 
@@ -666,20 +637,30 @@ function bindKampEvents(
       const p2 = sp[1]
       const p1Namn = p1?.kaster ? `${p1.kaster.fornavn} ${p1.kaster.etternavn}` : '—'
       const p2Namn = p2?.kaster ? `${p2.kaster.fornavn} ${p2.kaster.etternavn}` : '—'
+      const allKasterids = sp.map(s => s.kasterid).filter((id): id is number => id != null)
       const handler = (): void => {
         opnNumberpad(p1Namn, p2Namn, scoreForSp(p1), scoreForSp(p2), async (nyS1, nyS2) => {
           const spelarIds = [p1?.id, p2?.id].filter((x): x is number => x != null)
-          if (spelarIds.length) await supabase.from('kamp_omgang').delete().in('kamp_spelar_id', spelarIds)
-          const updates = [
-            ...(p1 ? [supabase.from('kamp_spelar').update({ score_poeng: nyS1 }).eq('id', p1.id)] : []),
-            ...(p2 ? [supabase.from('kamp_spelar').update({ score_poeng: nyS2 }).eq('id', p2.id)] : []),
-          ]
+          if (spelarIds.length) {
+            const { error } = await slettKampOmgangar(spelarIds)
+            if (error) { showToast('DB-feil ved sletting av omgangar', 'error'); return }
+          }
+          const updates: Promise<{ error: unknown }>[] = []
+          if (p1?.id) updates.push(oppdaterKampSpelarScoreRask(p1.id, nyS1))
+          if (p2?.id) updates.push(oppdaterKampSpelarScoreRask(p2.id, nyS2))
           const results = await Promise.all(updates)
           const dbErr = results.find(r => r.error)?.error
-          if (dbErr) { alert('DB-feil: ' + dbErr.message); return }
-          const nyVinnar = nyS1 >= nyS2 ? p1 : p2
-          const nyTapar = nyS1 >= nyS2 ? p2 : p1
-          await _oppdaterVinnarTapar(stevneid, kamp, sp, nyVinnar?.kasterid, nyTapar?.kasterid)
+          if (dbErr) { showToast('DB-feil ved oppdatering av score', 'error'); return }
+          const nyVinnarId = nyS1 >= nyS2 ? p1?.kasterid : p2?.kasterid
+          const nyTaparId = nyS1 >= nyS2 ? p2?.kasterid : p1?.kasterid
+          await oppdaterVinnarTapar({
+            stevneId: stevneid,
+            rundeNummer: kamp.runde_nummer,
+            rundeNavn: kamp.runde_navn,
+            allKasterids,
+            nyVinnarId,
+            nyTaparId,
+          })
           await lastOgVis(container, stevneid)
         })
       }
@@ -693,21 +674,16 @@ function bindKampEvents(
 async function bekreftCupKamp2Spelar(
   container: HTMLElement,
   stevneid: number,
-  kamp: AvslKamp,
-  sp: AvslKampSpelar[],
-  antallAktive: number,
+  kamp: AvslKampRow,
+  sp: AvslKampSpelarRow[],
 ): Promise<void> {
   const p1 = sp[0]
   const p2 = sp[1]
 
-  const { data: rawAktuellSp } = await supabase
-    .from('kamp_spelar')
-    .select('id, kasterid, score_poeng, antall_ringer, omgangar:kamp_omgang(score, antall_ringer)')
-    .eq('kampid', kamp.id)
-  const aktuellSp = rawAktuellSp as unknown as AktuellSpelarRow[] | null
+  const { data: aktuellSp } = await hentKampSpelarar(kamp.id)
 
-  const ak1 = aktuellSp?.find(s => s.id === p1?.id)
-  const ak2 = aktuellSp?.find(s => s.id === p2?.id)
+  const ak1 = aktuellSp.find(s => s.id === p1?.id)
+  const ak2 = aktuellSp.find(s => s.id === p2?.id)
 
   const s1 = scoreForSp(ak1 ?? p1)
   const s2 = scoreForSp(ak2 ?? p2)
@@ -716,8 +692,20 @@ async function bekreftCupKamp2Spelar(
 
   const vinnar = s1 >= s2 ? p1 : p2
   const tapar = s1 >= s2 ? p2 : p1
+  const allKasterids = sp.map(s => s.kasterid).filter((id): id is number => id != null)
+  const vidareIds = vinnar?.kasterid != null ? [vinnar.kasterid] : []
 
-  await _lagreCupKampResultat(stevneid, kamp, sp, vinnar?.kasterid ? [vinnar.kasterid] : [], tapar?.kasterid ?? null, antallAktive)
+  const { error } = await bekreftCupKamp({
+    kampId: kamp.id,
+    stevneId: stevneid,
+    rundeNummer: kamp.runde_nummer,
+    rundeNavn: kamp.runde_navn,
+    allKasterids,
+    eliminertId: tapar?.kasterid ?? null,
+    vidareIds,
+  })
+  if (error) { showToast('DB-feil ved bekreft', 'error'); return }
+
   await _autoGenererFinaleViss(stevneid, kamp)
   await lastOgVis(container, stevneid)
 }
@@ -726,12 +714,10 @@ async function bekreftCupKamp2Spelar(
 
 function opnTreSpelarBekreftDialog(
   container: HTMLElement,
-  kamp: AvslKamp,
-  sp: AvslKampSpelar[],
+  kamp: AvslKampRow,
+  sp: AvslKampSpelarRow[],
   stevneid: number,
-  _startnrMap: Record<number, number>,
   _resultat: AvslResultatMedNavn[],
-  antallAktive: number,
 ): void {
   const namns = sp.map(s =>
     s?.kaster
@@ -745,14 +731,14 @@ function opnTreSpelarBekreftDialog(
   document.body.appendChild(modal)
 
   function renderDialog(): void {
-    const eliminert = valt.length === 2 ? sp.find(s => !valt.includes(s.kasterid)) : null
+    const eliminert = valt.length === 2 ? sp.find(s => s.kasterid != null && !valt.includes(s.kasterid)) : null
     modal.innerHTML = `
       <div class="card p-4 avsl-dialog-card">
         <h5 class="card-title mb-1">Bekreft 3-spelar kamp</h5>
         <p class="text-muted small mb-3">Vel dei to som går vidare. Den gjenverande er eliminert.</p>
         <div class="d-flex flex-column gap-2 mb-3">
           ${sp.map((s, i) => {
-            const idx = valt.indexOf(s.kasterid)
+            const idx = s.kasterid != null ? valt.indexOf(s.kasterid) : -1
             const erValt = idx !== -1
             const erEliminert = !!eliminert && eliminert.kasterid === s.kasterid
             const plasseringLabel = idx === 0 ? '1. plass' : idx === 1 ? '2. plass' : ''
@@ -787,9 +773,19 @@ function opnTreSpelarBekreftDialog(
 
     modal.querySelector('#bekreft-tre-btn')?.addEventListener('click', async () => {
       if (valt.length !== 2) return
-      const eliminertId = sp.find(s => !valt.includes(s.kasterid))?.kasterid
+      const eliminertId = sp.find(s => s.kasterid != null && !valt.includes(s.kasterid))?.kasterid ?? null
+      const allKasterids = sp.map(s => s.kasterid).filter((id): id is number => id != null)
       modal.remove()
-      await _lagreCupKampResultat(stevneid, kamp, sp, [...valt], eliminertId ?? null, antallAktive)
+      const { error } = await bekreftCupKamp({
+        kampId: kamp.id,
+        stevneId: stevneid,
+        rundeNummer: kamp.runde_nummer,
+        rundeNavn: kamp.runde_navn,
+        allKasterids,
+        eliminertId,
+        vidareIds: [...valt],
+      })
+      if (error) { showToast('DB-feil ved bekreft', 'error'); return }
       await _autoGenererFinaleViss(stevneid, kamp)
       await lastOgVis(container, stevneid)
     })
@@ -800,105 +796,10 @@ function opnTreSpelarBekreftDialog(
 
 // ── Auto-generate finale when all semis in group are confirmed ────────────────
 
-async function _autoGenererFinaleViss(stevneid: number, kamp: AvslKamp): Promise<void> {
+async function _autoGenererFinaleViss(stevneid: number, kamp: AvslKampRow): Promise<void> {
   if (kamp.runde_navn !== 'Semifinale' || !kamp.gruppe_navn) return
-  const { data: semis } = await supabase.from('kamp')
-    .select('er_bekreftet')
-    .eq('stevneid', stevneid)
-    .eq('gruppe_navn', kamp.gruppe_navn)
-    .eq('runde_navn', 'Semifinale')
-  if (semis?.every(s => s.er_bekreftet)) {
+  if (await harAlleSemifinalarBekrefta(stevneid, kamp.gruppe_navn)) {
     await genererFinaleOgBronsefinale(stevneid, kamp.gruppe_navn)
-  }
-}
-
-// ── Update winner/loser after score change on confirmed match ─────────────────
-
-async function _oppdaterVinnarTapar(
-  stevneid: number,
-  kamp: AvslKamp,
-  sp: AvslKampSpelar[],
-  nyVinnarId: number | null | undefined,
-  nyTaparId: number | null | undefined,
-): Promise<void> {
-  const allKasterids = sp.map(s => s.kasterid).filter((id): id is number => id != null)
-  const erFinale = kamp.runde_navn === 'Finale'
-  const erBronsefinale = kamp.runde_navn === 'Bronsefinale'
-
-  if (erFinale || erBronsefinale) {
-    await supabase.from('resultat')
-      .update({ runde_eliminert: null, plassering: null })
-      .eq('stevneid', stevneid)
-      .in('kasterid', allKasterids)
-    const tapPlass = erFinale ? 2 : 4
-    if (nyTaparId) await supabase.from('resultat')
-      .update({ runde_eliminert: kamp.runde_nummer, plassering: tapPlass })
-      .eq('stevneid', stevneid).eq('kasterid', nyTaparId)
-    const vinUpdate = erFinale
-      ? { plassering: 1 }
-      : { runde_eliminert: kamp.runde_nummer, plassering: 3 }
-    if (nyVinnarId) await supabase.from('resultat')
-      .update(vinUpdate)
-      .eq('stevneid', stevneid).eq('kasterid', nyVinnarId)
-  } else {
-    await supabase.from('resultat')
-      .update({ runde_eliminert: null })
-      .eq('stevneid', stevneid)
-      .eq('runde_eliminert', kamp.runde_nummer)
-      .in('kasterid', allKasterids)
-    if (nyTaparId) await supabase.from('resultat')
-      .update({ runde_eliminert: kamp.runde_nummer })
-      .eq('stevneid', stevneid).eq('kasterid', nyTaparId)
-  }
-}
-
-// ── Save cup match result ─────────────────────────────────────────────────────
-
-async function _lagreCupKampResultat(
-  stevneid: number,
-  kamp: AvslKamp,
-  sp: AvslKampSpelar[],
-  vidareIds: number[],
-  eliminertId: number | null,
-  _antallAktive: number,
-): Promise<void> {
-  await supabase.from('kamp').update({ er_bekreftet: true }).eq('id', kamp.id)
-
-  if (!eliminertId) return
-
-  const erFinale = kamp.runde_navn === 'Finale' || kamp.runde_navn === 'Bronsefinale'
-  const allKasterids = sp.map(s => s.kasterid).filter((id): id is number => id != null)
-
-  if (erFinale) {
-    await supabase.from('resultat')
-      .update({ runde_eliminert: null, plassering: null })
-      .eq('stevneid', stevneid)
-      .in('kasterid', allKasterids)
-  } else {
-    await supabase.from('resultat')
-      .update({ runde_eliminert: null })
-      .eq('stevneid', stevneid)
-      .eq('runde_eliminert', kamp.runde_nummer)
-      .in('kasterid', allKasterids)
-  }
-
-  const elimUpdate = erFinale
-    ? { runde_eliminert: kamp.runde_nummer, plassering: kamp.runde_navn === 'Finale' ? 2 : 4 }
-    : { runde_eliminert: kamp.runde_nummer }
-
-  await supabase.from('resultat')
-    .update(elimUpdate)
-    .eq('stevneid', stevneid).eq('kasterid', eliminertId)
-
-  if (kamp.runde_navn === 'Finale' && vidareIds.length > 0) {
-    await supabase.from('resultat')
-      .update({ plassering: 1 })
-      .eq('stevneid', stevneid).eq('kasterid', vidareIds[0])
-  }
-  if (kamp.runde_navn === 'Bronsefinale' && vidareIds.length > 0) {
-    await supabase.from('resultat')
-      .update({ plassering: 3, runde_eliminert: kamp.runde_nummer })
-      .eq('stevneid', stevneid).eq('kasterid', vidareIds[0])
   }
 }
 
@@ -907,14 +808,7 @@ async function _lagreCupKampResultat(
 function abonnerPaaEndringar(container: HTMLElement, stevneid: number): void {
   if (kanal) return
   const onEndring = lagOnEndringHandler(stevneid, ['avsluttende'], container, lastOgVis, () => {
-    if (kanal) { supabase.removeChannel(kanal); kanal = null }
+    if (kanal) { void avmeldKanal(kanal); kanal = null }
   })
-  kanal = supabase
-    .channel(`stevne-avsl-cup-${stevneid}`)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'kamp_omgang' }, onEndring)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'kamp' }, (payload) => {
-      const sid = (payload.new as { stevneid?: number })?.stevneid ?? (payload.old as { stevneid?: number })?.stevneid
-      if (sid === stevneid) onEndring()
-    })
-    .subscribe()
+  kanal = subscribeToKampEndringar(stevneid, `stevne-avsl-cup-${stevneid}`, onEndring)
 }

@@ -227,11 +227,8 @@ For **every** file you migrate, all of these must be checked off:
 *Per-kastemetode modules (created during stevne refactor — need own DoD pass):*
 - [x] `src/pages/stevne/innledende/gloppen.ts` — fully DoD-clean: service extraction done, alert()→Toast, all as-unknown-as casts removed (InnlKampRow/InnlKampSpelarRow are structurally compatible with OrgKamp/OrgKampSpelar)
 - [x] `src/pages/stevne/innledende/nordhordland.ts` — same as gloppen; #neste-runde-btn alert→Toast
-- [ ] `src/pages/stevne/innledende/xkast.ts` — stub only; likely already clean
 - [x] `src/pages/stevne/innledende/types.ts` — deleted; types moved to kampService (InnlKampRow, InnlKampSpelarRow), stevneService (InnlStevneRow), resultatService (InnlResultatRow)
-- [ ] `src/pages/stevne/avsluttende/cup.ts` — full Cup avsluttende logic; direct supabase calls, alert(), inline HTML
-- [ ] `src/pages/stevne/avsluttende/kongelag.ts` — stub only; likely already clean
-- [ ] `src/pages/stevne/avsluttende/nordhordland.ts` — stub only; likely already clean
+- [x] `src/pages/stevne/avsluttende/cup.ts` — fully DoD-clean: service extraction done (AvslKampRow/AvslStevneRow/AvslResultatRow QueryData types; bekreftCupKamp/oppdaterVinnarTapar/harAlleSemifinalarBekrefta in kampService); alert()→Toast; `as unknown as` casts removed except parseRunde1Format (Json→Runde1FormatTyped at DB boundary) and innlKamparFraStilling (OrgKamp shape adapter); subscribeToInnledendeEndringar renamed subscribeToKampEndringar (reused for avsluttende); Runde1FormatTyped added to domain.types.ts
 
 **admin:**
 - [x] `src/admin/admin.ts`
