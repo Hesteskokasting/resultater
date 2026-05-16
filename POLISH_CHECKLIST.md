@@ -70,32 +70,26 @@ These are small, isolated fixes that should happen before any larger work. They 
 > 710 lines total, ~91% identical. This is the biggest single quality issue left.
 
 ### Step 1: Plan before coding
-- [ ] Ask Claude Code:
-  > "Compare `src/pages/stevne/innledende/gloppen.ts` and `src/pages/stevne/innledende/nordhordland.ts` line by line. List:
-  > 1. Identical sections
-  > 2. Sections that differ — and the meaningful pattern of difference (extra feature, naming, behavior)
-  > 3. Sections that look 'almost identical but slightly different' (the dangerous kind)
-  >
-  > Propose an architecture: one shared base + minimal config per variant. Show me the proposed API before writing any code."
+- [x] Ask Claude Code — compared line by line, identified 9 differences across 5 concerns
 
 ### Step 2: Verify the proposal handles edge cases
-- [ ] Does it cleanly handle `genererNesteSwissRunde` (nordhordland only)?
-- [ ] Does it cleanly handle `printStartkort` (gloppen only)?
-- [ ] Does it cleanly handle the `visAlleRundar` toggle (nordhordland only)?
-- [ ] Does it cleanly handle the `logError(...)` context strings (differ per file)?
-- [ ] If any of these forces ugly conditionals in the shared module — push back.
+- [x] Cleanly handles `genererNesteSwissRunde` (nordhordland only) — in `bindBannerExtra`, no conditional in base
+- [x] Cleanly handles `printStartkort` (gloppen only) — in `bindBannerExtra`, no conditional in base
+- [x] Cleanly handles the `visAlleRundar` toggle (nordhordland only) — module-level `let` in variant + `filterRundar` + `onReset`
+- [x] Cleanly handles the `logError(...)` context strings — `variant.logPrefix` string, one usage in base
+- [x] No ugly conditionals in the shared module
 
 ### Step 3: Build the shared module
-- [ ] Create `src/pages/stevne/innledende/_swissRundeBase.ts` (or similar)
-- [ ] Both `gloppen.ts` and `nordhordland.ts` import + configure it
-- [ ] Each file should be ~30-50 lines (config + variant-specific behavior)
+- [x] Create `src/pages/stevne/innledende/_innledendeBase.ts` (named for all innledende, not just Swiss)
+- [x] Both `gloppen.ts` and `nordhordland.ts` import + configure it
+- [x] Each file is ~30-50 lines (gloppen: 17 lines, nordhordland: 44 lines)
 - [ ] Test BOTH stevner thoroughly in browser
-- [ ] Commit: `"Deduplicate Swiss-runde implementations into shared base"`
+- [ ] Commit: `"Deduplicate innledende implementations into shared base (_innledendeBase.ts)"`
 
 ### Step 4: Document the variant pattern
-- [ ] Add a comment header in `_swissRundeBase.ts` explaining the config API
-- [ ] If `xkast.ts` (the placeholder) gets implemented later, it should also use this base
-- [ ] Update `DECISIONS.md` with why the split exists
+- [x] Add a comment header in `_innledendeBase.ts` explaining the config API
+- [x] If `xkast.ts` (the placeholder) gets implemented later, it should also use this base (documented)
+- [x] Created `DECISIONS.md` with why the split exists + future kastemetode pattern
 
 ---
 
