@@ -14,6 +14,10 @@
 
 /* ── Header ── */
 
+.topp-header.skjult {
+  display: none;
+}
+
 .topp-header {
   display: flex;
   align-items: center;

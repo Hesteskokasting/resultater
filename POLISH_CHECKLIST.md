@@ -39,9 +39,9 @@ These are small, isolated fixes that should happen before any larger work. They 
 - [ x] Commit: `"Use createLoadingState everywhere (no more raw HTML)"`
 
 ### A4. Fix inline styles in `kamp.ts`
-- [ ] `src/pages/kamp.ts:47` and `:51` — `hovudHeader.style.display = 'none'/''`
-- [ ] Either: add a CSS class `.skjul-header` and toggle it, OR move to data attribute + CSS
-- [ ] Commit: `"Move kamp.ts inline styles to CSS class"`
+- [x] `src/pages/kamp.ts:47` and `:51` — `hovudHeader.style.display = 'none'/''`
+- [x] Either: add a CSS class `.skjul-header` and toggle it, OR move to data attribute + CSS
+- [x] Commit: `"Move kamp.ts inline styles to CSS class"`
 
 ### A5. Move `organizerTestUtils.ts` Supabase code to a service
 > 9 direct `supabase.from()` calls in a non-service file. Architectural violation that survived Phase 6.

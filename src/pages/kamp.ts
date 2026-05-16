@@ -44,11 +44,11 @@ export async function render(container: HTMLElement, { id }: { id: number }): Pr
   const hcpMap = await hentHcp(kamp.stevneid, kasterids)
 
   const hovudHeader = document.querySelector<HTMLElement>('.topp-header')
-  if (hovudHeader) hovudHeader.style.display = 'none'
+  if (hovudHeader) hovudHeader.classList.add('skjult')
   container.classList.add('sb-fullskjerm-modus')
 
   window.addEventListener('hashchange', () => {
-    if (hovudHeader) hovudHeader.style.display = ''
+    if (hovudHeader) hovudHeader.classList.remove('skjult')
     container.classList.remove('sb-fullskjerm-modus')
   }, { once: true })
 
