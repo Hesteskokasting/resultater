@@ -190,11 +190,13 @@ These are small, isolated fixes that should happen before any larger work. They 
   - **`rekorder.ts:177`** — false positive, clicks navigate to stevne page (not expand/collapse)
 - [x] Fix stilling table: remove accordion (each row now toggles independently)
 - [x] Fix stilling table: expanded rows persist across realtime re-renders (Set passed to `bindStillingDetaljar`)
-- [ ] Extract `bindExpandableRows` utility for the `.nc-poeng-celle` pattern (3 identical blocks → 1 call each)
-  - Add `aria-expanded` on trigger cell, `tabindex="0"`, Enter/Space keyboard support
-  - Lives in `org-shared.ts` or a new `src/utils/expandableRows.ts`
+- [x] Extract `bindExpandableRows` utility (`src/utils/expandableRows.ts`):
+  - `tabindex="0"` + `aria-expanded` set on all trigger cells at bind time
+  - Enter/Space keyboard support
+  - `lookupRoot` param for when detail rows live in a parent element
+- [x] Replace all 3 call sites: `norgesranking.ts`, `norgescupen.ts` (lag + singel)
 - [ ] Add `aria-expanded` + keyboard support to `bindStillingDetaljar` (stilling table)
-- [ ] Test, commit
+- [ ] Test expandable rows in norgesranking and norgescupen, commit
 
 ### D2b. StillingTabell — kastemetode-driven column config (larger scope)
 > `renderStillingTabell` and `bindStillingDetaljar` are already shared in `org-shared.ts`.

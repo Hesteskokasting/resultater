@@ -1,6 +1,7 @@
 import { kasterNavn } from '../utils/kaster'
 import { escHtml } from '../utils/escHtml'
 import { logError } from '../utils/logError'
+import { bindExpandableRows } from '../utils/expandableRows'
 import { formaterPoeng, byggSingelListe, byggLagListe } from '../utils/norgescup'
 import { hentRegler, hentStevnerOgResultater } from '../services/norgescupService'
 import { formaterDato, arOptions } from '../utils/shared'
@@ -235,16 +236,7 @@ export async function render(container: HTMLElement): Promise<void> {
       } else {
         const lagListe = byggLagListe(cache.resultater, cache.stevner, regler)
         lagContainer.innerHTML = lagTabellHtml(lagListe)
-        lagContainer.addEventListener('click', e => {
-          const celle = (e.target as Element).closest<HTMLElement>('.nc-lag-poeng-celle')
-          if (!celle) return
-          const idx = celle.dataset.lagIdx
-          const detalj = content.querySelector<HTMLElement>(`.nc-lag-detalj-rad[data-lag-idx="${idx}"]`)
-          if (!detalj) return
-          const skjult = detalj.classList.contains('d-none')
-          detalj.classList.toggle('d-none')
-          celle.querySelector('.nc-chevron')!.textContent = skjult ? ' ▲' : ' ▼'
-        })
+        bindExpandableRows(lagContainer, { triggerSel: '.nc-lag-poeng-celle', idAttr: 'lag-idx', detailSel: '.nc-lag-detalj-rad', lookupRoot: content })
       }
     } else {
       content.innerHTML = `
@@ -261,16 +253,7 @@ export async function render(container: HTMLElement): Promise<void> {
       } else {
         const singelListe = byggSingelListe(cache.resultater, cache.stevner, regler, cupType, klasse)
         singelContainer.innerHTML = singelTabellHtml(singelListe)
-        singelContainer.addEventListener('click', e => {
-          const celle = (e.target as Element).closest<HTMLElement>('.nc-poeng-celle')
-          if (!celle) return
-          const idx = celle.dataset.idx
-          const detalj = content.querySelector<HTMLElement>(`.nc-detalj-rad[data-idx="${idx}"]`)
-          if (!detalj) return
-          const skjult = detalj.classList.contains('d-none')
-          detalj.classList.toggle('d-none')
-          celle.querySelector('.nc-chevron')!.textContent = skjult ? ' ▲' : ' ▼'
-        })
+        bindExpandableRows(singelContainer, { triggerSel: '.nc-poeng-celle', idAttr: 'idx', detailSel: '.nc-detalj-rad', lookupRoot: content })
       }
 
       content.querySelector('#nc-singel-seksjon')!.addEventListener('click', e => {

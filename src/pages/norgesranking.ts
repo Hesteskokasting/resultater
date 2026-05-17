@@ -4,6 +4,7 @@ import { createErrorBanner } from '../components/ErrorBanner'
 import { createLoadingState } from '../components/LoadingState'
 import { escHtml } from '../utils/escHtml'
 import { logError } from '../utils/logError'
+import { bindExpandableRows } from '../utils/expandableRows'
 import { hentStevnerOgResultater } from '../services/norgesrankingService'
 import type { RankingStevneRow, RankingResultatRow } from '../services/norgesrankingService'
 
@@ -304,16 +305,7 @@ export async function render(container: HTMLElement): Promise<void> {
       const tabellEl = container.querySelector<HTMLElement>('#nr-tabell-container')!
       tabellEl.innerHTML = `<div id="nr-tabell-inner">${rankingTabellHtml(liste, filtre.sokeTekst)}</div>`
       const inner = tabellEl.querySelector<HTMLElement>('#nr-tabell-inner')!
-      inner.addEventListener('click', e => {
-        const celle = (e.target as Element).closest<HTMLElement>('.nc-poeng-celle')
-        if (!celle) return
-        const idx = celle.dataset.idx
-        const detalj = inner.querySelector<HTMLElement>(`.nc-detalj-rad[data-idx="${idx}"]`)
-        if (!detalj) return
-        const erSkjult = detalj.classList.contains('d-none')
-        detalj.classList.toggle('d-none', !erSkjult)
-        celle.querySelector('.nc-chevron')!.textContent = erSkjult ? ' ▲' : ' ▼'
-      })
+      bindExpandableRows(inner, { triggerSel: '.nc-poeng-celle', idAttr: 'idx', detailSel: '.nc-detalj-rad' })
     }
 
     oppdaterTabell()
