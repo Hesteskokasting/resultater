@@ -10,7 +10,8 @@
       "Bash(Select-Object Name)",
       "Bash(xargs grep -l \"kamp_spelar.*kasterid\")",
       "Bash(grep -rn \"from.*innledende/types\\\\|from.*innledende\\\\\\\\\\\\\\\\types\" \"d:/repos/resultater/src\" --include=\"*.ts\")",
-      "Bash(Remove-Item \"d:/repos/resultater/src/pages/stevne/innledende/types.ts\")"
+      "Bash(Remove-Item \"d:/repos/resultater/src/pages/stevne/innledende/types.ts\")",
+      "Bash(grep -v \"//\")"
     ]
   }
 }

@@ -101,8 +101,9 @@ export async function render(
     })
 
     container.querySelector<HTMLButtonElement>('#nullstill-btn')!.addEventListener('click', async e => {
+      const btn = e.currentTarget as HTMLButtonElement
       if (!await confirmDialog({ title: 'Nullstill stevne', message: 'Dette slettar alle kampar og resultat og set stevnet tilbake til starttilstanden. Er du sikker?', danger: true })) return
-      ;(e.currentTarget as HTMLButtonElement).disabled = true
+      btn.disabled = true
       await nullstillStevne(id)
       await render(container, { id })
     })

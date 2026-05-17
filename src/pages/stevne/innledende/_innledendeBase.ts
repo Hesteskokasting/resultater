@@ -158,8 +158,9 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
         })
 
         bannerSlot.querySelector('#test-autofullfør-btn')?.addEventListener('click', async (e) => {
+          const btn = e.currentTarget as HTMLButtonElement
           if (!await confirmDialog({ title: 'Autofullfør kampar', message: 'Autofullfør alle ubekreftede innledande kampar?' })) return
-          ;(e.currentTarget as HTMLButtonElement).disabled = true
+          btn.disabled = true
           await autoFullforInnledendeKamper(stevneid)
           await lastOgVis(container, stevneid)
         })

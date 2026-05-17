@@ -120,23 +120,42 @@ These are small, isolated fixes that should happen before any larger work. They 
 - [x] Commit: `"Replace native alert() with showToast"`
 
 ### C4. Replace all `confirm()` calls
-- [ ] `src/components/Scoreboard.ts:267, :495` (2 instances)
-- [ ] `src/admin/stevneadmin.ts:131`
-- [ ] `src/admin/kasteradmin.ts:110`
-- [ ] `src/pages/stevne/innledende/gloppen.ts:137, :144, :156, :341` _(handled if Phase B done first)_
-- [ ] `src/pages/stevne/innledende/nordhordland.ts` _(same — handled if Phase B done first)_
-- [ ] `src/pages/stevne/avsluttende/cup.ts:572, :592, :691`
-- [ ] `src/pages/stevne/stevne-innstillinger.ts:102`
-- [ ] Commit as logical groups (e.g. one commit per file or per admin/stevne split)
+- [x] `src/components/Scoreboard.ts` (2 instances)
+- [x] `src/admin/stevneadmin.ts`
+- [x] `src/admin/kasteradmin.ts`
+- [x] `src/pages/stevne/innledende/_innledendeBase.ts` (4 instances — Phase B moved gloppen/nordhordland here)
+- [x] `src/pages/stevne/avsluttende/cup.ts` (3 instances)
+- [x] `src/pages/stevne/stevne-innstillinger.ts`
+- [x] `src/pages/stevne/stevne-info.ts` (unlisted — found during grep)
+- [x] `src/pages/pamelding.ts` (unlisted — 2 instances found during grep)
+- [x] Commit as logical groups (e.g. one commit per file or per admin/stevne split)
 
 ### C5. Replace all `prompt()` calls
-- [ ] `src/pages/stevne/innledende/gloppen.ts:119` _(handled by Phase B)_
-- [ ] `src/pages/stevne/innledende/nordhordland.ts:127` _(handled by Phase B)_
-- [ ] Commit: `"Replace native prompt() with PromptDialog"`
+- [x] `src/pages/stevne/innledende/_innledendeBase.ts` — HCP edit (gloppen/nordhordland calls moved here by Phase B)
+- [x] Commit: `"Replace native prompt() with PromptDialog"`
 
 ### C6. Verification
-- [ ] `grep -rn "\\b\\(alert\\|confirm\\|prompt\\)(" src/ --include="*.ts" | grep -v "//"` → empty
+- [x] `grep -rn "\b(alert|confirm|prompt)(" src/ --include="*.ts" | grep -v "//"` → empty (excluding PromptDialog's own `confirm` function)
+- [x] `npm run typecheck` passes
 - [ ] Manual test: every dialog still works, ESC closes them, focus returns properly
+  - ConfirmDialog — danger:
+    - [ ] Admin → Kaster → Slett utøvar
+    - [ ] Admin → Stevne → Slett stevne
+    - [ ] Admin → Stevne → Innstillingar → Nullstill stevne
+    - [ ] Stevne innledende (admin) → Fullfør turnering (setStevneErfullfort)
+    - [ ] Stevne innledende (admin) → Start avsluttande fase → Fullfør turnering
+    - [ ] Stevne avsluttende (admin) → Tilbakestill gruppeinndeling
+    - [ ] Stevne avsluttende (admin) → Fullfør turnering
+  - ConfirmDialog — normal:
+    - [ ] Stevne → Info → Start stevne (with unconfirmed participants. Show the names of participant)
+    - [ ] Stevne innledende (admin) → Autofullfør kampar
+    - [ ] Stevne innledende (admin) → Edit match that already has omgang data (needs danger button)
+    - [ ] Stevne avsluttende → Bekreft kamp with 0-0 score (should not be possible)
+    - [ ] Scoreboard → Slett omgang
+    - [ ] Påmelding → Avmeld (own registration)
+    - [ ] Påmelding → Fjern påmelding (admin)
+  - PromptDialog:
+    - [ ] Stevne innledende standings (admin) → click HCP cell
 
 ---
 
