@@ -243,14 +243,20 @@ export async function bekreftInnledendeKamp(params: {
       logError('bekreftInnledendeKamp:omgangar', omgErr)
       return { error: omgErr }
     }
-    for (const row of (omgData ?? [])) {
-      if (row.kamp_spelar_id === p1?.spelarId) {
-        t1 += row.score ?? 0
-        r1 += row.antall_ringer ?? 0
-      } else {
-        t2 += row.score ?? 0
-        r2 += row.antall_ringer ?? 0
+    if (omgData?.length) {
+      for (const row of omgData) {
+        if (row.kamp_spelar_id === p1?.spelarId) {
+          t1 += row.score ?? 0
+          r1 += row.antall_ringer ?? 0
+        } else {
+          t2 += row.score ?? 0
+          r2 += row.antall_ringer ?? 0
+        }
       }
+    } else {
+      // No omgang data — scores entered via numberpad, use score_poeng directly
+      t1 = p1?.scorePoeng ?? 0
+      t2 = p2?.scorePoeng ?? 0
     }
     t1 += hcp1
     t2 += hcp2

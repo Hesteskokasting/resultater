@@ -84,7 +84,9 @@ These are small, isolated fixes that should happen before any larger work. They 
 - [x] Both `gloppen.ts` and `nordhordland.ts` import + configure it
 - [x] Each file is ~30-50 lines (gloppen: 17 lines, nordhordland: 44 lines)
 - [ ] Test BOTH stevner thoroughly in browser
-- [ ] Commit: `"Deduplicate innledende implementations into shared base (_innledendeBase.ts)"`
+  - Bug: When confirming a match (kamp) the score is set to 0 - 0
+  - Bug: Cannot confirm Walkover kamp
+- [x] Commit: `"Deduplicate innledende implementations into shared base (_innledendeBase.ts)"`
 
 ### Step 4: Document the variant pattern
 - [x] Add a comment header in `_innledendeBase.ts` explaining the config API

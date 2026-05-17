@@ -93,8 +93,7 @@ export function beregnKanBekrefte(
   harOmgangar: boolean,
   hcpMap: Record<number, number> = {},
 ): boolean {
-  const bekrefta = kamp.er_bekreftet || kamp.er_walkover
-  if (bekrefta) return false
+  if (kamp.er_bekreftet) return false
   if (kamp.er_walkover) return true
   if (harOmgangar) return false
   const hcp1 = hcpMap[sp[0]?.kasterid] ?? 0
