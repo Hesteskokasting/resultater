@@ -147,7 +147,7 @@ These are small, isolated fixes that should happen before any larger work. They 
     - [ ] Stevne avsluttende (admin) → Tilbakestill gruppeinndeling
     - [ ] Stevne avsluttende (admin) → Fullfør turnering
   - ConfirmDialog — normal:
-    - [ ] Stevne → Info → Start stevne (with unconfirmed participants. Show the names of participant)
+    - [ ] Stevne → Info → Start stevne (with unconfirmed participants. Show the names of participants)
     - [ ] Stevne innledende (admin) → Autofullfør kampar
     - [ ] Stevne innledende (admin) → Edit match that already has omgang data (needs danger button)
     - [ ] Stevne avsluttende → Bekreft kamp with 0-0 score (should not be possible)
@@ -164,28 +164,23 @@ These are small, isolated fixes that should happen before any larger work. They 
 > These are the components from Phase 4 of the old checklist. They earn their place because they fix a11y issues automatically.
 
 ### D1. `createTabs` component
-- [ ] Inventory all manual tab implementations first:
-  - `src/admin/admin.ts:43`
-  - `src/pages/logginn.ts:71`
-  - `src/pages/minside.ts:172`
-  - `src/pages/klubber.ts` (find exact location)
-  - `src/pages/kastere.ts` (find exact location)
-  - `src/pages/stevne.ts`
-  - `src/pages/stevne/stevne-info.ts`
-  - `src/organizer/org-shared.ts`
-- [ ] Design the API:
-  ```ts
-  interface TabConfig {
-    id: string;
-    label: string;
-    onActivate: () => void;
-    visible?: boolean;
-  }
-  createTabs({ tabs, initialId, onTabChange? }): HTMLElement
-  ```
-- [ ] Implementation includes: `role="tablist"`, `role="tab"`, `aria-selected`, `aria-controls`, arrow-key navigation
-- [ ] Replace tab usages one file at a time, test after each
-- [ ] Commit each replacement separately
+- [x] Inventory all manual tab implementations:
+  - **Show/hide toggle (2 — target for `createTabs`):**
+    - `src/pages/logginn.ts:18-76` — 2 static tabs (logginn/registrer), panels pre-rendered
+    - `src/pages/minside.ts:149-178` — 2 dynamic-content tabs (kommande/ferdige)
+  - **Async-load tabs (1 — leave as is):**
+    - `src/admin/admin.ts:33-58` — 3 tabs, click fires async loader into single div; different pattern
+  - **Route nav (1 — leave as is):**
+    - `src/pages/stevne.ts:56-66` — `renderNav()` uses `<a href=...>` links; not a panel toggle
+  - **False positives (no tabs):** `klubber.ts`, `kastere.ts`, `stevne-info.ts`, `org-shared.ts`
+- [x] Build `createTabs` component (show/hide pattern only):
+  - Props: `tabs: { id: string; label: string; panel: HTMLElement }[]`, `activeId?: string`
+  - Returns `HTMLElement` wrapping nav + panels
+  - ARIA: `role="tablist"`, `role="tab"`, `aria-selected`, `aria-controls`/`aria-labelledby`, `role="tabpanel"`
+  - Arrow-key navigation (← →)
+- [x] Replace `src/pages/logginn.ts` — test
+- [x] Replace `src/pages/minside.ts` — test
+- [x] Commit
 
 ### D2. `createExpandableRow` (or similar — name it for what it does)
 - [ ] Inventory:
@@ -322,4 +317,7 @@ These are explicitly **NOT** part of this polish phase — separate initiatives:
 _Add notes as you discover things:_
 
 - _Note 1: Bug: Gruppeinndeling avsluttende has wrong sorting
-- _Note 1: Reuse 
+- _Note 1: Share table in innledende and avsluttende
+- _Note 1: Bug: On stevnestart, klubb for player is not added to table resultat (klubbid)
+- _Note 1: Hide / disable "avsluttende" tab in stevne if avsluttendekastemetodeid is not set
+- _Note 1: Bug: Using the back button in scoreboard is not functioning properly. Consider opening the scoreboard in a new tab and remove the back button

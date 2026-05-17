@@ -10,10 +10,17 @@ import { hentKastereListeAktive, hentKasterForKobling } from '../services/kaster
 import { hentMinePameldingar } from '../services/pameldingService'
 import { hentMineKampar } from '../services/kampService'
 import { sendKoblingForespørsel } from '../services/brukerProfilService'
+import { createTabs } from '../components/Tabs'
 import type { Rolle, KoblingStatus } from '../types'
 import type { PameldingRow } from '../services/pameldingService'
 import type { KampSpelarRow } from '../services/kampService'
 import type { KasterListeRow } from '../services/kasterService'
+
+function makePanel(html: string): HTMLElement {
+  const div = document.createElement('div')
+  div.innerHTML = html
+  return div
+}
 
 const rolleLabel: Record<Rolle, string> = {
   admin: 'Administrator',
@@ -84,9 +91,14 @@ async function pameldingListeHtml(brukerId: string): Promise<string> {
     </div>`
 }
 
-async function mineKamparHtml(kasterid: number): Promise<string> {
+async function createMineKampar(kasterid: number): Promise<HTMLElement> {
   const { data, error } = await hentMineKampar(kasterid)
-  if (error) return '<p class="text-muted">Kunne ikkje laste kampar.</p>'
+  if (error) {
+    const p = document.createElement('p')
+    p.className = 'text-muted'
+    p.textContent = 'Kunne ikkje laste kampar.'
+    return p
+  }
 
   const alleKampar = data.filter(ks => !ks.kamp?.er_walkover)
 
@@ -142,41 +154,26 @@ async function mineKamparHtml(kasterid: number): Promise<string> {
     ks => `<a href="#/kamp/${ks.kamp?.id ?? ''}" class="btn btn-sm btn-outline-secondary">Sjå kamp</a>`,
   )
 
-  return `
-    <div class="card mb-4" id="mine-kampar-seksjon">
-      <div class="card-body">
-        <h5 class="card-title">Mine kampar</h5>
-        <ul class="nav nav-tabs mb-3">
-          <li class="nav-item">
-            <button class="nav-link active" data-fane="kommande">Kommande (${kommande.length})</button>
-          </li>
-          <li class="nav-item">
-            <button class="nav-link" data-fane="ferdige">Ferdige (${ferdige.length})</button>
-          </li>
-        </ul>
-        <div id="fane-kommande">
-          ${kommandeInnhald ?? '<p class="text-muted">Ingen kommande kampar.</p>'}
-        </div>
-        <div id="fane-ferdige" class="d-none">
-          ${ferdigeInnhald ?? '<p class="text-muted">Ingen ferdige kampar enno.</p>'}
-        </div>
-      </div>
-    </div>`
+  const card = document.createElement('div')
+  card.className = 'card mb-4'
+  card.id = 'mine-kampar-seksjon'
+  const cardBody = document.createElement('div')
+  cardBody.className = 'card-body'
+  const title = document.createElement('h5')
+  title.className = 'card-title'
+  title.textContent = 'Mine kampar'
+  cardBody.appendChild(title)
+  cardBody.appendChild(createTabs({
+    tabs: [
+      { id: 'kommande', label: `Kommande (${kommande.length})`, panel: makePanel(kommandeInnhald ?? '<p class="text-muted">Ingen kommande kampar.</p>') },
+      { id: 'ferdige',  label: `Ferdige (${ferdige.length})`,  panel: makePanel(ferdigeInnhald  ?? '<p class="text-muted">Ingen ferdige kampar enno.</p>') },
+    ],
+  }))
+  card.appendChild(cardBody)
+  return card
 }
 
 // ── Event binding ─────────────────────────────────────────────────────────────
-
-function bindMineKampar(container: HTMLElement): void {
-  container.querySelectorAll<HTMLButtonElement>('[data-fane]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      container.querySelectorAll('[data-fane]').forEach(b => b.classList.remove('active'))
-      btn.classList.add('active')
-      const fane = btn.dataset.fane
-      container.querySelector('#fane-kommande')!.classList.toggle('d-none', fane !== 'kommande')
-      container.querySelector('#fane-ferdige')!.classList.toggle('d-none', fane !== 'ferdige')
-    })
-  })
-}
 
 function bindKasterSok(container: HTMLElement, brukerId: string): void {
   let timer: number | null = null
@@ -252,12 +249,16 @@ export async function render(container: HTMLElement): Promise<void> {
       html += ventarHtml()
     } else if (status === 'godkjent' && profil?.kasterid) {
       const kasterid = profil.kasterid
-      const [kasterHtml, pamHtml, kampHtml] = await Promise.all([
+      const [kasterHtml, pamHtml, mineKamparEl] = await Promise.all([
         koblaKortHtml(kasterid),
         pameldingListeHtml(user.id),
-        mineKamparHtml(kasterid),
+        createMineKampar(kasterid),
       ])
-      html += kasterHtml + pamHtml + kampHtml
+      html += kasterHtml + pamHtml
+      html += '</div>'
+      container.innerHTML = html
+      container.querySelector('.minside-container')!.appendChild(mineKamparEl)
+      return
     }
 
     html += '</div>'
@@ -265,9 +266,6 @@ export async function render(container: HTMLElement): Promise<void> {
 
     if (status === 'ingen' || status === 'avvist') {
       bindKasterSok(container, user.id)
-    }
-    if (status === 'godkjent' && profil?.kasterid) {
-      bindMineKampar(container)
     }
   } catch (err) {
     logError('minside.render', err)

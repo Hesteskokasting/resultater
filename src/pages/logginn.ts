@@ -1,5 +1,12 @@
 import { getUser, erAdmin, signIn, signUp } from '../services/authService'
 import { escHtml } from '../utils/escHtml'
+import { createTabs } from '../components/Tabs'
+
+function makePanel(html: string): HTMLElement {
+  const div = document.createElement('div')
+  div.innerHTML = html
+  return div
+}
 
 export async function render(container: HTMLElement): Promise<void> {
   const auth = await getUser()
@@ -12,68 +19,54 @@ export async function render(container: HTMLElement): Promise<void> {
     return
   }
 
-  container.innerHTML = `
-    <div class="container py-4 konto-container">
-      <h2 class="mb-4">Konto</h2>
-      <ul class="nav nav-tabs mb-3" id="logginn-faner">
-        <li class="nav-item">
-          <button class="nav-link active" data-fane="logginn">Logg inn</button>
-        </li>
-        <li class="nav-item">
-          <button class="nav-link" data-fane="registrer">Registrer ny konto</button>
-        </li>
-      </ul>
-
-      <!-- Logg inn -->
-      <div id="fane-logginn">
-        <form id="logginn-skjema">
-          <div class="mb-3">
-            <label class="form-label" for="li-epost">E-post</label>
-            <input type="email" class="form-control" id="li-epost" required autocomplete="email">
-          </div>
-          <div class="mb-3">
-            <label class="form-label" for="li-passord">Passord</label>
-            <input type="password" class="form-control" id="li-passord" required autocomplete="current-password">
-          </div>
-          <div id="li-feil" class="alert alert-danger d-none"></div>
-          <button type="submit" class="btn btn-primary w-100">Logg inn</button>
-        </form>
+  const logginnPanel = makePanel(`
+    <form id="logginn-skjema">
+      <div class="mb-3">
+        <label class="form-label" for="li-epost">E-post</label>
+        <input type="email" class="form-control" id="li-epost" required autocomplete="email">
       </div>
-
-      <!-- Registrer -->
-      <div id="fane-registrer" class="d-none">
-        <form id="registrer-skjema">
-          <div class="mb-3">
-            <label class="form-label" for="reg-epost">E-post</label>
-            <input type="email" class="form-control" id="reg-epost" required autocomplete="email">
-          </div>
-          <div class="mb-3">
-            <label class="form-label" for="reg-passord">Passord</label>
-            <input type="password" class="form-control" id="reg-passord" required autocomplete="new-password" minlength="8">
-          </div>
-          <div class="mb-3">
-            <label class="form-label" for="reg-passord2">Gjenta passord</label>
-            <input type="password" class="form-control" id="reg-passord2" required autocomplete="new-password" minlength="8">
-          </div>
-          <div id="reg-feil" class="alert alert-danger d-none"></div>
-          <div id="reg-suksess" class="alert alert-success d-none">
-            Konto oppretta! Du kan no logge inn.
-          </div>
-          <button type="submit" class="btn btn-success w-100">Opprett konto</button>
-        </form>
+      <div class="mb-3">
+        <label class="form-label" for="li-passord">Passord</label>
+        <input type="password" class="form-control" id="li-passord" required autocomplete="current-password">
       </div>
-    </div>`
+      <div id="li-feil" class="alert alert-danger d-none"></div>
+      <button type="submit" class="btn btn-primary w-100">Logg inn</button>
+    </form>`)
 
-  // Fane-toggle
-  container.querySelectorAll<HTMLElement>('[data-fane]').forEach(knapp => {
-    knapp.addEventListener('click', () => {
-      container.querySelectorAll('[data-fane]').forEach(k => k.classList.remove('active'))
-      knapp.classList.add('active')
-      const erLogginn = knapp.dataset.fane === 'logginn'
-      container.querySelector('#fane-logginn')!.classList.toggle('d-none', !erLogginn)
-      container.querySelector('#fane-registrer')!.classList.toggle('d-none', erLogginn)
-    })
-  })
+  const registrerPanel = makePanel(`
+    <form id="registrer-skjema">
+      <div class="mb-3">
+        <label class="form-label" for="reg-epost">E-post</label>
+        <input type="email" class="form-control" id="reg-epost" required autocomplete="email">
+      </div>
+      <div class="mb-3">
+        <label class="form-label" for="reg-passord">Passord</label>
+        <input type="password" class="form-control" id="reg-passord" required autocomplete="new-password" minlength="8">
+      </div>
+      <div class="mb-3">
+        <label class="form-label" for="reg-passord2">Gjenta passord</label>
+        <input type="password" class="form-control" id="reg-passord2" required autocomplete="new-password" minlength="8">
+      </div>
+      <div id="reg-feil" class="alert alert-danger d-none"></div>
+      <div id="reg-suksess" class="alert alert-success d-none">
+        Konto oppretta! Du kan no logge inn.
+      </div>
+      <button type="submit" class="btn btn-success w-100">Opprett konto</button>
+    </form>`)
+
+  const outer = document.createElement('div')
+  outer.className = 'container py-4 konto-container'
+  const heading = document.createElement('h2')
+  heading.className = 'mb-4'
+  heading.textContent = 'Konto'
+  outer.appendChild(heading)
+  outer.appendChild(createTabs({
+    tabs: [
+      { id: 'logginn',   label: 'Logg inn',           panel: logginnPanel },
+      { id: 'registrer', label: 'Registrer ny konto', panel: registrerPanel },
+    ],
+  }))
+  container.replaceChildren(outer)
 
   // Logg inn
   container.querySelector('#logginn-skjema')!.addEventListener('submit', async e => {
