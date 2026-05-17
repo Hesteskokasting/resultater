@@ -234,22 +234,44 @@ export function bindStillingDetaljar(
 
   // Restore rows that were open before the last re-render
   expandedIds.forEach(kid => {
-    tabell.querySelector<HTMLElement>(`tr.stilling-detalj[data-kasterid="${kid}"]`)?.removeAttribute('hidden')
-    tabell.querySelector<HTMLElement>(`tr.stilling-spelar-rad[data-kasterid="${kid}"]`)?.classList.add('stilling-aktiv')
+    const detaljRad = tabell.querySelector<HTMLElement>(`tr.stilling-detalj[data-kasterid="${kid}"]`)
+    const spelarRad = tabell.querySelector<HTMLElement>(`tr.stilling-spelar-rad[data-kasterid="${kid}"]`)
+    if (detaljRad) detaljRad.removeAttribute('hidden')
+    if (spelarRad) {
+      spelarRad.classList.add('stilling-aktiv')
+      spelarRad.setAttribute('aria-expanded', 'true')
+    }
   })
 
-  tabell.addEventListener('click', e => {
-    const rad = (e.target as HTMLElement).closest<HTMLElement>('tr[data-kasterid]')
-    if (!rad || rad.classList.contains('stilling-detalj')) return
+  tabell.querySelectorAll<HTMLElement>('tr.stilling-spelar-rad').forEach(rad => {
+    rad.setAttribute('tabindex', '0')
+    if (!rad.hasAttribute('aria-expanded')) rad.setAttribute('aria-expanded', 'false')
+  })
+
+  function toggle(rad: HTMLElement): void {
     const kid = rad.dataset.kasterid
     if (!kid) return
-    const detaljRad = tabell.querySelector<HTMLElement>(`tr.stilling-detalj[data-kasterid="${kid}"]`)
+    const detaljRad = tabell!.querySelector<HTMLElement>(`tr.stilling-detalj[data-kasterid="${kid}"]`)
     if (!detaljRad) return
     const wasHidden = !!detaljRad.hidden
     detaljRad.hidden = !wasHidden
     rad.classList.toggle('stilling-aktiv', wasHidden)
+    rad.setAttribute('aria-expanded', String(wasHidden))
     if (wasHidden) expandedIds.add(kid)
     else expandedIds.delete(kid)
+  }
+
+  tabell.addEventListener('click', e => {
+    const rad = (e.target as HTMLElement).closest<HTMLElement>('tr.stilling-spelar-rad')
+    if (rad) toggle(rad)
+  })
+
+  tabell.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' && e.key !== ' ') return
+    const rad = (e.target as HTMLElement).closest<HTMLElement>('tr.stilling-spelar-rad')
+    if (!rad) return
+    e.preventDefault()
+    toggle(rad)
   })
 }
 

@@ -195,18 +195,8 @@ These are small, isolated fixes that should happen before any larger work. They 
   - Enter/Space keyboard support
   - `lookupRoot` param for when detail rows live in a parent element
 - [x] Replace all 3 call sites: `norgesranking.ts`, `norgescupen.ts` (lag + singel)
-- [ ] Add `aria-expanded` + keyboard support to `bindStillingDetaljar` (stilling table)
-- [ ] Test expandable rows in norgesranking and norgescupen, commit
-
-### D2b. StillingTabell — kastemetode-driven column config (larger scope)
-> `renderStillingTabell` and `bindStillingDetaljar` are already shared in `org-shared.ts`.
-> Note 2 ("share table in innledende and avsluttende") is already resolved.
-> What remains: which columns to show (`harHcp`, `harGrupper`, `harEliminasjon`, `harAntallKamper`)
-> is hardcoded at the call site instead of derived from the kastemetode config.
-
-- [ ] Define a `getStillingOpts(kastemetode: string, fase: 'innledende' | 'avsluttende'): StillingOpts` function
-- [ ] Drive column visibility from kastemetode rather than hardcoded opts at the call site
-- [ ] Consider whether the `as unknown as` cast in `cup.ts:252` (`innlKamparFraStilling`) can be removed at the same time
+- [x] Add `aria-expanded` + keyboard support to `bindStillingDetaljar` (stilling table)
+- [x] Test expandable rows in norgesranking and norgescupen, commit
 
 ### D3. `createNcTabell` (limited scope)
 > Don't build a generic `createTable`. Build only the one that's used in 9 places.
@@ -336,6 +326,15 @@ _Add notes as you discover things:_
 
 - _Note 1: Bug: Gruppeinndeling avsluttende has wrong sorting
 - _Note 2: ~~Share table in stevne innledende and avsluttende~~ — already shared via `renderStillingTabell` in `org-shared.ts`. Column config by kastemetode tracked in D2b.
+### StillingTabell — kastemetode-driven column config (larger scope)
+> `renderStillingTabell` and `bindStillingDetaljar` are already shared in `org-shared.ts`.
+> Note 2 ("share table in innledende and avsluttende") is already resolved.
+> What remains: which columns to show (`harHcp`, `harGrupper`, `harEliminasjon`, `harAntallKamper`)
+> is hardcoded at the call site instead of derived from the kastemetode config.
+
+- [ ] Define a `getStillingOpts(kastemetode: string, fase: 'innledende' | 'avsluttende'): StillingOpts` function
+- [ ] Drive column visibility from kastemetode rather than hardcoded opts at the call site
+- [ ] Consider whether the `as unknown as` cast in `cup.ts:252` (`innlKamparFraStilling`) can be removed at the same time
 - _Note 1: Bug: On stevnestart, klubb for player is not added to table resultat (klubbid)
 - _Note 1: Hide / disable "avsluttende" tab in stevne if avsluttendekastemetodeid is not set
 - _Note 1: Bug: Using the back button in scoreboard is not functioning properly. Consider opening the scoreboard in a new tab and remove the back button
