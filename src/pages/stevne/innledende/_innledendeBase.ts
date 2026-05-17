@@ -21,6 +21,7 @@
 import { showNumberpad } from '../../../components/ScoreNumberpad'
 import { showToast } from '../../../components/Toast'
 import { confirmDialog } from '../../../components/ConfirmDialog'
+import { promptDialog } from '../../../components/PromptDialog'
 import { beregnKampPoeng, hentP1P2, scoreForSp } from '../../../utils/kamp'
 import { autoFullforInnledendeKamper } from '../../../services/testDataService'
 import {
@@ -188,7 +189,7 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
             const kid = Number(el.dataset.kasterid)
             const sid = Number(el.dataset.stevneid)
             const gjeldande = resultat.find(r => r.kasterid === kid)?.hcp ?? 0
-            const input = prompt('Sett HCP for spelar:', String(gjeldande))
+            const input = await promptDialog({ title: 'Sett HCP', message: 'Sett HCP for spelar:', defaultValue: String(gjeldande), inputType: 'number' })
             if (input === null) return
             const nyHcp = parseInt(input, 10)
             if (isNaN(nyHcp) || nyHcp < 0) { showToast('Ugyldig HCP-verdi', 'error'); return }
