@@ -1,4 +1,5 @@
 import { getUser } from '../services/authService'
+import { confirmDialog } from '../components/ConfirmDialog'
 import { formaterDato } from '../utils/shared'
 import { createErrorBanner } from '../components/ErrorBanner'
 import { createLoadingState } from '../components/LoadingState'
@@ -161,7 +162,7 @@ function bindEventHandlers(
   container.querySelector<HTMLButtonElement>('#avmeld-knapp')?.addEventListener('click', async () => {
     if (kasterid == null) return
     const min = pameldingar.find(p => p.kasterid === kasterid)
-    if (!min || !confirm('Vil du melde deg av?')) return
+    if (!min || !await confirmDialog({ title: 'Avmeld', message: 'Vil du melde deg av?' })) return
     const { error } = await fjernPamelding(min.id)
     if (error) return
     render(container, params)
@@ -169,7 +170,7 @@ function bindEventHandlers(
 
   container.querySelectorAll<HTMLButtonElement>('.fjern-pm').forEach(knapp => {
     knapp.addEventListener('click', async () => {
-      if (!confirm('Fjern påmelding?')) return
+      if (!await confirmDialog({ title: 'Fjern påmelding', message: 'Fjern påmelding?' })) return
       const id = Number(knapp.dataset.id)
       if (!id) return
       const { error } = await fjernPamelding(id)

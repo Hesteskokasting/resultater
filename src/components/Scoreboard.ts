@@ -7,6 +7,7 @@ import {
 } from '../services/kampService'
 import { avmeldKanal } from '../utils/realtime'
 import { showToast } from './Toast'
+import { confirmDialog } from './ConfirmDialog'
 
 interface ScoreboardOptions {
   pointValues: number[]
@@ -264,7 +265,7 @@ export async function renderScoreboard(
   }
 
   async function slettOmgangFra(fraNr: number): Promise<void> {
-    if (!confirm(`Slett omgang ${fraNr} og alle etter? Dette kan ikkje angrast.`)) return
+    if (!await confirmDialog({ title: 'Slett omgangar', message: `Slett omgang ${fraNr} og alle etter? Dette kan ikkje angrast.`, danger: true })) return
 
     const ids = [p1ks?.id, p2ks?.id].filter((id): id is number => id != null)
     const { error } = await slettKampOmgangarFra(ids, fraNr)
@@ -492,7 +493,7 @@ async function renderScoreboard3(
   }
 
   async function slettOmgangFra3(fraNr: number): Promise<void> {
-    if (!confirm(`Slett omgang ${fraNr} og alle etter? Dette kan ikkje angrast.`)) return
+    if (!await confirmDialog({ title: 'Slett omgangar', message: `Slett omgang ${fraNr} og alle etter? Dette kan ikkje angrast.`, danger: true })) return
     const { error } = await slettKampOmgangarFra(spelarIds, fraNr)
     if (error) { showToast('Feil ved sletting', 'error'); return }
     vals = [null, null, null]

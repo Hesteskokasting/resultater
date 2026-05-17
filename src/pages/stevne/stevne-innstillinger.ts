@@ -1,5 +1,6 @@
 import { logError } from '../../utils/logError'
 import { showToast } from '../../components/Toast'
+import { confirmDialog } from '../../components/ConfirmDialog'
 import { escHtml } from '../../utils/escHtml'
 import { createErrorBanner } from '../../components/ErrorBanner'
 import { createLoadingState } from '../../components/LoadingState'
@@ -100,7 +101,7 @@ export async function render(
     })
 
     container.querySelector<HTMLButtonElement>('#nullstill-btn')!.addEventListener('click', async e => {
-      if (!confirm('Er du sikker? Dette slettar alle kampar og resultat og set stevnet tilbake til starttilstanden.')) return
+      if (!await confirmDialog({ title: 'Nullstill stevne', message: 'Dette slettar alle kampar og resultat og set stevnet tilbake til starttilstanden. Er du sikker?', danger: true })) return
       ;(e.currentTarget as HTMLButtonElement).disabled = true
       await nullstillStevne(id)
       await render(container, { id })

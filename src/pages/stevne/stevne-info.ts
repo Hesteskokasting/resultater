@@ -5,6 +5,7 @@ import { createLoadingState } from '../../components/LoadingState'
 import { escHtml } from '../../utils/escHtml'
 import { logError } from '../../utils/logError'
 import { showToast } from '../../components/Toast'
+import { confirmDialog } from '../../components/ConfirmDialog'
 import { hentInfoStevne, oppdaterStevneFase } from '../../services/stevneService'
 import { hentAntallPameldingar, hentAntallUbekrefta } from '../../services/pameldingService'
 import { genererInnledendeKamper } from '../../services/kampGenereringService'
@@ -51,7 +52,7 @@ export async function render(
         }
         const ubekrefta = await hentAntallUbekrefta(id)
         if (ubekrefta > 0) {
-          const ok = confirm(`${ubekrefta} spelar(ar) er ikkje bekrefta. Vil du starte stevnet likevel?`)
+          const ok = await confirmDialog({ title: 'Ubekrefta spelarar', message: `${ubekrefta} spelar(ar) er ikkje bekrefta. Vil du starte stevnet likevel?` })
           if (!ok) return
         }
         try {

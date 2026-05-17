@@ -20,6 +20,7 @@
 //
 import { showNumberpad } from '../../../components/ScoreNumberpad'
 import { showToast } from '../../../components/Toast'
+import { confirmDialog } from '../../../components/ConfirmDialog'
 import { beregnKampPoeng, hentP1P2, scoreForSp } from '../../../utils/kamp'
 import { autoFullforInnledendeKamper } from '../../../services/testDataService'
 import {
@@ -149,14 +150,14 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
         bannerSlot.querySelector('#fullfor-btn')?.addEventListener('click', () => fullforTurnering(container, stevneid))
 
         bannerSlot.querySelector('#fullfør-turnering-btn')?.addEventListener('click', async () => {
-          if (!confirm('Vil du fullføre turneringa? Dette kan ikkje angrast.')) return
+          if (!await confirmDialog({ title: 'Fullfør turnering', message: 'Vil du fullføre turneringa? Dette kan ikkje angrast.', danger: true })) return
           const { error } = await setStevneErfullfort(stevneid)
           if (error) { showToast('Feil ved lagring', 'error'); return }
           await lastOgVis(container, stevneid)
         })
 
         bannerSlot.querySelector('#test-autofullfør-btn')?.addEventListener('click', async (e) => {
-          if (!confirm('Autofullfør alle ubekreftede innledande kamper?')) return
+          if (!await confirmDialog({ title: 'Autofullfør kampar', message: 'Autofullfør alle ubekreftede innledande kampar?' })) return
           ;(e.currentTarget as HTMLButtonElement).disabled = true
           await autoFullforInnledendeKamper(stevneid)
           await lastOgVis(container, stevneid)
@@ -204,7 +205,7 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
           const spelarIds = [p1?.id, p2?.id].filter((id): id is number => id != null)
           const harOmgangar = spelarIds.length ? await harKampOmgangar(spelarIds) : false
 
-          if (harOmgangar && !confirm('Dette sletter detaljar for denne kampen. Er du sikker på at du vil fortsette?')) return
+          if (harOmgangar && !await confirmDialog({ title: 'Slett detaljar', message: 'Dette sletter detaljar for denne kampen. Er du sikker?' })) return
 
           const p1Namn = p1?.kaster ? `${escHtml(p1.kaster.fornavn)} ${escHtml(p1.kaster.etternavn)}` : '—'
           const p2Namn = p2?.kaster ? `${escHtml(p2.kaster.fornavn)} ${escHtml(p2.kaster.etternavn)}` : '—'
@@ -296,7 +297,7 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
   }
 
   async function fullforTurnering(_container: HTMLElement, stevneid: number): Promise<void> {
-    if (!confirm('Start avsluttande fase?')) return
+    if (!await confirmDialog({ title: 'Start avsluttande fase', message: 'Start avsluttande fase?' })) return
     const { error } = await oppdaterStevneFase(stevneid, 'avsluttende')
     if (error) { showToast('Feil ved faseskifte', 'error'); return }
     location.hash = `#/stevne/${stevneid}/avsluttende`

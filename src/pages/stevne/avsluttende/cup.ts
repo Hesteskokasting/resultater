@@ -29,6 +29,7 @@ import { escHtml } from '../../../utils/escHtml'
 import { createLoadingState } from '../../../components/LoadingState'
 import { createErrorBanner } from '../../../components/ErrorBanner'
 import { showToast } from '../../../components/Toast'
+import { confirmDialog } from '../../../components/ConfirmDialog'
 import { logError } from '../../../utils/logError'
 import type { RundeOppsett, Runde1FormatTyped, Json } from '../../../types'
 import {
@@ -569,7 +570,7 @@ function bindHeaderEvents(
   }
 
   bannerSlot?.querySelector('#endre-gruppeinndeling-btn')?.addEventListener('click', async () => {
-    if (!confirm('Tilbakestill gruppeinndelinga? Gruppefordeling og format vert fjerna.')) return
+    if (!await confirmDialog({ title: 'Tilbakestill gruppeinndeling', message: 'Gruppefordeling og format vert fjerna.', danger: true })) return
     await Promise.all([
       clearGruppeInndeling(stevneid),
       setRunde1Format(stevneid, null),
@@ -589,7 +590,7 @@ function bindHeaderEvents(
   }
 
   bannerSlot?.querySelector('#fullfør-turnering-btn')?.addEventListener('click', async () => {
-    if (!confirm('Vil du fullføre turneringa? Dette kan ikkje angrast.')) return
+    if (!await confirmDialog({ title: 'Fullfør turnering', message: 'Vil du fullføre turneringa? Dette kan ikkje angrast.', danger: true })) return
     const { error } = await setStevneErfullfort(stevneid)
     if (error) { showToast('Feil ved fullføring av turnering', 'error'); return }
     await lastOgVis(container, stevneid)
@@ -688,7 +689,7 @@ async function bekreftCupKamp2Spelar(
   const s1 = scoreForSp(ak1 ?? p1)
   const s2 = scoreForSp(ak2 ?? p2)
 
-  if (s1 === 0 && s2 === 0 && !confirm('Ingen score registrert. Vil du bekrefte kampen likevel?')) return
+  if (s1 === 0 && s2 === 0 && !await confirmDialog({ title: 'Ingen score registrert', message: 'Vil du bekrefte kampen likevel?' })) return
 
   const vinnar = s1 >= s2 ? p1 : p2
   const tapar = s1 >= s2 ? p2 : p1

@@ -1,4 +1,5 @@
 import { lagFormRadHtml, visLagreFeil, visSuksess, errMsg } from '../utils/adminForms'
+import { confirmDialog } from '../components/ConfirmDialog'
 import { erAdmin, erKlubbadmin } from '../services/authService'
 import { escHtml } from '../utils/escHtml'
 import { buildDropdownOptions } from '../utils/buildDropdownOptions'
@@ -107,7 +108,7 @@ export async function render(
   })
 
   container.querySelector<HTMLButtonElement>('#slett-knapp')?.addEventListener('click', async () => {
-    if (!confirm(`Slett utøvaren «${kaster?.fornavn} ${kaster?.etternavn}»? Dette kan ikkje angrast.`)) return
+    if (!await confirmDialog({ title: 'Slett utøvar', message: `Slett «${kaster?.fornavn} ${kaster?.etternavn}»? Dette kan ikkje angrast.`, danger: true })) return
     const { error } = await slettKaster(id!)
     if (error) { visLagreFeil(container, errMsg(error)); return }
     location.hash = '#/kastere'
