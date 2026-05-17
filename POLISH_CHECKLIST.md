@@ -183,13 +183,28 @@ These are small, isolated fixes that should happen before any larger work. They 
 - [x] Commit
 - [x] Test manually
 
-### D2. `createExpandableRow` (or similar — name it for what it does)
-- [ ] Inventory:
-  - `src/pages/norgesranking.ts:308-315` (`.nc-poeng-celle`)
-  - `src/pages/rekorder.ts:177-179` (`.rek-poeng-celle`)
-  - `src/pages/norgescupen.ts` (similar pattern — check)
-- [ ] Build with: `tabindex="0"`, `keydown` handler (Enter/Space), `aria-expanded`
-- [ ] Replace, test, commit
+### D2. Expandable rows — inventory + stilling fixes
+- [x] Inventory all expandable-row patterns:
+  - **Stilling table** (`org-shared.ts:227`) — row-click toggle, used by innledende + avsluttende. Already shared.
+  - **`.nc-poeng-celle`** — `norgesranking.ts:308`, `norgescupen.ts:265` (singel), `norgescupen.ts:239` (lag) — 3× identical 5-line delegation blocks
+  - **`rekorder.ts:177`** — false positive, clicks navigate to stevne page (not expand/collapse)
+- [x] Fix stilling table: remove accordion (each row now toggles independently)
+- [x] Fix stilling table: expanded rows persist across realtime re-renders (Set passed to `bindStillingDetaljar`)
+- [ ] Extract `bindExpandableRows` utility for the `.nc-poeng-celle` pattern (3 identical blocks → 1 call each)
+  - Add `aria-expanded` on trigger cell, `tabindex="0"`, Enter/Space keyboard support
+  - Lives in `org-shared.ts` or a new `src/utils/expandableRows.ts`
+- [ ] Add `aria-expanded` + keyboard support to `bindStillingDetaljar` (stilling table)
+- [ ] Test, commit
+
+### D2b. StillingTabell — kastemetode-driven column config (larger scope)
+> `renderStillingTabell` and `bindStillingDetaljar` are already shared in `org-shared.ts`.
+> Note 2 ("share table in innledende and avsluttende") is already resolved.
+> What remains: which columns to show (`harHcp`, `harGrupper`, `harEliminasjon`, `harAntallKamper`)
+> is hardcoded at the call site instead of derived from the kastemetode config.
+
+- [ ] Define a `getStillingOpts(kastemetode: string, fase: 'innledende' | 'avsluttende'): StillingOpts` function
+- [ ] Drive column visibility from kastemetode rather than hardcoded opts at the call site
+- [ ] Consider whether the `as unknown as` cast in `cup.ts:252` (`innlKamparFraStilling`) can be removed at the same time
 
 ### D3. `createNcTabell` (limited scope)
 > Don't build a generic `createTable`. Build only the one that's used in 9 places.
@@ -318,7 +333,7 @@ These are explicitly **NOT** part of this polish phase — separate initiatives:
 _Add notes as you discover things:_
 
 - _Note 1: Bug: Gruppeinndeling avsluttende has wrong sorting
-- _Note 1: Share table in innledende and avsluttende
+- _Note 2: ~~Share table in stevne innledende and avsluttende~~ — already shared via `renderStillingTabell` in `org-shared.ts`. Column config by kastemetode tracked in D2b.
 - _Note 1: Bug: On stevnestart, klubb for player is not added to table resultat (klubbid)
 - _Note 1: Hide / disable "avsluttende" tab in stevne if avsluttendekastemetodeid is not set
 - _Note 1: Bug: Using the back button in scoreboard is not functioning properly. Consider opening the scoreboard in a new tab and remove the back button

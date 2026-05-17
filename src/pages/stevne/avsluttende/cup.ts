@@ -87,6 +87,7 @@ function toOrgSp(sp: AvslKampSpelarRow[]): OrgKampSpelar[] {
 let kanal: RealtimeChannel | null = null
 let bannerSlot: HTMLElement | null = null
 let isAdmin = false
+const stillingExpandedIds = new Set<string>()
 
 // ── Public entry point ────────────────────────────────────────────────────────
 
@@ -192,7 +193,7 @@ async function lastOgVis(container: HTMLElement, stevneid: number): Promise<void
     </div>
   `
 
-  bindStillingDetaljar(container, 'stilling-avsl')
+  bindStillingDetaljar(container, 'stilling-avsl', stillingExpandedIds)
   bindHeaderEvents(
     container,
     stevneid,

@@ -79,6 +79,7 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
   let kanal: RealtimeChannel | null = null
   let bannerSlot: HTMLElement | null = null
   let isAdmin = false
+  const stillingExpandedIds = new Set<string>()
 
   async function render(
     container: HTMLElement,
@@ -180,7 +181,7 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
       container.innerHTML = renderHovudInnhald(kamperHtml, stillingHtml)
 
       bindTabToggle(container)
-      bindStillingDetaljar(container, 'stilling-innl')
+      bindStillingDetaljar(container, 'stilling-innl', stillingExpandedIds)
 
       if (isAdmin) {
         container.querySelectorAll('.stilling-hcp-celle').forEach(celle => {

@@ -224,22 +224,32 @@ export function renderStillingTabell(
     </div>`
 }
 
-export function bindStillingDetaljar(container: HTMLElement, tableId: string): void {
+export function bindStillingDetaljar(
+  container: HTMLElement,
+  tableId: string,
+  expandedIds: Set<string> = new Set(),
+): void {
   const tabell = container.querySelector<HTMLElement>(`#${tableId}`)
   if (!tabell) return
+
+  // Restore rows that were open before the last re-render
+  expandedIds.forEach(kid => {
+    tabell.querySelector<HTMLElement>(`tr.stilling-detalj[data-kasterid="${kid}"]`)?.removeAttribute('hidden')
+    tabell.querySelector<HTMLElement>(`tr.stilling-spelar-rad[data-kasterid="${kid}"]`)?.classList.add('stilling-aktiv')
+  })
+
   tabell.addEventListener('click', e => {
     const rad = (e.target as HTMLElement).closest<HTMLElement>('tr[data-kasterid]')
     if (!rad || rad.classList.contains('stilling-detalj')) return
     const kid = rad.dataset.kasterid
+    if (!kid) return
     const detaljRad = tabell.querySelector<HTMLElement>(`tr.stilling-detalj[data-kasterid="${kid}"]`)
     if (!detaljRad) return
-    const erSkjult = detaljRad.hidden
-    tabell.querySelectorAll<HTMLElement>('tr.stilling-detalj').forEach(r => { r.hidden = true })
-    tabell.querySelectorAll<HTMLElement>('tr[data-kasterid]').forEach(r => r.classList.remove('stilling-aktiv'))
-    if (erSkjult) {
-      detaljRad.hidden = false
-      rad.classList.add('stilling-aktiv')
-    }
+    const wasHidden = !!detaljRad.hidden
+    detaljRad.hidden = !wasHidden
+    rad.classList.toggle('stilling-aktiv', wasHidden)
+    if (wasHidden) expandedIds.add(kid)
+    else expandedIds.delete(kid)
   })
 }
 
