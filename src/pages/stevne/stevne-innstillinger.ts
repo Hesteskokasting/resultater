@@ -1,4 +1,5 @@
 import { logError } from '../../utils/logError'
+import { showToast } from '../../components/Toast'
 import { escHtml } from '../../utils/escHtml'
 import { createErrorBanner } from '../../components/ErrorBanner'
 import { createLoadingState } from '../../components/LoadingState'
@@ -89,7 +90,7 @@ export async function render(
 
       if (error) {
         logError('stevne-innstillingar.lagre', error)
-        alert('Feil ved lagring: ' + (error instanceof Error ? error.message : String(error)))
+        showToast('Feil ved lagring: ' + (error instanceof Error ? error.message : String(error)), 'error')
         return
       }
 

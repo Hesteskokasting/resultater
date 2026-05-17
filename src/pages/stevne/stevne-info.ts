@@ -4,6 +4,7 @@ import { createErrorBanner } from '../../components/ErrorBanner'
 import { createLoadingState } from '../../components/LoadingState'
 import { escHtml } from '../../utils/escHtml'
 import { logError } from '../../utils/logError'
+import { showToast } from '../../components/Toast'
 import { hentInfoStevne, oppdaterStevneFase } from '../../services/stevneService'
 import { hentAntallPameldingar, hentAntallUbekrefta } from '../../services/pameldingService'
 import { genererInnledendeKamper } from '../../services/kampGenereringService'
@@ -41,11 +42,11 @@ export async function render(
       bannerSlot.innerHTML = `<button id="start-stevne-btn" class="btn btn-sm btn-success">Start stevne</button>`
       bannerSlot.querySelector<HTMLButtonElement>('#start-stevne-btn')!.addEventListener('click', async () => {
         if (antall < 2) {
-          alert('Stevnet må ha minst 2 spelarar for å startast.')
+          showToast('Stevnet må ha minst 2 spelarar for å startast.', 'error')
           return
         }
         if (erCascade && !stevne.antall_runder_innl) {
-          alert('Du må setje antal rundar for innledande fase (Gloppen-metoden krev dette).\nGå til Innstillingar for å endre.')
+          showToast('Du må setje antal rundar for innledande fase. Gå til Innstillingar for å endre.', 'error')
           return
         }
         const ubekrefta = await hentAntallUbekrefta(id)
@@ -56,12 +57,12 @@ export async function render(
         try {
           await genererInnledendeKamper(id, metodeNavn, stevne.antall_runder_innl ?? 1)
         } catch (err) {
-          alert('Feil ved kampgenerering: ' + (err instanceof Error ? err.message : String(err)))
+          showToast('Feil ved kampgenerering: ' + (err instanceof Error ? err.message : String(err)), 'error')
           return
         }
         const { error: faseErr } = await oppdaterStevneFase(id, 'innledende')
         if (faseErr) {
-          alert('Feil ved oppdatering av fase.')
+          showToast('Feil ved oppdatering av fase.', 'error')
           return
         }
         location.hash = `#/stevne/${id}/innledende`

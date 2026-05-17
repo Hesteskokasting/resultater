@@ -100,24 +100,24 @@ These are small, isolated fixes that should happen before any larger work. They 
 > 29 native calls across 10 files. Build the components, then replace.
 
 ### C1. Build `ConfirmDialog` component
-- [ ] Create `src/components/ConfirmDialog.ts`
-- [ ] API: `confirmDialog({ title, message, confirmText?, cancelText?, danger? }): Promise<boolean>`
-- [ ] Uses Bootstrap modal (already in project)
-- [ ] Focus trap, ESC to cancel, Enter to confirm — proper a11y
-- [ ] Add ARIA: `role="alertdialog"`, `aria-labelledby`, `aria-describedby`
-- [ ] Commit: `"Add ConfirmDialog component"`
+- [x] Create `src/components/ConfirmDialog.ts`
+- [x] API: `confirmDialog({ title, message, confirmText?, cancelText?, danger? }): Promise<boolean>`
+- [x] Uses Bootstrap CSS classes (no Bootstrap JS import needed — no types shipped)
+- [x] ESC cancels, confirm button auto-focused so Enter confirms naturally
+- [x] Add ARIA: `role="alertdialog"`, `aria-labelledby`, `aria-describedby`
+- [x] Commit: `"Add ConfirmDialog component"`
 
 ### C2. Build `PromptDialog` component
-- [ ] Create `src/components/PromptDialog.ts`
-- [ ] API: `promptDialog({ title, message, defaultValue?, inputType? }): Promise<string | null>`
-- [ ] Same a11y standards as ConfirmDialog
-- [ ] Commit: `"Add PromptDialog component"`
+- [x] Create `src/components/PromptDialog.ts`
+- [x] API: `promptDialog({ title, message, defaultValue?, inputType? }): Promise<string | null>`
+- [x] ESC/cancel → null, Enter/OK → string value, input auto-focused
+- [x] Commit: `"Add PromptDialog component"`
 
 ### C3. Replace all `alert()` calls with `showToast`
-- [ ] `src/pages/stevne/stevne-innstillinger.ts:92`
-- [ ] `src/pages/stevne/stevne-info.ts:44`
-- [ ] _(plus any others found via `grep -rn "\\balert(" src/ --include="*.ts"`)_
-- [ ] Commit: `"Replace native alert() with showToast"`
+- [x] `src/pages/stevne/stevne-innstillinger.ts:92`
+- [x] `src/pages/stevne/stevne-info.ts:44`
+- [x] _(plus any others found via `grep -rn "\\balert(" src/ --include="*.ts"`)_
+- [x] Commit: `"Replace native alert() with showToast"`
 
 ### C4. Replace all `confirm()` calls
 - [ ] `src/components/Scoreboard.ts:267, :495` (2 instances)
@@ -302,4 +302,5 @@ These are explicitly **NOT** part of this polish phase — separate initiatives:
 
 _Add notes as you discover things:_
 
-- _Note 1: ..._
+- _Note 1: Bug: Gruppeinndeling avsluttende has wrong sorting
+- _Note 1: Reuse 

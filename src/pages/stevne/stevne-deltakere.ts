@@ -1,5 +1,6 @@
 import { kasterNavn } from '../../utils/kaster'
 import { createErrorBanner } from '../../components/ErrorBanner'
+import { showToast } from '../../components/Toast'
 import { logError } from '../../utils/logError'
 import { hentKastereListeAktive } from '../../services/kasterService'
 import type { KasterListeRow } from '../../services/kasterService'
@@ -236,14 +237,14 @@ export async function render(
           pameldtMap.get(sp.id) ?? false,
           async s => {
             const { error } = await fjernPameldingForKaster(id, s.id)
-            if (error) { alert('Feil ved fjerning: ' + (error instanceof Error ? error.message : String(error))); return }
+            if (error) { showToast('Feil ved fjerning: ' + (error instanceof Error ? error.message : String(error)), 'error'); return }
             pameldtMap.delete(s.id)
             renderPameldtListe()
             renderTilgjengeliListe()
           },
           async s => {
             const { error } = await bekreftPameldingForKaster(id, s.id)
-            if (error) { alert('Feil ved bekreftelse: ' + (error instanceof Error ? error.message : String(error))); return }
+            if (error) { showToast('Feil ved bekreftelse: ' + (error instanceof Error ? error.message : String(error)), 'error'); return }
             pameldtMap.set(s.id, true)
             renderPameldtListe()
           },
@@ -264,7 +265,7 @@ export async function render(
       for (const sp of filtrert) {
         tilgjengeliTabell.appendChild(lagTilgjengeliRad(sp, async s => {
           const { error } = await leggTilPameldingAdmin(id, s.id)
-          if (error) { alert('Feil ved innmelding: ' + (error instanceof Error ? error.message : String(error))); return }
+          if (error) { showToast('Feil ved innmelding: ' + (error instanceof Error ? error.message : String(error)), 'error'); return }
           pameldtMap.set(s.id, false)
           renderPameldtListe()
           renderTilgjengeliListe()
