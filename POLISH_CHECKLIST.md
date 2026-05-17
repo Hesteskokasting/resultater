@@ -181,6 +181,7 @@ These are small, isolated fixes that should happen before any larger work. They 
 - [x] Replace `src/pages/logginn.ts` — test
 - [x] Replace `src/pages/minside.ts` — test
 - [x] Commit
+- [x] Test manually
 
 ### D2. `createExpandableRow` (or similar — name it for what it does)
 - [ ] Inventory:
