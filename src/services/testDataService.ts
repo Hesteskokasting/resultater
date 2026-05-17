@@ -37,26 +37,19 @@ export async function autoFullforInnledendeKamper(stevneid: number): Promise<voi
   if (!kamper?.length) return
 
   for (const kamp of kamper as TestKampRow[]) {
-    const spelarar = kamp.spelarar ?? []
+    const [sp1, sp2] = kamp.spelarar ?? []
+    const [s1, s2] = kamp.er_walkover ? [21, 0] : tilfeldigScore()
+    const [kp1, kp2] = beregnKampPoeng(s1, s2)
 
-    if (kamp.er_walkover) {
-      const { error: e } = await supabase.from('kamp').update({ er_bekreftet: true }).eq('id', kamp.id)
-      if (e) logError('autoFullforInnledendeKamper:walkover', e)
-    } else {
-      const [sp1, sp2] = spelarar
-      const [s1, s2] = tilfeldigScore()
-      const [kp1, kp2] = beregnKampPoeng(s1, s2)
-
-      try {
-        const updates: PromiseLike<unknown>[] = [
-          supabase.from('kamp').update({ er_bekreftet: true }).eq('id', kamp.id),
-        ]
-        if (sp1) updates.push(supabase.from('kamp_spelar').update({ score_poeng: s1, kamp_poeng: kp1 }).eq('id', sp1.id))
-        if (sp2) updates.push(supabase.from('kamp_spelar').update({ score_poeng: s2, kamp_poeng: kp2 }).eq('id', sp2.id))
-        await Promise.all(updates)
-      } catch (e) {
-        logError('autoFullforInnledendeKamper:update', e)
-      }
+    try {
+      const updates: PromiseLike<unknown>[] = [
+        supabase.from('kamp').update({ er_bekreftet: true }).eq('id', kamp.id),
+      ]
+      if (sp1) updates.push(supabase.from('kamp_spelar').update({ score_poeng: s1, kamp_poeng: kp1 }).eq('id', sp1.id))
+      if (sp2) updates.push(supabase.from('kamp_spelar').update({ score_poeng: s2, kamp_poeng: kp2 }).eq('id', sp2.id))
+      await Promise.all(updates)
+    } catch (e) {
+      logError('autoFullforInnledendeKamper:update', e)
     }
   }
 }
