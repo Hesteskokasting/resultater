@@ -1,11 +1,11 @@
-import { kasterNavn, lagKasterSlug } from '../../utils/kaster'
-import { createErrorBanner } from '../../components/ErrorBanner'
-import { createLoadingState } from '../../components/LoadingState'
-import { createEmptyState } from '../../components/EmptyState'
-import { escHtml } from '../../utils/escHtml'
-import { logError } from '../../utils/logError'
-import { hentStevneMedDetaljer, hentResultaterForStevne } from '../../services/resultatService'
-import type { ResultatRad } from '../../services/resultatService'
+import { kasterNavn, lagKasterSlug } from '@/utils/kaster'
+import { createErrorBanner } from '@/components/ErrorBanner'
+import { createLoadingState } from '@/components/LoadingState'
+import { createEmptyState } from '@/components/EmptyState'
+import { escHtml } from '@/utils/escHtml'
+import { logError } from '@/utils/logError'
+import { hentStevneMedDetaljer, hentResultaterForStevne } from '@/services/resultatService'
+import type { ResultatRad } from '@/services/resultatService'
 
 // ── Typar ─────────────────────────────────────────────────────────────────────
 

@@ -1,6 +1,6 @@
-import { escHtml } from '../utils/escHtml'
-import type { RundeOppsett } from '../types'
-import { beregnGyldigeGruppeStorrelsar, gyldigeRunde1Oppsett, beregnCupStruktur } from '../utils/kastemetoder-logikk'
+import { escHtml } from '@/utils/escHtml'
+import type { RundeOppsett } from '@/types'
+import { beregnGyldigeGruppeStorrelsar, gyldigeRunde1Oppsett, beregnCupStruktur } from '@/utils/kastemetoder-logikk'
 
 interface StillingradForGruppe {
   startnummer?: number | string | null

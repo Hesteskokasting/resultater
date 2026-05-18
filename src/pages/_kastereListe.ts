@@ -1,14 +1,14 @@
-import { kasterNavn, lagKasterSlug as lagSlug } from '../utils/kaster'
-import { getUser } from '../services/authService'
-import { createErrorBanner } from '../components/ErrorBanner'
-import { createLoadingState } from '../components/LoadingState'
-import { escHtml } from '../utils/escHtml'
-import { logError } from '../utils/logError'
+import { kasterNavn, lagKasterSlug as lagSlug } from '@/utils/kaster'
+import { getUser } from '@/services/authService'
+import { createErrorBanner } from '@/components/ErrorBanner'
+import { createLoadingState } from '@/components/LoadingState'
+import { escHtml } from '@/utils/escHtml'
+import { logError } from '@/utils/logError'
 import {
   hentKastereListeAktive,
   hentKastereListeAlle,
-} from '../services/kasterService'
-import type { KasterListeRow } from '../services/kasterService'
+} from '@/services/kasterService'
+import type { KasterListeRow } from '@/services/kasterService'
 
 const SIDER_STORLEIK = 24
 const PLACEHOLDER_AVATAR = 'https://placehold.co/200x200/444/888?text=?'

@@ -1,9 +1,9 @@
-import { getUser } from '../services/authService'
-import { logError } from '../utils/logError'
-import { createErrorBanner } from '../components/ErrorBanner'
-import { createLoadingState } from '../components/LoadingState'
-import { escHtml } from '../utils/escHtml'
-import { renderScoreboard } from '../components/Scoreboard'
+import { getUser } from '@/services/authService'
+import { logError } from '@/utils/logError'
+import { createErrorBanner } from '@/components/ErrorBanner'
+import { createLoadingState } from '@/components/LoadingState'
+import { escHtml } from '@/utils/escHtml'
+import { renderScoreboard } from '@/components/Scoreboard'
 import {
   hentKamp,
   hentHcp,
@@ -13,9 +13,9 @@ import {
   bekreftInnledendeKamp,
   bekreftAvsluttendeKamp,
   subscribeToNesteKamp,
-} from '../services/kampService'
-import { avmeldKanal } from '../utils/realtime'
-import type { KampRow, KampSpelarIKamp } from '../services/kampService'
+} from '@/services/kampService'
+import { avmeldKanal } from '@/utils/realtime'
+import type { KampRow, KampSpelarIKamp } from '@/services/kampService'
 
 const KAMP_POINT_VALUES = [1, 2, 3, 4, 6]
 

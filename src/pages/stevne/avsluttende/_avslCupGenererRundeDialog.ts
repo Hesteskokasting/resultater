@@ -1,12 +1,12 @@
-import { escHtml } from '../../../utils/escHtml'
+import { escHtml } from '@/utils/escHtml'
 import {
   genererCupRunde1,
   genererNesteCupRundeForGruppe,
-} from '../../../services/kampGenereringCupService'
-import { showToast } from '../../../components/Toast'
-import { logError } from '../../../utils/logError'
-import type { RundeOppsett, Runde1FormatTyped } from '../../../types'
-import type { AvslResultatRow } from '../../../services/resultatService'
+} from '@/services/kampGenereringCupService'
+import { showToast } from '@/components/Toast'
+import { logError } from '@/utils/logError'
+import type { RundeOppsett, Runde1FormatTyped } from '@/types'
+import type { AvslResultatRow } from '@/services/resultatService'
 
 type AvslResultatKjent = AvslResultatRow & { kasterid: number }
 type AvslResultatMedNavn = AvslResultatKjent & { namn: string }

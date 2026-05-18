@@ -1,17 +1,17 @@
-import { kasterNavn } from '../../utils/kaster'
-import { createErrorBanner } from '../../components/ErrorBanner'
-import { showToast } from '../../components/Toast'
-import { logError } from '../../utils/logError'
-import { hentKastereListeAktive } from '../../services/kasterService'
-import type { KasterListeRow } from '../../services/kasterService'
+import { kasterNavn } from '@/utils/kaster'
+import { createErrorBanner } from '@/components/ErrorBanner'
+import { showToast } from '@/components/Toast'
+import { logError } from '@/utils/logError'
+import { hentKastereListeAktive } from '@/services/kasterService'
+import type { KasterListeRow } from '@/services/kasterService'
 import {
   hentPameldingStatusForStevne,
   leggTilPameldingAdmin,
   bekreftPameldingForKaster,
   fjernPameldingForKaster,
-} from '../../services/pameldingService'
-import { hentStevneHeader } from '../../services/stevneService'
-import { createLoadingState } from '../../components/LoadingState'
+} from '@/services/pameldingService'
+import { hentStevneHeader } from '@/services/stevneService'
+import { createLoadingState } from '@/components/LoadingState'
 
 // ── Hjelpefunksjonar ──────────────────────────────────────────────────────────
 

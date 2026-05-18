@@ -1,7 +1,7 @@
 import type { QueryData, RealtimeChannel } from '@supabase/supabase-js'
-import { supabase } from '../supabase'
-import { logError } from '../utils/logError'
-import type { Tables, Json, Runde1FormatTyped } from '../types'
+import { supabase } from '@/supabase'
+import { logError } from '@/utils/logError'
+import type { Tables, Json, Runde1FormatTyped } from '@/types'
 
 // ── Admin-typar ───────────────────────────────────────────────────────────────
 

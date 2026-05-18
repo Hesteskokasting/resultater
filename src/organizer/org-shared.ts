@@ -1,6 +1,6 @@
-import { scoreForSp, hentP1P2 } from '../utils/kamp'
-import { escHtml } from '../utils/escHtml'
-import type { Tables } from '../types'
+import { scoreForSp, hentP1P2 } from '@/utils/kamp'
+import { escHtml } from '@/utils/escHtml'
+import type { Tables } from '@/types'
 
 // Minimal shapes for organizer kamp data (spelarar is an aliased join from kamp_spelar)
 export interface OrgKampSpelar {

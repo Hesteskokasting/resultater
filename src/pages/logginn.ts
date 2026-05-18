@@ -1,6 +1,6 @@
-import { getUser, erAdmin, signIn, signUp } from '../services/authService'
-import { escHtml } from '../utils/escHtml'
-import { createTabs } from '../components/Tabs'
+import { getUser, erAdmin, signIn, signUp } from '@/services/authService'
+import { escHtml } from '@/utils/escHtml'
+import { createTabs } from '@/components/Tabs'
 
 function makePanel(html: string): HTMLElement {
   const div = document.createElement('div')

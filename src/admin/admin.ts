@@ -1,6 +1,6 @@
-import { logError } from '../utils/logError'
-import { escHtml } from '../utils/escHtml'
-import { errMsg } from '../utils/adminForms'
+import { logError } from '@/utils/logError'
+import { escHtml } from '@/utils/escHtml'
+import { errMsg } from '@/utils/adminForms'
 import {
   hentVentandeKoblingar,
   hentBrukarEpost,
@@ -11,11 +11,11 @@ import {
   hentKlubbadminTildelte,
   leggTilKlubbadminTilgang,
   fjernKlubbadminTilgang,
-} from '../services/adminService'
-import { hentKlubbar } from '../services/klubbService'
-import { hentKastereByIds } from '../services/kasterService'
-import { createLoadingState } from '../components/LoadingState'
-import { createEmptyState } from '../components/EmptyState'
+} from '@/services/adminService'
+import { hentKlubbar } from '@/services/klubbService'
+import { hentKastereByIds } from '@/services/kasterService'
+import { createLoadingState } from '@/components/LoadingState'
+import { createEmptyState } from '@/components/EmptyState'
 
 type Fane = 'kobling' | 'brukarar' | 'klubbadmin'
 

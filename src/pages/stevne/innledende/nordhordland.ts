@@ -1,6 +1,6 @@
-import { genererNesteSwissRunde } from '../../../services/kampGenereringInnledendeService'
-import { showToast } from '../../../components/Toast'
-import { logError } from '../../../utils/logError'
+import { genererNesteSwissRunde } from '@/services/kampGenereringInnledendeService'
+import { showToast } from '@/components/Toast'
+import { logError } from '@/utils/logError'
 import { createInnledendeRenderer, type InnledendeVariant } from './_innledendeBase'
 
 let visAlleRundar = false

@@ -1,7 +1,7 @@
 import type { QueryData, RealtimeChannel } from '@supabase/supabase-js'
-import { supabase } from '../supabase'
-import { logError } from '../utils/logError'
-import { beregnKampPoeng } from '../utils/kamp'
+import { supabase } from '@/supabase'
+import { logError } from '@/utils/logError'
+import { beregnKampPoeng } from '@/utils/kamp'
 
 const _kampSpelarQuery = supabase.from('kamp_spelar').select(`
   id, kasterid, posisjon,

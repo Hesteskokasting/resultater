@@ -1,4 +1,4 @@
-import { printStartkort } from '../../../organizer/startkort-print'
+import { printStartkort } from '@/organizer/startkort-print'
 import { createInnledendeRenderer, type InnledendeVariant } from './_innledendeBase'
 
 const variant: InnledendeVariant = {

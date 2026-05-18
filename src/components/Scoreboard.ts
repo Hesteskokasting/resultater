@@ -1,12 +1,12 @@
-import type { KampOmgangRow, KampRow, KampSpelarIKamp } from '../services/kampService'
+import type { KampOmgangRow, KampRow, KampSpelarIKamp } from '@/services/kampService'
 import {
   hentKampOmgangar,
   lagreKampOmgang,
   slettKampOmgangarFra,
   unbekreftKamp,
   subscribeToScoreboardEndringar,
-} from '../services/kampService'
-import { avmeldKanal } from '../utils/realtime'
+} from '@/services/kampService'
+import { avmeldKanal } from '@/utils/realtime'
 import { showToast } from './Toast'
 import { confirmDialog } from './ConfirmDialog'
 

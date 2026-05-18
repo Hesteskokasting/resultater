@@ -366,6 +366,6 @@ _Add notes as you discover things:_
 
 - _Note 4: make sure Scoreboard supports both dark/light mode.
 - _Note 5: High contrast light mode for outdoor sun conditions:
-- _Note 6: Konfigurer @/-aliasar i tsconfig og viteconfig
+- _Note 6: Config @/-aliases i tsconfig og viteconfig
 - _Note 7: Use Table component for kastere.ts (list and details)
 - _Note 8: replace æ,ø,å from code

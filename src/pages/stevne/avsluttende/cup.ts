@@ -1,16 +1,16 @@
 import type { RealtimeChannel } from '@supabase/supabase-js'
-import { gyldigeRunde1Oppsett } from '../../../utils/kastemetoder-logikk'
+import { gyldigeRunde1Oppsett } from '@/utils/kastemetoder-logikk'
 import {
   renderGruppefordeling,
   renderGruppePreview,
   renderGruppePanelInnhald,
   renderStrukturListeHtml,
-} from '../../../organizer/gruppefordelingUi'
-import { genererFinaleOgBronsefinale } from '../../../services/kampGenereringCupService'
+} from '@/organizer/gruppefordelingUi'
+import { genererFinaleOgBronsefinale } from '@/services/kampGenereringCupService'
 import { opnGenererRundeDialog } from './_avslCupGenererRundeDialog'
 import { opnTreSpelarBekreftDialog } from './_avslCupTreSpelarDialog'
-import { showNumberpad } from '../../../components/ScoreNumberpad'
-import { scoreForSp } from '../../../utils/kamp'
+import { showNumberpad } from '@/components/ScoreNumberpad'
+import { scoreForSp } from '@/utils/kamp'
 import {
   sorterStilling,
   renderAvsluttendeKnappar,
@@ -23,13 +23,13 @@ import {
   type OrgKamp,
   type OrgKampSpelar,
   type StillingRad,
-} from '../../../organizer/org-shared'
-import { escHtml } from '../../../utils/escHtml'
-import { createLoadingState } from '../../../components/LoadingState'
-import { createErrorBanner } from '../../../components/ErrorBanner'
-import { showToast } from '../../../components/Toast'
-import { confirmDialog } from '../../../components/ConfirmDialog'
-import type { RundeOppsett, Runde1FormatTyped, Json } from '../../../types'
+} from '@/organizer/org-shared'
+import { escHtml } from '@/utils/escHtml'
+import { createLoadingState } from '@/components/LoadingState'
+import { createErrorBanner } from '@/components/ErrorBanner'
+import { showToast } from '@/components/Toast'
+import { confirmDialog } from '@/components/ConfirmDialog'
+import type { RundeOppsett, Runde1FormatTyped, Json } from '@/types'
 import {
   hentAvsluttendeKamper,
   hentKampSpelarar,
@@ -41,7 +41,7 @@ import {
   subscribeToKampEndringar,
   type AvslKampRow,
   type AvslKampSpelarRow,
-} from '../../../services/kampService'
+} from '@/services/kampService'
 import {
   hentAvsluttendeStevne,
   setRunde1Format,
@@ -49,15 +49,15 @@ import {
   oppdaterStevneFase,
   setStevneErfullfort,
   type AvslStevneRow,
-} from '../../../services/stevneService'
-import { avmeldKanal } from '../../../utils/realtime'
+} from '@/services/stevneService'
+import { avmeldKanal } from '@/utils/realtime'
 import {
   hentResultatForAvsluttende,
   hentGrupper,
   setGruppeInndeling,
   clearGruppeInndeling,
   type AvslResultatRow,
-} from '../../../services/resultatService'
+} from '@/services/resultatService'
 
 // ── Local types ───────────────────────────────────────────────────────────────
 

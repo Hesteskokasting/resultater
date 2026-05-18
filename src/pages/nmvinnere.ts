@@ -1,12 +1,12 @@
-import { lagKasterSlug, kasterNavn } from '../utils/kaster'
-import { createErrorBanner } from '../components/ErrorBanner'
-import { createLoadingState } from '../components/LoadingState'
-import { createEmptyState } from '../components/EmptyState'
-import { createTable } from '../components/Table'
-import { escHtml } from '../utils/escHtml'
-import { logError } from '../utils/logError'
-import { hentNmData } from '../services/nmvinnereService'
-import type { NmKategoriKonfig, NmKjonn, NmResultatRow } from '../services/nmvinnereService'
+import { lagKasterSlug, kasterNavn } from '@/utils/kaster'
+import { createErrorBanner } from '@/components/ErrorBanner'
+import { createLoadingState } from '@/components/LoadingState'
+import { createEmptyState } from '@/components/EmptyState'
+import { createTable } from '@/components/Table'
+import { escHtml } from '@/utils/escHtml'
+import { logError } from '@/utils/logError'
+import { hentNmData } from '@/services/nmvinnereService'
+import type { NmKategoriKonfig, NmKjonn, NmResultatRow } from '@/services/nmvinnereService'
 
 // ── Konstanter ────────────────────────────────────────────────────────────────
 

@@ -1,6 +1,6 @@
-import { supabase } from '../supabase'
-import { logError } from '../utils/logError'
-import type { Tables } from '../types'
+import { supabase } from '@/supabase'
+import { logError } from '@/utils/logError'
+import type { Tables } from '@/types'
 
 export type KlubbListeRow = Pick<Tables<'klubb'>, 'id' | 'navn' | 'logourl'>
 

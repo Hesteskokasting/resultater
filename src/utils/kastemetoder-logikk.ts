@@ -1,6 +1,6 @@
 // Cup avsluttende kastemetode — ren logikk (ingen DB-kall)
 
-import type { RundeOppsett, CupRunde, CupParing } from '../types'
+import type { RundeOppsett, CupRunde, CupParing } from '@/types'
 
 interface Spelar {
   kasterid: number | string

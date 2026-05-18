@@ -1,6 +1,6 @@
-import { supabase } from '../supabase'
-import { logError } from '../utils/logError'
-import type { Tables } from '../types'
+import { supabase } from '@/supabase'
+import { logError } from '@/utils/logError'
+import type { Tables } from '@/types'
 
 type VentandeKoblingRow = Pick<Tables<'bruker_profil'>, 'id' | 'kobling_kasterid'>
 type BrukarListeRow     = Pick<Tables<'bruker_profil'>, 'id' | 'rolle' | 'kobling_status'>

@@ -1,6 +1,6 @@
-import { createLoadingState } from '../../components/LoadingState'
-import { createErrorBanner } from '../../components/ErrorBanner'
-import { hentInnledendeMetodeNamn } from '../../services/stevneService'
+import { createLoadingState } from '@/components/LoadingState'
+import { createErrorBanner } from '@/components/ErrorBanner'
+import { hentInnledendeMetodeNamn } from '@/services/stevneService'
 
 export async function render(
   container: HTMLElement,

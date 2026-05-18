@@ -1,4 +1,4 @@
-import type { Kaster, Klubb } from '../types'
+import type { Kaster, Klubb } from '@/types'
 
 export function kasterNavn(k: Pick<Kaster, 'fornavn' | 'etternavn'> | null | undefined): string {
   return [k?.fornavn, k?.etternavn].filter(Boolean).join(' ')

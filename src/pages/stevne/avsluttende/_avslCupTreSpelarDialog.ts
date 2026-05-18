@@ -1,6 +1,6 @@
-import { escHtml } from '../../../utils/escHtml'
-import { bekreftCupKamp, type AvslKampRow, type AvslKampSpelarRow } from '../../../services/kampService'
-import { showToast } from '../../../components/Toast'
+import { escHtml } from '@/utils/escHtml'
+import { bekreftCupKamp, type AvslKampRow, type AvslKampSpelarRow } from '@/services/kampService'
+import { showToast } from '@/components/Toast'
 
 export function opnTreSpelarBekreftDialog(
   kamp: AvslKampRow,

@@ -1,21 +1,21 @@
-import { getUser } from '../services/authService'
-import { confirmDialog } from '../components/ConfirmDialog'
-import { formaterDato } from '../utils/shared'
-import { createErrorBanner } from '../components/ErrorBanner'
-import { createLoadingState } from '../components/LoadingState'
-import { escHtml } from '../utils/escHtml'
-import { logError } from '../utils/logError'
-import { hentStevneForPamelding, hentRelaterteStevner } from '../services/stevneService'
-import { hentKastereListeAktive, hentKastereForKlubbar } from '../services/kasterService'
+import { getUser } from '@/services/authService'
+import { confirmDialog } from '@/components/ConfirmDialog'
+import { formaterDato } from '@/utils/shared'
+import { createErrorBanner } from '@/components/ErrorBanner'
+import { createLoadingState } from '@/components/LoadingState'
+import { escHtml } from '@/utils/escHtml'
+import { logError } from '@/utils/logError'
+import { hentStevneForPamelding, hentRelaterteStevner } from '@/services/stevneService'
+import { hentKastereListeAktive, hentKastereForKlubbar } from '@/services/kasterService'
 import {
   hentPameldingarForStevne,
   meldPaStevne,
   fjernPamelding,
-} from '../services/pameldingService'
-import type { PameldingMedKasterRow } from '../services/pameldingService'
-import type { KasterListeRow } from '../services/kasterService'
-import type { RelatertStevneRow } from '../services/stevneService'
-import type { AuthUser } from '../types'
+} from '@/services/pameldingService'
+import type { PameldingMedKasterRow } from '@/services/pameldingService'
+import type { KasterListeRow } from '@/services/kasterService'
+import type { RelatertStevneRow } from '@/services/stevneService'
+import type { AuthUser } from '@/types'
 
 // ── HTML-byggjarar ────────────────────────────────────────────────────────────
 

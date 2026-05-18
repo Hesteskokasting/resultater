@@ -1,7 +1,7 @@
 import type { QueryData } from '@supabase/supabase-js'
-import { supabase } from '../supabase'
-import { beregnKampPoeng } from '../utils/kamp'
-import { logError } from '../utils/logError'
+import { supabase } from '@/supabase'
+import { beregnKampPoeng } from '@/utils/kamp'
+import { logError } from '@/utils/logError'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

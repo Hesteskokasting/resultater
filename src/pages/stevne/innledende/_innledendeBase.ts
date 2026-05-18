@@ -18,35 +18,35 @@
 // an InnledendeVariant and exports `createInnledendeRenderer(variant)`.
 // See gloppen.ts (no-Swiss) and nordhordland.ts (Swiss) for examples.
 //
-import { showNumberpad } from '../../../components/ScoreNumberpad'
-import { showToast } from '../../../components/Toast'
-import { confirmDialog } from '../../../components/ConfirmDialog'
-import { promptDialog } from '../../../components/PromptDialog'
-import { beregnKampPoeng, hentP1P2, scoreForSp } from '../../../utils/kamp'
-import { autoFullforInnledendeKamper } from '../../../services/testDataService'
+import { showNumberpad } from '@/components/ScoreNumberpad'
+import { showToast } from '@/components/Toast'
+import { confirmDialog } from '@/components/ConfirmDialog'
+import { promptDialog } from '@/components/PromptDialog'
+import { beregnKampPoeng, hentP1P2, scoreForSp } from '@/utils/kamp'
+import { autoFullforInnledendeKamper } from '@/services/testDataService'
 import {
   byggInnledendeSpelMap, sorterStilling, renderInnledendeKnappar, lagOnEndringHandler,
   bindStillingDetaljar, renderHovudInnhald, bindTabToggle, renderStillingTabell, beregnKanBekrefte,
   type StillingRad,
-} from '../../../organizer/org-shared'
-import { escHtml } from '../../../utils/escHtml'
-import { createLoadingState } from '../../../components/LoadingState'
-import { createErrorBanner } from '../../../components/ErrorBanner'
-import { logError } from '../../../utils/logError'
+} from '@/organizer/org-shared'
+import { escHtml } from '@/utils/escHtml'
+import { createLoadingState } from '@/components/LoadingState'
+import { createErrorBanner } from '@/components/ErrorBanner'
+import { logError } from '@/utils/logError'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import {
   hentInnledendeKamper, harKampOmgangar, slettKampOmgangar,
   oppdaterKampSpelarScoreRask, bekreftInnledendeKamp, subscribeToKampEndringar,
   type InnlKampRow, type InnlKampSpelarRow,
-} from '../../../services/kampService'
+} from '@/services/kampService'
 import {
   hentInnledendeStevne, setStevneErfullfort,
   type InnlStevneRow,
-} from '../../../services/stevneService'
-import { avmeldKanal } from '../../../utils/realtime'
+} from '@/services/stevneService'
+import { avmeldKanal } from '@/utils/realtime'
 import {
   hentResultatForInnledende, oppdaterResultatHcp,
-} from '../../../services/resultatService'
+} from '@/services/resultatService'
 
 // ── Variant API ───────────────────────────────────────────────────────────────
 

@@ -1,6 +1,6 @@
-import { supabase } from '../supabase'
-import { beregnCupRundeParingar } from '../utils/kastemetoder-logikk'
-import type { RundeOppsett } from '../types'
+import { supabase } from '@/supabase'
+import { beregnCupRundeParingar } from '@/utils/kastemetoder-logikk'
+import type { RundeOppsett } from '@/types'
 
 function genMatchId(): string {
   return crypto.randomUUID()

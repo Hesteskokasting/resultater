@@ -1,7 +1,7 @@
-import { supabase } from '../supabase'
-import type { AuthUser, Profil, Rolle } from '../types'
-import { hentProfilForBruker } from '../services/brukerProfilService'
-import { hentKlubbadminKlubbarForBruker } from '../services/adminService'
+import { supabase } from '@/supabase'
+import type { AuthUser, Profil, Rolle } from '@/types'
+import { hentProfilForBruker } from '@/services/brukerProfilService'
+import { hentKlubbadminKlubbarForBruker } from '@/services/adminService'
 
 const ROLLER = ['admin', 'klubbadmin', 'bruker'] as const
 

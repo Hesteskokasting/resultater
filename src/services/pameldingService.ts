@@ -1,6 +1,6 @@
 import type { QueryData } from '@supabase/supabase-js'
-import { supabase } from '../supabase'
-import { logError } from '../utils/logError'
+import { supabase } from '@/supabase'
+import { logError } from '@/utils/logError'
 import { getUser } from './authService'
 
 const _pameldingQuery = supabase.from('pamelding').select('id, stevne:stevneid(id, navn, dato)')

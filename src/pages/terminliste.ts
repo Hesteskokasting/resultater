@@ -1,13 +1,13 @@
-import type { AuthUser } from '../types'
-import { getUser } from '../services/authService'
-import { hentTerminlisteStevner, hentFiltervalg, hentPameldteForBruker } from '../services/stevneService'
-import type { TerminlisteStevneRow } from '../services/stevneService'
-import { formaterDatoLang as formaterDato, arOptions, lastNedExcel as lastNedExcelFil } from '../utils/shared'
-import { buildDropdownOptions } from '../utils/buildDropdownOptions'
-import { createErrorBanner } from '../components/ErrorBanner'
-import { createLoadingState } from '../components/LoadingState'
-import { escHtml } from '../utils/escHtml'
-import { logError } from '../utils/logError'
+import type { AuthUser } from '@/types'
+import { getUser } from '@/services/authService'
+import { hentTerminlisteStevner, hentFiltervalg, hentPameldteForBruker } from '@/services/stevneService'
+import type { TerminlisteStevneRow } from '@/services/stevneService'
+import { formaterDatoLang as formaterDato, arOptions, lastNedExcel as lastNedExcelFil } from '@/utils/shared'
+import { buildDropdownOptions } from '@/utils/buildDropdownOptions'
+import { createErrorBanner } from '@/components/ErrorBanner'
+import { createLoadingState } from '@/components/LoadingState'
+import { escHtml } from '@/utils/escHtml'
+import { logError } from '@/utils/logError'
 
 type StevneRow = TerminlisteStevneRow
 

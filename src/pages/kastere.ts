@@ -1,4 +1,4 @@
-import type { PageRenderFn } from '../types'
+import type { PageRenderFn } from '@/types'
 import { renderListe } from './_kastereListe'
 import { renderDetalj, ødeleggChart } from './_kastereDetalj'
 

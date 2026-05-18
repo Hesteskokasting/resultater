@@ -1,7 +1,7 @@
 import type { QueryData } from '@supabase/supabase-js'
-import { supabase } from '../supabase'
-import { logError } from '../utils/logError'
-import type { Tables } from '../types'
+import { supabase } from '@/supabase'
+import { logError } from '@/utils/logError'
+import type { Tables } from '@/types'
 
 // Query builders used only for type inference — no HTTP calls at module load
 const _medlemQuery          = supabase.from('kaster').select('id, fornavn, etternavn, avatarurl, medlemsnummer, klasse:klasseid(id, navn)')

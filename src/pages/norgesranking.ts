@@ -1,13 +1,13 @@
-import { kasterNavn } from '../utils/kaster'
-import { formaterDato, arOptions, lastNedExcel as lastNedExcelFil } from '../utils/shared'
-import { createErrorBanner } from '../components/ErrorBanner'
-import { createLoadingState } from '../components/LoadingState'
-import { createEmptyState } from '../components/EmptyState'
-import { createTable } from '../components/Table'
-import { logError } from '../utils/logError'
-import { bindExpandableRows } from '../utils/expandableRows'
-import { hentStevnerOgResultater } from '../services/norgesrankingService'
-import type { RankingStevneRow, RankingResultatRow } from '../services/norgesrankingService'
+import { kasterNavn } from '@/utils/kaster'
+import { formaterDato, arOptions, lastNedExcel as lastNedExcelFil } from '@/utils/shared'
+import { createErrorBanner } from '@/components/ErrorBanner'
+import { createLoadingState } from '@/components/LoadingState'
+import { createEmptyState } from '@/components/EmptyState'
+import { createTable } from '@/components/Table'
+import { logError } from '@/utils/logError'
+import { bindExpandableRows } from '@/utils/expandableRows'
+import { hentStevnerOgResultater } from '@/services/norgesrankingService'
+import type { RankingStevneRow, RankingResultatRow } from '@/services/norgesrankingService'
 
 const FOERSTE_AR = 2018
 const MIN_STEVNER = 5

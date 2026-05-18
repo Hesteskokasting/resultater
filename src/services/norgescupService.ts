@@ -1,6 +1,6 @@
 import type { QueryData } from '@supabase/supabase-js'
-import { supabase } from '../supabase'
-import { logError } from '../utils/logError'
+import { supabase } from '@/supabase'
+import { logError } from '@/utils/logError'
 
 // ── Type-inferens-buildarar ───────────────────────────────────────────────────
 

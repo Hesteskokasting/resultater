@@ -1,16 +1,16 @@
-import { logError } from '../../utils/logError'
-import { showToast } from '../../components/Toast'
-import { confirmDialog } from '../../components/ConfirmDialog'
-import { escHtml } from '../../utils/escHtml'
-import { createErrorBanner } from '../../components/ErrorBanner'
-import { createLoadingState } from '../../components/LoadingState'
+import { logError } from '@/utils/logError'
+import { showToast } from '@/components/Toast'
+import { confirmDialog } from '@/components/ConfirmDialog'
+import { escHtml } from '@/utils/escHtml'
+import { createErrorBanner } from '@/components/ErrorBanner'
+import { createLoadingState } from '@/components/LoadingState'
 import {
   hentStevneInnstillingar,
   hentAktiveKastemetodar,
   oppdaterStevneInnstillingar,
-} from '../../services/stevneService'
-import type { AktivKastemetodeRow } from '../../services/stevneService'
-import { nullstillStevne } from '../../services/testDataService'
+} from '@/services/stevneService'
+import type { AktivKastemetodeRow } from '@/services/stevneService'
+import { nullstillStevne } from '@/services/testDataService'
 
 // ── Render ────────────────────────────────────────────────────────────────────
 

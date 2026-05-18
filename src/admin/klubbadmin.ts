@@ -1,13 +1,13 @@
-import { lagFormRadHtml, visLagreFeil, visSuksess, errMsg } from '../utils/adminForms'
-import { erAdmin, erKlubbadmin } from '../services/authService'
-import { escHtml } from '../utils/escHtml'
-import { createErrorBanner } from '../components/ErrorBanner'
-import { createLoadingState } from '../components/LoadingState'
+import { lagFormRadHtml, visLagreFeil, visSuksess, errMsg } from '@/utils/adminForms'
+import { erAdmin, erKlubbadmin } from '@/services/authService'
+import { escHtml } from '@/utils/escHtml'
+import { createErrorBanner } from '@/components/ErrorBanner'
+import { createLoadingState } from '@/components/LoadingState'
 import {
   hentKlubbForAdmin,
   oppdaterKlubb,
   type KlubbAdminRow,
-} from '../services/klubbService'
+} from '@/services/klubbService'
 
 export async function render(
   container: HTMLElement,

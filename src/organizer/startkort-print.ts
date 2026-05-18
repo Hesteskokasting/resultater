@@ -1,5 +1,5 @@
-import { startcardTemplate, type RoundInfo } from '../utils/startcard/startcard-template'
-import { logError } from '../utils/logError'
+import { startcardTemplate, type RoundInfo } from '@/utils/startcard/startcard-template'
+import { logError } from '@/utils/logError'
 
 interface StartkortKlubb {
   kortnavn?: string | null

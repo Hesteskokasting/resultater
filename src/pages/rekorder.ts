@@ -1,12 +1,12 @@
-import { kasterNavn, lagKasterSlug } from '../utils/kaster'
-import { createErrorBanner } from '../components/ErrorBanner'
-import { createLoadingState } from '../components/LoadingState'
-import { createEmptyState } from '../components/EmptyState'
-import { createTable } from '../components/Table'
-import { escHtml } from '../utils/escHtml'
-import { logError } from '../utils/logError'
-import { hentAlleRekorder } from '../services/rekorderService'
-import type { RekorderRow } from '../services/rekorderService'
+import { kasterNavn, lagKasterSlug } from '@/utils/kaster'
+import { createErrorBanner } from '@/components/ErrorBanner'
+import { createLoadingState } from '@/components/LoadingState'
+import { createEmptyState } from '@/components/EmptyState'
+import { createTable } from '@/components/Table'
+import { escHtml } from '@/utils/escHtml'
+import { logError } from '@/utils/logError'
+import { hentAlleRekorder } from '@/services/rekorderService'
+import type { RekorderRow } from '@/services/rekorderService'
 
 // ── Konstanter ────────────────────────────────────────────────────────────────
 

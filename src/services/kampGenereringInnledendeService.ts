@@ -1,5 +1,5 @@
-import { supabase } from '../supabase'
-import { sorterStilling, type KampForSortering } from '../organizer/org-shared'
+import { supabase } from '@/supabase'
+import { sorterStilling, type KampForSortering } from '@/organizer/org-shared'
 
 function genMatchId(): string {
   return crypto.randomUUID()

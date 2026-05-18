@@ -1,12 +1,12 @@
-import { lagFormRadHtml, visLagreFeil, visSuksess, errMsg } from '../utils/adminForms'
-import { confirmDialog } from '../components/ConfirmDialog'
-import { erAdmin, erKlubbadmin } from '../services/authService'
-import { escHtml } from '../utils/escHtml'
-import { buildDropdownOptions } from '../utils/buildDropdownOptions'
-import { formNum } from '../utils/formNum'
-import { logError } from '../utils/logError'
-import { createErrorBanner } from '../components/ErrorBanner'
-import { createLoadingState } from '../components/LoadingState'
+import { lagFormRadHtml, visLagreFeil, visSuksess, errMsg } from '@/utils/adminForms'
+import { confirmDialog } from '@/components/ConfirmDialog'
+import { erAdmin, erKlubbadmin } from '@/services/authService'
+import { escHtml } from '@/utils/escHtml'
+import { buildDropdownOptions } from '@/utils/buildDropdownOptions'
+import { formNum } from '@/utils/formNum'
+import { logError } from '@/utils/logError'
+import { createErrorBanner } from '@/components/ErrorBanner'
+import { createLoadingState } from '@/components/LoadingState'
 import {
   hentKasterForAdmin,
   hentKlassar,
@@ -15,8 +15,8 @@ import {
   oppdaterKaster,
   slettKaster,
   type KasterAdminRow,
-} from '../services/kasterService'
-import { hentKlubbar } from '../services/klubbService'
+} from '@/services/kasterService'
+import { hentKlubbar } from '@/services/klubbService'
 
 export async function render(
   container: HTMLElement,

@@ -1,13 +1,13 @@
-import { formaterPoeng, byggSingelListe } from '../utils/norgescup'
-import { hentRegler, hentStevnerOgResultater } from '../services/norgescupService'
-import { formaterDatoLang as formaterDato } from '../utils/shared'
-import { createErrorBanner } from '../components/ErrorBanner'
-import { createLoadingState } from '../components/LoadingState'
-import { escHtml } from '../utils/escHtml'
-import { hentSisteResultater, hentLiveStevner, hentKommendeStevner } from '../services/stevneService'
-import type { SisteResultatRow, LiveStevneRow, KommendeStevneRow } from '../services/stevneService'
-import { logError } from '../utils/logError'
-import type { SingelListeRad } from '../utils/norgescup'
+import { formaterPoeng, byggSingelListe } from '@/utils/norgescup'
+import { hentRegler, hentStevnerOgResultater } from '@/services/norgescupService'
+import { formaterDatoLang as formaterDato } from '@/utils/shared'
+import { createErrorBanner } from '@/components/ErrorBanner'
+import { createLoadingState } from '@/components/LoadingState'
+import { escHtml } from '@/utils/escHtml'
+import { hentSisteResultater, hentLiveStevner, hentKommendeStevner } from '@/services/stevneService'
+import type { SisteResultatRow, LiveStevneRow, KommendeStevneRow } from '@/services/stevneService'
+import { logError } from '@/utils/logError'
+import type { SingelListeRad } from '@/utils/norgescup'
 
 // ── HTML-byggjarar ────────────────────────────────────────────────────────────
 
