@@ -303,12 +303,13 @@ Then decide per-file whether to split, document, or leave alone. **A 600-line fi
 - [ ] Full manual walkthrough — every page, every flow, both themes
   - home.ts -> COMPLETE
   - stevne-innledende.ts -> COMPLETE
-  - kamp.ts / scoreboard.ts -> bug when using the back button: [stevne.render] Error: cannot add `postgres_changes` callbacks for realtime:stevne-fase-2265 after `subscribe()`.
-    at RealtimeChannel.on (@supabase_supabase-js.js?v=5fe89f4b:8089:10)
-    at subscribeToStevneFase (stevneService.ts:258:6)
-    at Object.render [as side] (stevne.ts:107:13)
-  - the back button does not go back to correct routing. testet while in stevne/id/innledende, but the button went back to stevne/id/info, and gave error.
-    - consider opening the scorebard in a new tab and remove the back button?
+  - kamp.ts / scoreboard.ts -> COMPLETE
+  - stevne-avsluttende.ts -> bugs and changes:
+    1. When selecting gruppeinndeling, the confirm button does not provide enough feedback to the user (Bekreft val) and is positioning far from the selection windows.
+    2. When clicking "Start avsluttende fase" the button is removed and the change gruppeinndeling button is removed.
+    3. The list of players (A and B) is empty. No player names are visible
+    4. You then have to click "Bekreft val" again to actually see the round generation buttons.
+    5. The order of the players in the result list is wrong.
 - [ ] `npm run typecheck` returns 0 errors
 - [ ] `npm run build` succeeds (and the output bundle isn't horribly large)
 - [ ] All 3 critical flows from Phase 0 work

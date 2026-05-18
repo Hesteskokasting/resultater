@@ -94,7 +94,10 @@ export async function render(container: HTMLElement, { id }: { id: number }): Pr
   )
 
   container.addEventListener('click', (e) => {
-    if ((e.target as HTMLElement).closest('.sb-tilbake-btn')) history.back()
+    if ((e.target as HTMLElement).closest('.sb-tilbake-btn')) {
+      if (history.length > 1) history.back()
+      else window.close()
+    }
   })
 
   const sbContainer = container.querySelector<HTMLElement>('#sb-container')

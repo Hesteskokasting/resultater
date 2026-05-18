@@ -3,6 +3,7 @@ import {
   hentKampOmgangar,
   lagreKampOmgang,
   slettKampOmgangarFra,
+  unbekreftKamp,
   subscribeToScoreboardEndringar,
 } from '../services/kampService'
 import { avmeldKanal } from '../utils/realtime'
@@ -254,6 +255,12 @@ export async function renderScoreboard(
     const { error } = await slettKampOmgangarFra(ids, fraNr)
     if (error) { showToast('Feil ved sletting', 'error'); return }
 
+    if (kamp.er_bekreftet) {
+      const { error: e2 } = await unbekreftKamp(kamp.id)
+      if (e2) { showToast('Feil ved oppdatering av kampstatus', 'error'); return }
+      kamp.er_bekreftet = false
+    }
+
     omgangar = omgangar.filter(o => o.omgang < fraNr)
     val1 = null
     val2 = null
@@ -487,6 +494,13 @@ async function renderScoreboard3(
     if (!await confirmDialog({ title: 'Slett omgangar', message: `Slett omgang ${fraNr} og alle etter? Dette kan ikkje angrast.`, danger: true })) return
     const { error } = await slettKampOmgangarFra(spelarIds, fraNr)
     if (error) { showToast('Feil ved sletting', 'error'); return }
+
+    if (kamp.er_bekreftet) {
+      const { error: e2 } = await unbekreftKamp(kamp.id)
+      if (e2) { showToast('Feil ved oppdatering av kampstatus', 'error'); return }
+      kamp.er_bekreftet = false
+    }
+
     vals = [null, null, null]
     await lastOmgangar3()
     tegn3()

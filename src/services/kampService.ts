@@ -555,6 +555,12 @@ export async function lagreKampOmgang(
   return { error }
 }
 
+export async function unbekreftKamp(kampId: number): Promise<{ error: unknown }> {
+  const { error } = await supabase.from('kamp').update({ er_bekreftet: false }).eq('id', kampId)
+  if (error) logError('unbekreftKamp', error)
+  return { error }
+}
+
 export async function slettKampOmgangarFra(spelarIds: number[], fraOmgang: number): Promise<{ error: unknown }> {
   if (!spelarIds.length) return { error: null }
   const { error } = await supabase

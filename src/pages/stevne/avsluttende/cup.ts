@@ -526,7 +526,7 @@ function bindKampEvents(
     })
 
     container.querySelector(`#scoreboard-${kamp.id}`)?.addEventListener('click', () => {
-      location.hash = `#/kamp/${kamp.id}`
+      window.open(`#/kamp/${kamp.id}`, '_blank')
     })
 
     container.querySelector(`#bekrft-${kamp.id}`)?.addEventListener('click', () => {
