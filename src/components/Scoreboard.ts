@@ -135,10 +135,6 @@ export async function renderScoreboard(
     return { p1Dis, p2Dis }
   }
 
-  function spelarNamn(ks: KampSpelarIKamp | null, fallback: string): string {
-    return ks?.kaster ? `${ks.kaster.fornavn} ${ks.kaster.etternavn}` : fallback
-  }
-
   function tegn(): void {
     container.innerHTML = ''
 
@@ -163,14 +159,7 @@ export async function renderScoreboard(
       const angreRad = lagEl('div', null, 'sb-angre-rad')
 
       if (omgangar.length > 0) {
-        const omgBtns = lagEl('div', null, 'sb-omg-btns')
-        for (const omg of omgangar) {
-          const btn = lagEl('button', String(omg.omgang), 'sb-omg-btn')
-          btn.title = `Slett frå omgang ${omg.omgang}`
-          btn.addEventListener('click', () => slettOmgangFra(omg.omgang))
-          omgBtns.appendChild(btn)
-        }
-        angreRad.appendChild(omgBtns)
+        angreRad.appendChild(lagOmgangSlettKnappar(omgangar.map(o => o.omgang), slettOmgangFra))
       }
 
       const angreBtn = lagEl('button', '↩', 'sb-angre-btn')
@@ -183,13 +172,7 @@ export async function renderScoreboard(
     }
 
     if (kanBekrefte) {
-      const bekreftBtn = lagEl('button', 'Bekreft kamp', 'sb-neste-btn sb-neste-btn--bekreft')
-      bekreftBtn.addEventListener('click', async () => {
-        bekreftBtn.disabled = true
-        bekreftBtn.textContent = 'Lagrar…'
-        await onBekreft!()
-      })
-      container.appendChild(bekreftBtn)
+      container.appendChild(lagBekreftKnapp(() => onBekreft!()))
     } else if (kanRedigere) {
       const nesteBtn = lagEl('button', 'Neste omgang', 'sb-neste-btn')
       nesteBtn.disabled = !kanNeste
@@ -292,6 +275,31 @@ function lagEl(tag: string, tekst: string | null, klasse?: string): HTMLElement 
   return el
 }
 
+function spelarNamn(ks: KampSpelarIKamp | null, fallback = 'Spelar'): string {
+  return ks?.kaster ? `${ks.kaster.fornavn} ${ks.kaster.etternavn}` : fallback
+}
+
+function lagOmgangSlettKnappar(omgangNumre: number[], onSlett: (nr: number) => void): HTMLElement {
+  const row = lagEl('div', null, 'sb-omg-btns')
+  for (const nr of omgangNumre) {
+    const btn = lagEl('button', String(nr), 'sb-omg-btn')
+    btn.title = `Slett frå omgang ${nr}`
+    btn.addEventListener('click', () => onSlett(nr))
+    row.appendChild(btn)
+  }
+  return row
+}
+
+function lagBekreftKnapp(onBekreft: () => Promise<void>): HTMLButtonElement {
+  const btn = lagEl('button', 'Bekreft kamp', 'sb-neste-btn sb-neste-btn--bekreft')
+  btn.addEventListener('click', async () => {
+    btn.disabled = true
+    btn.textContent = 'Lagrar…'
+    await onBekreft()
+  })
+  return btn
+}
+
 // ── 3-player scoreboard ───────────────────────────────────────────────────────
 
 async function renderScoreboard3(
@@ -315,10 +323,6 @@ async function renderScoreboard3(
     return omgangData
       .filter(o => o.kamp_spelar_id === spelarar[idx]?.id)
       .reduce((s, o) => s + (o.score ?? 0), 0)
-  }
-
-  function spelarNamn(ks: KampSpelarIKamp): string {
-    return ks.kaster ? `${ks.kaster.fornavn} ${ks.kaster.etternavn}` : 'Spelar'
   }
 
   function beregnVinnRekkefølge(): number[] {
@@ -433,15 +437,8 @@ async function renderScoreboard3(
       const angreRad = lagEl('div', null, 'sb-angre-rad')
 
       if (omgangData.length > 0) {
-        const omgBtns = lagEl('div', null, 'sb-omg-btns')
         const omgangarNr = [...new Set(omgangData.map(o => o.omgang))].sort((a, b) => a - b)
-        for (const nr of omgangarNr) {
-          const btn = lagEl('button', String(nr), 'sb-omg-btn')
-          btn.title = `Slett frå omgang ${nr}`
-          btn.addEventListener('click', () => slettOmgangFra3(nr))
-          omgBtns.appendChild(btn)
-        }
-        angreRad.appendChild(omgBtns)
+        angreRad.appendChild(lagOmgangSlettKnappar(omgangarNr, slettOmgangFra3))
       }
 
       const angreBtn = lagEl('button', '↩', 'sb-angre-btn')
@@ -459,13 +456,7 @@ async function renderScoreboard3(
     }
 
     if (erFerdig && !kamp.er_bekreftet && onBekreft && kanRedigere) {
-      const bekreftBtn = lagEl('button', 'Bekreft kamp', 'sb-neste-btn sb-neste-btn--bekreft')
-      bekreftBtn.addEventListener('click', async () => {
-        bekreftBtn.disabled = true
-        bekreftBtn.textContent = 'Lagrar…'
-        await onBekreft(vinnRekkefølge.map(i => spelarar[i].kasterid))
-      })
-      container.appendChild(bekreftBtn)
+      container.appendChild(lagBekreftKnapp(() => onBekreft(vinnRekkefølge.map(i => spelarar[i].kasterid))))
     } else if (kamp.er_bekreftet) {
       container.appendChild(lagEl('div', 'Kamp fullført', 'alert alert-success mt-2'))
     }

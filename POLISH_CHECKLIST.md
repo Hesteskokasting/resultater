@@ -269,7 +269,9 @@ For each, get an honest assessment from Claude Code:
 - [x] `src/services/kampService.ts` (627 lines)
   - Size justified — coherent domain, already has section comments. No split.
   - Fixed 3 bugs while here: walkover confirm (Scoreboard.ts + kamp.ts) + stale-score fallback in service.
-- [ ] `src/components/Scoreboard.ts` (504 lines)
+- [x] `src/components/Scoreboard.ts` (504 lines)
+  - Size justified — 2-player and 3-player variants share a single entry point; no split.
+  - Extracted 3 module-level helpers eliminating duplication: `spelarNamn`, `lagOmgangSlettKnappar`, `lagBekreftKnapp`.
 
 **Prompt for each file:**
 > "Read `<path>`. It is N lines long. Honest assessment:
