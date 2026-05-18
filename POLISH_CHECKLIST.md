@@ -290,9 +290,10 @@ Then decide per-file whether to split, document, or leave alone. **A 600-line fi
 > Do each step separately. Update checklist and write a short committext for each step
 
 - [x] `src/styles.css` — find the 3 remaining hardcoded hex colors and replace with variables
-- [ ] Audit unused CSS rules (use coverage tool in Chrome devtools, or `npx purgecss`)
+- [~] Audit unused CSS rules (use coverage tool in Chrome devtools, or `npx purgecss`)
+  - Do manually later
 - [ ] Identify duplicated patterns across files, e.g. `terminliste`, `norgesranking`, `norgescupen`  — extract to shared classes
-- [ ] Verify `startcard.css` styles are scoped — not leaking into the app
+- [x] Verify `startcard.css` styles are scoped — not leaking into the app
 - [ ] Commit: `"CSS cleanup — variables, unused rules, shared patterns"`
 
 ---

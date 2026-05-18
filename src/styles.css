@@ -78,7 +78,8 @@
 
 /* ── Slideout-meny ── */
 
-.meny-bakgrunn {
+.meny-bakgrunn,
+.tl-bunnark-bakgrunn {
   display: none;
   position: fixed;
   inset: 0;
@@ -86,7 +87,8 @@
   z-index: 200;
 }
 
-.meny-bakgrunn.aktiv { display: block; }
+.meny-bakgrunn.aktiv,
+.tl-bunnark-bakgrunn.aktiv { display: block; }
 
 .sidepanel {
   position: fixed;
@@ -154,7 +156,10 @@
 
 /* ── Fremsiden ── */
 
-.heimeside { padding-bottom: 40px; }
+.heimeside,
+.terminliste,
+.res-side,
+.nc-side { padding-bottom: 40px; }
 
 .live-banner {
   display: flex;
@@ -284,34 +289,25 @@ a.stevne-navn {
 
 /* ── Terminliste ── */
 
-.terminliste { padding-bottom: 40px; }
-
-.tl-tittel {
+.tl-tittel,
+.nc-hovudtittel {
   text-align: center;
   font-size: 1.15rem;
   font-weight: bold;
   margin-bottom: 14px;
 }
 
-.tl-filter-rad {
+.tl-filter-rad,
+.nc-filter-rad {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-bottom: 12px;
 }
 
-.tl-input {
-  flex: 1 1 140px;
-  padding: 6px 8px;
-  border: 1px solid var(--kant-2);
-  border-radius: 4px;
-  font-size: 0.85rem;
-  background: var(--input-bg);
-  color: var(--tekst);
-}
+.tl-filter-rad { margin-bottom: 12px; }
 
+.tl-input,
 .tl-select {
-  flex: 1 1 120px;
   padding: 6px 8px;
   border: 1px solid var(--kant-2);
   border-radius: 4px;
@@ -319,6 +315,9 @@ a.stevne-navn {
   background: var(--input-bg);
   color: var(--tekst);
 }
+
+.tl-input { flex: 1 1 140px; }
+.tl-select { flex: 1 1 120px; }
 
 .tl-mobil-rad {
   display: none;
@@ -394,16 +393,6 @@ a.stevne-navn {
 .tl-innbydelse-lenke:hover { text-decoration: underline; }
 
 /* Bunnark (mobil-filtre) */
-
-.tl-bunnark-bakgrunn {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.4);
-  z-index: 200;
-}
-
-.tl-bunnark-bakgrunn.aktiv { display: block; }
 
 .tl-bunnark {
   position: fixed;
@@ -526,8 +515,6 @@ a.stevne-navn {
 
 /* ── Resultatside ── */
 
-.res-side { padding-bottom: 40px; }
-
 .res-tittel {
   text-align: center;
   font-size: 1.2rem;
@@ -643,7 +630,8 @@ a.stevne-navn {
 
 .res-tabell-seksjon { margin-bottom: 20px; }
 
-.res-tabell {
+.res-tabell,
+.app-tabell {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.85rem;
@@ -657,7 +645,8 @@ a.stevne-navn {
   padding: 6px 10px;
 }
 
-.res-thead-kolonner th {
+.res-thead-kolonner th,
+.app-thead th {
   background: var(--primaer);
   color: var(--primaer-text);
   text-align: left;
@@ -764,21 +753,7 @@ a.stevne-navn {
 
 /* ── Norgescupen ── */
 
-.nc-side { padding-bottom: 40px; }
-
-.nc-hovudtittel {
-  text-align: center;
-  font-size: 1.15rem;
-  font-weight: bold;
-  margin-bottom: 14px;
-}
-
-.nc-filter-rad {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 16px;
-}
+.nc-filter-rad { margin-bottom: 16px; }
 
 #nc-singel-seksjon { margin-bottom: 32px; }
 #nc-lag-seksjon { margin-bottom: 32px; }
@@ -839,21 +814,6 @@ a.stevne-navn {
   margin-top: 20px;
 }
 
-.app-tabell {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.85rem;
-}
-
-.app-thead th {
-  background: var(--primaer);
-  color: var(--primaer-text);
-  text-align: left;
-  padding: 5px 10px;
-  font-size: 0.8rem;
-  letter-spacing: 0.03em;
-}
-
 .app-tabell tbody tr { background: var(--flate); }
 .app-tabell tbody tr:nth-child(4n+3) { background: var(--flate-2); }
 
@@ -872,15 +832,19 @@ a.stevne-navn {
 }
 
 .nc-poeng-celle,
-.nc-lag-poeng-celle {
+.nc-lag-poeng-celle,
+.rek-poeng-celle {
   cursor: pointer;
   color: var(--lenke);
-  user-select: none;
   font-weight: 600;
 }
 
+.nc-poeng-celle,
+.nc-lag-poeng-celle { user-select: none; }
+
 .nc-poeng-celle:hover,
-.nc-lag-poeng-celle:hover { text-decoration: underline; }
+.nc-lag-poeng-celle:hover,
+.rek-poeng-celle:hover { text-decoration: underline; }
 
 .nc-chevron { font-size: 0.7rem; }
 
@@ -1106,13 +1070,6 @@ a.stevne-navn {
 
 .rek-dame-rad { background-color: rgba(220, 80, 100, 0.12) !important; }
 
-.rek-poeng-celle {
-  color: var(--lenke);
-  cursor: pointer;
-  font-weight: 600;
-}
-
-.rek-poeng-celle:hover { text-decoration: underline; }
 
 .score-redigerbar {
   cursor: pointer;
