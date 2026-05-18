@@ -6,11 +6,9 @@ import {
   renderGruppePanelInnhald,
   renderStrukturListeHtml,
 } from '../../../organizer/gruppefordelingUi'
-import {
-  genererCupRunde1,
-  genererNesteCupRundeForGruppe,
-  genererFinaleOgBronsefinale,
-} from '../../../services/kampGenereringService'
+import { genererFinaleOgBronsefinale } from '../../../services/kampGenereringService'
+import { opnGenererRundeDialog } from './_avslCupGenererRundeDialog'
+import { opnTreSpelarBekreftDialog } from './_avslCupTreSpelarDialog'
 import { showNumberpad } from '../../../components/ScoreNumberpad'
 import { scoreForSp } from '../../../utils/kamp'
 import {
@@ -31,7 +29,6 @@ import { createLoadingState } from '../../../components/LoadingState'
 import { createErrorBanner } from '../../../components/ErrorBanner'
 import { showToast } from '../../../components/Toast'
 import { confirmDialog } from '../../../components/ConfirmDialog'
-import { logError } from '../../../utils/logError'
 import type { RundeOppsett, Runde1FormatTyped, Json } from '../../../types'
 import {
   hentAvsluttendeKamper,
@@ -205,7 +202,6 @@ async function lastOgVis(container: HTMLElement, stevneid: number): Promise<void
     resultatMedNavn,
     typedGrupper,
     gruppeNavnMap,
-    avslKampar,
   )
 
   if (harGruppefordeling) {
@@ -371,98 +367,6 @@ function renderKampBlock(
     </div>`
 }
 
-// ── Generate round dialog ─────────────────────────────────────────────────────
-
-function opnGenererRundeDialog(
-  container: HTMLElement,
-  stevneid: number,
-  gruppeNavn: string,
-  stillingForGruppe: AvslResultatMedNavn[],
-  _avslKampar: AvslKampRow[],
-  runde: number,
-  runde1Format: Runde1FormatTyped | null,
-): void {
-  const aktive = stillingForGruppe.filter(r => r.runde_eliminert == null)
-  const totalCount = stillingForGruppe.length
-  const n = aktive.length
-
-  const runde1Oppsett: RundeOppsett | null = runde === 1 ? (runde1Format?.[gruppeNavn as 'A' | 'B'] ?? null) : null
-
-  const wo = runde1Oppsett?.walkovers ?? 0
-  const c3 = runde1Oppsett ? runde1Oppsett.c3 : (n % 3 === 0 ? n / 3 : 0)
-  const c2 = runde1Oppsett ? runde1Oppsett.c2 : (n % 3 === 0 ? 0 : n / 2)
-  const totalBaner = c3 + c2
-  const pool1 = aktive.slice(wo, wo + totalBaner)
-  const pool2 = aktive.slice(wo + totalBaner, wo + 2 * totalBaner)
-  const pool3 = aktive.slice(wo + 2 * totalBaner)
-
-  const modal = document.createElement('div')
-  modal.className = 'avsl-dialog-overlay'
-  document.body.appendChild(modal)
-
-  function renderModal(medSeeding: boolean): void {
-    const poolsHtml = medSeeding && totalBaner > 0
-      ? [
-          { label: 'Seeding 1', pool: pool1 },
-          { label: 'Seeding 2', pool: pool2 },
-          ...(pool3.length ? [{ label: 'Seeding 3', pool: pool3 }] : []),
-        ].map(({ label, pool }) => `
-          <div class="flex-grow-1">
-            <strong class="d-block mb-1">${escHtml(label)}</strong>
-            ${pool.map(r => `<div class="small">${escHtml(r.namn)} — ${r.kamp_poeng_innl ?? 0}p (${r.score_poeng_innl ?? 0})</div>`).join('')}
-          </div>`).join('')
-      : aktive.map((r, i) => `<div class="small">${i + 1}. ${escHtml(r.namn)} — ${r.kamp_poeng_innl ?? 0}p (${r.score_poeng_innl ?? 0})</div>`).join('')
-
-    modal.innerHTML = `
-      <div class="card p-4 avsl-dialog-card-wide">
-        <h5 class="mb-1">Gruppe ${escHtml(gruppeNavn)} — Runde ${runde}</h5>
-        <p class="text-muted small mb-2">${n} av ${totalCount} spelarar igjen</p>
-        <div class="form-check mb-3">
-          <input class="form-check-input" type="checkbox" id="seeding-dlg" ${medSeeding ? 'checked' : ''}>
-          <label class="form-check-label" for="seeding-dlg">Bruk seeding</label>
-        </div>
-        <div class="d-flex gap-3 flex-wrap mb-3">${poolsHtml}</div>
-        <div class="d-flex gap-2">
-          <button id="bekreft-gen-btn" class="btn btn-primary">Bekreft og opprett kampar</button>
-          <button id="avbryt-gen-btn" class="btn btn-secondary">Avbryt</button>
-        </div>
-      </div>`
-
-    modal.querySelector<HTMLInputElement>('#seeding-dlg')!.addEventListener('change', e =>
-      renderModal((e.target as HTMLInputElement).checked)
-    )
-    modal.querySelector('#avbryt-gen-btn')!.addEventListener('click', () => modal.remove())
-    modal.querySelector('#bekreft-gen-btn')!.addEventListener('click', async () => {
-      const medSeedingVal = modal.querySelector<HTMLInputElement>('#seeding-dlg')!.checked
-      modal.remove()
-      try {
-        if (runde === 1) {
-          const spelarar = aktive.map((r, i) => ({ kasterid: r.kasterid, plassering: i + 1 }))
-          // Convert to the Record<string, RundeOppsett | undefined> shape expected by genererCupRunde1
-          const runde1FormatRecord: Record<string, RundeOppsett | undefined> = {
-            A: runde1Format?.A ?? undefined,
-            B: runde1Format?.B ?? undefined,
-          }
-          await genererCupRunde1(
-            stevneid,
-            [{ gruppeNavn, spelarar, runde1Oppsett }],
-            medSeedingVal,
-            runde1Format ? runde1FormatRecord : null,
-          )
-        } else {
-          await genererNesteCupRundeForGruppe(stevneid, gruppeNavn, medSeedingVal)
-        }
-        await lastOgVis(container, stevneid)
-      } catch (e) {
-        logError('cup:genererRunde', e)
-        showToast('Feil ved generering av runde', 'error')
-      }
-    })
-  }
-
-  renderModal(true)
-}
-
 // ── Event binding ─────────────────────────────────────────────────────────────
 
 function bindHeaderEvents(
@@ -475,7 +379,6 @@ function bindHeaderEvents(
   resultat: AvslResultatMedNavn[],
   _grupper: { id: number; navn: string }[],
   gruppeNavnMap: Record<string, number>,
-  avslKampar: AvslKampRow[],
 ): void {
   bannerSlot?.querySelector('#start-avsl-btn')?.addEventListener('click', async () => {
     if (!alleInnlBekrefta) return
@@ -585,7 +488,7 @@ function bindHeaderEvents(
         const gNavn = btn.dataset.genererGruppe ?? ''
         const runde = parseInt(btn.dataset.runde ?? '1')
         const stillingForGruppe = resultat.filter(r => r.gruppe?.navn === gNavn)
-        opnGenererRundeDialog(container, stevneid, gNavn, stillingForGruppe, avslKampar, runde, runde1Format)
+        opnGenererRundeDialog(stevneid, gNavn, stillingForGruppe, runde, runde1Format, () => lastOgVis(container, stevneid))
       })
     })
   }
@@ -602,7 +505,7 @@ function bindKampEvents(
   container: HTMLElement,
   stevneid: number,
   avslKampar: AvslKampRow[],
-  resultat: AvslResultatMedNavn[],
+  _resultat: AvslResultatMedNavn[],
   _isAdmin = false,
 ): void {
   for (const kamp of avslKampar) {
@@ -628,7 +531,7 @@ function bindKampEvents(
 
     container.querySelector(`#bekrft-${kamp.id}`)?.addEventListener('click', () => {
       if (kamp.er_tre_spelarar) {
-        opnTreSpelarBekreftDialog(container, kamp, sp, stevneid, resultat)
+        opnTreSpelarBekreftDialog(kamp, sp, stevneid, async () => { await _autoGenererFinaleViss(stevneid, kamp); await lastOgVis(container, stevneid) })
       } else {
         void bekreftCupKamp2Spelar(container, stevneid, kamp, sp)
       }
@@ -710,90 +613,6 @@ async function bekreftCupKamp2Spelar(
 
   await _autoGenererFinaleViss(stevneid, kamp)
   await lastOgVis(container, stevneid)
-}
-
-// ── 3-player confirmation dialog ──────────────────────────────────────────────
-
-function opnTreSpelarBekreftDialog(
-  container: HTMLElement,
-  kamp: AvslKampRow,
-  sp: AvslKampSpelarRow[],
-  stevneid: number,
-  _resultat: AvslResultatMedNavn[],
-): void {
-  const namns = sp.map(s =>
-    s?.kaster
-      ? `${escHtml(s.kaster.fornavn)} ${escHtml(s.kaster.etternavn)}`
-      : `Spelar ${s?.posisjon ?? '?'}`
-  )
-  const valt: number[] = []
-
-  const modal = document.createElement('div')
-  modal.className = 'avsl-dialog-overlay'
-  document.body.appendChild(modal)
-
-  function renderDialog(): void {
-    const eliminert = valt.length === 2 ? sp.find(s => s.kasterid != null && !valt.includes(s.kasterid)) : null
-    modal.innerHTML = `
-      <div class="card p-4 avsl-dialog-card">
-        <h5 class="card-title mb-1">Bekreft 3-spelar kamp</h5>
-        <p class="text-muted small mb-3">Vel dei to som går vidare. Den gjenverande er eliminert.</p>
-        <div class="d-flex flex-column gap-2 mb-3">
-          ${sp.map((s, i) => {
-            const idx = s.kasterid != null ? valt.indexOf(s.kasterid) : -1
-            const erValt = idx !== -1
-            const erEliminert = !!eliminert && eliminert.kasterid === s.kasterid
-            const plasseringLabel = idx === 0 ? '1. plass' : idx === 1 ? '2. plass' : ''
-            return `<button
-              class="btn ${erValt ? 'btn-success' : erEliminert ? 'btn-outline-danger' : 'btn-outline-secondary'} text-start d-flex justify-content-between align-items-center"
-              data-kasterid="${s.kasterid}"
-              ${erEliminert ? 'disabled' : ''}
-            ><span>${namns[i]}</span>${
-              plasseringLabel ? `<span class="badge bg-success-subtle text-success-emphasis">${plasseringLabel}</span>` :
-              erEliminert ? `<span class="badge bg-danger">Eliminert</span>` : ''
-            }</button>`
-          }).join('')}
-        </div>
-        <div class="d-flex gap-2">
-          <button id="bekreft-tre-btn" class="btn btn-success" ${valt.length !== 2 ? 'disabled' : ''}>Bekreft</button>
-          <button id="avbryt-tre-btn" class="btn btn-secondary">Avbryt</button>
-        </div>
-      </div>
-    `
-
-    modal.querySelector('#avbryt-tre-btn')!.addEventListener('click', () => modal.remove())
-
-    modal.querySelectorAll<HTMLElement>('[data-kasterid]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const kid = Number(btn.dataset.kasterid)
-        const idx = valt.indexOf(kid)
-        if (idx !== -1) valt.splice(idx, 1)
-        else if (valt.length < 2) valt.push(kid)
-        renderDialog()
-      })
-    })
-
-    modal.querySelector('#bekreft-tre-btn')?.addEventListener('click', async () => {
-      if (valt.length !== 2) return
-      const eliminertId = sp.find(s => s.kasterid != null && !valt.includes(s.kasterid))?.kasterid ?? null
-      const allKasterids = sp.map(s => s.kasterid).filter((id): id is number => id != null)
-      modal.remove()
-      const { error } = await bekreftCupKamp({
-        kampId: kamp.id,
-        stevneId: stevneid,
-        rundeNummer: kamp.runde_nummer,
-        rundeNavn: kamp.runde_navn,
-        allKasterids,
-        eliminertId,
-        vidareIds: [...valt],
-      })
-      if (error) { showToast('DB-feil ved bekreft', 'error'); return }
-      await _autoGenererFinaleViss(stevneid, kamp)
-      await lastOgVis(container, stevneid)
-    })
-  }
-
-  renderDialog()
 }
 
 // ── Auto-generate finale when all semis in group are confirmed ────────────────

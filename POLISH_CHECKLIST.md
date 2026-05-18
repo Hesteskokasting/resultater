@@ -259,10 +259,11 @@ These are small, isolated fixes that should happen before any larger work. They 
 
 For each, get an honest assessment from Claude Code:
 
-- [ ] `src/pages/stevne/avsluttende/cup.ts` (814 lines)
-- [ ] `src/pages/kastere.ts` (652 lines)
+- [x] `src/pages/stevne/avsluttende/cup.ts` (817 → ~640 lines after split)
+  - Extracted two self-contained dialogs: `_avslCupGenererRundeDialog.ts` (~90 lines) and `_avslCupTreSpelarDialog.ts` (~75 lines). Each takes a `reload` callback; no module state shared. Remaining file is one cohesive fetch→render→bind-events flow.
+- [ ] `src/pages/kastere.ts` (658 lines)
 - [ ] `src/services/kampGenereringService.ts` (631 lines)
-- [ ] `src/services/kampService.ts` (621 lines)
+- [ ] `src/services/kampService.ts` (627 lines)
 - [ ] `src/components/Scoreboard.ts` (504 lines)
 
 **Prompt for each file:**
@@ -346,5 +347,7 @@ _Add notes as you discover things:_
 - [ ] Drive column visibility from kastemetode rather than hardcoded opts at the call site
 - [ ] Consider whether the `as unknown as` cast in `cup.ts:252` (`innlKamparFraStilling`) can be removed at the same time
 - _Note 1: Bug: On stevnestart, klubb for player is not added to table resultat (klubbid)
-- _Note 1: Hide / disable "avsluttende" tab in stevne if avsluttendekastemetodeid is not set
-- _Note 1: Bug: Using the back button in scoreboard is not functioning properly. Consider opening the scoreboard in a new tab and remove the back button
+- _Note 2: Hide / disable "avsluttende" tab in stevne if avsluttendekastemetodeid is not set
+- _Note 3: Bug: Using the back button in scoreboard is not functioning properly. Consider opening the scoreboard in a new tab and remove the back button
+- _Note 4: make sure Scoreboard supports both dark/light mode.
+- _Note 5: High contrast light mode for outdoor sun conditions:
