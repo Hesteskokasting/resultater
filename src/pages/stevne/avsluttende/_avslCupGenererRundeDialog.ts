@@ -2,7 +2,7 @@ import { escHtml } from '../../../utils/escHtml'
 import {
   genererCupRunde1,
   genererNesteCupRundeForGruppe,
-} from '../../../services/kampGenereringService'
+} from '../../../services/kampGenereringCupService'
 import { showToast } from '../../../components/Toast'
 import { logError } from '../../../utils/logError'
 import type { RundeOppsett, Runde1FormatTyped } from '../../../types'

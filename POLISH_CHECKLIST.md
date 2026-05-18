@@ -263,7 +263,9 @@ For each, get an honest assessment from Claude Code:
   - Extracted two self-contained dialogs: `_avslCupGenererRundeDialog.ts` (~90 lines) and `_avslCupTreSpelarDialog.ts` (~75 lines). Each takes a `reload` callback; no module state shared. Remaining file is one cohesive fetch→render→bind-events flow.
 - [x] `src/pages/kastere.ts` (658 lines)
   - Split into `_kastereListe.ts` (~130 lines) and `_kastereDetalj.ts` (~310 lines). `kastere.ts` is now an 11-line dispatcher. Slug routing unchanged — router already strips the name suffix and passes the numeric ID. `ødeleggChart` exported from detail module and called by dispatcher on every navigation to prevent Chart.js memory leaks.
-- [ ] `src/services/kampGenereringService.ts` (631 lines)
+- [x] `src/services/kampGenereringService.ts` (631 lines)
+  - Split at the existing `// ── Cup avsluttende ──` seam into `kampGenereringInnledendeService.ts` (~240 lines) and `kampGenereringCupService.ts` (~220 lines). Old file deleted. 4 import sites updated.
+  - Deduplication fix: `genererNesteCupRunde` (all-groups) now delegates to `genererNesteCupRundeForGruppe` per group — ~120 lines of parallel insert logic removed. Bane numbering for walkovers corrected as a side effect (now null, consistent with the per-group function).
 - [ ] `src/services/kampService.ts` (627 lines)
 - [ ] `src/components/Scoreboard.ts` (504 lines)
 
@@ -353,3 +355,5 @@ _Add notes as you discover things:_
 - _Note 4: make sure Scoreboard supports both dark/light mode.
 - _Note 5: High contrast light mode for outdoor sun conditions:
 - _Note 6: Konfigurer @/-aliasar i tsconfig og viteconfig
+- _Note 7: Use Table component for kastere.ts (list and details)
+- _Note 8: replace æ,ø,å from code

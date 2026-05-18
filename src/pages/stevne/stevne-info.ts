@@ -8,7 +8,7 @@ import { showToast } from '../../components/Toast'
 import { confirmDialog } from '../../components/ConfirmDialog'
 import { hentInfoStevne, oppdaterStevneFase } from '../../services/stevneService'
 import { hentAntallPameldingar, hentAntallUbekrefta } from '../../services/pameldingService'
-import { genererInnledendeKamper } from '../../services/kampGenereringService'
+import { genererInnledendeKamper } from '../../services/kampGenereringInnledendeService'
 
 // ── Render ────────────────────────────────────────────────────────────────────
 

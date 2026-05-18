@@ -6,7 +6,7 @@ import {
   renderGruppePanelInnhald,
   renderStrukturListeHtml,
 } from '../../../organizer/gruppefordelingUi'
-import { genererFinaleOgBronsefinale } from '../../../services/kampGenereringService'
+import { genererFinaleOgBronsefinale } from '../../../services/kampGenereringCupService'
 import { opnGenererRundeDialog } from './_avslCupGenererRundeDialog'
 import { opnTreSpelarBekreftDialog } from './_avslCupTreSpelarDialog'
 import { showNumberpad } from '../../../components/ScoreNumberpad'
