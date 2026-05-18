@@ -380,7 +380,8 @@ function kampRad(
   const bekrfTekst = kamp.er_bekreftet ? 'Bekreftet' : 'Bekreft'
   const bekrfDisabled = kamp.er_bekreftet || !kanBekrefte ? ' disabled' : ''
   const scoreboardDisabled = kamp.er_bekreftet && !harOmgangar ? ' disabled' : ''
-  const scoreEndrAttr = admin && kamp.er_bekreftet ? ` data-endre-score="${kamp.id}" class="text-center score-redigerbar"` : ' class="text-center"'
+  const kanEndreScore = admin && kamp.er_bekreftet && !kamp.er_walkover && !harOmgangar
+  const scoreEndrAttr = kanEndreScore ? ` data-endre-score="${kamp.id}" class="text-center score-redigerbar"` : ' class="text-center"'
   return `
     <tr>
       <td class="text-center">${kamp.bane_nummer ?? ''}</td>
