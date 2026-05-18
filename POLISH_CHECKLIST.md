@@ -212,22 +212,31 @@ These are small, isolated fixes that should happen before any larger work. They 
 - ❌ `createKortKort` / `createKasterKort` — no clear pattern emerged
 - ❌ Anything you haven't seen yourself need
 
+### D3b — createTable API upgrade + escHtml elimination
+
+- [x] Rebuild `src/components/Table.ts` as `createTable<T>(TableOptions<T>)` — generic, typed columns, `render` returns `string | Node` (string → `textContent`, XSS-safe by default; Node → `appendChild`)
+- [x] Add `detailRow?: (item, idx) => HTMLElement | null` to `TableOptions` — appends hidden `<tr>` below each row, inherits `rowAttrs` so `bindExpandableRows` `data-idx` matching keeps working
+- [x] Add `showHeader?: boolean` (default `true`) — when `false`, skip thead entirely (used for lag detail table which has no header)
+- [x] Migrate all 5 callers to new API: `nmvinnere.ts`, `rekorder.ts`, `norgesranking.ts`, `norgescupen.ts`, `klubber.ts`
+- [x] Replace recursive detail table `innerHTML` + `escHtml` with `createTable` calls in `norgescupen.ts` and `norgesranking.ts` — `escHtml` import removed from both files
+- [x] Extract `lagPoengCelleInnhald(poeng: number): DocumentFragment` helper in `norgescupen.ts` (chevron pattern used in both singel and lag tables)
+
 ---
 
 ## Phase E: Fix remaining `as unknown as` casts
 
 > 5 occurrences. Each needs individual judgment — some may be legitimate.
 
-- [ ] `src/services/stevneService.ts:287` — `format as unknown as Json`
+- [x] `src/services/stevneService.ts:287` — `format as unknown as Json`
   - **Likely legitimate** (Supabase's Json type is broad). Add a comment explaining why, or use a type guard.
-- [ ] `src/pages/stevne/stevne-avsluttende.ts:23` — `data.avsluttendemetode as unknown as { navn: string } | null`
-  - **Should be fixed.** Use proper Supabase relation typing or a type guard.
-- [ ] `src/pages/stevne/stevne-innledende.ts:23` — same pattern as above
-  - **Should be fixed.** Same approach.
-- [ ] `src/pages/stevne/avsluttende/cup.ts:73` — `json as unknown as Runde1FormatTyped`
-  - **Should be fixed** with a runtime validator (it's parsing JSON — validate the shape).
-- [ ] `src/pages/stevne/avsluttende/cup.ts:251` — `avslKampar as unknown as Parameters<typeof ...>[1]`
-  - **Investigate.** This pattern suggests two types that should actually be one. Look for the real type mismatch.
+- [x] `src/pages/stevne/stevne-avsluttende.ts:23` — `data.avsluttendemetode as unknown as { navn: string } | null`
+  - Fixed: moved query to `hentAvsluttendeMetodeNamn()` in stevneService; page now gets clean `string`. Supabase import removed from page.
+- [x] `src/pages/stevne/stevne-innledende.ts:23` — same pattern as above
+  - Fixed: moved query to `hentInnledendeMetodeNamn()` in stevneService; same approach.
+- [x] `src/pages/stevne/avsluttende/cup.ts:73` — `json as unknown as Runde1FormatTyped`
+  - Kept: null + non-object + array check at line 72 IS the runtime validator. Remaining cast is a TS limitation narrowing `{ [key: string]: Json }` → named interface — unavoidable without adding `extends Record<...>` to the type defs. Comment explains it.
+- [x] `src/pages/stevne/avsluttende/cup.ts:251` — `avslKampar as unknown as Parameters<typeof ...>[1]`
+  - Fixed: `innlKamparFraStilling` now maps through `toOrgSp` per kamp — no cast needed. `OrgKamp` added to import.
 
 > For each: ask Claude Code to propose a fix, review, decide. Some will be cleaner with a type guard, others by fixing types upstream.
 

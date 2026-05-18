@@ -22,6 +22,7 @@ import {
   bindTabToggle,
   renderStillingTabell,
   beregnKanBekrefte,
+  type OrgKamp,
   type OrgKampSpelar,
   type StillingRad,
 } from '../../../organizer/org-shared'
@@ -248,9 +249,8 @@ function renderHovudinnhald(
   return renderHovudInnhald(kamperHtml, stillingHtml)
 }
 
-// renderStillingTabell expects OrgKamp[]; AvslKampRow satisfies the shape structurally
-function innlKamparFraStilling(avslKampar: AvslKampRow[]) {
-  return avslKampar as unknown as Parameters<typeof renderStillingTabell>[1]
+function innlKamparFraStilling(avslKampar: AvslKampRow[]): OrgKamp[] {
+  return avslKampar.map(k => ({ ...k, spelarar: toOrgSp(k.spelarar) }))
 }
 
 function renderGruppeKolonne(

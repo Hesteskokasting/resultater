@@ -1,6 +1,6 @@
-import { supabase } from '../../supabase'
 import { createLoadingState } from '../../components/LoadingState'
 import { createErrorBanner } from '../../components/ErrorBanner'
+import { hentAvsluttendeMetodeNamn } from '../../services/stevneService'
 
 export async function render(
   container: HTMLElement,
@@ -9,18 +9,12 @@ export async function render(
 ): Promise<void> {
   container.replaceChildren(createLoadingState())
 
-  const { data, error } = await supabase
-    .from('stevne')
-    .select('avsluttendemetode:avsluttendekastemetodeid(navn)')
-    .eq('id', id)
-    .single()
+  const { namn, error } = await hentAvsluttendeMetodeNamn(id)
 
-  if (error || !data) {
+  if (error) {
     container.replaceChildren(createErrorBanner('Stevne ikkje funne.'))
     return
   }
-
-  const namn = ((data.avsluttendemetode as unknown as { navn: string } | null)?.navn ?? '').toLowerCase()
 
   if (namn.includes('cup')) {
     const { render: r } = await import('./avsluttende/cup')

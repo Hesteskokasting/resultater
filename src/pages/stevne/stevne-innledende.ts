@@ -1,6 +1,6 @@
-import { supabase } from '../../supabase'
 import { createLoadingState } from '../../components/LoadingState'
 import { createErrorBanner } from '../../components/ErrorBanner'
+import { hentInnledendeMetodeNamn } from '../../services/stevneService'
 
 export async function render(
   container: HTMLElement,
@@ -9,18 +9,12 @@ export async function render(
 ): Promise<void> {
   container.replaceChildren(createLoadingState())
 
-  const { data, error } = await supabase
-    .from('stevne')
-    .select('kastemetode:innledendekastemetodeid(navn)')
-    .eq('id', id)
-    .single()
+  const { namn, error } = await hentInnledendeMetodeNamn(id)
 
-  if (error || !data) {
+  if (error) {
     container.replaceChildren(createErrorBanner('Stevne ikkje funne.'))
     return
   }
-
-  const namn = ((data.kastemetode as unknown as { navn: string } | null)?.navn ?? '').toLowerCase()
 
   if (namn.includes('gloppen')) {
     const { render: r } = await import('./innledende/gloppen')
