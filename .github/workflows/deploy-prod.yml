@@ -28,8 +28,10 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-      - name: Add CNAME for custom domain
-        run: echo "res.hesteskokasting.no" > dist/CNAME
+      - name: Add CNAME and disable Jekyll
+        run: |
+          echo "res.hesteskokasting.no" > dist/CNAME
+          touch dist/.nojekyll
       - uses: JamesIves/github-pages-deploy-action@v4
         with:
           folder: dist

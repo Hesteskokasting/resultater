@@ -29,3 +29,10 @@ jobs:
           branch: gh-pages
           target-folder: dev
           clean: true
+      - name: Ensure .nojekyll at gh-pages root
+        run: mkdir nojekyll-root && touch nojekyll-root/.nojekyll
+      - uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: nojekyll-root
+          branch: gh-pages
+          clean: false
