@@ -304,19 +304,15 @@ Then decide per-file whether to split, document, or leave alone. **A 600-line fi
   - home.ts -> COMPLETE
   - stevne-innledende.ts -> COMPLETE
   - kamp.ts / scoreboard.ts -> COMPLETE
-  - stevne-avsluttende.ts -> bugs and changes:
-    1. When selecting gruppeinndeling, the confirm button does not provide enough feedback to the user (Bekreft val) and is positioning far from the selection windows.
-    2. When clicking "Start avsluttende fase" the button is removed and the change gruppeinndeling button is removed.
-    3. The list of players (A and B) is empty. No player names are visible
-    4. You then have to click "Bekreft val" again to actually see the round generation buttons.
-    5. The order of the players in the result list is wrong.
-- [ ] `npm run typecheck` returns 0 errors
-- [ ] `npm run build` succeeds (and the output bundle isn't horribly large)
+  - stevne-avsluttende.ts -> COMPLETE
+- [x] `npm run typecheck` returns 0 errors
+- [x] `npm run build` succeeds (and the output bundle isn't horribly large)
+  - Maybe a bit large
 - [ ] All 3 critical flows from Phase 0 work
-  - [ ] Complete stevne with Floppen + Cup
+  - [ ] Complete stevne with Gloppen + Cup
   - [ ] Complete stevne with Nordhordland + Cup
   - [ ] Register and login, claim "kaster". Approve claim with admin
-- [ ] Forbidden-pattern grep checks (final):
+- [x] Forbidden-pattern grep checks (final):
   - [ ] `grep -r "select('\\*')" src/` → empty
   - [ ] `grep -r ": any" src/ --include="*.ts"` → empty
   - [ ] `grep -r "as unknown as" src/ --include="*.ts"` → only the documented legitimate cases
@@ -327,7 +323,8 @@ Then decide per-file whether to split, document, or leave alone. **A 600-line fi
   - [ ] `grep -rn "\\b(alert|confirm|prompt)(" src/ --include="*.ts" | grep -v "//"` → empty
   - [ ] `grep -rn '<p class="laster">' src/` → empty
   - [ ] `grep -rn "from '.*\\.js'" src/ --include="*.ts"` → empty (or only external)
-- [ ] Merge `refactor/cleanup` into main
+- [ ] Merge `refactor/cleanup` into dev -> TEST again
+- [ ] Merge `dev` into main (when ready for production)
 
 ---
 
@@ -355,8 +352,7 @@ These are explicitly **NOT** part of this polish phase — separate initiatives:
 
 _Add notes as you discover things:_
 
-- _Note 1: Bug: Gruppeinndeling avsluttende has wrong sorting
-- _Note 2: ~~Share table in stevne innledende and avsluttende~~ — already shared via `renderStillingTabell` in `org-shared.ts`. Column config by kastemetode tracked in D2b.
+- ~~Share table in stevne innledende and avsluttende~~ — already shared via `renderStillingTabell` in `org-shared.ts`. Column config by kastemetode tracked in D2b.
 ### StillingTabell — kastemetode-driven column config (larger scope)
 > `renderStillingTabell` and `bindStillingDetaljar` are already shared in `org-shared.ts`.
 > Note 2 ("share table in innledende and avsluttende") is already resolved.

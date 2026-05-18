@@ -16,7 +16,7 @@ export async function genererInnledendeKamper(
 ): Promise<number> {
   const { data: pameldingar, error } = await supabase
     .from('pamelding')
-    .select('id, kasterid')
+    .select('id, kasterid, kaster(klubbid)')
     .eq('stevneid', stevneid)
     .order('id')
 
@@ -32,7 +32,8 @@ export async function genererInnledendeKamper(
   const posToKasterid: Record<number, number> = {}
   const resultatRows = pameldingar.map((p, i) => {
     posToKasterid[i + 1] = p.kasterid
-    return { stevneid, kasterid: p.kasterid, startnummer: i + 1 }
+    const klubbid = (p.kaster as { klubbid: number | null } | null)?.klubbid ?? null
+    return { stevneid, kasterid: p.kasterid, klubbid, startnummer: i + 1 }
   })
 
   await supabase.from('resultat').delete().eq('stevneid', stevneid)
