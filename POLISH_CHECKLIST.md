@@ -313,6 +313,9 @@ Then decide per-file whether to split, document, or leave alone. **A 600-line fi
 - [ ] `npm run typecheck` returns 0 errors
 - [ ] `npm run build` succeeds (and the output bundle isn't horribly large)
 - [ ] All 3 critical flows from Phase 0 work
+  - [ ] Complete stevne with Floppen + Cup
+  - [ ] Complete stevne with Nordhordland + Cup
+  - [ ] Register and login, claim "kaster". Approve claim with admin
 - [ ] Forbidden-pattern grep checks (final):
   - [ ] `grep -r "select('\\*')" src/` → empty
   - [ ] `grep -r ": any" src/ --include="*.ts"` → empty

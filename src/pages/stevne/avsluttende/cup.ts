@@ -202,6 +202,7 @@ async function lastOgVis(container: HTMLElement, stevneid: number): Promise<void
     resultatMedNavn,
     typedGrupper,
     gruppeNavnMap,
+    stilling,
   )
 
   if (harGruppefordeling) {
@@ -379,11 +380,25 @@ function bindHeaderEvents(
   resultat: AvslResultatMedNavn[],
   _grupper: { id: number; navn: string }[],
   gruppeNavnMap: Record<string, number>,
+  stilling: StillingRad[],
 ): void {
   bannerSlot?.querySelector('#start-avsl-btn')?.addEventListener('click', async () => {
     if (!alleInnlBekrefta) return
     const { error } = await oppdaterStevneFase(stevneid, 'avsluttende')
     if (error) { showToast('Feil ved oppstart av avsluttande fase', 'error'); return }
+
+    if (runde1Format?.nA != null) {
+      const nA = runde1Format.nA
+      const gruppeAId = gruppeNavnMap['A'] ?? null
+      const gruppeBId = gruppeNavnMap['B'] ?? null
+      const updates = stilling.map((r, i) => ({
+        kasterid: r.kasterid,
+        gruppeid: i < nA ? gruppeAId : (gruppeBId ?? gruppeAId),
+      }))
+      const { error: grErr } = await setGruppeInndeling(stevneid, updates)
+      if (grErr) { showToast('Feil ved lagring av gruppefordeling', 'error'); return }
+    }
+
     await lastOgVis(container, stevneid)
   })
 

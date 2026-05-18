@@ -4,7 +4,7 @@ import { beregnGyldigeGruppeStorrelsar, gyldigeRunde1Oppsett, beregnCupStruktur 
 
 interface StillingradForGruppe {
   startnummer?: number | string | null
-  _namn?: string | null
+  namn?: string | null
   kamp_poeng_innl?: number | null
   score_poeng_innl?: number | null
 }
@@ -95,10 +95,10 @@ export function renderGruppefordeling(
           </div>` : ''}
         </div>
       </div>
-      ${gruppePreviewHtml}
-      <div class="mt-3 d-flex justify-content-end">
-        <button id="bekreft-gruppe-btn" class="btn btn-primary">Bekreft val</button>
+      <div class="mt-3">
+        <button id="bekreft-gruppe-btn" class="btn btn-success btn-lg w-100">Bekreft gruppefordeling</button>
       </div>
+      ${gruppePreviewHtml}
     </div>
   `
 }
@@ -119,7 +119,7 @@ export function renderGruppePreview(
       <tr>
         <td>${r.cupPlassering}</td>
         <td>${escHtml(String(r.startnummer ?? ''))}</td>
-        <td>${escHtml(r._namn ?? '')}${erWo ? ' <span class="badge bg-info text-dark">Walkover</span>' : ''}</td>
+        <td>${escHtml(r.namn ?? '')}${erWo ? ' <span class="badge bg-info text-dark">Walkover</span>' : ''}</td>
         <td class="text-center">${r.kamp_poeng_innl ?? 0}</td>
         <td class="text-center">${r.score_poeng_innl ?? 0}</td>
       </tr>`
@@ -127,7 +127,7 @@ export function renderGruppePreview(
   }
 
   const tabellHeader = `
-    <thead class="table-dark"><tr>
+    <thead class="org-thead"><tr>
       <th class="th-32">#</th><th class="th-36">S</th><th>NAMN</th>
       <th class="th-44 text-center">KP</th>
       <th class="th-44 text-center">SP</th>

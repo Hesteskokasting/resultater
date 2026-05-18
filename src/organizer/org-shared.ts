@@ -162,7 +162,9 @@ export function renderStillingTabell(
   const harFleirGrupper = gruppeMap.size > 1 || !gruppeMap.has('_')
   const tittel = harAntallKamper ? `${stilling.length} spelarar` : 'Stilling'
 
-  const rows = [...gruppeMap.entries()].flatMap(([g, spelararIGruppe]) => {
+  const rows = [...gruppeMap.entries()]
+    .sort(([a], [b]) => a === '_' ? 1 : b === '_' ? -1 : a.localeCompare(b))
+    .flatMap(([g, spelararIGruppe]) => {
     const gruppeHeader = harFleirGrupper && g !== '_'
       ? `<tr><td colspan="${colspan}" class="fw-semibold ps-2">Gruppe ${escHtml(g)}</td></tr>`
       : ''
