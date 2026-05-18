@@ -322,7 +322,7 @@ function renderRunde(
     <div class="mb-3">
       <h6 class="text-center fw-bold mb-1">Runde ${nr}</h6>
       <table class="table table-bordered table-sm mb-0 bg-white">
-        <thead class="table-dark">
+        <thead class="org-thead">
           <tr>
             <th class="th-36 text-center">B</th>
             <th>P1</th>

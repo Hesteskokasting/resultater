@@ -208,7 +208,7 @@ export function renderStillingTabell(
     <div>
       <h6 class="text-center fw-bold mb-1">${tittel}</h6>
       <table id="${tableId}" class="table table-bordered table-sm mb-0 bg-white">
-        <thead class="table-dark">
+        <thead class="org-thead">
           <tr>
             <th class="${thW}">#</th>
             <th class="${thW}">S</th>

@@ -304,7 +304,8 @@ Then decide per-file whether to split, document, or leave alone. **A 600-line fi
   - home.ts -> 
     - list of siste resultat shows even if "stevne.erfullfort" is false
     - the space between stevne.navn and "Vis resultat" is too big. The cards needs to be aligned with Kommende konkurranser
-  - stevne-innledende.ts -> headers for matches and resultlist are black with white text. They need to be white background and black text.
+  - stevne-innledende.ts -> 
+    - headers for matches and resultlist are black with white text. They need to be white background and black text.
     - results for walkover matches can be changed after confirm. This should not be possible for walkover matches
     - matches that have been completed with scorebaord can also be changed by clicking on the result. this should not be possible either, or atleast give a warning that the details will be deleted (kamp_omgang).
     - Start avsluttende fase button can be removed from innledende. The user can click on avsluttende tab and start it from there
