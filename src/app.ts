@@ -25,7 +25,7 @@ if (import.meta.env.VITE_ENV === 'dev') {
     versjonEl.textContent += ' [DEV]'
     const banner = document.createElement('span')
     banner.className = 'dev-banner'
-    banner.textContent = 'TEST TEST TEST'
+    banner.textContent = 'TEST'
     versjonEl.after(banner)
   }
 }
