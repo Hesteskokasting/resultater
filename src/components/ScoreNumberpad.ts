@@ -51,10 +51,10 @@ export function showNumberpad(
   document.body.appendChild(overlay)
 }
 
-function lagPad(namn: string, initScore: number): HTMLElement {
+function lagPad(navn: string, initScore: number): HTMLElement {
   const pad = lagEl('div', null, 'np-pad')
 
-  pad.appendChild(lagEl('h3', namn, 'np-namn'))
+  pad.appendChild(lagEl('h3', navn, 'np-navn'))
 
   const scoreEl = lagEl('div', String(initScore), 'np-score')
   scoreEl.dataset.scoreEl = '1'

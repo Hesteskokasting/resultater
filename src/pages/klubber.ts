@@ -23,7 +23,7 @@ function klubbKortHtml(k: KlubbListeRow): string {
   return `
     <a href="#/klubber/${lagKlubbSlug(k)}" class="kaster-kort">
       <img src="${escHtml(k.logourl || PLACEHOLDER_LOGO)}" alt="${escHtml(k.navn)}" loading="lazy">
-      <div class="kaster-namn">${escHtml(k.navn)}</div>
+      <div class="kaster-navn">${escHtml(k.navn)}</div>
     </a>`
 }
 
@@ -32,7 +32,7 @@ function listeSkelettHtml(): string {
     <div class="nc-side">
       <div class="kaster-liste-kontroller">
         <div class="nc-filter-rad">
-          <input id="klubb-sok" type="text" class="tl-select" placeholder="Søk på klubbnamn eller utøvar" value="">
+          <input id="klubb-sok" type="text" class="tl-select" placeholder="Søk på klubbnavn eller utøvar" value="">
           <button id="klubb-sok-knapp" class="btn btn-secondary btn-sm">Søk</button>
         </div>
       </div>

@@ -62,7 +62,7 @@ import {
 // ── Local types ───────────────────────────────────────────────────────────────
 
 type AvslResultatKjent = AvslResultatRow & { kasterid: number }
-type AvslResultatMedNavn = AvslResultatKjent & { namn: string }
+type AvslResultatMedNavn = AvslResultatKjent & { navn: string }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -138,22 +138,22 @@ async function lastOgVis(container: HTMLElement, stevneid: number): Promise<void
     if (r.startnummer != null) startnrMap[r.kasterid] = r.startnummer
   }
 
-  const namnMap: Record<number, string> = {}
+  const navnMap: Record<number, string> = {}
   for (const k of rawKampar) {
     for (const sp of k.spelarar) {
-      if (sp.kasterid && sp.kaster && !namnMap[sp.kasterid]) {
-        namnMap[sp.kasterid] = `${sp.kaster.fornavn} ${sp.kaster.etternavn}`
+      if (sp.kasterid && sp.kaster && !navnMap[sp.kasterid]) {
+        navnMap[sp.kasterid] = `${sp.kaster.fornavn} ${sp.kaster.etternavn}`
       }
     }
   }
   const resultatMedNavn: AvslResultatMedNavn[] = typedResultat.map(r => ({
     ...r,
-    namn: namnMap[r.kasterid] ?? `Spelar ${r.kasterid}`,
+    navn: navnMap[r.kasterid] ?? `Spelar ${r.kasterid}`,
   }))
 
   const stillingInput: StillingRad[] = resultatMedNavn.map(r => ({
     kasterid: r.kasterid,
-    namn: r.namn,
+    navn: r.navn,
     startnummer: r.startnummer,
     plassering: r.plassering,
     runde_eliminert: r.runde_eliminert,

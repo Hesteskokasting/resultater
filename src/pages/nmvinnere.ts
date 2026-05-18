@@ -11,13 +11,13 @@ import type { NmKategoriKonfig, NmKjonn, NmResultatRow } from '@/services/nmvinn
 // ── Konstanter ────────────────────────────────────────────────────────────────
 
 const KATEGORIAR: NmKategoriKonfig[] = [
-  { id: 1,  namn: 'Singel',       kjonnFilter: 'historisk', fraaAr: 1985, aapentFraAr: 2013, merknad: '(åpen klasse fra 2013)' },
-  { id: 2,  namn: 'Par',          kjonnFilter: 'historisk', fraaAr: 1987, aapentFraAr: 2009, merknad: '(åpen klasse fra 2009)' },
-  { id: 3,  namn: 'Mix',          kjonnFilter: false,       fraaAr: 1986, merknad: '(NM Mix 2011 ble ikke arrangert)' },
-  { id: 4,  namn: 'Lag',          kjonnFilter: false,       fraaAr: 2016 },
-  { id: 7,  namn: 'X-kast',       kjonnFilter: 'historisk', fraaAr: 2009, aapentFraAr: 2013, merknad: '(åpen klasse fra 2013)' },
-  { id: 9,  namn: 'Hesteskogolf', kjonnFilter: 'alltid',    fraaAr: 2006 },
-  { id: 10, namn: 'Kongelag',     kjonnFilter: false,       fraaAr: 2023 },
+  { id: 1,  navn: 'Singel',       kjonnFilter: 'historisk', fraaAr: 1985, aapentFraAr: 2013, merknad: '(åpen klasse fra 2013)' },
+  { id: 2,  navn: 'Par',          kjonnFilter: 'historisk', fraaAr: 1987, aapentFraAr: 2009, merknad: '(åpen klasse fra 2009)' },
+  { id: 3,  navn: 'Mix',          kjonnFilter: false,       fraaAr: 1986, merknad: '(NM Mix 2011 ble ikke arrangert)' },
+  { id: 4,  navn: 'Lag',          kjonnFilter: false,       fraaAr: 2016 },
+  { id: 7,  navn: 'X-kast',       kjonnFilter: 'historisk', fraaAr: 2009, aapentFraAr: 2013, merknad: '(åpen klasse fra 2013)' },
+  { id: 9,  navn: 'Hesteskogolf', kjonnFilter: 'alltid',    fraaAr: 2006 },
+  { id: 10, navn: 'Kongelag',     kjonnFilter: false,       fraaAr: 2023 },
 ]
 
 // ── Typar ─────────────────────────────────────────────────────────────────────
@@ -126,7 +126,7 @@ function sideSkelettHtml(kategori: NmKategoriKonfig, maxAr: number): string {
   const tittel = `Norgesmestere ${kategori.fraaAr} - ${maxAr}`
 
   const katOptions = KATEGORIAR.map(k =>
-    `<option value="${k.id}"${k.id === filtre.kategoriId ? ' selected' : ''}>${escHtml(k.namn)}</option>`
+    `<option value="${k.id}"${k.id === filtre.kategoriId ? ' selected' : ''}>${escHtml(k.navn)}</option>`
   ).join('')
 
   let kjonnHtml = ''
@@ -153,7 +153,7 @@ function sideSkelettHtml(kategori: NmKategoriKonfig, maxAr: number): string {
         ${kjonnHtml}
       </div>
       <h1 class="nm-tittel">${escHtml(tittel)}</h1>
-      <h2 id="nm-undertittel" class="nm-undertittel">${escHtml(subtittelTekst(kategori.namn, filtre.kjonn))}</h2>
+      <h2 id="nm-undertittel" class="nm-undertittel">${escHtml(subtittelTekst(kategori.navn, filtre.kjonn))}</h2>
       <p class="nm-merknad">${kategori.merknad ? escHtml(kategori.merknad) : ''}</p>
       <div id="nm-tabell-container"></div>
     </div>`

@@ -89,8 +89,8 @@ function lagPameldtRad(
     bekreftCell.appendChild(bekreftBtn)
   }
 
-  const namneCell = document.createElement('td')
-  namneCell.textContent = kasterNavn(spelar)
+  const navneCell = document.createElement('td')
+  navneCell.textContent = kasterNavn(spelar)
 
   const klubbCell = document.createElement('td')
   klubbCell.textContent = spelar.klubb?.navn ?? ''
@@ -108,7 +108,7 @@ function lagPameldtRad(
   }
 
   rad.appendChild(bekreftCell)
-  rad.appendChild(namneCell)
+  rad.appendChild(navneCell)
   rad.appendChild(klubbCell)
   rad.appendChild(fjernCell)
   return rad
@@ -121,8 +121,8 @@ function lagTilgjengeliRad(
 ): HTMLTableRowElement {
   const rad = document.createElement('tr')
 
-  const namneCell = document.createElement('td')
-  namneCell.textContent = kasterNavn(spelar)
+  const navneCell = document.createElement('td')
+  navneCell.textContent = kasterNavn(spelar)
 
   const klubbCell = document.createElement('td')
   klubbCell.textContent = spelar.klubb?.navn ?? 'Ingen klubb'
@@ -132,7 +132,7 @@ function lagTilgjengeliRad(
     rad.addEventListener('click', () => onVelg(spelar))
   }
 
-  rad.appendChild(namneCell)
+  rad.appendChild(navneCell)
   rad.appendChild(klubbCell)
   return rad
 }
@@ -195,7 +195,7 @@ export async function render(
 
     const søkInput = document.createElement('input')
     søkInput.type = 'text'
-    søkInput.placeholder = 'Søk etter namn eller klubb…'
+    søkInput.placeholder = 'Søk etter navn eller klubb…'
     søkInput.className = 'form-control mb-2'
 
     const { kolonne: venstreKol, tabell: tilgjengeliTabell } = lagSpelarKolonne('Tilgjengelege spelarar')

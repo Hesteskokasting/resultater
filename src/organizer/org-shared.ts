@@ -29,7 +29,7 @@ export interface KampForSortering {
 
 export interface StillingRad {
   kasterid: number
-  namn?: string | null
+  navn?: string | null
   startnummer?: number | null
   kamp_poeng?: number | null
   score_poeng?: number | null
@@ -183,7 +183,7 @@ export function renderStillingTabell(
         <tr data-kasterid="${r.kasterid}" class="stilling-spelar-rad">
           <td${erEliminert ? ' class="avsl-elim-plass"' : ''}>${i + 1}</td>
           <td>${r.startnummer ?? ''}</td>
-          <td>${escHtml(r.namn ?? `Spelar ${r.kasterid}`)}</td>
+          <td>${escHtml(r.navn ?? `Spelar ${r.kasterid}`)}</td>
           ${antallCelle}
           <td class="text-center">${r.kamp_poeng ?? 0}</td>
           <td class="text-center">${r.score_poeng ?? 0}</td>
@@ -353,7 +353,7 @@ export function renderOrgBanner(stevneNavn: string, knapperHtml = ''): string {
 
 export interface SpelMapRad {
   kasterid: number
-  namn: string
+  navn: string
   startnummer: number | null
   kamp_poeng: number
   score_poeng: number
@@ -376,7 +376,7 @@ export function byggInnledendeSpelMap(
       if (!spelMap[sp.kasterid]) {
         spelMap[sp.kasterid] = {
           kasterid:      sp.kasterid,
-          namn:          `${sp.kaster.fornavn} ${sp.kaster.etternavn}`,
+          navn:          `${sp.kaster.fornavn} ${sp.kaster.etternavn}`,
           startnummer:   startnrMap[sp.kasterid] ?? null,
           kamp_poeng:    0,
           score_poeng:   0,

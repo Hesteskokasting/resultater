@@ -26,7 +26,7 @@ interface StartkortKamp {
 interface StartkortStillingRad {
   kasterid: number
   startnummer?: number | string | null
-  namn?: string | null
+  navn?: string | null
 }
 
 interface StartkortStevne {
@@ -35,7 +35,7 @@ interface StartkortStevne {
 
 interface StartkortSpelarData {
   startnummer: number | string
-  namn: string | null
+  navn: string | null
   klubb: string
   roundInfos: RoundInfo[]
 }
@@ -54,7 +54,7 @@ export function printStartkort(
   const spelarar: StartkortSpelarData[] = stilling
     .map(s => ({
       startnummer: s.startnummer ?? '',
-      namn: s.namn ?? null,
+      navn: s.navn ?? null,
       klubb: hentKlubbNamn(s.kasterid, alleKamper),
       roundInfos: buildRoundInfos(s.kasterid, sortertRundar, rundeMap, startnrMap),
     }))
@@ -70,7 +70,7 @@ export function printStartkort(
   printWindow.document.head.appendChild(styleLink)
 
   spelarar.forEach(sp => {
-    const card = startcardTemplate(sp.startnummer, sp.namn, sp.klubb, stevne.navn, sp.roundInfos)
+    const card = startcardTemplate(sp.startnummer, sp.navn, sp.klubb, stevne.navn, sp.roundInfos)
     printWindow.document.body.appendChild(card)
   })
 

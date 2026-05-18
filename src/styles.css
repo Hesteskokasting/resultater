@@ -350,19 +350,19 @@ a.stevne-navn {
 
 .tl-kort { text-align: center; }
 
-.tl-namn {
+.tl-navn {
   font-size: 1.05rem;
   color: var(--lenke);
   font-weight: 600;
   margin-bottom: 4px;
 }
 
-.tl-namn-lenke {
+.tl-navn-lenke {
   display: block;
   text-decoration: none;
 }
 
-.tl-namn-lenke:hover { text-decoration: underline; }
+.tl-navn-lenke:hover { text-decoration: underline; }
 
 .tl-detalj {
   font-size: 0.83rem;
@@ -589,7 +589,7 @@ a.stevne-navn {
   flex-direction: column;
 }
 
-.res-namn {
+.res-navn {
   font-size: 0.95rem;
   font-weight: bold;
   color: var(--lenke);
@@ -968,7 +968,7 @@ a.stevne-navn {
   background: var(--kant);
 }
 
-.kaster-namn {
+.kaster-navn {
   font-size: 0.88rem;
   color: var(--lenke);
   font-weight: 600;
@@ -1138,7 +1138,7 @@ a.stevne-navn {
   max-width: 520px;
 }
 
-.np-namn {
+.np-navn {
   margin: 0;
   font-size: 1.5rem;
   text-align: center;
@@ -1324,7 +1324,7 @@ a.stevne-navn {
   border-right: none;
 }
 
-.sb-spelar-namn {
+.sb-spelar-navn {
   font-size: clamp(2.1rem, 4vw, 2.2rem);
   font-weight: bold;
   color: var(--sb-positiv);
@@ -1463,7 +1463,7 @@ a.stevne-navn {
     height: clamp(70px, 8vw, 120px);
     font-size: clamp(1.8rem, 3.5vw, 3.5rem);
   }
-  .sb-spelar-namn { font-size: clamp(2rem, 4vw, 5rem); }
+  .sb-spelar-navn { font-size: clamp(2rem, 4vw, 5rem); }
   .sb-ringer-info { font-size: clamp(1rem, 2vw, 2rem); }
 }
 
@@ -1474,7 +1474,7 @@ a.stevne-navn {
     height: clamp(100px, 9vw, 160px);
     font-size: clamp(2.5rem, 4vw, 5rem);
   }
-  .sb-spelar-namn { font-size: clamp(3rem, 5vw, 7rem); }
+  .sb-spelar-navn { font-size: clamp(3rem, 5vw, 7rem); }
   .sb-ringer-info { font-size: clamp(1.5rem, 2.5vw, 3rem); }
 }
 
@@ -1499,7 +1499,7 @@ a.stevne-navn {
     border-bottom: none;
   }
   .sb-spelar-panel:last-child { border-right: none; }
-  .sb-spelar-namn { font-size: clamp(1.5rem, 8vh, 3rem); }
+  .sb-spelar-navn { font-size: clamp(1.5rem, 8vh, 3rem); }
   .sb-score { font-size: clamp(4rem, 32vh, 12rem); }
   .sb-ringer-info { display: none; }
   .sb-knappar {
@@ -1564,12 +1564,12 @@ a.stevne-navn {
   }
 }
 
-.sb-wrap--3p .sb-spelar-namn {
+.sb-wrap--3p .sb-spelar-navn {
   font-size: clamp(1.2rem, 2.5vw, 2rem);
 }
 
 @media (min-width: 801px) {
-  .sb-wrap--3p .sb-spelar-namn {
+  .sb-wrap--3p .sb-spelar-navn {
     font-size: clamp(1.8rem, 2.5vw, 4rem);
   }
 }

@@ -31,7 +31,7 @@ export async function render(
       <h2 class="mb-4">Rediger klubb: ${escHtml(klubb.navn)}</h2>
       <form id="klubb-skjema">
         ${lagFormRadHtml('Namn*', `<input type="text" class="form-control" name="navn" value="${escHtml(klubb.navn)}" required>`)}
-        ${lagFormRadHtml('Kortnamn', `<input type="text" class="form-control" name="kortnavn" value="${escHtml(klubb.kortnavn)}">`)}
+        ${lagFormRadHtml('Kortnavn', `<input type="text" class="form-control" name="kortnavn" value="${escHtml(klubb.kortnavn)}">`)}
         ${lagFormRadHtml('Logo-URL', `<input type="url" class="form-control" name="logourl" value="${escHtml(klubb.logourl)}">`)}
         <div class="mb-3 form-check">
           <input class="form-check-input" type="checkbox" name="eraktiv" id="eraktiv"${klubb.eraktiv ? ' checked' : ''}>

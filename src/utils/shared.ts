@@ -29,11 +29,11 @@ export function formaterTid(tidStr: string | null | undefined): string {
 
 // ── Excel-eksport ─────────────────────────────────────────────────────────────
 
-export function lastNedExcel(rader: Record<string, unknown>[], filnamn: string, arknamn = 'Data'): void {
+export function lastNedExcel(rader: Record<string, unknown>[], filnavn: string, arknavn = 'Data'): void {
   const ark = XLSX.utils.json_to_sheet(rader)
   const bok = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(bok, ark, arknamn)
-  XLSX.writeFile(bok, filnamn)
+  XLSX.utils.book_append_sheet(bok, ark, arknavn)
+  XLSX.writeFile(bok, filnavn)
 }
 
 // ── År-dropdown ───────────────────────────────────────────────────────────────

@@ -15,7 +15,7 @@ const MIN_STEVNER = 5
 // ── Typar ─────────────────────────────────────────────────────────────────────
 
 interface StevneInfo {
-  namn: string | null
+  navn: string | null
   dato: string | null
   typeNamn: string
   innledMetode: string | null
@@ -30,7 +30,7 @@ interface RingInfo {
 }
 
 interface RankingItem {
-  namn: string
+  navn: string
   klubb: string
   antallStevner: number
   snittProsent: number
@@ -89,7 +89,7 @@ function lagStevnerMap(): Map<number, StevneInfo> {
   const m = new Map<number, StevneInfo>()
   for (const s of cache.stevner) {
     m.set(s.id, {
-      namn: s.navn,
+      navn: s.navn,
       dato: s.dato,
       typeNamn: s.stevnetype?.navn ?? '',
       innledMetode: s.innledendekastemetode?.navn ?? null,
@@ -155,7 +155,7 @@ function byggRankingListe(resultater: RankingResultatRow[], stevnerMap: Map<numb
     const erGyldig = antallStevner >= MIN_STEVNER
 
     const item: RankingItem = {
-      namn: kasterNavn(entry.kaster),
+      navn: kasterNavn(entry.kaster),
       klubb: entry.klubb?.navn ?? '–',
       antallStevner,
       snittProsent,
@@ -167,8 +167,8 @@ function byggRankingListe(resultater: RankingResultatRow[], stevnerMap: Map<numb
     else ugyldig.push(item)
   }
 
-  gyldig.sort((a, b) => b.snittProsent - a.snittProsent || a.namn.localeCompare(b.namn))
-  ugyldig.sort((a, b) => b.snittProsent - a.snittProsent || a.namn.localeCompare(b.namn))
+  gyldig.sort((a, b) => b.snittProsent - a.snittProsent || a.navn.localeCompare(b.navn))
+  ugyldig.sort((a, b) => b.snittProsent - a.snittProsent || a.navn.localeCompare(b.navn))
   tildelPlassering(gyldig)
 
   return [...gyldig, ...ugyldig]
@@ -181,7 +181,7 @@ function lastNedExcel(): void {
   const liste = byggRankingListe(cache.resultater, stevnerMap)
   const rader = liste.map(k => ({
     'Plass': k.erGyldig ? k.plassering : '–',
-    'Kaster': k.namn,
+    'Kaster': k.navn,
     'Klubb': k.klubb,
     'Snitt %': k.snittProsent,
     'Antal stevner': k.antallStevner,
@@ -210,7 +210,7 @@ function infoHtml(synleg: boolean): string {
 function createRankingTabell(liste: RankingItem[], sokeTekst: string): HTMLElement {
   const sok = sokeTekst.trim().toLowerCase()
   const filtrert = sok
-    ? liste.filter(k => k.namn.toLowerCase().includes(sok) || k.klubb.toLowerCase().includes(sok))
+    ? liste.filter(k => k.navn.toLowerCase().includes(sok) || k.klubb.toLowerCase().includes(sok))
     : liste
 
   if (filtrert.length === 0) return createEmptyState('Ingen resultater funnet.')
@@ -227,7 +227,7 @@ function createRankingTabell(liste: RankingItem[], sokeTekst: string): HTMLEleme
       columns: [
         { label: 'Dato',   render: r => formaterDato(r._stevne?.dato) },
         { label: 'Type',   render: r => r._stevne?.typeNamn ?? '–' },
-        { label: 'Stevne', render: r => r._stevne?.namn ?? '–' },
+        { label: 'Stevne', render: r => r._stevne?.navn ?? '–' },
         { label: 'Metode', render: r => r.metodeNamn },
         { label: 'Ring',   render: r => String(r.antallRing) },
         { label: '%Ring',  render: r => formaterProsent(r.prosent) },
@@ -242,7 +242,7 @@ function createRankingTabell(liste: RankingItem[], sokeTekst: string): HTMLEleme
       },
       {
         label: 'Navn',
-        render: item => item.namn,
+        render: item => item.navn,
       },
       {
         label: 'Klubb',

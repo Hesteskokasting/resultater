@@ -9,23 +9,23 @@ export async function render(
 ): Promise<void> {
   container.replaceChildren(createLoadingState())
 
-  const { namn, error } = await hentInnledendeMetodeNamn(id)
+  const { navn, error } = await hentInnledendeMetodeNamn(id)
 
   if (error) {
     container.replaceChildren(createErrorBanner('Stevne ikkje funne.'))
     return
   }
 
-  if (namn.includes('gloppen')) {
+  if (navn.includes('gloppen')) {
     const { render: r } = await import('./innledende/gloppen')
     await r(container, { id, isAdmin }, bannerSlot)
-  } else if (namn.includes('nordhordland')) {
+  } else if (navn.includes('nordhordland')) {
     const { render: r } = await import('./innledende/nordhordland')
     await r(container, { id, isAdmin }, bannerSlot)
-  } else if (namn.includes('x-kast') || namn.includes('minimatch') || namn.includes('halvmatch') || namn.includes('heilmatch')) {
+  } else if (navn.includes('x-kast') || navn.includes('minimatch') || navn.includes('halvmatch') || navn.includes('heilmatch')) {
     const { render: r } = await import('./innledende/xkast')
     await r(container, { id, isAdmin }, bannerSlot)
   } else {
-    container.replaceChildren(createErrorBanner(`Ukjend innledande kastemetode: ${namn || '(ikkje sett)'}`))
+    container.replaceChildren(createErrorBanner(`Ukjend innledande kastemetode: ${navn || '(ikkje sett)'}`))
   }
 }

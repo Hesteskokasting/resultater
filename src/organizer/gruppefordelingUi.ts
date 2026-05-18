@@ -4,7 +4,7 @@ import { beregnGyldigeGruppeStorrelsar, gyldigeRunde1Oppsett, beregnCupStruktur 
 
 interface StillingradForGruppe {
   startnummer?: number | string | null
-  namn?: string | null
+  navn?: string | null
   kamp_poeng_innl?: number | null
   score_poeng_innl?: number | null
 }
@@ -119,7 +119,7 @@ export function renderGruppePreview(
       <tr>
         <td>${r.cupPlassering}</td>
         <td>${escHtml(String(r.startnummer ?? ''))}</td>
-        <td>${escHtml(r.namn ?? '')}${erWo ? ' <span class="badge bg-info text-dark">Walkover</span>' : ''}</td>
+        <td>${escHtml(r.navn ?? '')}${erWo ? ' <span class="badge bg-info text-dark">Walkover</span>' : ''}</td>
         <td class="text-center">${r.kamp_poeng_innl ?? 0}</td>
         <td class="text-center">${r.score_poeng_innl ?? 0}</td>
       </tr>`

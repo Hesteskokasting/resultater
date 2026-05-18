@@ -9,7 +9,7 @@ import type { RundeOppsett, Runde1FormatTyped } from '@/types'
 import type { AvslResultatRow } from '@/services/resultatService'
 
 type AvslResultatKjent = AvslResultatRow & { kasterid: number }
-type AvslResultatMedNavn = AvslResultatKjent & { namn: string }
+type AvslResultatMedNavn = AvslResultatKjent & { navn: string }
 
 export function opnGenererRundeDialog(
   stevneid: number,
@@ -46,9 +46,9 @@ export function opnGenererRundeDialog(
         ].map(({ label, pool }) => `
           <div class="flex-grow-1">
             <strong class="d-block mb-1">${escHtml(label)}</strong>
-            ${pool.map(r => `<div class="small">${escHtml(r.namn)} — ${r.kamp_poeng_innl ?? 0}p (${r.score_poeng_innl ?? 0})</div>`).join('')}
+            ${pool.map(r => `<div class="small">${escHtml(r.navn)} — ${r.kamp_poeng_innl ?? 0}p (${r.score_poeng_innl ?? 0})</div>`).join('')}
           </div>`).join('')
-      : aktive.map((r, i) => `<div class="small">${i + 1}. ${escHtml(r.namn)} — ${r.kamp_poeng_innl ?? 0}p (${r.score_poeng_innl ?? 0})</div>`).join('')
+      : aktive.map((r, i) => `<div class="small">${i + 1}. ${escHtml(r.navn)} — ${r.kamp_poeng_innl ?? 0}p (${r.score_poeng_innl ?? 0})</div>`).join('')
 
     modal.innerHTML = `
       <div class="card p-4 avsl-dialog-card-wide">

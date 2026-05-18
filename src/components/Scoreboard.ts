@@ -193,7 +193,7 @@ export async function renderScoreboard(
   }
 
   function lagSpelerPanel(
-    namn: string,
+    navn: string,
     total: number,
     ringer: number,
     maxRinger: number,
@@ -203,7 +203,7 @@ export async function renderScoreboard(
     spelarNr: number,
   ): HTMLElement {
     const panel = lagEl('div', null, 'sb-spelar-panel')
-    panel.appendChild(lagEl('div', namn, 'sb-spelar-namn'))
+    panel.appendChild(lagEl('div', navn, 'sb-spelar-navn'))
     panel.appendChild(lagEl('div', String(total), 'sb-score'))
 
     const ringerPct = maxRinger > 0 ? Math.round(ringer / maxRinger * 100) : 0
@@ -418,7 +418,7 @@ async function renderScoreboard3(
       const erVunne = vinnRekkefølge.includes(i)
       const plass = erVunne ? vinnRekkefølge.indexOf(i) + 1 : null
       const panel = lagEl('div', null, `sb-spelar-panel${erVunne ? ' sb-spelar-panel--vann' : ''}`)
-      panel.appendChild(lagEl('div', spelarNamn(ks), 'sb-spelar-namn'))
+      panel.appendChild(lagEl('div', spelarNamn(ks), 'sb-spelar-navn'))
       panel.appendChild(lagEl('div', String(totalar[i]), 'sb-score'))
 
       if (plass) panel.appendChild(lagEl('div', `${plass}. plass`, 'sb-plass-badge'))

@@ -9,23 +9,23 @@ export async function render(
 ): Promise<void> {
   container.replaceChildren(createLoadingState())
 
-  const { namn, error } = await hentAvsluttendeMetodeNamn(id)
+  const { navn, error } = await hentAvsluttendeMetodeNamn(id)
 
   if (error) {
     container.replaceChildren(createErrorBanner('Stevne ikkje funne.'))
     return
   }
 
-  if (namn.includes('cup')) {
+  if (navn.includes('cup')) {
     const { render: r } = await import('./avsluttende/cup')
     await r(container, { id, isAdmin }, bannerSlot)
-  } else if (namn.includes('kongelag')) {
+  } else if (navn.includes('kongelag')) {
     const { render: r } = await import('./avsluttende/kongelag')
     await r(container, { id, isAdmin }, bannerSlot)
-  } else if (namn.includes('nordhordland')) {
+  } else if (navn.includes('nordhordland')) {
     const { render: r } = await import('./avsluttende/nordhordland')
     await r(container, { id, isAdmin }, bannerSlot)
   } else {
-    container.replaceChildren(createErrorBanner(`Ukjend avsluttande kastemetode: ${namn || '(ikkje sett)'}`))
+    container.replaceChildren(createErrorBanner(`Ukjend avsluttande kastemetode: ${navn || '(ikkje sett)'}`))
   }
 }

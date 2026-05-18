@@ -64,8 +64,8 @@ export async function render(
     <div class="container py-4 admin-skjema-md">
       <h2 class="mb-4">${tittel}</h2>
       <form id="kaster-skjema">
-        ${lagFormRadHtml('Fornamn*', `<input type="text" class="form-control" name="fornavn" value="${escHtml(v.fornavn)}" required>`)}
-        ${lagFormRadHtml('Etternamn*', `<input type="text" class="form-control" name="etternavn" value="${escHtml(v.etternavn)}" required>`)}
+        ${lagFormRadHtml('Fornavn*', `<input type="text" class="form-control" name="fornavn" value="${escHtml(v.fornavn)}" required>`)}
+        ${lagFormRadHtml('Etternavn*', `<input type="text" class="form-control" name="etternavn" value="${escHtml(v.etternavn)}" required>`)}
         ${lagFormRadHtml('Kjønn*', `<select class="form-select" name="kjonnid">${buildDropdownOptions(kjonn, v.kjonnid)}</select>`)}
         ${lagFormRadHtml('Klubb', `<select class="form-select" name="klubbid"><option value="">— vel —</option>${klubbar.map(k => `<option value="${k.id}"${k.id === v.klubbid ? ' selected' : ''}>${escHtml(k.navn)}</option>`).join('')}</select>`)}
         ${lagFormRadHtml('Klasse', `<select class="form-select" name="klasseid">${buildDropdownOptions(klassar, v.klasseid)}</select>`)}

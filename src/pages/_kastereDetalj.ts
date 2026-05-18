@@ -162,7 +162,7 @@ function byggGrafData(
 // ── HTML-byggjarar ────────────────────────────────────────────────────────────
 
 function detaljSkelettHtml(kaster: KasterDetaljRow, resultater: ResultatDetaljRow[]): string {
-  const namn = escHtml(kasterNavn(kaster))
+  const navn = escHtml(kasterNavn(kaster))
   const nr   = kaster.medlemsnummer ? ` ${kaster.medlemsnummer}` : ''
   const ar   = [...new Set(resultater.map(r => hentAr(r.stevne?.dato)).filter((a): a is number => a !== null))].sort((a, b) => b - a)
   const typar = [...new Map(
@@ -176,7 +176,7 @@ function detaljSkelettHtml(kaster: KasterDetaljRow, resultater: ResultatDetaljRo
       <div class="mb-3">
         <a href="#/kastere" class="btn btn-sm btn-outline-secondary">← Tilbake</a>
       </div>
-      <h1 class="kaster-detalj-tittel">${namn}${escHtml(nr)}</h1>
+      <h1 class="kaster-detalj-tittel">${navn}${escHtml(nr)}</h1>
       <p class="kaster-detalj-klubb">${escHtml(kaster.klubb?.navn ?? '–')}</p>
 
       <div class="kaster-tab-rad">

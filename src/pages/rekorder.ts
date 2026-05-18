@@ -53,9 +53,9 @@ function byggOgFiltrerListe(alleData: RekorderRow[]): RangetRad[] {
     if (filtre.kjonn === 'damer' && !erDame(item)) return false
     if (filtre.kjonn === 'herrer' && erDame(item)) return false
     if (sok) {
-      const namn = kasterNavn({ fornavn: item.fornavn ?? '', etternavn: item.etternavn ?? '' }).toLowerCase()
+      const navn = kasterNavn({ fornavn: item.fornavn ?? '', etternavn: item.etternavn ?? '' }).toLowerCase()
       const klubb = (item.klubb_navn ?? '').toLowerCase()
-      if (!namn.includes(sok) && !klubb.includes(sok)) return false
+      if (!navn.includes(sok) && !klubb.includes(sok)) return false
     }
     return true
   })

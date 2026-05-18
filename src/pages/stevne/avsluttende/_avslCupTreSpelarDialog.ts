@@ -8,7 +8,7 @@ export function opnTreSpelarBekreftDialog(
   stevneid: number,
   afterConfirm: () => Promise<void>,
 ): void {
-  const namns = sp.map(s =>
+  const navns = sp.map(s =>
     s?.kaster
       ? `${escHtml(s.kaster.fornavn)} ${escHtml(s.kaster.etternavn)}`
       : `Spelar ${s?.posisjon ?? '?'}`
@@ -35,7 +35,7 @@ export function opnTreSpelarBekreftDialog(
               class="btn ${erValt ? 'btn-success' : erEliminert ? 'btn-outline-danger' : 'btn-outline-secondary'} text-start d-flex justify-content-between align-items-center"
               data-kasterid="${s.kasterid}"
               ${erEliminert ? 'disabled' : ''}
-            ><span>${namns[i]}</span>${
+            ><span>${navns[i]}</span>${
               plasseringLabel ? `<span class="badge bg-success-subtle text-success-emphasis">${plasseringLabel}</span>` :
               erEliminert ? `<span class="badge bg-danger">Eliminert</span>` : ''
             }</button>`

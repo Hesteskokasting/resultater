@@ -37,7 +37,7 @@ function ikkjeKoblaHtml(status: KoblingStatus): string {
       <div class="card-body">
         <h5 class="card-title">Koble til utøvarprofil</h5>
         <p class="card-text text-muted">Søk etter deg sjølv i registeret og send ein forespørsel. Etter godkjenning kan du melde deg på stevner.</p>
-        <input type="search" id="kaster-sok" class="form-control mb-2" placeholder="Søk på namn…">
+        <input type="search" id="kaster-sok" class="form-control mb-2" placeholder="Søk på navn…">
         <div id="kaster-treff" class="list-group mb-2"></div>
         <div id="kasting-feil" class="alert alert-danger d-none"></div>
       </div>
@@ -130,15 +130,15 @@ async function createMineKampar(kasterid: number): Promise<HTMLElement> {
     lagKnapp: (ks: KampSpelarRow) => string,
   ): string | null => {
     if (!kampar.length) return null
-    const grupper = new Map<number | string, { namn: string; kampar: KampSpelarRow[] }>()
+    const grupper = new Map<number | string, { navn: string; kampar: KampSpelarRow[] }>()
     for (const ks of kampar) {
       const stevneId = ks.kamp?.stevneid ?? 'ukjent'
       const stevneNamn = ks.kamp?.stevne?.navn ?? ''
-      if (!grupper.has(stevneId)) grupper.set(stevneId, { namn: stevneNamn, kampar: [] })
+      if (!grupper.has(stevneId)) grupper.set(stevneId, { navn: stevneNamn, kampar: [] })
       grupper.get(stevneId)!.kampar.push(ks)
     }
-    return [...grupper.values()].map(({ namn, kampar: grp }) => `
-      <p class="fw-semibold mb-1 mt-2">${escHtml(namn)}</p>
+    return [...grupper.values()].map(({ navn, kampar: grp }) => `
+      <p class="fw-semibold mb-1 mt-2">${escHtml(navn)}</p>
       <table class="table table-sm mb-3">${tabellHoaude}<tbody>
         ${grp.map(ks => lagKampRad(ks, lagKnapp(ks))).join('')}
       </tbody></table>`

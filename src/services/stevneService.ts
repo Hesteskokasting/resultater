@@ -350,7 +350,7 @@ export async function hentPameldteForBruker(userId: string): Promise<Set<number>
 
 // ── Dispatcher-hjelparar ──────────────────────────────────────────────────────
 
-export async function hentInnledendeMetodeNamn(stevneid: number): Promise<{ namn: string; error: unknown }> {
+export async function hentInnledendeMetodeNamn(stevneid: number): Promise<{ navn: string; error: unknown }> {
   const { data, error } = await supabase
     .from('stevne')
     .select('m:kastemetode!stevne_innledendekastemetodeid_fkey(navn)')
@@ -358,11 +358,11 @@ export async function hentInnledendeMetodeNamn(stevneid: number): Promise<{ namn
     .single()
   if (error) logError('hentInnledendeMetodeNamn', error)
   const rel = data?.m
-  const namn = (rel && !Array.isArray(rel) ? (rel as { navn: string | null }).navn : null) ?? ''
-  return { namn: namn.toLowerCase(), error }
+  const navn = (rel && !Array.isArray(rel) ? (rel as { navn: string | null }).navn : null) ?? ''
+  return { navn: navn.toLowerCase(), error }
 }
 
-export async function hentAvsluttendeMetodeNamn(stevneid: number): Promise<{ namn: string; error: unknown }> {
+export async function hentAvsluttendeMetodeNamn(stevneid: number): Promise<{ navn: string; error: unknown }> {
   const { data, error } = await supabase
     .from('stevne')
     .select('m:kastemetode!stevne_avsluttendekastemetodeid_fkey(navn)')
@@ -370,8 +370,8 @@ export async function hentAvsluttendeMetodeNamn(stevneid: number): Promise<{ nam
     .single()
   if (error) logError('hentAvsluttendeMetodeNamn', error)
   const rel = data?.m
-  const namn = (rel && !Array.isArray(rel) ? (rel as { navn: string | null }).navn : null) ?? ''
-  return { namn: namn.toLowerCase(), error }
+  const navn = (rel && !Array.isArray(rel) ? (rel as { navn: string | null }).navn : null) ?? ''
+  return { navn: navn.toLowerCase(), error }
 }
 
 // ── Innledande fase ───────────────────────────────────────────────────────────

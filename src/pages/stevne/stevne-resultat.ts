@@ -39,7 +39,7 @@ function mobilGruppeHtml(gruppe: GruppeEntry): string {
     <div class="res-rad">
       <span class="res-pl">${r.plassering ?? '–'}.</span>
       <div class="res-info">
-        <span class="res-namn">${escHtml(kasterNavn(r.kaster) || '–')}</span>
+        <span class="res-navn">${escHtml(kasterNavn(r.kaster) || '–')}</span>
         <span class="res-klubb">${escHtml(r.klubb?.navn ?? '–')}</span>
       </div>
     </div>`).join('')
@@ -54,13 +54,13 @@ function mobilGruppeHtml(gruppe: GruppeEntry): string {
 function desktopGruppeHtml(gruppe: GruppeEntry): string {
   const rader = gruppe.rader.map(r => {
     const k = r.kaster
-    const namneHtml = k
+    const navneHtml = k
       ? `<a href="#/kastere/${lagKasterSlug(k)}" class="res-kaster-lenke">${escHtml(kasterNavn(k))}</a>`
       : '–'
     return `
       <tr>
         <td class="res-td-pl">${r.plassering ?? '–'}</td>
-        <td class="res-td-navn">${namneHtml}</td>
+        <td class="res-td-navn">${navneHtml}</td>
         <td class="res-td-klubb">${escHtml(r.klubb?.navn ?? '–')}</td>
         <td class="res-td-nc">${r.nc_poeng != null ? r.nc_poeng : ''}</td>
       </tr>`

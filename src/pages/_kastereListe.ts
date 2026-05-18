@@ -16,11 +16,11 @@ const PLACEHOLDER_AVATAR = 'https://placehold.co/200x200/444/888?text=?'
 const filtreListe = { visAlle: false, sokeTekst: '', side: 1 }
 
 function kasterKortHtml(k: KasterListeRow): string {
-  const namn = kasterNavn(k)
+  const navn = kasterNavn(k)
   return `
     <a href="#/kastere/${lagSlug(k)}" class="kaster-kort">
-      <img src="${escHtml(k.avatarurl || PLACEHOLDER_AVATAR)}" alt="${escHtml(namn)}" loading="lazy">
-      <div class="kaster-namn">${escHtml(namn)}</div>
+      <img src="${escHtml(k.avatarurl || PLACEHOLDER_AVATAR)}" alt="${escHtml(navn)}" loading="lazy">
+      <div class="kaster-navn">${escHtml(navn)}</div>
       <div class="kaster-klubb">${escHtml(k.klubb?.navn ?? '–')}</div>
     </a>`
 }
@@ -30,7 +30,7 @@ function listeSkelettHtml(): string {
     <div class="nc-side">
       <div class="kaster-liste-kontroller">
         <div class="nc-filter-rad">
-          <input id="kaster-sok" type="search" class="tl-select" placeholder="Søk på namn/klubb" value="">
+          <input id="kaster-sok" type="search" class="tl-select" placeholder="Søk på navn/klubb" value="">
         </div>
         <div class="mt-2">
           <label class="kaster-checkbox-label">

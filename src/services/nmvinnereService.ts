@@ -6,7 +6,7 @@ import { logError } from '@/utils/logError'
 
 export interface NmKategoriKonfig {
   id: number
-  namn: string
+  navn: string
   kjonnFilter: 'historisk' | 'alltid' | false
   fraaAr: number
   aapentFraAr?: number
