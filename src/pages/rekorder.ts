@@ -1,6 +1,8 @@
 import { kasterNavn, lagKasterSlug } from '../utils/kaster'
 import { createErrorBanner } from '../components/ErrorBanner'
 import { createLoadingState } from '../components/LoadingState'
+import { createEmptyState } from '../components/EmptyState'
+import { createTable } from '../components/Table'
 import { escHtml } from '../utils/escHtml'
 import { logError } from '../utils/logError'
 import { hentAlleRekorder } from '../services/rekorderService'
@@ -69,8 +71,8 @@ function byggOgFiltrerListe(alleData: RekorderRow[]): RangetRad[] {
 
 // ── HTML-byggjarar ────────────────────────────────────────────────────────────
 
-function tabellHtml(liste: RangetRad[]): string {
-  if (!liste.length) return '<p class="empty-state">Ingen rekorder funnet.</p>'
+function createRekordTabell(liste: RangetRad[]): HTMLElement {
+  if (!liste.length) return createEmptyState('Ingen rekorder funnet.')
 
   const rader = liste.map(item => {
     const slug = lagKasterSlug({ id: item.kasterid ?? 0, fornavn: item.fornavn ?? '', etternavn: item.etternavn ?? '' })
@@ -88,21 +90,19 @@ function tabellHtml(liste: RangetRad[]): string {
       </tr>`
   }).join('')
 
-  return `
-    <div class="rek-tabell-wrapper">
-      <table class="nc-tabell">
-        <thead class="nc-thead">
-          <tr>
-            <th class="rek-th-pl">Pl.</th>
-            <th>Navn</th>
-            <th>Klubb</th>
-            <th class="rek-th-poeng">Poeng</th>
-            <th class="rek-th-ar">År</th>
-          </tr>
-        </thead>
-        <tbody>${rader}</tbody>
-      </table>
-    </div>`
+  const wrapper = document.createElement('div')
+  wrapper.className = 'rek-tabell-wrapper'
+  wrapper.appendChild(createTable(
+    [
+      { label: 'Pl.', class: 'rek-th-pl' },
+      { label: 'Navn' },
+      { label: 'Klubb' },
+      { label: 'Poeng', class: 'rek-th-poeng' },
+      { label: 'År', class: 'rek-th-ar' },
+    ],
+    rader,
+  ))
+  return wrapper
 }
 
 function sideSkelettHtml(): string {
@@ -151,7 +151,7 @@ export async function render(container: HTMLElement): Promise<void> {
     }
 
     function oppdaterTabell(): void {
-      container.querySelector<HTMLElement>('#rek-tabell-container')!.innerHTML = tabellHtml(byggOgFiltrerListe(data))
+      container.querySelector<HTMLElement>('#rek-tabell-container')!.replaceChildren(createRekordTabell(byggOgFiltrerListe(data)))
     }
 
     oppdaterMaksTekst()

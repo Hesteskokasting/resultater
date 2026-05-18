@@ -8,6 +8,7 @@ import { formaterDato, arOptions } from '../utils/shared'
 import { createErrorBanner } from '../components/ErrorBanner'
 import { createLoadingState } from '../components/LoadingState'
 import { createEmptyState } from '../components/EmptyState'
+import { createTable } from '../components/Table'
 import type { Tables } from '../types'
 import type { ResultatMedRelasjonar, StevneForNc } from '../services/norgescupService'
 import type { SingelListeRad, LagListeRad } from '../utils/norgescup'
@@ -94,8 +95,8 @@ function klasseTabsHtml(valgtKlasse: number, ar: number): string {
     </div>`
 }
 
-function singelTabellHtml(liste: SingelListeRad[]): string {
-  if (liste.length === 0) return '<p class="empty-state">Ingen resultater funnet.</p>'
+function createSingelTabell(liste: SingelListeRad[]): HTMLElement {
+  if (liste.length === 0) return createEmptyState('Ingen resultater funnet.')
 
   const rader = liste.map((k, i) => {
     const detaljer = k.detaljRader.map(r => `
@@ -116,7 +117,7 @@ function singelTabellHtml(liste: SingelListeRad[]): string {
       </tr>
       <tr class="nc-detalj-rad d-none" data-idx="${i}">
         <td colspan="4">
-          <table class="nc-detalj-tabell">
+          <table class="detalj-tabell">
             <thead><tr><th>Dato</th><th>Type</th><th>Stevne</th><th>Pl.</th><th>Poeng</th></tr></thead>
             <tbody>${detaljer}</tbody>
           </table>
@@ -124,22 +125,19 @@ function singelTabellHtml(liste: SingelListeRad[]): string {
       </tr>`
   }).join('')
 
-  return `
-    <table class="nc-tabell">
-      <thead class="nc-thead">
-        <tr>
-          <th class="nc-td-pl">Pl.</th>
-          <th>Navn</th>
-          <th>Klubb</th>
-          <th class="nc-td-poeng">Poeng</th>
-        </tr>
-      </thead>
-      <tbody>${rader}</tbody>
-    </table>`
+  return createTable(
+    [
+      { label: 'Pl.', class: 'nc-td-pl' },
+      { label: 'Navn' },
+      { label: 'Klubb' },
+      { label: 'Poeng', class: 'nc-td-poeng' },
+    ],
+    rader,
+  )
 }
 
-function lagTabellHtml(lagListe: LagListeRad[]): string {
-  if (lagListe.length === 0) return '<p class="empty-state">Ingen lag funnet.</p>'
+function createLagTabell(lagListe: LagListeRad[]): HTMLElement {
+  if (lagListe.length === 0) return createEmptyState('Ingen lag funnet.')
 
   const rader = lagListe.map((lag, i) => {
     const bidrag = lag.bidragsytere.map(b =>
@@ -154,24 +152,21 @@ function lagTabellHtml(lagListe: LagListeRad[]): string {
       </tr>
       <tr class="nc-lag-detalj-rad d-none" data-lag-idx="${i}">
         <td colspan="3">
-          <table class="nc-detalj-tabell">
+          <table class="detalj-tabell">
             <tbody>${bidrag}</tbody>
           </table>
         </td>
       </tr>`
   }).join('')
 
-  return `
-    <table class="nc-tabell">
-      <thead class="nc-thead">
-        <tr>
-          <th class="nc-td-pl">Pl.</th>
-          <th>Klubb</th>
-          <th class="nc-td-poeng">Poeng</th>
-        </tr>
-      </thead>
-      <tbody>${rader}</tbody>
-    </table>`
+  return createTable(
+    [
+      { label: 'Pl.', class: 'nc-td-pl' },
+      { label: 'Klubb' },
+      { label: 'Poeng', class: 'nc-td-poeng' },
+    ],
+    rader,
+  )
 }
 
 function sideSkelettHtml(ar: number, cupType: string): string {
@@ -235,7 +230,7 @@ export async function render(container: HTMLElement): Promise<void> {
         lagContainer.replaceChildren(createEmptyState('Ingen data.'))
       } else {
         const lagListe = byggLagListe(cache.resultater, cache.stevner, regler)
-        lagContainer.innerHTML = lagTabellHtml(lagListe)
+        lagContainer.replaceChildren(createLagTabell(lagListe))
         bindExpandableRows(lagContainer, { triggerSel: '.nc-lag-poeng-celle', idAttr: 'lag-idx', detailSel: '.nc-lag-detalj-rad', lookupRoot: content })
       }
     } else {
@@ -252,7 +247,7 @@ export async function render(container: HTMLElement): Promise<void> {
         singelContainer.replaceChildren(createEmptyState('Ingen data.'))
       } else {
         const singelListe = byggSingelListe(cache.resultater, cache.stevner, regler, cupType, klasse)
-        singelContainer.innerHTML = singelTabellHtml(singelListe)
+        singelContainer.replaceChildren(createSingelTabell(singelListe))
         bindExpandableRows(singelContainer, { triggerSel: '.nc-poeng-celle', idAttr: 'idx', detailSel: '.nc-detalj-rad', lookupRoot: content })
       }
 

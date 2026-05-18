@@ -2,6 +2,8 @@ import { kasterNavn, lagKasterSlug, lagKlubbSlug } from '../utils/kaster'
 import { getUser } from '../services/authService'
 import { createErrorBanner } from '../components/ErrorBanner'
 import { createLoadingState } from '../components/LoadingState'
+import { createEmptyState } from '../components/EmptyState'
+import { createTable } from '../components/Table'
 import { escHtml } from '../utils/escHtml'
 import { logError } from '../utils/logError'
 import { hentKlubbar, hentKlubbById } from '../services/klubbService'
@@ -59,13 +61,13 @@ function detaljSkelettHtml(klubb: KlubbListeRow, antall: number): string {
     </div>`
 }
 
-function medlemTabellHtml(medlemmar: MedlemRow[], sokeTekst: string): string {
+function createMedlemTabell(medlemmar: MedlemRow[], sokeTekst: string): HTMLElement {
   const sok = sokeTekst.trim().toLowerCase()
   const filtrert = sok
     ? medlemmar.filter(k => kasterNavn(k).toLowerCase().includes(sok))
     : medlemmar
 
-  if (!filtrert.length) return '<p class="empty-state">Ingen aktive utøvarar funnet.</p>'
+  if (!filtrert.length) return createEmptyState('Ingen aktive utøvarar funnet.')
 
   const rader = filtrert.map((k, i) => `
     <tr>
@@ -75,15 +77,13 @@ function medlemTabellHtml(medlemmar: MedlemRow[], sokeTekst: string): string {
       <td>${k.medlemsnummer ?? '–'}</td>
     </tr>`).join('')
 
-  return `
-    <div class="table-responsive">
-      <table class="nc-tabell">
-        <thead class="nc-thead">
-          <tr><th>#</th><th>Utøvar</th><th>Klasse</th><th>Nr.</th></tr>
-        </thead>
-        <tbody>${rader}</tbody>
-      </table>
-    </div>`
+  const wrapper = document.createElement('div')
+  wrapper.className = 'table-responsive'
+  wrapper.appendChild(createTable(
+    [{ label: '#' }, { label: 'Utøvar' }, { label: 'Klasse' }, { label: 'Nr.' }],
+    rader,
+  ))
+  return wrapper
 }
 
 // ── Render: Liste ─────────────────────────────────────────────────────────────
@@ -179,7 +179,7 @@ async function renderDetalj(container: HTMLElement, id: number): Promise<void> {
     const sokInput = container.querySelector<HTMLInputElement>('#klubb-detalj-sok')!
 
     function oppdaterListe(): void {
-      listeContainer.innerHTML = medlemTabellHtml(medlemmar, filtreDetalj.sokeTekst)
+      listeContainer.replaceChildren(createMedlemTabell(medlemmar, filtreDetalj.sokeTekst))
     }
 
     oppdaterListe()

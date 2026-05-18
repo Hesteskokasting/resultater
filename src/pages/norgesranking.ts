@@ -2,6 +2,8 @@ import { kasterNavn } from '../utils/kaster'
 import { formaterDato, arOptions, lastNedExcel as lastNedExcelFil } from '../utils/shared'
 import { createErrorBanner } from '../components/ErrorBanner'
 import { createLoadingState } from '../components/LoadingState'
+import { createEmptyState } from '../components/EmptyState'
+import { createTable } from '../components/Table'
 import { escHtml } from '../utils/escHtml'
 import { logError } from '../utils/logError'
 import { bindExpandableRows } from '../utils/expandableRows'
@@ -206,13 +208,13 @@ function infoHtml(synleg: boolean): string {
     </div>`
 }
 
-function rankingTabellHtml(liste: RankingItem[], sokeTekst: string): string {
+function createRankingTabell(liste: RankingItem[], sokeTekst: string): HTMLElement {
   const sok = sokeTekst.trim().toLowerCase()
   const filtrert = sok
     ? liste.filter(k => k.namn.toLowerCase().includes(sok) || k.klubb.toLowerCase().includes(sok))
     : liste
 
-  if (filtrert.length === 0) return '<p class="empty-state">Ingen resultater funnet.</p>'
+  if (filtrert.length === 0) return createEmptyState('Ingen resultater funnet.')
 
   const rader = filtrert.map((k, i) => {
     const detaljer = k.detaljRader.map(r => `
@@ -235,7 +237,7 @@ function rankingTabellHtml(liste: RankingItem[], sokeTekst: string): string {
       </tr>
       <tr class="nc-detalj-rad d-none" data-idx="${i}">
         <td colspan="5">
-          <table class="nc-detalj-tabell">
+          <table class="detalj-tabell">
             <thead><tr><th>Dato</th><th>Type</th><th>Stevne</th><th>Metode</th><th>Ring</th><th>%Ring</th></tr></thead>
             <tbody>${detaljer}</tbody>
           </table>
@@ -243,19 +245,16 @@ function rankingTabellHtml(liste: RankingItem[], sokeTekst: string): string {
       </tr>`
   }).join('')
 
-  return `
-    <table class="nc-tabell">
-      <thead class="nc-thead">
-        <tr>
-          <th class="nc-td-pl">Pl.</th>
-          <th>Navn</th>
-          <th>Klubb</th>
-          <th class="nc-td-sentrum">Stevner</th>
-          <th class="nc-td-poeng">%Snitt</th>
-        </tr>
-      </thead>
-      <tbody>${rader}</tbody>
-    </table>`
+  return createTable(
+    [
+      { label: 'Pl.', class: 'nc-td-pl' },
+      { label: 'Navn' },
+      { label: 'Klubb' },
+      { label: 'Stevner', class: 'nc-td-sentrum' },
+      { label: '%Snitt', class: 'nc-td-poeng' },
+    ],
+    rader,
+  )
 }
 
 function sideSkelettHtml(ar: number): string {
@@ -303,8 +302,10 @@ export async function render(container: HTMLElement): Promise<void> {
       const stevnerMap = lagStevnerMap()
       const liste = byggRankingListe(cache.resultater, stevnerMap)
       const tabellEl = container.querySelector<HTMLElement>('#nr-tabell-container')!
-      tabellEl.innerHTML = `<div id="nr-tabell-inner">${rankingTabellHtml(liste, filtre.sokeTekst)}</div>`
-      const inner = tabellEl.querySelector<HTMLElement>('#nr-tabell-inner')!
+      const inner = document.createElement('div')
+      inner.id = 'nr-tabell-inner'
+      inner.appendChild(createRankingTabell(liste, filtre.sokeTekst))
+      tabellEl.replaceChildren(inner)
       bindExpandableRows(inner, { triggerSel: '.nc-poeng-celle', idAttr: 'idx', detailSel: '.nc-detalj-rad' })
     }
 

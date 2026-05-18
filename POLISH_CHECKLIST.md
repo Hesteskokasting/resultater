@@ -198,16 +198,17 @@ These are small, isolated fixes that should happen before any larger work. They 
 - [x] Add `aria-expanded` + keyboard support to `bindStillingDetaljar` (stilling table)
 - [x] Test expandable rows in norgesranking and norgescupen, commit
 
-### D3. `createNcTabell` (limited scope)
-> Don't build a generic `createTable`. Build only the one that's used in 9 places.
+### D3. `createTable` component + rename `nc-tabell`
+> Renamed `nc-tabell` → `app-tabell`, `nc-thead` → `app-thead`, `nc-detalj-tabell` → `detalj-tabell`.
+> Built `src/components/Table.ts` with `createTable(columns, rowsHtml): HTMLTableElement`.
 
-- [ ] Inventory the 9 `<table class="nc-tabell">` usages
-- [ ] If they're really 9 instances of the same shape → build it
-- [ ] If they're 9 surface-similar but structurally different → skip and document why
-- [ ] Apply ARIA properly (`role="table"` only if needed, otherwise lean on semantic `<table>`)
+- [x] Inventory the 9 `<table class="nc-tabell">` usages
+- [x] Rename CSS classes: `nc-tabell` → `app-tabell`, `nc-thead` → `app-thead`, `nc-detalj-tabell` → `detalj-tabell`
+- [x] Create `src/components/Table.ts`
+- [x] Convert 7 table-building functions to DOM (`klubber`, `nmvinnere`, `rekorder`, `norgesranking`, `norgescupen` ×2) — callers use `replaceChildren`
+- [x] 2 remaining (`home.ts` embedded mid-template, `kastere.ts` mixed content) — rename only
 
 ### D4. What NOT to build
-- ❌ `createTable` (generic) — too many variants
 - ❌ `createKortKort` / `createKasterKort` — no clear pattern emerged
 - ❌ Anything you haven't seen yourself need
 

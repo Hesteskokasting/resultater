@@ -1,6 +1,8 @@
 import { lagKasterSlug, kasterNavn } from '../utils/kaster'
 import { createErrorBanner } from '../components/ErrorBanner'
 import { createLoadingState } from '../components/LoadingState'
+import { createEmptyState } from '../components/EmptyState'
+import { createTable } from '../components/Table'
 import { escHtml } from '../utils/escHtml'
 import { logError } from '../utils/logError'
 import { hentNmData } from '../services/nmvinnereService'
@@ -74,8 +76,8 @@ function kasterLenkjeHtml(k: NmKaster): string {
   return `<a href="#/kastere/${lagKasterSlug(k)}" class="tl-lenkje">${escHtml(kasterNavn(k))}</a>`
 }
 
-function tabellHtml(liste: VinnareEntry[]): string {
-  if (!liste.length) return '<p class="empty-state">Ingen vinnere funnet.</p>'
+function createNmTabell(liste: VinnareEntry[]): HTMLElement {
+  if (!liste.length) return createEmptyState('Ingen vinnere funnet.')
 
   const rader = liste.map(({ ar, stevneId, kastere, klubb }) => {
     const namnHtml = kastere.map(kasterLenkjeHtml).join(' og ') || '–'
@@ -90,15 +92,13 @@ function tabellHtml(liste: VinnareEntry[]): string {
       </tr>`
   }).join('')
 
-  return `
-    <div class="nm-tabell-wrapper">
-      <table class="nc-tabell">
-        <thead class="nc-thead">
-          <tr><th>År</th><th>Navn</th><th>Klubb</th></tr>
-        </thead>
-        <tbody>${rader}</tbody>
-      </table>
-    </div>`
+  const wrapper = document.createElement('div')
+  wrapper.className = 'nm-tabell-wrapper'
+  wrapper.appendChild(createTable(
+    [{ label: 'År', class: 'nm-td-ar' }, { label: 'Navn' }, { label: 'Klubb' }],
+    rader,
+  ))
+  return wrapper
 }
 
 function sideSkelettHtml(kategori: NmKategoriKonfig, maxAr: number): string {
@@ -155,7 +155,7 @@ async function renderKategori(container: HTMLElement): Promise<void> {
 
     const maxAr = data.reduce((m, r) => Math.max(m, hentAr(r.stevne?.dato) ?? 0), 0) || new Date().getFullYear()
     container.innerHTML = sideSkelettHtml(kategori, maxAr)
-    container.querySelector<HTMLElement>('#nm-tabell-container')!.innerHTML = tabellHtml(byggListe(data))
+    container.querySelector<HTMLElement>('#nm-tabell-container')!.replaceChildren(createNmTabell(byggListe(data)))
 
     const kategoriEl = container.querySelector<HTMLSelectElement>('#nm-kategori')!
     kategoriEl.addEventListener('change', async () => {

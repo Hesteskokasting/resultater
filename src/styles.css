@@ -839,13 +839,13 @@ a.stevne-navn {
   margin-top: 20px;
 }
 
-.nc-tabell {
+.app-tabell {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.85rem;
 }
 
-.nc-thead th {
+.app-thead th {
   background: var(--primaer);
   color: var(--primaer-text);
   text-align: left;
@@ -854,10 +854,10 @@ a.stevne-navn {
   letter-spacing: 0.03em;
 }
 
-.nc-tabell tbody tr { background: var(--flate); }
-.nc-tabell tbody tr:nth-child(4n+3) { background: var(--flate-2); }
+.app-tabell tbody tr { background: var(--flate); }
+.app-tabell tbody tr:nth-child(4n+3) { background: var(--flate-2); }
 
-.nc-tabell td {
+.app-tabell td {
   padding: 5px 10px;
   color: var(--tekst);
   border-bottom: 1px solid var(--kant);
@@ -890,20 +890,20 @@ a.stevne-navn {
   padding: 8px 14px;
 }
 
-.nc-detalj-tabell {
+.detalj-tabell {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.8rem;
 }
 
-.nc-detalj-tabell th {
+.detalj-tabell th {
   background: var(--kant);
   color: var(--lenke);
   padding: 4px 8px;
   text-align: left;
 }
 
-.nc-detalj-tabell td {
+.detalj-tabell td {
   padding: 3px 8px;
   border-bottom: 1px solid var(--kant);
   color: var(--tekst);

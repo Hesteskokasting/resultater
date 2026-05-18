@@ -328,8 +328,8 @@ function resultatTabellHtml(resultater: ResultatDetaljRow[], arFilter: string, t
 
   return infoHtml + `
     <div class="table-responsive">
-      <table class="nc-tabell">
-        <thead class="nc-thead">
+      <table class="app-tabell">
+        <thead class="app-thead">
           <tr>
             <th>Dato</th><th>Stevne</th><th>Type</th><th>Klubb</th>
             <th>Pl.</th><th>Kongelag</th><th>X-kast</th>
@@ -363,8 +363,8 @@ function statistikkHtml(resultater: ResultatDetaljRow[], kaster: KasterDetaljRow
     <div class="kaster-stat-grid">
       <div>
         <h4>Statistikk</h4>
-        <table class="nc-tabell">
-          <thead class="nc-thead">
+        <table class="app-tabell">
+          <thead class="app-thead">
             <tr>
               <th></th><th>Rekord</th><th>Snitt Poeng</th><th>% Ring (frå ${FOERSTE_RING_AR})</th>
             </tr>

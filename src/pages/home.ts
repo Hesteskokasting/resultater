@@ -21,8 +21,8 @@ function ncTopp20Html(liste: SingelListeRad[]): string {
       <td class="nc-td-poeng">${formaterPoeng(k.totalPoeng)}</td>
     </tr>`).join('')
   return `
-    <table class="nc-tabell">
-      <thead class="nc-thead">
+    <table class="app-tabell">
+      <thead class="app-thead">
         <tr>
           <th class="nc-td-pl">Pl.</th>
           <th>Namn</th>
