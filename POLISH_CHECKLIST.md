@@ -292,15 +292,30 @@ Then decide per-file whether to split, document, or leave alone. **A 600-line fi
 - [x] `src/styles.css` — find the 3 remaining hardcoded hex colors and replace with variables
 - [~] Audit unused CSS rules (use coverage tool in Chrome devtools, or `npx purgecss`)
   - Do manually later
-- [ ] Identify duplicated patterns across files, e.g. `terminliste`, `norgesranking`, `norgescupen`  — extract to shared classes
+- [x] Identify duplicated patterns across files, e.g. `terminliste`, `norgesranking`, `norgescupen`  — extract to shared classes
 - [x] Verify `startcard.css` styles are scoped — not leaking into the app
-- [ ] Commit: `"CSS cleanup — variables, unused rules, shared patterns"`
+- [x] Commit: `"CSS cleanup — variables, unused rules, shared patterns"`
 
 ---
 
 ## Phase I: Final Verification & Merge
 
 - [ ] Full manual walkthrough — every page, every flow, both themes
+  - home.ts -> 
+    - list of siste resultat shows even if "stevne.erfullfort" is false
+    - the space between stevne.navn and "Vis resultat" is too big. The cards needs to be aligned with Kommende konkurranser
+  - stevne-innledende.ts -> headers for matches and resultlist are black with white text. They need to be white background and black text.
+    - results for walkover matches can be changed after confirm. This should not be possible for walkover matches
+    - matches that have been completed with scorebaord can also be changed by clicking on the result. this should not be possible either, or atleast give a warning that the details will be deleted (kamp_omgang).
+    - Start avsluttende fase button can be removed from innledende. The user can click on avsluttende tab and start it from there
+    - Fullfør turnering button is disabled, even when all matches are complete. Instead enable the button at all times, but give a warning if the user click the button when there are still matches incomplete.
+    - 
+  - kamp.ts / scoreboard.ts -> bug when using the back button: [stevne.render] Error: cannot add `postgres_changes` callbacks for realtime:stevne-fase-2265 after `subscribe()`.
+    at RealtimeChannel.on (@supabase_supabase-js.js?v=5fe89f4b:8089:10)
+    at subscribeToStevneFase (stevneService.ts:258:6)
+    at Object.render [as side] (stevne.ts:107:13)
+  - the back button does not go back to correct routing. testet while in stevne/id/innledende, but the button went back to stevne/id/info, and gave error.
+    - consider opening the scorebard in a new tab and remove the back button?
 - [ ] `npm run typecheck` returns 0 errors
 - [ ] `npm run build` succeeds (and the output bundle isn't horribly large)
 - [ ] All 3 critical flows from Phase 0 work

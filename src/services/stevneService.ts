@@ -41,6 +41,7 @@ export async function hentSisteResultater(): Promise<{ data: SisteResultatRow[];
     .from('stevne')
     .select('id, navn, dato')
     .lt('dato', dagsdato)
+    .eq('erfullfort', true)
     .order('dato', { ascending: false })
     .limit(5)
   if (error) logError('hentSisteResultater', error)

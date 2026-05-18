@@ -47,7 +47,7 @@ function resultatKortHtml(s: SisteResultatRow): string {
   return `
     <div class="stevne-kort">
       <p class="stevne-dato">${formaterDato(s.dato)}</p>
-      <p class="stevne-namn">${escHtml(s.navn)}</p>
+      <p class="stevne-navn">${escHtml(s.navn)}</p>
       <a class="stevne-lenke" href="#/stevne/${s.id}/resultat">Vis resultat</a>
     </div>`
 }
@@ -59,7 +59,7 @@ function kommendeKortHtml(s: KommendeStevneRow): string {
   return `
     <div class="stevne-kort">
       <p class="stevne-dato">${formaterDato(s.dato)}</p>
-      <a class="stevne-namn" href="#/stevne/${s.id}/resultat">${escHtml(s.navn)}</a>
+      <a class="stevne-navn" href="#/stevne/${s.id}/resultat">${escHtml(s.navn)}</a>
       ${innbydelse}
     </div>`
 }
