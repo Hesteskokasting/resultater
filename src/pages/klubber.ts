@@ -69,20 +69,35 @@ function createMedlemTabell(medlemmar: MedlemRow[], sokeTekst: string): HTMLElem
 
   if (!filtrert.length) return createEmptyState('Ingen aktive utøvarar funnet.')
 
-  const rader = filtrert.map((k, i) => `
-    <tr>
-      <td>${i + 1}</td>
-      <td><a href="#/kastere/${lagKasterSlug(k)}" class="tl-lenkje">${escHtml(kasterNavn(k))}</a></td>
-      <td>${escHtml(k.klasse?.navn ?? '–')}</td>
-      <td>${k.medlemsnummer ?? '–'}</td>
-    </tr>`).join('')
-
   const wrapper = document.createElement('div')
   wrapper.className = 'table-responsive'
-  wrapper.appendChild(createTable(
-    [{ label: '#' }, { label: 'Utøvar' }, { label: 'Klasse' }, { label: 'Nr.' }],
-    rader,
-  ))
+  wrapper.appendChild(createTable<MedlemRow>({
+    rows: filtrert,
+    columns: [
+      {
+        label: '#',
+        render: (_, i) => String(i + 1),
+      },
+      {
+        label: 'Utøvar',
+        render: item => {
+          const a = document.createElement('a')
+          a.href = `#/kastere/${lagKasterSlug(item)}`
+          a.className = 'tl-lenkje'
+          a.textContent = kasterNavn(item)
+          return a
+        },
+      },
+      {
+        label: 'Klasse',
+        render: item => item.klasse?.navn ?? '–',
+      },
+      {
+        label: 'Nr.',
+        render: item => String(item.medlemsnummer ?? '–'),
+      },
+    ],
+  }))
   return wrapper
 }
 

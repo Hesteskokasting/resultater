@@ -216,45 +216,64 @@ function createRankingTabell(liste: RankingItem[], sokeTekst: string): HTMLEleme
 
   if (filtrert.length === 0) return createEmptyState('Ingen resultater funnet.')
 
-  const rader = filtrert.map((k, i) => {
-    const detaljer = k.detaljRader.map(r => `
-      <tr>
-        <td>${formaterDato(r._stevne?.dato)}</td>
-        <td>${escHtml(r._stevne?.typeNamn ?? '–')}</td>
-        <td>${escHtml(r._stevne?.namn ?? '–')}</td>
-        <td>${r.metodeNamn}</td>
-        <td>${r.antallRing}</td>
-        <td>${formaterProsent(r.prosent)}</td>
-      </tr>`).join('')
-
-    return `
-      <tr class="nc-singel-rad${k.erGyldig ? '' : ' nc-rad--ugyldig'}">
-        <td class="nc-td-pl">${k.erGyldig ? k.plassering : '–'}</td>
-        <td>${escHtml(k.namn)}</td>
-        <td>${escHtml(k.klubb)}</td>
-        <td class="nc-td-sentrum">${k.antallStevner}</td>
-        <td class="nc-td-poeng nc-poeng-celle" data-idx="${i}">${formaterProsent(k.snittProsent)}<span class="nc-chevron"> ▼</span></td>
-      </tr>
-      <tr class="nc-detalj-rad d-none" data-idx="${i}">
-        <td colspan="5">
-          <table class="detalj-tabell">
-            <thead><tr><th>Dato</th><th>Type</th><th>Stevne</th><th>Metode</th><th>Ring</th><th>%Ring</th></tr></thead>
-            <tbody>${detaljer}</tbody>
-          </table>
-        </td>
-      </tr>`
-  }).join('')
-
-  return createTable(
-    [
-      { label: 'Pl.', class: 'nc-td-pl' },
-      { label: 'Navn' },
-      { label: 'Klubb' },
-      { label: 'Stevner', class: 'nc-td-sentrum' },
-      { label: '%Snitt', class: 'nc-td-poeng' },
+  return createTable<RankingItem>({
+    rows: filtrert,
+    rowClass: item => item.erGyldig ? 'nc-singel-rad' : 'nc-singel-rad nc-rad--ugyldig',
+    rowAttrs: (_, i) => ({ 'data-idx': String(i) }),
+    detailRowClass: 'nc-detalj-rad d-none',
+    detailRow: item => {
+      const detaljer = item.detaljRader.map(r => `
+        <tr>
+          <td>${formaterDato(r._stevne?.dato)}</td>
+          <td>${escHtml(r._stevne?.typeNamn ?? '–')}</td>
+          <td>${escHtml(r._stevne?.namn ?? '–')}</td>
+          <td>${escHtml(r.metodeNamn)}</td>
+          <td>${r.antallRing}</td>
+          <td>${formaterProsent(r.prosent)}</td>
+        </tr>`).join('')
+      const tbl = document.createElement('table')
+      tbl.className = 'detalj-tabell'
+      tbl.innerHTML = `<thead><tr><th>Dato</th><th>Type</th><th>Stevne</th><th>Metode</th><th>Ring</th><th>%Ring</th></tr></thead><tbody>${detaljer}</tbody>`
+      return tbl
+    },
+    columns: [
+      {
+        label: 'Pl.',
+        thClass: 'nc-td-pl',
+        cellClass: 'nc-td-pl',
+        render: item => item.erGyldig ? String(item.plassering ?? '–') : '–',
+      },
+      {
+        label: 'Navn',
+        render: item => item.namn,
+      },
+      {
+        label: 'Klubb',
+        render: item => item.klubb,
+      },
+      {
+        label: 'Stevner',
+        thClass: 'nc-td-sentrum',
+        cellClass: 'nc-td-sentrum',
+        render: item => String(item.antallStevner),
+      },
+      {
+        label: '%Snitt',
+        thClass: 'nc-td-poeng',
+        cellClass: 'nc-td-poeng nc-poeng-celle',
+        cellAttrs: (_, i) => ({ 'data-idx': String(i) }),
+        render: item => {
+          const frag = document.createDocumentFragment()
+          frag.appendChild(document.createTextNode(formaterProsent(item.snittProsent)))
+          const chevron = document.createElement('span')
+          chevron.className = 'nc-chevron'
+          chevron.textContent = ' ▼'
+          frag.appendChild(chevron)
+          return frag
+        },
+      },
     ],
-    rader,
-  )
+  })
 }
 
 function sideSkelettHtml(ar: number): string {

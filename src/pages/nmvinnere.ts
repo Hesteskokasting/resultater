@@ -72,32 +72,53 @@ function byggListe(alleData: NmResultatRow[]): VinnareEntry[] {
 
 // ── HTML-byggjarar ────────────────────────────────────────────────────────────
 
-function kasterLenkjeHtml(k: NmKaster): string {
-  return `<a href="#/kastere/${lagKasterSlug(k)}" class="tl-lenkje">${escHtml(kasterNavn(k))}</a>`
-}
-
 function createNmTabell(liste: VinnareEntry[]): HTMLElement {
   if (!liste.length) return createEmptyState('Ingen vinnere funnet.')
 
-  const rader = liste.map(({ ar, stevneId, kastere, klubb }) => {
-    const namnHtml = kastere.map(kasterLenkjeHtml).join(' og ') || '–'
-    const arHtml = stevneId
-      ? `<a href="#/stevne/${stevneId}/resultat" class="tl-lenkje">${ar ?? '–'}</a>`
-      : String(ar ?? '–')
-    return `
-      <tr>
-        <td class="nm-td-ar">${arHtml}</td>
-        <td>${namnHtml}</td>
-        <td>${escHtml(klubb?.navn ?? '–')}</td>
-      </tr>`
-  }).join('')
+  function kasterLenkje(k: NmKaster): HTMLAnchorElement {
+    const a = document.createElement('a')
+    a.href = `#/kastere/${lagKasterSlug(k)}`
+    a.className = 'tl-lenkje'
+    a.textContent = kasterNavn(k)
+    return a
+  }
 
   const wrapper = document.createElement('div')
   wrapper.className = 'nm-tabell-wrapper'
-  wrapper.appendChild(createTable(
-    [{ label: 'År', class: 'nm-td-ar' }, { label: 'Navn' }, { label: 'Klubb' }],
-    rader,
-  ))
+  wrapper.appendChild(createTable<VinnareEntry>({
+    rows: liste,
+    columns: [
+      {
+        label: 'År',
+        thClass: 'nm-td-ar',
+        cellClass: 'nm-td-ar',
+        render: ({ ar, stevneId }) => {
+          if (!stevneId) return String(ar ?? '–')
+          const a = document.createElement('a')
+          a.href = `#/stevne/${stevneId}/resultat`
+          a.className = 'tl-lenkje'
+          a.textContent = String(ar ?? '–')
+          return a
+        },
+      },
+      {
+        label: 'Navn',
+        render: ({ kastere }) => {
+          if (!kastere.length) return '–'
+          const frag = document.createDocumentFragment()
+          kastere.forEach((k, i) => {
+            if (i > 0) frag.appendChild(document.createTextNode(' og '))
+            frag.appendChild(kasterLenkje(k))
+          })
+          return frag
+        },
+      },
+      {
+        label: 'Klubb',
+        render: ({ klubb }) => klubb?.navn ?? '–',
+      },
+    ],
+  }))
   return wrapper
 }
 

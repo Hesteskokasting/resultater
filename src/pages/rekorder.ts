@@ -74,34 +74,52 @@ function byggOgFiltrerListe(alleData: RekorderRow[]): RangetRad[] {
 function createRekordTabell(liste: RangetRad[]): HTMLElement {
   if (!liste.length) return createEmptyState('Ingen rekorder funnet.')
 
-  const rader = liste.map(item => {
-    const slug = lagKasterSlug({ id: item.kasterid ?? 0, fornavn: item.fornavn ?? '', etternavn: item.etternavn ?? '' })
-    const dameCls = erDame(item) ? ' class="rek-dame-rad"' : ''
-    const poengHtml = item.stevne_id
-      ? `<span class="rek-poeng-celle" title="${escHtml(item.stevne_navn ?? '')}" data-stevneid="${item.stevne_id}">${item.poeng}</span>`
-      : String(item.poeng ?? '–')
-    return `
-      <tr${dameCls}>
-        <td>${item.plassering}</td>
-        <td><a href="#/kastere/${slug}" class="tl-lenkje">${escHtml(kasterNavn({ fornavn: item.fornavn ?? '', etternavn: item.etternavn ?? '' }))}</a></td>
-        <td>${escHtml(item.klubb_navn ?? '–')}</td>
-        <td>${poengHtml}</td>
-        <td>${item.ar ?? '–'}</td>
-      </tr>`
-  }).join('')
-
   const wrapper = document.createElement('div')
   wrapper.className = 'rek-tabell-wrapper'
-  wrapper.appendChild(createTable(
-    [
-      { label: 'Pl.', class: 'rek-th-pl' },
-      { label: 'Navn' },
-      { label: 'Klubb' },
-      { label: 'Poeng', class: 'rek-th-poeng' },
-      { label: 'År', class: 'rek-th-ar' },
+  wrapper.appendChild(createTable<RangetRad>({
+    rows: liste,
+    rowClass: item => erDame(item) ? 'rek-dame-rad' : undefined,
+    columns: [
+      {
+        label: 'Pl.',
+        thClass: 'rek-th-pl',
+        render: item => String(item.plassering),
+      },
+      {
+        label: 'Navn',
+        render: item => {
+          const slug = lagKasterSlug({ id: item.kasterid ?? 0, fornavn: item.fornavn ?? '', etternavn: item.etternavn ?? '' })
+          const a = document.createElement('a')
+          a.href = `#/kastere/${slug}`
+          a.className = 'tl-lenkje'
+          a.textContent = kasterNavn({ fornavn: item.fornavn ?? '', etternavn: item.etternavn ?? '' })
+          return a
+        },
+      },
+      {
+        label: 'Klubb',
+        render: item => item.klubb_navn ?? '–',
+      },
+      {
+        label: 'Poeng',
+        thClass: 'rek-th-poeng',
+        render: item => {
+          if (!item.stevne_id) return String(item.poeng ?? '–')
+          const span = document.createElement('span')
+          span.className = 'rek-poeng-celle'
+          span.title = item.stevne_navn ?? ''
+          span.dataset.stevneid = String(item.stevne_id)
+          span.textContent = String(item.poeng ?? '–')
+          return span
+        },
+      },
+      {
+        label: 'År',
+        thClass: 'rek-th-ar',
+        render: item => String(item.ar ?? '–'),
+      },
     ],
-    rader,
-  ))
+  }))
   return wrapper
 }
 

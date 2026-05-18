@@ -98,75 +98,104 @@ function klasseTabsHtml(valgtKlasse: number, ar: number): string {
 function createSingelTabell(liste: SingelListeRad[]): HTMLElement {
   if (liste.length === 0) return createEmptyState('Ingen resultater funnet.')
 
-  const rader = liste.map((k, i) => {
-    const detaljer = k.detaljRader.map(r => `
-      <tr>
-        <td>${formaterDato(r._stevne?.dato)}</td>
-        <td>${escHtml(r._stevne?.typeNavn ?? '–')}</td>
-        <td>${escHtml(r._stevne?.navn ?? '–')}</td>
-        <td>${r.plassering ?? '–'}</td>
-        <td>${formaterPoeng(r.nc_poeng)}</td>
-      </tr>`).join('')
-
-    return `
-      <tr class="nc-singel-rad">
-        <td class="nc-td-pl">${k.plassering}</td>
-        <td>${escHtml(k.navn)}</td>
-        <td>${escHtml(k.klubb)}</td>
-        <td class="nc-td-poeng nc-poeng-celle" data-idx="${i}">${formaterPoeng(k.totalPoeng)}<span class="nc-chevron"> ▼</span></td>
-      </tr>
-      <tr class="nc-detalj-rad d-none" data-idx="${i}">
-        <td colspan="4">
-          <table class="detalj-tabell">
-            <thead><tr><th>Dato</th><th>Type</th><th>Stevne</th><th>Pl.</th><th>Poeng</th></tr></thead>
-            <tbody>${detaljer}</tbody>
-          </table>
-        </td>
-      </tr>`
-  }).join('')
-
-  return createTable(
-    [
-      { label: 'Pl.', class: 'nc-td-pl' },
-      { label: 'Navn' },
-      { label: 'Klubb' },
-      { label: 'Poeng', class: 'nc-td-poeng' },
+  return createTable<SingelListeRad>({
+    rows: liste,
+    rowClass: 'nc-singel-rad',
+    rowAttrs: (_, i) => ({ 'data-idx': String(i) }),
+    detailRowClass: 'nc-detalj-rad d-none',
+    detailRow: item => {
+      const detaljer = item.detaljRader.map(r => `
+        <tr>
+          <td>${formaterDato(r._stevne?.dato)}</td>
+          <td>${escHtml(r._stevne?.typeNavn ?? '–')}</td>
+          <td>${escHtml(r._stevne?.navn ?? '–')}</td>
+          <td>${r.plassering ?? '–'}</td>
+          <td>${formaterPoeng(r.nc_poeng)}</td>
+        </tr>`).join('')
+      const tbl = document.createElement('table')
+      tbl.className = 'detalj-tabell'
+      tbl.innerHTML = `<thead><tr><th>Dato</th><th>Type</th><th>Stevne</th><th>Pl.</th><th>Poeng</th></tr></thead><tbody>${detaljer}</tbody>`
+      return tbl
+    },
+    columns: [
+      {
+        label: 'Pl.',
+        thClass: 'nc-td-pl',
+        cellClass: 'nc-td-pl',
+        render: item => String(item.plassering),
+      },
+      {
+        label: 'Navn',
+        render: item => item.navn,
+      },
+      {
+        label: 'Klubb',
+        render: item => item.klubb,
+      },
+      {
+        label: 'Poeng',
+        thClass: 'nc-td-poeng',
+        cellClass: 'nc-td-poeng nc-poeng-celle',
+        cellAttrs: (_, i) => ({ 'data-idx': String(i) }),
+        render: item => {
+          const frag = document.createDocumentFragment()
+          frag.appendChild(document.createTextNode(formaterPoeng(item.totalPoeng)))
+          const chevron = document.createElement('span')
+          chevron.className = 'nc-chevron'
+          chevron.textContent = ' ▼'
+          frag.appendChild(chevron)
+          return frag
+        },
+      },
     ],
-    rader,
-  )
+  })
 }
 
 function createLagTabell(lagListe: LagListeRad[]): HTMLElement {
   if (lagListe.length === 0) return createEmptyState('Ingen lag funnet.')
 
-  const rader = lagListe.map((lag, i) => {
-    const bidrag = lag.bidragsytere.map(b =>
-      `<tr><td>${escHtml(kasterNavn(b.kaster))}</td><td class="nc-td-poeng">${formaterPoeng(b.sum)}</td></tr>`
-    ).join('')
-
-    return `
-      <tr class="nc-lag-rad">
-        <td class="nc-td-pl">${lag.plassering}</td>
-        <td>${escHtml(lag.klubb?.navn ?? '–')}</td>
-        <td class="nc-td-poeng nc-lag-poeng-celle" data-lag-idx="${i}">${formaterPoeng(lag.lagTotal)}<span class="nc-chevron"> ▼</span></td>
-      </tr>
-      <tr class="nc-lag-detalj-rad d-none" data-lag-idx="${i}">
-        <td colspan="3">
-          <table class="detalj-tabell">
-            <tbody>${bidrag}</tbody>
-          </table>
-        </td>
-      </tr>`
-  }).join('')
-
-  return createTable(
-    [
-      { label: 'Pl.', class: 'nc-td-pl' },
-      { label: 'Klubb' },
-      { label: 'Poeng', class: 'nc-td-poeng' },
+  return createTable<LagListeRad>({
+    rows: lagListe,
+    rowClass: 'nc-lag-rad',
+    rowAttrs: (_, i) => ({ 'data-lag-idx': String(i) }),
+    detailRowClass: 'nc-lag-detalj-rad d-none',
+    detailRow: item => {
+      const bidrag = item.bidragsytere.map(b =>
+        `<tr><td>${escHtml(kasterNavn(b.kaster))}</td><td class="nc-td-poeng">${formaterPoeng(b.sum)}</td></tr>`
+      ).join('')
+      const tbl = document.createElement('table')
+      tbl.className = 'detalj-tabell'
+      tbl.innerHTML = `<tbody>${bidrag}</tbody>`
+      return tbl
+    },
+    columns: [
+      {
+        label: 'Pl.',
+        thClass: 'nc-td-pl',
+        cellClass: 'nc-td-pl',
+        render: item => String(item.plassering),
+      },
+      {
+        label: 'Klubb',
+        render: item => item.klubb?.navn ?? '–',
+      },
+      {
+        label: 'Poeng',
+        thClass: 'nc-td-poeng',
+        cellClass: 'nc-td-poeng nc-lag-poeng-celle',
+        cellAttrs: (_, i) => ({ 'data-lag-idx': String(i) }),
+        render: item => {
+          const frag = document.createDocumentFragment()
+          frag.appendChild(document.createTextNode(formaterPoeng(item.lagTotal)))
+          const chevron = document.createElement('span')
+          chevron.className = 'nc-chevron'
+          chevron.textContent = ' ▼'
+          frag.appendChild(chevron)
+          return frag
+        },
+      },
     ],
-    rader,
-  )
+  })
 }
 
 function sideSkelettHtml(ar: number, cupType: string): string {
