@@ -254,9 +254,14 @@ export async function bekreftInnledendeKamp(params: {
         }
       }
     } else {
-      // No omgang data — scores entered via numberpad, use score_poeng directly
-      t1 = p1?.scorePoeng ?? 0
-      t2 = p2?.scorePoeng ?? 0
+      // Re-fetch score_poeng fresh from DB — passed scorePoeng may be stale (captured at render time)
+      const { data: freshScores } = await supabase
+        .from('kamp_spelar')
+        .select('id, score_poeng')
+        .in('id', spelarIds)
+      const scoreMap = Object.fromEntries((freshScores ?? []).map(s => [s.id, s.score_poeng ?? 0]))
+      t1 = p1 ? (scoreMap[p1.spelarId] ?? p1.scorePoeng) : 0
+      t2 = p2 ? (scoreMap[p2.spelarId] ?? p2.scorePoeng) : 0
     }
     t1 += hcp1
     t2 += hcp2

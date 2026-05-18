@@ -84,8 +84,8 @@ These are small, isolated fixes that should happen before any larger work. They 
 - [x] Both `gloppen.ts` and `nordhordland.ts` import + configure it
 - [x] Each file is ~30-50 lines (gloppen: 17 lines, nordhordland: 44 lines)
 - [ ] Test BOTH stevner thoroughly in browser
-  - Bug: When confirming a match (kamp) the score is set to 0 - 0
-  - Bug: Cannot confirm Walkover kamp
+  - [x] Bug fixed: Cannot confirm Walkover kamp — `Scoreboard.ts` now treats `er_walkover` as `kampFerdig`; `kamp.ts` passes `erWalkover: kamp.er_walkover`
+  - [x] Bug fixed: Score set to 0-0 on confirm — `bekreftInnledendeKamp` now re-fetches `kamp_spelar.score_poeng` fresh from DB when no `kamp_omgang` rows exist (instead of trusting stale caller value)
 - [x] Commit: `"Deduplicate innledende implementations into shared base (_innledendeBase.ts)"`
 
 ### Step 4: Document the variant pattern
@@ -266,7 +266,9 @@ For each, get an honest assessment from Claude Code:
 - [x] `src/services/kampGenereringService.ts` (631 lines)
   - Split at the existing `// ── Cup avsluttende ──` seam into `kampGenereringInnledendeService.ts` (~240 lines) and `kampGenereringCupService.ts` (~220 lines). Old file deleted. 4 import sites updated.
   - Deduplication fix: `genererNesteCupRunde` (all-groups) now delegates to `genererNesteCupRundeForGruppe` per group — ~120 lines of parallel insert logic removed. Bane numbering for walkovers corrected as a side effect (now null, consistent with the per-group function).
-- [ ] `src/services/kampService.ts` (627 lines)
+- [x] `src/services/kampService.ts` (627 lines)
+  - Size justified — coherent domain, already has section comments. No split.
+  - Fixed 3 bugs while here: walkover confirm (Scoreboard.ts + kamp.ts) + stale-score fallback in service.
 - [ ] `src/components/Scoreboard.ts` (504 lines)
 
 **Prompt for each file:**

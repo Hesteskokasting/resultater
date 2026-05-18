@@ -176,7 +176,7 @@ export async function render(container: HTMLElement, { id }: { id: number }): Pr
       })
       if (error) { visKampFeil('Feil ved bekreftelse av kamp.'); return }
     } else {
-      const { error } = await bekreftInnledendeKamp({ kampId, ...bekreftData, hcp1, hcp2 })
+      const { error } = await bekreftInnledendeKamp({ kampId, ...bekreftData, hcp1, hcp2, erWalkover: kamp.er_walkover })
       if (error) { visKampFeil('Feil ved bekreftelse av kamp.'); return }
     }
 

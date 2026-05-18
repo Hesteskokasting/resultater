@@ -47,7 +47,7 @@ export async function renderScoreboard(
   let omgangar: OmgangRad[] = []
   let val1: number | null = null
   let val2: number | null = null
-  let kampFerdig = kamp.er_bekreftet
+  let kampFerdig = kamp.er_bekreftet || kamp.er_walkover
 
   const kanRedigere = erArrangor || (erDeltakar && !kamp.er_bekreftet)
 
@@ -85,7 +85,7 @@ export async function renderScoreboard(
     omgangar = Object.values(omgMap).sort((a, b) => a.omgang - b.omgang)
 
     const [t1, t2] = beregnEffektiveTotalar()
-    kampFerdig = erVinnarKondisjon(t1, t2) || kamp.er_bekreftet
+    kampFerdig = erVinnarKondisjon(t1, t2) || kamp.er_bekreftet || kamp.er_walkover
   }
 
   function beregnTotalar(): [number, number] {
