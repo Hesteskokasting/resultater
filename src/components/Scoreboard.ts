@@ -323,7 +323,7 @@ async function renderScoreboard3(
   const spelarIds = spelarar.map(s => s.id).filter((id): id is number => id != null)
 
   let omgangData: KampOmgangRow[] = []
-  let vinnRekkefølge: number[] = []
+  let vinnRekkefolge: number[] = []
   let vals: (number | null)[] = [null, null, null]
 
   function beregnTotal(idx: number): number {
@@ -332,11 +332,11 @@ async function renderScoreboard3(
       .reduce((s, o) => s + (o.score ?? 0), 0)
   }
 
-  function beregnVinnRekkefølge(): number[] {
+  function beregnVinnRekkefolge(): number[] {
     if (!omgangData.length) return []
     const maxOmgang = Math.max(...omgangData.map(o => o.omgang))
     const aktive = new Set([0, 1, 2].filter(i => spelarar[i]))
-    const rekkefølge: number[] = []
+    const rekkefolge: number[] = []
     const totalar = [0, 0, 0]
 
     for (let omg = 1; omg <= maxOmgang; omg++) {
@@ -351,7 +351,7 @@ async function renderScoreboard3(
           const andreAktive = [...aktive].filter(j => j !== i)
           const minAndre = Math.min(...andreAktive.map(j => totalar[j]))
           if (totalar[i] >= 21 && totalar[i] - minAndre >= 2) {
-            rekkefølge.push(i)
+            rekkefolge.push(i)
             aktive.delete(i)
             nySjekk = true
             break
@@ -359,15 +359,15 @@ async function renderScoreboard3(
         }
       }
     }
-    if (aktive.size === 1 && rekkefølge.length === 2) rekkefølge.push([...aktive][0])
-    return rekkefølge
+    if (aktive.size === 1 && rekkefolge.length === 2) rekkefolge.push([...aktive][0])
+    return rekkefolge
   }
 
   async function lastOmgangar3(): Promise<void> {
     if (!spelarIds.length) return
     const { data } = await hentKampOmgangar(spelarIds)
     omgangData = data
-    vinnRekkefølge = beregnVinnRekkefølge()
+    vinnRekkefolge = beregnVinnRekkefolge()
   }
 
   await lastOmgangar3()
@@ -404,8 +404,8 @@ async function renderScoreboard3(
   function tegn3(): void {
     container.innerHTML = ''
     const totalar = spelarar.map((_, i) => beregnTotal(i))
-    const aktiveIdxar = [0, 1, 2].filter(i => spelarar[i] && !vinnRekkefølge.includes(i))
-    const erFerdig = vinnRekkefølge.length === spelarar.length
+    const aktiveIdxar = [0, 1, 2].filter(i => spelarar[i] && !vinnRekkefolge.includes(i))
+    const erFerdig = vinnRekkefolge.length === spelarar.length
     const maxOmgang = omgangData.length ? Math.max(...omgangData.map(o => o.omgang)) : 0
     const disabledSets = bereknKnappStatus3(aktiveIdxar)
 
@@ -415,8 +415,8 @@ async function renderScoreboard3(
 
     const wrap = lagEl('div', null, 'sb-wrap sb-wrap--3p')
     spelarar.forEach((ks, i) => {
-      const erVunne = vinnRekkefølge.includes(i)
-      const plass = erVunne ? vinnRekkefølge.indexOf(i) + 1 : null
+      const erVunne = vinnRekkefolge.includes(i)
+      const plass = erVunne ? vinnRekkefolge.indexOf(i) + 1 : null
       const panel = lagEl('div', null, `sb-spelar-panel${erVunne ? ' sb-spelar-panel--vann' : ''}`)
       panel.appendChild(lagEl('div', spelarNamn(ks), 'sb-spelar-navn'))
       panel.appendChild(lagEl('div', String(totalar[i]), 'sb-score'))
@@ -463,7 +463,7 @@ async function renderScoreboard3(
     }
 
     if (erFerdig && !kamp.er_bekreftet && onBekreft && kanRedigere) {
-      container.appendChild(lagBekreftKnapp(() => onBekreft(vinnRekkefølge.map(i => spelarar[i].kasterid))))
+      container.appendChild(lagBekreftKnapp(() => onBekreft(vinnRekkefolge.map(i => spelarar[i].kasterid))))
     } else if (kamp.er_bekreftet) {
       container.appendChild(lagEl('div', 'Kamp fullført', 'alert alert-success mt-2'))
     }
@@ -477,7 +477,7 @@ async function renderScoreboard3(
   }
 
   async function nesteOmgang3(): Promise<void> {
-    const aktiveIdxar = [0, 1, 2].filter(i => spelarar[i] && !vinnRekkefølge.includes(i))
+    const aktiveIdxar = [0, 1, 2].filter(i => spelarar[i] && !vinnRekkefolge.includes(i))
     const nr = omgangData.length ? Math.max(...omgangData.map(o => o.omgang)) + 1 : 1
     const inserts = aktiveIdxar.map(i => {
       const v = vals[i] ?? 0

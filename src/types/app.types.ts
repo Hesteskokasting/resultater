@@ -4,7 +4,7 @@ import type { Profil } from './domain.types'
 export type PageRenderFn = (container: HTMLElement, params: Record<string, string>) => Promise<void>
 
 export interface Rute {
-  mønster: RegExp
+  pattern: RegExp
   side: PageRenderFn
   params: (match: RegExpMatchArray) => Record<string, string>
 }

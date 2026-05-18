@@ -24,19 +24,19 @@ type TabRender = (
 // ── Tab-konfigurasjon ─────────────────────────────────────────────────────────
 
 const FANER = [
-  { nøkkel: 'info',          label: 'Info',          adminOnly: false },
-  { nøkkel: 'deltakere',     label: 'Deltakere',     adminOnly: true  },
-  { nøkkel: 'innledende',    label: 'Innledande',    adminOnly: false },
-  { nøkkel: 'avsluttende',   label: 'Avsluttande',   adminOnly: false },
-  { nøkkel: 'resultat',      label: 'Sluttresultat', adminOnly: false },
-  { nøkkel: 'innstillinger', label: 'Innstillingar', adminOnly: true  },
+  { key: 'info',          label: 'Info',          adminOnly: false },
+  { key: 'deltakere',     label: 'Deltakere',     adminOnly: true  },
+  { key: 'innledende',    label: 'Innledande',    adminOnly: false },
+  { key: 'avsluttende',   label: 'Avsluttande',   adminOnly: false },
+  { key: 'resultat',      label: 'Sluttresultat', adminOnly: false },
+  { key: 'innstillinger', label: 'Innstillingar', adminOnly: true  },
 ] as const
 
-type TabNøkkel = (typeof FANER)[number]['nøkkel']
+type TabKey = (typeof FANER)[number]['key']
 
-const ADMIN_FANER = new Set<string>(FANER.filter(f => f.adminOnly).map(f => f.nøkkel))
+const ADMIN_FANER = new Set<string>(FANER.filter(f => f.adminOnly).map(f => f.key))
 
-const TAB_RENDER: Record<TabNøkkel, TabRender> = {
+const TAB_RENDER: Record<TabKey, TabRender> = {
   info:          renderInfo,
   deltakere:     renderDeltakere as TabRender,
   innledende:    renderInnledende,
@@ -56,11 +56,11 @@ const FASE_LABEL: Record<string, string> = {
 function renderNav(stevneid: number, aktiv: string, isAdmin: boolean, harAvsluttande: boolean): string {
   const items = FANER
     .filter(f => isAdmin || !f.adminOnly)
-    .filter(f => f.nøkkel !== 'avsluttende' || harAvsluttande)
-    .map(({ nøkkel, label }) => `
+    .filter(f => f.key !== 'avsluttende' || harAvsluttande)
+    .map(({ key, label }) => `
       <li class="nav-item">
-        <a class="nav-link${aktiv === nøkkel ? ' active' : ''}"
-           href="#/stevne/${stevneid}/${nøkkel}">${label}</a>
+        <a class="nav-link${aktiv === key ? ' active' : ''}"
+           href="#/stevne/${stevneid}/${key}">${label}</a>
       </li>`)
     .join('')
   return `<ul class="nav nav-tabs mb-3">${items}</ul>`
@@ -87,7 +87,7 @@ export async function render(
 
     const isAdmin = (await erAdmin()) || (await erKlubbadmin())
     const harAvsluttande = stevne.avsluttendekastemetodeid != null
-    const aktiv = (!isAdmin && ADMIN_FANER.has(tab)) ? 'info' : tab as TabNøkkel
+    const aktiv = (!isAdmin && ADMIN_FANER.has(tab)) ? 'info' : tab as TabKey
     const badge = FASE_LABEL[stevne.stevne_fase ?? 'ikke_startet'] ?? ''
 
     container.innerHTML = `

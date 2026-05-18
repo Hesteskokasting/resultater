@@ -56,16 +56,16 @@ function subtittelTekst(kategorinavn: string, kjonn: NmKjonn): string {
 function byggListe(alleData: NmResultatRow[]): VinnareEntry[] {
   const gruppeMap = new Map<string, VinnareEntry>()
   for (const r of alleData) {
-    const nokkel = `${r.stevne?.id}-${r.klasseid}`
-    if (!gruppeMap.has(nokkel)) {
-      gruppeMap.set(nokkel, {
+    const key = `${r.stevne?.id}-${r.klasseid}`
+    if (!gruppeMap.has(key)) {
+      gruppeMap.set(key, {
         ar: hentAr(r.stevne?.dato),
         stevneId: r.stevne?.id,
         kastere: [],
         klubb: r.klubb,
       })
     }
-    if (r.kaster) gruppeMap.get(nokkel)!.kastere.push(r.kaster)
+    if (r.kaster) gruppeMap.get(key)!.kastere.push(r.kaster)
   }
   return [...gruppeMap.values()].sort((a, b) => (b.ar ?? 0) - (a.ar ?? 0))
 }

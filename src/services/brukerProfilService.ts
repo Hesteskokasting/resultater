@@ -14,11 +14,11 @@ export async function hentProfilForBruker(userId: string): Promise<{ data: Bruke
   return { data, error }
 }
 
-export async function sendKoblingForespørsel(brukerId: string, kasterId: number): Promise<{ error: unknown }> {
+export async function sendProfileLinkRequest(brukerId: string, kasterId: number): Promise<{ error: unknown }> {
   const { error } = await supabase
     .from('bruker_profil')
     .update({ kobling_kasterid: kasterId, kobling_status: 'venter' })
     .eq('id', brukerId)
-  if (error) logError('sendKoblingForespørsel', error)
+  if (error) logError('sendProfileLinkRequest', error)
   return { error }
 }

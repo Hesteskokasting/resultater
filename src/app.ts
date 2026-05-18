@@ -35,7 +35,7 @@ type RenderFn = (container: HTMLElement, params: Params) => void | Promise<void>
 type MinRolle = 'bruker' | 'admin' | 'klubbadmin'
 
 interface Rute {
-  mønster: RegExp
+  pattern: RegExp
   side: RenderFn
   params: (m: RegExpMatchArray) => Params
 }
@@ -63,35 +63,35 @@ function authGuard(minRolle: MinRolle, renderFn: RenderFn): RenderFn {
 
 const ruter: Rute[] = [
   // Auth-ruter (spesifikke før generiske)
-  { mønster: /^\/logginn$/,                    side: renderLogginn,                                            params: () => ({}) },
-  { mønster: /^\/minside$/,                    side: authGuard('bruker', renderMinSide),                       params: () => ({}) },
-  { mønster: /^\/admin$/,                      side: authGuard('admin', renderAdmin),                          params: () => ({}) },
-  { mønster: /^\/stevne\/ny$/,                 side: authGuard('klubbadmin', renderStevneAdmin as RenderFn),   params: () => ({}) },
-  { mønster: /^\/stevne\/(\d+)\/admin$/,       side: authGuard('klubbadmin', renderStevneAdmin as RenderFn),   params: m => ({ id: m[1] }) },
-  { mønster: /^\/kamp\/(\d+)$/,               side: renderKamp as RenderFn,                                   params: m => ({ id: Number(m[1]) }) },
-  { mønster: /^\/stevne\/(\d+)\/pamelding$/,  side: renderPamelding as RenderFn,                              params: m => ({ id: m[1] }) },
-  { mønster: /^\/stevne\/(\d+)(?:\/([^/]*))?$/, side: renderStevne as RenderFn,                              params: m => ({ id: Number(m[1]), tab: m[2] ?? 'info' }) },
-  { mønster: /^\/kaster\/ny$/,                 side: authGuard('klubbadmin', renderKasterAdmin as RenderFn),   params: () => ({}) },
-  { mønster: /^\/kaster\/(\d+)\/admin$/,       side: authGuard('klubbadmin', renderKasterAdmin as RenderFn),   params: m => ({ id: m[1] }) },
-  { mønster: /^\/klubber\/(\d+)\/admin$/,      side: authGuard('klubbadmin', renderKlubbAdminSide),            params: m => ({ id: m[1] }) },
+  { pattern: /^\/logginn$/,                    side: renderLogginn,                                            params: () => ({}) },
+  { pattern: /^\/minside$/,                    side: authGuard('bruker', renderMinSide),                       params: () => ({}) },
+  { pattern: /^\/admin$/,                      side: authGuard('admin', renderAdmin),                          params: () => ({}) },
+  { pattern: /^\/stevne\/ny$/,                 side: authGuard('klubbadmin', renderStevneAdmin as RenderFn),   params: () => ({}) },
+  { pattern: /^\/stevne\/(\d+)\/admin$/,       side: authGuard('klubbadmin', renderStevneAdmin as RenderFn),   params: m => ({ id: m[1] }) },
+  { pattern: /^\/kamp\/(\d+)$/,               side: renderKamp as RenderFn,                                   params: m => ({ id: Number(m[1]) }) },
+  { pattern: /^\/stevne\/(\d+)\/pamelding$/,  side: renderPamelding as RenderFn,                              params: m => ({ id: m[1] }) },
+  { pattern: /^\/stevne\/(\d+)(?:\/([^/]*))?$/, side: renderStevne as RenderFn,                              params: m => ({ id: Number(m[1]), tab: m[2] ?? 'info' }) },
+  { pattern: /^\/kaster\/ny$/,                 side: authGuard('klubbadmin', renderKasterAdmin as RenderFn),   params: () => ({}) },
+  { pattern: /^\/kaster\/(\d+)\/admin$/,       side: authGuard('klubbadmin', renderKasterAdmin as RenderFn),   params: m => ({ id: m[1] }) },
+  { pattern: /^\/klubber\/(\d+)\/admin$/,      side: authGuard('klubbadmin', renderKlubbAdminSide),            params: m => ({ id: m[1] }) },
   // Eksisterande ruter
-  { mønster: /^\/terminliste$/,                side: renderTerminliste,                                        params: () => ({}) },
-  { mønster: /^\/norgescupen$/,                side: renderNorgescupen,                                        params: () => ({}) },
-  { mønster: /^\/norgesranking$/,              side: renderNorgesranking,                                      params: () => ({}) },
-  { mønster: /^\/rekorder$/,                   side: renderRekorder,                                           params: () => ({}) },
-  { mønster: /^\/nmvinnere$/,                  side: renderNMVinnere,                                          params: () => ({}) },
-  { mønster: /^\/kastere\/(\d+)(-[^/]*)?$/,   side: renderKastere as RenderFn,                                params: m => ({ id: m[1] }) },
-  { mønster: /^\/kastere$/,                    side: renderKastere as RenderFn,                                params: () => ({}) },
-  { mønster: /^\/klubber\/(\d+)(-[^/]*)?$/,   side: renderKlubber as RenderFn,                                params: m => ({ id: m[1] }) },
-  { mønster: /^\/klubber$/,                    side: renderKlubber as RenderFn,                                params: () => ({}) },
-  { mønster: /^\/?$/,                          side: renderHome,                                               params: () => ({}) },
+  { pattern: /^\/terminliste$/,                side: renderTerminliste,                                        params: () => ({}) },
+  { pattern: /^\/norgescupen$/,                side: renderNorgescupen,                                        params: () => ({}) },
+  { pattern: /^\/norgesranking$/,              side: renderNorgesranking,                                      params: () => ({}) },
+  { pattern: /^\/rekorder$/,                   side: renderRekorder,                                           params: () => ({}) },
+  { pattern: /^\/nmvinnere$/,                  side: renderNMVinnere,                                          params: () => ({}) },
+  { pattern: /^\/kastere\/(\d+)(-[^/]*)?$/,   side: renderKastere as RenderFn,                                params: m => ({ id: m[1] }) },
+  { pattern: /^\/kastere$/,                    side: renderKastere as RenderFn,                                params: () => ({}) },
+  { pattern: /^\/klubber\/(\d+)(-[^/]*)?$/,   side: renderKlubber as RenderFn,                                params: m => ({ id: m[1] }) },
+  { pattern: /^\/klubber$/,                    side: renderKlubber as RenderFn,                                params: () => ({}) },
+  { pattern: /^\/?$/,                          side: renderHome,                                               params: () => ({}) },
 ]
 
 function naviger(): void {
   const hash = location.hash.replace(/^#/, '') || '/'
 
   for (const rute of ruter) {
-    const treff = hash.match(rute.mønster)
+    const treff = hash.match(rute.pattern)
     if (treff) {
       rute.side(container, rute.params(treff))
       return

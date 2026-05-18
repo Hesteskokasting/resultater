@@ -9,7 +9,7 @@ import { formaterDato } from '@/utils/shared'
 import { hentKastereListeAktive, hentKasterForKobling } from '@/services/kasterService'
 import { hentMinePameldingar } from '@/services/pameldingService'
 import { hentMineKampar } from '@/services/kampService'
-import { sendKoblingForespørsel } from '@/services/brukerProfilService'
+import { sendProfileLinkRequest } from '@/services/brukerProfilService'
 import { createTabs } from '@/components/Tabs'
 import type { Rolle, KoblingStatus } from '@/types'
 import type { PameldingRow } from '@/services/pameldingService'
@@ -215,7 +215,7 @@ function bindKasterSok(container: HTMLElement, brukerId: string): void {
     if (!knapp) return
     feilDiv.classList.add('d-none')
 
-    const { error } = await sendKoblingForespørsel(brukerId, Number(knapp.dataset.id))
+    const { error } = await sendProfileLinkRequest(brukerId, Number(knapp.dataset.id))
     if (error) {
       feilDiv.textContent = 'Kunne ikkje sende forespørsel.'
       feilDiv.classList.remove('d-none')

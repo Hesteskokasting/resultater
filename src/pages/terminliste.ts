@@ -21,7 +21,7 @@ function sorterVerdi(s: StevneRow, kolonne: string): string {
     case 'dato': return s.dato ?? ''
     case 'sted': return s.sted ?? ''
     case 'metode': return [s.innledende?.navn, s.avsluttende?.navn].filter((v): v is string => Boolean(v)).join(' ')
-    case 'arrangør': return s.klubb?.navn ?? ''
+    case 'organizer': return s.klubb?.navn ?? ''
     case 'type': return s.stevnetype?.navn ?? ''
     case 'klassifisering': return s.kategori?.navn ?? ''
     default: return ''
@@ -109,7 +109,7 @@ const tabellKolonner = [
   { id: 'dato', label: 'Dato' },
   { id: 'sted', label: 'Sted' },
   { id: 'metode', label: 'Metode' },
-  { id: 'arrangør', label: 'Arrangør' },
+  { id: 'organizer', label: 'Arrangør' },
   { id: 'type', label: 'Type' },
   { id: 'klassifisering', label: 'Klassifisering' },
 ]
@@ -159,7 +159,7 @@ function byggVisning(filtrert: StevneRow[]): string {
 function kortHtml(s: StevneRow): string {
   const dato = formaterDato(s.dato)
   const sted = s.sted ? `<p class="tl-detalj">Sted: ${escHtml(s.sted)}</p>` : ''
-  const arrangør = s.klubb ? `<p class="tl-detalj">Arrangør: ${escHtml(s.klubb.navn ?? '')}</p>` : ''
+  const organizer = s.klubb ? `<p class="tl-detalj">Arrangør: ${escHtml(s.klubb.navn ?? '')}</p>` : ''
   const type = s.stevnetype ? `<p class="tl-detalj">Type: ${escHtml(s.stevnetype.navn ?? '')}</p>` : ''
   const nm = s.ernm ? '<span class="tl-nm-merke">NM</span>' : ''
   const innbydelse = s.innbydelseurl
@@ -184,7 +184,7 @@ function kortHtml(s: StevneRow): string {
     <div class="stevne-kort tl-kort">
       <a class="tl-navn tl-navn-lenke" href="#/stevne/${s.id}/resultat">${nm}${escHtml(s.navn ?? '')}</a>
       <p class="stevne-dato">${dato}</p>
-      ${sted}${arrangør}${type}
+      ${sted}${organizer}${type}
       ${innbydelse}${resultat}${pameldingLenke}
     </div>
   `

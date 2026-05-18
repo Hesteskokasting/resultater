@@ -49,7 +49,7 @@ function snitt(tal: number[]): number | null {
   return Math.round(tal.reduce((s, t) => s + t, 0) / tal.length)
 }
 
-export function ødeleggChart(): void {
+export function destroyChart(): void {
   if (aktivChart) {
     aktivChart.destroy()
     aktivChart = null
@@ -321,7 +321,7 @@ function statistikkHtml(resultater: ResultatDetaljRow[], kaster: KasterDetaljRow
 // ── Graf-rendering ────────────────────────────────────────────────────────────
 
 function teiknGraf(canvas: HTMLCanvasElement, resultater: ResultatDetaljRow[]): void {
-  ødeleggChart()
+  destroyChart()
 
   const { labels, stevneNamn, verdiar } = byggGrafData(
     resultater,
@@ -398,7 +398,7 @@ export async function renderDetalj(container: HTMLElement, id: number): Promise<
   filtreDetalj.grafMetode  = 'kongelag'
   filtreDetalj.grafFra     = null
   filtreDetalj.grafTil     = null
-  ødeleggChart()
+  destroyChart()
 
   container.replaceChildren(createLoadingState('Laster utøvar...'))
 

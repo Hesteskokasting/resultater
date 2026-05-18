@@ -27,10 +27,10 @@ function sorterKastere(kastere: KasterListeRow[]): KasterListeRow[] {
 
 function filtrerTilgjengelege(
   kastere: KasterListeRow[],
-  søk: string,
+  search: string,
   registrerte: Map<number, boolean>,
 ): KasterListeRow[] {
-  const q = søk.toLowerCase()
+  const q = search.toLowerCase()
   return kastere.filter(p => {
     if (registrerte.has(p.id)) return false
     return !q || kasterNavn(p).toLowerCase().includes(q) || (p.klubb?.navn ?? '').toLowerCase().includes(q)
@@ -190,34 +190,34 @@ export async function render(
 
     // ── Venstre kolonne: tilgjengelege spelarar ───────────────────────────────
 
-    const venstreWrapper = document.createElement('div')
-    venstreWrapper.className = 'col-md-6 d-flex flex-column'
+    const leftWrapper = document.createElement('div')
+    leftWrapper.className = 'col-md-6 d-flex flex-column'
 
-    const søkInput = document.createElement('input')
-    søkInput.type = 'text'
-    søkInput.placeholder = 'Søk etter navn eller klubb…'
-    søkInput.className = 'form-control mb-2'
+    const searchInput = document.createElement('input')
+    searchInput.type = 'text'
+    searchInput.placeholder = 'Søk etter navn eller klubb…'
+    searchInput.className = 'form-control mb-2'
 
-    const { kolonne: venstreKol, tabell: tilgjengeliTabell } = lagSpelarKolonne('Tilgjengelege spelarar')
-    venstreWrapper.appendChild(søkInput)
-    venstreWrapper.appendChild(venstreKol)
-    layout.appendChild(venstreWrapper)
+    const { kolonne: leftCol, tabell: tilgjengeliTabell } = lagSpelarKolonne('Tilgjengelege spelarar')
+    leftWrapper.appendChild(searchInput)
+    leftWrapper.appendChild(leftCol)
+    layout.appendChild(leftWrapper)
 
     // ── Høgre kolonne: påmelde spelarar ──────────────────────────────────────
 
-    const høgreWrapper = document.createElement('div')
-    høgreWrapper.className = 'col-md-6 d-flex flex-column'
+    const rightWrapper = document.createElement('div')
+    rightWrapper.className = 'col-md-6 d-flex flex-column'
 
-    const søkSpacer = document.createElement('input')
-    søkSpacer.type = 'text'
-    søkSpacer.className = 'form-control mb-2 deltaker-søk-spacer'
-    søkSpacer.tabIndex = -1
-    søkSpacer.disabled = true
+    const searchSpacer = document.createElement('input')
+    searchSpacer.type = 'text'
+    searchSpacer.className = 'form-control mb-2 deltaker-search-spacer'
+    searchSpacer.tabIndex = -1
+    searchSpacer.disabled = true
 
-    const { kolonne: høgreKol, tabell: pameldtTabell, tittelEl: pameldtTittel } = lagSpelarKolonne('Påmelde spelarar')
-    høgreWrapper.appendChild(søkSpacer)
-    høgreWrapper.appendChild(høgreKol)
-    layout.appendChild(høgreWrapper)
+    const { kolonne: rightCol, tabell: pameldtTabell, tittelEl: pameldtTittel } = lagSpelarKolonne('Påmelde spelarar')
+    rightWrapper.appendChild(searchSpacer)
+    rightWrapper.appendChild(rightCol)
+    layout.appendChild(rightWrapper)
 
     // ── Renderfunksjonar ──────────────────────────────────────────────────────
 
@@ -254,7 +254,7 @@ export async function render(
     }
 
     function renderTilgjengeliListe(): void {
-      const filtrert = sorterKastere(filtrerTilgjengelege(alleSpelarar, søkInput.value, pameldtMap))
+      const filtrert = sorterKastere(filtrerTilgjengelege(alleSpelarar, searchInput.value, pameldtMap))
       tilgjengeliTabell.innerHTML = ''
 
       if (!filtrert.length) {
@@ -273,7 +273,7 @@ export async function render(
       }
     }
 
-    søkInput.addEventListener('input', renderTilgjengeliListe)
+    searchInput.addEventListener('input', renderTilgjengeliListe)
     renderPameldtListe()
     renderTilgjengeliListe()
   } catch (err) {

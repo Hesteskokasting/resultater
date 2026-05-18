@@ -155,6 +155,7 @@ Test scope is deliberately small. Don't expand it without my say-so.
 
 ## Naming Conventions
 
+- **ALL identifiers must be in English.** This includes variables, functions, types, interfaces, parameters, CSS class names, and object property names. Norwegian is only acceptable in user-facing string literals (UI text, HTML content, error messages).
 - Variables and functions: `camelCase`
 - Types and interfaces: `PascalCase`
 - Constants: `UPPER_SNAKE_CASE`

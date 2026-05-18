@@ -1,9 +1,9 @@
 import type { PageRenderFn } from '@/types'
 import { renderListe } from './_kastereListe'
-import { renderDetalj, ødeleggChart } from './_kastereDetalj'
+import { renderDetalj, destroyChart } from './_kastereDetalj'
 
 export const render: PageRenderFn = async (container, params) => {
-  ødeleggChart()
+  destroyChart()
   if (params.id) {
     await renderDetalj(container, Number(params.id))
   } else {

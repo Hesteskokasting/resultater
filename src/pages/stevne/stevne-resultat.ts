@@ -22,11 +22,11 @@ function grupperResultater(resultater: ResultatRad[], erFoer2026: boolean): Grup
   for (const r of resultater) {
     const gruppeNavn = r.gruppe?.navn ?? '–'
     const klasseNavn = r.klasse?.navn ?? null
-    const nokkel = erFoer2026 ? `${klasseNavn ?? ''}|${gruppeNavn}` : gruppeNavn
+    const key = erFoer2026 ? `${klasseNavn ?? ''}|${gruppeNavn}` : gruppeNavn
     const label  = erFoer2026 ? `${klasseNavn ? klasseNavn + ' ' : ''}${gruppeNavn}` : gruppeNavn
 
-    if (!grupper.has(nokkel)) grupper.set(nokkel, { label, rader: [] })
-    grupper.get(nokkel)!.rader.push(r)
+    if (!grupper.has(key)) grupper.set(key, { label, rader: [] })
+    grupper.get(key)!.rader.push(r)
   }
 
   return [...grupper.values()].sort((a, b) => a.label.localeCompare(b.label, 'nb'))
