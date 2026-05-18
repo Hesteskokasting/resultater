@@ -1,5 +1,5 @@
 import { printStartkort } from '@/organizer/startkort-print'
-import { createInnledendeRenderer, type InnledendeVariant } from './_innledendeBase'
+import { createInnledendeRenderer, type InnledendeVariant } from './innledendeBase'
 
 const variant: InnledendeVariant = {
   channelName: (id) => `stevne-innl-gloppen-${id}`,
