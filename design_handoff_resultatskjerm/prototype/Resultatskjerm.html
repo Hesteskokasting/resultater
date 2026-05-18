@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Score Screen — Variants</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; background: #efeee9; font-family: Inter, system-ui, sans-serif; }
+  *, *::before, *::after { box-sizing: border-box; }
+  .phone {
+    width: 100%;
+    height: 100%;
+    border-radius: 36px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.05);
+  }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="screens/Variant1.jsx"></script>
+<script type="text/babel" src="screens/Variant2.jsx"></script>
+<script type="text/babel" src="screens/Variant3.jsx"></script>
+<script type="text/babel" src="screens/Variant4.jsx"></script>
+<script type="text/babel" src="screens/Variant5.jsx"></script>
+<script type="text/babel" src="screens/Variant2Wide.jsx"></script>
+
+<script type="text/babel" data-presets="react">
+// tablet-ish portrait
+const PHONE_W = 480;
+const PHONE_H = 760;
+// landscape (16:9-ish)
+const WIDE_W = 1120;
+const WIDE_H = 630;
+
+function Phone({ children }) {
+  return <div className="phone">{children}</div>;
+}
+
+function App() {
+  const pair = (Comp, key, lightLabel, darkLabel) => (
+    <DCSection
+      id={`s-${key}`}
+      title={key}
+    >
+      <DCArtboard id={`${key}-light`} label={lightLabel} width={PHONE_W} height={PHONE_H}>
+        <Phone><Comp dark={false} /></Phone>
+      </DCArtboard>
+      <DCArtboard id={`${key}-dark`} label={darkLabel} width={PHONE_W} height={PHONE_H}>
+        <Phone><Comp dark={true} /></Phone>
+      </DCArtboard>
+    </DCSection>
+  );
+
+  return (
+    <DesignCanvas
+      title="Resultatskjerm — varianter"
+      subtitle="Optimalisert for sollys (lys modus) + innendørs (mørk modus). Tving fullskjerm med ⤢ for å sjekke i sterkt lys."
+    >
+      <DCSection id="s-intro" title="Oppdatert: navn større, høyere opp">
+        <DCArtboard id="intro" label="Endringer" width={PHONE_W * 2 + 24} height={260}>
+          <div style={{ padding: 28, background: '#fff', height: '100%', display: 'flex', flexDirection: 'column', gap: 12, fontFamily: 'Inter, system-ui, sans-serif' }}>
+            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 900, letterSpacing: '-0.02em' }}>Hestesko-resultat — portrettmodus</h2>
+            <ul style={{ margin: 0, paddingLeft: 18, fontSize: 14, lineHeight: 1.55, color: '#222' }}>
+              <li><b>Navn 36–38px</b> (opp fra 22) og plassert øverst i hver halvdel, ikke sentrert.</li>
+              <li><b>Mindre toppadding</b> — navn starter rett under header.</li>
+              <li>"Treff" byttet til <b>"Ring"</b> (ringer rundt påle).</li>
+              <li>Skåre fortsatt 184–236px — det viktigste på skjermen.</li>
+              <li>Send gjerne wide-mode skjermdump, så designer jeg den varianten eksplisitt.</li>
+            </ul>
+          </div>
+        </DCArtboard>
+      </DCSection>
+
+      {pair(Variant1, "01 Brutalist", "Lys — utendørs", "Mørk — innendørs")}
+      {pair(Variant3, "03 Tallene først", "Lys — utendørs", "Mørk — innendørs")}
+      {pair(Variant4, "04 Status-stripe", "Lys — utendørs", "Mørk — innendørs")}
+      {pair(Variant5, "05 Head-to-head", "Lys — utendørs", "Mørk — innendørs")}
+
+      <DCSection
+        id="s-portrait"
+        title="02 Split blocks — Portrait / tablet stående"
+      >
+        <DCArtboard id="p2-light-prog" label="Omgang 5 · Sondre neste" width={PHONE_W} height={PHONE_H}>
+          <Phone><Variant2 dark={false} state="in-progress" round={5} nextPlayer="bottom" /></Phone>
+        </DCArtboard>
+        <DCArtboard id="p2-light-done" label="Fullført" width={PHONE_W} height={PHONE_H}>
+          <Phone><Variant2 dark={false} state="completed" /></Phone>
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection
+        id="s-wide"
+        title="02 Split blocks — Wide / landscape"
+      >
+        <DCArtboard id="w2-light-prog" label="Omgang 5 · Sondre neste" width={WIDE_W} height={WIDE_H}>
+          <div className="phone"><Variant2Wide dark={false} state="in-progress" round={5} nextPlayer="left" /></div>
+        </DCArtboard>
+        <DCArtboard id="w2-light-done" label="Fullført" width={WIDE_W} height={WIDE_H}>
+          <div className="phone"><Variant2Wide dark={false} state="completed" /></div>
+        </DCArtboard>
+      </DCSection>
+    </DesignCanvas>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
