@@ -146,14 +146,20 @@ export async function renderScoreboard(
     const kanNeste = kanRedigere && !kampFerdig && (val1 !== null || val2 !== null)
     const kanBekrefte = kampFerdig && !kamp.er_bekreftet && (erArrangor || erDeltakar) && !!onBekreft
     const maxRinger = omgangar.length * 2
+    const p1ErNeste = !kampFerdig && erNesteKaster(1, nr)
+    const p2ErNeste = !kampFerdig && !p1ErNeste
 
     if (omgangEl) {
-      omgangEl.textContent = kamp.er_bekreftet ? 'Fullført' : (kampFerdig ? 'Ferdig' : `Omgang ${nr}`)
+      if (kamp.er_bekreftet) {
+        omgangEl.innerHTML = '<span class="sb-fullfort-badge">FULLFØRT</span>'
+      } else {
+        omgangEl.textContent = kampFerdig ? 'Ferdig' : `Omgang ${nr}`
+      }
     }
 
     const wrap = lagEl('div', null, 'sb-wrap')
-    wrap.appendChild(lagSpelerPanel(spelarNamn(p1ks, 'Spelar 1'), t1, r1, maxRinger, val1, p1Dis, !kanRedigere, 1))
-    wrap.appendChild(lagSpelerPanel(spelarNamn(p2ks, 'Spelar 2'), t2, r2, maxRinger, val2, p2Dis, !kanRedigere, 2))
+    wrap.appendChild(lagSpelerPanel(spelarNamn(p1ks, 'Spelar 1'), t1, r1, maxRinger, val1, p1Dis, !kanRedigere, 1, 'p1', p1ErNeste))
+    wrap.appendChild(lagSpelerPanel(spelarNamn(p2ks, 'Spelar 2'), t2, r2, maxRinger, val2, p2Dis, !kanRedigere, 2, 'p2', p2ErNeste))
     container.appendChild(wrap)
 
     if (kanRedigere) {
@@ -201,13 +207,24 @@ export async function renderScoreboard(
     disabledSet: Set<number>,
     lesvisning: boolean,
     spelarNr: number,
+    panelKlasse: 'p1' | 'p2',
+    erNeste: boolean,
   ): HTMLElement {
-    const panel = lagEl('div', null, 'sb-spelar-panel')
+    const panel = lagEl('div', null, `sb-spelar-panel sb-spelar-panel--${panelKlasse}`)
     panel.appendChild(lagEl('div', navn, 'sb-spelar-navn'))
     panel.appendChild(lagEl('div', String(total), 'sb-score'))
 
     const ringerPct = maxRinger > 0 ? Math.round(ringer / maxRinger * 100) : 0
-    panel.appendChild(lagEl('p', `Ring: ${ringer} av ${maxRinger} ( ${ringerPct}% )`, 'sb-ringer-info'))
+    const statsRow = lagEl('div', null, 'sb-stats-row')
+    const ringStat = lagEl('div', null, 'sb-stat')
+    ringStat.appendChild(lagEl('span', 'RING', 'sb-stat-label'))
+    ringStat.appendChild(lagEl('span', `${ringer} / ${maxRinger}`, 'sb-stat-verdi'))
+    const prosentStat = lagEl('div', null, 'sb-stat')
+    prosentStat.appendChild(lagEl('span', 'PROSENT', 'sb-stat-label'))
+    prosentStat.appendChild(lagEl('span', `${ringerPct}%`, 'sb-stat-verdi'))
+    statsRow.appendChild(ringStat)
+    statsRow.appendChild(prosentStat)
+    panel.appendChild(statsRow)
 
     if (!lesvisning) {
       const knappar = lagEl('div', null, 'sb-knappar')
@@ -221,6 +238,13 @@ export async function renderScoreboard(
       }
       panel.appendChild(knappar)
     }
+
+    if (erNeste) {
+      const pil = lagEl('div', '▼', 'sb-neste-pil')
+      pil.setAttribute('aria-label', 'Neste kaster')
+      panel.appendChild(pil)
+    }
+
     return panel
   }
 
@@ -284,6 +308,11 @@ function lagEl(tag: string, tekst: string | null, klasse?: string): HTMLElement 
 
 function spelarNamn(ks: KampSpelarIKamp | null, fallback = 'Spelar'): string {
   return ks?.kaster ? `${ks.kaster.fornavn} ${ks.kaster.etternavn}` : fallback
+}
+
+function erNesteKaster(spelarNr: 1 | 2, omgang: number): boolean {
+  const p1First = Math.floor((omgang - 1) / 2) % 2 === 0
+  return spelarNr === 1 ? p1First : !p1First
 }
 
 function lagOmgangSlettKnappar(omgangNumre: number[], onSlett: (nr: number) => void): HTMLElement {

@@ -87,24 +87,6 @@
   --np-reset-bg: rgba(255, 255, 255, 0.25);
   --np-nav-bg: rgba(255, 255, 255, 0.15);
 
-  /* Scoreboard — white bg + pure black for outdoor sun readability */
-  --sb-bg:              #ffffff;
-  --sb-topbar-bg:       #eeeeee;
-  --sb-border:          #000000;
-  --sb-border-subtle:   #444444;
-  --sb-border-btn:      #000000;
-  --sb-tekst:           #000000;
-  --sb-tekst-subtil:    #222222;
-  --sb-tekst-subtil-2:  #555555;
-  --sb-positiv:         #005500;
-  --sb-negativ:         #b30000;
-  --sb-knapp-bg:        #000000;
-  --sb-knapp-tekst:     #ffffff;
-  --sb-knapp-dis-bg:    #cccccc;
-  --sb-knapp-slett-hover: #7a0000;
-  --sb-bekreft-bg:      #005500;
-  --sb-bekreft-hover:   #003d00;
-  --sb-vann-bg:         rgba(0, 80, 0, 0.9);
 }
 
 [data-theme="light"] {
@@ -137,24 +119,6 @@
   --np-reset-bg: rgba(255, 255, 255, 0.25);
   --np-nav-bg: rgba(255, 255, 255, 0.15);
 
-  /* Scoreboard — same as dark; scoreboard is always dark by design */
-  --sb-bg: #000;
-  --sb-topbar-bg: #111;
-  --sb-border: #333;
-  --sb-border-subtle: #222;
-  --sb-border-btn: #555;
-  --sb-tekst: #fff;
-  --sb-tekst-subtil: #ccc;
-  --sb-tekst-subtil-2: #aaa;
-  --sb-positiv: #4cff4c;
-  --sb-negativ: #ff6b6b;
-  --sb-knapp-bg: #fff;
-  --sb-knapp-tekst: #111;
-  --sb-knapp-dis-bg: #333;
-  --sb-knapp-slett-hover: #c0392b;
-  --sb-bekreft-bg: #1a8f2d;
-  --sb-bekreft-hover: #157a24;
-  --sb-vann-bg: rgba(0, 60, 0, 0.85);
 }
 
 body {
