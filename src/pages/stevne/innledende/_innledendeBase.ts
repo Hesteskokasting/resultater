@@ -40,7 +40,7 @@ import {
   type InnlKampRow, type InnlKampSpelarRow,
 } from '../../../services/kampService'
 import {
-  hentInnledendeStevne, setStevneErfullfort, oppdaterStevneFase,
+  hentInnledendeStevne, setStevneErfullfort,
   type InnlStevneRow,
 } from '../../../services/stevneService'
 import { avmeldKanal } from '../../../utils/realtime'
@@ -146,10 +146,8 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
       }
 
       if (bannerSlot) {
-        bannerSlot.innerHTML = (isAdmin ? renderInnledendeKnappar(stevne, erAlleKamperBekreftet, variant.erSwiss) : '') + variant.getBannerExtra(ctx)
+        bannerSlot.innerHTML = (isAdmin ? renderInnledendeKnappar(stevne, variant.erSwiss) : '') + variant.getBannerExtra(ctx)
         variant.bindBannerExtra(bannerSlot, ctx)
-
-        bannerSlot.querySelector('#fullfor-btn')?.addEventListener('click', () => fullforTurnering(container, stevneid))
 
         bannerSlot.querySelector('#fullfør-turnering-btn')?.addEventListener('click', async () => {
           if (!await confirmDialog({ title: 'Fullfør turnering', message: 'Vil du fullføre turneringa? Dette kan ikkje angrast.', danger: true })) return
@@ -297,13 +295,6 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
     })
     if (error) { showToast('DB-feil ved bekreft', 'error'); return }
     await lastOgVis(container, stevneid)
-  }
-
-  async function fullforTurnering(_container: HTMLElement, stevneid: number): Promise<void> {
-    if (!await confirmDialog({ title: 'Start avsluttande fase', message: 'Start avsluttande fase?' })) return
-    const { error } = await oppdaterStevneFase(stevneid, 'avsluttende')
-    if (error) { showToast('Feil ved faseskifte', 'error'); return }
-    location.hash = `#/stevne/${stevneid}/avsluttende`
   }
 
   return render

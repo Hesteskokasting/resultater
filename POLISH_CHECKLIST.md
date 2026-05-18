@@ -301,16 +301,8 @@ Then decide per-file whether to split, document, or leave alone. **A 600-line fi
 ## Phase I: Final Verification & Merge
 
 - [ ] Full manual walkthrough — every page, every flow, both themes
-  - home.ts -> 
-    - list of siste resultat shows even if "stevne.erfullfort" is false
-    - the space between stevne.navn and "Vis resultat" is too big. The cards needs to be aligned with Kommende konkurranser
-  - stevne-innledende.ts -> 
-    - headers for matches and resultlist are black with white text. They need to be white background and black text.
-    - results for walkover matches can be changed after confirm. This should not be possible for walkover matches since they are always 21 - 0
-    - results matches that have been completed with scorebaord can also be changed by clicking on the result. this should not be possible either
-    - Start avsluttende fase button can be removed from innledende. The user can click on avsluttende tab and start it from there
-    - Fullfør turnering button is disabled, even when all matches are complete. Instead enable the button at all times, but give a warning if the user click the button when there are still matches incomplete.
-    - 
+  - home.ts -> COMPLETE
+  - stevne-innledende.ts -> COMPLETE
   - kamp.ts / scoreboard.ts -> bug when using the back button: [stevne.render] Error: cannot add `postgres_changes` callbacks for realtime:stevne-fase-2265 after `subscribe()`.
     at RealtimeChannel.on (@supabase_supabase-js.js?v=5fe89f4b:8089:10)
     at subscribeToStevneFase (stevneService.ts:258:6)
