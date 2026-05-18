@@ -183,7 +183,7 @@
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: #e74c3c;
+  background: var(--live-prikk);
   flex-shrink: 0;
 }
 
@@ -373,8 +373,8 @@ a.stevne-navn {
 
 .tl-nm-merke {
   display: inline-block;
-  background: #d4af37;
-  color: #fff;
+  background: var(--gull);
+  color: var(--gull-tekst);
   font-size: 0.7rem;
   font-weight: bold;
   padding: 1px 5px;
