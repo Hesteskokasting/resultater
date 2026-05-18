@@ -57,6 +57,56 @@
   --sb-vann-bg: rgba(0, 60, 0, 0.85);
 }
 
+[data-theme="utendors"] {
+  --bg:               #ffffff;
+  --flate:            #f0f0f0;
+  --flate-2:          #e0e0e0;
+  --kant:             #555555;
+  --kant-2:           #333333;
+  --tekst:            #000000;
+  --tekst-2:          #111111;
+  --tekst-3:          #444444;
+  --primaer:          #003a7a;
+  --primaer-hover:    #cce0ff;
+  --primaer-aktiv:    #99c0ff;
+  --primaer-selektert:#4a90d9;
+  --primaer-text:     #ffffff;
+  --lenke:            #003a7a;
+  --header-bg:        #e8e8e8;
+  --input-bg:         #ffffff;
+  --feil:             #b30000;
+  --kamp-vidare-bg:   #c8f0c8;
+  --kamp-eliminert-bg:#f8d0d0;
+
+  /* Nummerpad — same blue as other themes */
+  --np-bg: #1e4976;
+  --np-tekst: #ffffff;
+  --np-knapp-bg: #ffffff;
+  --np-knapp-tekst: #1e4976;
+  --np-pad-bg: rgba(255, 255, 255, 0.1);
+  --np-reset-bg: rgba(255, 255, 255, 0.25);
+  --np-nav-bg: rgba(255, 255, 255, 0.15);
+
+  /* Scoreboard — white bg + pure black for outdoor sun readability */
+  --sb-bg:              #ffffff;
+  --sb-topbar-bg:       #eeeeee;
+  --sb-border:          #000000;
+  --sb-border-subtle:   #444444;
+  --sb-border-btn:      #000000;
+  --sb-tekst:           #000000;
+  --sb-tekst-subtil:    #222222;
+  --sb-tekst-subtil-2:  #555555;
+  --sb-positiv:         #005500;
+  --sb-negativ:         #b30000;
+  --sb-knapp-bg:        #000000;
+  --sb-knapp-tekst:     #ffffff;
+  --sb-knapp-dis-bg:    #cccccc;
+  --sb-knapp-slett-hover: #7a0000;
+  --sb-bekreft-bg:      #005500;
+  --sb-bekreft-hover:   #003d00;
+  --sb-vann-bg:         rgba(0, 80, 0, 0.9);
+}
+
 [data-theme="light"] {
   --bg: #ffffff;
   --flate: #F6F7FB;

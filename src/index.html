@@ -7,8 +7,8 @@
   <script>
     (function () {
       var tema = localStorage.getItem('tema') || 'dark';
-      if (tema === 'light') {
-        document.documentElement.setAttribute('data-theme', 'light');
+      if (tema === 'light' || tema === 'utendors') {
+        document.documentElement.setAttribute('data-theme', tema);
         document.documentElement.setAttribute('data-bs-theme', 'light');
       }
     })();
@@ -71,16 +71,18 @@
   <script type="module" src="app.ts"></script>
   <script>
     const temaKnapp = document.getElementById('temaKnapp')
+    const TEMAS = ['dark', 'light', 'utendors']
+    const TEMA_LABELS = { dark: 'Lys modus', light: 'Utendørs', utendors: 'Mørk modus' }
     function oppdaterTemaKnapp() {
-      const erMork = document.documentElement.getAttribute('data-theme') !== 'light'
-      temaKnapp.textContent = erMork ? 'Lys modus' : 'Mork modus'
-      temaKnapp.setAttribute('aria-label', erMork ? 'Bytt til lys modus' : 'Bytt til mork modus')
+      const tema = document.documentElement.getAttribute('data-theme') || 'dark'
+      temaKnapp.textContent = TEMA_LABELS[tema] || 'Lys modus'
     }
     temaKnapp.addEventListener('click', function () {
-      const erMork = document.documentElement.getAttribute('data-theme') !== 'light'
-      const nytt = erMork ? 'light' : 'dark'
+      const tema = document.documentElement.getAttribute('data-theme') || 'dark'
+      const idx = TEMAS.indexOf(tema)
+      const nytt = TEMAS[(idx + 1) % TEMAS.length]
       document.documentElement.setAttribute('data-theme', nytt)
-      document.documentElement.setAttribute('data-bs-theme', nytt)
+      document.documentElement.setAttribute('data-bs-theme', nytt === 'dark' ? 'dark' : 'light')
       localStorage.setItem('tema', nytt)
       oppdaterTemaKnapp()
     })
