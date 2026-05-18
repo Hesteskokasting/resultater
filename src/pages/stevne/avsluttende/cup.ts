@@ -163,6 +163,11 @@ async function lastOgVis(container: HTMLElement, stevneid: number): Promise<void
   }))
   const stilling = sorterStilling(stillingInput, innlKampar)
 
+  const stillingOrder = new Map(stilling.map((r, i) => [r.kasterid, i]))
+  const resultatSortert = [...resultatMedNavn].sort((a, b) =>
+    (stillingOrder.get(a.kasterid) ?? Infinity) - (stillingOrder.get(b.kasterid) ?? Infinity)
+  )
+
   const runde1Format = parseRunde1Format(stevne.runde1_format)
   const initNa = runde1Format?.nA ?? null
   const harPrekonfigurertFormat = runde1Format != null && stevne.stevne_fase !== 'avsluttende'
@@ -182,7 +187,7 @@ async function lastOgVis(container: HTMLElement, stevneid: number): Promise<void
       ${harGruppefordeling ? renderHovudinnhald(avslKampar, stilling, startnrMap, isAdmin) : ''}
       ${!harGruppefordeling && stevne.stevne_fase === 'avsluttende'
         ? (isAdmin
-            ? renderGruppefordeling(stilling, { visSpelarliste: true, initNa, initFormat: runde1Format })
+            ? renderGruppefordeling(resultatSortert, { visSpelarliste: true, initNa, initFormat: runde1Format })
             : '<p class="text-muted fst-italic">Gruppefordeling er ikkje klar enno.</p>')
         : ''}
       ${!harGruppefordeling && stevne.stevne_fase !== 'avsluttende' && previewN > 0 && isAdmin
@@ -199,7 +204,7 @@ async function lastOgVis(container: HTMLElement, stevneid: number): Promise<void
     runde1Format,
     alleInnlBekrefta,
     harGruppefordeling,
-    resultatMedNavn,
+    resultatSortert,
     typedGrupper,
     gruppeNavnMap,
     stilling,
