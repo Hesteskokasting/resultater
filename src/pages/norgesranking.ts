@@ -4,7 +4,6 @@ import { createErrorBanner } from '../components/ErrorBanner'
 import { createLoadingState } from '../components/LoadingState'
 import { createEmptyState } from '../components/EmptyState'
 import { createTable } from '../components/Table'
-import { escHtml } from '../utils/escHtml'
 import { logError } from '../utils/logError'
 import { bindExpandableRows } from '../utils/expandableRows'
 import { hentStevnerOgResultater } from '../services/norgesrankingService'
@@ -221,21 +220,19 @@ function createRankingTabell(liste: RankingItem[], sokeTekst: string): HTMLEleme
     rowClass: item => item.erGyldig ? 'nc-singel-rad' : 'nc-singel-rad nc-rad--ugyldig',
     rowAttrs: (_, i) => ({ 'data-idx': String(i) }),
     detailRowClass: 'nc-detalj-rad d-none',
-    detailRow: item => {
-      const detaljer = item.detaljRader.map(r => `
-        <tr>
-          <td>${formaterDato(r._stevne?.dato)}</td>
-          <td>${escHtml(r._stevne?.typeNamn ?? '–')}</td>
-          <td>${escHtml(r._stevne?.namn ?? '–')}</td>
-          <td>${escHtml(r.metodeNamn)}</td>
-          <td>${r.antallRing}</td>
-          <td>${formaterProsent(r.prosent)}</td>
-        </tr>`).join('')
-      const tbl = document.createElement('table')
-      tbl.className = 'detalj-tabell'
-      tbl.innerHTML = `<thead><tr><th>Dato</th><th>Type</th><th>Stevne</th><th>Metode</th><th>Ring</th><th>%Ring</th></tr></thead><tbody>${detaljer}</tbody>`
-      return tbl
-    },
+    detailRow: item => createTable({
+      rows: item.detaljRader,
+      tableClass: 'detalj-tabell',
+      theadClass: '',
+      columns: [
+        { label: 'Dato',   render: r => formaterDato(r._stevne?.dato) },
+        { label: 'Type',   render: r => r._stevne?.typeNamn ?? '–' },
+        { label: 'Stevne', render: r => r._stevne?.namn ?? '–' },
+        { label: 'Metode', render: r => r.metodeNamn },
+        { label: 'Ring',   render: r => String(r.antallRing) },
+        { label: '%Ring',  render: r => formaterProsent(r.prosent) },
+      ],
+    }),
     columns: [
       {
         label: 'Pl.',

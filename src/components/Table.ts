@@ -17,6 +17,7 @@ export interface TableOptions<T> {
   detailRowClass?: string
   tableClass?: string
   theadClass?: string
+  showHeader?: boolean
 }
 
 function applyAttrs(el: HTMLElement, attrs: Record<string, string> | undefined): void {
@@ -34,19 +35,22 @@ export function createTable<T>(opts: TableOptions<T>): HTMLTableElement {
     detailRowClass = 'detalj-rad d-none',
     tableClass = 'app-tabell',
     theadClass = 'app-thead',
+    showHeader = true,
   } = opts
 
   const table = document.createElement('table')
   table.className = tableClass
 
-  const thead = table.createTHead()
-  thead.className = theadClass
-  const headerRow = thead.insertRow()
-  for (const col of columns) {
-    const th = document.createElement('th')
-    th.textContent = col.label
-    if (col.thClass) th.className = col.thClass
-    headerRow.appendChild(th)
+  if (showHeader) {
+    const thead = table.createTHead()
+    thead.className = theadClass
+    const headerRow = thead.insertRow()
+    for (const col of columns) {
+      const th = document.createElement('th')
+      th.textContent = col.label
+      if (col.thClass) th.className = col.thClass
+      headerRow.appendChild(th)
+    }
   }
 
   const tbody = table.createTBody()

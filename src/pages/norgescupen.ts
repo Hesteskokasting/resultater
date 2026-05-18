@@ -1,5 +1,4 @@
 import { kasterNavn } from '../utils/kaster'
-import { escHtml } from '../utils/escHtml'
 import { logError } from '../utils/logError'
 import { bindExpandableRows } from '../utils/expandableRows'
 import { formaterPoeng, byggSingelListe, byggLagListe } from '../utils/norgescup'
@@ -95,6 +94,16 @@ function klasseTabsHtml(valgtKlasse: number, ar: number): string {
     </div>`
 }
 
+function lagPoengCelleInnhald(poeng: number): DocumentFragment {
+  const frag = document.createDocumentFragment()
+  frag.appendChild(document.createTextNode(formaterPoeng(poeng)))
+  const chevron = document.createElement('span')
+  chevron.className = 'nc-chevron'
+  chevron.textContent = ' ▼'
+  frag.appendChild(chevron)
+  return frag
+}
+
 function createSingelTabell(liste: SingelListeRad[]): HTMLElement {
   if (liste.length === 0) return createEmptyState('Ingen resultater funnet.')
 
@@ -103,20 +112,18 @@ function createSingelTabell(liste: SingelListeRad[]): HTMLElement {
     rowClass: 'nc-singel-rad',
     rowAttrs: (_, i) => ({ 'data-idx': String(i) }),
     detailRowClass: 'nc-detalj-rad d-none',
-    detailRow: item => {
-      const detaljer = item.detaljRader.map(r => `
-        <tr>
-          <td>${formaterDato(r._stevne?.dato)}</td>
-          <td>${escHtml(r._stevne?.typeNavn ?? '–')}</td>
-          <td>${escHtml(r._stevne?.navn ?? '–')}</td>
-          <td>${r.plassering ?? '–'}</td>
-          <td>${formaterPoeng(r.nc_poeng)}</td>
-        </tr>`).join('')
-      const tbl = document.createElement('table')
-      tbl.className = 'detalj-tabell'
-      tbl.innerHTML = `<thead><tr><th>Dato</th><th>Type</th><th>Stevne</th><th>Pl.</th><th>Poeng</th></tr></thead><tbody>${detaljer}</tbody>`
-      return tbl
-    },
+    detailRow: item => createTable({
+      rows: item.detaljRader,
+      tableClass: 'detalj-tabell',
+      theadClass: '',
+      columns: [
+        { label: 'Dato',   render: r => formaterDato(r._stevne?.dato) },
+        { label: 'Type',   render: r => r._stevne?.typeNavn ?? '–' },
+        { label: 'Stevne', render: r => r._stevne?.navn ?? '–' },
+        { label: 'Pl.',    render: r => String(r.plassering ?? '–') },
+        { label: 'Poeng',  render: r => formaterPoeng(r.nc_poeng) },
+      ],
+    }),
     columns: [
       {
         label: 'Pl.',
@@ -124,28 +131,14 @@ function createSingelTabell(liste: SingelListeRad[]): HTMLElement {
         cellClass: 'nc-td-pl',
         render: item => String(item.plassering),
       },
-      {
-        label: 'Navn',
-        render: item => item.navn,
-      },
-      {
-        label: 'Klubb',
-        render: item => item.klubb,
-      },
+      { label: 'Navn',  render: item => item.navn },
+      { label: 'Klubb', render: item => item.klubb },
       {
         label: 'Poeng',
         thClass: 'nc-td-poeng',
         cellClass: 'nc-td-poeng nc-poeng-celle',
         cellAttrs: (_, i) => ({ 'data-idx': String(i) }),
-        render: item => {
-          const frag = document.createDocumentFragment()
-          frag.appendChild(document.createTextNode(formaterPoeng(item.totalPoeng)))
-          const chevron = document.createElement('span')
-          chevron.className = 'nc-chevron'
-          chevron.textContent = ' ▼'
-          frag.appendChild(chevron)
-          return frag
-        },
+        render: item => lagPoengCelleInnhald(item.totalPoeng),
       },
     ],
   })
@@ -159,15 +152,15 @@ function createLagTabell(lagListe: LagListeRad[]): HTMLElement {
     rowClass: 'nc-lag-rad',
     rowAttrs: (_, i) => ({ 'data-lag-idx': String(i) }),
     detailRowClass: 'nc-lag-detalj-rad d-none',
-    detailRow: item => {
-      const bidrag = item.bidragsytere.map(b =>
-        `<tr><td>${escHtml(kasterNavn(b.kaster))}</td><td class="nc-td-poeng">${formaterPoeng(b.sum)}</td></tr>`
-      ).join('')
-      const tbl = document.createElement('table')
-      tbl.className = 'detalj-tabell'
-      tbl.innerHTML = `<tbody>${bidrag}</tbody>`
-      return tbl
-    },
+    detailRow: item => createTable({
+      rows: item.bidragsytere,
+      tableClass: 'detalj-tabell',
+      showHeader: false,
+      columns: [
+        { label: '', render: b => kasterNavn(b.kaster) },
+        { label: '', cellClass: 'nc-td-poeng', render: b => formaterPoeng(b.sum) },
+      ],
+    }),
     columns: [
       {
         label: 'Pl.',
@@ -175,24 +168,13 @@ function createLagTabell(lagListe: LagListeRad[]): HTMLElement {
         cellClass: 'nc-td-pl',
         render: item => String(item.plassering),
       },
-      {
-        label: 'Klubb',
-        render: item => item.klubb?.navn ?? '–',
-      },
+      { label: 'Klubb', render: item => item.klubb?.navn ?? '–' },
       {
         label: 'Poeng',
         thClass: 'nc-td-poeng',
         cellClass: 'nc-td-poeng nc-lag-poeng-celle',
         cellAttrs: (_, i) => ({ 'data-lag-idx': String(i) }),
-        render: item => {
-          const frag = document.createDocumentFragment()
-          frag.appendChild(document.createTextNode(formaterPoeng(item.lagTotal)))
-          const chevron = document.createElement('span')
-          chevron.className = 'nc-chevron'
-          chevron.textContent = ' ▼'
-          frag.appendChild(chevron)
-          return frag
-        },
+        render: item => lagPoengCelleInnhald(item.lagTotal),
       },
     ],
   })
