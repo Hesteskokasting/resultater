@@ -238,12 +238,12 @@ export async function hentFiltervalg(): Promise<{ data: Filtervalg; error: unkno
 
 // ── Stevne-side header ────────────────────────────────────────────────────────
 
-export type StevneHeaderRow = Pick<Tables<'stevne'>, 'id' | 'navn' | 'stevne_fase'>
+export type StevneHeaderRow = Pick<Tables<'stevne'>, 'id' | 'navn' | 'stevne_fase' | 'avsluttendekastemetodeid'>
 
 export async function hentStevneHeader(id: number): Promise<{ data: StevneHeaderRow | null; error: unknown }> {
   const { data, error } = await supabase
     .from('stevne')
-    .select('id, navn, stevne_fase')
+    .select('id, navn, stevne_fase, avsluttendekastemetodeid')
     .eq('id', id)
     .single()
   if (error) logError('hentStevneHeader', error)

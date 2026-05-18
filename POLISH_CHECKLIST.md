@@ -362,9 +362,8 @@ _Add notes as you discover things:_
 - [ ] Define a `getStillingOpts(kastemetode: string, fase: 'innledende' | 'avsluttende'): StillingOpts` function
 - [ ] Drive column visibility from kastemetode rather than hardcoded opts at the call site
 - [ ] Consider whether the `as unknown as` cast in `cup.ts:252` (`innlKamparFraStilling`) can be removed at the same time
-- _Note 1: Bug: On stevnestart, klubb for player is not added to table resultat (klubbid)
 - _Note 2: Hide / disable "avsluttende" tab in stevne if avsluttendekastemetodeid is not set
-- _Note 3: Bug: Using the back button in scoreboard is not functioning properly. Consider opening the scoreboard in a new tab and remove the back button
+
 - _Note 4: make sure Scoreboard supports both dark/light mode.
 - _Note 5: High contrast light mode for outdoor sun conditions:
 - _Note 6: Konfigurer @/-aliasar i tsconfig og viteconfig

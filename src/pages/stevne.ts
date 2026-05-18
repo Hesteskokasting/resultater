@@ -53,9 +53,10 @@ const FASE_LABEL: Record<string, string> = {
 
 // ── Hjelpefunksjonar ──────────────────────────────────────────────────────────
 
-function renderNav(stevneid: number, aktiv: string, isAdmin: boolean): string {
+function renderNav(stevneid: number, aktiv: string, isAdmin: boolean, harAvsluttande: boolean): string {
   const items = FANER
     .filter(f => isAdmin || !f.adminOnly)
+    .filter(f => f.nøkkel !== 'avsluttende' || harAvsluttande)
     .map(({ nøkkel, label }) => `
       <li class="nav-item">
         <a class="nav-link${aktiv === nøkkel ? ' active' : ''}"
@@ -85,12 +86,13 @@ export async function render(
     }
 
     const isAdmin = (await erAdmin()) || (await erKlubbadmin())
+    const harAvsluttande = stevne.avsluttendekastemetodeid != null
     const aktiv = (!isAdmin && ADMIN_FANER.has(tab)) ? 'info' : tab as TabNøkkel
     const badge = FASE_LABEL[stevne.stevne_fase ?? 'ikke_startet'] ?? ''
 
     container.innerHTML = `
       <div class="org-shell py-3 px-3">
-        ${renderNav(id, aktiv, isAdmin)}
+        ${renderNav(id, aktiv, isAdmin, harAvsluttande)}
         <div class="org-fase-header d-flex align-items-center gap-2 mb-3">
           <h5 class="mb-0 flex-grow-1">${escHtml(stevne.navn)} <span id="fase-badge">${badge}</span></h5>
           <div id="org-banner-knappar"></div>
