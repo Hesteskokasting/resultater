@@ -71,7 +71,7 @@ src/
 
 - One responsibility per file and per function.
 - `utils/` must remain pure: `grep -r "supabase" src/utils/` → zero results.
-- Pages must be thin (≤200 lines). If a page grows past that, extract a component or service.
+- Pages must be thin (≤300 lines). If a page grows past that, extract a component or service.
 - File names: `camelCase.ts` for utilities/services, `PascalCase.ts` for component factories.
 - No feature subfolders in `services/` — keep it flat.
 
@@ -82,6 +82,7 @@ src/
 ### Queries
 
 - All Supabase queries live in `src/services/<name>Service.ts`. Never import `supabase` directly in pages or components.
+  - Exception: /utils/realtime.ts - Thin supabase-wrapper with no domain.
 - Use **explicit column lists**. `select("*")` is forbidden.
 - Handle all Supabase errors via `logError()` and surface them to the user with `showToast()`.
 - Use `.single()` or `.maybeSingle()` when expecting one row.
