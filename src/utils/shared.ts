@@ -27,6 +27,15 @@ export function formaterTid(tidStr: string | null | undefined): string {
   return tidStr.slice(0, 5)
 }
 
+// ── Tal-formatering ───────────────────────────────────────────────────────────
+
+const prosentFmt = new Intl.NumberFormat('nb-NO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+export function formaterProsent(p: number | null | undefined): string {
+  if (p == null) return '–'
+  return prosentFmt.format(p) + ' %'
+}
+
 // ── Excel-eksport ─────────────────────────────────────────────────────────────
 
 export function lastNedExcel(rader: Record<string, unknown>[], filnavn: string, arknavn = 'Data'): void {

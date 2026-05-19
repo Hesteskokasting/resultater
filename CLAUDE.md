@@ -132,7 +132,7 @@ src/
 
 ## Naming Conventions
 
-- **ALL identifiers must be in English.** Variables, functions, types, interfaces, parameters, CSS class names, object keys. Norwegian is only acceptable in user-facing strings (UI text, HTML, error messages).
+- **ALL identifiers must be in English.** Variables, functions, types, interfaces, parameters, CSS class names, object keys. Norwegian is only acceptable in user-facing strings (UI text, HTML, error messages). Replace existing norwegian identifiers with english when appropriate.
 - Variables and functions: `camelCase`
 - Types and interfaces: `PascalCase`
 - Constants: `UPPER_SNAKE_CASE`
