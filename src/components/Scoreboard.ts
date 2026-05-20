@@ -15,6 +15,7 @@ interface ScoreboardOptions {
   erArrangor?: boolean
   erDeltakar?: boolean
   onBekreft?: ((orderedKasterids?: number[] | null) => Promise<void>) | null
+  onKampBekreft?: () => Promise<void>
   omgangEl?: HTMLElement | null
   p3ks?: KampSpelarIKamp | null
   hcp1?: number
@@ -35,6 +36,7 @@ export async function renderScoreboard(
     erArrangor = false,
     erDeltakar = false,
     onBekreft = null,
+    onKampBekreft,
     omgangEl = null,
     p3ks = null,
     hcp1 = 0,
@@ -42,7 +44,7 @@ export async function renderScoreboard(
   } = options
 
   if (p3ks && kamp.er_tre_spelarar) {
-    return renderScoreboard3(container, kamp, p1ks, p2ks, p3ks, { pointValues, erArrangor, erDeltakar, onBekreft, omgangEl })
+    return renderScoreboard3(container, kamp, p1ks, p2ks, p3ks, { pointValues, erArrangor, erDeltakar, onBekreft, onKampBekreft, omgangEl })
   }
 
   let omgangar: OmgangRad[] = []
@@ -61,7 +63,7 @@ export async function renderScoreboard(
     kamp.id,
     spelarIds,
     async () => { await lastOmgangar(); tegn() },
-    async () => { kamp.er_bekreftet = true; await lastOmgangar(); tegn() },
+    async () => { kamp.er_bekreftet = true; await lastOmgangar(); tegn(); await onKampBekreft?.() },
   )
 
   window.addEventListener('hashchange', () => void avmeldKanal(kanal), { once: true })
@@ -319,9 +321,9 @@ async function renderScoreboard3(
   p1ks: KampSpelarIKamp | null,
   p2ks: KampSpelarIKamp | null,
   p3ks: KampSpelarIKamp,
-  options: Pick<ScoreboardOptions, 'pointValues' | 'erArrangor' | 'erDeltakar' | 'onBekreft' | 'omgangEl'>,
+  options: Pick<ScoreboardOptions, 'pointValues' | 'erArrangor' | 'erDeltakar' | 'onBekreft' | 'onKampBekreft' | 'omgangEl'>,
 ): Promise<void> {
-  const { pointValues, erArrangor = false, erDeltakar = false, onBekreft = null, omgangEl = null } = options
+  const { pointValues, erArrangor = false, erDeltakar = false, onBekreft = null, onKampBekreft, omgangEl = null } = options
   const kanRedigere = erArrangor || (erDeltakar && !kamp.er_bekreftet)
   const spelarar = [p1ks, p2ks, p3ks].filter((s): s is KampSpelarIKamp => s != null)
   const spelarIds = spelarar.map(s => s.id).filter((id): id is number => id != null)
@@ -380,7 +382,7 @@ async function renderScoreboard3(
     kamp.id,
     spelarIds,
     async () => { await lastOmgangar3(); tegn3() },
-    async () => { kamp.er_bekreftet = true; await lastOmgangar3(); tegn3() },
+    async () => { kamp.er_bekreftet = true; await lastOmgangar3(); tegn3(); await onKampBekreft?.() },
   )
 
   window.addEventListener('hashchange', () => void avmeldKanal(kanal3), { once: true })
