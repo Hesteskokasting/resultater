@@ -722,6 +722,17 @@ a.stevne-navn {
 .org-max-480 { max-width: 480px; }
 .org-tab-knappar  { display: none; }
 .org-stilling-kol { width: 400px; flex-shrink: 0; }
+
+@media (min-width: 900px) {
+  .org-stilling-kol {
+    position: sticky;
+    top: 0;
+    max-height: 100vh;
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+  .org-stilling-kol::-webkit-scrollbar { display: none; }
+}
 .org-kampar-panel { min-width: 0; }
 .btn-bekreft      { min-width: 5rem; }
 
