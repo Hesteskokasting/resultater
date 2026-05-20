@@ -3,7 +3,7 @@ export function showNumberpad(
   p2Namn: string,
   s1Init: number,
   s2Init: number,
-  onLagre: (s1: number, s2: number) => void,
+  onLagre: (s1: number, s2: number) => Promise<void>,
 ): void {
   let s1 = s1Init
   let s2 = s2Init
@@ -22,8 +22,13 @@ export function showNumberpad(
     xBtn.addEventListener('click', () => document.body.removeChild(overlay))
     overlay.appendChild(xBtn)
 
-    const lagreBtn = lagEl('button', 'Lagre', 'np-lagre-btn')
-    lagreBtn.addEventListener('click', () => { document.body.removeChild(overlay); onLagre(s1, s2) })
+    const lagreBtn = lagEl('button', 'Lagre', 'np-lagre-btn') as HTMLButtonElement
+    lagreBtn.addEventListener('click', async () => {
+      lagreBtn.disabled = true
+      lagreBtn.textContent = 'Lagrer…'
+      await onLagre(s1, s2)
+      document.body.removeChild(overlay)
+    })
     overlay.appendChild(lagreBtn)
 
     const wrap = lagEl('div', null, 'np-wrap')
