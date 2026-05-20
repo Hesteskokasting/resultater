@@ -26,7 +26,7 @@ import { beregnKampPoeng, hentP1P2, scoreForSp } from '@/utils/kamp'
 import { autoFullforInnledendeKamper } from '@/services/testDataService'
 import {
   byggInnledendeSpelMap, sorterStilling, renderInnledendeKnappar, lagOnEndringHandler,
-  bindStillingDetaljar, renderHovudInnhald, bindTabToggle, renderStillingTabell, beregnKanBekrefte,
+  bindStillingDetaljar, renderHovudInnhald, bindTabToggle, getActiveTab, setActiveTab, renderStillingTabell, beregnKanBekrefte,
   type StillingRad,
 } from '@/organizer/org-shared'
 import { escHtml } from '@/utils/escHtml'
@@ -176,9 +176,10 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
         harAntallKamper: true,
       })
 
+      const activeTab = getActiveTab(container)
       container.innerHTML = renderHovudInnhald(kamperHtml, stillingHtml)
-
       bindTabToggle(container)
+      if (activeTab === 'stilling') setActiveTab(container, 'stilling')
       bindStillingDetaljar(container, 'stilling-innl', stillingExpandedIds)
 
       if (isAdmin) {

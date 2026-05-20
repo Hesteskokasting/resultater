@@ -117,6 +117,23 @@ export function renderHovudInnhald(kamperHtml: string, stillingHtml: string): st
     </div>`
 }
 
+export function getActiveTab(container: HTMLElement): 'kampar' | 'stilling' {
+  return container.querySelector('.org-hovud-innhald')?.classList.contains('org-vis-stilling')
+    ? 'stilling'
+    : 'kampar'
+}
+
+export function setActiveTab(container: HTMLElement, tab: 'kampar' | 'stilling'): void {
+  const wrapper = container.querySelector<HTMLElement>('.org-hovud-innhald')
+  if (!wrapper) return
+  wrapper.classList.toggle('org-vis-stilling', tab === 'stilling')
+  container.querySelectorAll<HTMLButtonElement>('.org-tab-btn').forEach(btn => {
+    const isActive = btn.dataset.tab === tab
+    btn.classList.toggle('btn-primary', isActive)
+    btn.classList.toggle('btn-outline-primary', !isActive)
+  })
+}
+
 export function bindTabToggle(container: HTMLElement): void {
   const wrapper = container.querySelector<HTMLElement>('.org-hovud-innhald')
   if (!wrapper) return

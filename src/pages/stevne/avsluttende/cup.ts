@@ -18,6 +18,8 @@ import {
   bindStillingDetaljar,
   renderHovudInnhald,
   bindTabToggle,
+  getActiveTab,
+  setActiveTab,
   renderStillingTabell,
   beregnKanBekrefte,
   type OrgKamp,
@@ -182,6 +184,7 @@ async function lastOgVis(container: HTMLElement, stevneid: number): Promise<void
     })
   }
 
+  const activeTab = getActiveTab(container)
   container.innerHTML = `
     <div class="px-3 py-2">
       ${harGruppefordeling ? renderHovudinnhald(avslKampar, stilling, startnrMap, isAdmin) : ''}
@@ -214,6 +217,7 @@ async function lastOgVis(container: HTMLElement, stevneid: number): Promise<void
     abonnerPaaEndringar(container, stevneid)
     if (harAvslKampar) bindKampEvents(container, stevneid, avslKampar, resultatMedNavn, isAdmin)
     bindTabToggle(container)
+    if (activeTab === 'stilling') setActiveTab(container, 'stilling')
   }
 }
 

@@ -111,6 +111,13 @@ src/
 
 ---
 
+## Realtime Re-renders
+
+- When re-rendering after a realtime update (`container.innerHTML = ...`), preserve the current tab/view state.
+- Capture the active tab with `getActiveTab(container)` before replacing innerHTML, then restore with `setActiveTab(container, activeTab)` after `bindTabToggle(container)`.
+
+---
+
 ## CSS & Theming
 
 - All CSS lives in `.css` files. **No inline styles** in `.ts` files.
