@@ -7,24 +7,24 @@
   <script>
     (function () {
       var tema = localStorage.getItem('tema') || 'dark';
-      if (tema === 'light') {
-        document.documentElement.setAttribute('data-theme', 'light');
+      if (tema === 'light' || tema === 'utendors') {
+        document.documentElement.setAttribute('data-theme', tema);
         document.documentElement.setAttribute('data-bs-theme', 'light');
       }
     })();
   </script>
-  <script type="module" crossorigin src="/assets/index-Dzfa9eWt.js"></script>
+  <script type="module" crossorigin src="/assets/index-Zbekm5gX.js"></script>
   <link rel="modulepreload" crossorigin href="/assets/charts-BaCXx3P-.js">
   <link rel="modulepreload" crossorigin href="/assets/rolldown-runtime-lhHHWwHU.js">
   <link rel="modulepreload" crossorigin href="/assets/vendor-3yxEHqvy.js">
   <link rel="modulepreload" crossorigin href="/assets/xlsx-C8px7JeE.js">
-  <link rel="stylesheet" crossorigin href="/assets/index-W7zVR_-K.css">
+  <link rel="stylesheet" crossorigin href="/assets/index-DluY0FY8.css">
 </head>
 <body>
 
   <header class="topp-header">
     <span class="header-tittel-gruppe">
-      <span class="header-tittel">NHF Resultater</span><span class="header-versjon">0.5c</span>
+      <span class="header-tittel">NHF Resultater</span><span class="header-versjon">0.7</span>
     </span>
     <div class="header-kontroller">
       <button class="tema-knapp" id="temaKnapp" aria-label="Bytt tema"></button>
@@ -61,10 +61,10 @@
       </li>
       <li><a href="#/dokumenter">Dokumenter</a></li>
       <li class="meny-skillelinje"></li>
-      <li id="meny-logginn-item" style="display:none"><a href="#/logginn">Logg inn</a></li>
-      <li id="meny-minside-item" style="display:none"><a href="#/minside">Min side</a></li>
-      <li id="meny-admin-item"   style="display:none"><a href="#/admin">Admin</a></li>
-      <li id="meny-loggut-item"  style="display:none">
+      <li id="meny-logginn-item" class="d-none"><a href="#/logginn">Logg inn</a></li>
+      <li id="meny-minside-item" class="d-none"><a href="#/minside">Min side</a></li>
+      <li id="meny-admin-item"   class="d-none"><a href="#/admin">Admin</a></li>
+      <li id="meny-loggut-item"  class="d-none">
         <button id="menyLoggUtKnapp" class="btn btn-link p-0 text-start w-100" style="font-size:inherit;color:inherit;">Logg ut</button>
       </li>
     </ul>
@@ -74,16 +74,18 @@
 
   <script>
     const temaKnapp = document.getElementById('temaKnapp')
+    const TEMAS = ['dark', 'light', 'utendors']
+    const TEMA_LABELS = { dark: 'Lys modus', light: 'Utendørs', utendors: 'Mørk modus' }
     function oppdaterTemaKnapp() {
-      const erMork = document.documentElement.getAttribute('data-theme') !== 'light'
-      temaKnapp.textContent = erMork ? 'Lys modus' : 'Mork modus'
-      temaKnapp.setAttribute('aria-label', erMork ? 'Bytt til lys modus' : 'Bytt til mork modus')
+      const tema = document.documentElement.getAttribute('data-theme') || 'dark'
+      temaKnapp.textContent = TEMA_LABELS[tema] || 'Lys modus'
     }
     temaKnapp.addEventListener('click', function () {
-      const erMork = document.documentElement.getAttribute('data-theme') !== 'light'
-      const nytt = erMork ? 'light' : 'dark'
+      const tema = document.documentElement.getAttribute('data-theme') || 'dark'
+      const idx = TEMAS.indexOf(tema)
+      const nytt = TEMAS[(idx + 1) % TEMAS.length]
       document.documentElement.setAttribute('data-theme', nytt)
-      document.documentElement.setAttribute('data-bs-theme', nytt)
+      document.documentElement.setAttribute('data-bs-theme', nytt === 'dark' ? 'dark' : 'light')
       localStorage.setItem('tema', nytt)
       oppdaterTemaKnapp()
     })
