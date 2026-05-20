@@ -25,6 +25,15 @@ Examples:
 
 Do every step separately. First provide a plan for it and make sugestions. Do not proceed coding without my approval. Create a commit text when finished for each step.
 
+FUTURE REFACTORING IDEAS:
+
+1. Share innledende/avsluttende layout container
+- Innledende (innledendeBase.ts) and avsluttende (cup.ts) have identical outer layout: banner, kampar (left) + stilling (right), same tab toggle.
+- The layout helpers are already shared via org-shared.ts (renderHovudInnhald, bindTabToggle, getActiveTab, setActiveTab).
+- The tab-preservation pattern (capture → innerHTML → bindTabToggle → restore) is duplicated in both files.
+- Blocker: cup.ts wraps renderHovudInnhald inside a larger conditional container.innerHTML, so a simple shared setter doesn't fit cleanly without restructuring.
+- When tackling: consider extracting a shared "stevne hovud innhald" wrapper that accepts kamperHtml + stillingHtml as callbacks, handles tab state internally, and is reused by both pages.
+
 NEW BUGS:
 
 1. When changing results by clicking on the result, the match is not set to er_bekreftet = false. Also, setting a match to 0 - 0 needs to reset the score, not set it to 0 -0 (draw)
