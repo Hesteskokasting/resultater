@@ -1,0 +1,1 @@
+- Evaluate deleting er_tre_spelarar in favor of COUNT(kamp_spelar) — separate task.
