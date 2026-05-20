@@ -198,7 +198,7 @@ export async function render(container: HTMLElement, { id }: { id: number }): Pr
     erArrangor,
     erDeltakar,
     onBekreft,
-    onKampBekreft: navigerTilNesteKamp,
+    onKampBekreft: (erArrangor || erDeltakar) ? navigerTilNesteKamp : undefined,
     omgangEl,
     p3ks,
     hcp1,
