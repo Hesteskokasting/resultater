@@ -231,9 +231,13 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
           window.open(`#/kamp/${kamp.id}`, '_blank')
         })
 
-        container.querySelector(`#bekrft-${kamp.id}`)?.addEventListener('click', () =>
-          bekreftKamp(container, stevneid, kamp, startnrMap, hcpMap),
-        )
+        container.querySelector(`#bekrft-${kamp.id}`)?.addEventListener('click', async (e) => {
+          const btn = e.currentTarget as HTMLButtonElement
+          btn.disabled = true
+          btn.textContent = 'Lagrer…'
+          const ok = await bekreftKamp(container, stevneid, kamp, startnrMap, hcpMap)
+          if (!ok) { btn.disabled = false; btn.textContent = 'Bekreft' }
+        })
 
         if (kanEndreKampar && kamp.er_bekreftet) {
           const [p1, p2] = hentP1P2(kamp.spelarar, startnrMap)
@@ -280,7 +284,7 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
     kamp: InnlKampRow,
     startnrMap: Record<number, number>,
     hcpMap: Record<number, number> = {},
-  ): Promise<void> {
+  ): Promise<boolean> {
     const [p1, p2] = hentP1P2(kamp.spelarar, startnrMap)
     const hcp1 = hcpMap[p1?.kasterid ?? -1] ?? 0
     const hcp2 = hcpMap[p2?.kasterid ?? -1] ?? 0
@@ -293,8 +297,9 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
       hcp2,
       erWalkover: kamp.er_walkover,
     })
-    if (error) { showToast('DB-feil ved bekreft', 'error'); return }
+    if (error) { showToast('DB-feil ved bekreft', 'error'); return false }
     await lastOgVis(container, stevneid)
+    return true
   }
 
   return render

@@ -549,11 +549,15 @@ function bindKampEvents(
       window.open(`#/kamp/${kamp.id}`, '_blank')
     })
 
-    container.querySelector(`#bekrft-${kamp.id}`)?.addEventListener('click', () => {
+    container.querySelector(`#bekrft-${kamp.id}`)?.addEventListener('click', async (e) => {
       if (kamp.er_tre_spelarar) {
         opnTreSpelarBekreftDialog(kamp, sp, stevneid, async () => { await _autoGenererFinaleViss(stevneid, kamp); await lastOgVis(container, stevneid) })
       } else {
-        void bekreftCupKamp2Spelar(container, stevneid, kamp, sp)
+        const btn = e.currentTarget as HTMLButtonElement
+        btn.disabled = true
+        btn.textContent = 'Lagrer…'
+        const ok = await bekreftCupKamp2Spelar(container, stevneid, kamp, sp)
+        if (!ok) { btn.disabled = false; btn.textContent = 'Bekreft' }
       }
     })
 
@@ -601,7 +605,7 @@ async function bekreftCupKamp2Spelar(
   stevneid: number,
   kamp: AvslKampRow,
   sp: AvslKampSpelarRow[],
-): Promise<void> {
+): Promise<boolean> {
   const p1 = sp[0]
   const p2 = sp[1]
 
@@ -613,7 +617,7 @@ async function bekreftCupKamp2Spelar(
   const s1 = scoreForSp(ak1 ?? p1)
   const s2 = scoreForSp(ak2 ?? p2)
 
-  if (s1 === 0 && s2 === 0 && !await confirmDialog({ title: 'Ingen score registrert', message: 'Vil du bekrefte kampen likevel?' })) return
+  if (s1 === 0 && s2 === 0 && !await confirmDialog({ title: 'Ingen score registrert', message: 'Vil du bekrefte kampen likevel?' })) return false
 
   const vinnar = s1 >= s2 ? p1 : p2
   const tapar = s1 >= s2 ? p2 : p1
@@ -629,10 +633,11 @@ async function bekreftCupKamp2Spelar(
     eliminertId: tapar?.kasterid ?? null,
     vidareIds,
   })
-  if (error) { showToast('DB-feil ved bekreft', 'error'); return }
+  if (error) { showToast('DB-feil ved bekreft', 'error'); return false }
 
   await _autoGenererFinaleViss(stevneid, kamp)
   await lastOgVis(container, stevneid)
+  return true
 }
 
 // ── Auto-generate finale when all semis in group are confirmed ────────────────
