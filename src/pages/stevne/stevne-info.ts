@@ -41,7 +41,8 @@ export async function render(
 
     if (bannerSlot && ikkjeStarta && isAdmin) {
       bannerSlot.innerHTML = `<button id="start-stevne-btn" class="btn btn-sm btn-success">Start stevne</button>`
-      bannerSlot.querySelector<HTMLButtonElement>('#start-stevne-btn')!.addEventListener('click', async () => {
+      const startBtn = bannerSlot.querySelector<HTMLButtonElement>('#start-stevne-btn')!
+      startBtn.addEventListener('click', async () => {
         if (antall < 2) {
           showToast('Stevnet må ha minst 2 spelarar for å startast.', 'error')
           return
@@ -55,15 +56,21 @@ export async function render(
           const ok = await confirmDialog({ title: 'Ubekrefta spelarar', message: `${ubekrefta} spelar(ar) er ikkje bekrefta. Vil du starte stevnet likevel?` })
           if (!ok) return
         }
+        startBtn.disabled = true
+        startBtn.textContent = 'Starter…'
         try {
           await genererInnledendeKamper(id, metodeNavn, stevne.antall_runder_innl ?? 1)
         } catch (err) {
           showToast('Feil ved kampgenerering: ' + (err instanceof Error ? err.message : String(err)), 'error')
+          startBtn.disabled = false
+          startBtn.textContent = 'Start stevne'
           return
         }
         const { error: faseErr } = await oppdaterStevneFase(id, 'innledende')
         if (faseErr) {
           showToast('Feil ved oppdatering av fase.', 'error')
+          startBtn.disabled = false
+          startBtn.textContent = 'Start stevne'
           return
         }
         location.hash = `#/stevne/${id}/innledende`

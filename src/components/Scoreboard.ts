@@ -177,7 +177,11 @@ export async function renderScoreboard(
     } else if (kanRedigere) {
       const nesteBtn = lagEl('button', 'Neste omgang', 'sb-neste-btn')
       nesteBtn.disabled = !kanNeste
-      nesteBtn.addEventListener('click', nesteOmgang)
+      nesteBtn.addEventListener('click', async () => {
+        nesteBtn.disabled = true
+        nesteBtn.textContent = 'Lagrer…'
+        await nesteOmgang()
+      })
       container.appendChild(nesteBtn)
     }
 

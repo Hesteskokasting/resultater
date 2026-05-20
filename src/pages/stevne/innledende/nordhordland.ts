@@ -20,14 +20,17 @@ const variant: InnledendeVariant = {
       visAlleRundar = !visAlleRundar
       void reload()
     })
-    slot.querySelector('#neste-runde-btn')?.addEventListener('click', async () => {
+    const nesteRundeBtn = slot.querySelector<HTMLButtonElement>('#neste-runde-btn')
+    nesteRundeBtn?.addEventListener('click', async () => {
       if (!erAlleKamperBekreftet) { showToast('Nokre kampar er ikkje bekrefta!', 'error'); return }
+      if (nesteRundeBtn) { nesteRundeBtn.disabled = true; nesteRundeBtn.textContent = 'Genererer…' }
       try {
         await genererNesteSwissRunde(stevneid)
         await reload()
       } catch (e) {
         logError('nordhordland:nesteRunde', e)
         showToast('Feil ved generering av neste runde', 'error')
+        if (nesteRundeBtn) { nesteRundeBtn.disabled = false; nesteRundeBtn.textContent = 'Generer neste runde' }
       }
     })
   },

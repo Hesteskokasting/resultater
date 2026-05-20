@@ -71,7 +71,9 @@ export function opnGenererRundeDialog(
     modal.querySelector('#avbryt-gen-btn')!.addEventListener('click', () => modal.remove())
     modal.querySelector('#bekreft-gen-btn')!.addEventListener('click', async () => {
       const medSeedingVal = modal.querySelector<HTMLInputElement>('#seeding-dlg')!.checked
-      modal.remove()
+      const btn = modal.querySelector<HTMLButtonElement>('#bekreft-gen-btn')!
+      btn.disabled = true
+      btn.textContent = 'Lagrer…'
       try {
         if (runde === 1) {
           const spelarar = aktive.map((r, i) => ({ kasterid: r.kasterid, plassering: i + 1 }))
@@ -88,10 +90,13 @@ export function opnGenererRundeDialog(
         } else {
           await genererNesteCupRundeForGruppe(stevneid, gruppeNavn, medSeedingVal)
         }
+        modal.remove()
         await reload()
       } catch (e) {
         logError('cup:genererRunde', e)
         showToast('Feil ved generering av runde', 'error')
+        btn.disabled = false
+        btn.textContent = 'Bekreft og opprett kampar'
       }
     })
   }
