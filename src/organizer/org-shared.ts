@@ -190,11 +190,11 @@ export function renderStillingTabell(
       const hcp = r.hcp ?? 0
       const hcpCelle = harHcp
         ? (isAdmin
-          ? `<td class="text-center stilling-hcp-celle" data-kasterid="${r.kasterid}" data-stevneid="${stevneid}">${hcp > 0 ? hcp : '—'}</td>`
-          : `<td class="text-center">${hcp > 0 ? hcp : '—'}</td>`)
+          ? `<td class="stilling-tal stilling-hcp-celle" data-kasterid="${r.kasterid}" data-stevneid="${stevneid}">${hcp > 0 ? hcp : '—'}</td>`
+          : `<td class="stilling-tal">${hcp > 0 ? hcp : '—'}</td>`)
         : ''
       const antallCelle = harAntallKamper
-        ? `<td class="text-center">${r.antall_kamper ?? 0}</td>`
+        ? `<td class="stilling-tal">${r.antall_kamper ?? 0}</td>`
         : ''
       return `
         <tr data-kasterid="${r.kasterid}" class="stilling-spelar-rad">
@@ -202,8 +202,8 @@ export function renderStillingTabell(
           <td>${r.startnummer ?? ''}</td>
           <td>${escHtml(r.navn ?? `Spelar ${r.kasterid}`)}</td>
           ${antallCelle}
-          <td class="text-center">${r.kamp_poeng ?? 0}</td>
-          <td class="text-center">${r.score_poeng ?? 0}</td>
+          <td class="stilling-tal">${r.kamp_poeng ?? 0}</td>
+          <td class="stilling-tal">${r.score_poeng ?? 0}</td>
           ${hcpCelle}
         </tr>
         <tr class="stilling-detalj" data-kasterid="${r.kasterid}" hidden>
@@ -226,16 +226,16 @@ export function renderStillingTabell(
   return `
     <div>
       <h6 class="text-center fw-bold mb-1">${tittel}</h6>
-      <table id="${tableId}" class="table table-bordered table-sm mb-0 bg-white">
+      <table id="${tableId}" class="table table-sm kamp-tabell mb-0">
         <thead class="org-thead">
           <tr>
             <th class="${thW}">#</th>
             <th class="${thW}">S</th>
             <th>NAMN</th>
-            ${harAntallKamper ? '<th class="th-50 text-center">ANT.</th>' : ''}
-            <th class="th-44 text-center">KP</th>
-            <th class="th-44 text-center">SP</th>
-            ${harHcp ? '<th class="th-44 text-center">HCP</th>' : ''}
+            ${harAntallKamper ? '<th class="th-50 stilling-tal">ANT.</th>' : ''}
+            <th class="th-44 stilling-tal">KP</th>
+            <th class="th-44 stilling-tal">SP</th>
+            ${harHcp ? '<th class="th-44 stilling-tal">HCP</th>' : ''}
           </tr>
         </thead>
         <tbody>${rows}</tbody>

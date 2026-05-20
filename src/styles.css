@@ -755,6 +755,206 @@ a.stevne-navn {
 .stilling-detalj-tabell { font-size: 0.85em; }
 .stilling-detalj > td { border-top: 2px solid var(--primaer) !important; border-bottom: 2px solid var(--primaer) !important; }
 
+/* ── Kampliste - felles ─────────────────────────────────────────────────────── */
+
+/* Responsive show/hide */
+@media (max-width: 767px) {
+  .kamp-tabell--desktop { display: none !important; }
+}
+@media (min-width: 768px) {
+  .kamp-liste-mobil { display: none !important; }
+}
+
+/* Table shared styles (match table + stilling table) */
+.kamp-tabell {
+  border-collapse: collapse;
+  width: 100%;
+  background: var(--flate);
+}
+.kamp-tabell td,
+.kamp-tabell th {
+  border: none;
+  border-bottom: 0.5px solid var(--kant);
+  background: var(--flate);
+}
+.kamp-tabell tbody tr:last-child td { border-bottom: none; }
+
+.org-thead th {
+  background: var(--flate-2) !important;
+  color: var(--tekst-3);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-bottom: 1px solid var(--kant) !important;
+}
+
+/* Status stripe on desktop table rows */
+.kamp-rad-desktop > td:first-child {
+  border-left: 3px solid var(--kamp-stripe-ikke);
+  padding-left: 9px;
+}
+.kamp-rad-desktop[data-status="pagaar"] > td:first-child   { border-left-color: var(--kamp-stripe-pagaar); }
+.kamp-rad-desktop[data-status="ferdig"] > td:first-child   { border-left-color: var(--kamp-stripe-ferdig); }
+
+/* Status legend */
+.kamp-legend {
+  display: flex;
+  gap: 14px;
+  font-size: 11px;
+  color: var(--tekst-3);
+  margin-top: 8px;
+  padding-left: 2px;
+}
+.kamp-legend__item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.kamp-legend__stripe {
+  width: 12px;
+  height: 3px;
+  border-radius: 1px;
+  flex-shrink: 0;
+}
+.kamp-legend__stripe--ikke   { background: var(--kamp-stripe-ikke); }
+.kamp-legend__stripe--pagaar { background: var(--kamp-stripe-pagaar); }
+.kamp-legend__stripe--ferdig { background: var(--kamp-stripe-ferdig); }
+
+/* ── Desktop buttons ── */
+
+.kamp-knapp {
+  background: transparent;
+  border: 0.5px solid var(--kant-2);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  color: var(--tekst);
+  cursor: pointer;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+.kamp-knapp + .kamp-knapp { margin-left: 4px; }
+.kamp-knapp:disabled { opacity: 0.4; cursor: not-allowed; }
+.kamp-knapp-primaer {
+  background: var(--primaer);
+  color: var(--primaer-text);
+  border-color: transparent;
+}
+.kamp-knapp-suksess {
+  background: #4caf50;
+  color: #fff;
+  border-color: transparent;
+}
+.kamp-bekreftet-indikator {
+  color: var(--kamp-stripe-ferdig);
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* ── Kampliste - mobil ── */
+
+.kamp-liste-mobil {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border: 1px solid var(--kant);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.kamp-rad-mobil {
+  position: relative;
+  border-bottom: 0.5px solid var(--kant);
+}
+.kamp-rad-mobil:last-child { border-bottom: none; }
+
+/* Status stripe via pseudo-element */
+.kamp-rad-mobil::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--kamp-stripe-ikke);
+}
+.kamp-rad-mobil[data-status="pagaar"]::before { background: var(--kamp-stripe-pagaar); }
+.kamp-rad-mobil[data-status="ferdig"]::before { background: var(--kamp-stripe-ferdig); }
+
+.kamp-rad-mobil__hoved {
+  display: grid;
+  grid-template-columns: 24px 1fr auto;
+  gap: 10px;
+  padding: 12px 12px 12px 15px;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.kamp-rad-mobil--viewer .kamp-rad-mobil__hoved { cursor: pointer; }
+
+.kamp-mobil-bane {
+  font-size: 13px;
+  color: var(--tekst-3);
+  text-align: center;
+}
+.kamp-mobil-namn {
+  font-size: 16px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  color: var(--tekst);
+}
+.kamp-mobil-resultat {
+  font-size: 19px;
+  font-weight: 500;
+  color: var(--tekst);
+  white-space: nowrap;
+}
+
+/* Admin expandable buttons */
+.kamp-mobil-knapper {
+  display: none;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 6px;
+  padding: 8px 12px 12px;
+  border-top: 0.5px solid var(--kant);
+}
+.kamp-rad-mobil[data-expanded="true"] .kamp-mobil-knapper { display: grid; }
+
+.kamp-knapp-mobil {
+  background: transparent;
+  border: 0.5px solid var(--kant-2);
+  padding: 8px 4px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  color: var(--tekst);
+  cursor: pointer;
+  text-align: center;
+  white-space: nowrap;
+}
+.kamp-knapp-mobil:disabled { opacity: 0.4; cursor: not-allowed; }
+.kamp-knapp-bekreft-mobil {
+  border-color: var(--kamp-stripe-ferdig);
+  color: var(--kamp-stripe-ferdig);
+}
+.kamp-bekreftet-mobil {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  color: var(--kamp-stripe-ferdig);
+  font-weight: 500;
+}
+
+/* Stilling table — tabular numbers */
+.stilling-tal {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
 /* ── Deltakere-side ── */
 
 .deltaker-tabell-wrapper { height: 500px; overflow: auto; }

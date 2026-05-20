@@ -166,7 +166,7 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
       }
 
       const rundarSomVisast = (variant.filterRundar ?? (m => m))(rundeMap)
-      const kamperHtml = [...rundarSomVisast.entries()].map(([nr, rKamper]) => renderRunde(nr, rKamper, startnrMap, kanEndreKampar, hcpMap)).join('')
+      const kamperHtml = [...rundarSomVisast.entries()].map(([nr, rKamper]) => renderRunde(nr, rKamper, startnrMap, kanEndreKampar, hcpMap)).join('') + renderKampLegend()
       const harHcp = isAdmin || stilling.some(s => (s.hcp ?? 0) > 0)
       const stillingHtml = renderStillingTabell(stilling, alleKamper, startnrMap, {
         tableId: 'stilling-innl',
@@ -202,7 +202,8 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
       }
 
       for (const kamp of alleKamper) {
-        container.querySelector(`#plus-${kamp.id}`)?.addEventListener('click', async () => {
+        // ── Plus button handler (shared by desktop #plus-* and mobile #m-plus-*) ──
+        const onPlusKlikk = async () => {
           const [p1, p2] = hentP1P2(kamp.spelarar, startnrMap)
           const spelarIds = [p1?.id, p2?.id].filter((id): id is number => id != null)
           const harOmgangar = spelarIds.length ? await harKampOmgangar(spelarIds) : false
@@ -226,7 +227,9 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
             }
             await lastOgVis(container, stevneid)
           })
-        })
+        }
+
+        container.querySelector(`#plus-${kamp.id}`)?.addEventListener('click', onPlusKlikk)
 
         container.querySelector(`#scoreboard-${kamp.id}`)?.addEventListener('click', () => {
           window.open(`#/kamp/${kamp.id}`, '_blank')
@@ -261,6 +264,48 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
             })
           }
           container.querySelectorAll(`[data-endre-score="${kamp.id}"]`).forEach(celle => celle.addEventListener('click', handler))
+        }
+
+        // ── Mobile row interaction ─────────────────────────────────────────────
+        const mobilRad = container.querySelector<HTMLElement>(`.kamp-rad-mobil[data-kamp-id="${kamp.id}"]`)
+        if (mobilRad) {
+          if (isAdmin) {
+            mobilRad.querySelector('.kamp-rad-mobil__hoved')?.addEventListener('click', () => {
+              const expanded = mobilRad.dataset.expanded === 'true'
+              container.querySelectorAll<HTMLElement>('.kamp-rad-mobil[data-expanded="true"]').forEach(r => {
+                r.dataset.expanded = 'false'
+                r.setAttribute('aria-expanded', 'false')
+              })
+              mobilRad.dataset.expanded = expanded ? 'false' : 'true'
+              mobilRad.setAttribute('aria-expanded', String(!expanded))
+            })
+
+            // Mobile plus
+            container.querySelector(`#m-plus-${kamp.id}`)?.addEventListener('click', (e) => {
+              e.stopPropagation()
+              void onPlusKlikk()
+            })
+
+            // Mobile scoreboard
+            container.querySelector(`#m-scoreboard-${kamp.id}`)?.addEventListener('click', (e) => {
+              e.stopPropagation()
+              window.open(`#/kamp/${kamp.id}`, '_blank')
+            })
+
+            // Mobile bekreft
+            container.querySelector(`#m-bekrft-${kamp.id}`)?.addEventListener('click', async (e) => {
+              e.stopPropagation()
+              const btn = e.currentTarget as HTMLButtonElement
+              btn.disabled = true
+              btn.textContent = 'Lagrer…'
+              const ok = await bekreftKamp(container, stevneid, kamp, startnrMap, hcpMap)
+              if (!ok) { btn.disabled = false; btn.textContent = 'Bekreft' }
+            })
+          } else {
+            mobilRad.addEventListener('click', () => {
+              window.open(`#/kamp/${kamp.id}`, '_blank')
+            })
+          }
         }
       }
 
@@ -308,6 +353,23 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
 
 // ── Shared rendering (pure — no closure state) ────────────────────────────────
 
+type KampStatus = 'ferdig' | 'pagaar' | 'ikke-startet'
+
+function resolveKampStatus(kamp: InnlKampRow, harPoeng: boolean, harOmgangar: boolean): KampStatus {
+  if (kamp.er_bekreftet) return 'ferdig'
+  if (harOmgangar || harPoeng) return 'pagaar'
+  return 'ikke-startet'
+}
+
+function renderKampLegend(): string {
+  return `
+    <div class="kamp-legend">
+      <div class="kamp-legend__item"><div class="kamp-legend__stripe kamp-legend__stripe--ikke"></div> Ikke startet</div>
+      <div class="kamp-legend__item"><div class="kamp-legend__stripe kamp-legend__stripe--pagaar"></div> Pågår</div>
+      <div class="kamp-legend__item"><div class="kamp-legend__stripe kamp-legend__stripe--ferdig"></div> Ferdig</div>
+    </div>`
+}
+
 function renderRunde(
   nr: number,
   kamper: InnlKampRow[],
@@ -315,10 +377,13 @@ function renderRunde(
   admin: boolean,
   hcpMap: Record<number, number> = {},
 ): string {
+  const desktopRader = kamper.map(k => kampRad(k, startnrMap, admin, hcpMap)).join('')
+  const mobilRader  = kamper.map(k => kampRadMobil(k, startnrMap, admin, hcpMap)).join('')
+
   return `
     <div class="mb-3">
       <h6 class="text-center fw-bold mb-1">Runde ${nr}</h6>
-      <table class="table table-bordered table-sm mb-0 bg-white">
+      <table class="table table-sm kamp-tabell mb-0 kamp-tabell--desktop">
         <thead class="org-thead">
           <tr>
             <th class="th-36 text-center">B</th>
@@ -326,13 +391,12 @@ function renderRunde(
             <th class="th-48 text-center">S1</th>
             <th class="th-48 text-center">S2</th>
             <th>P2</th>
-            ${admin ? '<th class="th-148"></th>' : '<th class="th-48"></th>'}
+            ${admin ? '<th class="th-148"></th>' : '<th class="th-80"></th>'}
           </tr>
         </thead>
-        <tbody>
-          ${kamper.map(k => kampRad(k, startnrMap, admin, hcpMap)).join('')}
-        </tbody>
+        <tbody>${desktopRader}</tbody>
       </table>
+      <ul class="kamp-liste-mobil list-unstyled mb-0">${mobilRader}</ul>
     </div>`
 }
 
@@ -368,28 +432,101 @@ function kampRad(
   const erUbekreftaWalkover = kamp.er_walkover && !kamp.er_bekreftet
   const s1 = erUbekreftaWalkover ? 21 : s1Raw
   const s2 = erUbekreftaWalkover ? 0 : s2Raw
-
   const harPoeng = kamp.er_bekreftet || kamp.er_walkover || harOmgangar || s1Raw > 0 || s2Raw > 0
 
+  const status = resolveKampStatus(kamp, harPoeng, harOmgangar)
   const sp = [p1, p2].filter((s): s is InnlKampSpelarRow => s != null)
   const kanBekrefte = beregnKanBekrefte(kamp, sp, harOmgangar, hcpMap)
-  const bekrfKlass = kamp.er_bekreftet ? 'btn-secondary' : (kanBekrefte ? 'btn-success' : 'btn-outline-secondary')
-  const bekrfTekst = kamp.er_bekreftet ? 'Bekreftet' : 'Bekreft'
-  const bekrfDisabled = kamp.er_bekreftet || !kanBekrefte ? ' disabled' : ''
-  const scoreboardDisabled = kamp.er_bekreftet && !harOmgangar ? ' disabled' : ''
   const kanEndreScore = admin && kamp.er_bekreftet && !kamp.er_walkover && !harOmgangar
   const scoreEndrAttr = kanEndreScore ? ` data-endre-score="${kamp.id}" class="text-center score-redigerbar"` : ' class="text-center"'
+
+  let knapperTd: string
+  if (kamp.er_bekreftet) {
+    knapperTd = `<td class="text-end pe-2"><span class="kamp-bekreftet-indikator">✓ Bekreftet</span></td>`
+  } else if (admin) {
+    const plusPrimaer  = status === 'ikke-startet'
+    const scorePrimaer = harOmgangar
+    const bekrftPrimaer = kanBekrefte
+    const plusKl  = `kamp-knapp${plusPrimaer  ? ' kamp-knapp-primaer' : ''}`
+    const scoreKl = `kamp-knapp${scorePrimaer ? ' kamp-knapp-primaer' : ''}`
+    const bekrftKl = `kamp-knapp${bekrftPrimaer ? ' kamp-knapp-suksess' : ''}`
+    knapperTd = `<td class="text-end pe-2 text-nowrap">
+        <button class="${plusKl}" id="plus-${kamp.id}">+</button>
+        <button class="${scoreKl}" id="scoreboard-${kamp.id}" title="Scoreboard">Score</button>
+        <button class="${bekrftKl}" id="bekrft-${kamp.id}"${!kanBekrefte ? ' disabled' : ''}>Bekreft</button>
+      </td>`
+  } else {
+    knapperTd = `<td class="text-end pe-2">
+        <button class="kamp-knapp" id="scoreboard-${kamp.id}" title="Scoreboard">Score</button>
+      </td>`
+  }
+
   return `
-    <tr>
+    <tr class="kamp-rad-desktop" data-status="${status}">
       <td class="text-center">${kamp.bane_nummer ?? ''}</td>
       <td>${p1Vis}</td>
-      <td${scoreEndrAttr}>${harPoeng ? s1 : ''}</td>
-      <td${scoreEndrAttr}>${harPoeng ? s2 : ''}</td>
+      <td${scoreEndrAttr}>${harPoeng ? s1 : '—'}</td>
+      <td${scoreEndrAttr}>${harPoeng ? s2 : '—'}</td>
       <td>${p2Vis}</td>
-      <td class="text-end pe-2 text-nowrap">
-        ${admin ? `<button class="btn btn-primary btn-sm" id="plus-${kamp.id}"${kamp.er_bekreftet ? ' disabled' : ''}>+</button>` : ''}
-        <button class="btn btn-secondary btn-sm" id="scoreboard-${kamp.id}" data-bane="${kamp.bane_nummer ?? ''}" title="Scoreboard"${scoreboardDisabled}>S</button>
-        ${admin ? `<button class="btn ${bekrfKlass} btn-sm btn-bekreft" id="bekrft-${kamp.id}"${bekrfDisabled}>${bekrfTekst}</button>` : ''}
-      </td>
+      ${knapperTd}
     </tr>`
+}
+
+function kampRadMobil(
+  kamp: InnlKampRow,
+  startnrMap: Record<number, number>,
+  admin: boolean,
+  hcpMap: Record<number, number> = {},
+): string {
+  const [p1, p2] = hentP1P2(kamp.spelarar, startnrMap)
+
+  const p1NavnKort = p1?.kaster
+    ? `${escHtml(p1.kaster.fornavn)} ${escHtml(p1.kaster.etternavn.charAt(0))}.`
+    : '—'
+  const p2ErBye = kamp.er_walkover && !p2?.kaster
+  const p2NavnKort = p2ErBye
+    ? 'Walkover'
+    : (p2?.kaster ? `${escHtml(p2.kaster.fornavn)} ${escHtml(p2.kaster.etternavn.charAt(0))}.` : '—')
+
+  const harOmg1 = (p1?.omgangar?.length ?? 0) > 0
+  const harOmg2 = (p2?.omgangar?.length ?? 0) > 0
+  const harOmgangar = harOmg1 || harOmg2
+  const hcp1 = hcpMap[p1?.kasterid ?? -1] ?? 0
+  const hcp2 = hcpMap[p2?.kasterid ?? -1] ?? 0
+
+  const s1Raw = kamp.er_bekreftet ? (p1?.score_poeng ?? 0) : (scoreForSp(p1) + (harOmg1 ? hcp1 : 0))
+  const s2Raw = kamp.er_bekreftet ? (p2?.score_poeng ?? 0) : (scoreForSp(p2) + (harOmg2 ? hcp2 : 0))
+  const erUbekreftaWalkover = kamp.er_walkover && !kamp.er_bekreftet
+  const s1 = erUbekreftaWalkover ? 21 : s1Raw
+  const s2 = erUbekreftaWalkover ? 0 : s2Raw
+  const harPoeng = kamp.er_bekreftet || kamp.er_walkover || harOmgangar || s1Raw > 0 || s2Raw > 0
+
+  const status = resolveKampStatus(kamp, harPoeng, harOmgangar)
+  const resultatTekst = harPoeng ? `${s1}–${s2}` : '—'
+
+  let knapperHtml = ''
+  if (admin) {
+    const sp = [p1, p2].filter((s): s is InnlKampSpelarRow => s != null)
+    const kanBekrefte = beregnKanBekrefte(kamp, sp, harOmgangar, hcpMap)
+    const bekrftCell = kamp.er_bekreftet
+      ? `<span class="kamp-bekreftet-mobil">✓ Bekreftet</span>`
+      : `<button class="kamp-knapp-mobil kamp-knapp-bekreft-mobil" id="m-bekrft-${kamp.id}"${!kanBekrefte ? ' disabled' : ''}>Bekreft</button>`
+    knapperHtml = `
+      <div class="kamp-mobil-knapper">
+        <button class="kamp-knapp-mobil" id="m-plus-${kamp.id}"${kamp.er_bekreftet ? ' disabled' : ''}>+ Resultat</button>
+        <button class="kamp-knapp-mobil" id="m-scoreboard-${kamp.id}">Score</button>
+        ${bekrftCell}
+      </div>`
+  }
+
+  const rolleKlass = admin ? '' : ' kamp-rad-mobil--viewer'
+  return `
+    <li class="kamp-rad-mobil${rolleKlass}" data-kamp-id="${kamp.id}" data-status="${status}" role="button" tabindex="0">
+      <div class="kamp-rad-mobil__hoved">
+        <span class="kamp-mobil-bane">${kamp.bane_nummer ?? ''}</span>
+        <span class="kamp-mobil-namn">${p1NavnKort} vs ${p2NavnKort}</span>
+        <span class="kamp-mobil-resultat">${resultatTekst}</span>
+      </div>
+      ${knapperHtml}
+    </li>`
 }
