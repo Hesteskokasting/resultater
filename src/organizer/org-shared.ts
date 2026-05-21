@@ -428,6 +428,34 @@ export function byggInnledendeSpelMap(
   return { spelMap, ekteKasterids }
 }
 
+export function buildAvsluttendeStilling(
+  innlKampar: OrgKamp[],
+  resultat: Array<{
+    kasterid: number
+    startnummer: number | null
+    plassering: number | null
+    runde_eliminert: number | null
+    gruppe: { navn: string } | null
+  }>,
+  navnMap: Record<number, string>,
+  startnrMap: Record<number, number>,
+): StillingRad[] {
+  const { spelMap } = byggInnledendeSpelMap(innlKampar, startnrMap)
+  return sorterStilling(
+    resultat.map(r => ({
+      kasterid: r.kasterid,
+      navn: navnMap[r.kasterid] ?? `Spelar ${r.kasterid}`,
+      startnummer: r.startnummer,
+      plassering: r.plassering,
+      runde_eliminert: r.runde_eliminert,
+      kamp_poeng: spelMap[r.kasterid]?.kamp_poeng ?? 0,
+      score_poeng: spelMap[r.kasterid]?.score_poeng ?? 0,
+      gruppe: r.gruppe,
+    })),
+    innlKampar,
+  )
+}
+
 export function sorterStilling(stilling: StillingRad[], kamper: KampForSortering[]): StillingRad[] {
   const bekrefta = kamper.filter(k => k.er_bekreftet)
 
