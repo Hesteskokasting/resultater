@@ -241,8 +241,13 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
           const btn = e.currentTarget as HTMLButtonElement
           btn.disabled = true
           btn.textContent = 'Lagrer…'
-          const ok = await bekreftKamp(container, stevneid, kamp, startnrMap, hcpMap)
-          if (!ok) { btn.disabled = false; btn.textContent = 'Bekreft' }
+          try {
+            const ok = await bekreftKamp(container, stevneid, kamp, startnrMap, hcpMap)
+            if (!ok) { btn.disabled = false; btn.textContent = 'Bekreft' }
+          } catch {
+            btn.disabled = false
+            btn.textContent = 'Bekreft'
+          }
         })
 
         if (kanEndreKampar && kamp.er_bekreftet) {

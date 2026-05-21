@@ -395,8 +395,13 @@ function bindKampEvents(
         const btn = e.currentTarget as HTMLButtonElement
         btn.disabled = true
         btn.textContent = 'Lagrer…'
-        const ok = await bekreftCupKamp2Spelar(stevneid, kamp, sp, reload)
-        if (!ok) { btn.disabled = false; btn.textContent = 'Bekreft' }
+        try {
+          const ok = await bekreftCupKamp2Spelar(stevneid, kamp, sp, reload)
+          if (!ok) { btn.disabled = false; btn.textContent = 'Bekreft' }
+        } catch {
+          btn.disabled = false
+          btn.textContent = 'Bekreft'
+        }
       }
     })
 

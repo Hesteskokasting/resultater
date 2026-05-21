@@ -111,9 +111,17 @@ export async function oppdaterKampSpelarScoreRask(
   const update = kampPoeng !== undefined
     ? { score_poeng: scorePoeng, kamp_poeng: kampPoeng }
     : { score_poeng: scorePoeng }
-  const { error } = await supabase.from('kamp_spelar').update(update).eq('id', id)
-  if (error) logError('oppdaterKampSpelarScoreRask', error)
-  return { error }
+  try {
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Request timed out')), LAGRE_TIMEOUT_MS),
+    )
+    const { error } = await Promise.race([supabase.from('kamp_spelar').update(update).eq('id', id), timeout])
+    if (error) logError('oppdaterKampSpelarScoreRask', error)
+    return { error }
+  } catch (e) {
+    logError('oppdaterKampSpelarScoreRask', e)
+    return { error: e }
+  }
 }
 
 // ── Scoreboard read ───────────────────────────────────────────────────────────
