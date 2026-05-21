@@ -1,6 +1,3 @@
-// Denne fila er auto-generert av Supabase CLI. Ikkje rediger manuelt.
-// Oppdater med: npx supabase gen types typescript --project-id urtvpewjlevhlevtnvkf > src/types/database.types.ts
-
 export type Json =
   | string
   | number
@@ -787,8 +784,8 @@ export type Database = {
       }
     }
     Functions: {
-      _sync_innl_poeng: {
-        Args: { p_kasterid: number; p_stevneid: number }
+      bekreft_avsluttende_kamp_deltakar: {
+        Args: { p_eliminert_kasterid?: number; p_kamp_id: number }
         Returns: undefined
       }
       hent_bruker_epost: {

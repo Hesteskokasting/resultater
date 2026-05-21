@@ -171,9 +171,6 @@ export async function render(container: HTMLElement, { id }: { id: number }): Pr
     if (kamp.fase === 'avsluttende') {
       const { error } = await bekreftAvsluttendeKamp({
         kampId,
-        stevneId: kamp.stevneid,
-        rundeNavn: kamp.runde_navn,
-        rundeNummer: kamp.runde_nummer,
         ...bekreftData,
         orderedKasterids: orderedKasterids ?? null,
       })

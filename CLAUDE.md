@@ -88,12 +88,26 @@ src/
 - Use `.single()` or `.maybeSingle()` when expecting one row.
 - Wrap all `Promise.all()` calls in `try/catch` with `logError()`.
 
+### Migrations
+
+- **Every schema change needs a local migration file** in `supabase/migrations/<timestamp>_<name>.sql`. Always write the file first, then apply it (via MCP or CLI). Never apply a change without the corresponding local file.
+- Timestamp format: `YYYYMMDDHHMMSS` (e.g. `20260521130000_rpc_bekreft_avsluttende_kamp.sql`).
+- Never use the Supabase dashboard to make schema changes — it bypasses migration history.
+
+### Generated types
+
+- **NEVER edit `src/types/database.types.ts` manually.** It is auto-generated and any manual change will be overwritten.
+- After every migration, regenerate with:
+  ```
+  npx supabase gen types typescript --project-id urtvpewjlevhlevtnvkf > src/types/database.types.ts
+  ```
+- The CLI may append an update notice or plugin hint to stdout — strip any non-TypeScript lines from the end of the file before saving.
+
 ### Data integrity
 
 - Constraints belong in the database: `not null`, `unique`, `check`. Don't enforce schema rules in TypeScript alone.
 - Multi-step atomic writes go in a Postgres function (`rpc`), not sequential client queries.
 - Foreign key `on delete` behavior must be chosen explicitly (`restrict`, `cascade`, `set null`).
-- Write a migration for every schema change. Never use the dashboard for production data.
 
 ### Performance
 

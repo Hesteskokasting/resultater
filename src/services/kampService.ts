@@ -305,23 +305,11 @@ export async function bekreftInnledendeKamp(params: {
 
 export async function bekreftAvsluttendeKamp(params: {
   kampId: number
-  stevneId: number
-  rundeNavn: string | null
-  rundeNummer: number
   p1: KampSpelarBekreftData | null
   p2: KampSpelarBekreftData | null
   orderedKasterids: number[] | null  // 3-player: [1st, 2nd, 3rd] kasterids
 }): Promise<{ error: unknown }> {
-  const { kampId, stevneId, rundeNavn, rundeNummer, p1, p2, orderedKasterids } = params
-
-  const { error: kampErr } = await supabase
-    .from('kamp')
-    .update({ er_bekreftet: true })
-    .eq('id', kampId)
-  if (kampErr) {
-    logError('bekreftAvsluttendeKamp:kamp', kampErr)
-    return { error: kampErr }
-  }
+  const { kampId, p1, p2, orderedKasterids } = params
 
   let eliminertId: number | null = null
   if (orderedKasterids?.length === 3) {
@@ -344,19 +332,12 @@ export async function bekreftAvsluttendeKamp(params: {
     eliminertId = t1 >= t2 ? (p2?.kasterid ?? null) : (p1?.kasterid ?? null)
   }
 
-  if (eliminertId == null) return { error: null }
-
-  const { error: elimErr } = await supabase
-    .from('resultat')
-    .update({ runde_eliminert: rundeNummer })
-    .eq('stevneid', stevneId)
-    .eq('kasterid', eliminertId)
-  if (elimErr) {
-    logError('bekreftAvsluttendeKamp:eliminert', elimErr)
-    return { error: elimErr }
-  }
-
-  return { error: null }
+  const { error } = await supabase.rpc('bekreft_avsluttende_kamp_deltakar', {
+    p_kamp_id: kampId,
+    p_eliminert_kasterid: eliminertId ?? undefined,
+  })
+  if (error) logError('bekreftAvsluttendeKamp', error)
+  return { error }
 }
 
 // ── Avsluttande fase ──────────────────────────────────────────────────────────
