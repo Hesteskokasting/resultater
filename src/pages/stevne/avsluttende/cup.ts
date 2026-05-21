@@ -81,7 +81,11 @@ const cupVariant: AvsluttendeVariant = {
     }
 
     if (pameldingCount > 0 && isAdmin) {
-      return renderGruppefordeling(pameldingCount, { visSpelarliste: false, initNa, initFormat: runde1Format })
+      const hasPlayers = stilling.length > 0
+      return renderGruppefordeling(
+        hasPlayers ? stilling : pameldingCount,
+        { visSpelarliste: hasPlayers, initNa, initFormat: runde1Format },
+      )
     }
 
     return ''
