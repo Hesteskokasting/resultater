@@ -14,6 +14,7 @@ import {
   bekreftAvsluttendeKamp,
   subscribeToNesteKamp,
 } from '@/services/kampService'
+import { autoGenererFinaleOgBronsefinale } from '@/services/kampGenereringCupService'
 import { avmeldKanal } from '@/utils/realtime'
 import type { KampRow, KampSpelarIKamp } from '@/services/kampService'
 
@@ -175,6 +176,7 @@ export async function render(container: HTMLElement, { id }: { id: number }): Pr
         orderedKasterids: orderedKasterids ?? null,
       })
       if (error) { visKampFeil('Feil ved bekreftelse av kamp.'); return }
+      await autoGenererFinaleOgBronsefinale(kampId)
     } else {
       const { error } = await bekreftInnledendeKamp({ kampId, ...bekreftData, hcp1, hcp2, erWalkover: kamp.er_walkover })
       if (error) { visKampFeil('Feil ved bekreftelse av kamp.'); return }
