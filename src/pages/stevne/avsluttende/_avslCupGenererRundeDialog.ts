@@ -101,11 +101,12 @@ export function opnGenererRundeDialog(
               </div>
             </div>`).join('')}
         </div>`
-      : `<div class="mb-3">
-          ${aktive.map((r, i) => `<div class="mb-2">
-            <div class="small">${i + 1}. ${escHtml(r.navn ?? '')}</div>
-            <div class="small text-muted">${r.kamp_poeng ?? 0}p (${r.score_poeng ?? 0})</div>
-          </div>`).join('')}
+      : `<div class="avsl-player-columns mb-3">
+          ${aktive.slice(wo).map((r, i) => `
+            <div class="small d-flex justify-content-between gap-2">
+              <span>${wo + i + 1}. ${escHtml(r.navn ?? '')}</span>
+              <span class="text-muted text-nowrap">${r.kamp_poeng ?? 0}p (${r.score_poeng ?? 0})</span>
+            </div>`).join('')}
         </div>`
 
     modal.innerHTML = `
