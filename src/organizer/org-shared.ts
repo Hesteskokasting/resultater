@@ -469,10 +469,13 @@ export function sorterStilling(stilling: StillingRad[], kamper: KampForSortering
     if (!aAktiv) {
       const rundeDiff = (b.runde_eliminert ?? 0) - (a.runde_eliminert ?? 0)
       if (rundeDiff !== 0) return rundeDiff
-      const pA = a.plassering ?? Infinity
-      const pB = b.plassering ?? Infinity
-      if (pA !== pB) return pA - pB
     }
+
+    // plassering tiebreaker applies to both active and eliminated players
+    // (champion plassering=1 must sort before 3rd place plassering=3 when both are null)
+    const pA = a.plassering ?? Infinity
+    const pB = b.plassering ?? Infinity
+    if (pA !== pB) return pA - pB
 
     if (b.kamp_poeng !== a.kamp_poeng) return (b.kamp_poeng ?? 0) - (a.kamp_poeng ?? 0)
     if (b.score_poeng !== a.score_poeng) return (b.score_poeng ?? 0) - (a.score_poeng ?? 0)

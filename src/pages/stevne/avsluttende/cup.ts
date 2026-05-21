@@ -10,10 +10,7 @@ import { opnGenererRundeDialog } from './_avslCupGenererRundeDialog'
 import { opnTreSpelarBekreftDialog } from './_avslCupTreSpelarDialog'
 import { showNumberpad } from '@/components/ScoreNumberpad'
 import { scoreForSp } from '@/utils/kamp'
-import {
-  beregnKanBekrefte,
-  type StillingRad,
-} from '@/organizer/org-shared'
+import { beregnKanBekrefte } from '@/organizer/org-shared'
 import { escHtml } from '@/utils/escHtml'
 import { showToast } from '@/components/Toast'
 import { confirmDialog } from '@/components/ConfirmDialog'
@@ -53,8 +50,6 @@ const cupVariant: AvsluttendeVariant = {
     const gruppeNamn = [...new Set(
       stilling.map(r => r.gruppe?.navn).filter((n): n is string => n != null),
     )].sort()
-    const stillingMap: Record<number, StillingRad> = Object.fromEntries(stilling.map(r => [r.kasterid, r]))
-
     const gruppeKolonnar = gruppeNamn.map(g => {
       const kampar = avslKampar.filter(k => k.gruppe_navn === g)
       const stillingG = stilling.filter(r => r.gruppe?.navn === g)
@@ -65,7 +60,7 @@ const cupVariant: AvsluttendeVariant = {
       const sisteRundeFullfort = sisteRunde.length > 0 && sisteRunde.every(k => k.er_bekreftet || k.er_walkover)
       const harSemifinaleIGruppe = kampar.some(k => k.runde_navn === 'Semifinale')
       const visGenerer = isAdmin && (kampar.length === 0 || sisteRundeFullfort) && aktiveCount > 1 && !harSemifinaleIGruppe
-      return renderGruppeKolonne(g, kampar, aktiveCount, totalCount, sisteRundeNr, visGenerer, startnrMap, isAdmin, stillingMap)
+      return renderGruppeKolonne(g, kampar, aktiveCount, totalCount, sisteRundeNr, visGenerer, startnrMap, isAdmin)
     }).join('')
 
     return `<div class="d-flex gap-3 flex-wrap">${gruppeKolonnar}</div>`
@@ -235,7 +230,6 @@ function renderGruppeKolonne(
   visGenerer: boolean,
   startnrMap: Record<number, number>,
   isAdminLocal = true,
-  stillingMap: Record<number, StillingRad> = {},
 ): string {
   const rundeMap = new Map<number, AvslKampRow[]>()
   for (const k of kampar) {
@@ -250,7 +244,7 @@ function renderGruppeKolonne(
     return `
       <h6 class="fw-bold text-center mb-1">${escHtml(tittel)}</h6>
       <div class="d-flex flex-wrap gap-2 mb-2">
-        ${synligeKampar.map(k => renderKampBlock(k, startnrMap, isAdminLocal, stillingMap)).join('')}
+        ${synligeKampar.map(k => renderKampBlock(k, startnrMap, isAdminLocal)).join('')}
       </div>`
   }).join('')
 
@@ -274,7 +268,6 @@ function renderKampBlock(
   kamp: AvslKampRow,
   startnrMap: Record<number, number>,
   isAdminLocal = true,
-  stillingMap: Record<number, StillingRad> = {},
 ): string {
   const sp = kamp.spelarar.slice().sort((a, b) =>
     (startnrMap[a.kasterid ?? 0] ?? 999) - (startnrMap[b.kasterid ?? 0] ?? 999)
@@ -294,8 +287,9 @@ function renderKampBlock(
     : sp.map(s => {
         const tot = scoreForSp(s)
         const score = tot > 0 ? tot : '—'
-        const erEliminert = kamp.er_bekreftet && stillingMap[s.kasterid ?? 0]?.runde_eliminert === kamp.runde_nummer
-        const erVidare = kamp.er_bekreftet && !erEliminert
+        const nSpelarar = sp.length
+        const erEliminert = kamp.er_bekreftet && s.kamp_plassering != null && s.kamp_plassering >= nSpelarar
+        const erVidare = kamp.er_bekreftet && s.kamp_plassering != null && s.kamp_plassering < nSpelarar
         const radKlass = erEliminert ? 'kamp-eliminert' : (erVidare ? 'kamp-vidare' : '')
         const scoreAttr = kanEndreScore
           ? ` data-endre-score="${kamp.id}" class="text-center score-redigerbar"`

@@ -336,8 +336,20 @@ export async function bekreftAvsluttendeKamp(params: {
     p_kamp_id: kampId,
     p_eliminert_kasterid: eliminertId ?? undefined,
   })
-  if (error) logError('bekreftAvsluttendeKamp', error)
-  return { error }
+  if (error) { logError('bekreftAvsluttendeKamp', error); return { error } }
+
+  // Write per-match rank to kamp_spelar for display
+  if (orderedKasterids?.length === 3) {
+    await setKampSpelarPlaseringar(kampId, orderedKasterids.map((kid, i) => ({ kasterid: kid, plassering: i + 1 })))
+  } else if (p1 && p2 && eliminertId != null) {
+    const winnerId = eliminertId === p1.kasterid ? p2.kasterid : p1.kasterid
+    await setKampSpelarPlaseringar(kampId, [
+      { kasterid: winnerId, plassering: 1 },
+      { kasterid: eliminertId, plassering: 2 },
+    ])
+  }
+
+  return { error: null }
 }
 
 // ── Avsluttande fase ──────────────────────────────────────────────────────────
@@ -346,7 +358,7 @@ const _avslKamperQuery = supabase.from('kamp').select(`
   id, fase, runde_nummer, bane_nummer, gruppe_navn, runde_navn,
   er_bekreftet, er_walkover, er_tre_spelarar,
   spelarar:kamp_spelar(
-    id, kasterid, posisjon, score_poeng, kamp_poeng, antall_ringer,
+    id, kasterid, posisjon, score_poeng, kamp_poeng, antall_ringer, kamp_plassering,
     kaster:kasterid(fornavn, etternavn),
     omgangar:kamp_omgang(score, antall_ringer)
   )
@@ -366,7 +378,7 @@ export async function hentAvsluttendeKamper(stevneid: number): Promise<{ data: A
       id, fase, runde_nummer, bane_nummer, gruppe_navn, runde_navn,
       er_bekreftet, er_walkover, er_tre_spelarar,
       spelarar:kamp_spelar(
-        id, kasterid, posisjon, score_poeng, kamp_poeng, antall_ringer,
+        id, kasterid, posisjon, score_poeng, kamp_poeng, antall_ringer, kamp_plassering,
         kaster:kasterid(fornavn, etternavn),
         omgangar:kamp_omgang(score, antall_ringer)
       )
@@ -398,6 +410,24 @@ export async function harAlleSemifinalarBekrefta(stevneid: number, gruppeNavn: s
   return !!(data?.length && data.every(s => s.er_bekreftet))
 }
 
+export async function setKampSpelarPlaseringar(
+  kampId: number,
+  entries: { kasterid: number; plassering: number }[],
+): Promise<{ error: unknown }> {
+  if (!entries.length) return { error: null }
+  const results = await Promise.all(
+    entries.map(e =>
+      supabase.from('kamp_spelar')
+        .update({ kamp_plassering: e.plassering })
+        .eq('kampid', kampId)
+        .eq('kasterid', e.kasterid),
+    ),
+  )
+  const err = results.find(r => r.error)?.error ?? null
+  if (err) logError('setKampSpelarPlaseringar', err)
+  return { error: err }
+}
+
 export async function bekreftCupKamp(params: {
   kampId: number
   stevneId: number
@@ -408,34 +438,58 @@ export async function bekreftCupKamp(params: {
   vidareIds: number[]
 }): Promise<{ error: unknown }> {
   const { kampId, stevneId, rundeNummer, rundeNavn, allKasterids, eliminertId, vidareIds } = params
-  const erFinale = rundeNavn === 'Finale' || rundeNavn === 'Bronsefinale'
 
   const { error: kampErr } = await supabase.from('kamp').update({ er_bekreftet: true }).eq('id', kampId)
   if (kampErr) { logError('bekreftCupKamp:kamp', kampErr); return { error: kampErr } }
 
+  // Write per-match rank to kamp_spelar for display (vidareIds = 1st, 2nd, …; eliminert = last)
+  const kampPlaseringar = [
+    ...vidareIds.map((kid, i) => ({ kasterid: kid, plassering: i + 1 })),
+    ...(eliminertId != null ? [{ kasterid: eliminertId, plassering: vidareIds.length + 1 }] : []),
+  ]
+  const { error: kpErr } = await setKampSpelarPlaseringar(kampId, kampPlaseringar)
+  if (kpErr) return { error: kpErr }
+
+  // Semifinale losers are not finally eliminated — they advance to bronsefinale
+  if (rundeNavn === 'Semifinale') return { error: null }
+
   if (!eliminertId) return { error: null }
 
-  if (erFinale) {
-    const { error } = await supabase.from('resultat')
+  if (rundeNavn === 'Finale' || rundeNavn === 'Bronsefinale') {
+    // Reset any prior runde_eliminert for these participants before re-writing
+    const { error: resetErr } = await supabase.from('resultat')
       .update({ runde_eliminert: null })
       .eq('stevneid', stevneId).in('kasterid', allKasterids)
-    if (error) { logError('bekreftCupKamp:reset', error); return { error } }
+    if (resetErr) { logError('bekreftCupKamp:reset', resetErr); return { error: resetErr } }
   } else {
-    const { error } = await supabase.from('resultat')
+    // For regular rounds: only reset same-round eliminations to avoid clearing earlier rounds
+    const { error: resetErr } = await supabase.from('resultat')
       .update({ runde_eliminert: null })
       .eq('stevneid', stevneId).eq('runde_eliminert', rundeNummer).in('kasterid', allKasterids)
-    if (error) { logError('bekreftCupKamp:reset', error); return { error } }
+    if (resetErr) { logError('bekreftCupKamp:reset', resetErr); return { error: resetErr } }
   }
 
+  // Loser is finally eliminated
   const { error: elimErr } = await supabase.from('resultat')
     .update({ runde_eliminert: rundeNummer }).eq('stevneid', stevneId).eq('kasterid', eliminertId)
   if (elimErr) { logError('bekreftCupKamp:eliminert', elimErr); return { error: elimErr } }
 
-  if (rundeNavn === 'Bronsefinale' && vidareIds.length > 0) {
-    const { error } = await supabase.from('resultat')
-      .update({ runde_eliminert: rundeNummer })
-      .eq('stevneid', stevneId).eq('kasterid', vidareIds[0])
-    if (error) { logError('bekreftCupKamp:bronsefinale', error); return { error } }
+  // Write final tournament placement for Finale and Bronsefinale
+  const vinnerId = vidareIds[0] ?? null
+  if (rundeNavn === 'Finale' && vinnerId != null) {
+    const { error: vErr } = await supabase.from('resultat')
+      .update({ plassering: 1 }).eq('stevneid', stevneId).eq('kasterid', vinnerId)
+    if (vErr) { logError('bekreftCupKamp:plassering-vinnar', vErr); return { error: vErr } }
+    const { error: tErr } = await supabase.from('resultat')
+      .update({ plassering: 2 }).eq('stevneid', stevneId).eq('kasterid', eliminertId)
+    if (tErr) { logError('bekreftCupKamp:plassering-tapar', tErr); return { error: tErr } }
+  } else if (rundeNavn === 'Bronsefinale' && vinnerId != null) {
+    const { error: vErr } = await supabase.from('resultat')
+      .update({ plassering: 3 }).eq('stevneid', stevneId).eq('kasterid', vinnerId)
+    if (vErr) { logError('bekreftCupKamp:plassering-vinnar', vErr); return { error: vErr } }
+    const { error: tErr } = await supabase.from('resultat')
+      .update({ plassering: 4 }).eq('stevneid', stevneId).eq('kasterid', eliminertId)
+    if (tErr) { logError('bekreftCupKamp:plassering-tapar', tErr); return { error: tErr } }
   }
 
   return { error: null }
@@ -450,24 +504,55 @@ export async function oppdaterVinnarTapar(params: {
   nyTaparId: number | null | undefined
 }): Promise<{ error: unknown }> {
   const { stevneId, rundeNummer, rundeNavn, allKasterids, nyVinnarId, nyTaparId } = params
+  const erSemfinale = rundeNavn === 'Semifinale'
   const erFinale = rundeNavn === 'Finale'
   const erBronsefinale = rundeNavn === 'Bronsefinale'
+
+  // Write per-match rank to kamp_spelar (score correction path — need kampId)
+  // kamp_plassering update is handled by the caller (cup.ts score edit handler) when re-confirming
+
+  if (erSemfinale) {
+    // Semifinale losers are not finally eliminated — no runde_eliminert changes
+    return { error: null }
+  }
 
   if (erFinale || erBronsefinale) {
     const { error: resetErr } = await supabase.from('resultat')
       .update({ runde_eliminert: null })
       .eq('stevneid', stevneId).in('kasterid', allKasterids)
     if (resetErr) { logError('oppdaterVinnarTapar:reset', resetErr); return { error: resetErr } }
+
     if (nyTaparId) {
       const { error } = await supabase.from('resultat')
         .update({ runde_eliminert: rundeNummer })
         .eq('stevneid', stevneId).eq('kasterid', nyTaparId)
       if (error) { logError('oppdaterVinnarTapar:tapar', error); return { error } }
     }
-    if (erBronsefinale && nyVinnarId) {
-      const { error } = await supabase.from('resultat')
-        .update({ runde_eliminert: rundeNummer }).eq('stevneid', stevneId).eq('kasterid', nyVinnarId)
-      if (error) { logError('oppdaterVinnarTapar:vinnar', error); return { error } }
+
+    // Write final tournament placement
+    if (erFinale) {
+      if (nyVinnarId) {
+        const { error } = await supabase.from('resultat')
+          .update({ plassering: 1 }).eq('stevneid', stevneId).eq('kasterid', nyVinnarId)
+        if (error) { logError('oppdaterVinnarTapar:plassering-vinnar', error); return { error } }
+      }
+      if (nyTaparId) {
+        const { error } = await supabase.from('resultat')
+          .update({ plassering: 2 }).eq('stevneid', stevneId).eq('kasterid', nyTaparId)
+        if (error) { logError('oppdaterVinnarTapar:plassering-tapar', error); return { error } }
+      }
+    } else {
+      // Bronsefinale: winner stays null runde_eliminert (3rd), loser is eliminated (4th)
+      if (nyVinnarId) {
+        const { error } = await supabase.from('resultat')
+          .update({ plassering: 3 }).eq('stevneid', stevneId).eq('kasterid', nyVinnarId)
+        if (error) { logError('oppdaterVinnarTapar:plassering-vinnar', error); return { error } }
+      }
+      if (nyTaparId) {
+        const { error } = await supabase.from('resultat')
+          .update({ plassering: 4 }).eq('stevneid', stevneId).eq('kasterid', nyTaparId)
+        if (error) { logError('oppdaterVinnarTapar:plassering-tapar', error); return { error } }
+      }
     }
   } else {
     const { error: resetErr } = await supabase.from('resultat')

@@ -236,10 +236,4 @@ export async function genererFinaleOgBronsefinale(
   const { error: spErr } = await supabase.from('kamp_spelar').insert(spelarRader)
   if (spErr) throw new Error('Feil: ' + spErr.message)
 
-  for (const kid of taparar) {
-    if (kid == null) continue
-    await supabase.from('resultat')
-      .update({ runde_eliminert: typedSemi[0].runde_nummer })
-      .eq('stevneid', stevneid).eq('kasterid', kid)
-  }
 }
