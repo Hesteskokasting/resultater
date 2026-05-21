@@ -15,6 +15,9 @@ export interface TableOptions<T> {
   rowAttrs?: (item: T, idx: number) => Record<string, string> | undefined
   detailRow?: (item: T, idx: number) => HTMLElement | null
   detailRowClass?: string
+  detailRowAttrs?: (item: T, idx: number) => Record<string, string> | undefined
+  detailCellClass?: string
+  sectionHeader?: (item: T, idx: number) => HTMLElement | null
   tableClass?: string
   theadClass?: string
   showHeader?: boolean
@@ -33,6 +36,9 @@ export function createTable<T>(opts: TableOptions<T>): HTMLTableElement {
     rowAttrs,
     detailRow,
     detailRowClass = 'detalj-rad d-none',
+    detailRowAttrs,
+    detailCellClass,
+    sectionHeader,
     tableClass = 'app-tabell',
     theadClass = 'app-thead',
     showHeader = true,
@@ -56,6 +62,11 @@ export function createTable<T>(opts: TableOptions<T>): HTMLTableElement {
   const tbody = table.createTBody()
 
   rows.forEach((item, idx) => {
+    if (sectionHeader) {
+      const header = sectionHeader(item, idx)
+      if (header !== null) tbody.appendChild(header)
+    }
+
     const tr = tbody.insertRow()
     const cls = typeof rowClass === 'function' ? rowClass(item, idx) : rowClass
     if (cls) tr.className = cls
@@ -81,8 +92,10 @@ export function createTable<T>(opts: TableOptions<T>): HTMLTableElement {
         const detailTr = tbody.insertRow()
         detailTr.className = detailRowClass
         applyAttrs(detailTr, rowAttrs?.(item, idx))
+        applyAttrs(detailTr, detailRowAttrs?.(item, idx))
         const detailTd = detailTr.insertCell()
         detailTd.colSpan = columns.length
+        if (detailCellClass) detailTd.className = detailCellClass
         detailTd.appendChild(detail)
       }
     }

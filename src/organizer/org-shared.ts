@@ -1,6 +1,7 @@
 import { scoreForSp, hentP1P2 } from '@/utils/kamp'
 import { escHtml } from '@/utils/escHtml'
 import type { Tables } from '@/types'
+import { createTable, type ColumnDef } from '@/components/Table'
 
 // Minimal shapes for organizer kamp data (spelarar is an aliased join from kamp_spelar)
 export interface OrgKampSpelar {
@@ -149,6 +150,8 @@ export function bindTabToggle(container: HTMLElement): void {
   })
 }
 
+type FlatStillingRad = StillingRad & { posInGroup: number }
+
 export function renderStillingTabell(
   stilling: StillingRad[],
   kamper: OrgKamp[],
@@ -156,18 +159,16 @@ export function renderStillingTabell(
   opts: StillingOpts = {},
 ): string {
   const {
-    tableId        = 'stilling-tabell',
-    isAdmin        = false,
-    stevneid       = null,
-    harHcp         = false,
-    harGrupper     = false,
-    harEliminasjon = false,
+    tableId         = 'stilling-tabell',
+    isAdmin         = false,
+    stevneid        = null,
+    harHcp          = false,
+    harGrupper      = false,
+    harEliminasjon  = false,
     harAntallKamper = false,
   } = opts
 
-  const extraCols = (harHcp ? 1 : 0) + (harAntallKamper ? 1 : 0)
-  const colspan   = 5 + extraCols
-  const thW       = harAntallKamper ? 'th-32' : 'th-28'
+  const thW = harAntallKamper ? 'th-32' : 'th-28'
 
   const gruppeMap = new Map<string, StillingRad[]>()
   for (const r of stilling) {
@@ -175,72 +176,88 @@ export function renderStillingTabell(
     if (!gruppeMap.has(g)) gruppeMap.set(g, [])
     gruppeMap.get(g)!.push(r)
   }
-
   const harFleirGrupper = gruppeMap.size > 1 || !gruppeMap.has('_')
   const tittel = harAntallKamper ? `${stilling.length} spelarar` : 'Stilling'
 
-  const rows = [...gruppeMap.entries()]
+  const flatList: FlatStillingRad[] = [...gruppeMap.entries()]
     .sort(([a], [b]) => a === '_' ? 1 : b === '_' ? -1 : a.localeCompare(b))
-    .flatMap(([g, spelararIGruppe]) => {
-    const gruppeHeader = harFleirGrupper && g !== '_'
-      ? `<tr><td colspan="${colspan}" class="fw-semibold ps-2">Gruppe ${escHtml(g)}</td></tr>`
-      : ''
-    const playerRows = spelararIGruppe.map((r, i) => {
-      const erEliminert = harEliminasjon && r.runde_eliminert != null
-      const hcp = r.hcp ?? 0
-      const hcpCelle = harHcp
-        ? (isAdmin
-          ? `<td class="stilling-tal stilling-hcp-celle" data-kasterid="${r.kasterid}" data-stevneid="${stevneid}">${hcp > 0 ? hcp : '—'}</td>`
-          : `<td class="stilling-tal">${hcp > 0 ? hcp : '—'}</td>`)
-        : ''
-      const antallCelle = harAntallKamper
-        ? `<td class="stilling-tal">${r.antall_kamper ?? 0}</td>`
-        : ''
-      return `
-        <tr data-kasterid="${r.kasterid}" class="stilling-spelar-rad">
-          <td${erEliminert ? ' class="avsl-elim-plass"' : ''}>${i + 1}</td>
-          <td>${r.startnummer ?? ''}</td>
-          <td>${escHtml(r.navn ?? `Spelar ${r.kasterid}`)}</td>
-          ${antallCelle}
-          <td class="stilling-tal">${r.kamp_poeng ?? 0}</td>
-          <td class="stilling-tal">${r.score_poeng ?? 0}</td>
-          ${hcpCelle}
-        </tr>
-        <tr class="stilling-detalj" data-kasterid="${r.kasterid}" hidden>
-          <td colspan="${colspan}" class="p-0">
-            <table class="stilling-detalj-tabell table table-sm table-bordered mb-0">
-              <thead><tr>
-                <th class="text-center">Runde</th>
-                <th class="text-center">Bane</th>
-                <th>Motstandar</th>
-                <th class="text-center">Resultat</th>
-              </tr></thead>
-              <tbody>${renderSpelarkamparDetalj(r.kasterid, kamper, startnrMap)}</tbody>
-            </table>
-          </td>
-        </tr>`
-    }).join('')
-    return gruppeHeader + playerRows
-  }).join('')
+    .flatMap(([, spelararIGruppe]) => spelararIGruppe.map((r, i) => ({ ...r, posInGroup: i + 1 })))
 
-  return `
-    <div>
-      <h6 class="text-center fw-bold mb-1">${tittel}</h6>
-      <table id="${tableId}" class="table table-sm kamp-tabell mb-0">
-        <thead class="org-thead">
-          <tr>
-            <th class="${thW}">#</th>
-            <th class="${thW}">S</th>
-            <th>NAMN</th>
-            ${harAntallKamper ? '<th class="th-50 stilling-tal">ANT.</th>' : ''}
-            <th class="th-44 stilling-tal">KP</th>
-            <th class="th-44 stilling-tal">SP</th>
-            ${harHcp ? '<th class="th-44 stilling-tal">HCP</th>' : ''}
-          </tr>
-        </thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>`
+  const columns: ColumnDef<FlatStillingRad>[] = [
+    {
+      label: '#', thClass: thW,
+      cellClass: (r) => harEliminasjon && r.runde_eliminert != null ? 'avsl-elim-plass' : undefined,
+      render: (r) => String(r.posInGroup),
+    },
+    { label: 'S', thClass: thW, render: (r) => String(r.startnummer ?? '') },
+    { label: 'NAMN', render: (r) => escHtml(r.navn ?? `Spelar ${r.kasterid}`) },
+    ...(harAntallKamper ? [{ label: 'ANT.', thClass: 'th-50 stilling-tal', cellClass: 'stilling-tal' as const, render: (r: FlatStillingRad) => String(r.antall_kamper ?? 0) }] : []),
+    { label: 'KP', thClass: 'th-44 stilling-tal', cellClass: 'stilling-tal', render: (r) => String(r.kamp_poeng ?? 0) },
+    { label: 'SP', thClass: 'th-44 stilling-tal', cellClass: 'stilling-tal', render: (r) => String(r.score_poeng ?? 0) },
+    ...(harHcp ? [{
+      label: 'HCP', thClass: 'th-44 stilling-tal',
+      cellClass: (_r: FlatStillingRad) => isAdmin ? 'stilling-tal stilling-hcp-celle' : 'stilling-tal',
+      cellAttrs: isAdmin
+        ? (r: FlatStillingRad) => ({ 'data-kasterid': String(r.kasterid), 'data-stevneid': String(stevneid) })
+        : undefined,
+      render: (r: FlatStillingRad) => { const h = r.hcp ?? 0; return h > 0 ? String(h) : '—' },
+    }] : []),
+  ]
+
+  const colspan = columns.length
+
+  let lastGroup: string | null = null
+  const sectionHeaderFn = (item: FlatStillingRad): HTMLElement | null => {
+    const g = harGrupper ? (item.gruppe?.navn ?? '_') : '_'
+    if (g === lastGroup) return null
+    lastGroup = g
+    if (!harFleirGrupper || g === '_') return null
+    const tr = document.createElement('tr')
+    const td = tr.insertCell()
+    td.colSpan = colspan
+    td.className = 'fw-semibold ps-2'
+    td.textContent = `Gruppe ${item.gruppe?.navn ?? ''}`
+    return tr
+  }
+
+  const buildDetailElement = (item: FlatStillingRad): HTMLElement => {
+    const innerTable = document.createElement('table')
+    innerTable.className = 'stilling-detalj-tabell table table-sm table-bordered mb-0'
+    const thead = innerTable.createTHead()
+    const hr = thead.insertRow()
+    ;[['Runde', true], ['Bane', true], ['Motstandar', false], ['Resultat', true]].forEach(([label, centered]) => {
+      const th = document.createElement('th')
+      th.textContent = label as string
+      if (centered) th.className = 'text-center'
+      hr.appendChild(th)
+    })
+    innerTable.createTBody().innerHTML = renderSpelarkamparDetalj(item.kasterid, kamper, startnrMap)
+    return innerTable
+  }
+
+  const table = createTable<FlatStillingRad>({
+    columns,
+    rows: flatList,
+    tableClass: 'table table-sm kamp-tabell mb-0',
+    theadClass: 'org-thead',
+    rowClass: 'stilling-spelar-rad',
+    rowAttrs: (r) => ({ 'data-kasterid': String(r.kasterid) }),
+    sectionHeader: sectionHeaderFn,
+    detailRowClass: 'stilling-detalj',
+    detailRowAttrs: () => ({ hidden: '' }),
+    detailCellClass: 'p-0',
+    detailRow: buildDetailElement,
+  })
+  table.id = tableId
+
+  const wrapper = document.createElement('div')
+  const h6 = document.createElement('h6')
+  h6.className = 'text-center fw-bold mb-1'
+  h6.textContent = tittel
+  wrapper.appendChild(h6)
+  wrapper.appendChild(table)
+
+  return wrapper.outerHTML
 }
 
 export function bindStillingDetaljar(
