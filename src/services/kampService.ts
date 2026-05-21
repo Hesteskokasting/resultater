@@ -546,13 +546,23 @@ export async function hentKampOmgangar(spelarIds: number[]): Promise<{ data: Kam
   return { data: data ?? [], error }
 }
 
+const LAGRE_TIMEOUT_MS = 10_000
+
 export async function lagreKampOmgang(
   inserts: { kamp_spelar_id: number; omgang: number; score: number; antall_ringer: number }[],
 ): Promise<{ error: unknown }> {
   if (!inserts.length) return { error: null }
-  const { error } = await supabase.from('kamp_omgang').insert(inserts)
-  if (error) logError('lagreKampOmgang', error)
-  return { error }
+  try {
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Request timed out')), LAGRE_TIMEOUT_MS),
+    )
+    const { error } = await Promise.race([supabase.from('kamp_omgang').insert(inserts), timeout])
+    if (error) logError('lagreKampOmgang', error)
+    return { error }
+  } catch (e) {
+    logError('lagreKampOmgang', e)
+    return { error: e }
+  }
 }
 
 export async function unbekreftKamp(kampId: number): Promise<{ error: unknown }> {

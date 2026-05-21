@@ -182,7 +182,14 @@ export async function renderScoreboard(
       nesteBtn.addEventListener('click', async () => {
         nesteBtn.disabled = true
         nesteBtn.textContent = 'Lagrer…'
-        await nesteOmgang()
+        try {
+          await nesteOmgang()
+        } finally {
+          // On success, nesteOmgang() calls tegn() which replaces this button — no-op on detached element.
+          // On error or hang, restores button so user can retry.
+          nesteBtn.disabled = false
+          nesteBtn.textContent = 'Neste omgang'
+        }
       })
       container.appendChild(nesteBtn)
     }
@@ -308,7 +315,12 @@ function lagBekreftKnapp(onBekreft: () => Promise<void>): HTMLButtonElement {
   btn.addEventListener('click', async () => {
     btn.disabled = true
     btn.textContent = 'Lagrar…'
-    await onBekreft()
+    try {
+      await onBekreft()
+    } finally {
+      btn.disabled = false
+      btn.textContent = 'Bekreft kamp'
+    }
   })
   return btn
 }
@@ -464,7 +476,16 @@ async function renderScoreboard3(
       const kanNeste = aktiveIdxar.some(i => vals[i] !== null)
       const nesteBtn = lagEl('button', 'Neste omgang', 'sb-neste-btn')
       nesteBtn.disabled = !kanNeste
-      nesteBtn.addEventListener('click', nesteOmgang3)
+      nesteBtn.addEventListener('click', async () => {
+        nesteBtn.disabled = true
+        nesteBtn.textContent = 'Lagrer…'
+        try {
+          await nesteOmgang3()
+        } finally {
+          nesteBtn.disabled = false
+          nesteBtn.textContent = 'Neste omgang'
+        }
+      })
       container.appendChild(nesteBtn)
     }
 
