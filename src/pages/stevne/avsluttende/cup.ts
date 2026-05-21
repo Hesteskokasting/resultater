@@ -43,11 +43,6 @@ import {
   type AvsluttendeVariant,
 } from './avsluttendeBase'
 
-// ── Local types ───────────────────────────────────────────────────────────────
-
-type AvslResultatKjent = AvslResultatRow & { kasterid: number }
-type AvslResultatMedNavn = AvslResultatKjent & { navn: string }
-
 // ── Cup variant ───────────────────────────────────────────────────────────────
 
 const cupVariant: AvsluttendeVariant = {
@@ -82,13 +77,12 @@ const cupVariant: AvsluttendeVariant = {
   },
 
   renderSetupHtml: (ctx) => {
-    const { stevne, isAdmin, resultat, runde1Format, pameldingCount, stilling, navnMap } = ctx
+    const { stevne, isAdmin, runde1Format, pameldingCount, stilling } = ctx
     const initNa = runde1Format?.nA ?? null
 
     if (stevne.stevne_fase === 'avsluttende') {
       if (!isAdmin) return '<p class="text-muted fst-italic">Gruppefordeling er ikkje klar enno.</p>'
-      const resultatSortert = toResultatSortert(resultat, stilling, navnMap)
-      return renderGruppefordeling(resultatSortert, { visSpelarliste: true, initNa, initFormat: runde1Format })
+      return renderGruppefordeling(stilling, { visSpelarliste: true, initNa, initFormat: runde1Format })
     }
 
     if (pameldingCount > 0 && isAdmin) {
@@ -99,7 +93,7 @@ const cupVariant: AvsluttendeVariant = {
   },
 
   bindHeaderEvents: (bannerSlot, ctx) => {
-    const { container, stevneid, stevne, stilling, runde1Format, alleInnlBekrefta, harGruppefordeling, resultat, gruppeNavnMap, navnMap, reload } = ctx
+    const { container, stevneid, stevne, stilling, runde1Format, alleInnlBekrefta, harGruppefordeling, gruppeNavnMap, reload } = ctx
 
     bannerSlot?.querySelector('#start-avsl-btn')?.addEventListener('click', async () => {
       if (!alleInnlBekrefta) return
@@ -122,8 +116,7 @@ const cupVariant: AvsluttendeVariant = {
     })
 
     if (!harGruppefordeling) {
-      const resultatSortert = toResultatSortert(resultat, stilling, navnMap)
-      const n = resultatSortert.length
+      const n = stilling.length
 
       function lesValtOppsett(radioName: string, nGruppe: number): RundeOppsett | null {
         const valtRadio = container.querySelector<HTMLInputElement>(`input[name="${radioName}"]:checked`)
@@ -153,7 +146,7 @@ const cupVariant: AvsluttendeVariant = {
           const woB = oppsettB?.walkovers ?? 0
           const prevEl = container.querySelector('#gruppe-preview')
           if (prevEl) prevEl.innerHTML = renderGruppePreview(
-            resultatSortert.map((r, i) => ({ ...r, cupPlassering: i + 1 })), nA, woA, woB,
+            stilling.map((r, i) => ({ ...r, cupPlassering: i + 1 })), nA, woA, woB,
           )
         })
       }
@@ -177,7 +170,7 @@ const cupVariant: AvsluttendeVariant = {
           const woB = oppsettB?.walkovers ?? 0
           const prevEl = container.querySelector('#gruppe-preview')
           if (prevEl) prevEl.innerHTML = renderGruppePreview(
-            resultatSortert.map((r, i) => ({ ...r, cupPlassering: i + 1 })), nA, woA, woB,
+            stilling.map((r, i) => ({ ...r, cupPlassering: i + 1 })), nA, woA, woB,
           )
         })
       })
@@ -195,7 +188,7 @@ const cupVariant: AvsluttendeVariant = {
         if (stevne.stevne_fase === 'avsluttende') {
           const gruppeAId = gruppeNavnMap['A'] ?? null
           const gruppeBId = gruppeNavnMap['B'] ?? null
-          const updates = resultatSortert.map((r, i) => ({
+          const updates = stilling.map((r, i) => ({
             kasterid: r.kasterid,
             gruppeid: i < nA ? gruppeAId : (gruppeBId ?? gruppeAId),
           }))
@@ -221,11 +214,7 @@ const cupVariant: AvsluttendeVariant = {
         btn.addEventListener('click', () => {
           const gNavn = btn.dataset.genererGruppe ?? ''
           const runde = parseInt(btn.dataset.runde ?? '1')
-          const stillingForGruppe = toResultatSortert(
-            resultat.filter(r => r.gruppe?.navn === gNavn),
-            stilling,
-            navnMap,
-          )
+          const stillingForGruppe = stilling.filter(r => r.gruppe?.navn === gNavn)
           opnGenererRundeDialog(stevneid, gNavn, stillingForGruppe, runde, runde1Format, reload)
         })
       })
@@ -234,19 +223,6 @@ const cupVariant: AvsluttendeVariant = {
 }
 
 export const render = createAvsluttendeRenderer(cupVariant)
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function toResultatSortert(
-  resultat: AvslResultatKjent[],
-  stilling: StillingRad[],
-  navnMap: Record<number, string>,
-): AvslResultatMedNavn[] {
-  const stillingOrder = new Map(stilling.map((r, i) => [r.kasterid, i]))
-  return [...resultat]
-    .sort((a, b) => (stillingOrder.get(a.kasterid) ?? Infinity) - (stillingOrder.get(b.kasterid) ?? Infinity))
-    .map(r => ({ ...r, navn: navnMap[r.kasterid] ?? `Spelar ${r.kasterid}` }))
-}
 
 // ── Group column rendering ────────────────────────────────────────────────────
 

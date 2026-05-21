@@ -20,16 +20,6 @@ interface Runde1Format {
   [gruppeNavn: string]: RundeOppsett | undefined
 }
 
-interface AktivCupSpelar {
-  kasterid: number
-  gruppeid: number | null
-  gruppe: { navn: string } | null
-  plassering: number | null
-  kamp_poeng_innl: number | null
-  score_poeng_innl: number | null
-  startnummer: number | null
-}
-
 // ── Private helpers ───────────────────────────────────────────────────────────
 
 async function _insertCupParingar(
@@ -77,16 +67,6 @@ async function _insertCupParingar(
   return (innsettaKampar as KampMedMatchId[]).length
 }
 
-async function _hentAktiveCupSpelarar(stevneid: number): Promise<AktivCupSpelar[]> {
-  const { data: resultat } = await supabase
-    .from('resultat')
-    .select('kasterid, gruppeid, gruppe:gruppeid(navn), plassering, kamp_poeng_innl, score_poeng_innl, startnummer')
-    .eq('stevneid', stevneid)
-    .is('runde_eliminert', null)
-
-  return (resultat ?? []) as AktivCupSpelar[]
-}
-
 // ── Public exports ────────────────────────────────────────────────────────────
 
 export async function genererCupRunde1(
@@ -126,6 +106,7 @@ export async function genererNesteCupRundeForGruppe(
   stevneid: number,
   gruppeNavn: string,
   medSeeding: boolean,
+  sorterteSpelarar: { kasterid: number; plassering: number }[],
 ): Promise<{ rundeNummer: number; antallKampar: number }> {
   const { data: kampar } = await supabase.from('kamp')
     .select('runde_nummer')
@@ -133,14 +114,7 @@ export async function genererNesteCupRundeForGruppe(
     .order('runde_nummer', { ascending: false }).limit(1)
   const rundeNummer = ((kampar as { runde_nummer: number }[] | null)?.[0]?.runde_nummer ?? 0) + 1
 
-  const aktive = (await _hentAktiveCupSpelarar(stevneid))
-    .filter(sp => sp.gruppe?.navn === gruppeNavn)
-  aktive.sort((a, b) =>
-    (b.kamp_poeng_innl ?? 0) - (a.kamp_poeng_innl ?? 0) ||
-    (b.score_poeng_innl ?? 0) - (a.score_poeng_innl ?? 0) ||
-    (a.startnummer ?? 0) - (b.startnummer ?? 0)
-  )
-  const spelarar = aktive.map((sp, i) => ({ kasterid: sp.kasterid, plassering: i + 1 }))
+  const spelarar = sorterteSpelarar
   const erSemfinale = spelarar.length === 4
   const paringar = beregnCupRundeParingar(spelarar, { medSeeding, isRunde1: false })
 
@@ -163,8 +137,9 @@ export async function genererNesteCupRundeForGruppe(
 export async function genererNesteCupRunde(
   stevneid: number,
   medSeeding: boolean,
+  stilling: { kasterid: number; runde_eliminert: number | null; gruppe: { navn: string } | null; kamp_poeng: number; score_poeng: number; startnummer: number | null }[],
 ): Promise<{ rundeNummer: number; antallKampar: number; erSemfinale: boolean }> {
-  const aktive = await _hentAktiveCupSpelarar(stevneid)
+  const aktive = stilling.filter(r => r.runde_eliminert == null)
   const erSemfinale = aktive.length === 4
 
   const gruppeNavns = [...new Set(
@@ -175,7 +150,9 @@ export async function genererNesteCupRunde(
   let totalKampar = 0
 
   for (const gruppeNavn of gruppeNavns) {
-    const result = await genererNesteCupRundeForGruppe(stevneid, gruppeNavn, medSeeding)
+    const gruppeAktive = aktive.filter(r => r.gruppe?.navn === gruppeNavn)
+    const spelarar = gruppeAktive.map((r, i) => ({ kasterid: r.kasterid, plassering: i + 1 }))
+    const result = await genererNesteCupRundeForGruppe(stevneid, gruppeNavn, medSeeding, spelarar)
     rundeNummer = result.rundeNummer
     totalKampar += result.antallKampar
   }
