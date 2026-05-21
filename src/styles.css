@@ -1833,6 +1833,15 @@ a.stevne-navn {
   width: 90vw;
 }
 
+.avsl-dialog-drag-handle {
+  cursor: grab;
+  user-select: none;
+}
+
+.avsl-dialog-drag-handle:active {
+  cursor: grabbing;
+}
+
 /* ── Logg inn / Konto ────────────────────────────────────────────────────────── */
 
 .konto-container { max-width: 480px; }

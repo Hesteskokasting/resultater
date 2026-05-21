@@ -34,38 +34,131 @@ export function opnGenererRundeDialog(
   modal.className = 'avsl-dialog-overlay'
   document.body.appendChild(modal)
 
+  let dragPos: { left: number; top: number } | null = null
+  let isDragging = false
+  let dragOffsetX = 0
+  let dragOffsetY = 0
+
+  function onMouseMove(e: MouseEvent): void {
+    if (!isDragging) return
+    const card = modal.querySelector<HTMLElement>('.avsl-dialog-card-wide')
+    if (!card) return
+    const left = e.clientX - dragOffsetX
+    const top = e.clientY - dragOffsetY
+    dragPos = { left, top }
+    card.style.left = `${left}px`
+    card.style.top = `${top}px`
+  }
+
+  function onMouseUp(): void {
+    if (!isDragging) return
+    isDragging = false
+    document.body.style.userSelect = ''
+  }
+
+  document.addEventListener('mousemove', onMouseMove)
+  document.addEventListener('mouseup', onMouseUp)
+
+  function removeListeners(): void {
+    document.removeEventListener('mousemove', onMouseMove)
+    document.removeEventListener('mouseup', onMouseUp)
+  }
+
+  function playerHtml(r: StillingRad): string {
+    return `<div class="mb-2">
+      <div class="small">${escHtml(r.navn ?? '')}</div>
+      <div class="small text-muted">${r.kamp_poeng ?? 0}p (${r.score_poeng ?? 0})</div>
+    </div>`
+  }
+
   function renderModal(medSeeding: boolean): void {
-    const poolsHtml = medSeeding && totalBaner > 0
-      ? [
-          { label: 'Seeding 1', pool: pool1 },
-          { label: 'Seeding 2', pool: pool2 },
-          ...(pool3.length ? [{ label: 'Seeding 3', pool: pool3 }] : []),
-        ].map(({ label, pool }) => `
-          <div class="flex-grow-1">
-            <strong class="d-block mb-1">${escHtml(label)}</strong>
-            ${pool.map(r => `<div class="small">${escHtml(r.navn ?? '')} — ${r.kamp_poeng ?? 0}p (${r.score_poeng ?? 0})</div>`).join('')}
-          </div>`).join('')
-      : aktive.map((r, i) => `<div class="small">${i + 1}. ${escHtml(r.navn ?? '')} — ${r.kamp_poeng ?? 0}p (${r.score_poeng ?? 0})</div>`).join('')
+    const walkoverPlayers = aktive.slice(0, wo)
+
+    const walkoversHtml = walkoverPlayers.length > 0
+      ? `<div class="mb-3">
+          <strong class="d-block mb-1">Walkovers (går vidare utan kamp):</strong>
+          ${walkoverPlayers.map(playerHtml).join('')}
+        </div>`
+      : ''
+
+    const seedingInfoHtml = medSeeding && totalBaner > 0
+      ? `<div class="alert alert-info small mb-3 py-2">
+          Dette er seedinggrupper, ikkje kampar. Spelarar i same gruppe kan ikkje trekkast mot kvarandre. Kampane blir oppretta når du klikkar «Bekreft og opprett kampar».
+        </div>`
+      : ''
+
+    const poolsSection = medSeeding && totalBaner > 0
+      ? `<div class="d-flex gap-3 flex-wrap mb-3">
+          ${[
+            { label: 'Seeding 1', pool: pool1 },
+            { label: 'Seeding 2', pool: pool2 },
+            ...(pool3.length ? [{ label: 'Seeding 3', pool: pool3 }] : []),
+          ].map(({ label, pool }) => `
+            <div class="card flex-grow-1">
+              <div class="card-body p-2">
+                <strong class="d-block mb-2 small text-uppercase">${escHtml(label)}</strong>
+                ${pool.map(playerHtml).join('')}
+              </div>
+            </div>`).join('')}
+        </div>`
+      : `<div class="mb-3">
+          ${aktive.map((r, i) => `<div class="mb-2">
+            <div class="small">${i + 1}. ${escHtml(r.navn ?? '')}</div>
+            <div class="small text-muted">${r.kamp_poeng ?? 0}p (${r.score_poeng ?? 0})</div>
+          </div>`).join('')}
+        </div>`
 
     modal.innerHTML = `
       <div class="card p-4 avsl-dialog-card-wide">
-        <h5 class="mb-1">Gruppe ${escHtml(gruppeNavn)} — Runde ${runde}</h5>
-        <p class="text-muted small mb-2">${n} av ${totalCount} spelarar igjen</p>
+        <div class="avsl-dialog-drag-handle mb-3">
+          <p class="text-muted small text-uppercase fw-semibold mb-1">Trekning</p>
+          <h5 class="mb-1">Gruppe ${escHtml(gruppeNavn)} — Runde ${runde}</h5>
+          <p class="text-muted small mb-0">${n} av ${totalCount} spelarar igjen</p>
+        </div>
         <div class="form-check mb-3">
           <input class="form-check-input" type="checkbox" id="seeding-dlg" ${medSeeding ? 'checked' : ''}>
           <label class="form-check-label" for="seeding-dlg">Bruk seeding</label>
         </div>
-        <div class="d-flex gap-3 flex-wrap mb-3">${poolsHtml}</div>
+        ${seedingInfoHtml}
+        ${walkoversHtml}
+        ${poolsSection}
         <div class="d-flex gap-2">
           <button id="bekreft-gen-btn" class="btn btn-primary">Bekreft og opprett kampar</button>
           <button id="avbryt-gen-btn" class="btn btn-secondary">Avbryt</button>
         </div>
       </div>`
 
+    const card = modal.querySelector<HTMLElement>('.avsl-dialog-card-wide')!
+
+    if (dragPos) {
+      card.style.position = 'fixed'
+      card.style.left = `${dragPos.left}px`
+      card.style.top = `${dragPos.top}px`
+      card.style.margin = '0'
+      card.style.zIndex = '10000'
+    }
+
+    card.querySelector<HTMLElement>('.avsl-dialog-drag-handle')!.addEventListener('mousedown', (e: MouseEvent) => {
+      const rect = card.getBoundingClientRect()
+      card.style.position = 'fixed'
+      card.style.left = `${rect.left}px`
+      card.style.top = `${rect.top}px`
+      card.style.margin = '0'
+      card.style.zIndex = '10000'
+      dragOffsetX = e.clientX - rect.left
+      dragOffsetY = e.clientY - rect.top
+      dragPos = { left: rect.left, top: rect.top }
+      isDragging = true
+      document.body.style.userSelect = 'none'
+    })
+
     modal.querySelector<HTMLInputElement>('#seeding-dlg')!.addEventListener('change', e =>
       renderModal((e.target as HTMLInputElement).checked)
     )
-    modal.querySelector('#avbryt-gen-btn')!.addEventListener('click', () => modal.remove())
+    modal.querySelector('#avbryt-gen-btn')!.addEventListener('click', () => {
+      removeListeners()
+      modal.remove()
+    })
     modal.querySelector('#bekreft-gen-btn')!.addEventListener('click', async () => {
       const medSeedingVal = modal.querySelector<HTMLInputElement>('#seeding-dlg')!.checked
       const btn = modal.querySelector<HTMLButtonElement>('#bekreft-gen-btn')!
@@ -87,6 +180,7 @@ export function opnGenererRundeDialog(
         } else {
           await genererNesteCupRundeForGruppe(stevneid, gruppeNavn, medSeedingVal, spelarar)
         }
+        removeListeners()
         modal.remove()
         await reload()
       } catch (e) {
