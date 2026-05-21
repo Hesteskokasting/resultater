@@ -444,24 +444,16 @@ export async function bekreftCupKamp(params: {
 
   if (!eliminertId) return { error: null }
 
-  if (rundeNavn === 'Finale' || rundeNavn === 'Bronsefinale') {
-    // Reset any prior runde_eliminert for these participants before re-writing
-    const { error: resetErr } = await supabase.from('resultat')
-      .update({ runde_eliminert: null })
-      .eq('stevneid', stevneId).in('kasterid', allKasterids)
-    if (resetErr) { logError('bekreftCupKamp:reset', resetErr); return { error: resetErr } }
-  } else {
-    // For regular rounds: only reset same-round eliminations to avoid clearing earlier rounds
+  if (rundeNavn !== 'Finale' && rundeNavn !== 'Bronsefinale') {
+    // Regular rounds only: reset then mark loser as eliminated
     const { error: resetErr } = await supabase.from('resultat')
       .update({ runde_eliminert: null })
       .eq('stevneid', stevneId).eq('runde_eliminert', rundeNummer).in('kasterid', allKasterids)
     if (resetErr) { logError('bekreftCupKamp:reset', resetErr); return { error: resetErr } }
+    const { error: elimErr } = await supabase.from('resultat')
+      .update({ runde_eliminert: rundeNummer }).eq('stevneid', stevneId).eq('kasterid', eliminertId)
+    if (elimErr) { logError('bekreftCupKamp:eliminert', elimErr); return { error: elimErr } }
   }
-
-  // Loser is finally eliminated
-  const { error: elimErr } = await supabase.from('resultat')
-    .update({ runde_eliminert: rundeNummer }).eq('stevneid', stevneId).eq('kasterid', eliminertId)
-  if (elimErr) { logError('bekreftCupKamp:eliminert', elimErr); return { error: elimErr } }
 
   // Write final tournament placement for Finale and Bronsefinale
   const vinnerId = vidareIds[0] ?? null
@@ -506,18 +498,6 @@ export async function oppdaterVinnarTapar(params: {
   }
 
   if (erFinale || erBronsefinale) {
-    const { error: resetErr } = await supabase.from('resultat')
-      .update({ runde_eliminert: null })
-      .eq('stevneid', stevneId).in('kasterid', allKasterids)
-    if (resetErr) { logError('oppdaterVinnarTapar:reset', resetErr); return { error: resetErr } }
-
-    if (nyTaparId) {
-      const { error } = await supabase.from('resultat')
-        .update({ runde_eliminert: rundeNummer })
-        .eq('stevneid', stevneId).eq('kasterid', nyTaparId)
-      if (error) { logError('oppdaterVinnarTapar:tapar', error); return { error } }
-    }
-
     // Write final tournament placement
     if (erFinale) {
       if (nyVinnarId) {
