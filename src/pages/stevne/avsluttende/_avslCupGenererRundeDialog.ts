@@ -6,15 +6,12 @@ import {
 import { showToast } from '@/components/Toast'
 import { logError } from '@/utils/logError'
 import type { RundeOppsett, Runde1FormatTyped } from '@/types'
-import type { AvslResultatRow } from '@/services/resultatService'
-
-type AvslResultatKjent = AvslResultatRow & { kasterid: number }
-type AvslResultatMedNavn = AvslResultatKjent & { navn: string }
+import type { StillingRad } from '@/organizer/org-shared'
 
 export function opnGenererRundeDialog(
   stevneid: number,
   gruppeNavn: string,
-  stillingForGruppe: AvslResultatMedNavn[],
+  stillingForGruppe: StillingRad[],
   runde: number,
   runde1Format: Runde1FormatTyped | null,
   reload: () => Promise<void>,
@@ -46,9 +43,9 @@ export function opnGenererRundeDialog(
         ].map(({ label, pool }) => `
           <div class="flex-grow-1">
             <strong class="d-block mb-1">${escHtml(label)}</strong>
-            ${pool.map(r => `<div class="small">${escHtml(r.navn)} — ${r.kamp_poeng_innl ?? 0}p (${r.score_poeng_innl ?? 0})</div>`).join('')}
+            ${pool.map(r => `<div class="small">${escHtml(r.navn ?? '')} — ${r.kamp_poeng ?? 0}p (${r.score_poeng ?? 0})</div>`).join('')}
           </div>`).join('')
-      : aktive.map((r, i) => `<div class="small">${i + 1}. ${escHtml(r.navn)} — ${r.kamp_poeng_innl ?? 0}p (${r.score_poeng_innl ?? 0})</div>`).join('')
+      : aktive.map((r, i) => `<div class="small">${i + 1}. ${escHtml(r.navn ?? '')} — ${r.kamp_poeng ?? 0}p (${r.score_poeng ?? 0})</div>`).join('')
 
     modal.innerHTML = `
       <div class="card p-4 avsl-dialog-card-wide">
@@ -75,8 +72,8 @@ export function opnGenererRundeDialog(
       btn.disabled = true
       btn.textContent = 'Lagrer…'
       try {
+        const spelarar = aktive.map((r, i) => ({ kasterid: r.kasterid, plassering: i + 1 }))
         if (runde === 1) {
-          const spelarar = aktive.map((r, i) => ({ kasterid: r.kasterid, plassering: i + 1 }))
           const runde1FormatRecord: Record<string, RundeOppsett | undefined> = {
             A: runde1Format?.A ?? undefined,
             B: runde1Format?.B ?? undefined,
@@ -88,7 +85,7 @@ export function opnGenererRundeDialog(
             runde1Format ? runde1FormatRecord : null,
           )
         } else {
-          await genererNesteCupRundeForGruppe(stevneid, gruppeNavn, medSeedingVal)
+          await genererNesteCupRundeForGruppe(stevneid, gruppeNavn, medSeedingVal, spelarar)
         }
         modal.remove()
         await reload()

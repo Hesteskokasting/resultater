@@ -45,7 +45,7 @@ import {
 } from '@/services/stevneService'
 import { avmeldKanal } from '@/utils/realtime'
 import {
-  hentResultatForInnledende, oppdaterResultatHcp,
+  hentResultatForInnledende, oppdaterResultatHcp, skrivPlaseringar,
 } from '@/services/resultatService'
 
 // ── Variant API ───────────────────────────────────────────────────────────────
@@ -151,6 +151,8 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
 
         bannerSlot.querySelector('#fullfør-turnering-btn')?.addEventListener('click', async () => {
           if (!await confirmDialog({ title: 'Fullfør turnering', message: 'Vil du fullføre turneringa? Dette kan ikkje angrast.', danger: true })) return
+          const { error: plErr } = await skrivPlaseringar(stevneid, stilling)
+          if (plErr) { showToast('Feil ved lagring av plasseringar', 'error'); return }
           const { error } = await setStevneErfullfort(stevneid)
           if (error) { showToast('Feil ved lagring', 'error'); return }
           await lastOgVis(container, stevneid)

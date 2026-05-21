@@ -72,7 +72,6 @@ export async function oppdaterResultatHcp(stevneid: number, kasterid: number, hc
 
 const _avslResultatQuery = supabase.from('resultat').select(`
   kasterid, startnummer, plassering, runde_eliminert,
-  kamp_poeng_innl, score_poeng_innl,
   gruppe:gruppeid(id, navn)
 `)
 export type AvslResultatRow = QueryData<typeof _avslResultatQuery>[number]
@@ -82,7 +81,6 @@ export async function hentResultatForAvsluttende(stevneid: number): Promise<{ da
     .from('resultat')
     .select(`
       kasterid, startnummer, plassering, runde_eliminert,
-      kamp_poeng_innl, score_poeng_innl,
       gruppe:gruppeid(id, navn)
     `)
     .eq('stevneid', stevneid)
@@ -108,6 +106,21 @@ export async function setGruppeInndeling(
   )
   const err = results.find(r => r.error)?.error ?? null
   if (err) logError('setGruppeInndeling', err)
+  return { error: err }
+}
+
+export async function skrivPlaseringar(
+  stevneid: number,
+  stilling: { kasterid: number }[],
+): Promise<{ error: unknown }> {
+  if (!stilling.length) return { error: null }
+  const results = await Promise.all(
+    stilling.map((r, i) =>
+      supabase.from('resultat').update({ plassering: i + 1 }).eq('stevneid', stevneid).eq('kasterid', r.kasterid),
+    ),
+  )
+  const err = results.find(r => r.error)?.error ?? null
+  if (err) logError('skrivPlaseringar', err)
   return { error: err }
 }
 
