@@ -239,7 +239,7 @@ export async function genererFinaleOgBronsefinale(
   for (const kid of taparar) {
     if (kid == null) continue
     await supabase.from('resultat')
-      .update({ runde_eliminert: typedSemi[0].runde_nummer, plassering: 3 })
+      .update({ runde_eliminert: typedSemi[0].runde_nummer })
       .eq('stevneid', stevneid).eq('kasterid', kid)
   }
 }

@@ -109,6 +109,21 @@ export async function setGruppeInndeling(
   return { error: err }
 }
 
+export async function skrivPlaseringar(
+  stevneid: number,
+  stilling: { kasterid: number }[],
+): Promise<{ error: unknown }> {
+  if (!stilling.length) return { error: null }
+  const results = await Promise.all(
+    stilling.map((r, i) =>
+      supabase.from('resultat').update({ plassering: i + 1 }).eq('stevneid', stevneid).eq('kasterid', r.kasterid),
+    ),
+  )
+  const err = results.find(r => r.error)?.error ?? null
+  if (err) logError('skrivPlaseringar', err)
+  return { error: err }
+}
+
 export async function clearGruppeInndeling(stevneid: number): Promise<{ error: unknown }> {
   const { error } = await supabase.from('resultat').update({ gruppeid: null }).eq('stevneid', stevneid)
   if (error) logError('clearGruppeInndeling', error)

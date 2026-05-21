@@ -338,37 +338,14 @@ export async function bekreftAvsluttendeKamp(params: {
 
   if (eliminertId == null) return { error: null }
 
-  const erFinale = rundeNavn === 'Finale'
-  const erBronsefinale = rundeNavn === 'Bronsefinale'
-  const elimUpdate = (erFinale || erBronsefinale)
-    ? { runde_eliminert: rundeNummer, plassering: erFinale ? 2 : 4 }
-    : { runde_eliminert: rundeNummer }
-
   const { error: elimErr } = await supabase
     .from('resultat')
-    .update(elimUpdate)
+    .update({ runde_eliminert: rundeNummer })
     .eq('stevneid', stevneId)
     .eq('kasterid', eliminertId)
   if (elimErr) {
     logError('bekreftAvsluttendeKamp:eliminert', elimErr)
     return { error: elimErr }
-  }
-
-  if (erFinale || erBronsefinale) {
-    const vinnarId = orderedKasterids
-      ? orderedKasterids[0]
-      : (eliminertId === p2?.kasterid ? p1?.kasterid : p2?.kasterid)
-    if (vinnarId != null) {
-      const { error: vinnarErr } = await supabase
-        .from('resultat')
-        .update({ plassering: erFinale ? 1 : 3 })
-        .eq('stevneid', stevneId)
-        .eq('kasterid', vinnarId)
-      if (vinnarErr) {
-        logError('bekreftAvsluttendeKamp:vinnar', vinnarErr)
-        return { error: vinnarErr }
-      }
-    }
   }
 
   return { error: null }
@@ -451,7 +428,7 @@ export async function bekreftCupKamp(params: {
 
   if (erFinale) {
     const { error } = await supabase.from('resultat')
-      .update({ runde_eliminert: null, plassering: null })
+      .update({ runde_eliminert: null })
       .eq('stevneid', stevneId).in('kasterid', allKasterids)
     if (error) { logError('bekreftCupKamp:reset', error); return { error } }
   } else {
@@ -461,21 +438,13 @@ export async function bekreftCupKamp(params: {
     if (error) { logError('bekreftCupKamp:reset', error); return { error } }
   }
 
-  const elimUpdate = erFinale
-    ? { runde_eliminert: rundeNummer, plassering: rundeNavn === 'Finale' ? 2 : 4 }
-    : { runde_eliminert: rundeNummer }
   const { error: elimErr } = await supabase.from('resultat')
-    .update(elimUpdate).eq('stevneid', stevneId).eq('kasterid', eliminertId)
+    .update({ runde_eliminert: rundeNummer }).eq('stevneid', stevneId).eq('kasterid', eliminertId)
   if (elimErr) { logError('bekreftCupKamp:eliminert', elimErr); return { error: elimErr } }
 
-  if (rundeNavn === 'Finale' && vidareIds.length > 0) {
-    const { error } = await supabase.from('resultat')
-      .update({ plassering: 1 }).eq('stevneid', stevneId).eq('kasterid', vidareIds[0])
-    if (error) { logError('bekreftCupKamp:vinnar', error); return { error } }
-  }
   if (rundeNavn === 'Bronsefinale' && vidareIds.length > 0) {
     const { error } = await supabase.from('resultat')
-      .update({ plassering: 3, runde_eliminert: rundeNummer })
+      .update({ runde_eliminert: rundeNummer })
       .eq('stevneid', stevneId).eq('kasterid', vidareIds[0])
     if (error) { logError('bekreftCupKamp:bronsefinale', error); return { error } }
   }
@@ -497,19 +466,18 @@ export async function oppdaterVinnarTapar(params: {
 
   if (erFinale || erBronsefinale) {
     const { error: resetErr } = await supabase.from('resultat')
-      .update({ runde_eliminert: null, plassering: null })
+      .update({ runde_eliminert: null })
       .eq('stevneid', stevneId).in('kasterid', allKasterids)
     if (resetErr) { logError('oppdaterVinnarTapar:reset', resetErr); return { error: resetErr } }
     if (nyTaparId) {
       const { error } = await supabase.from('resultat')
-        .update({ runde_eliminert: rundeNummer, plassering: erFinale ? 2 : 4 })
+        .update({ runde_eliminert: rundeNummer })
         .eq('stevneid', stevneId).eq('kasterid', nyTaparId)
       if (error) { logError('oppdaterVinnarTapar:tapar', error); return { error } }
     }
-    const vinUpdate = erFinale ? { plassering: 1 } : { runde_eliminert: rundeNummer, plassering: 3 }
-    if (nyVinnarId) {
+    if (erBronsefinale && nyVinnarId) {
       const { error } = await supabase.from('resultat')
-        .update(vinUpdate).eq('stevneid', stevneId).eq('kasterid', nyVinnarId)
+        .update({ runde_eliminert: rundeNummer }).eq('stevneid', stevneId).eq('kasterid', nyVinnarId)
       if (error) { logError('oppdaterVinnarTapar:vinnar', error); return { error } }
     }
   } else {

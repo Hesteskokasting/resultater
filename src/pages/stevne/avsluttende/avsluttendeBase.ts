@@ -46,6 +46,7 @@ import {
 import {
   hentResultatForAvsluttende,
   hentGrupper,
+  skrivPlaseringar,
   type AvslResultatRow,
 } from '@/services/resultatService'
 import type { Runde1FormatTyped, Json } from '@/types'
@@ -228,6 +229,8 @@ export function createAvsluttendeRenderer(variant: AvsluttendeVariant) {
 
       bannerSlot?.querySelector('#fullfør-turnering-btn')?.addEventListener('click', async () => {
         if (!await confirmDialog({ title: 'Fullfør turnering', message: 'Vil du fullføre turneringa? Dette kan ikkje angrast.', danger: true })) return
+        const { error: plErr } = await skrivPlaseringar(stevneid, stilling)
+        if (plErr) { showToast('Feil ved lagring av plasseringar', 'error'); return }
         const { error } = await setStevneErfullfort(stevneid)
         if (error) { showToast('Feil ved fullføring av turnering', 'error'); return }
         await lastOgVis(container, stevneid)
