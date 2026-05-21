@@ -183,6 +183,7 @@ src/
 - **NEVER** run `git add`, `git commit`, `git push`, or any branch operation unless explicitly asked.
 - Suggest commits and commit messages — don't execute them.
 - For complex changes, create small committable steps and wait for approval before proceeding.
+- **Always end responses that change code or apply migrations with a short suggested commit message** — one subject line plus a brief body explaining the why, not the what.
 
 ---
 

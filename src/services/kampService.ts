@@ -338,17 +338,6 @@ export async function bekreftAvsluttendeKamp(params: {
   })
   if (error) { logError('bekreftAvsluttendeKamp', error); return { error } }
 
-  // Write per-match rank to kamp_spelar for display
-  if (orderedKasterids?.length === 3) {
-    await setKampSpelarPlaseringar(kampId, orderedKasterids.map((kid, i) => ({ kasterid: kid, plassering: i + 1 })))
-  } else if (p1 && p2 && eliminertId != null) {
-    const winnerId = eliminertId === p1.kasterid ? p2.kasterid : p1.kasterid
-    await setKampSpelarPlaseringar(kampId, [
-      { kasterid: winnerId, plassering: 1 },
-      { kasterid: eliminertId, plassering: 2 },
-    ])
-  }
-
   return { error: null }
 }
 
