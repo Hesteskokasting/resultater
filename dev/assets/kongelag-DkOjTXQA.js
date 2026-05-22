@@ -1,1 +1,0 @@
-import{et as e}from"./index-BFZ4Td0n.js";async function t(t,n,r=null){t.replaceChildren(e(`Kongelag-organisering er ikkje implementert enno.`))}export{t as render};
