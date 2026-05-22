@@ -139,17 +139,29 @@ Når du koplar inn Supabase-migrering i CI, trengst òg:
 
 ```
 src/
-├── index.html          # Inngangspunkt
-├── app.js              # SPA-ruter
-├── supabase.ts         # Supabase-klient
-├── global.css          # Globale stilar og tema (mørk/lys)
-├── styles.css          # App-stilar
-├── pages/              # Sider (home, resultat, kastere, osv.)
-├── admin/              # Admin-sider
-├── organizer/          # Stevne-arrangør-verktøy
-├── scoring/            # Scoringsystem
-└── utils/              # Delt logikk
+├── app.ts                  # SPA-ruter
+├── supabase.ts             # Supabase-klient
+├── admin/                  # Admin-sider (kaster, klubb, stevne)
+├── components/             # Gjenbrukbare UI-faktoriar (create<Name>)
+│   ├── ConfirmDialog.ts
+│   ├── EmptyState.ts
+│   ├── ErrorBanner.ts
+│   ├── LoadingState.ts
+│   ├── PromptDialog.ts
+│   ├── Scoreboard.ts
+│   ├── ScoreNumberpad.ts
+│   ├── Table.ts
+│   ├── Tabs.ts
+│   └── Toast.ts
+├── organizer/              # Stevne-arrangør-verktøy (gruppefordeling, startkort)
+├── pages/                  # Tynne rutehandterar; koplar komponentar + tenester
+│   └── stevne/             # Stevne-undersider
+│       ├── innledende/     # Kastemetode-spesifikk innledende-logikk
+│       └── avsluttende/    # Kastemetode-spesifikk avsluttende-logikk
+├── services/               # Alle Supabase-spørjingar og eksterne API-kall
+├── types/                  # Delte typar, inkl. generert database.types.ts
+└── utils/                  # Reine hjelpe­funksjonar (ingen Supabase, ingen DOM)
 
 supabase/
-└── migrations/         # SQL-migreringsfiler
+└── migrations/             # SQL-migreringsfiler
 ```
