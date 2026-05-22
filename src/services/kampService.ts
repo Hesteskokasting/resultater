@@ -4,12 +4,12 @@ import { logError } from '@/utils/logError'
 import { beregnKampPoeng } from '@/utils/kamp'
 
 const _kampSpelarQuery = supabase.from('kamp_spelar').select(`
-  id, kasterid, posisjon,
+  id, kasterid,
   kamp:kampid(
     id, stevneid, fase, runde_nummer, bane_nummer, er_bekreftet, er_walkover,
     stevne:stevneid(id, navn, erfullfort),
     spelarar:kamp_spelar(
-      id, kasterid, posisjon,
+      id, kasterid,
       kaster:kasterid(id, fornavn, etternavn)
     )
   )
@@ -21,12 +21,12 @@ export async function hentMineKampar(kasterid: number): Promise<{ data: KampSpel
   const { data, error } = await supabase
     .from('kamp_spelar')
     .select(`
-      id, kasterid, posisjon,
+      id, kasterid,
       kamp:kampid(
         id, stevneid, fase, runde_nummer, bane_nummer, er_bekreftet, er_walkover,
         stevne:stevneid(id, navn, erfullfort),
         spelarar:kamp_spelar(
-          id, kasterid, posisjon,
+          id, kasterid,
           kaster:kasterid(id, fornavn, etternavn)
         )
       )
@@ -45,7 +45,7 @@ const _kampScoreboardQuery = supabase
     er_bekreftet, er_walkover, er_tre_spelarar,
     stevne:stevneid(navn),
     spelarar:kamp_spelar(
-      id, kasterid, posisjon, score_poeng, kamp_poeng, antall_ringer,
+      id, kasterid, score_poeng, kamp_poeng, antall_ringer,
       kaster:kasterid(id, fornavn, etternavn)
     )
   `)
@@ -58,7 +58,7 @@ export type KampSpelarIKamp = KampRow['spelarar'][number]
 const _innlKamperQuery = supabase.from('kamp').select(`
   id, stevneid, runde_nummer, bane_nummer, er_bekreftet, er_walkover, fase,
   spelarar:kamp_spelar(
-    id, kasterid, score_poeng, kamp_poeng, antall_ringer, posisjon,
+    id, kasterid, score_poeng, kamp_poeng, antall_ringer,
     kaster:kasterid(id, fornavn, etternavn, klubb:klubbid(kortnavn, navn)),
     omgangar:kamp_omgang(score, antall_ringer)
   )
@@ -72,7 +72,7 @@ export async function hentInnledendeKamper(stevneid: number): Promise<{ data: In
     .select(`
       id, stevneid, runde_nummer, bane_nummer, er_bekreftet, er_walkover, fase,
       spelarar:kamp_spelar(
-        id, kasterid, score_poeng, kamp_poeng, antall_ringer, posisjon,
+        id, kasterid, score_poeng, kamp_poeng, antall_ringer,
         kaster:kasterid(id, fornavn, etternavn, klubb:klubbid(kortnavn, navn)),
         omgangar:kamp_omgang(score, antall_ringer)
       )
@@ -134,7 +134,7 @@ export async function hentKamp(id: number): Promise<{ data: KampRow | null; erro
       er_bekreftet, er_walkover, er_tre_spelarar,
       stevne:stevneid(navn),
       spelarar:kamp_spelar(
-        id, kasterid, posisjon, score_poeng, kamp_poeng, antall_ringer,
+        id, kasterid, score_poeng, kamp_poeng, antall_ringer,
         kaster:kasterid(id, fornavn, etternavn)
       )
     `)
@@ -347,7 +347,7 @@ const _avslKamperQuery = supabase.from('kamp').select(`
   id, fase, runde_nummer, bane_nummer, gruppe_navn, runde_navn,
   er_bekreftet, er_walkover, er_tre_spelarar,
   spelarar:kamp_spelar(
-    id, kasterid, posisjon, score_poeng, kamp_poeng, antall_ringer, kamp_plassering,
+    id, kasterid, score_poeng, kamp_poeng, antall_ringer, kamp_plassering,
     kaster:kasterid(fornavn, etternavn),
     omgangar:kamp_omgang(score, antall_ringer)
   )
@@ -367,7 +367,7 @@ export async function hentAvsluttendeKamper(stevneid: number): Promise<{ data: A
       id, fase, runde_nummer, bane_nummer, gruppe_navn, runde_navn,
       er_bekreftet, er_walkover, er_tre_spelarar,
       spelarar:kamp_spelar(
-        id, kasterid, posisjon, score_poeng, kamp_poeng, antall_ringer, kamp_plassering,
+        id, kasterid, score_poeng, kamp_poeng, antall_ringer, kamp_plassering,
         kaster:kasterid(fornavn, etternavn),
         omgangar:kamp_omgang(score, antall_ringer)
       )

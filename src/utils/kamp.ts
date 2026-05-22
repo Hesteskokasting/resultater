@@ -8,9 +8,8 @@ export interface SpelarRinger {
   omgangar?: { antall_ringer?: number | null }[] | null
 }
 
-export interface SpelarMedPosit {
+export interface SpelarMedKasterid {
   kasterid: number
-  posisjon?: number | null
 }
 
 export function beregnKampPoeng(s1: number, s2: number): [number, number] {
@@ -19,15 +18,11 @@ export function beregnKampPoeng(s1: number, s2: number): [number, number] {
   return [s1 >= 11 ? 1 : 0, 2]
 }
 
-export function hentP1P2<T extends SpelarMedPosit>(
+export function hentP1P2<T extends SpelarMedKasterid>(
   spelarar: T[] | null | undefined,
   startnrMap: Record<number, number>,
 ): [T | null, T | null] {
-  const sp = spelarar ?? []
-  if (sp.some(s => s.posisjon != null)) {
-    return [sp.find(s => s.posisjon === 1) ?? null, sp.find(s => s.posisjon === 2) ?? null]
-  }
-  const sorted = [...sp].sort(
+  const sorted = [...(spelarar ?? [])].sort(
     (a, b) => (startnrMap[a.kasterid] ?? Infinity) - (startnrMap[b.kasterid] ?? Infinity),
   )
   return [sorted[0] ?? null, sorted[1] ?? null]

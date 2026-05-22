@@ -105,7 +105,6 @@ function toOrgSp(sp: AvslKampSpelarRow[]) {
     kasterid: s.kasterid ?? 0,
     kamp_poeng: s.kamp_poeng ?? 0,
     score_poeng: s.score_poeng ?? 0,
-    posisjon: s.posisjon,
     antall_ringer: s.antall_ringer,
     omgangar: s.omgangar,
     kaster: s.kaster,

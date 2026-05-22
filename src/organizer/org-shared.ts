@@ -8,7 +8,6 @@ export interface OrgKampSpelar {
   kasterid: number
   kamp_poeng: number
   score_poeng: number
-  posisjon?: number | null
   antall_ringer?: number | null
   omgangar?: Pick<Tables<'kamp_omgang'>, 'score' | 'antall_ringer'>[] | null
   kaster?: { fornavn: string; etternavn: string } | null

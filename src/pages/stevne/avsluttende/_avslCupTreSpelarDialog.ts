@@ -11,7 +11,7 @@ export function opnTreSpelarBekreftDialog(
   const navns = sp.map(s =>
     s?.kaster
       ? `${escHtml(s.kaster.fornavn)} ${escHtml(s.kaster.etternavn)}`
-      : `Spelar ${s?.posisjon ?? '?'}`
+      : 'Spelar ?'
   )
   const valt: number[] = []
 

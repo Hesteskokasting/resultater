@@ -1,4 +1,4 @@
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -203,7 +203,6 @@ export type Database = {
           kamp_poeng: number
           kampid: number
           kasterid: number
-          posisjon: number | null
           score_poeng: number
         }
         Insert: {
@@ -213,7 +212,6 @@ export type Database = {
           kamp_poeng?: number
           kampid: number
           kasterid: number
-          posisjon?: number | null
           score_poeng?: number
         }
         Update: {
@@ -223,7 +221,6 @@ export type Database = {
           kamp_poeng?: number
           kampid?: number
           kasterid?: number
-          posisjon?: number | null
           score_poeng?: number
         }
         Relationships: [

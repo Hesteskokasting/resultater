@@ -59,11 +59,9 @@ export async function render(container: HTMLElement, { id }: { id: number }): Pr
   const erArrangor = rolle === 'admin' || rolle === 'klubbadmin'
   const erDeltakar = kasterid != null && spelarar.some(s => s.kasterid === kasterid)
 
-  const p1ks: KampSpelarIKamp | null = spelarar.find(s => s.posisjon === 1) ?? spelarar[0] ?? null
-  const p2ks: KampSpelarIKamp | null = spelarar.find(s => s.posisjon === 2) ?? spelarar[1] ?? null
-  const p3ks: KampSpelarIKamp | null = kamp.er_tre_spelarar
-    ? (spelarar.find(s => s.posisjon === 3) ?? spelarar[2] ?? null)
-    : null
+  const p1ks: KampSpelarIKamp | null = spelarar[0] ?? null
+  const p2ks: KampSpelarIKamp | null = spelarar[1] ?? null
+  const p3ks: KampSpelarIKamp | null = kamp.er_tre_spelarar ? (spelarar[2] ?? null) : null
 
   const hcp1 = p1ks ? (hcpMap.get(p1ks.kasterid) ?? 0) : 0
   const hcp2 = p2ks ? (hcpMap.get(p2ks.kasterid) ?? 0) : 0

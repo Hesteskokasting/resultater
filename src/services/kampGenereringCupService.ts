@@ -9,7 +9,7 @@ function genMatchId(): string {
 
 interface KampMedBane { id: number; bane_nummer: number | null }
 interface KampMedMatchId { id: number; match_id: string }
-interface KampSpelarInsert { kampid: number; kasterid: number; posisjon: number; score_poeng: number; kamp_poeng: number; antall_ringer: number }
+interface KampSpelarInsert { kampid: number; kasterid: number; score_poeng: number; kamp_poeng: number; antall_ringer: number }
 
 interface GruppeForCup {
   gruppeNavn: string | null
@@ -58,7 +58,7 @@ async function _insertCupParingar(
   for (let i = 0; i < paringar.length; i++) {
     const kampid = matchIdMap[matchIds[i]]
     paringar[i].spelarar.forEach((kasterid, pos) => {
-      spelarRader.push({ kampid, kasterid: kasterid as number, posisjon: pos + 1, score_poeng: 0, kamp_poeng: 0, antall_ringer: 0 })
+      spelarRader.push({ kampid, kasterid: kasterid as number, score_poeng: 0, kamp_poeng: 0, antall_ringer: 0 })
     })
   }
 
@@ -169,7 +169,6 @@ export async function genererFinaleOgBronsefinale(
     id: number
     kasterid: number | null
     score_poeng: number
-    posisjon: number | null
     omgangar: { score: number | null }[] | null
   }
   interface SemiKamp {
@@ -180,7 +179,7 @@ export async function genererFinaleOgBronsefinale(
 
   const { data: semikampar } = await supabase
     .from('kamp')
-    .select('id, runde_nummer, spelarar:kamp_spelar(id, kasterid, score_poeng, posisjon, omgangar:kamp_omgang(score))')
+    .select('id, runde_nummer, spelarar:kamp_spelar(id, kasterid, score_poeng, omgangar:kamp_omgang(score))')
     .eq('stevneid', stevneid)
     .eq('fase', 'avsluttende')
     .eq('gruppe_navn', gruppeNavn)
@@ -231,8 +230,8 @@ export async function genererFinaleOgBronsefinale(
   const bronseId = typedKampar.find(k => k.runde_navn === 'Bronsefinale')!.id
 
   const spelarRader: KampSpelarInsert[] = [
-    ...vinnarar.filter((k): k is number => k != null).map((kid, i) => ({ kampid: finaleId, kasterid: kid, posisjon: i + 1, score_poeng: 0, kamp_poeng: 0, antall_ringer: 0 })),
-    ...taparar.filter((k): k is number => k != null).map((kid, i) => ({ kampid: bronseId, kasterid: kid, posisjon: i + 1, score_poeng: 0, kamp_poeng: 0, antall_ringer: 0 })),
+    ...vinnarar.filter((k): k is number => k != null).map((kid, i) => ({ kampid: finaleId, kasterid: kid, score_poeng: 0, kamp_poeng: 0, antall_ringer: 0 })),
+    ...taparar.filter((k): k is number => k != null).map((kid, i) => ({ kampid: bronseId, kasterid: kid, score_poeng: 0, kamp_poeng: 0, antall_ringer: 0 })),
   ]
   const { error: spErr } = await supabase.from('kamp_spelar').insert(spelarRader)
   if (spErr) throw new Error('Feil: ' + spErr.message)

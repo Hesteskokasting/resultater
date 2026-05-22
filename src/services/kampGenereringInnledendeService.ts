@@ -7,7 +7,7 @@ function genMatchId(): string {
 
 interface KampPar { p1Pos: number; p2Pos: number | null; erWalkover: boolean }
 interface KampMedBane { id: number; bane_nummer: number | null }
-interface KampSpelarInsert { kampid: number; kasterid: number; posisjon: number; score_poeng: number; kamp_poeng: number; antall_ringer: number }
+interface KampSpelarInsert { kampid: number; kasterid: number; score_poeng: number; kamp_poeng: number; antall_ringer: number }
 
 export async function genererInnledendeKamper(
   stevneid: number,
@@ -96,8 +96,8 @@ async function _insertCascadeMatches(
       const kampid = baneToKampId[bane]
       const { p1Pos, p2Pos, erWalkover } = kampPairs[ci]
 
-      spelarRader.push({ kampid, kasterid: posToKasterid[p1Pos], posisjon: 1, score_poeng: 0, kamp_poeng: 0, antall_ringer: 0 })
-      if (!erWalkover) spelarRader.push({ kampid, kasterid: posToKasterid[p2Pos!], posisjon: 2, score_poeng: 0, kamp_poeng: 0, antall_ringer: 0 })
+      spelarRader.push({ kampid, kasterid: posToKasterid[p1Pos], score_poeng: 0, kamp_poeng: 0, antall_ringer: 0 })
+      if (!erWalkover) spelarRader.push({ kampid, kasterid: posToKasterid[p2Pos!], score_poeng: 0, kamp_poeng: 0, antall_ringer: 0 })
     }
 
     const { error: spErr } = await supabase.from('kamp_spelar').insert(spelarRader)
@@ -149,8 +149,8 @@ async function _insertSwissRunde1(
     const kampid = baneToKampId[bane]
     const { p1Pos, p2Pos, erWalkover } = kampPairs[ci]
 
-    spelarRader.push({ kampid, kasterid: posToKasterid[p1Pos], posisjon: 1, score_poeng: 0, kamp_poeng: 0, antall_ringer: 0 })
-    if (!erWalkover) spelarRader.push({ kampid, kasterid: posToKasterid[p2Pos!], posisjon: 2, score_poeng: 0, kamp_poeng: 0, antall_ringer: 0 })
+    spelarRader.push({ kampid, kasterid: posToKasterid[p1Pos], score_poeng: 0, kamp_poeng: 0, antall_ringer: 0 })
+    if (!erWalkover) spelarRader.push({ kampid, kasterid: posToKasterid[p2Pos!], score_poeng: 0, kamp_poeng: 0, antall_ringer: 0 })
   }
 
   const { error: spErr } = await supabase.from('kamp_spelar').insert(spelarRader)
@@ -164,7 +164,7 @@ export async function genererNesteSwissRunde(
 ): Promise<{ rundeNummer: number; antallKampar: number }> {
   const { data: rawKampar, error } = await supabase
     .from('kamp')
-    .select('id, runde_nummer, er_bekreftet, er_walkover, spelarar:kamp_spelar(kasterid, kamp_poeng, score_poeng, posisjon)')
+    .select('id, runde_nummer, er_bekreftet, er_walkover, spelarar:kamp_spelar(kasterid, kamp_poeng, score_poeng)')
     .eq('stevneid', stevneid)
     .eq('fase', 'innledende')
     .order('runde_nummer')
@@ -198,9 +198,9 @@ export async function genererNesteSwissRunde(
 
   const byes: Record<number, number> = {}
   for (const kid of kasteridListe) byes[kid] = 0
-  for (const kamp of (rawKampar as { er_walkover: boolean; spelarar: { kasterid: number | null; posisjon: number | null }[] | null }[])) {
+  for (const kamp of (rawKampar as { er_walkover: boolean; spelarar: { kasterid: number | null }[] | null }[])) {
     if (!kamp.er_walkover) continue
-    const p1 = (kamp.spelarar ?? []).find(s => s.posisjon === 1)
+    const p1 = (kamp.spelarar ?? [])[0]
     if (p1?.kasterid != null) byes[p1.kasterid] = (byes[p1.kasterid] ?? 0) + 1
   }
 
@@ -291,8 +291,8 @@ export async function genererNesteSwissRunde(
   for (let i = 0; i < pairs.length; i++) {
     const { p1, p2, erWalkover } = pairs[i]
     const kampid = baneToKampId[i + 1]
-    spelarRader.push({ kampid, kasterid: p1, posisjon: 1, score_poeng: 0, kamp_poeng: 0, antall_ringer: 0 })
-    if (!erWalkover) spelarRader.push({ kampid, kasterid: p2!, posisjon: 2, score_poeng: 0, kamp_poeng: 0, antall_ringer: 0 })
+    spelarRader.push({ kampid, kasterid: p1, score_poeng: 0, kamp_poeng: 0, antall_ringer: 0 })
+    if (!erWalkover) spelarRader.push({ kampid, kasterid: p2!, score_poeng: 0, kamp_poeng: 0, antall_ringer: 0 })
   }
 
   const { error: spErr } = await supabase.from('kamp_spelar').insert(spelarRader)

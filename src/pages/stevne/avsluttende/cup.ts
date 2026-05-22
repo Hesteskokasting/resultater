@@ -349,7 +349,6 @@ function toOrgSp(sp: AvslKampSpelarRow[]) {
     kasterid: s.kasterid ?? 0,
     kamp_poeng: s.kamp_poeng ?? 0,
     score_poeng: s.score_poeng ?? 0,
-    posisjon: s.posisjon,
     antall_ringer: s.antall_ringer,
     omgangar: s.omgangar,
     kaster: s.kaster,
@@ -366,7 +365,7 @@ function bindKampEvents(
   reload: () => Promise<void>,
 ): void {
   for (const kamp of avslKampar) {
-    const sp = kamp.spelarar.slice().sort((a, b) => (a.posisjon ?? 0) - (b.posisjon ?? 0))
+    const sp = kamp.spelarar.slice()
 
     container.querySelector(`#plus-${kamp.id}`)?.addEventListener('click', async () => {
       const p1 = sp[0]
