@@ -7,6 +7,7 @@ import { renderScoreboard } from '@/components/Scoreboard'
 import {
   hentKamp,
   hentHcp,
+  hentStartnrMap,
   hentNesteKampOrganisator,
   hentNesteKampDeltakar,
   erDeltakarIKamp,
@@ -42,7 +43,10 @@ export async function render(container: HTMLElement, { id }: { id: number }): Pr
   }
 
   const kasterids = (kamp.spelarar ?? []).map(s => s.kasterid).filter((id): id is number => id != null)
-  const hcpMap = await hentHcp(kamp.stevneid, kasterids)
+  const [hcpMap, startnrMap] = await Promise.all([
+    hentHcp(kamp.stevneid, kasterids),
+    hentStartnrMap(kamp.stevneid, kasterids),
+  ])
 
   const hovudHeader = document.querySelector<HTMLElement>('.topp-header')
   if (hovudHeader) hovudHeader.classList.add('skjult')
@@ -53,7 +57,9 @@ export async function render(container: HTMLElement, { id }: { id: number }): Pr
     container.classList.remove('sb-fullskjerm-modus')
   }, { once: true })
 
-  const spelarar = kamp.spelarar ?? []
+  const spelarar = [...(kamp.spelarar ?? [])].sort(
+    (a, b) => (startnrMap[a.kasterid] ?? Infinity) - (startnrMap[b.kasterid] ?? Infinity),
+  )
   const kasterid = auth?.profil?.kasterid ?? null
   const rolle = auth?.profil?.rolle ?? null
   const erArrangor = rolle === 'admin' || rolle === 'klubbadmin'

@@ -162,6 +162,24 @@ export async function hentHcp(
   )
 }
 
+export async function hentStartnrMap(
+  stevneId: number,
+  kasterids: number[],
+): Promise<Record<number, number>> {
+  if (!kasterids.length) return {}
+  const { data, error } = await supabase
+    .from('resultat')
+    .select('kasterid, startnummer')
+    .eq('stevneid', stevneId)
+    .in('kasterid', kasterids)
+  if (error) logError('hentStartnrMap', error)
+  return Object.fromEntries(
+    (data ?? [])
+      .filter((r): r is typeof r & { kasterid: number; startnummer: number } => r.kasterid != null && r.startnummer != null)
+      .map(r => [r.kasterid, r.startnummer]),
+  )
+}
+
 export async function hentNesteKampOrganisator(
   stevneId: number,
   baneNummer: number,

@@ -68,7 +68,7 @@ const cupVariant: AvsluttendeVariant = {
 
   bindKamparEvents: (container, ctx) => {
     if (!ctx.isAdmin && ctx.avslKampar.length === 0) return
-    bindKampEvents(container, ctx.stevneid, ctx.avslKampar, ctx.isAdmin, ctx.reload)
+    bindKampEvents(container, ctx.stevneid, ctx.avslKampar, ctx.isAdmin, ctx.reload, ctx.startnrMap)
   },
 
   renderSetupHtml: (ctx) => {
@@ -363,9 +363,12 @@ function bindKampEvents(
   avslKampar: AvslKampRow[],
   isAdminLocal: boolean,
   reload: () => Promise<void>,
+  startnrMap: Record<number, number>,
 ): void {
   for (const kamp of avslKampar) {
-    const sp = kamp.spelarar.slice()
+    const sp = kamp.spelarar.slice().sort(
+      (a, b) => (startnrMap[a.kasterid ?? 0] ?? Infinity) - (startnrMap[b.kasterid ?? 0] ?? Infinity),
+    )
 
     container.querySelector(`#plus-${kamp.id}`)?.addEventListener('click', async () => {
       const p1 = sp[0]
