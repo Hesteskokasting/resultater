@@ -1,0 +1,1 @@
+import{et as e}from"./index-Bsi1D6xh.js";async function t(t,n,r=null){t.replaceChildren(e(`X-kast-organisering er ikkje implementert enno.`))}export{t as render};
