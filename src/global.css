@@ -242,6 +242,11 @@ textarea:focus {
   border-color: var(--primaer);
   color: var(--tekst);
 }
+.toast-warning {
+  background: color-mix(in srgb, #f59e0b 15%, var(--flate));
+  border-color: #f59e0b;
+  color: var(--tekst);
+}
 
 /* Theme-aware table header — dark bg in dark mode, white bg in light mode */
 .org-thead th {

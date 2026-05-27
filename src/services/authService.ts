@@ -15,6 +15,7 @@ export function isProfil(obj: unknown): obj is Profil {
 
 // Cache per sesjon. Tømt ved SIGNED_OUT / ny innlogging.
 let _cache: AuthUser | null = null
+let _intentionalSignOut = false
 
 async function _hentCache(): Promise<AuthUser | null> {
   if (_cache) return _cache
@@ -59,6 +60,7 @@ export async function erKlubbadmin(klubbId: number | string | null = null): Prom
 }
 
 export async function loggUt(): Promise<void> {
+  _intentionalSignOut = true
   _cache = null
   await supabase.auth.signOut()
 }
@@ -78,5 +80,7 @@ supabase.auth.onAuthStateChange((event) => {
   } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
     _cache = null // tving re-henting med ny sesjon
   }
-  document.dispatchEvent(new CustomEvent('authStateChanged', { detail: event }))
+  const intentional = _intentionalSignOut
+  if (event === 'SIGNED_OUT') _intentionalSignOut = false
+  document.dispatchEvent(new CustomEvent('authStateChanged', { detail: { event, intentional } }))
 })

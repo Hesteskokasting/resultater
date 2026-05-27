@@ -18,6 +18,7 @@ import { render as renderKamp }           from './pages/kamp'
 import { render as renderStevne }         from './pages/stevne'
 import { getUser, erAdmin, erKlubbadmin, loggUt } from './services/authService'
 import { createErrorBanner } from './components/ErrorBanner'
+import { showToast } from './components/Toast'
 
 if (import.meta.env.VITE_ENV === 'dev') {
   const versjonEl = document.querySelector('.header-versjon')
@@ -134,6 +135,10 @@ document.addEventListener('DOMContentLoaded', () => {
   naviger()
 })
 
-document.addEventListener('authStateChanged', () => {
+document.addEventListener('authStateChanged', (e) => {
+  const { event, intentional } = (e as CustomEvent<{ event: string; intentional: boolean }>).detail
   oppdaterAuthMeny()
+  if (event === 'SIGNED_OUT' && !intentional) {
+    showToast('Sesjonen din er utløpt. Logg inn igjen for å halde fram.', 'warning', true)
+  }
 })

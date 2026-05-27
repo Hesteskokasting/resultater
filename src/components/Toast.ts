@@ -9,11 +9,11 @@ function getContainer(): HTMLElement {
   return _container
 }
 
-export function showToast(message: string, type: 'error' | 'success' | 'info' = 'info'): void {
+export function showToast(message: string, type: 'error' | 'success' | 'info' | 'warning' = 'info', persistent = false): void {
   const el = document.createElement('div')
   el.className = `toast-item toast-${type}`
   el.textContent = message
   el.addEventListener('click', () => el.remove())
   getContainer().appendChild(el)
-  setTimeout(() => { el.remove() }, 4000)
+  if (!persistent) setTimeout(() => { el.remove() }, 4000)
 }

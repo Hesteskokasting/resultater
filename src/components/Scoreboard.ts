@@ -66,7 +66,17 @@ export async function renderScoreboard(
     async () => { kamp.er_bekreftet = true; await lastOmgangar(); tegn(); await onKampBekreft?.() },
   )
 
-  window.addEventListener('hashchange', () => void avmeldKanal(kanal), { once: true })
+  const onVisible = async () => {
+    if (document.visibilityState !== 'visible') return
+    await lastOmgangar()
+    tegn()
+  }
+  document.addEventListener('visibilitychange', onVisible)
+
+  window.addEventListener('hashchange', () => {
+    void avmeldKanal(kanal)
+    document.removeEventListener('visibilitychange', onVisible)
+  }, { once: true })
 
   async function lastOmgangar(): Promise<void> {
     const ids = [p1ks?.id, p2ks?.id].filter((id): id is number => id != null)
@@ -397,7 +407,17 @@ async function renderScoreboard3(
     async () => { kamp.er_bekreftet = true; await lastOmgangar3(); tegn3(); await onKampBekreft?.() },
   )
 
-  window.addEventListener('hashchange', () => void avmeldKanal(kanal3), { once: true })
+  const onVisible3 = async () => {
+    if (document.visibilityState !== 'visible') return
+    await lastOmgangar3()
+    tegn3()
+  }
+  document.addEventListener('visibilitychange', onVisible3)
+
+  window.addEventListener('hashchange', () => {
+    void avmeldKanal(kanal3)
+    document.removeEventListener('visibilitychange', onVisible3)
+  }, { once: true })
 
   function bereknKnappStatus3(aktiveIdxar: number[]): Set<number>[] {
     const disabledSets = spelarar.map(() => new Set<number>())
