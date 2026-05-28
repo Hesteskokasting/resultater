@@ -358,6 +358,7 @@ async function renderScoreboard3(
   let vals: (number | null)[] = [null, null, null]
   let isEditMode3 = false
   let modifiedPlayers3 = new Set<number>()
+  let editModeIdxar: number[] = []
 
   function beregnTotal(idx: number): number {
     return omgangData
@@ -448,11 +449,12 @@ async function renderScoreboard3(
     container.innerHTML = ''
     const totalar = spelarar.map((_, i) => beregnTotal(i))
     const aktiveIdxar = [0, 1, 2].filter(i => spelarar[i] && !vinnRekkefolge.includes(i))
+    const editIdxar = isEditMode3 ? editModeIdxar : aktiveIdxar
     const erFerdig = vinnRekkefolge.length === spelarar.length
     const maxOmgang = omgangData.length ? Math.max(...omgangData.map(o => o.omgang)) : 0
-    const disabledSets = bereknKnappStatus3(aktiveIdxar, vals)
+    const disabledSets = bereknKnappStatus3(editIdxar, vals)
     if (isEditMode3) {
-      aktiveIdxar.forEach(i => {
+      editIdxar.forEach(i => {
         if (vals[i] !== null && !modifiedPlayers3.has(i)) pointValues.forEach(n => { if (n !== vals[i]) disabledSets[i].add(n) })
       })
     }
@@ -464,14 +466,15 @@ async function renderScoreboard3(
     const wrap = lagEl('div', null, isEditMode3 ? 'sb-wrap sb-wrap--3p sb-wrap--edit-mode' : 'sb-wrap sb-wrap--3p')
     spelarar.forEach((ks, i) => {
       const erVunne = vinnRekkefolge.includes(i)
-      const plass = erVunne ? vinnRekkefolge.indexOf(i) + 1 : null
-      const panel = lagEl('div', null, `sb-spelar-panel${erVunne ? ' sb-spelar-panel--vann' : ''}`)
+      const visVunne = erVunne && !isEditMode3
+      const plass = visVunne ? vinnRekkefolge.indexOf(i) + 1 : null
+      const panel = lagEl('div', null, `sb-spelar-panel${visVunne ? ' sb-spelar-panel--vann' : ''}`)
       panel.appendChild(lagEl('div', spelarNamn(ks), 'sb-spelar-navn'))
       panel.appendChild(lagEl('div', String(totalar[i]), 'sb-score'))
 
       if (plass) panel.appendChild(lagEl('div', `${plass}. plass`, 'sb-plass-badge'))
 
-      if (!erVunne && kanRedigere && !erFerdig && !kamp.er_bekreftet) {
+      if (editIdxar.includes(i) && kanRedigere && !erFerdig && !kamp.er_bekreftet) {
         const knappar = lagEl('div', null, 'sb-knappar')
         for (const n of pointValues) {
           const btn = lagEl('button', String(n), 'sb-poeng-btn')
@@ -493,19 +496,23 @@ async function renderScoreboard3(
       const angreBtn = lagEl('button', '↩', 'sb-angre-btn')
       if (isEditMode3) {
         angreBtn.title = 'Avbryt endring'
-        angreBtn.addEventListener('click', () => { isEditMode3 = false; modifiedPlayers3 = new Set(); vals = [null, null, null]; tegn3() })
+        angreBtn.addEventListener('click', () => { isEditMode3 = false; modifiedPlayers3 = new Set(); editModeIdxar = []; vals = [null, null, null]; tegn3() })
         angreRad.appendChild(angreBtn)
         const avbrytBtn = lagEl('button', 'Avbryt endring', 'sb-avbryt-btn')
-        avbrytBtn.addEventListener('click', () => { isEditMode3 = false; modifiedPlayers3 = new Set(); vals = [null, null, null]; tegn3() })
+        avbrytBtn.addEventListener('click', () => { isEditMode3 = false; modifiedPlayers3 = new Set(); editModeIdxar = []; vals = [null, null, null]; tegn3() })
         angreRad.appendChild(avbrytBtn)
       } else {
         angreBtn.title = 'Endre siste omgang'
         angreBtn.disabled = omgangData.length === 0
         angreBtn.addEventListener('click', () => {
           const lastNr = Math.max(...omgangData.map(o => o.omgang))
-          aktiveIdxar.forEach(i => {
+          editModeIdxar = []
+          spelarar.forEach((_, i) => {
             const row = omgangData.find(o => o.kamp_spelar_id === spelarar[i].id && o.omgang === lastNr)
-            vals[i] = row?.score || null
+            if (row !== undefined) {
+              vals[i] = row.score || null
+              editModeIdxar.push(i)
+            }
           })
           isEditMode3 = true
           modifiedPlayers3 = new Set()
@@ -516,7 +523,7 @@ async function renderScoreboard3(
       container.appendChild(angreRad)
 
       const kanNeste = isEditMode3
-        ? modifiedPlayers3.size > 0 && aktiveIdxar.some(i => vals[i] !== null)
+        ? modifiedPlayers3.size > 0 && editIdxar.some(i => vals[i] !== null)
         : aktiveIdxar.some(i => vals[i] !== null)
       const nesteLabel = isEditMode3 ? 'Bekreft endring' : 'Neste omgang'
       const nesteBtn = lagEl('button', nesteLabel, 'sb-neste-btn')
@@ -556,7 +563,7 @@ async function renderScoreboard3(
 
     if (isEditMode3) {
       const lastNr = Math.max(...omgangData.map(o => o.omgang))
-      const rows = aktiveIdxar.map(i => {
+      const rows = editModeIdxar.map(i => {
         const v = vals[i] ?? 0
         return { kamp_spelar_id: spelarar[i].id, omgang: lastNr, score: v, antall_ringer: v === 6 ? 2 : (v === 3 || v === 4) ? 1 : 0 }
       })
@@ -564,6 +571,7 @@ async function renderScoreboard3(
       if (error) { showToast('Feil ved lagring', 'error'); return }
       isEditMode3 = false
       modifiedPlayers3 = new Set()
+      editModeIdxar = []
     } else {
       const nr = omgangData.length ? Math.max(...omgangData.map(o => o.omgang)) + 1 : 1
       const inserts = aktiveIdxar.map(i => {
