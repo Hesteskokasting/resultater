@@ -30,7 +30,7 @@ const _infoStevneQuery = supabase
 export type InfoStevneRow = QueryData<typeof _infoStevneQuery>[number]
 
 export type SisteResultatRow  = Pick<Tables<'stevne'>, 'id' | 'navn' | 'dato'>
-export type LiveStevneRow     = Pick<Tables<'stevne'>, 'id' | 'navn' | 'stevne_fase'>
+export type LiveStevneRow     = Pick<Tables<'stevne'>, 'id' | 'navn' | 'stevne_fase' | 'erfullfort'>
 export type KommendeStevneRow = Pick<Tables<'stevne'>, 'id' | 'navn' | 'dato' | 'innbydelseurl'>
 export type PameldingStevneRow = Pick<Tables<'stevne'>, 'id' | 'navn' | 'dato' | 'sted' | 'erfullfort' | 'klubbid'>
 export type RelatertStevneRow  = Pick<Tables<'stevne'>, 'id' | 'navn' | 'dato'>
@@ -51,7 +51,7 @@ export async function hentSisteResultater(): Promise<{ data: SisteResultatRow[];
 export async function hentLiveStevner(): Promise<{ data: LiveStevneRow[]; error: unknown }> {
   const { data, error } = await supabase
     .from('stevne')
-    .select('id, navn, stevne_fase')
+    .select('id, navn, stevne_fase, erfullfort')
     .in('stevne_fase', ['innledende', 'avsluttende'])
     .order('dato', { ascending: true })
   if (error) logError('hentLiveStevner', error)

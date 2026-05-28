@@ -102,7 +102,7 @@ export async function render(container: HTMLElement): Promise<void> {
     regler      = r3
     stevner     = s4
     ncResultater = r4
-    live        = r5
+    live        = r5.filter(s => !s.erfullfort)
   } catch (err) {
     logError('home.render', err)
     container.replaceChildren(createErrorBanner('Kunne ikkje laste framsida.'))
