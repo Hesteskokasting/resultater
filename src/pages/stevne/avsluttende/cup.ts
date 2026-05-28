@@ -115,7 +115,7 @@ const cupVariant: AvsluttendeVariant = {
     })
 
     if (!harGruppefordeling) {
-      const n = stilling.length
+      const n = parseInt(container.querySelector<HTMLElement>('#gruppe-val-wrapper')?.dataset.n ?? '0') || stilling.length
 
       function lesValtOppsett(radioName: string, nGruppe: number): RundeOppsett | null {
         const valtRadio = container.querySelector<HTMLInputElement>(`input[name="${radioName}"]:checked`)
