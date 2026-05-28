@@ -1803,6 +1803,7 @@ a.stevne-navn {
 .avsl-gruppe-kol  { flex: 1 1 0; min-width: 0; }
 
 #gruppe-val-wrapper .form-check { min-height: 44px; display: flex; align-items: center; }
+#gruppe-val-wrapper .btn-check:checked + .btn::before { content: '✓ '; }
 .avsl-kamp-block  { width: calc(50% - 0.5rem); min-width: 220px; }
 .avsl-stilling-einzel { max-width: 400px; }
 .avsl-maks-600 { max-width: 600px; margin-inline: auto; }

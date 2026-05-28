@@ -195,6 +195,7 @@ const cupVariant: AvsluttendeVariant = {
           if (error) { showToast('Feil ved lagring av gruppefordeling', 'error'); return }
         }
 
+        showToast('Gruppefordeling lagra', 'success')
         await reload()
       })
     }
