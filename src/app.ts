@@ -22,13 +22,7 @@ import { showToast } from './components/Toast'
 
 if (import.meta.env.VITE_ENV === 'dev') {
   const versjonEl = document.querySelector('.header-versjon')
-  if (versjonEl) {
-    versjonEl.textContent += ' [DEV]'
-    const banner = document.createElement('span')
-    banner.className = 'dev-banner'
-    banner.textContent = 'TEST'
-    versjonEl.after(banner)
-  }
+  if (versjonEl) versjonEl.textContent += ' [DEV]'
 }
 
 type Params = Record<string, string | number | undefined>
@@ -108,6 +102,7 @@ async function oppdaterAuthMeny(): Promise<void> {
   const minsideItem = document.getElementById('meny-minside-item')!
   const adminItem   = document.getElementById('meny-admin-item')!
   const loggutItem  = document.getElementById('meny-loggut-item')!
+  const headerEmail = document.getElementById('headerEmail')!
 
   if (auth) {
     logginnItem.classList.add('d-none')
@@ -115,11 +110,15 @@ async function oppdaterAuthMeny(): Promise<void> {
     minsideItem.classList.toggle('d-none', erAdminBrukar)
     adminItem.classList.toggle('d-none', !erAdminBrukar)
     loggutItem.classList.remove('d-none')
+    headerEmail.textContent = auth.user.email ?? ''
+    headerEmail.classList.remove('d-none')
   } else {
     logginnItem.classList.remove('d-none')
     minsideItem.classList.add('d-none')
     adminItem.classList.add('d-none')
     loggutItem.classList.add('d-none')
+    headerEmail.textContent = ''
+    headerEmail.classList.add('d-none')
   }
 }
 
