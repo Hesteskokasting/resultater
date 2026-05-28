@@ -135,7 +135,7 @@ src/
 ## CSS & Theming
 
 - All CSS lives in `.css` files. **No inline styles** in `.ts` files.
-- The app has three themes: `dark` (default), `light`, and `utendors` (outdoor high-contrast), all defined via `[data-theme]` selectors in `global.css`.
+- The app has two themes: `dark` (default) and `light` (outdoor high-contrast), both defined via `[data-theme]` selectors in `global.css`.
 - Use CSS variables (`var(--bg)`, `var(--tekst)`, etc.) — never hardcoded colors.
 - Scoreboard styles use `--sb-*` variables. New scoreboard styles must use these.
 - Use semantic class names (`.stevne-kort__title`), not utility names (`.text-red-bold`).

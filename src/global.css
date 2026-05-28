@@ -60,7 +60,7 @@
   --sb-vann-bg: rgba(0, 60, 0, 0.85);
 }
 
-[data-theme="utendors"] {
+[data-theme="light"] {
   --bg:               #ffffff;
   --flate:            #f0f0f0;
   --flate-2:          #e0e0e0;
@@ -112,56 +112,6 @@
   --sb-vann-bg:         rgba(0, 80, 0, 0.9);
 }
 
-[data-theme="light"] {
-  --bg: #ffffff;
-  --flate: #F6F7FB;
-  --flate-2: #eceef3;
-  --kant: #ddd;
-  --kant-2: #ccc;
-  --tekst: #222;
-  --tekst-2: #555;
-  --tekst-3: #888;
-  --primaer: #31527E;
-  --primaer-hover: #eef1f7;
-  --primaer-aktiv: #d4e1f0;
-  --primaer-selektert: #b8cfe8;
-  --primaer-text: #F6F7FB;
-  --lenke: #31527E;
-  --header-bg: #ffffff;
-  --input-bg: #ffffff;
-  --feil: #cc0000;
-  --kamp-vidare-bg: color-mix(in srgb, #28a745 14%, var(--flate));
-  --kamp-eliminert-bg: color-mix(in srgb, #cc0000 14%, var(--flate));
-
-  /* Nummerpad — same as dark; numberpad is always blue by design */
-  --np-bg: #1e4976;
-  --np-tekst: #ffffff;
-  --np-knapp-bg: #ffffff;
-  --np-knapp-tekst: #1e4976;
-  --np-pad-bg: rgba(255, 255, 255, 0.1);
-  --np-reset-bg: rgba(255, 255, 255, 0.25);
-  --np-nav-bg: rgba(255, 255, 255, 0.15);
-
-  /* Scoreboard — same as dark; scoreboard is always dark by design */
-  --sb-bg: #000;
-  --sb-topbar-bg: #111;
-  --sb-border: #333;
-  --sb-border-subtle: #222;
-  --sb-border-btn: #555;
-  --sb-tekst: #fff;
-  --sb-tekst-subtil: #ccc;
-  --sb-tekst-subtil-2: #aaa;
-  --sb-positiv: #4cff4c;
-  --sb-negativ: #ff6b6b;
-  --sb-knapp-bg: #fff;
-  --sb-knapp-tekst: #111;
-  --sb-knapp-dis-bg: #333;
-  --sb-knapp-slett-hover: #c0392b;
-  --sb-bekreft-bg: #1a8f2d;
-  --sb-bekreft-hover: #157a24;
-  --sb-vann-bg: rgba(0, 60, 0, 0.85);
-}
-
 body {
   background: var(--bg);
   color: var(--tekst);
@@ -174,17 +124,24 @@ body {
   border: 1px solid var(--kant-2);
   border-radius: 6px;
   cursor: pointer;
-  padding: 3px 8px;
-  font-size: 0.85rem;
+  padding: 5px 7px;
   color: var(--tekst-2);
-  line-height: 1.4;
-  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .tema-knapp:hover {
   background: var(--primaer-hover);
   color: var(--tekst);
 }
+
+/* Default (dark): show sun → click goes to light */
+.tema-ikon--mane { display: none; }
+
+/* Light: show moon → click goes to dark */
+[data-theme="light"] .tema-ikon--sol { display: none; }
+[data-theme="light"] .tema-ikon--mane { display: block; }
 
 /* Generelle input/select i mørk modus */
 
