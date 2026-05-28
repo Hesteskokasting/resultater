@@ -122,14 +122,20 @@ export async function oppdaterStevneFase(id: number, fase: string): Promise<{ er
 // ── Oppslag for admin-skjema ──────────────────────────────────────────────────
 
 export async function hentStevnetypar(): Promise<{ data: StevnetypeRow[]; error: unknown }> {
-  const { data, error } = await supabase.from('stevnetype').select('id, navn').order('navn')
+  const { data, error } = await supabase.from('stevnetype').select('id, navn').eq('eraktiv', true).order('navn')
   if (error) logError('hentStevnetypar', error)
   return { data: data ?? [], error }
 }
 
-export async function hentKastemetodar(): Promise<{ data: KastemetodeRow[]; error: unknown }> {
-  const { data, error } = await supabase.from('kastemetode').select('id, navn').order('navn')
-  if (error) logError('hentKastemetodar', error)
+export async function hentInnleiendeKastemetodar(): Promise<{ data: KastemetodeRow[]; error: unknown }> {
+  const { data, error } = await supabase.from('kastemetode').select('id, navn').eq('er_innledende', true).eq('eraktiv', true).order('navn')
+  if (error) logError('hentInnleiendeKastemetodar', error)
+  return { data: data ?? [], error }
+}
+
+export async function hentAvsluttendeKastemetodar(): Promise<{ data: KastemetodeRow[]; error: unknown }> {
+  const { data, error } = await supabase.from('kastemetode').select('id, navn').eq('er_avsluttende', true).eq('eraktiv', true).order('navn')
+  if (error) logError('hentAvsluttendeKastemetodar', error)
   return { data: data ?? [], error }
 }
 

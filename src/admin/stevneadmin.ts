@@ -10,7 +10,8 @@ import { createLoadingState } from '@/components/LoadingState'
 import {
   hentStevneForAdmin,
   hentStevnetypar,
-  hentKastemetodar,
+  hentInnleiendeKastemetodar,
+  hentAvsluttendeKastemetodar,
   hentKategoriar,
   opprettStevne,
   oppdaterStevne,
@@ -25,22 +26,25 @@ export async function render(
 ): Promise<void> {
   container.replaceChildren(createLoadingState())
 
-  let klubbar:      { id: number; navn: string; logourl: string | null }[] = []
-  let stevnetypar:  { id: number; navn: string }[] = []
-  let kastemetodar: { id: number; navn: string }[] = []
-  let kategoriar:   { id: number; navn: string }[] = []
+  let klubbar:            { id: number; navn: string; logourl: string | null }[] = []
+  let stevnetypar:        { id: number; navn: string }[] = []
+  let innleiendeMetodar:  { id: number; navn: string }[] = []
+  let avsluttendeMetodar: { id: number; navn: string }[] = []
+  let kategoriar:         { id: number; navn: string }[] = []
 
   try {
     const results = await Promise.all([
       hentKlubbar(),
       hentStevnetypar(),
-      hentKastemetodar(),
+      hentInnleiendeKastemetodar(),
+      hentAvsluttendeKastemetodar(),
       hentKategoriar(),
     ])
-    klubbar      = results[0].data
-    stevnetypar  = results[1].data
-    kastemetodar = results[2].data
-    kategoriar   = results[3].data
+    klubbar            = results[0].data
+    stevnetypar        = results[1].data
+    innleiendeMetodar  = results[2].data
+    avsluttendeMetodar = results[3].data
+    kategoriar         = results[4].data
   } catch (err) {
     logError('stevneadmin.render', err)
     container.replaceChildren(createErrorBanner('Kunne ikkje laste skjema.'))
@@ -61,14 +65,15 @@ export async function render(
 
   const tittel = id ? `Rediger stevne: ${escHtml(stevne?.navn ?? '')}` : 'Nytt stevne'
   const v      = stevne ?? ({} as Partial<StevneAdminRow>)
-  const datoVerdi = v.dato ?? ''
-  const tidVerdi  = v.tid ? v.tid.slice(0, 5) : ''
+  const datoVerdi       = v.dato ?? ''
+  const tidVerdi        = v.tid ? v.tid.slice(0, 5) : (id ? '' : '11:00')
+  const defaultKategori = v.kategoriid ?? kategoriar.find(k => k.navn === 'Singel')?.id
 
-  const klubbOpt   = buildDropdownOptions(klubbar,      v.klubbid)
-  const typeOpt    = buildDropdownOptions(stevnetypar,  v.stevnetypeid)
-  const metodeOpt  = buildDropdownOptions(kastemetodar, v.innledendekastemetodeid)
-  const metodeOpt2 = buildDropdownOptions(kastemetodar, v.avsluttendekastemetodeid)
-  const katOpt     = buildDropdownOptions(kategoriar,   v.kategoriid)
+  const klubbOpt   = buildDropdownOptions(klubbar,            v.klubbid)
+  const typeOpt    = buildDropdownOptions(stevnetypar,        v.stevnetypeid)
+  const metodeOpt  = buildDropdownOptions(innleiendeMetodar,  v.innledendekastemetodeid)
+  const metodeOpt2 = buildDropdownOptions(avsluttendeMetodar, v.avsluttendekastemetodeid)
+  const katOpt     = buildDropdownOptions(kategoriar,         defaultKategori)
 
   container.innerHTML = `
     <div class="container py-4 admin-skjema-lg">
@@ -76,7 +81,7 @@ export async function render(
       <form id="stevne-skjema">
         ${lagFormRadHtml('Namn*', `<input type="text" class="form-control" name="navn" value="${escHtml(v.navn)}" required>`)}
         ${lagFormRadHtml('Stad', `<input type="text" class="form-control" name="sted" value="${escHtml(v.sted)}">`)}
-        ${lagFormRadHtml('Dato', `<input type="date" class="form-control" name="dato" value="${datoVerdi}">`)}
+        ${lagFormRadHtml('Dato', `<input type="date" class="form-control" name="dato" value="${datoVerdi}" required>`)}
         ${lagFormRadHtml('Tid', `<input type="time" class="form-control" name="tid" value="${tidVerdi}">`)}
         ${lagFormRadHtml('Arrangørklubb', `<select class="form-select" name="klubbid">${klubbOpt}</select>`)}
         ${lagFormRadHtml('Stevnetype', `<select class="form-select" name="stevnetypeid">${typeOpt}</select>`)}
