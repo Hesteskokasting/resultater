@@ -173,7 +173,7 @@ export async function renderScoreboard(
       omgangEl.textContent = kamp.er_bekreftet ? 'Fullført' : (kampFerdig ? 'Ferdig' : `Omgang ${nr}`)
     }
 
-    const wrap = lagEl('div', null, 'sb-wrap')
+    const wrap = lagEl('div', null, isEditMode ? 'sb-wrap sb-wrap--edit-mode' : 'sb-wrap')
     wrap.appendChild(lagSpelerPanel(spelarNamn(p1ks, 'Spelar 1'), t1, r1, maxRinger, val1, p1Dis, !kanRedigere, 1))
     wrap.appendChild(lagSpelerPanel(spelarNamn(p2ks, 'Spelar 2'), t2, r2, maxRinger, val2, p2Dis, !kanRedigere, 2))
     container.appendChild(wrap)
@@ -184,6 +184,10 @@ export async function renderScoreboard(
       if (isEditMode) {
         angreBtn.title = 'Avbryt endring'
         angreBtn.addEventListener('click', () => { isEditMode = false; modifiedPlayers = new Set(); val1 = null; val2 = null; tegn() })
+        angreRad.appendChild(angreBtn)
+        const avbrytBtn = lagEl('button', 'Avbryt endring', 'sb-avbryt-btn')
+        avbrytBtn.addEventListener('click', () => { isEditMode = false; modifiedPlayers = new Set(); val1 = null; val2 = null; tegn() })
+        angreRad.appendChild(avbrytBtn)
       } else {
         angreBtn.title = 'Endre siste omgang'
         angreBtn.disabled = omgangar.length === 0
@@ -195,8 +199,8 @@ export async function renderScoreboard(
           modifiedPlayers = new Set()
           tegn()
         })
+        angreRad.appendChild(angreBtn)
       }
-      angreRad.appendChild(angreBtn)
       container.appendChild(angreRad)
     }
 
@@ -457,7 +461,7 @@ async function renderScoreboard3(
       omgangEl.textContent = kamp.er_bekreftet ? 'Fullført' : (erFerdig ? 'Ferdig' : `Omgang ${maxOmgang + 1}`)
     }
 
-    const wrap = lagEl('div', null, 'sb-wrap sb-wrap--3p')
+    const wrap = lagEl('div', null, isEditMode3 ? 'sb-wrap sb-wrap--3p sb-wrap--edit-mode' : 'sb-wrap sb-wrap--3p')
     spelarar.forEach((ks, i) => {
       const erVunne = vinnRekkefolge.includes(i)
       const plass = erVunne ? vinnRekkefolge.indexOf(i) + 1 : null
@@ -490,6 +494,10 @@ async function renderScoreboard3(
       if (isEditMode3) {
         angreBtn.title = 'Avbryt endring'
         angreBtn.addEventListener('click', () => { isEditMode3 = false; modifiedPlayers3 = new Set(); vals = [null, null, null]; tegn3() })
+        angreRad.appendChild(angreBtn)
+        const avbrytBtn = lagEl('button', 'Avbryt endring', 'sb-avbryt-btn')
+        avbrytBtn.addEventListener('click', () => { isEditMode3 = false; modifiedPlayers3 = new Set(); vals = [null, null, null]; tegn3() })
+        angreRad.appendChild(avbrytBtn)
       } else {
         angreBtn.title = 'Endre siste omgang'
         angreBtn.disabled = omgangData.length === 0
@@ -503,8 +511,8 @@ async function renderScoreboard3(
           modifiedPlayers3 = new Set()
           tegn3()
         })
+        angreRad.appendChild(angreBtn)
       }
-      angreRad.appendChild(angreBtn)
       container.appendChild(angreRad)
 
       const kanNeste = isEditMode3

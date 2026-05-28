@@ -1518,6 +1518,11 @@ a.stevne-navn {
   overflow: hidden;
 }
 
+.sb-wrap--edit-mode {
+  outline: 3px solid var(--danger, #dc3545);
+  outline-offset: -3px;
+}
+
 .sb-spelar-panel {
   flex: 1;
   min-height: 0;
@@ -1611,6 +1616,21 @@ a.stevne-navn {
 .sb-angre-btn:disabled {
   opacity: 0.3;
   cursor: default;
+}
+
+.sb-avbryt-btn {
+  background: transparent;
+  border: 1px solid var(--sb-border-btn);
+  color: var(--sb-tekst);
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: clamp(0.85rem, 2.5vw, 1rem);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.sb-avbryt-btn:hover {
+  opacity: 0.75;
 }
 
 /* ── Botn-knapp (Neste / Bekreft) ── */
