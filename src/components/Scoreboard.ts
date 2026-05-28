@@ -50,6 +50,7 @@ export async function renderScoreboard(
   let val2: number | null = null
   let kampFerdig = kamp.er_bekreftet || kamp.er_walkover
   let isEditMode = false
+  let modifiedPlayers = new Set<number>()
 
   const kanRedigere = erArrangor || (erDeltakar && !kamp.er_bekreftet)
 
@@ -144,6 +145,10 @@ export async function renderScoreboard(
       else [1, 2, 4].forEach(n => p1Dis.add(n))
     }
 
+    // The selected value must always be clickable so the user can deselect it.
+    if (v1 !== null) p1Dis.delete(v1)
+    if (v2 !== null) p2Dis.delete(v2)
+
     return { p1Dis, p2Dis }
   }
 
@@ -154,7 +159,13 @@ export async function renderScoreboard(
     const [r1, r2] = beregnRingarTotalar()
     const nr = noverAndeOmgang()
     const { p1Dis, p2Dis } = bereknKnappStatus(val1, val2)
-    const kanNeste = kanRedigere && (val1 !== null || val2 !== null) && (isEditMode || !kampFerdig)
+    if (isEditMode) {
+      if (val1 !== null && !modifiedPlayers.has(1)) pointValues.forEach(n => { if (n !== val1) p1Dis.add(n) })
+      if (val2 !== null && !modifiedPlayers.has(2)) pointValues.forEach(n => { if (n !== val2) p2Dis.add(n) })
+    }
+    const kanNeste = isEditMode
+      ? modifiedPlayers.size > 0 && (val1 !== null || val2 !== null)
+      : kanRedigere && (val1 !== null || val2 !== null) && !kampFerdig
     const kanBekrefte = kampFerdig && !isEditMode && !kamp.er_bekreftet && (erArrangor || erDeltakar) && !!onBekreft
     const maxRinger = omgangar.length * 2
 
@@ -172,15 +183,16 @@ export async function renderScoreboard(
       const angreBtn = lagEl('button', '↩', 'sb-angre-btn')
       if (isEditMode) {
         angreBtn.title = 'Avbryt endring'
-        angreBtn.addEventListener('click', () => { isEditMode = false; val1 = null; val2 = null; tegn() })
+        angreBtn.addEventListener('click', () => { isEditMode = false; modifiedPlayers = new Set(); val1 = null; val2 = null; tegn() })
       } else {
         angreBtn.title = 'Endre siste omgang'
         angreBtn.disabled = omgangar.length === 0
         angreBtn.addEventListener('click', () => {
           const last = omgangar[omgangar.length - 1]
-          val1 = last.s1
-          val2 = last.s2
+          val1 = last.s1 || null
+          val2 = last.s2 || null
           isEditMode = true
+          modifiedPlayers = new Set()
           tegn()
         })
       }
@@ -211,8 +223,13 @@ export async function renderScoreboard(
       btn.addEventListener('click', () => {
         const spelar = parseInt(btn.dataset.spelar ?? '0')
         const v = parseInt(btn.dataset.val ?? '0')
-        if (spelar === 1) val1 = (val1 === v) ? null : v
-        else val2 = (val2 === v) ? null : v
+        if (spelar === 1) {
+          val1 = (val1 === v) ? null : v
+          modifiedPlayers.add(1)
+        } else {
+          val2 = (val2 === v) ? null : v
+          modifiedPlayers.add(2)
+        }
         tegn()
       })
     })
@@ -265,6 +282,7 @@ export async function renderScoreboard(
       if (error) { showToast('Feil ved lagring', 'error'); return }
       omgangar[omgangar.length - 1] = { omgang: lastNr, s1, s2, r1, r2 }
       isEditMode = false
+      modifiedPlayers = new Set()
     } else {
       const nr = noverAndeOmgang()
       const inserts = []
@@ -335,6 +353,7 @@ async function renderScoreboard3(
   let vinnRekkefolge: number[] = []
   let vals: (number | null)[] = [null, null, null]
   let isEditMode3 = false
+  let modifiedPlayers3 = new Set<number>()
 
   function beregnTotal(idx: number): number {
     return omgangData
@@ -401,17 +420,17 @@ async function renderScoreboard3(
     document.removeEventListener('visibilitychange', onVisible3)
   }, { once: true })
 
-  function bereknKnappStatus3(aktiveIdxar: number[]): Set<number>[] {
+  function bereknKnappStatus3(aktiveIdxar: number[], effectiveVals: (number | null)[]): Set<number>[] {
     const disabledSets = spelarar.map(() => new Set<number>())
-    const selectedIdxar = aktiveIdxar.filter(i => vals[i] !== null)
+    const selectedIdxar = aktiveIdxar.filter(i => effectiveVals[i] !== null)
     if (!selectedIdxar.length) return disabledSets
 
-    const harNonRing = selectedIdxar.some(i => [1, 2, 4].includes(vals[i] as number))
-    const harRing = selectedIdxar.some(i => [3, 6].includes(vals[i] as number))
+    const harNonRing = selectedIdxar.some(i => [1, 2, 4].includes(effectiveVals[i] as number))
+    const harRing = selectedIdxar.some(i => [3, 6].includes(effectiveVals[i] as number))
 
     for (const i of aktiveIdxar) {
-      if (vals[i] !== null) {
-        pointValues.forEach(n => { if (n !== vals[i]) disabledSets[i].add(n) })
+      if (effectiveVals[i] !== null) {
+        pointValues.forEach(n => { if (n !== effectiveVals[i]) disabledSets[i].add(n) })
       } else if (harNonRing) {
         pointValues.forEach(n => disabledSets[i].add(n))
       } else if (harRing) {
@@ -427,7 +446,12 @@ async function renderScoreboard3(
     const aktiveIdxar = [0, 1, 2].filter(i => spelarar[i] && !vinnRekkefolge.includes(i))
     const erFerdig = vinnRekkefolge.length === spelarar.length
     const maxOmgang = omgangData.length ? Math.max(...omgangData.map(o => o.omgang)) : 0
-    const disabledSets = bereknKnappStatus3(aktiveIdxar)
+    const disabledSets = bereknKnappStatus3(aktiveIdxar, vals)
+    if (isEditMode3) {
+      aktiveIdxar.forEach(i => {
+        if (vals[i] !== null && !modifiedPlayers3.has(i)) pointValues.forEach(n => { if (n !== vals[i]) disabledSets[i].add(n) })
+      })
+    }
 
     if (omgangEl) {
       omgangEl.textContent = kamp.er_bekreftet ? 'Fullført' : (erFerdig ? 'Ferdig' : `Omgang ${maxOmgang + 1}`)
@@ -465,7 +489,7 @@ async function renderScoreboard3(
       const angreBtn = lagEl('button', '↩', 'sb-angre-btn')
       if (isEditMode3) {
         angreBtn.title = 'Avbryt endring'
-        angreBtn.addEventListener('click', () => { isEditMode3 = false; vals = [null, null, null]; tegn3() })
+        angreBtn.addEventListener('click', () => { isEditMode3 = false; modifiedPlayers3 = new Set(); vals = [null, null, null]; tegn3() })
       } else {
         angreBtn.title = 'Endre siste omgang'
         angreBtn.disabled = omgangData.length === 0
@@ -473,16 +497,19 @@ async function renderScoreboard3(
           const lastNr = Math.max(...omgangData.map(o => o.omgang))
           aktiveIdxar.forEach(i => {
             const row = omgangData.find(o => o.kamp_spelar_id === spelarar[i].id && o.omgang === lastNr)
-            vals[i] = row?.score ?? null
+            vals[i] = row?.score || null
           })
           isEditMode3 = true
+          modifiedPlayers3 = new Set()
           tegn3()
         })
       }
       angreRad.appendChild(angreBtn)
       container.appendChild(angreRad)
 
-      const kanNeste = aktiveIdxar.some(i => vals[i] !== null)
+      const kanNeste = isEditMode3
+        ? modifiedPlayers3.size > 0 && aktiveIdxar.some(i => vals[i] !== null)
+        : aktiveIdxar.some(i => vals[i] !== null)
       const nesteLabel = isEditMode3 ? 'Bekreft endring' : 'Neste omgang'
       const nesteBtn = lagEl('button', nesteLabel, 'sb-neste-btn')
       nesteBtn.disabled = !kanNeste
@@ -510,6 +537,7 @@ async function renderScoreboard3(
         const idx = parseInt(btn.dataset.spelar ?? '0')
         const v = parseInt(btn.dataset.val ?? '0')
         vals[idx] = (vals[idx] === v) ? null : v
+        modifiedPlayers3.add(idx)
         tegn3()
       })
     })
@@ -527,6 +555,7 @@ async function renderScoreboard3(
       const { error } = await oppdaterKampOmgang(rows)
       if (error) { showToast('Feil ved lagring', 'error'); return }
       isEditMode3 = false
+      modifiedPlayers3 = new Set()
     } else {
       const nr = omgangData.length ? Math.max(...omgangData.map(o => o.omgang)) + 1 : 1
       const inserts = aktiveIdxar.map(i => {
