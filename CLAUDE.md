@@ -90,7 +90,7 @@ src/
 
 ### Migrations
 
-- **Every schema change needs a local migration file** in `supabase/migrations/<timestamp>_<name>.sql`. Always write the file first, then apply it (via MCP or CLI). Never apply a change without the corresponding local file.
+- **Every schema change needs a local migration file** in `supabase/migrations/<timestamp>_<name>.sql`. Always generate migrations file, NEVER apply it. Never apply a change without the corresponding local file.
 - Timestamp format: `YYYYMMDDHHMMSS` (e.g. `20260521130000_rpc_bekreft_avsluttende_kamp.sql`).
 - Never use the Supabase dashboard to make schema changes — it bypasses migration history.
 
