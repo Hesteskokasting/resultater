@@ -459,10 +459,10 @@ export function sorterStilling(stilling: StillingRad[], kamper: KampForSortering
   const bekrefta = kamper.filter(k => k.er_bekreftet)
 
   return [...stilling].sort((a, b) => {
-    // When both players have a final plassering (1–4), trust it above all else.
-    // This prevents the active-first rule from putting the bronsefinale winner (3rd, active)
-    // ahead of the finale loser (2nd, eliminated).
+    // Players with a final plassering (1–4) always rank above non-plassered players.
     if (a.plassering != null && b.plassering != null) return a.plassering - b.plassering
+    if (a.plassering != null) return -1
+    if (b.plassering != null) return 1
 
     // Aktive (runde_eliminert == null) kjem alltid først
     const aAktiv = a.runde_eliminert == null
