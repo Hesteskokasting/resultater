@@ -65,9 +65,9 @@ export function opnGenererRundeDialog(
   }
 
   function playerHtml(r: StillingRad): string {
-    return `<div class="mb-2">
-      <div class="small">${escHtml(r.navn ?? '')}</div>
-      <div class="small text-muted">${r.kamp_poeng ?? 0}p (${r.score_poeng ?? 0})</div>
+    return `<div class="d-flex justify-content-between gap-2 py-1">
+      <span class="small">${escHtml(r.navn ?? '')}</span>
+      <span class="small text-muted text-nowrap">${r.kamp_poeng ?? 0}p (${r.score_poeng ?? 0})</span>
     </div>`
   }
 
@@ -110,22 +110,26 @@ export function opnGenererRundeDialog(
         </div>`
 
     modal.innerHTML = `
-      <div class="card p-4 avsl-dialog-card-wide">
-        <div class="avsl-dialog-drag-handle mb-3">
+      <div class="card avsl-dialog-card-wide">
+        <div class="avsl-dialog-drag-handle">
           <p class="text-muted small text-uppercase fw-semibold mb-1">Trekning</p>
           <h5 class="mb-1">Gruppe ${escHtml(gruppeNavn)} — Runde ${runde}</h5>
           <p class="text-muted small mb-0">${n} av ${totalCount} spelarar igjen</p>
         </div>
-        <div class="form-check mb-3">
-          <input class="form-check-input" type="checkbox" id="seeding-dlg" ${medSeeding ? 'checked' : ''}>
-          <label class="form-check-label" for="seeding-dlg">Bruk seeding</label>
+        <div class="avsl-dialog-body">
+          <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" id="seeding-dlg" ${medSeeding ? 'checked' : ''}>
+            <label class="form-check-label" for="seeding-dlg">Bruk seeding</label>
+          </div>
+          ${seedingInfoHtml}
+          ${walkoversHtml}
+          ${poolsSection}
         </div>
-        ${seedingInfoHtml}
-        ${walkoversHtml}
-        ${poolsSection}
-        <div class="d-flex gap-2">
-          <button id="bekreft-gen-btn" class="btn btn-primary">Bekreft og opprett kampar</button>
-          <button id="avbryt-gen-btn" class="btn btn-secondary">Avbryt</button>
+        <div class="avsl-dialog-footer">
+          <div class="d-flex gap-2">
+            <button id="bekreft-gen-btn" class="btn btn-primary">Bekreft og opprett kampar</button>
+            <button id="avbryt-gen-btn" class="btn btn-secondary">Avbryt</button>
+          </div>
         </div>
       </div>`
 
