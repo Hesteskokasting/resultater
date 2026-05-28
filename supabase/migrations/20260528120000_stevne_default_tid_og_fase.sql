@@ -1,0 +1,2 @@
+ALTER TABLE stevne ALTER COLUMN tid SET DEFAULT '11:00:00';
+ALTER TABLE stevne ALTER COLUMN stevne_fase SET DEFAULT 'ikke_startet';
