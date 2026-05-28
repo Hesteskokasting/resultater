@@ -594,6 +594,29 @@ export async function lagreKampOmgang(
   }
 }
 
+export async function oppdaterKampOmgang(
+  rows: { kamp_spelar_id: number; omgang: number; score: number; antall_ringer: number }[],
+): Promise<{ error: unknown }> {
+  if (!rows.length) return { error: null }
+  try {
+    const results = await Promise.all(
+      rows.map(r =>
+        supabase
+          .from('kamp_omgang')
+          .update({ score: r.score, antall_ringer: r.antall_ringer })
+          .eq('kamp_spelar_id', r.kamp_spelar_id)
+          .eq('omgang', r.omgang),
+      ),
+    )
+    const err = results.find(r => r.error)?.error ?? null
+    if (err) logError('oppdaterKampOmgang', err)
+    return { error: err }
+  } catch (e) {
+    logError('oppdaterKampOmgang', e)
+    return { error: e }
+  }
+}
+
 export async function unbekreftKamp(kampId: number): Promise<{ error: unknown }> {
   const { error } = await supabase.from('kamp').update({ er_bekreftet: false }).eq('id', kampId)
   if (error) logError('unbekreftKamp', error)

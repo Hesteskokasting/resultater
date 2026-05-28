@@ -2,13 +2,11 @@ import type { KampOmgangRow, KampRow, KampSpelarIKamp } from '@/services/kampSer
 import {
   hentKampOmgangar,
   lagreKampOmgang,
-  slettKampOmgangarFra,
-  unbekreftKamp,
+  oppdaterKampOmgang,
   subscribeToScoreboardEndringar,
 } from '@/services/kampService'
 import { avmeldKanal } from '@/utils/realtime'
 import { showToast } from './Toast'
-import { confirmDialog } from './ConfirmDialog'
 
 interface ScoreboardOptions {
   pointValues: number[]
@@ -51,6 +49,7 @@ export async function renderScoreboard(
   let val1: number | null = null
   let val2: number | null = null
   let kampFerdig = kamp.er_bekreftet || kamp.er_walkover
+  let isEditMode = false
 
   const kanRedigere = erArrangor || (erDeltakar && !kamp.er_bekreftet)
 
@@ -155,8 +154,8 @@ export async function renderScoreboard(
     const [r1, r2] = beregnRingarTotalar()
     const nr = noverAndeOmgang()
     const { p1Dis, p2Dis } = bereknKnappStatus(val1, val2)
-    const kanNeste = kanRedigere && !kampFerdig && (val1 !== null || val2 !== null)
-    const kanBekrefte = kampFerdig && !kamp.er_bekreftet && (erArrangor || erDeltakar) && !!onBekreft
+    const kanNeste = kanRedigere && (val1 !== null || val2 !== null) && (isEditMode || !kampFerdig)
+    const kanBekrefte = kampFerdig && !isEditMode && !kamp.er_bekreftet && (erArrangor || erDeltakar) && !!onBekreft
     const maxRinger = omgangar.length * 2
 
     if (omgangEl) {
@@ -168,26 +167,32 @@ export async function renderScoreboard(
     wrap.appendChild(lagSpelerPanel(spelarNamn(p2ks, 'Spelar 2'), t2, r2, maxRinger, val2, p2Dis, !kanRedigere, 2))
     container.appendChild(wrap)
 
-    if (kanRedigere) {
+    if (kanRedigere && !kamp.er_bekreftet) {
       const angreRad = lagEl('div', null, 'sb-angre-rad')
-
-      if (omgangar.length > 0) {
-        angreRad.appendChild(lagOmgangSlettKnappar(omgangar.map(o => o.omgang), slettOmgangFra))
-      }
-
       const angreBtn = lagEl('button', '↩', 'sb-angre-btn')
-      angreBtn.title = 'Angre val for denne omgangen'
-      angreBtn.disabled = val1 === null && val2 === null
-      angreBtn.addEventListener('click', () => { val1 = null; val2 = null; tegn() })
+      if (isEditMode) {
+        angreBtn.title = 'Avbryt endring'
+        angreBtn.addEventListener('click', () => { isEditMode = false; val1 = null; val2 = null; tegn() })
+      } else {
+        angreBtn.title = 'Endre siste omgang'
+        angreBtn.disabled = omgangar.length === 0
+        angreBtn.addEventListener('click', () => {
+          const last = omgangar[omgangar.length - 1]
+          val1 = last.s1
+          val2 = last.s2
+          isEditMode = true
+          tegn()
+        })
+      }
       angreRad.appendChild(angreBtn)
-
       container.appendChild(angreRad)
     }
 
     if (kanBekrefte) {
       container.appendChild(lagBekreftKnapp(() => onBekreft!()))
     } else if (kanRedigere) {
-      const nesteBtn = lagEl('button', 'Neste omgang', 'sb-neste-btn')
+      const nesteLabel = isEditMode ? 'Bekreft endring' : 'Neste omgang'
+      const nesteBtn = lagEl('button', nesteLabel, 'sb-neste-btn')
       nesteBtn.disabled = !kanNeste
       nesteBtn.addEventListener('click', async () => {
         nesteBtn.disabled = true
@@ -195,10 +200,8 @@ export async function renderScoreboard(
         try {
           await nesteOmgang()
         } finally {
-          // On success, nesteOmgang() calls tegn() which replaces this button — no-op on detached element.
-          // On error or hang, restores button so user can retry.
           nesteBtn.disabled = false
-          nesteBtn.textContent = 'Neste omgang'
+          nesteBtn.textContent = nesteLabel
         }
       })
       container.appendChild(nesteBtn)
@@ -208,8 +211,8 @@ export async function renderScoreboard(
       btn.addEventListener('click', () => {
         const spelar = parseInt(btn.dataset.spelar ?? '0')
         const v = parseInt(btn.dataset.val ?? '0')
-        if (spelar === 1) val1 = v
-        else val2 = v
+        if (spelar === 1) val1 = (val1 === v) ? null : v
+        else val2 = (val2 === v) ? null : v
         tegn()
       })
     })
@@ -248,48 +251,36 @@ export async function renderScoreboard(
   }
 
   async function nesteOmgang(): Promise<void> {
-    const nr = noverAndeOmgang()
     const s1 = val1 ?? 0
     const s2 = val2 ?? 0
     const r1 = s1 === 6 ? 2 : (s1 === 3 || s1 === 4) ? 1 : 0
     const r2 = s2 === 6 ? 2 : (s2 === 3 || s2 === 4) ? 1 : 0
 
-    const inserts = []
-    if (p1ks?.id) inserts.push({ kamp_spelar_id: p1ks.id, omgang: nr, score: s1, antall_ringer: r1 })
-    if (p2ks?.id) inserts.push({ kamp_spelar_id: p2ks.id, omgang: nr, score: s2, antall_ringer: r2 })
+    if (isEditMode) {
+      const lastNr = omgangar[omgangar.length - 1].omgang
+      const rows = []
+      if (p1ks?.id) rows.push({ kamp_spelar_id: p1ks.id, omgang: lastNr, score: s1, antall_ringer: r1 })
+      if (p2ks?.id) rows.push({ kamp_spelar_id: p2ks.id, omgang: lastNr, score: s2, antall_ringer: r2 })
+      const { error } = await oppdaterKampOmgang(rows)
+      if (error) { showToast('Feil ved lagring', 'error'); return }
+      omgangar[omgangar.length - 1] = { omgang: lastNr, s1, s2, r1, r2 }
+      isEditMode = false
+    } else {
+      const nr = noverAndeOmgang()
+      const inserts = []
+      if (p1ks?.id) inserts.push({ kamp_spelar_id: p1ks.id, omgang: nr, score: s1, antall_ringer: r1 })
+      if (p2ks?.id) inserts.push({ kamp_spelar_id: p2ks.id, omgang: nr, score: s2, antall_ringer: r2 })
+      const { error } = await lagreKampOmgang(inserts)
+      if (error) { showToast('Feil ved lagring', 'error'); return }
+      omgangar.push({ omgang: nr, s1, s2, r1, r2 })
+    }
 
-    const { error } = await lagreKampOmgang(inserts)
-    if (error) { showToast('Feil ved lagring', 'error'); return }
-
-    omgangar.push({ omgang: nr, s1, s2, r1, r2 })
     val1 = null
     val2 = null
 
     const [newT1, newT2] = beregnEffektiveTotalar()
-    if (erVinnarKondisjon(newT1, newT2)) kampFerdig = true
+    kampFerdig = erVinnarKondisjon(newT1, newT2)
 
-    tegn()
-  }
-
-  async function slettOmgangFra(fraNr: number): Promise<void> {
-    if (!await confirmDialog({ title: 'Slett omgangar', message: `Slett omgang ${fraNr} og alle etter? Dette kan ikkje angrast.`, danger: true })) return
-
-    const ids = [p1ks?.id, p2ks?.id].filter((id): id is number => id != null)
-    const { error } = await slettKampOmgangarFra(ids, fraNr)
-    if (error) { showToast('Feil ved sletting', 'error'); return }
-
-    if (kamp.er_bekreftet) {
-      const { error: e2 } = await unbekreftKamp(kamp.id)
-      if (e2) { showToast('Feil ved oppdatering av kampstatus', 'error'); return }
-      kamp.er_bekreftet = false
-    }
-
-    omgangar = omgangar.filter(o => o.omgang < fraNr)
-    val1 = null
-    val2 = null
-
-    const [t1, t2] = beregnEffektiveTotalar()
-    kampFerdig = erVinnarKondisjon(t1, t2)
     tegn()
   }
 }
@@ -309,16 +300,6 @@ function spelarNamn(ks: KampSpelarIKamp | null, fallback = 'Spelar'): string {
   return ks?.kaster ? `${ks.kaster.fornavn} ${ks.kaster.etternavn}` : fallback
 }
 
-function lagOmgangSlettKnappar(omgangNumre: number[], onSlett: (nr: number) => void): HTMLElement {
-  const row = lagEl('div', null, 'sb-omg-btns')
-  for (const nr of omgangNumre) {
-    const btn = lagEl('button', String(nr), 'sb-omg-btn')
-    btn.title = `Slett frå omgang ${nr}`
-    btn.addEventListener('click', () => onSlett(nr))
-    row.appendChild(btn)
-  }
-  return row
-}
 
 function lagBekreftKnapp(onBekreft: () => Promise<void>): HTMLButtonElement {
   const btn = lagEl('button', 'Bekreft kamp', 'sb-neste-btn sb-neste-btn--bekreft')
@@ -353,6 +334,7 @@ async function renderScoreboard3(
   let omgangData: KampOmgangRow[] = []
   let vinnRekkefolge: number[] = []
   let vals: (number | null)[] = [null, null, null]
+  let isEditMode3 = false
 
   function beregnTotal(idx: number): number {
     return omgangData
@@ -480,21 +462,29 @@ async function renderScoreboard3(
 
     if (kanRedigere && !erFerdig && !kamp.er_bekreftet) {
       const angreRad = lagEl('div', null, 'sb-angre-rad')
-
-      if (omgangData.length > 0) {
-        const omgangarNr = [...new Set(omgangData.map(o => o.omgang))].sort((a, b) => a - b)
-        angreRad.appendChild(lagOmgangSlettKnappar(omgangarNr, slettOmgangFra3))
-      }
-
       const angreBtn = lagEl('button', '↩', 'sb-angre-btn')
-      angreBtn.title = 'Angre val for denne omgangen'
-      angreBtn.disabled = aktiveIdxar.every(i => vals[i] === null)
-      angreBtn.addEventListener('click', () => { vals = [null, null, null]; tegn3() })
+      if (isEditMode3) {
+        angreBtn.title = 'Avbryt endring'
+        angreBtn.addEventListener('click', () => { isEditMode3 = false; vals = [null, null, null]; tegn3() })
+      } else {
+        angreBtn.title = 'Endre siste omgang'
+        angreBtn.disabled = omgangData.length === 0
+        angreBtn.addEventListener('click', () => {
+          const lastNr = Math.max(...omgangData.map(o => o.omgang))
+          aktiveIdxar.forEach(i => {
+            const row = omgangData.find(o => o.kamp_spelar_id === spelarar[i].id && o.omgang === lastNr)
+            vals[i] = row?.score ?? null
+          })
+          isEditMode3 = true
+          tegn3()
+        })
+      }
       angreRad.appendChild(angreBtn)
       container.appendChild(angreRad)
 
       const kanNeste = aktiveIdxar.some(i => vals[i] !== null)
-      const nesteBtn = lagEl('button', 'Neste omgang', 'sb-neste-btn')
+      const nesteLabel = isEditMode3 ? 'Bekreft endring' : 'Neste omgang'
+      const nesteBtn = lagEl('button', nesteLabel, 'sb-neste-btn')
       nesteBtn.disabled = !kanNeste
       nesteBtn.addEventListener('click', async () => {
         nesteBtn.disabled = true
@@ -503,7 +493,7 @@ async function renderScoreboard3(
           await nesteOmgang3()
         } finally {
           nesteBtn.disabled = false
-          nesteBtn.textContent = 'Neste omgang'
+          nesteBtn.textContent = nesteLabel
         }
       })
       container.appendChild(nesteBtn)
@@ -517,7 +507,9 @@ async function renderScoreboard3(
 
     container.querySelectorAll<HTMLButtonElement>('[data-spelar]').forEach(btn => {
       btn.addEventListener('click', () => {
-        vals[parseInt(btn.dataset.spelar ?? '0')] = parseInt(btn.dataset.val ?? '0')
+        const idx = parseInt(btn.dataset.spelar ?? '0')
+        const v = parseInt(btn.dataset.val ?? '0')
+        vals[idx] = (vals[idx] === v) ? null : v
         tegn3()
       })
     })
@@ -525,27 +517,24 @@ async function renderScoreboard3(
 
   async function nesteOmgang3(): Promise<void> {
     const aktiveIdxar = [0, 1, 2].filter(i => spelarar[i] && !vinnRekkefolge.includes(i))
-    const nr = omgangData.length ? Math.max(...omgangData.map(o => o.omgang)) + 1 : 1
-    const inserts = aktiveIdxar.map(i => {
-      const v = vals[i] ?? 0
-      return { kamp_spelar_id: spelarar[i].id, omgang: nr, score: v, antall_ringer: v === 6 ? 2 : (v === 3 || v === 4) ? 1 : 0 }
-    })
-    const { error } = await lagreKampOmgang(inserts)
-    if (error) { showToast('Feil ved lagring', 'error'); return }
-    vals = [null, null, null]
-    await lastOmgangar3()
-    tegn3()
-  }
 
-  async function slettOmgangFra3(fraNr: number): Promise<void> {
-    if (!await confirmDialog({ title: 'Slett omgangar', message: `Slett omgang ${fraNr} og alle etter? Dette kan ikkje angrast.`, danger: true })) return
-    const { error } = await slettKampOmgangarFra(spelarIds, fraNr)
-    if (error) { showToast('Feil ved sletting', 'error'); return }
-
-    if (kamp.er_bekreftet) {
-      const { error: e2 } = await unbekreftKamp(kamp.id)
-      if (e2) { showToast('Feil ved oppdatering av kampstatus', 'error'); return }
-      kamp.er_bekreftet = false
+    if (isEditMode3) {
+      const lastNr = Math.max(...omgangData.map(o => o.omgang))
+      const rows = aktiveIdxar.map(i => {
+        const v = vals[i] ?? 0
+        return { kamp_spelar_id: spelarar[i].id, omgang: lastNr, score: v, antall_ringer: v === 6 ? 2 : (v === 3 || v === 4) ? 1 : 0 }
+      })
+      const { error } = await oppdaterKampOmgang(rows)
+      if (error) { showToast('Feil ved lagring', 'error'); return }
+      isEditMode3 = false
+    } else {
+      const nr = omgangData.length ? Math.max(...omgangData.map(o => o.omgang)) + 1 : 1
+      const inserts = aktiveIdxar.map(i => {
+        const v = vals[i] ?? 0
+        return { kamp_spelar_id: spelarar[i].id, omgang: nr, score: v, antall_ringer: v === 6 ? 2 : (v === 3 || v === 4) ? 1 : 0 }
+      })
+      const { error } = await lagreKampOmgang(inserts)
+      if (error) { showToast('Feil ved lagring', 'error'); return }
     }
 
     vals = [null, null, null]

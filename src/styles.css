@@ -1591,32 +1591,10 @@ a.stevne-navn {
 .sb-angre-rad {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 8px;
   padding: 6px 12px;
   flex-shrink: 0;
-}
-
-.sb-omg-btns {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-  flex: 1;
-}
-
-.sb-omg-btn {
-  width: 32px;
-  height: 32px;
-  font-size: 0.8rem;
-  background: var(--sb-knapp-dis-bg);
-  color: var(--sb-tekst);
-  border: 1px solid var(--sb-border-btn);
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.sb-omg-btn:hover {
-  background: var(--sb-knapp-slett-hover);
 }
 
 .sb-angre-btn {
