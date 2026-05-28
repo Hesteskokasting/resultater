@@ -111,6 +111,7 @@ async function oppdaterAuthMeny(): Promise<void> {
     adminItem.classList.toggle('d-none', !erAdminBrukar)
     loggutItem.classList.remove('d-none')
     headerEmail.textContent = auth.user.email ?? ''
+    ;(headerEmail as HTMLAnchorElement).href = erAdminBrukar ? '#/admin' : '#/minside'
     headerEmail.classList.remove('d-none')
   } else {
     logginnItem.classList.remove('d-none')

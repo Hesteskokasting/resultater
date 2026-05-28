@@ -141,6 +141,12 @@
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 180px;
+  text-decoration: none;
+}
+
+.header-email:hover {
+  color: var(--tekst);
+  text-decoration: underline;
 }
 
 .meny-knapp {
