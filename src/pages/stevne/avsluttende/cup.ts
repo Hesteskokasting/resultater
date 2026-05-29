@@ -282,7 +282,8 @@ function renderKampBlock(
     s?.kaster ? `${escHtml(s.kaster.fornavn)} ${escHtml(s.kaster.etternavn)}` : '—'
 
   const bekrefta = kamp.er_bekreftet || kamp.er_walkover
-  const kanEndreScore = isAdminLocal && kamp.er_bekreftet && !kamp.er_tre_spelarar
+  const harOmgangar = sp.some(s => (s.omgangar?.length ?? 0) > 0)
+  const kanEndreScore = isAdminLocal && kamp.er_bekreftet && !kamp.er_tre_spelarar && !harOmgangar
 
   const spelarRader = kamp.er_walkover
     ? `<tr>
@@ -306,11 +307,9 @@ function renderKampBlock(
         </tr>`
       }).join('')
 
-  const harOmgangar = sp.some(s => (s.omgangar?.length ?? 0) > 0)
-
   let bekrftKlass: string, bekrftTekst: string, bekrftDisabled: boolean, bekreftKnappKlass: string
   if (kamp.er_tre_spelarar) {
-    bekrftKlass = bekrefta ? 'btn-success' : 'btn-outline-secondary'
+    bekrftKlass = bekrefta ? 'btn-secondary' : 'btn-outline-secondary'
     bekrftTekst = bekrefta ? 'Endre plassering' : 'Sett plassering'
     bekrftDisabled = false
     bekreftKnappKlass = ''
@@ -334,7 +333,7 @@ function renderKampBlock(
                 ? `<button class="btn btn-primary btn-sm" id="plus-${kamp.id}"${bekrefta ? ' disabled' : ''}>+</button> `
                 : ''}
               <button class="btn btn-secondary btn-sm" id="scoreboard-${kamp.id}"
-                title="Scoreboard"${bekrefta && !kamp.er_tre_spelarar ? ' disabled' : ''}>S</button>
+                title="Scoreboard"${bekrefta && !kamp.er_tre_spelarar && !harOmgangar ? ' disabled' : ''}>S</button>
               ${isAdminLocal ? `<button class="btn ${bekrftKlass} btn-sm${bekreftKnappKlass}" id="bekrft-${kamp.id}"${bekrftDisabled ? ' disabled' : ''}>${bekrftTekst}</button>` : ''}
             </td>
           </tr>
