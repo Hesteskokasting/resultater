@@ -228,7 +228,14 @@ export function createAvsluttendeRenderer(variant: AvsluttendeVariant) {
 
       bannerSlot?.querySelector('#fullfør-turnering-btn')?.addEventListener('click', async () => {
         if (!await confirmDialog({ title: 'Fullfør turnering', message: 'Vil du fullføre turneringa? Dette kan ikkje angrast.', danger: true })) return
-        const { error: plErr } = await skrivPlaseringar(stevneid, stilling)
+        // Sort by gruppe so A gets 1..nA, B gets nA+1..nA+nB.
+        // sorterStilling mixes groups together; filtering preserves correct within-group order.
+        const stillingByGruppe = [
+          ...stilling.filter(r => r.gruppe?.navn === 'A'),
+          ...stilling.filter(r => r.gruppe?.navn === 'B'),
+          ...stilling.filter(r => r.gruppe?.navn !== 'A' && r.gruppe?.navn !== 'B'),
+        ]
+        const { error: plErr } = await skrivPlaseringar(stevneid, stillingByGruppe)
         if (plErr) { showToast('Feil ved lagring av plasseringar', 'error'); return }
         const { error } = await setStevneErfullfort(stevneid)
         if (error) { showToast('Feil ved fullføring av turnering', 'error'); return }
