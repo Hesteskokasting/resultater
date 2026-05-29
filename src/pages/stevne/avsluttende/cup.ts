@@ -22,6 +22,7 @@ import {
   oppdaterKampSpelarScoreRask,
   slettKampOmgangar,
   hentKampSpelarar,
+  setKampSpelarPlaseringar,
   type AvslKampRow,
   type AvslKampSpelarRow,
 } from '@/services/kampService'
@@ -426,6 +427,11 @@ function bindKampEvents(
           if (dbErr) { showToast('DB-feil ved oppdatering av score', 'error'); return }
           const nyVinnarId = nyS1 >= nyS2 ? p1?.kasterid : p2?.kasterid
           const nyTaparId = nyS1 >= nyS2 ? p2?.kasterid : p1?.kasterid
+          const nyPlaseringar: { kasterid: number; plassering: number }[] = []
+          if (nyVinnarId != null) nyPlaseringar.push({ kasterid: nyVinnarId, plassering: 1 })
+          if (nyTaparId != null) nyPlaseringar.push({ kasterid: nyTaparId, plassering: 2 })
+          const { error: plErr } = await setKampSpelarPlaseringar(kamp.id, nyPlaseringar)
+          if (plErr) { showToast('DB-feil ved oppdatering av plassering', 'error'); return }
           await oppdaterVinnarTapar({
             stevneId: stevneid,
             rundeNummer: kamp.runde_nummer,
