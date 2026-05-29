@@ -474,7 +474,7 @@ async function renderScoreboard3(
 
       if (plass) panel.appendChild(lagEl('div', `${plass}. plass`, 'sb-plass-badge'))
 
-      if (editIdxar.includes(i) && kanRedigere && !erFerdig && !kamp.er_bekreftet) {
+      if (editIdxar.includes(i) && kanRedigere && !kamp.er_bekreftet) {
         const knappar = lagEl('div', null, 'sb-knappar')
         for (const n of pointValues) {
           const btn = lagEl('button', String(n), 'sb-poeng-btn')
@@ -491,7 +491,7 @@ async function renderScoreboard3(
     })
     container.appendChild(wrap)
 
-    if (kanRedigere && !erFerdig && !kamp.er_bekreftet) {
+    if (kanRedigere && !kamp.er_bekreftet) {
       const angreRad = lagEl('div', null, 'sb-angre-rad')
       const angreBtn = lagEl('button', '↩', 'sb-angre-btn')
       if (isEditMode3) {
@@ -522,26 +522,28 @@ async function renderScoreboard3(
       }
       container.appendChild(angreRad)
 
-      const kanNeste = isEditMode3
-        ? modifiedPlayers3.size > 0 && editIdxar.some(i => vals[i] !== null)
-        : aktiveIdxar.some(i => vals[i] !== null)
-      const nesteLabel = isEditMode3 ? 'Bekreft endring' : 'Neste omgang'
-      const nesteBtn = lagEl('button', nesteLabel, 'sb-neste-btn')
-      nesteBtn.disabled = !kanNeste
-      nesteBtn.addEventListener('click', async () => {
-        nesteBtn.disabled = true
-        nesteBtn.textContent = 'Lagrer…'
-        try {
-          await nesteOmgang3()
-        } finally {
-          nesteBtn.disabled = false
-          nesteBtn.textContent = nesteLabel
-        }
-      })
-      container.appendChild(nesteBtn)
+      if (isEditMode3 || !erFerdig) {
+        const kanNeste = isEditMode3
+          ? modifiedPlayers3.size > 0 && editIdxar.some(i => vals[i] !== null)
+          : aktiveIdxar.some(i => vals[i] !== null)
+        const nesteLabel = isEditMode3 ? 'Bekreft endring' : 'Neste omgang'
+        const nesteBtn = lagEl('button', nesteLabel, 'sb-neste-btn')
+        nesteBtn.disabled = !kanNeste
+        nesteBtn.addEventListener('click', async () => {
+          nesteBtn.disabled = true
+          nesteBtn.textContent = 'Lagrer…'
+          try {
+            await nesteOmgang3()
+          } finally {
+            nesteBtn.disabled = false
+            nesteBtn.textContent = nesteLabel
+          }
+        })
+        container.appendChild(nesteBtn)
+      }
     }
 
-    if (erFerdig && !kamp.er_bekreftet && onBekreft && kanRedigere) {
+    if (erFerdig && !isEditMode3 && !kamp.er_bekreftet && onBekreft && kanRedigere) {
       container.appendChild(lagBekreftKnapp(() => onBekreft(vinnRekkefolge.map(i => spelarar[i].kasterid))))
     } else if (kamp.er_bekreftet) {
       container.appendChild(lagEl('div', 'Kamp fullført', 'alert alert-success mt-2'))
