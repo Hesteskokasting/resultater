@@ -28,7 +28,7 @@ export async function renderScoreboard(
   p1ks: KampSpelarIKamp | null,
   p2ks: KampSpelarIKamp | null,
   options: ScoreboardOptions,
-): Promise<void> {
+): Promise<() => void> {
   const {
     pointValues,
     erArrangor = false,
@@ -72,11 +72,6 @@ export async function renderScoreboard(
     tegn()
   }
   document.addEventListener('visibilitychange', onVisible)
-
-  window.addEventListener('hashchange', () => {
-    void avmeldKanal(kanal)
-    document.removeEventListener('visibilitychange', onVisible)
-  }, { once: true })
 
   async function lastOmgangar(): Promise<void> {
     const ids = [p1ks?.id, p2ks?.id].filter((id): id is number => id != null)
@@ -305,6 +300,11 @@ export async function renderScoreboard(
 
     tegn()
   }
+
+  return () => {
+    void avmeldKanal(kanal)
+    document.removeEventListener('visibilitychange', onVisible)
+  }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -347,7 +347,7 @@ async function renderScoreboard3(
   p2ks: KampSpelarIKamp | null,
   p3ks: KampSpelarIKamp,
   options: Pick<ScoreboardOptions, 'pointValues' | 'erArrangor' | 'erDeltakar' | 'onBekreft' | 'onKampBekreft' | 'omgangEl'>,
-): Promise<void> {
+): Promise<() => void> {
   const { pointValues, erArrangor = false, erDeltakar = false, onBekreft = null, onKampBekreft, omgangEl = null } = options
   const kanRedigere = erArrangor || (erDeltakar && !kamp.er_bekreftet)
   const spelarar = [p1ks, p2ks, p3ks].filter((s): s is KampSpelarIKamp => s != null)
@@ -419,11 +419,6 @@ async function renderScoreboard3(
     tegn3()
   }
   document.addEventListener('visibilitychange', onVisible3)
-
-  window.addEventListener('hashchange', () => {
-    void avmeldKanal(kanal3)
-    document.removeEventListener('visibilitychange', onVisible3)
-  }, { once: true })
 
   function bereknKnappStatus3(aktiveIdxar: number[], effectiveVals: (number | null)[]): Set<number>[] {
     const disabledSets = spelarar.map(() => new Set<number>())
@@ -590,4 +585,9 @@ async function renderScoreboard3(
   }
 
   tegn3()
+
+  return () => {
+    void avmeldKanal(kanal3)
+    document.removeEventListener('visibilitychange', onVisible3)
+  }
 }

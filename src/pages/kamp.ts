@@ -28,9 +28,13 @@ export async function render(container: HTMLElement, params: Record<string, stri
   if (hovudHeader) hovudHeader.classList.add('skjult')
   container.classList.add('sb-fullskjerm-modus')
 
+  let sbCleanup: (() => void) | null = null
+
   window.addEventListener('hashchange', () => {
     if (hovudHeader) hovudHeader.classList.remove('skjult')
     container.classList.remove('sb-fullskjerm-modus')
+    sbCleanup?.()
+    sbCleanup = null
   }, { once: true })
 
   container.replaceChildren(createLoadingState('Laster…'))
@@ -154,9 +158,13 @@ export async function render(container: HTMLElement, params: Record<string, stri
     if (neste) {
       location.hash = `#/kamp/${neste.id}`
     } else if (erArrangor || erDeltakar) {
+      sbCleanup?.()
+      sbCleanup = null
       visVentePaaNesteKamp()
     } else {
-      render(container, { id: kampId })
+      sbCleanup?.()
+      sbCleanup = null
+      await render(container, { id: kampId })
     }
   }
 
@@ -197,7 +205,7 @@ export async function render(container: HTMLElement, params: Record<string, stri
 
   if (!sbContainer) return
 
-  await renderScoreboard(sbContainer, kamp, p1ks, p2ks, {
+  sbCleanup = await renderScoreboard(sbContainer, kamp, p1ks, p2ks, {
     pointValues: KAMP_POINT_VALUES,
     erArrangor,
     erDeltakar,
