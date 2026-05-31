@@ -132,6 +132,20 @@ src/
 
 ---
 
+## Front-end Performance
+
+- **Render structure before data** — A render function must paint the skeleton/headings and reserve height (shimmer blocks with matching `min-height`) synchronously, before any `await` on data. Then fill content into the existing containers — never swap the whole container. Gives an early LCP candidate and prevents CLS.
+- **Layout classes before `await`** — Any class that changes page layout (e.g. `sb-fullskjerm-modus`) must be set synchronously before the first `await`. Deferring causes CLS.
+- **New routes use `lazy()`** — In `app.ts`, wrap new page imports with `lazy(() => import('./pages/...'))`. `renderHome` is the only eager page (it's the LCP route). A new landing/LCP route must stay eager too — otherwise lazy.
+- **Heavy libraries use dynamic import** — Optional libraries > ~100 kB use `await import(...)` inside the function that needs them (`xlsx`, `chart.js` done). Never add a static top-level import for one.
+- **Never benchmark on `npm run dev`** — Unminified, unoptimized. Use `npm run build && npm run preview` and run Lighthouse against the preview URL.
+
+## Conventions
+
+- **Page render signatures use `Params`** — All exported `render` functions type their second argument as `Params` (from `@/types`), never a narrower inline type. Extract values in the body: `Number(params.id)`, `String(params.tab ?? 'default')`.
+
+---
+
 ## CSS & Theming
 
 - All CSS lives in `.css` files. **No inline styles** in `.ts` files.
