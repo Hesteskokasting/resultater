@@ -7,7 +7,6 @@
   <script>
     (function () {
       var tema = localStorage.getItem('tema') || 'dark';
-      if (tema === 'utendors') { tema = 'light'; localStorage.setItem('tema', 'light'); }
       if (tema === 'light') {
         document.documentElement.setAttribute('data-theme', tema);
         document.documentElement.setAttribute('data-bs-theme', 'light');
