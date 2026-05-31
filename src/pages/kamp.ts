@@ -23,6 +23,16 @@ const KAMP_POINT_VALUES = [1, 2, 3, 4, 6]
 
 export async function render(container: HTMLElement, params: Record<string, string | number | undefined>): Promise<void> {
   const kampId = Number(params.id)
+
+  const hovudHeader = document.querySelector<HTMLElement>('.topp-header')
+  if (hovudHeader) hovudHeader.classList.add('skjult')
+  container.classList.add('sb-fullskjerm-modus')
+
+  window.addEventListener('hashchange', () => {
+    if (hovudHeader) hovudHeader.classList.remove('skjult')
+    container.classList.remove('sb-fullskjerm-modus')
+  }, { once: true })
+
   container.replaceChildren(createLoadingState('Laster…'))
 
   let kamp: KampRow
@@ -47,15 +57,6 @@ export async function render(container: HTMLElement, params: Record<string, stri
     hentHcp(kamp.stevneid, kasterids),
     hentStartnrMap(kamp.stevneid, kasterids),
   ])
-
-  const hovudHeader = document.querySelector<HTMLElement>('.topp-header')
-  if (hovudHeader) hovudHeader.classList.add('skjult')
-  container.classList.add('sb-fullskjerm-modus')
-
-  window.addEventListener('hashchange', () => {
-    if (hovudHeader) hovudHeader.classList.remove('skjult')
-    container.classList.remove('sb-fullskjerm-modus')
-  }, { once: true })
 
   const spelarar = [...(kamp.spelarar ?? [])].sort(
     (a, b) => (startnrMap[a.kasterid] ?? Infinity) - (startnrMap[b.kasterid] ?? Infinity),
