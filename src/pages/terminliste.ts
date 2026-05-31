@@ -86,7 +86,7 @@ function filtrerData(data: StevneRow[]): StevneRow[] {
 
 // ── Excel-eksport ─────────────────────────────────────────────────────────────
 
-function lastNedExcel(filtrert: StevneRow[]): void {
+async function lastNedExcel(filtrert: StevneRow[]): Promise<void> {
   const rader = filtrert.map(s => ({
     'Dato': s.dato ? new Date(s.dato).toLocaleDateString('nb-NO') : '',
     'Navn': s.navn ?? '',
@@ -99,7 +99,7 @@ function lastNedExcel(filtrert: StevneRow[]): void {
     'NM': s.ernm ? 'Ja' : 'Nei',
     'InnbydelseUrl': s.innbydelseurl ?? '',
   }))
-  lastNedExcelFil(rader, `terminliste-${filtre.ar}.xlsx`, 'Terminliste')
+  await lastNedExcelFil(rader, `terminliste-${filtre.ar}.xlsx`, 'Terminliste')
 }
 
 // ── Tabell (desktop) ──────────────────────────────────────────────────────────

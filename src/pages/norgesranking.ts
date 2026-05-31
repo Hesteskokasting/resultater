@@ -49,7 +49,7 @@ async function hentOgBufferData(ar: number): Promise<boolean> {
 
 // ── Excel-eksport ─────────────────────────────────────────────────────────────
 
-function lastNedExcel(): void {
+async function lastNedExcel(): Promise<void> {
   const stevnerMap = lagStevnerMap(cache.stevner)
   const liste = byggRankingListe(cache.resultater, stevnerMap)
   const rader = liste.map(k => ({
@@ -59,7 +59,7 @@ function lastNedExcel(): void {
     'Snitt %': k.snittProsent,
     'Antal stevner': k.antallStevner,
   }))
-  lastNedExcelFil(rader, `norgesranking-${filtre.ar}.xlsx`, 'Norgesranking')
+  await lastNedExcelFil(rader, `norgesranking-${filtre.ar}.xlsx`, 'Norgesranking')
 }
 
 // ── HTML-byggjarar ────────────────────────────────────────────────────────────

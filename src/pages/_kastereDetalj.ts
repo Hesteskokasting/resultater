@@ -1,4 +1,4 @@
-import { Chart, registerables } from 'chart.js'
+import type { Chart } from 'chart.js'
 import { kasterNavn } from '@/utils/kaster'
 import { getUser } from '@/services/authService'
 import { formaterDato, formaterProsent } from '@/utils/shared'
@@ -16,9 +16,9 @@ import {
 } from '@/utils/kasterDetaljLogikk'
 import type { MetodeNamn } from '@/utils/kasterDetaljLogikk'
 
-Chart.register(...registerables)
-
 // ── Modul-tilstand ────────────────────────────────────────────────────────────
+
+let chartRegistered = false
 
 const filtreDetalj = {
   aktiv:       'resultater',
@@ -202,7 +202,7 @@ function statistikkHtml(resultater: ResultatDetaljRow[], kaster: KasterDetaljRow
 
 // ── Graf-rendering ────────────────────────────────────────────────────────────
 
-function teiknGraf(canvas: HTMLCanvasElement, resultater: ResultatDetaljRow[]): void {
+async function teiknGraf(canvas: HTMLCanvasElement, resultater: ResultatDetaljRow[]): Promise<void> {
   destroyChart()
 
   const { labels, stevneNamn, verdiar } = byggGrafData(
@@ -221,6 +221,12 @@ function teiknGraf(canvas: HTMLCanvasElement, resultater: ResultatDetaljRow[]): 
       wrapper.replaceChildren(el)
     }
     return
+  }
+
+  const { Chart, registerables } = await import('chart.js')
+  if (!chartRegistered) {
+    Chart.register(...registerables)
+    chartRegistered = true
   }
 
   const erPlassering = filtreDetalj.grafMetrikk === 'plassering'
@@ -312,7 +318,7 @@ export async function renderDetalj(container: HTMLElement, id: number): Promise<
     function oppdaterGraf(): void {
       const canvas = container.querySelector<HTMLCanvasElement>('#kd-graf-canvas')
       if (!canvas) return
-      teiknGraf(canvas, resultater)
+      void teiknGraf(canvas, resultater)
     }
 
     function byttTab(tab: string): void {

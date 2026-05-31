@@ -2006,3 +2006,19 @@ a.stevne-navn {
 .admin-skjema-xl { max-width: 860px; }
 .sel-auto { width: auto; }
 .btn-close-xs { font-size: 0.6rem; }
+
+/* ── Skeleton-plasshaldrar ────────────────────────────────────────────────── */
+.skeleton-blokk {
+  background: linear-gradient(90deg, var(--kant-2, #2a2a2a) 25%, var(--bg, #1a1a1a) 50%, var(--kant-2, #2a2a2a) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+.skeleton-blokk--nc    { min-height: 520px; }
+.skeleton-blokk--liste { min-height: 320px; }
+
+@keyframes skeleton-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}

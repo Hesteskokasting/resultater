@@ -1,4 +1,3 @@
-import * as XLSX from 'xlsx'
 import { parseLocalDate } from './parseLocalDate'
 
 // ── Dato-formatering ──────────────────────────────────────────────────────────
@@ -38,7 +37,8 @@ export function formaterProsent(p: number | null | undefined): string {
 
 // ── Excel-eksport ─────────────────────────────────────────────────────────────
 
-export function lastNedExcel(rader: Record<string, unknown>[], filnavn: string, arknavn = 'Data'): void {
+export async function lastNedExcel(rader: Record<string, unknown>[], filnavn: string, arknavn = 'Data'): Promise<void> {
+  const XLSX = await import('xlsx')
   const ark = XLSX.utils.json_to_sheet(rader)
   const bok = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(bok, ark, arknavn)

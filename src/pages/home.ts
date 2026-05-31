@@ -2,7 +2,6 @@ import { formaterPoeng, byggSingelListe } from '@/utils/norgescup'
 import { hentRegler, hentStevnerOgResultater } from '@/services/norgescupService'
 import { formaterDatoLang as formaterDato } from '@/utils/shared'
 import { createErrorBanner } from '@/components/ErrorBanner'
-import { createLoadingState } from '@/components/LoadingState'
 import { escHtml } from '@/utils/escHtml'
 import { hentSisteResultater, hentLiveStevner, hentKommendeStevner } from '@/services/stevneService'
 import type { SisteResultatRow, LiveStevneRow, KommendeStevneRow } from '@/services/stevneService'
@@ -68,14 +67,29 @@ function kommendeKortHtml(s: KommendeStevneRow): string {
 
 export async function render(container: HTMLElement): Promise<void> {
   const ar = new Date().getFullYear()
-  container.replaceChildren(createLoadingState('Laster framsida...'))
 
-  let resultater: SisteResultatRow[]
-  let kommende: KommendeStevneRow[]
-  let live: LiveStevneRow[]
-  let regler: Awaited<ReturnType<typeof hentRegler>>['data']
-  let ncResultater: Awaited<ReturnType<typeof hentStevnerOgResultater>>['resultater']
-  let stevner: Awaited<ReturnType<typeof hentStevnerOgResultater>>['stevner']
+  // Render skeleton immediately: headings paint as LCP candidates, placeholders reserve layout space
+  container.innerHTML = `
+    <div class="heimeside">
+      <div id="live-seksjon"></div>
+      <div class="heimeside-grid">
+        <section class="heimeside-nc">
+          <h2 class="heimeside-seksjon-tittel">Norgescupen Klasse 1 - Topp 20</h2>
+          <div class="skeleton-blokk skeleton-blokk--nc" id="nc-innhald"></div>
+          <a class="heimeside-meir-lenke" href="#/norgescupen">Til detaljert liste</a>
+        </section>
+        <section class="heimeside-resultater">
+          <h2 class="heimeside-seksjon-tittel">Siste resultat</h2>
+          <div class="skeleton-blokk skeleton-blokk--liste" id="resultater-innhald"></div>
+          <a class="heimeside-meir-lenke" href="#/terminliste">Vis terminliste</a>
+        </section>
+        <section class="heimeside-kommende">
+          <h2 class="heimeside-seksjon-tittel">Kommande konkurransar</h2>
+          <div class="skeleton-blokk skeleton-blokk--liste" id="kommende-innhald"></div>
+          <a class="heimeside-meir-lenke" href="#/terminliste">Vis terminliste</a>
+        </section>
+      </div>
+    </div>`
 
   try {
     const [
@@ -97,39 +111,25 @@ export async function render(container: HTMLElement): Promise<void> {
       return
     }
 
-    resultater  = r1
-    kommende    = r2
-    regler      = r3
-    stevner     = s4
-    ncResultater = r4
-    live        = r5.filter(s => !s.erfullfort)
+    const live = r5.filter(s => !s.erfullfort)
+    const ncListe = r3 ? byggSingelListe(r4, s4, r3, 'NC', 1) : []
+
+    // Update sections in-place to avoid layout shift
+    if (live.length) {
+      const liveSeksjon = container.querySelector<HTMLElement>('#live-seksjon')!
+      liveSeksjon.innerHTML = `<div class="live-banner">${live.map(liveKortHtml).join('')}</div>`
+    }
+
+    container.querySelector<HTMLElement>('#nc-innhald')!.outerHTML = ncTopp20Html(ncListe)
+
+    container.querySelector<HTMLElement>('#resultater-innhald')!.outerHTML =
+      `<div class="stevne-liste">${r1.map(resultatKortHtml).join('')}</div>`
+
+    container.querySelector<HTMLElement>('#kommende-innhald')!.outerHTML =
+      `<div class="stevne-liste">${r2.map(kommendeKortHtml).join('')}</div>`
+
   } catch (err) {
     logError('home.render', err)
     container.replaceChildren(createErrorBanner('Kunne ikkje laste framsida.'))
-    return
   }
-
-  const ncListe = regler ? byggSingelListe(ncResultater, stevner, regler, 'NC', 1) : []
-
-  container.innerHTML = `
-    <div class="heimeside">
-      ${live.length ? `<div class="live-banner">${live.map(liveKortHtml).join('')}</div>` : ''}
-      <div class="heimeside-grid">
-        <section class="heimeside-nc">
-          <h2 class="heimeside-seksjon-tittel">Norgescupen Klasse 1 - Topp 20</h2>
-          ${ncTopp20Html(ncListe)}
-          <a class="heimeside-meir-lenke" href="#/norgescupen">Til detaljert liste</a>
-        </section>
-        <section class="heimeside-resultater">
-          <h2 class="heimeside-seksjon-tittel">Siste resultat</h2>
-          <div class="stevne-liste">${resultater.map(resultatKortHtml).join('')}</div>
-          <a class="heimeside-meir-lenke" href="#/terminliste">Vis terminliste</a>
-        </section>
-        <section class="heimeside-kommende">
-          <h2 class="heimeside-seksjon-tittel">Kommande konkurransar</h2>
-          <div class="stevne-liste">${kommende.map(kommendeKortHtml).join('')}</div>
-          <a class="heimeside-meir-lenke" href="#/terminliste">Vis terminliste</a>
-        </section>
-      </div>
-    </div>`
 }
