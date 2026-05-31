@@ -676,6 +676,7 @@ export function subscribeToScoreboardEndringar(
   spelarIds: number[],
   onOmgangChange: () => Promise<void>,
   onKampBekreft: () => Promise<void>,
+  onResubscribe?: () => Promise<void>,
 ): RealtimeChannel {
   return supabase
     .channel(`scoreboard-kamp-${kampId}`)
@@ -696,5 +697,7 @@ export function subscribeToScoreboardEndringar(
         }
       },
     )
-    .subscribe()
+    .subscribe((status) => {
+      if (status === 'SUBSCRIBED') void onResubscribe?.()
+    })
 }

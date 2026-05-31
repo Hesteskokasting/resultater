@@ -64,6 +64,7 @@ export async function renderScoreboard(
     spelarIds,
     async () => { await lastOmgangar(); tegn() },
     async () => { kamp.er_bekreftet = true; await lastOmgangar(); tegn(); await onKampBekreft?.() },
+    async () => { await lastOmgangar(); tegn() },
   )
 
   const onVisible = async () => {
@@ -411,6 +412,7 @@ async function renderScoreboard3(
     spelarIds,
     async () => { await lastOmgangar3(); tegn3() },
     async () => { kamp.er_bekreftet = true; await lastOmgangar3(); tegn3(); await onKampBekreft?.() },
+    async () => { await lastOmgangar3(); tegn3() },
   )
 
   const onVisible3 = async () => {
