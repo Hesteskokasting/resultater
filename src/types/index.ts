@@ -20,4 +20,4 @@ export type {
   CupParing,
   Profil,
 } from './domain.types'
-export type { PageRenderFn, Rute, AuthUser } from './app.types'
+export type { Params, PageRenderFn, Rute, AuthUser } from './app.types'

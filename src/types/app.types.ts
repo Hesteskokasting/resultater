@@ -1,12 +1,13 @@
 import type { User } from '@supabase/supabase-js'
 import type { Profil } from './domain.types'
 
-export type PageRenderFn = (container: HTMLElement, params: Record<string, string>) => Promise<void>
+export type Params = Record<string, string | number | undefined>
+export type PageRenderFn = (container: HTMLElement, params: Params) => void | Promise<void>
 
 export interface Rute {
   pattern: RegExp
   side: PageRenderFn
-  params: (match: RegExpMatchArray) => Record<string, string>
+  params: (match: RegExpMatchArray) => Params
 }
 
 export interface AuthUser {

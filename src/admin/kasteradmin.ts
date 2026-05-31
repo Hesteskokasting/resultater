@@ -20,8 +20,9 @@ import { hentKlubbar } from '@/services/klubbService'
 
 export async function render(
   container: HTMLElement,
-  { id }: { id?: number } = {},
+  params: Record<string, string | number | undefined> = {},
 ): Promise<void> {
+  const id = params.id !== undefined ? Number(params.id) : undefined
   container.replaceChildren(createLoadingState())
 
   let klubbar: { id: number; navn: string; logourl: string | null }[] = []

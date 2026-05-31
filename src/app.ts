@@ -1,43 +1,27 @@
 import 'bootstrap'
-import { render as renderHome }          from './pages/home'
-import { render as renderTerminliste }    from './pages/terminliste'
-import { render as renderNorgescupen }    from './pages/norgescupen'
-import { render as renderNorgesranking }  from './pages/norgesranking'
-import { render as renderKastere }        from './pages/kastere'
-import { render as renderKlubber }        from './pages/klubber'
-import { render as renderRekorder }       from './pages/rekorder'
-import { render as renderNMVinnere }      from './pages/nmvinnere'
-import { render as renderLogginn }        from './pages/logginn'
-import { render as renderMinSide }        from './pages/minside'
-import { render as renderAdmin }          from './admin/admin'
-import { render as renderStevneAdmin }    from './admin/stevneadmin'
-import { render as renderKasterAdmin }    from './admin/kasteradmin'
-import { render as renderKlubbAdminSide } from './admin/klubbadmin'
-import { render as renderPamelding }      from './pages/pamelding'
-import { render as renderKamp }           from './pages/kamp'
-import { render as renderStevne }         from './pages/stevne'
+import { render as renderHome } from './pages/home'
 import { getUser, erAdmin, erKlubbadmin, loggUt } from './services/authService'
 import { createErrorBanner } from './components/ErrorBanner'
 import { showToast } from './components/Toast'
+import type { PageRenderFn, Rute } from '@/types'
 
 if (import.meta.env.VITE_ENV === 'dev') {
   const versjonEl = document.querySelector('.header-versjon')
   if (versjonEl) versjonEl.textContent += ' [DEV]'
 }
 
-type Params = Record<string, string | number | undefined>
-type RenderFn = (container: HTMLElement, params: Params) => void | Promise<void>
 type MinRolle = 'bruker' | 'admin' | 'klubbadmin'
 
-interface Rute {
-  pattern: RegExp
-  side: RenderFn
-  params: (m: RegExpMatchArray) => Params
+function lazy(load: () => Promise<{ render: PageRenderFn }>): PageRenderFn {
+  return async (c, p) => {
+    const { render } = await load()
+    return render(c, p)
+  }
 }
 
 const container = document.getElementById('app')!
 
-function authGuard(minRolle: MinRolle, renderFn: RenderFn): RenderFn {
+function authGuard(minRolle: MinRolle, renderFn: PageRenderFn): PageRenderFn {
   return async (cont, params) => {
     const auth = await getUser()
     if (!auth) {
@@ -58,28 +42,28 @@ function authGuard(minRolle: MinRolle, renderFn: RenderFn): RenderFn {
 
 const ruter: Rute[] = [
   // Auth-ruter (spesifikke før generiske)
-  { pattern: /^\/logginn$/,                    side: renderLogginn,                                            params: () => ({}) },
-  { pattern: /^\/minside$/,                    side: authGuard('bruker', renderMinSide),                       params: () => ({}) },
-  { pattern: /^\/admin$/,                      side: authGuard('admin', renderAdmin),                          params: () => ({}) },
-  { pattern: /^\/stevne\/ny$/,                 side: authGuard('klubbadmin', renderStevneAdmin as RenderFn),   params: () => ({}) },
-  { pattern: /^\/stevne\/(\d+)\/admin$/,       side: authGuard('klubbadmin', renderStevneAdmin as RenderFn),   params: m => ({ id: m[1] }) },
-  { pattern: /^\/kamp\/(\d+)$/,               side: renderKamp as RenderFn,                                   params: m => ({ id: Number(m[1]) }) },
-  { pattern: /^\/stevne\/(\d+)\/pamelding$/,  side: renderPamelding as RenderFn,                              params: m => ({ id: m[1] }) },
-  { pattern: /^\/stevne\/(\d+)(?:\/([^/]*))?$/, side: renderStevne as RenderFn,                              params: m => ({ id: Number(m[1]), tab: m[2] ?? 'info' }) },
-  { pattern: /^\/kaster\/ny$/,                 side: authGuard('klubbadmin', renderKasterAdmin as RenderFn),   params: () => ({}) },
-  { pattern: /^\/kaster\/(\d+)\/admin$/,       side: authGuard('klubbadmin', renderKasterAdmin as RenderFn),   params: m => ({ id: m[1] }) },
-  { pattern: /^\/klubber\/(\d+)\/admin$/,      side: authGuard('klubbadmin', renderKlubbAdminSide),            params: m => ({ id: m[1] }) },
+  { pattern: /^\/logginn$/,                      side: lazy(() => import('./pages/logginn')),                         params: () => ({}) },
+  { pattern: /^\/minside$/,                      side: authGuard('bruker', lazy(() => import('./pages/minside'))),    params: () => ({}) },
+  { pattern: /^\/admin$/,                        side: authGuard('admin',  lazy(() => import('./admin/admin'))),      params: () => ({}) },
+  { pattern: /^\/stevne\/ny$/,                   side: authGuard('klubbadmin', lazy(() => import('./admin/stevneadmin'))), params: () => ({}) },
+  { pattern: /^\/stevne\/(\d+)\/admin$/,         side: authGuard('klubbadmin', lazy(() => import('./admin/stevneadmin'))), params: m => ({ id: Number(m[1]) }) },
+  { pattern: /^\/kamp\/(\d+)$/,                 side: lazy(() => import('./pages/kamp')),                            params: m => ({ id: Number(m[1]) }) },
+  { pattern: /^\/stevne\/(\d+)\/pamelding$/,    side: lazy(() => import('./pages/pamelding')),                       params: m => ({ id: m[1] }) },
+  { pattern: /^\/stevne\/(\d+)(?:\/([^/]*))?$/, side: lazy(() => import('./pages/stevne')),                         params: m => ({ id: Number(m[1]), tab: m[2] ?? 'info' }) },
+  { pattern: /^\/kaster\/ny$/,                   side: authGuard('klubbadmin', lazy(() => import('./admin/kasteradmin'))), params: () => ({}) },
+  { pattern: /^\/kaster\/(\d+)\/admin$/,         side: authGuard('klubbadmin', lazy(() => import('./admin/kasteradmin'))), params: m => ({ id: m[1] }) },
+  { pattern: /^\/klubber\/(\d+)\/admin$/,        side: authGuard('klubbadmin', lazy(() => import('./admin/klubbadmin'))), params: m => ({ id: m[1] }) },
   // Eksisterande ruter
-  { pattern: /^\/terminliste$/,                side: renderTerminliste,                                        params: () => ({}) },
-  { pattern: /^\/norgescupen$/,                side: renderNorgescupen,                                        params: () => ({}) },
-  { pattern: /^\/norgesranking$/,              side: renderNorgesranking,                                      params: () => ({}) },
-  { pattern: /^\/rekorder$/,                   side: renderRekorder,                                           params: () => ({}) },
-  { pattern: /^\/nmvinnere$/,                  side: renderNMVinnere,                                          params: () => ({}) },
-  { pattern: /^\/kastere\/(\d+)(-[^/]*)?$/,   side: renderKastere as RenderFn,                                params: m => ({ id: m[1] }) },
-  { pattern: /^\/kastere$/,                    side: renderKastere as RenderFn,                                params: () => ({}) },
-  { pattern: /^\/klubber\/(\d+)(-[^/]*)?$/,   side: renderKlubber as RenderFn,                                params: m => ({ id: m[1] }) },
-  { pattern: /^\/klubber$/,                    side: renderKlubber as RenderFn,                                params: () => ({}) },
-  { pattern: /^\/?$/,                          side: renderHome,                                               params: () => ({}) },
+  { pattern: /^\/terminliste$/,                  side: lazy(() => import('./pages/terminliste')),                    params: () => ({}) },
+  { pattern: /^\/norgescupen$/,                  side: lazy(() => import('./pages/norgescupen')),                    params: () => ({}) },
+  { pattern: /^\/norgesranking$/,                side: lazy(() => import('./pages/norgesranking')),                  params: () => ({}) },
+  { pattern: /^\/rekorder$/,                     side: lazy(() => import('./pages/rekorder')),                       params: () => ({}) },
+  { pattern: /^\/nmvinnere$/,                    side: lazy(() => import('./pages/nmvinnere')),                      params: () => ({}) },
+  { pattern: /^\/kastere\/(\d+)(-[^/]*)?$/,     side: lazy(() => import('./pages/kastere')),                        params: m => ({ id: m[1] }) },
+  { pattern: /^\/kastere$/,                      side: lazy(() => import('./pages/kastere')),                        params: () => ({}) },
+  { pattern: /^\/klubber\/(\d+)(-[^/]*)?$/,     side: lazy(() => import('./pages/klubber')),                        params: m => ({ id: m[1] }) },
+  { pattern: /^\/klubber$/,                      side: lazy(() => import('./pages/klubber')),                        params: () => ({}) },
+  { pattern: /^\/?$/,                            side: renderHome,                                                   params: () => ({}) },
 ]
 
 function naviger(): void {
@@ -142,3 +126,4 @@ document.addEventListener('authStateChanged', (e) => {
     showToast('Sesjonen din er utløpt. Logg inn igjen for å halde fram.', 'warning', true)
   }
 })
+

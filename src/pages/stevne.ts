@@ -72,8 +72,10 @@ let kanal: RealtimeChannel | null = null
 
 export async function render(
   container: HTMLElement,
-  { id, tab = 'info' }: { id: number; tab?: string },
+  params: Record<string, string | number | undefined>,
 ): Promise<void> {
+  const id = Number(params.id)
+  const tab = String(params.tab ?? 'info')
   if (kanal) { await avmeldKanal(kanal); kanal = null }
   container.replaceChildren(createLoadingState())
 

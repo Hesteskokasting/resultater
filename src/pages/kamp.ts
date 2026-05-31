@@ -21,8 +21,8 @@ import type { KampRow, KampSpelarIKamp } from '@/services/kampService'
 
 const KAMP_POINT_VALUES = [1, 2, 3, 4, 6]
 
-export async function render(container: HTMLElement, { id }: { id: number }): Promise<void> {
-  const kampId = id
+export async function render(container: HTMLElement, params: Record<string, string | number | undefined>): Promise<void> {
+  const kampId = Number(params.id)
   container.replaceChildren(createLoadingState('Laster…'))
 
   let kamp: KampRow
@@ -155,7 +155,7 @@ export async function render(container: HTMLElement, { id }: { id: number }): Pr
     } else if (erArrangor || erDeltakar) {
       visVentePaaNesteKamp()
     } else {
-      render(container, { id })
+      render(container, { id: kampId })
     }
   }
 

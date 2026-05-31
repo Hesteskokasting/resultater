@@ -117,7 +117,7 @@ function pameldingListeHtml(pameldingar: PameldingMedKasterRow[], erPrivilegert:
 
 function bindEventHandlers(
   container: HTMLElement,
-  params: Record<string, string>,
+  params: Record<string, string | number | undefined>,
   pameldingar: PameldingMedKasterRow[],
   kasterid: number | null,
   brukerId: string,
@@ -182,7 +182,7 @@ function bindEventHandlers(
 
 // ── Hovudfunksjon ─────────────────────────────────────────────────────────────
 
-export async function render(container: HTMLElement, params: Record<string, string> = {}): Promise<void> {
+export async function render(container: HTMLElement, params: Record<string, string | number | undefined> = {}): Promise<void> {
   const rawId = params.id
   if (!rawId) {
     container.replaceChildren(createErrorBanner('Manglande stevne-ID.'))
