@@ -472,7 +472,7 @@ function kampRad(
     <tr class="kamp-rad-desktop" data-status="${status}">
       <td class="text-center">${kamp.bane_nummer ?? ''}</td>
       <td>${p1Vis}</td>
-      <td class="${scoreCls}"${scoreExtra}>${harPoeng ? `${s1} – ${s2}` : '—'}</td>
+      <td class="${scoreCls}"${scoreExtra}>${harPoeng ? `<span class="innl-score-inner"><span class="innl-s1">${s1}</span><span class="innl-sep">–</span><span class="innl-s2">${s2}</span></span>` : '—'}</td>
       <td>${p2Vis}</td>
       ${knapperTd}
     </tr>`

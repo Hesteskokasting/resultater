@@ -1396,8 +1396,28 @@ th.stilling-sp-th  { background: var(--stilling-sp-th) !important; color: #fff !
 }
 
 /* Innledende — merged SCORE column */
-th.innl-score-th  { background: var(--stilling-kp-th) !important; color: #fff !important; }
-.innl-score-cel { font-weight: 600; font-size: 1.05em; letter-spacing: 0.02em; }
+th.innl-score-th {
+  background: var(--stilling-kp-th) !important;
+  color: #fff !important;
+  border-left: 2px solid var(--stilling-kp-th) !important;
+  border-right: 2px solid var(--stilling-kp-th) !important;
+}
+.innl-score-cel {
+  font-weight: 600;
+  font-size: 1.05em;
+  background: var(--avsl-score-bg) !important;
+  border-left: 2px solid var(--stilling-kp-th) !important;
+  border-right: 2px solid var(--stilling-kp-th) !important;
+  vertical-align: middle !important;
+}
+.innl-score-inner {
+  display: inline-grid !important;
+  grid-template-columns: 36px 20px 36px !important;
+  align-items: center;
+}
+.innl-s1  { font-variant-numeric: tabular-nums; }
+.innl-sep { text-align: center; font-weight: 400; color: var(--tekst-2); }
+.innl-s2  { font-variant-numeric: tabular-nums; }
 
 /* ── Nummerpad ── */
 
