@@ -37,3 +37,7 @@ export function ringerForSp(sp: SpelarRinger | null | undefined): number {
   if (sp?.omgangar?.length) return sp.omgangar.reduce((sum, o) => sum + (o.antall_ringer ?? 0), 0)
   return sp?.antall_ringer ?? 0
 }
+
+export function calcAntallRinger(score: number): number {
+  return score === 6 ? 2 : (score === 3 || score === 4) ? 1 : 0
+}

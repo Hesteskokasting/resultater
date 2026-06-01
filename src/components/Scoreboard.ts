@@ -1,4 +1,5 @@
 import type { KampOmgangRow, KampRow, KampSpelarIKamp } from '@/services/kampService'
+import { calcAntallRinger } from '@/utils/kamp'
 import {
   hentKampOmgangar,
   lagreKampOmgang,
@@ -59,20 +60,12 @@ export async function renderScoreboard(
 
   const spelarIds = [p1ks?.id, p2ks?.id].filter((id): id is number => id != null)
 
-  const kanal = subscribeToScoreboardEndringar(
-    kamp.id,
+  const cleanup = setupScoreboardRealtime(
+    kamp,
     spelarIds,
     async () => { await lastOmgangar(); tegn() },
-    async () => { kamp.er_bekreftet = true; await lastOmgangar(); tegn(); await onKampBekreft?.() },
-    async () => { await lastOmgangar(); tegn() },
+    onKampBekreft,
   )
-
-  const onVisible = async () => {
-    if (document.visibilityState !== 'visible') return
-    await lastOmgangar()
-    tegn()
-  }
-  document.addEventListener('visibilitychange', onVisible)
 
   async function lastOmgangar(): Promise<void> {
     const ids = [p1ks?.id, p2ks?.id].filter((id): id is number => id != null)
@@ -270,8 +263,8 @@ export async function renderScoreboard(
   async function nesteOmgang(): Promise<void> {
     const s1 = val1 ?? 0
     const s2 = val2 ?? 0
-    const r1 = s1 === 6 ? 2 : (s1 === 3 || s1 === 4) ? 1 : 0
-    const r2 = s2 === 6 ? 2 : (s2 === 3 || s2 === 4) ? 1 : 0
+    const r1 = calcAntallRinger(s1)
+    const r2 = calcAntallRinger(s2)
 
     if (isEditMode) {
       const lastNr = omgangar[omgangar.length - 1].omgang
@@ -300,10 +293,7 @@ export async function renderScoreboard(
     tegn()
   }
 
-  return () => {
-    void avmeldKanal(kanal)
-    document.removeEventListener('visibilitychange', onVisible)
-  }
+  return cleanup
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -335,6 +325,30 @@ function lagBekreftKnapp(onBekreft: () => Promise<void>): HTMLButtonElement {
     }
   })
   return btn
+}
+
+function setupScoreboardRealtime(
+  kamp: KampRow,
+  spelarIds: number[],
+  reloadAndDraw: () => Promise<void>,
+  onKampBekreft?: () => Promise<void>,
+): () => void {
+  const kanal = subscribeToScoreboardEndringar(
+    kamp.id,
+    spelarIds,
+    reloadAndDraw,
+    async () => { kamp.er_bekreftet = true; await reloadAndDraw(); await onKampBekreft?.() },
+    reloadAndDraw,
+  )
+  const onVisible = async () => {
+    if (document.visibilityState !== 'visible') return
+    await reloadAndDraw()
+  }
+  document.addEventListener('visibilitychange', onVisible)
+  return () => {
+    void avmeldKanal(kanal)
+    document.removeEventListener('visibilitychange', onVisible)
+  }
 }
 
 // ── 3-player scoreboard ───────────────────────────────────────────────────────
@@ -405,20 +419,12 @@ async function renderScoreboard3(
 
   await lastOmgangar3()
 
-  const kanal3 = subscribeToScoreboardEndringar(
-    kamp.id,
+  const cleanup = setupScoreboardRealtime(
+    kamp,
     spelarIds,
     async () => { await lastOmgangar3(); tegn3() },
-    async () => { kamp.er_bekreftet = true; await lastOmgangar3(); tegn3(); await onKampBekreft?.() },
-    async () => { await lastOmgangar3(); tegn3() },
+    onKampBekreft,
   )
-
-  const onVisible3 = async () => {
-    if (document.visibilityState !== 'visible') return
-    await lastOmgangar3()
-    tegn3()
-  }
-  document.addEventListener('visibilitychange', onVisible3)
 
   function bereknKnappStatus3(aktiveIdxar: number[], effectiveVals: (number | null)[]): Set<number>[] {
     const disabledSets = spelarar.map(() => new Set<number>())
@@ -562,7 +568,7 @@ async function renderScoreboard3(
       const lastNr = Math.max(...omgangData.map(o => o.omgang))
       const rows = editModeIdxar.map(i => {
         const v = vals[i] ?? 0
-        return { kamp_spelar_id: spelarar[i].id, omgang: lastNr, score: v, antall_ringer: v === 6 ? 2 : (v === 3 || v === 4) ? 1 : 0 }
+        return { kamp_spelar_id: spelarar[i].id, omgang: lastNr, score: v, antall_ringer: calcAntallRinger(v) }
       })
       const { error } = await oppdaterKampOmgang(rows)
       if (error) { showToast('Feil ved lagring', 'error'); return }
@@ -573,7 +579,7 @@ async function renderScoreboard3(
       const nr = omgangData.length ? Math.max(...omgangData.map(o => o.omgang)) + 1 : 1
       const inserts = aktiveIdxar.map(i => {
         const v = vals[i] ?? 0
-        return { kamp_spelar_id: spelarar[i].id, omgang: nr, score: v, antall_ringer: v === 6 ? 2 : (v === 3 || v === 4) ? 1 : 0 }
+        return { kamp_spelar_id: spelarar[i].id, omgang: nr, score: v, antall_ringer: calcAntallRinger(v) }
       })
       const { error } = await lagreKampOmgang(inserts)
       if (error) { showToast('Feil ved lagring', 'error'); return }
@@ -586,8 +592,5 @@ async function renderScoreboard3(
 
   tegn3()
 
-  return () => {
-    void avmeldKanal(kanal3)
-    document.removeEventListener('visibilitychange', onVisible3)
-  }
+  return cleanup
 }
