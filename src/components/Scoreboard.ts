@@ -291,14 +291,12 @@ export async function renderScoreboard(
       const { error } = await lagreKampOmgang(inserts)
       if (error) { showToast('Feil ved lagring', 'error'); return }
       omgangar.push({ omgang: nr, s1, s2, r1, r2 })
+      const [newT1, newT2] = beregnEffektiveTotalar()
+      kampFerdig = erVinnarKondisjon(newT1, newT2)
     }
 
     val1 = null
     val2 = null
-
-    const [newT1, newT2] = beregnEffektiveTotalar()
-    kampFerdig = erVinnarKondisjon(newT1, newT2)
-
     tegn()
   }
 
@@ -579,10 +577,10 @@ async function renderScoreboard3(
       })
       const { error } = await lagreKampOmgang(inserts)
       if (error) { showToast('Feil ved lagring', 'error'); return }
+      await lastOmgangar3()
     }
 
     vals = [null, null, null]
-    await lastOmgangar3()
     tegn3()
   }
 
