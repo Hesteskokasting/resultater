@@ -1,3 +1,8 @@
+// Shared helpers (lagEl, spelarNamn, lagAsyncKnapp, lagBekreftKnapp, setupScoreboardRealtime)
+// serve both renderScoreboard (2-player) and renderScoreboard3 (3-player) — fixes to
+// realtime, button behaviour, or DOM utilities apply once. Genuine divergences:
+// tegn/tegn3, bereknKnappStatus/bereknKnappStatus3, nesteOmgang/nesteOmgang3,
+// and OmgangRad[] vs KampOmgangRow[] state structures.
 import type { KampOmgangRow, KampRow, KampSpelarIKamp } from '@/services/kampService'
 import { calcAntallRinger } from '@/utils/kamp'
 import {
@@ -197,18 +202,8 @@ export async function renderScoreboard(
       container.appendChild(lagBekreftKnapp(() => onBekreft!()))
     } else if (kanRedigere) {
       const nesteLabel = isEditMode ? 'Bekreft endring' : 'Neste omgang'
-      const nesteBtn = lagEl('button', nesteLabel, 'sb-neste-btn')
+      const nesteBtn = lagAsyncKnapp(nesteLabel, 'sb-neste-btn', nesteOmgang)
       nesteBtn.disabled = !kanNeste
-      nesteBtn.addEventListener('click', async () => {
-        nesteBtn.disabled = true
-        nesteBtn.textContent = 'Lagrer…'
-        try {
-          await nesteOmgang()
-        } finally {
-          nesteBtn.disabled = false
-          nesteBtn.textContent = nesteLabel
-        }
-      })
       container.appendChild(nesteBtn)
     }
 
@@ -312,19 +307,27 @@ function spelarNamn(ks: KampSpelarIKamp | null, fallback = 'Spelar'): string {
 }
 
 
-function lagBekreftKnapp(onBekreft: () => Promise<void>): HTMLButtonElement {
-  const btn = lagEl('button', 'Bekreft kamp', 'sb-neste-btn sb-neste-btn--bekreft')
+function lagAsyncKnapp(
+  label: string,
+  klasse: string,
+  onClick: () => Promise<void>,
+): HTMLButtonElement {
+  const btn = lagEl('button', label, klasse)
   btn.addEventListener('click', async () => {
     btn.disabled = true
-    btn.textContent = 'Lagrar…'
+    btn.textContent = 'Lagrer…'
     try {
-      await onBekreft()
+      await onClick()
     } finally {
       btn.disabled = false
-      btn.textContent = 'Bekreft kamp'
+      btn.textContent = label
     }
   })
   return btn
+}
+
+function lagBekreftKnapp(onBekreft: () => Promise<void>): HTMLButtonElement {
+  return lagAsyncKnapp('Bekreft kamp', 'sb-neste-btn sb-neste-btn--bekreft', onBekreft)
 }
 
 function setupScoreboardRealtime(
@@ -528,18 +531,8 @@ async function renderScoreboard3(
           ? modifiedPlayers3.size > 0 && editIdxar.some(i => vals[i] !== null)
           : aktiveIdxar.some(i => vals[i] !== null)
         const nesteLabel = isEditMode3 ? 'Bekreft endring' : 'Neste omgang'
-        const nesteBtn = lagEl('button', nesteLabel, 'sb-neste-btn')
+        const nesteBtn = lagAsyncKnapp(nesteLabel, 'sb-neste-btn', nesteOmgang3)
         nesteBtn.disabled = !kanNeste
-        nesteBtn.addEventListener('click', async () => {
-          nesteBtn.disabled = true
-          nesteBtn.textContent = 'Lagrer…'
-          try {
-            await nesteOmgang3()
-          } finally {
-            nesteBtn.disabled = false
-            nesteBtn.textContent = nesteLabel
-          }
-        })
         container.appendChild(nesteBtn)
       }
     }
