@@ -678,15 +678,21 @@ export function subscribeToScoreboardEndringar(
   onKampBekreft: () => Promise<void>,
   onResubscribe?: () => Promise<void>,
 ): RealtimeChannel {
+  let omgangDebounce: ReturnType<typeof setTimeout> | null = null
+
   return supabase
     .channel(`scoreboard-kamp-${kampId}`)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'kamp_omgang' },
-      async (payload) => {
+      (payload) => {
         const p = payload.new as Record<string, unknown>
         const o = payload.old as Record<string, unknown>
         const endraId = p.kamp_spelar_id ?? o.kamp_spelar_id
         if (!endraId || spelarIds.includes(endraId as number)) {
-          await onOmgangChange()
+          if (omgangDebounce) clearTimeout(omgangDebounce)
+          omgangDebounce = setTimeout(() => {
+            omgangDebounce = null
+            void onOmgangChange()
+          }, 50)
         }
       },
     )
