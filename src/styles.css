@@ -1054,8 +1054,9 @@ a.stevne-navn {
 }
 
 /* Stilling table — KP/SP visual hierarchy */
-.stilling-kp-th  { background: var(--stilling-kp-th) !important; color: #fff !important; }
-.stilling-sp-th  { background: var(--stilling-sp-th) !important; color: #fff !important; }
+/* th prefix needed to match .org-thead th specificity (0,1,1) and win by source order */
+th.stilling-kp-th  { background: var(--stilling-kp-th) !important; color: #fff !important; }
+th.stilling-sp-th  { background: var(--stilling-sp-th) !important; color: #fff !important; }
 .stilling-kp-cel { background: var(--stilling-kp-bg) !important; font-weight: 600; }
 .stilling-sp-cel { background: var(--stilling-sp-bg) !important; font-weight: 600; }
 
@@ -1395,7 +1396,7 @@ a.stevne-navn {
 }
 
 /* Innledende — merged SCORE column */
-.innl-score-th  { background: var(--primaer) !important; color: #fff !important; }
+th.innl-score-th  { background: var(--stilling-kp-th) !important; color: #fff !important; }
 .innl-score-cel { font-weight: 600; font-size: 1.05em; letter-spacing: 0.02em; }
 
 /* ── Nummerpad ── */
