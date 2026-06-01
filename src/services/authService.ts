@@ -15,11 +15,10 @@ export function isProfil(obj: unknown): obj is Profil {
 
 // Cache per sesjon. Tømt ved SIGNED_OUT / ny innlogging.
 let _cache: AuthUser | null = null
+let _inflight: Promise<AuthUser | null> | null = null
 let _intentionalSignOut = false
 
-async function _hentCache(): Promise<AuthUser | null> {
-  if (_cache) return _cache
-
+async function _fetchUser(): Promise<AuthUser | null> {
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) return null
 
@@ -33,6 +32,13 @@ async function _hentCache(): Promise<AuthUser | null> {
 
   _cache = { user: session.user, profil: isProfil(profil) ? profil : null, klubber }
   return _cache
+}
+
+async function _hentCache(): Promise<AuthUser | null> {
+  if (_cache) return _cache
+  if (_inflight) return _inflight
+  _inflight = _fetchUser().finally(() => { _inflight = null })
+  return _inflight
 }
 
 export async function getUser(): Promise<AuthUser | null> {
@@ -77,8 +83,11 @@ export async function signUp(email: string, password: string) {
 supabase.auth.onAuthStateChange((event) => {
   if (event === 'SIGNED_OUT') {
     _cache = null
-  } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-    _cache = null // tving re-henting med ny sesjon
+    _inflight = null
+  } else if (event === 'SIGNED_IN') {
+    _cache = null
+    _inflight = null
+    // TOKEN_REFRESHED: cache stays valid — user identity and profile are unchanged
   }
   const intentional = _intentionalSignOut
   if (event === 'SIGNED_OUT') _intentionalSignOut = false
