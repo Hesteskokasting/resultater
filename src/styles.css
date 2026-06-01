@@ -1049,7 +1049,7 @@ a.stevne-navn {
 
 /* Stilling table — tabular numbers */
 .stilling-tal {
-  text-align: right;
+  text-align: center;
   font-variant-numeric: tabular-nums;
 }
 
@@ -1060,7 +1060,7 @@ a.stevne-navn {
 .stilling-sp-cel { background: var(--stilling-sp-bg) !important; font-weight: 600; }
 
 /* Stilling table — deemphasise position and match-count columns */
-.stilling-dim-cel { font-size: 0.82em; color: var(--tekst-3); }
+.stilling-dim-cel { font-size: 0.82em; color: var(--tekst-3); text-align: center; }
 
 /* ── Deltakere-side ── */
 
