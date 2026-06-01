@@ -216,14 +216,14 @@ export function createAvsluttendeRenderer(variant: AvsluttendeVariant) {
           harGrupper: true,
           harEliminasjon: true,
         })
-        container.innerHTML = `<div class="px-3 py-2">${renderHovudInnhald(variant.renderKamparHtml(ctx), stillingHtml)}</div>`
+        container.innerHTML = renderHovudInnhald(variant.renderKamparHtml(ctx), stillingHtml)
         bindStillingDetaljar(container, 'stilling-avsl', stillingExpandedIds)
         bindTabToggle(container)
         if (activeTab === 'stilling') setActiveTab(container, 'stilling')
         variant.bindKamparEvents(container, ctx)
         abonnerPaaEndringar(container, stevneid)
       } else {
-        container.innerHTML = `<div class="px-3 py-2">${variant.renderSetupHtml(ctx)}</div>`
+        container.innerHTML = variant.renderSetupHtml(ctx)
       }
 
       bannerSlot?.querySelector('#fullfør-turnering-btn')?.addEventListener('click', async () => {

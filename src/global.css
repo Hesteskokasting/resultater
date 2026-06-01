@@ -25,6 +25,11 @@
   --kamp-stripe-ikke: var(--tekst-3);
   --kamp-stripe-pagaar: #d4860a;
   --kamp-stripe-ferdig: #4caf50;
+  --stilling-kp-bg:  color-mix(in srgb, var(--primaer) 40%, var(--flate));
+  --stilling-kp-th:  var(--primaer);
+  --stilling-sp-bg:  color-mix(in srgb, #4CAF50 22%, var(--flate));
+  --stilling-sp-th:  #2e7d32;
+  --avsl-score-bg:   color-mix(in srgb, var(--primaer) 25%, var(--flate));
 
   /* Intentionally fixed in both themes */
   --live-prikk: #e74c3c;
@@ -82,6 +87,11 @@
   --kamp-eliminert-bg:#f8d0d0;
   --kamp-stripe-pagaar: #b36000;
   --kamp-stripe-ferdig: #2e7d32;
+  --stilling-kp-bg:  #d0e4f7;
+  --stilling-kp-th:  #003a7a;
+  --stilling-sp-bg:  #c8f0c8;
+  --stilling-sp-th:  #2e7d32;
+  --avsl-score-bg:   #d0e4f7;
 
   /* Nummerpad — same blue as other themes */
   --np-bg: #1e4976;

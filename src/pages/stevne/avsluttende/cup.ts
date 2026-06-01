@@ -288,7 +288,6 @@ function renderKampBlock(
 
   const spelarRader = kamp.er_walkover
     ? `<tr>
-        <td>${startnrMap[sp[0]?.kasterid ?? 0] ?? ''}</td>
         <td colspan="2">${spelarNamn(sp[0])} <span class="badge bg-secondary">Walkover</span></td>
       </tr>`
     : sp.map(s => {
@@ -298,13 +297,11 @@ function renderKampBlock(
         const erEliminert = kamp.er_bekreftet && s.kamp_plassering != null && s.kamp_plassering >= nSpelarar
         const erVidare = kamp.er_bekreftet && s.kamp_plassering != null && s.kamp_plassering < nSpelarar
         const radKlass = erEliminert ? 'kamp-eliminert' : (erVidare ? 'kamp-vidare' : '')
-        const scoreAttr = kanEndreScore
-          ? ` data-endre-score="${kamp.id}" class="text-center score-redigerbar"`
-          : ' class="text-center"'
+        const scoreCls = `text-center fw-semibold avsl-score-cel${kanEndreScore ? ' score-redigerbar' : ''}`
+        const scoreExtra = kanEndreScore ? ` data-endre-score="${kamp.id}"` : ''
         return `<tr${radKlass ? ` class="${radKlass}"` : ''}>
-          <td class="th-36 text-center">${startnrMap[s.kasterid ?? 0] ?? ''}</td>
           <td>${spelarNamn(s)}</td>
-          <td${scoreAttr}>${score}</td>
+          <td class="${scoreCls}"${scoreExtra}>${score}</td>
         </tr>`
       }).join('')
 
@@ -325,11 +322,11 @@ function renderKampBlock(
   return `
     <div class="avsl-kamp-block">
       <div class="text-center small fw-semibold text-muted mb-1">Bane ${kamp.bane_nummer}</div>
-      <table class="table table-sm table-bordered mb-0 bg-white">
+      <table class="table table-sm table-bordered mb-0">
         <tbody>
           ${spelarRader}
           <tr>
-            <td colspan="3" class="text-end pe-1">
+            <td colspan="2" class="text-end pe-1">
               ${isAdminLocal && !kamp.er_walkover && !kamp.er_tre_spelarar
                 ? `<button class="btn btn-primary btn-sm" id="plus-${kamp.id}"${bekrefta ? ' disabled' : ''}>+</button> `
                 : ''}

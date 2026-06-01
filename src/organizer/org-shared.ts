@@ -185,14 +185,16 @@ export function renderStillingTabell(
   const columns: ColumnDef<FlatStillingRad>[] = [
     {
       label: '#', thClass: thW,
-      cellClass: (r) => harEliminasjon && r.runde_eliminert != null ? 'avsl-elim-plass' : undefined,
+      cellClass: (r) => {
+        const base = 'stilling-dim-cel'
+        return harEliminasjon && r.runde_eliminert != null ? `avsl-elim-plass ${base}` : base
+      },
       render: (r) => String(r.posInGroup),
     },
-    { label: 'S', thClass: thW, render: (r) => String(r.startnummer ?? '') },
     { label: 'NAMN', render: (r) => escHtml(r.navn ?? `Spelar ${r.kasterid}`) },
-    ...(harAntallKamper ? [{ label: 'ANT.', thClass: 'th-50 stilling-tal', cellClass: 'stilling-tal' as const, render: (r: FlatStillingRad) => String(r.antall_kamper ?? 0) }] : []),
-    { label: 'KP', thClass: 'th-44 stilling-tal', cellClass: 'stilling-tal', render: (r) => String(r.kamp_poeng ?? 0) },
-    { label: 'SP', thClass: 'th-44 stilling-tal', cellClass: 'stilling-tal', render: (r) => String(r.score_poeng ?? 0) },
+    ...(harAntallKamper ? [{ label: 'K', thClass: 'th-50 stilling-tal', cellClass: 'stilling-tal stilling-dim-cel' as const, render: (r: FlatStillingRad) => String(r.antall_kamper ?? 0) }] : []),
+    { label: 'KP', thClass: 'th-44 stilling-tal stilling-kp-th', cellClass: 'stilling-tal stilling-kp-cel', render: (r) => String(r.kamp_poeng ?? 0) },
+    { label: 'SP', thClass: 'th-44 stilling-tal stilling-sp-th', cellClass: 'stilling-tal stilling-sp-cel', render: (r) => String(r.score_poeng ?? 0) },
     ...(harHcp ? [{
       label: 'HCP', thClass: 'th-44 stilling-tal',
       cellClass: (_r: FlatStillingRad) => isAdmin ? 'stilling-tal stilling-hcp-celle' : 'stilling-tal',

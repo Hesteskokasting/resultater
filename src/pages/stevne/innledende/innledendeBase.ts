@@ -395,8 +395,7 @@ function renderRunde(
           <tr>
             <th class="th-36 text-center">B</th>
             <th>P1</th>
-            <th class="th-48 text-center">S1</th>
-            <th class="th-48 text-center">S2</th>
+            <th class="th-96 text-center innl-score-th">SCORE</th>
             <th>P2</th>
             ${admin ? '<th class="th-148"></th>' : '<th class="th-80"></th>'}
           </tr>
@@ -445,7 +444,8 @@ function kampRad(
   const sp = [p1, p2].filter((s): s is InnlKampSpelarRow => s != null)
   const kanBekrefte = beregnKanBekrefte(kamp, sp, harOmgangar, hcpMap)
   const kanEndreScore = admin && kamp.er_bekreftet && !kamp.er_walkover && !harOmgangar
-  const scoreEndrAttr = kanEndreScore ? ` data-endre-score="${kamp.id}" class="text-center score-redigerbar"` : ' class="text-center"'
+  const scoreCls = `text-center innl-score-cel${kanEndreScore ? ' score-redigerbar' : ''}`
+  const scoreExtra = kanEndreScore ? ` data-endre-score="${kamp.id}"` : ''
 
   let knapperTd: string
   if (kamp.er_bekreftet) {
@@ -472,8 +472,7 @@ function kampRad(
     <tr class="kamp-rad-desktop" data-status="${status}">
       <td class="text-center">${kamp.bane_nummer ?? ''}</td>
       <td>${p1Vis}</td>
-      <td${scoreEndrAttr}>${harPoeng ? s1 : '—'}</td>
-      <td${scoreEndrAttr}>${harPoeng ? s2 : '—'}</td>
+      <td class="${scoreCls}"${scoreExtra}>${harPoeng ? `${s1} – ${s2}` : '—'}</td>
       <td>${p2Vis}</td>
       ${knapperTd}
     </tr>`
