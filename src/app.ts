@@ -121,7 +121,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 document.addEventListener('authStateChanged', (e) => {
   const { event, intentional } = (e as CustomEvent<{ event: string; intentional: boolean }>).detail
-  oppdaterAuthMeny()
+  if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+    oppdaterAuthMeny()
+  }
   if (event === 'SIGNED_OUT' && !intentional) {
     showToast('Sesjonen din er utløpt. Logg inn igjen for å halde fram.', 'warning', true)
   }

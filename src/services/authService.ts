@@ -84,10 +84,8 @@ supabase.auth.onAuthStateChange((event) => {
   if (event === 'SIGNED_OUT') {
     _cache = null
     _inflight = null
-  } else if (event === 'SIGNED_IN') {
-    _cache = null
-    _inflight = null
-    // TOKEN_REFRESHED: cache stays valid — user identity and profile are unchanged
+    // SIGNED_IN: no cache clear needed — before real login _cache is already null (cleared by loggUt());
+    // for session restore on page load, the cache is valid and clearing it causes a redundant DB fetch.
   }
   const intentional = _intentionalSignOut
   if (event === 'SIGNED_OUT') _intentionalSignOut = false
