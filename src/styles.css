@@ -1955,6 +1955,7 @@ th.innl-score-th {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  height: 1.5rem;
   margin-bottom: 0.25rem;
 }
 .avsl-kamp-bane {
