@@ -286,29 +286,6 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
           }
         })
 
-        if (kanEndreKampar && kamp.er_bekreftet) {
-          const [p1, p2] = hentP1P2(kamp.spelarar, startnrMap)
-          const p1Namn = p1?.kaster ? `${escHtml(p1.kaster.fornavn)} ${escHtml(p1.kaster.etternavn)}` : '—'
-          const p2Namn = p2?.kaster ? `${escHtml(p2.kaster.fornavn)} ${escHtml(p2.kaster.etternavn)}` : '—'
-          const handler = () => {
-            showNumberpad(p1Namn, p2Namn, p1?.score_poeng ?? 0, p2?.score_poeng ?? 0, async (nyS1, nyS2) => {
-              const [kp1, kp2] = beregnKampPoeng(nyS1, nyS2)
-              try {
-                await Promise.all([
-                  p1 ? oppdaterKampSpelarScoreRask(p1.id, nyS1, kp1) : Promise.resolve({ error: null }),
-                  p2 ? oppdaterKampSpelarScoreRask(p2.id, nyS2, kp2) : Promise.resolve({ error: null }),
-                ])
-              } catch (err) {
-                logError(`${variant.logPrefix}:adminReScore`, err)
-                showToast('Feil ved lagring av score', 'error')
-                return
-              }
-              await lastOgVis(container, stevneid)
-            })
-          }
-          container.querySelectorAll(`[data-endre-score="${kamp.id}"]`).forEach(celle => celle.addEventListener('click', handler))
-        }
-
         // ── Mobile row interaction ─────────────────────────────────────────────
         const mobilRad = container.querySelector<HTMLElement>(`.kamp-rad-mobil[data-kamp-id="${kamp.id}"]`)
         if (mobilRad) {
