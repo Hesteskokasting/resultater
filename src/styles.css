@@ -954,6 +954,20 @@ a.stevne-navn {
   white-space: nowrap;
 }
 
+@keyframes confirm-flash {
+  0%      { background-color: rgba(76, 175, 80, 0.35); }
+  62.5%   { background-color: rgba(76, 175, 80, 0.35); }
+  100%    { background-color: transparent; }
+}
+@keyframes stilling-confirm-flash {
+  0%      { box-shadow: inset 0 0 0 100vw rgba(76, 175, 80, 0.35); }
+  62.5%   { box-shadow: inset 0 0 0 100vw rgba(76, 175, 80, 0.35); }
+  100%    { box-shadow: inset 0 0 0 100vw rgba(76, 175, 80, 0); }
+}
+.kamp-ny-bekreftet td { animation: confirm-flash 8s linear forwards; }
+.kamp-rad-mobil.kamp-ny-bekreftet { animation: confirm-flash 8s linear forwards; }
+.stilling-ny-bekreftet { animation: stilling-confirm-flash 8s linear forwards; }
+
 /* ── Kampliste - mobil ── */
 
 .kamp-liste-mobil {

@@ -81,6 +81,8 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
   let bannerSlot: HTMLElement | null = null
   let isAdmin = false
   const stillingExpandedIds = new Set<string>()
+  let prevConfirmedIds: Set<number> | null = null
+  let pendingAnimationIds = new Set<number>()
 
   async function render(
     container: HTMLElement,
@@ -129,6 +131,14 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
           .map(s => ({ ...s, hcp: resultat.find(r => r.kasterid === s.kasterid)?.hcp ?? 0 })),
         alleKamper,
       )
+
+      const currentConfirmedIds = new Set(alleKamper.filter(k => k.er_bekreftet).map(k => k.id))
+      const newlyConfirmedIds = prevConfirmedIds
+        ? new Set([...currentConfirmedIds].filter(id => !prevConfirmedIds!.has(id)))
+        : new Set<number>()
+      const idsToFlash = new Set([...newlyConfirmedIds, ...pendingAnimationIds])
+      pendingAnimationIds = new Set(newlyConfirmedIds)
+      prevConfirmedIds = currentConfirmedIds
 
       const erAlleKamperBekreftet = alleKamper.length > 0 && alleKamper.every(k => k.er_bekreftet)
       const kanEndreKampar = isAdmin && stevne.stevne_fase !== 'avsluttende'
@@ -184,6 +194,16 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
       bindTabToggle(container)
       if (activeTab === 'stilling') setActiveTab(container, 'stilling')
       bindStillingDetaljar(container, 'stilling-innl', stillingExpandedIds)
+
+      for (const kampId of idsToFlash) {
+        container.querySelectorAll(`[data-kamp-id="${kampId}"]`).forEach(el => el.classList.add('kamp-ny-bekreftet'))
+        const kamp = alleKamper.find(k => k.id === kampId)
+        if (kamp) {
+          for (const sp of kamp.spelarar) {
+            container.querySelectorAll(`#stilling-innl tr.stilling-spelar-rad[data-kasterid="${sp.kasterid}"] td`).forEach(el => el.classList.add('stilling-ny-bekreftet'))
+          }
+        }
+      }
 
       if (isAdmin) {
         container.querySelectorAll('.stilling-hcp-celle').forEach(celle => {
@@ -479,7 +499,7 @@ function kampRad(
   }
 
   return `
-    <tr class="kamp-rad-desktop" data-status="${status}">
+    <tr class="kamp-rad-desktop" data-kamp-id="${kamp.id}" data-status="${status}">
       <td class="text-center">${kamp.bane_nummer ?? ''}</td>
       <td>${p1Vis}</td>
       <td class="${scoreCls}"${scoreExtra}>${harPoeng ? `<span class="innl-score-inner"><span class="innl-s1">${s1}</span><span class="innl-sep">–</span><span class="innl-s2">${s2}</span></span>` : '—'}</td>
