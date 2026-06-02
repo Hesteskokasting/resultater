@@ -293,7 +293,7 @@ function renderKampBlock(
       </tr>`
     : sp.map(s => {
         const tot = scoreForSp(s)
-        const score = tot > 0 ? tot : '—'
+        const score = (tot > 0 || bekrefta || harOmgangar) ? tot : '—'
         const nSpelarar = sp.length
         const erEliminert = kamp.er_bekreftet && s.kamp_plassering != null && s.kamp_plassering >= nSpelarar
         const erVidare = kamp.er_bekreftet && s.kamp_plassering != null && s.kamp_plassering < nSpelarar
