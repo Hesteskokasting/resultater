@@ -824,7 +824,7 @@ a.stevne-navn {
 .org-tab-knappar  { display: none; }
 .org-stilling-kol { width: 400px; flex-shrink: 0; }
 
-@media (min-width: 900px) {
+@media (min-width: 931px) {
   .org-stilling-kol {
     position: sticky;
     top: 0;
@@ -837,7 +837,7 @@ a.stevne-navn {
 .org-kampar-panel { min-width: 0; }
 .btn-bekreft      { min-width: 5rem; }
 
-@media (max-width: 899px) {
+@media (max-width: 930px) {
   .org-tab-knappar  { display: flex; margin-bottom: 0.75rem; }
   .org-tab-btn      { flex: 1; }
   .org-stilling-kol { width: 100%; }
@@ -1976,7 +1976,7 @@ th.innl-score-th {
   border-radius: 6px;
   padding: 2px 8px;
 }
-@media (max-width: 899px) {
+@media (max-width: 930px) {
   .avsl-gruppe-kol { flex: 0 0 100%; }
   .avsl-gruppe-kol + .avsl-gruppe-kol {
     border-left: none;
