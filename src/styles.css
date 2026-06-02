@@ -1976,7 +1976,6 @@ th.innl-score-th {
   padding: 2px 8px;
 }
 @media (max-width: 899px) {
-  .avsl-kamp-block { width: 100%; }
   .avsl-gruppe-kol { flex: 0 0 100%; }
   .avsl-gruppe-kol + .avsl-gruppe-kol {
     border-left: none;
@@ -1984,6 +1983,9 @@ th.innl-score-th {
     border-top: 1px solid var(--kant);
     padding-top: 0.75rem;
   }
+}
+@media (max-width: 499px) {
+  .avsl-kamp-block { width: 100%; }
 }
 .avsl-score-cel { font-variant-numeric: tabular-nums; background: var(--avsl-score-bg) !important; }
 .avsl-stilling-einzel { max-width: 400px; }
