@@ -336,7 +336,7 @@ export function renderInnledendeKnappar(
 ): string {
   return `
     ${erSwiss ? `<button id="neste-runde-btn" class="btn btn-sm btn-warning">Generer neste runde</button>` : ''}
-    <button id="fullfør-turnering-btn" class="btn btn-sm btn-danger"${stevne.erfullfort ? ' disabled' : ''}>Fullfør turnering</button>
+    <button id="fullfør-turnering-btn" class="btn btn-sm btn-success"${stevne.erfullfort ? ' disabled' : ''}>Fullfør turnering</button>
     <button id="test-autofullfør-btn" class="btn btn-sm btn-outline-warning">TEST: Autofullfør</button>
   `
 }
@@ -373,7 +373,7 @@ export function renderAvsluttendeKnappar(
 
   return `
     ${handlingsHtml}
-    <button id="fullfør-turnering-btn" class="btn btn-sm btn-danger"${stevne.erfullfort ? ' disabled' : ''}>Fullfør turnering</button>
+    <button id="fullfør-turnering-btn" class="btn btn-sm btn-success"${stevne.erfullfort ? ' disabled' : ''}>Fullfør turnering</button>
   `
 }
 
