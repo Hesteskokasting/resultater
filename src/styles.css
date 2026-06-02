@@ -1406,7 +1406,6 @@ th.stilling-sp-th  { background: var(--stilling-sp-th) !important; color: #fff !
 
 .score-redigerbar {
   cursor: pointer;
-  text-decoration: underline dotted;
 }
 
 /* Innledende — merged SCORE column */
