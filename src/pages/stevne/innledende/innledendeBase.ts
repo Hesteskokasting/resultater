@@ -22,7 +22,7 @@ import { showNumberpad } from '@/components/ScoreNumberpad'
 import { showToast } from '@/components/Toast'
 import { confirmDialog } from '@/components/ConfirmDialog'
 import { promptDialog } from '@/components/PromptDialog'
-import { beregnKampPoeng, hentP1P2, scoreForSp } from '@/utils/kamp'
+import { hentP1P2, scoreForSp } from '@/utils/kamp'
 import { autoFullforInnledendeKamper } from '@/services/testDataService'
 import {
   byggInnledendeSpelMap, sorterStilling, renderInnledendeKnappar, lagOnEndringHandler,
@@ -36,7 +36,7 @@ import { logError } from '@/utils/logError'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import {
   hentInnledendeKamper, harKampOmgangar, slettKampOmgangar,
-  oppdaterKampSpelarScoreRask, bekreftInnledendeKamp, subscribeToKampEndringar,
+  oppdaterKampSpelarScoreRask, bekreftInnledendeKamp, subscribeToKampEndringar, unbekreftKamp,
   type InnlKampRow, type InnlKampSpelarRow,
 } from '@/services/kampService'
 import {
@@ -241,18 +241,11 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
             showNumberpad(p1Namn, p2Namn, currentS1, currentS2, async (nyS1, nyS2) => {
               try {
                 if (hasOmg && spelarIds.length) await slettKampOmgangar(spelarIds)
-                if (kamp.er_bekreftet) {
-                  const [kp1, kp2] = beregnKampPoeng(nyS1, nyS2)
-                  await Promise.all([
-                    p1 ? oppdaterKampSpelarScoreRask(p1.id, nyS1, kp1) : Promise.resolve({ error: null }),
-                    p2 ? oppdaterKampSpelarScoreRask(p2.id, nyS2, kp2) : Promise.resolve({ error: null }),
-                  ])
-                } else {
-                  await Promise.all([
-                    p1 ? oppdaterKampSpelarScoreRask(p1.id, nyS1) : Promise.resolve({ error: null }),
-                    p2 ? oppdaterKampSpelarScoreRask(p2.id, nyS2) : Promise.resolve({ error: null }),
-                  ])
-                }
+                await Promise.all([
+                  p1 ? oppdaterKampSpelarScoreRask(p1.id, nyS1) : Promise.resolve({ error: null }),
+                  p2 ? oppdaterKampSpelarScoreRask(p2.id, nyS2) : Promise.resolve({ error: null }),
+                  ...(kamp.er_bekreftet ? [unbekreftKamp(kamp.id)] : []),
+                ])
               } catch (err) {
                 logError(`${variant.logPrefix}:scoreKlikk`, err)
                 showToast('Feil ved lagring av score', 'error')
