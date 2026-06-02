@@ -204,34 +204,49 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
       }
 
       for (const kamp of alleKamper) {
-        // ── Plus button handler (shared by desktop #plus-* and mobile #m-plus-*) ──
-        const onPlusKlikk = async () => {
+        if (kanEndreKampar) {
           const [p1, p2] = hentP1P2(kamp.spelarar, startnrMap)
           const spelarIds = [p1?.id, p2?.id].filter((id): id is number => id != null)
-          const harOmgangar = spelarIds.length ? await harKampOmgangar(spelarIds) : false
-
-          if (harOmgangar && !await confirmDialog({ title: 'Slett detaljar', message: 'Dette sletter detaljar for denne kampen. Er du sikker?' })) return
-
           const p1Namn = p1?.kaster ? `${escHtml(p1.kaster.fornavn)} ${escHtml(p1.kaster.etternavn)}` : '—'
           const p2Namn = p2?.kaster ? `${escHtml(p2.kaster.fornavn)} ${escHtml(p2.kaster.etternavn)}` : '—'
 
-          showNumberpad(p1Namn, p2Namn, scoreForSp(p1), scoreForSp(p2), async (s1, s2) => {
-            try {
-              if (harOmgangar && spelarIds.length) await slettKampOmgangar(spelarIds)
-              await Promise.all([
-                p1 ? oppdaterKampSpelarScoreRask(p1.id, s1) : Promise.resolve({ error: null }),
-                p2 ? oppdaterKampSpelarScoreRask(p2.id, s2) : Promise.resolve({ error: null }),
-              ])
-            } catch (err) {
-              logError(`${variant.logPrefix}:plusCallback`, err)
-              showToast('Feil ved lagring av score', 'error')
-              return
-            }
-            await lastOgVis(container, stevneid)
+          const onScoreKlikk = async () => {
+            const hasOmg = spelarIds.length ? await harKampOmgangar(spelarIds) : false
+            if (hasOmg && !await confirmDialog({ title: 'Slett detaljar', message: 'Dette sletter detaljar for denne kampen. Er du sikker?' })) return
+
+            const currentS1 = kamp.er_bekreftet ? (p1?.score_poeng ?? 0) : scoreForSp(p1)
+            const currentS2 = kamp.er_bekreftet ? (p2?.score_poeng ?? 0) : scoreForSp(p2)
+
+            showNumberpad(p1Namn, p2Namn, currentS1, currentS2, async (nyS1, nyS2) => {
+              try {
+                if (hasOmg && spelarIds.length) await slettKampOmgangar(spelarIds)
+                if (kamp.er_bekreftet) {
+                  const [kp1, kp2] = beregnKampPoeng(nyS1, nyS2)
+                  await Promise.all([
+                    p1 ? oppdaterKampSpelarScoreRask(p1.id, nyS1, kp1) : Promise.resolve({ error: null }),
+                    p2 ? oppdaterKampSpelarScoreRask(p2.id, nyS2, kp2) : Promise.resolve({ error: null }),
+                  ])
+                } else {
+                  await Promise.all([
+                    p1 ? oppdaterKampSpelarScoreRask(p1.id, nyS1) : Promise.resolve({ error: null }),
+                    p2 ? oppdaterKampSpelarScoreRask(p2.id, nyS2) : Promise.resolve({ error: null }),
+                  ])
+                }
+              } catch (err) {
+                logError(`${variant.logPrefix}:scoreKlikk`, err)
+                showToast('Feil ved lagring av score', 'error')
+                return
+              }
+              await lastOgVis(container, stevneid)
+            })
+          }
+
+          container.querySelectorAll(`[data-endre-score="${kamp.id}"]`).forEach(el => el.addEventListener('click', onScoreKlikk))
+          container.querySelector(`#m-score-${kamp.id}`)?.addEventListener('click', (e) => {
+            e.stopPropagation()
+            void onScoreKlikk()
           })
         }
-
-        container.querySelector(`#plus-${kamp.id}`)?.addEventListener('click', onPlusKlikk)
 
         container.querySelector(`#scoreboard-${kamp.id}`)?.addEventListener('click', () => {
           window.open(`#/kamp/${kamp.id}`, '_blank')
@@ -285,12 +300,6 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
               })
               mobilRad.dataset.expanded = expanded ? 'false' : 'true'
               mobilRad.setAttribute('aria-expanded', String(!expanded))
-            })
-
-            // Mobile plus
-            container.querySelector(`#m-plus-${kamp.id}`)?.addEventListener('click', (e) => {
-              e.stopPropagation()
-              void onPlusKlikk()
             })
 
             // Mobile scoreboard
@@ -443,7 +452,7 @@ function kampRad(
   const status = resolveKampStatus(kamp, harPoeng, harOmgangar)
   const sp = [p1, p2].filter((s): s is InnlKampSpelarRow => s != null)
   const kanBekrefte = beregnKanBekrefte(kamp, sp, harOmgangar, hcpMap)
-  const kanEndreScore = admin && kamp.er_bekreftet && !kamp.er_walkover && !harOmgangar
+  const kanEndreScore = admin && !kamp.er_walkover
   const scoreCls = `text-center innl-score-cel${kanEndreScore ? ' score-redigerbar' : ''}`
   const scoreExtra = kanEndreScore ? ` data-endre-score="${kamp.id}"` : ''
 
@@ -451,14 +460,11 @@ function kampRad(
   if (kamp.er_bekreftet) {
     knapperTd = `<td class="text-end pe-2"><span class="kamp-bekreftet-indikator">✓ Bekreftet</span></td>`
   } else if (admin) {
-    const plusPrimaer  = status === 'ikke-startet'
     const scorePrimaer = harOmgangar
     const bekrftPrimaer = kanBekrefte
-    const plusKl  = `kamp-knapp${plusPrimaer  ? ' kamp-knapp-primaer' : ''}`
     const scoreKl = `kamp-knapp${scorePrimaer ? ' kamp-knapp-primaer' : ''}`
     const bekrftKl = `kamp-knapp${bekrftPrimaer ? ' kamp-knapp-suksess' : ''}`
     knapperTd = `<td class="text-end pe-2 text-nowrap">
-        <button class="${plusKl}" id="plus-${kamp.id}">+</button>
         <button class="${scoreKl}" id="scoreboard-${kamp.id}" title="Scoreboard">Score</button>
         <button class="${bekrftKl}" id="bekrft-${kamp.id}"${!kanBekrefte ? ' disabled' : ''}>Bekreft</button>
       </td>`
@@ -521,7 +527,6 @@ function kampRadMobil(
       : `<button class="kamp-knapp-mobil kamp-knapp-bekreft-mobil" id="m-bekrft-${kamp.id}"${!kanBekrefte ? ' disabled' : ''}>Bekreft</button>`
     knapperHtml = `
       <div class="kamp-mobil-knapper">
-        <button class="kamp-knapp-mobil" id="m-plus-${kamp.id}"${kamp.er_bekreftet ? ' disabled' : ''}>+ Resultat</button>
         <button class="kamp-knapp-mobil" id="m-scoreboard-${kamp.id}">Score</button>
         ${bekrftCell}
       </div>`
@@ -533,7 +538,7 @@ function kampRadMobil(
       <div class="kamp-rad-mobil__hoved">
         <span class="kamp-mobil-bane">${kamp.bane_nummer ?? ''}</span>
         <span class="kamp-mobil-namn">${p1NavnKort} <span class="kamp-mobil-vs">vs</span> ${p2NavnKort}</span>
-        <span class="kamp-mobil-resultat">${resultatTekst}</span>
+        <span class="kamp-mobil-resultat${admin && !kamp.er_walkover ? ' score-redigerbar' : ''}"${admin && !kamp.er_walkover ? ` id="m-score-${kamp.id}"` : ''}>${resultatTekst}</span>
       </div>
       ${knapperHtml}
     </li>`
