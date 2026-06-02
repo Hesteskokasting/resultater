@@ -508,7 +508,9 @@ function kampRadMobil(
   const harPoeng = kamp.er_bekreftet || kamp.er_walkover || harOmgangar || s1Raw > 0 || s2Raw > 0
 
   const status = resolveKampStatus(kamp, harPoeng, harOmgangar)
-  const resultatTekst = harPoeng ? `${s1}–${s2}` : '—'
+  const resultatTekst = harPoeng
+    ? `<span class="innl-score-inner"><span class="innl-s1">${s1}</span><span class="innl-sep">–</span><span class="innl-s2">${s2}</span></span>`
+    : '—'
 
   let knapperHtml = ''
   if (admin) {

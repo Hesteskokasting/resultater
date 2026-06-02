@@ -984,7 +984,7 @@ a.stevne-navn {
   display: grid;
   grid-template-columns: 24px 1fr auto;
   gap: 10px;
-  padding: 12px 12px 12px 15px;
+  padding: 0 0 0 0px;
   align-items: center;
   cursor: pointer;
   user-select: none;
@@ -1007,9 +1007,15 @@ a.stevne-navn {
 }
 .kamp-mobil-resultat {
   font-size: 19px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--tekst);
   white-space: nowrap;
+  background: var(--avsl-score-bg);
+  border-left: 2px solid var(--stilling-kp-th);
+  border-right: 2px solid var(--stilling-kp-th);
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
 /* Admin expandable buttons */
