@@ -330,6 +330,7 @@ function renderKampBlock(
               ${!kamp.er_walkover && !kamp.er_tre_spelarar
                 ? `<button class="btn btn-primary btn-sm" id="plus-${kamp.id}"${bekrefta ? ' disabled' : ''}>+</button> `
                 : ''}
+              ${!bekrefta ? `<button class="btn btn-secondary btn-sm" id="scoreboard-${kamp.id}">Score</button> ` : ''}
               <button class="btn ${bekrftKlass} btn-sm${bekreftKnappKlass}" id="bekrft-${kamp.id}"${bekrftDisabled ? ' disabled' : ''}>${bekrftTekst}</button>
             </td>
           </tr>`
