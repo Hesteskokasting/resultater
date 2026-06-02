@@ -284,6 +284,7 @@ function renderKampBlock(
 
   const bekrefta = kamp.er_bekreftet || kamp.er_walkover
   const harOmgangar = sp.some(s => (s.omgangar?.length ?? 0) > 0)
+  const isLive = harOmgangar && !bekrefta
   const kanEndreScore = isAdminLocal && kamp.er_bekreftet && !kamp.er_tre_spelarar && !harOmgangar
 
   const spelarRader = kamp.er_walkover
@@ -319,22 +320,31 @@ function renderKampBlock(
     bekreftKnappKlass = ' btn-bekreft'
   }
 
+  const livePill = isLive
+    ? `<span class="avsl-live-pill"><span class="live-prikk"></span>Live</span>`
+    : ''
+
+  const adminRow = isAdminLocal
+    ? `<tr>
+            <td colspan="2" class="text-end pe-1">
+              ${!kamp.er_walkover && !kamp.er_tre_spelarar
+                ? `<button class="btn btn-primary btn-sm" id="plus-${kamp.id}"${bekrefta ? ' disabled' : ''}>+</button> `
+                : ''}
+              <button class="btn ${bekrftKlass} btn-sm${bekreftKnappKlass}" id="bekrft-${kamp.id}"${bekrftDisabled ? ' disabled' : ''}>${bekrftTekst}</button>
+            </td>
+          </tr>`
+    : ''
+
   return `
     <div class="avsl-kamp-block">
-      <div class="text-center small fw-semibold text-muted mb-1">Bane ${kamp.bane_nummer}</div>
+      <div class="avsl-kamp-header">
+        <span class="avsl-kamp-bane">Bane ${kamp.bane_nummer}</span>
+        ${livePill}
+      </div>
       <table class="table table-sm table-bordered mb-0">
         <tbody>
           ${spelarRader}
-          <tr>
-            <td colspan="2" class="text-end pe-1">
-              ${isAdminLocal && !kamp.er_walkover && !kamp.er_tre_spelarar
-                ? `<button class="btn btn-primary btn-sm" id="plus-${kamp.id}"${bekrefta ? ' disabled' : ''}>+</button> `
-                : ''}
-              <button class="btn btn-secondary btn-sm" id="scoreboard-${kamp.id}"
-                title="Scoreboard"${bekrefta && !kamp.er_tre_spelarar && !harOmgangar ? ' disabled' : ''}>S</button>
-              ${isAdminLocal ? `<button class="btn ${bekrftKlass} btn-sm${bekreftKnappKlass}" id="bekrft-${kamp.id}"${bekrftDisabled ? ' disabled' : ''}>${bekrftTekst}</button>` : ''}
-            </td>
-          </tr>
+          ${adminRow}
         </tbody>
       </table>
     </div>`

@@ -1951,6 +1951,30 @@ th.innl-score-th {
 #gruppe-val-wrapper .form-check { min-height: 44px; display: flex; align-items: center; }
 #gruppe-val-wrapper .btn-check:checked + .btn::before { content: '✓ '; }
 .avsl-kamp-block  { width: calc(50% - 0.5rem); min-width: 220px; }
+.avsl-kamp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.25rem;
+}
+.avsl-kamp-bane {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--stilling-kp-th);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.avsl-live-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--tekst);
+  border: 1px solid var(--kant-2);
+  border-radius: 6px;
+  padding: 2px 8px;
+}
 @media (max-width: 899px) {
   .avsl-kamp-block { width: 100%; }
   .avsl-gruppe-kol { flex: 0 0 100%; }
