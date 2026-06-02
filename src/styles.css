@@ -1005,6 +1005,11 @@ a.stevne-navn {
   min-width: 0;
   color: var(--tekst);
 }
+.kamp-mobil-vs {
+  color: var(--tekst-3);
+  font-size: 0.8em;
+  font-weight: 400;
+}
 .kamp-mobil-resultat {
   font-size: 19px;
   font-weight: 600;

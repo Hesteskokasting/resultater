@@ -532,7 +532,7 @@ function kampRadMobil(
     <li class="kamp-rad-mobil${rolleKlass}" data-kamp-id="${kamp.id}" data-status="${status}" role="button" tabindex="0">
       <div class="kamp-rad-mobil__hoved">
         <span class="kamp-mobil-bane">${kamp.bane_nummer ?? ''}</span>
-        <span class="kamp-mobil-namn">${p1NavnKort} vs ${p2NavnKort}</span>
+        <span class="kamp-mobil-namn">${p1NavnKort} <span class="kamp-mobil-vs">vs</span> ${p2NavnKort}</span>
         <span class="kamp-mobil-resultat">${resultatTekst}</span>
       </div>
       ${knapperHtml}
