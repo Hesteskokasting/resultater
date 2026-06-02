@@ -10,6 +10,7 @@ import { opnGenererRundeDialog } from './_avslCupGenererRundeDialog'
 import { opnTreSpelarBekreftDialog } from './_avslCupTreSpelarDialog'
 import { showNumberpad } from '@/components/ScoreNumberpad'
 import { scoreForSp } from '@/utils/kamp'
+import { livePillHtml } from '@/components/LivePill'
 import { beregnKanBekrefte } from '@/organizer/org-shared'
 import { escHtml } from '@/utils/escHtml'
 import { showToast } from '@/components/Toast'
@@ -320,9 +321,7 @@ function renderKampBlock(
     bekreftKnappKlass = ' btn-bekreft'
   }
 
-  const livePill = isLive
-    ? `<span class="avsl-live-pill"><span class="live-prikk"></span>Live</span>`
-    : ''
+  const livePill = isLive ? livePillHtml() : ''
 
   const adminRow = isAdminLocal
     ? `<tr>

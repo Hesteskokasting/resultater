@@ -985,13 +985,17 @@ a.stevne-navn {
 
 .kamp-rad-mobil__hoved {
   display: grid;
-  grid-template-columns: 24px 1fr auto;
+  grid-template-columns: 24px 1fr auto auto;
   gap: 10px;
   padding: 0 0 0 0px;
   align-items: center;
   cursor: pointer;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+}
+.kamp-mobil-pill-slot {
+  display: flex;
+  align-items: center;
 }
 .kamp-rad-mobil--viewer .kamp-rad-mobil__hoved { cursor: pointer; }
 
@@ -1964,7 +1968,7 @@ th.innl-score-th {
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
-.avsl-live-pill {
+.live-pill {
   display: inline-flex;
   align-items: center;
   gap: 6px;

@@ -44,6 +44,7 @@ import {
   type InnlStevneRow,
 } from '@/services/stevneService'
 import { avmeldKanal } from '@/utils/realtime'
+import { livePillHtml } from '@/components/LivePill'
 import {
   hentResultatForInnledende, oppdaterResultatHcp, skrivPlaseringar,
 } from '@/services/resultatService'
@@ -452,6 +453,7 @@ function kampRad(
   const status = resolveKampStatus(kamp, harPoeng, harOmgangar)
   const sp = [p1, p2].filter((s): s is InnlKampSpelarRow => s != null)
   const kanBekrefte = beregnKanBekrefte(kamp, sp, harOmgangar, hcpMap)
+  const isLive = harOmgangar && !kamp.er_bekreftet
   const kanEndreScore = admin && !kamp.er_walkover
   const scoreCls = `text-center innl-score-cel${kanEndreScore ? ' score-redigerbar' : ''}`
   const scoreExtra = kanEndreScore ? ` data-endre-score="${kamp.id}"` : ''
@@ -465,11 +467,13 @@ function kampRad(
     const scoreKl = `kamp-knapp${scorePrimaer ? ' kamp-knapp-primaer' : ''}`
     const bekrftKl = `kamp-knapp${bekrftPrimaer ? ' kamp-knapp-suksess' : ''}`
     knapperTd = `<td class="text-end pe-2 text-nowrap">
+        ${isLive ? livePillHtml() : ''}
         <button class="${scoreKl}" id="scoreboard-${kamp.id}" title="Scoreboard">Score</button>
         <button class="${bekrftKl}" id="bekrft-${kamp.id}"${!kanBekrefte ? ' disabled' : ''}>Bekreft</button>
       </td>`
   } else {
-    knapperTd = `<td class="text-end pe-2">
+    knapperTd = `<td class="text-end pe-2 text-nowrap">
+        ${isLive ? livePillHtml() : ''}
         <button class="kamp-knapp" id="scoreboard-${kamp.id}" title="Scoreboard">Score</button>
       </td>`
   }
@@ -503,6 +507,7 @@ function kampRadMobil(
   const harOmg1 = (p1?.omgangar?.length ?? 0) > 0
   const harOmg2 = (p2?.omgangar?.length ?? 0) > 0
   const harOmgangar = harOmg1 || harOmg2
+  const isLive = harOmgangar && !kamp.er_bekreftet
   const hcp1 = hcpMap[p1?.kasterid ?? -1] ?? 0
   const hcp2 = hcpMap[p2?.kasterid ?? -1] ?? 0
 
@@ -516,7 +521,7 @@ function kampRadMobil(
   const status = resolveKampStatus(kamp, harPoeng, harOmgangar)
   const resultatTekst = harPoeng
     ? `<span class="innl-score-inner"><span class="innl-s1">${s1}</span><span class="innl-sep">–</span><span class="innl-s2">${s2}</span></span>`
-    : '—'
+    : `<span class="innl-score-inner"><span class="innl-s1"></span><span class="innl-sep">—</span><span class="innl-s2"></span></span>`
 
   let knapperHtml = ''
   if (admin) {
@@ -538,6 +543,7 @@ function kampRadMobil(
       <div class="kamp-rad-mobil__hoved">
         <span class="kamp-mobil-bane">${kamp.bane_nummer ?? ''}</span>
         <span class="kamp-mobil-namn">${p1NavnKort} <span class="kamp-mobil-vs">vs</span> ${p2NavnKort}</span>
+        <span class="kamp-mobil-pill-slot">${isLive ? livePillHtml() : ''}</span>
         <span class="kamp-mobil-resultat${admin && !kamp.er_walkover ? ' score-redigerbar' : ''}"${admin && !kamp.er_walkover ? ` id="m-score-${kamp.id}"` : ''}>${resultatTekst}</span>
       </div>
       ${knapperHtml}
