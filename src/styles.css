@@ -816,6 +816,9 @@ a.stevne-navn {
   padding: 0.5rem 0.75rem;
   border-radius: 0.375rem;
 }
+[data-theme="light"] .org-fase-header {
+  background: var(--stilling-kp-th);
+}
 
 .org-max-480 { max-width: 480px; }
 .org-tab-knappar  { display: none; }
