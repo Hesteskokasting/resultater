@@ -10,9 +10,9 @@ import { logError } from '@/utils/logError'
 import { hentKasterDetalj } from '@/services/kasterService'
 import type { KasterDetaljRow, ResultatDetaljRow } from '@/services/kasterService'
 import {
-  FOERSTE_RING_AR, MAX_RING,
-  hentAr, harMetode, beregnStatistikk,
-  hentTidlegareKlubbar, beregnGrafVerdi, byggGrafData,
+  FOERSTE_RING_AR,
+  hentAr, beregnStatistikk,
+  hentTidlegareKlubbar, byggGrafData,
 } from '@/utils/kasterDetaljLogikk'
 import type { MetodeNamn } from '@/utils/kasterDetaljLogikk'
 
