@@ -1,0 +1,1 @@
+function e(e=`Laster…`){let t=document.createElement(`p`);return t.className=`laster`,t.textContent=e,t}export{e as t};

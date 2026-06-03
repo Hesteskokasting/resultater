@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="nb" data-bs-theme="dark">
+<html lang="nb" data-theme="dark" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,25 +7,23 @@
   <script>
     (function () {
       var tema = localStorage.getItem('tema') || 'dark';
-      if (tema === 'utendors') { tema = 'light'; localStorage.setItem('tema', 'light'); }
       if (tema === 'light') {
         document.documentElement.setAttribute('data-theme', tema);
         document.documentElement.setAttribute('data-bs-theme', 'light');
       }
     })();
   </script>
-  <script type="module" crossorigin src="/assets/index-qbVhMqMH.js"></script>
-  <link rel="modulepreload" crossorigin href="/assets/charts-BaCXx3P-.js">
+  <link rel="preconnect" href="https://urtvpewjlevhlevtnvkf.supabase.co" crossorigin>
+  <script type="module" crossorigin src="/assets/index-CK1EzvEs.js"></script>
   <link rel="modulepreload" crossorigin href="/assets/rolldown-runtime-lhHHWwHU.js">
   <link rel="modulepreload" crossorigin href="/assets/vendor-3yxEHqvy.js">
-  <link rel="modulepreload" crossorigin href="/assets/xlsx-C8px7JeE.js">
-  <link rel="stylesheet" crossorigin href="/assets/index-DxQ4XPKD.css">
+  <link rel="stylesheet" crossorigin href="/assets/index-6u3LM11o.css">
 </head>
 <body>
 
   <header class="topp-header">
     <span class="header-tittel-gruppe">
-      <span class="header-tittel">NHF Resultater</span><span class="header-versjon">v0.8</span>
+      <span class="header-tittel">NHF Resultater</span><span class="header-versjon">v0.8c</span>
     </span>
     <nav class="header-nav">
       <a href="#/" class="header-nav__link">Hjem</a>
@@ -35,7 +33,7 @@
       <a href="#/klubber" class="header-nav__link">Klubber</a>
       <a href="#/kastere" class="header-nav__link">Utøvere</a>
       <div class="header-nav__dropdown">
-        <button class="header-nav__link header-nav__dropdown-btn" aria-haspopup="true">Statistikk ▾</button>
+        <button class="header-nav__link header-nav__dropdown-btn" aria-haspopup="true" aria-expanded="false">Statistikk ▾</button>
         <div class="header-nav__dropdown-menu">
           <a href="#/nmvinnere" class="header-nav__dropdown-item">NM-vinnere</a>
           <a href="#/rekorder" class="header-nav__dropdown-item">Rekorder</a>
@@ -138,6 +136,17 @@
     })
 
     document.getElementById('menyLoggUtKnapp').addEventListener('click', lukkMeny)
+
+    const desktopDropdown = document.querySelector('.header-nav__dropdown')
+    const desktopDropdownBtn = document.querySelector('.header-nav__dropdown-btn')
+    desktopDropdown.addEventListener('focusin', () => {
+      desktopDropdownBtn.setAttribute('aria-expanded', 'true')
+    })
+    desktopDropdown.addEventListener('focusout', (e) => {
+      if (!desktopDropdown.contains(e.relatedTarget)) {
+        desktopDropdownBtn.setAttribute('aria-expanded', 'false')
+      }
+    })
 
     document.getElementById('statistikk-knapp').addEventListener('click', () => {
       const undermeny = document.getElementById('statistikk-undermeny')
