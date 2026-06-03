@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="nb" data-bs-theme="dark">
+<html lang="nb" data-theme="dark" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -31,7 +31,7 @@
       <a href="#/klubber" class="header-nav__link">Klubber</a>
       <a href="#/kastere" class="header-nav__link">Utøvere</a>
       <div class="header-nav__dropdown">
-        <button class="header-nav__link header-nav__dropdown-btn" aria-haspopup="true">Statistikk ▾</button>
+        <button class="header-nav__link header-nav__dropdown-btn" aria-haspopup="true" aria-expanded="false">Statistikk ▾</button>
         <div class="header-nav__dropdown-menu">
           <a href="#/nmvinnere" class="header-nav__dropdown-item">NM-vinnere</a>
           <a href="#/rekorder" class="header-nav__dropdown-item">Rekorder</a>
@@ -135,6 +135,17 @@
     })
 
     document.getElementById('menyLoggUtKnapp').addEventListener('click', lukkMeny)
+
+    const desktopDropdown = document.querySelector('.header-nav__dropdown')
+    const desktopDropdownBtn = document.querySelector('.header-nav__dropdown-btn')
+    desktopDropdown.addEventListener('focusin', () => {
+      desktopDropdownBtn.setAttribute('aria-expanded', 'true')
+    })
+    desktopDropdown.addEventListener('focusout', (e) => {
+      if (!desktopDropdown.contains(e.relatedTarget)) {
+        desktopDropdownBtn.setAttribute('aria-expanded', 'false')
+      }
+    })
 
     document.getElementById('statistikk-knapp').addEventListener('click', () => {
       const undermeny = document.getElementById('statistikk-undermeny')
