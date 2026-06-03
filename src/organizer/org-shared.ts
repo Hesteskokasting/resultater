@@ -365,8 +365,6 @@ export function renderAvsluttendeKnappar(
         <button id="start-avsl-btn" class="btn btn-sm btn-success">Start avsluttande fase</button>
         ${harPrekonfigurertFormat ? `<button id="endre-gruppeinndeling-btn" class="btn btn-sm btn-outline-secondary">Endre gruppefordeling</button>` : ''}`
     }
-  } else if (!harGruppefordeling) {
-    // Gruppefordeling UI = eiga seksjon under
   } else if (harGruppefordeling && !harAvslKampar) {
     handlingsHtml = `<button id="endre-gruppeinndeling-btn" class="btn btn-sm btn-outline-secondary">Endre gruppeinndeling</button>`
   }
