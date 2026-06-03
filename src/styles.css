@@ -897,6 +897,7 @@ a.stevne-navn {
 }
 .kamp-rad-desktop[data-status="pagaar"] > td:first-child   { border-left-color: var(--kamp-stripe-pagaar); }
 .kamp-rad-desktop[data-status="ferdig"] > td:first-child   { border-left-color: var(--kamp-stripe-ferdig); }
+.kamp-rad-desktop > td:nth-child(2)    { text-align: right; }
 
 /* Status legend */
 .kamp-legend {
