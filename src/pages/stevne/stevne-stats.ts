@@ -116,7 +116,7 @@ function statsTabellHtml(spelarar: PlayerStats[]): string {
             <th class="stats-th-num">Sko</th>
             <th class="stats-th-num stats-th-ringer">R</th>
             <th class="stats-th-num stats-th-ringer">R%</th>
-            <th class="stats-th-num">DR</th>
+            <th class="stats-th-num">6p</th>
             <th class="stats-th-num">4p</th>
             <th class="stats-th-num">3p</th>
             <th class="stats-th-num">2p</th>
