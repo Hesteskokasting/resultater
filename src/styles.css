@@ -2139,6 +2139,7 @@ th.innl-score-th {
   -webkit-overflow-scrolling: touch;
   cursor: grab;
   user-select: none;
+  max-width: 650px;
 }
 
 .stats-tabell-wrap.is-grabbing { cursor: grabbing; }
