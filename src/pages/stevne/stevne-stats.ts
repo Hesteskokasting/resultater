@@ -83,40 +83,20 @@ function aggregateStats(kamper: StatsKampRow[]): PlayerStats[] {
   return result.sort((a, b) => b.shoesThrown - a.shoesThrown)
 }
 
-// ── HTML builders ─────────────────────────────────────────────────────────────
+// ── HTML builder ──────────────────────────────────────────────────────────────
 
 function fmtDiff(n: number): string {
   return n > 0 ? `+${n}` : String(n)
 }
 
-function mobilStatsHtml(spelarar: PlayerStats[]): string {
-  return spelarar.map(s => `
-    <div class="stats-kort">
-      <div class="stats-kort-hovud">
-        <span class="stats-kort-namn">${escHtml(s.navn)}</span>
-        <span class="stats-kort-meta">K: ${s.matchCount} · Sko: ${s.shoesThrown} · ±: ${fmtDiff(s.scoreDiff)}</span>
-      </div>
-      <div class="stats-kort-rader">
-        <span>R: ${s.ringers}</span>
-        <span>R%: ${s.ringerPct.toFixed(1)}%</span>
-        <span>DR: ${s.doubleRingers}</span>
-        <span>4p: ${s.score4}</span>
-        <span>3p: ${s.score3}</span>
-        <span>2p: ${s.score2}</span>
-        <span>1p: ${s.score1}</span>
-        <span>0p: ${s.score0}</span>
-      </div>
-    </div>`).join('')
-}
-
-function desktopStatsHtml(spelarar: PlayerStats[]): string {
+function statsTabellHtml(spelarar: PlayerStats[]): string {
   const rows = spelarar.map(s => `
     <tr>
       <td class="stats-td-namn">${escHtml(s.navn)}</td>
       <td class="stats-td-num">${s.matchCount}</td>
       <td class="stats-td-num">${s.shoesThrown}</td>
-      <td class="stats-td-num">${s.ringers}</td>
-      <td class="stats-td-num">${s.ringerPct.toFixed(1)}%</td>
+      <td class="stats-td-num stats-td-ringer">${s.ringers}</td>
+      <td class="stats-td-num stats-td-ringer">${s.ringerPct.toFixed(1)}%</td>
       <td class="stats-td-num">${s.doubleRingers}</td>
       <td class="stats-td-num">${s.score4}</td>
       <td class="stats-td-num">${s.score3}</td>
@@ -134,8 +114,8 @@ function desktopStatsHtml(spelarar: PlayerStats[]): string {
             <th class="stats-th-namn">Namn</th>
             <th class="stats-th-num">K</th>
             <th class="stats-th-num">Sko</th>
-            <th class="stats-th-num">R</th>
-            <th class="stats-th-num">R%</th>
+            <th class="stats-th-num stats-th-ringer">R</th>
+            <th class="stats-th-num stats-th-ringer">R%</th>
             <th class="stats-th-num">DR</th>
             <th class="stats-th-num">4p</th>
             <th class="stats-th-num">3p</th>
@@ -148,6 +128,47 @@ function desktopStatsHtml(spelarar: PlayerStats[]): string {
         <tbody>${rows}</tbody>
       </table>
     </div>`
+}
+
+// ── Drag-scroll ───────────────────────────────────────────────────────────────
+
+function bindDragScroll(el: HTMLElement): void {
+  let isDown = false
+  let startX = 0
+  let scrollLeft = 0
+
+  el.addEventListener('mousedown', e => {
+    isDown = true
+    el.classList.add('is-grabbing')
+    startX = e.pageX - el.offsetLeft
+    scrollLeft = el.scrollLeft
+  })
+  el.addEventListener('mouseleave', () => { isDown = false; el.classList.remove('is-grabbing') })
+  el.addEventListener('mouseup',    () => { isDown = false; el.classList.remove('is-grabbing') })
+  el.addEventListener('mousemove', e => {
+    if (!isDown) return
+    e.preventDefault()
+    el.scrollLeft = scrollLeft - (e.pageX - el.offsetLeft - startX)
+  })
+}
+
+// ── Sticky columns ────────────────────────────────────────────────────────────
+
+function bindStickyColumns(table: HTMLTableElement, count: number): void {
+  const rows = [...table.querySelectorAll<HTMLTableRowElement>('tr')]
+  if (!rows.length) return
+  // Measure widths from the first row before mutating anything
+  const widths = [...rows[0].cells].slice(0, count).map(c => c.offsetWidth)
+  for (const row of rows) {
+    let offset = 0
+    for (let i = 0; i < count && i < row.cells.length; i++) {
+      const cell = row.cells[i]
+      cell.classList.add('stats-col-sticky')
+      if (i === count - 1) cell.classList.add('stats-col-sticky-last')
+      cell.style.setProperty('--col-left', `${offset}px`)
+      offset += widths[i]
+    }
+  }
 }
 
 // ── Render ────────────────────────────────────────────────────────────────────
@@ -173,15 +194,12 @@ export async function render(
       return
     }
 
-    container.innerHTML = `
-      <div class="stats-side">
-        <div class="res-mobil-blokk">
-          ${mobilStatsHtml(spelarar)}
-        </div>
-        <div class="res-desktop-blokk">
-          ${desktopStatsHtml(spelarar)}
-        </div>
-      </div>`
+    container.innerHTML = `<div class="stats-side">${statsTabellHtml(spelarar)}</div>`
+
+    const wrap = container.querySelector<HTMLElement>('.stats-tabell-wrap')
+    const table = container.querySelector<HTMLTableElement>('.stats-tabell')
+    if (wrap) bindDragScroll(wrap)
+    if (table) bindStickyColumns(table, 5) // NAMN K SKO R R%
   } catch (err) {
     logError('stevne-stats.render', err)
     container.replaceChildren(createErrorBanner('Kunne ikkje laste statistikk.'))
