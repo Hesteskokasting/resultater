@@ -12,6 +12,7 @@ import { render as renderInnledende }    from './stevne/stevne-innledende'
 import { render as renderAvsluttende }   from './stevne/stevne-avsluttende'
 import { render as renderInnstillingar } from './stevne/stevne-innstillinger'
 import { render as renderResultat }      from './stevne/stevne-resultat'
+import { render as renderStats }         from './stevne/stevne-stats'
 
 // ── Typar ─────────────────────────────────────────────────────────────────────
 
@@ -30,6 +31,7 @@ const FANER = [
   { key: 'avsluttende',   label: 'Avsluttande',   adminOnly: false },
   { key: 'resultat',      label: 'Sluttresultat', adminOnly: false },
   { key: 'innstillinger', label: 'Innstillingar', adminOnly: true  },
+  { key: 'stats',         label: 'Statistikk',    adminOnly: false },
 ] as const
 
 type TabKey = (typeof FANER)[number]['key']
@@ -43,6 +45,7 @@ const TAB_RENDER: Record<TabKey, TabRender> = {
   avsluttende:   renderAvsluttende,
   innstillinger: renderInnstillingar as TabRender,
   resultat:      renderResultat as TabRender,
+  stats:         renderStats as TabRender,
 }
 
 const FASE_LABEL: Record<string, string> = {

@@ -2129,3 +2129,92 @@ th.innl-score-th {
   0%   { background-position: 200% 0; }
   100% { background-position: -200% 0; }
 }
+
+/* ── Stevne-statistikk ────────────────────────────────────────────────────── */
+
+.stats-side { padding-bottom: 40px; }
+
+.stats-kort {
+  border: 1px solid var(--kant-2);
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  background: var(--flate);
+}
+
+.stats-kort-hovud {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.stats-kort-namn {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--tekst);
+}
+
+.stats-kort-meta {
+  font-size: 0.8rem;
+  color: var(--tekst-2);
+  white-space: nowrap;
+}
+
+.stats-kort-rader {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  font-size: 0.82rem;
+  color: var(--tekst-2);
+}
+
+.stats-tabell-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.stats-tabell {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.stats-tabell thead tr {
+  background: var(--primaer);
+  color: var(--primaer-text);
+}
+
+.stats-tabell th {
+  padding: 6px 10px;
+  font-weight: 600;
+  font-size: 0.78rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.stats-tabell tbody tr {
+  border-bottom: 1px solid var(--kant);
+  background: var(--flate);
+}
+
+.stats-tabell tbody tr:nth-child(even) { background: var(--flate-2); }
+
+.stats-tabell td {
+  padding: 5px 10px;
+  color: var(--tekst);
+}
+
+.stats-th-namn,
+.stats-td-namn { text-align: left; min-width: 120px; }
+
+.stats-th-num,
+.stats-td-num { text-align: right; }
+
+.stats-th-diff,
+.stats-td-diff { text-align: right; font-weight: 600; }
+
+.stats-td-pos { color: var(--suksess, #2ecc71); }
+.stats-td-neg { color: var(--feil, #e74c3c); }
