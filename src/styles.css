@@ -2196,11 +2196,16 @@ th.innl-score-th {
 .stats-col-sticky {
   position: sticky;
   left: var(--col-left, 0);
-  background: inherit;
   z-index: 1;
 }
 
-.stats-tabell thead .stats-col-sticky { z-index: 2; }
+.stats-tabell thead .stats-col-sticky {
+  background: var(--primaer);
+  z-index: 2;
+}
+
+.stats-tabell tbody tr:nth-child(odd) .stats-col-sticky  { background: var(--flate); }
+.stats-tabell tbody tr:nth-child(even) .stats-col-sticky { background: var(--flate-2); }
 
 .stats-col-sticky-last {
   border-right: 2px solid var(--kant-2);
