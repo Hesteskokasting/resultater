@@ -2150,7 +2150,8 @@ th.innl-score-th {
 
 .stats-tabell {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: 0.85rem;
   white-space: nowrap;
 }
@@ -2166,18 +2167,17 @@ th.innl-score-th {
   font-size: 0.78rem;
   letter-spacing: 0.03em;
   text-transform: uppercase;
+  border-bottom: 2px solid var(--kant);
 }
 
-.stats-tabell tbody tr {
-  border-bottom: 1px solid var(--kant);
-  background: var(--flate);
-}
+.stats-tabell tbody tr { background: var(--flate); }
 
 .stats-tabell tbody tr:nth-child(even) { background: var(--flate-2); }
 
 .stats-tabell td {
   padding: 5px 10px;
   color: var(--tekst);
+  border-bottom: 1px solid var(--kant);
 }
 
 .stats-th-namn,
