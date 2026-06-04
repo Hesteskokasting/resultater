@@ -1,1 +1,0 @@
-import{rt as e}from"./index-4IHASm-M.js";async function t(t){await e.removeChannel(t)}export{t};
