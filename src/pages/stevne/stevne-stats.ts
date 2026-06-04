@@ -199,7 +199,7 @@ export async function render(
     const wrap = container.querySelector<HTMLElement>('.stats-tabell-wrap')
     const table = container.querySelector<HTMLTableElement>('.stats-tabell')
     if (wrap) bindDragScroll(wrap)
-    if (table) bindStickyColumns(table, 5) // NAMN K SKO R R%
+    if (table) bindStickyColumns(table, 1) // NAMN only
   } catch (err) {
     logError('stevne-stats.render', err)
     container.replaceChildren(createErrorBanner('Kunne ikkje laste statistikk.'))
