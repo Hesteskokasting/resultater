@@ -58,7 +58,7 @@ function aggregateStats(kamper: StatsKampRow[]): PlayerStats[] {
       }
 
       const stats = map.get(sp.kasterid)!
-      stats.matchCount++
+      if (sp.omgangar.length > 0) stats.matchCount++
       stats.scoreDiff += sp.score_poeng - opponentScore
 
       for (const o of sp.omgangar) {
