@@ -2143,6 +2143,11 @@ th.innl-score-th {
 
 .stats-tabell-wrap.is-grabbing { cursor: grabbing; }
 
+@media (min-width: 650px) {
+  .stats-tabell-wrap,
+  .stats-tabell-wrap.is-grabbing { cursor: default; }
+}
+
 .stats-tabell {
   width: 100%;
   border-collapse: collapse;
