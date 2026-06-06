@@ -53,11 +53,11 @@ Legend: `[ ]` not done · `[x]` done · `[~]` partial / changed
   - **commit:** `test: cover norgescup ranking logic`
   - _Note: 13 tests in tests/norgescup.test.ts. `tildelPlassering` is not exported — tested indirectly through both list builders. Covers: NC/SNC/DNC event capping, maxtotal cap, class filtering, descending sort, tie placement (same plassering, next gets N+2), SNC/DNC cup types, top-4 club contributor cap._
 
-- [ ] **1.5 Test National Ranking (`byggRankingListe`, `regnUtRingInfo`)**
+- [x] **1.5 Test National Ranking (`byggRankingListe`, `regnUtRingInfo`)**
   - File: `src/utils/norgesrankingLogikk.ts`
   - Cover: ring-to-percentage conversion per method (Minimatch x/60, Halvmatch x/100, Heilmatch x/200, Kongelag x/40), top-5 selection, average calculation, < 5 events marked invalid, tie placement.
   - **commit:** `test: cover norgesranking logic`
-  - _Note:_
+  - _Note: 16 tests in tests/norgesranking.test.ts. Also covers: Kongelag is field-based (no method check required), method detection on avslMetode, xkast null with method present, stevneInfo undefined → xkast suppressed but kongelag still appears, valid players before invalid regardless of snittProsent._
 
 ---
 
