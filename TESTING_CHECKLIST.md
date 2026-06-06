@@ -41,11 +41,11 @@ Legend: `[ ]` not done · `[x]` done · `[~]` partial / changed
   - **commit:** `test: cover scoreForSp, ringerForSp, calcAntallRinger in kamp.ts`
   - _Note: 22 tests appended to tests/kamp.test.ts (34 total). Also added tests/tsconfig.json extending tsconfig.test.json so the IDE resolves vitest globals correctly._
 
-- [ ] **1.3 Test standings sort (`sorterStilling`)**
-  - File: `src/utils/shared.ts`
+- [x] **1.3 Test standings sort (`sorterStilling`)**
+  - File: `src/organizer/org-shared.ts` (not shared.ts — the exploration agent had the wrong path)
   - Cover the full tie-break cascade: final placement → active vs eliminated → elimination round → kamp_poeng → score_poeng → head-to-head → individual match max scores → start number. Each tie-break level should have at least one test that confirms it is decisive.
-  - **commit:** `test: cover sorterStilling in shared.ts`
-  - _Note:_
+  - **commit:** `test: cover sorterStilling in org-shared.ts`
+  - _Note: 11 tests in tests/sorterStilling.test.ts. Each test isolates exactly one tiebreak level. Also covers: unconfirmed matches are ignored in h2h/max-score, input array is not mutated._
 
 - [ ] **1.4 Test National Cup rankings (`byggSingelListe`, `byggLagListe`, `tildelPlassering`)**
   - File: `src/utils/norgescup.ts`
