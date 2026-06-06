@@ -69,12 +69,12 @@ Legend: `[ ]` not done · `[x]` done · `[~]` partial / changed
   - **commit:** `test: cover beregnCupStruktur`
   - _Note: 16 tests in tests/beregnCupStruktur.test.ts. Also covers: n=2 returns empty (final is implicit), vidare chains into spelarar for every round, last round always ends at vidare=2, walkovers only in round 1, runde1 override changes round count. Avoided Array.prototype.at() (not in tsconfig target)._
 
-- [ ] **2.2 Test cup round pairing (`beregnCupRundeParingar`)**
+- [x] **2.2 Test cup round pairing (`beregnCupRundeParingar`)**
   - File: `src/utils/kastemetoder-logikk.ts`
   - Note: the function calls `shuffle()` internally via `Math.random()` — output order is non-deterministic. Tests must assert structural properties only, not fixed ordering.
-  - Cover: every player appears exactly once across all matches; no match has fewer than 2 or more than 3 players; seeded mode places top seeds in separate matches (no two top seeds share a match); round 1 produces walkovers when configured; later rounds produce no walkovers.
+  - Cover: every player appears exactly once across all matches; no match has fewer than 2 or more than 3 players; seeded mode places top seeds in separate matches (players in the same seeding group cannot meet eachother); round 1 produces walkovers when configured; later rounds produce no walkovers.
   - **commit:** `test: cover beregnCupRundeParingar structural properties`
-  - _Note:_
+  - _Note: 14 tests in tests/beregnCupRundeParingar.test.ts. Each invariant is asserted 20–50 times via a `repeat()` helper to survive Math.random(). Covers: player coverage (seeded, unseeded, with walkovers), match sizes 2–3, erTreSpelarar flag, seeding pools isolated per match (4-player and 9-player cases), walkover suppressed by default, top seeds walk over in round 1, runde1Oppsett.walkovers controls count._
 
 ---
 
