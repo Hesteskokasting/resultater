@@ -63,11 +63,11 @@ Legend: `[ ]` not done · `[x]` done · `[~]` partial / changed
 
 ## Phase 2 — Cup bracket logic
 
-- [ ] **2.1 Test cup structure preview (`beregnCupStruktur`)**
+- [x] **2.1 Test cup structure preview (`beregnCupStruktur`)**
   - File: `src/utils/kastemetoder-logikk.ts`
   - Cover: correct number of rounds for various player counts, bye/walkover allocation, valid group sizes returned.
   - **commit:** `test: cover beregnCupStruktur`
-  - _Note:_
+  - _Note: 16 tests in tests/beregnCupStruktur.test.ts. Also covers: n=2 returns empty (final is implicit), vidare chains into spelarar for every round, last round always ends at vidare=2, walkovers only in round 1, runde1 override changes round count. Avoided Array.prototype.at() (not in tsconfig target)._
 
 - [ ] **2.2 Test cup round pairing (`beregnCupRundeParingar`)**
   - File: `src/utils/kastemetoder-logikk.ts`
