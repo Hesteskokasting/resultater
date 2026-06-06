@@ -47,11 +47,11 @@ Legend: `[ ]` not done · `[x]` done · `[~]` partial / changed
   - **commit:** `test: cover sorterStilling in org-shared.ts`
   - _Note: 11 tests in tests/sorterStilling.test.ts. Each test isolates exactly one tiebreak level. Also covers: unconfirmed matches are ignored in h2h/max-score, input array is not mutated._
 
-- [ ] **1.4 Test National Cup rankings (`byggSingelListe`, `byggLagListe`, `tildelPlassering`)**
+- [x] **1.4 Test National Cup rankings (`byggSingelListe`, `byggLagListe`, `tildelPlassering`)**
   - File: `src/utils/norgescup.ts`
   - Cover: point capping per rule (max_nc, max_snc, max_dnc, maxtotal), correct sorting, tie placement, team top-4 aggregation.
   - **commit:** `test: cover norgescup ranking logic`
-  - _Note:_
+  - _Note: 13 tests in tests/norgescup.test.ts. `tildelPlassering` is not exported — tested indirectly through both list builders. Covers: NC/SNC/DNC event capping, maxtotal cap, class filtering, descending sort, tie placement (same plassering, next gets N+2), SNC/DNC cup types, top-4 club contributor cap._
 
 - [ ] **1.5 Test National Ranking (`byggRankingListe`, `regnUtRingInfo`)**
   - File: `src/utils/norgesrankingLogikk.ts`
