@@ -80,11 +80,11 @@ Legend: `[ ]` not done · `[x]` done · `[~]` partial / changed
 
 ## Phase 3 — DOM output
 
-- [ ] **3.1 Test DOM output from `renderStillingTabell`**
-  - File: `src/utils/shared.ts`
+- [x] **3.1 Test DOM output from `renderStillingTabell`**
+  - File: `src/organizer/org-shared.ts` (not shared.ts — the plan had the wrong path)
   - Render against happy-dom and verify the table gets the correct rows/columns and content.
   - **commit:** `test: cover DOM output from renderStillingTabell`
-  - _Note:_
+  - _Note: 18 tests in tests/renderStillingTabell.test.ts. Returns HTML string, parsed via innerHTML into a container for querying. Covers: h6 heading ('Stilling' default, 'N spelarar' with harAntallKamper), table id (default and custom), one .stilling-spelar-rad per player, data-kasterid attribute, player name and null fallback, sequential # column, always-present headers (#/NAMN/KP/SP), K and HCP headers toggled by their options, avsl-elim-plass on eliminated cells, group header rows and per-group position reset._
 
 ---
 
