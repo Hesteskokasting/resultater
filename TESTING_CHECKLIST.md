@@ -35,11 +35,11 @@ Legend: `[ ]` not done · `[x]` done · `[~]` partial / changed
   - **commit:** `test: cover beregnKampPoeng in kamp.ts`
   - _Note: 11 tests in tests/kamp.test.ts. Boundary cases at score=11 (1 pt) and score=10 (0 pt) explicitly covered. Rule confirmed: loser gets 1 pt if score ≥ 11, else 0._
 
-- [ ] **1.2 Test score and ring extraction (`scoreForSp`, `ringerForSp`, `calcAntallRinger`)**
+- [x] **1.2 Test score and ring extraction (`scoreForSp`, `ringerForSp`, `calcAntallRinger`)**
   - File: `src/utils/kamp.ts`
   - Cover: extraction from omgangar data vs cached score_poeng / antall_ringer fields; ring derivation (6→2 rings, 3-4→1 ring, else→0).
   - **commit:** `test: cover scoreForSp, ringerForSp, calcAntallRinger in kamp.ts`
-  - _Note:_
+  - _Note: 22 tests appended to tests/kamp.test.ts (34 total). Also added tests/tsconfig.json extending tsconfig.test.json so the IDE resolves vitest globals correctly._
 
 - [ ] **1.3 Test standings sort (`sorterStilling`)**
   - File: `src/utils/shared.ts`
