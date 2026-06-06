@@ -274,12 +274,13 @@ export function buildKampSpelarUpdates(params: {
           r2 += row.antall_ringer ?? 0
         }
       }
+      // HCP applies only to scoreboard-round sums; direct scores are already final
+      t1 += hcp1
+      t2 += hcp2
     } else {
       t1 = p1?.baseScore ?? 0
       t2 = p2?.baseScore ?? 0
     }
-    t1 += hcp1
-    t2 += hcp2
   }
 
   const [kp1, kp2] = beregnKampPoeng(t1, t2)

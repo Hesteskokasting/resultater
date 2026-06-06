@@ -110,17 +110,17 @@ Legend: `[ ]` not done · `[x]` done · `[~]` partial / changed
   - **commit:** `refactor: extract buildKampSpelarUpdates from bekreftInnledendeKamp`
   - _Note: Added exported `OmgRow` type and `buildKampSpelarUpdates` pure function in kampService.ts. `bekreftInnledendeKamp` now resolves DB fallback scores upfront then delegates all computation to `buildKampSpelarUpdates`. The `.update()` call uses the returned object directly. All 122 existing tests still pass._
 
-- [ ] **4.2 Test `buildKampSpelarUpdates`**
+- [x] **4.2 Test `buildKampSpelarUpdates`**
   - File: `src/services/kampService.ts`
   - Cover:
     - Multi-round match: `score_poeng` and `antall_ringer` are the correct sums across all omgang rows
-    - HCP adds to `score_poeng` (and therefore to the `kamp_poeng` calculation) but does **not** affect `antall_ringer`
+    - HCP adds to `score_poeng` if scorebaord is used. If match is confirmed directly to kamp_spelar, do not add hcp (and therefore to the `kamp_poeng` calculation) but does **not** affect `antall_ringer`
     - Walkover: p1 gets `{score_poeng:21, kamp_poeng:2, antall_ringer:0}`, p2 gets `{score_poeng:0, kamp_poeng:0, antall_ringer:0}`
     - No omgang rows → uses `scorePoeng` from params as fallback score
     - `null` values in omgang rows treated as 0 (not NaN)
     - Win/loss/tie → correct `kamp_poeng` values
   - **commit:** `test: cover buildKampSpelarUpdates`
-  - _Note:_
+  - _Note: 12 tests in tests/buildKampSpelarUpdates.test.ts. Covers: multi-round row summation, null-as-0 safety, baseScore fallback, HCP effect on score_poeng/kamp_poeng but not antall_ringer, walkover exact values (omgData ignored), win/loss/tie kamp_poeng, null player → null result. 134 tests total, all passing._
 
 - [ ] **4.3 Extract and test `buildEliminertKasterid` from `bekreftAvsluttendeKamp`**
   - File: `src/services/kampService.ts`
