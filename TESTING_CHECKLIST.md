@@ -90,16 +90,46 @@ Legend: `[ ]` not done · `[x]` done · `[~]` partial / changed
 
 ## Phase 4 — Write logic (without a real database)
 
-- [ ] **4.1 Extract write logic from the Supabase call (only if not already done)**
-  - File: `src/services/resultatService.ts` — `skrivPlaseringar(stevneid, stilling)`
-  - Goal: a pure function that builds the rows to be written to `resultat` at tournament end (e.g. `buildResultRows(stilling) -> ResultRow[]`), separate from the thin wrapper that calls `supabase.from('resultat').insert(...)`.
-  - If the logic is already separated: mark this `[~]` and jump to 4.2.
-  - **commit:** `refactor: extract buildResultRows from supabase write in resultatService`
+- [x] **4.1 Extract `buildKampSpelarUpdates` from `bekreftInnledendeKamp`**
+  - File: `src/services/kampService.ts`
+  - Goal: a pure function that takes omgang rows, p1/p2 identity + fallback score, HCP values, and walkover flag, and returns the values to write to `kamp_spelar` for each player. The refactor is small: the DB fallback (re-fetching fresh `score_poeng` when no omgang rows exist) stays in `bekreftInnledendeKamp` as the caller; `buildKampSpelarUpdates` receives the already-resolved scores.
+  - Signature:
+    ```typescript
+    buildKampSpelarUpdates(params: {
+      omgData: Array<{ kamp_spelar_id: number | null; score: number | null; antall_ringer: number | null }>
+      p1: { spelarId: number; scorePoeng: number } | null
+      p2: { spelarId: number; scorePoeng: number } | null
+      hcp1: number
+      hcp2: number
+      erWalkover: boolean
+    }): {
+      p1: { score_poeng: number; kamp_poeng: number; antall_ringer: number } | null
+      p2: { score_poeng: number; kamp_poeng: number; antall_ringer: number } | null
+    }
+    ```
+  - **commit:** `refactor: extract buildKampSpelarUpdates from bekreftInnledendeKamp`
+  - _Note: Added exported `OmgRow` type and `buildKampSpelarUpdates` pure function in kampService.ts. `bekreftInnledendeKamp` now resolves DB fallback scores upfront then delegates all computation to `buildKampSpelarUpdates`. The `.update()` call uses the returned object directly. All 122 existing tests still pass._
+
+- [ ] **4.2 Test `buildKampSpelarUpdates`**
+  - File: `src/services/kampService.ts`
+  - Cover:
+    - Multi-round match: `score_poeng` and `antall_ringer` are the correct sums across all omgang rows
+    - HCP adds to `score_poeng` (and therefore to the `kamp_poeng` calculation) but does **not** affect `antall_ringer`
+    - Walkover: p1 gets `{score_poeng:21, kamp_poeng:2, antall_ringer:0}`, p2 gets `{score_poeng:0, kamp_poeng:0, antall_ringer:0}`
+    - No omgang rows → uses `scorePoeng` from params as fallback score
+    - `null` values in omgang rows treated as 0 (not NaN)
+    - Win/loss/tie → correct `kamp_poeng` values
+  - **commit:** `test: cover buildKampSpelarUpdates`
   - _Note:_
 
-- [ ] **4.2 Test `buildResultRows`**
-  - Given match data, verify the correct rows are produced. The Supabase call itself is stubbed/mocked — we test *what* is written, not that Supabase works.
-  - **commit:** `test: cover buildResultRows`
+- [ ] **4.3 Extract and test `buildEliminertKasterid` from `bekreftAvsluttendeKamp`**
+  - File: `src/services/kampService.ts`
+  - Goal: a pure function that takes omgang rows and p1/p2 identity and returns the `kasterid` of the eliminated player. The 3-player case (orderedKasterids) bypasses this function entirely — document that in the test.
+  - Cover:
+    - Player with lower total score is eliminated
+    - Tie → p2 eliminated (current tie-break: `t1 >= t2 → p2`)
+    - `null` omgang values treated as 0
+  - **commit:** `refactor+test: extract and cover buildEliminertKasterid`
   - _Note:_
 
 ---

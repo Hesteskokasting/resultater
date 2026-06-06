@@ -246,30 +246,25 @@ export type KampSpelarBekreftData = {
   scorePoeng: number  // fallback if omgang data is missing
 }
 
-export async function bekreftInnledendeKamp(params: {
-  kampId: number
-  p1: KampSpelarBekreftData | null
-  p2: KampSpelarBekreftData | null
+export type OmgRow = { kamp_spelar_id: number | null; score: number | null; antall_ringer: number | null }
+
+type KampSpelarUpdateValues = { score_poeng: number; kamp_poeng: number; antall_ringer: number }
+
+export function buildKampSpelarUpdates(params: {
+  omgData: OmgRow[]
+  p1: { spelarId: number; baseScore: number } | null
+  p2: { spelarId: number; baseScore: number } | null
   hcp1: number
   hcp2: number
-  erWalkover?: boolean
-}): Promise<{ error: unknown }> {
-  const { kampId, p1, p2, hcp1, hcp2, erWalkover = false } = params
+  erWalkover: boolean
+}): { p1: KampSpelarUpdateValues | null; p2: KampSpelarUpdateValues | null } {
+  const { omgData, p1, p2, hcp1, hcp2, erWalkover } = params
   let t1 = 0, t2 = 0, r1 = 0, r2 = 0
 
   if (erWalkover) {
     t1 = 21
   } else {
-    const spelarIds = [p1?.spelarId, p2?.spelarId].filter((id): id is number => id != null)
-    const { data: omgData, error: omgErr } = await supabase
-      .from('kamp_omgang')
-      .select('kamp_spelar_id, score, antall_ringer')
-      .in('kamp_spelar_id', spelarIds)
-    if (omgErr) {
-      logError('bekreftInnledendeKamp:omgangar', omgErr)
-      return { error: omgErr }
-    }
-    if (omgData?.length) {
+    if (omgData.length) {
       for (const row of omgData) {
         if (row.kamp_spelar_id === p1?.spelarId) {
           t1 += row.score ?? 0
@@ -280,31 +275,70 @@ export async function bekreftInnledendeKamp(params: {
         }
       }
     } else {
-      // Re-fetch score_poeng fresh from DB — passed scorePoeng may be stale (captured at render time)
-      const { data: freshScores } = await supabase
-        .from('kamp_spelar')
-        .select('id, score_poeng')
-        .in('id', spelarIds)
-      const scoreMap = Object.fromEntries((freshScores ?? []).map(s => [s.id, s.score_poeng ?? 0]))
-      t1 = p1 ? (scoreMap[p1.spelarId] ?? p1.scorePoeng) : 0
-      t2 = p2 ? (scoreMap[p2.spelarId] ?? p2.scorePoeng) : 0
+      t1 = p1?.baseScore ?? 0
+      t2 = p2?.baseScore ?? 0
     }
     t1 += hcp1
     t2 += hcp2
   }
 
   const [kp1, kp2] = beregnKampPoeng(t1, t2)
+  return {
+    p1: p1 ? { score_poeng: t1, kamp_poeng: kp1, antall_ringer: r1 } : null,
+    p2: p2 ? { score_poeng: t2, kamp_poeng: kp2, antall_ringer: r2 } : null,
+  }
+}
+
+export async function bekreftInnledendeKamp(params: {
+  kampId: number
+  p1: KampSpelarBekreftData | null
+  p2: KampSpelarBekreftData | null
+  hcp1: number
+  hcp2: number
+  erWalkover?: boolean
+}): Promise<{ error: unknown }> {
+  const { kampId, p1, p2, hcp1, hcp2, erWalkover = false } = params
+  let omgData: OmgRow[] = []
+  let p1BaseScore = p1?.scorePoeng ?? 0
+  let p2BaseScore = p2?.scorePoeng ?? 0
+
+  if (!erWalkover) {
+    const spelarIds = [p1?.spelarId, p2?.spelarId].filter((id): id is number => id != null)
+    const { data: fetched, error: omgErr } = await supabase
+      .from('kamp_omgang')
+      .select('kamp_spelar_id, score, antall_ringer')
+      .in('kamp_spelar_id', spelarIds)
+    if (omgErr) {
+      logError('bekreftInnledendeKamp:omgangar', omgErr)
+      return { error: omgErr }
+    }
+    omgData = fetched ?? []
+
+    if (!omgData.length) {
+      // Re-fetch score_poeng fresh from DB — passed scorePoeng may be stale (captured at render time)
+      const { data: freshScores } = await supabase
+        .from('kamp_spelar')
+        .select('id, score_poeng')
+        .in('id', spelarIds)
+      const scoreMap = Object.fromEntries((freshScores ?? []).map(s => [s.id, s.score_poeng ?? 0]))
+      p1BaseScore = p1 ? (scoreMap[p1.spelarId] ?? p1.scorePoeng) : 0
+      p2BaseScore = p2 ? (scoreMap[p2.spelarId] ?? p2.scorePoeng) : 0
+    }
+  }
+
+  const updates = buildKampSpelarUpdates({
+    omgData,
+    p1: p1 ? { spelarId: p1.spelarId, baseScore: p1BaseScore } : null,
+    p2: p2 ? { spelarId: p2.spelarId, baseScore: p2BaseScore } : null,
+    hcp1, hcp2, erWalkover,
+  })
 
   const spelarUpdates = []
-  if (p1) spelarUpdates.push(
-    supabase.from('kamp_spelar')
-      .update({ score_poeng: t1, kamp_poeng: kp1, antall_ringer: r1 })
-      .eq('id', p1.spelarId),
+  if (p1 && updates.p1) spelarUpdates.push(
+    supabase.from('kamp_spelar').update(updates.p1).eq('id', p1.spelarId),
   )
-  if (p2) spelarUpdates.push(
-    supabase.from('kamp_spelar')
-      .update({ score_poeng: t2, kamp_poeng: kp2, antall_ringer: r2 })
-      .eq('id', p2.spelarId),
+  if (p2 && updates.p2) spelarUpdates.push(
+    supabase.from('kamp_spelar').update(updates.p2).eq('id', p2.spelarId),
   )
 
   if (spelarUpdates.length) {
