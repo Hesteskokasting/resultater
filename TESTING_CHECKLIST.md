@@ -29,11 +29,11 @@ Legend: `[ ]` not done · `[x]` done · `[~]` partial / changed
 
 ## Phase 1 — Pure computation (no DOM, no Supabase)
 
-- [ ] **1.1 Test match point calculation (`beregnKampPoeng`)**
+- [x] **1.1 Test match point calculation (`beregnKampPoeng`)**
   - File: `src/utils/kamp.ts`
   - Cover: winner gets [2, x], loser gets [x, 2], tie returns [1.5, 1.5], edge cases (zero scores, equal non-zero scores).
   - **commit:** `test: cover beregnKampPoeng in kamp.ts`
-  - _Note:_
+  - _Note: 11 tests in tests/kamp.test.ts. Boundary cases at score=11 (1 pt) and score=10 (0 pt) explicitly covered. Rule confirmed: loser gets 1 pt if score ≥ 11, else 0._
 
 - [ ] **1.2 Test score and ring extraction (`scoreForSp`, `ringerForSp`, `calcAntallRinger`)**
   - File: `src/utils/kamp.ts`
