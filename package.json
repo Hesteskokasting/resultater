@@ -11,12 +11,17 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
+    "typecheck:test": "tsc --noEmit -p tsconfig.test.json",
+    "test": "vitest",
+    "test:run": "vitest run",
     "preview": "vite preview --host"
   },
   "devDependencies": {
+    "happy-dom": "^20.10.1",
     "supabase": "^2.93.0",
     "typescript": "^6.0.3",
-    "vite": "^8.0.12"
+    "vite": "^8.0.12",
+    "vitest": "^4.1.8"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.4",
