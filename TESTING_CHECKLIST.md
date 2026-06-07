@@ -122,15 +122,15 @@ Legend: `[ ]` not done · `[x]` done · `[~]` partial / changed
   - **commit:** `test: cover buildKampSpelarUpdates`
   - _Note: 12 tests in tests/buildKampSpelarUpdates.test.ts. Covers: multi-round row summation, null-as-0 safety, baseScore fallback, HCP effect on score_poeng/kamp_poeng but not antall_ringer, walkover exact values (omgData ignored), win/loss/tie kamp_poeng, null player → null result. 134 tests total, all passing._
 
-- [ ] **4.3 Extract and test `buildEliminertKasterid` from `bekreftAvsluttendeKamp`**
+- [x] **4.3 Extract and test `buildEliminertKasterid` from `bekreftAvsluttendeKamp`**
   - File: `src/services/kampService.ts`
   - Goal: a pure function that takes omgang rows and p1/p2 identity and returns the `kasterid` of the eliminated player. The 3-player case (orderedKasterids) bypasses this function entirely — document that in the test.
   - Cover:
     - Player with lower total score is eliminated
-    - Tie → p2 eliminated (current tie-break: `t1 >= t2 → p2`)
+    - ~~Tie → p2 eliminated~~ — removed: ties are impossible by game rules (win-by-2 required)
     - `null` omgang values treated as 0
   - **commit:** `refactor+test: extract and cover buildEliminertKasterid`
-  - _Note:_
+  - _Note: 7 tests in tests/buildEliminertKasterid.test.ts. Noted in comments that 3-player case uses orderedKasterids[2] and bypasses this function, and that ties are unreachable. Covers: p1/p2 wins, multi-round summation, null-as-0, scorePoeng fallback (empty omgData and per-player missing rows), both-null returns null. 142 tests total, all passing._
 
 ---
 

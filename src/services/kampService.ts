@@ -356,6 +356,23 @@ export async function bekreftInnledendeKamp(params: {
   return { error }
 }
 
+export function buildEliminertKasterid(params: {
+  omgData: Array<{ kamp_spelar_id: number | null; score: number | null }>
+  p1: { spelarId: number; kasterid: number; scorePoeng: number } | null
+  p2: { spelarId: number; kasterid: number; scorePoeng: number } | null
+}): number | null {
+  const { omgData, p1, p2 } = params
+  const totalar: Record<number, number> = {}
+  for (const o of omgData) {
+    if (o.kamp_spelar_id != null) {
+      totalar[o.kamp_spelar_id] = (totalar[o.kamp_spelar_id] ?? 0) + (o.score ?? 0)
+    }
+  }
+  const t1 = p1 ? (totalar[p1.spelarId] ?? p1.scorePoeng) : 0
+  const t2 = p2 ? (totalar[p2.spelarId] ?? p2.scorePoeng) : 0
+  return t1 >= t2 ? (p2?.kasterid ?? null) : (p1?.kasterid ?? null)
+}
+
 export async function bekreftAvsluttendeKamp(params: {
   kampId: number
   p1: KampSpelarBekreftData | null
@@ -374,15 +391,11 @@ export async function bekreftAvsluttendeKamp(params: {
       .select('kamp_spelar_id, score')
       .in('kamp_spelar_id', spelarIds)
 
-    const totalar: Record<number, number> = {}
-    for (const o of (omgData ?? [])) {
-      if (o.kamp_spelar_id != null) {
-        totalar[o.kamp_spelar_id] = (totalar[o.kamp_spelar_id] ?? 0) + (o.score ?? 0)
-      }
-    }
-    const t1 = p1 ? (totalar[p1.spelarId] ?? p1.scorePoeng) : 0
-    const t2 = p2 ? (totalar[p2.spelarId] ?? p2.scorePoeng) : 0
-    eliminertId = t1 >= t2 ? (p2?.kasterid ?? null) : (p1?.kasterid ?? null)
+    eliminertId = buildEliminertKasterid({
+      omgData: omgData ?? [],
+      p1: p1 ? { spelarId: p1.spelarId, kasterid: p1.kasterid, scorePoeng: p1.scorePoeng } : null,
+      p2: p2 ? { spelarId: p2.spelarId, kasterid: p2.kasterid, scorePoeng: p2.scorePoeng } : null,
+    })
   }
 
   const { error } = await supabase.rpc('bekreft_avsluttende_kamp_deltakar', {
