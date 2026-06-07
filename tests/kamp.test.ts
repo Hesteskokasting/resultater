@@ -6,6 +6,9 @@ describe('beregnKampPoeng', () => {
       expect(beregnKampPoeng(21, 21)).toEqual([1.5, 1.5])
     })
 
+    it('returns [1.5, 1.5] when both scores are equal and above 21', () => {
+      expect(beregnKampPoeng(23, 23)).toEqual([1.5, 1.5])
+    })
   })
 
   describe('s1 wins', () => {
