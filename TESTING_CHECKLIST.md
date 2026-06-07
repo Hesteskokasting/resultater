@@ -132,6 +132,63 @@ Legend: `[ ]` not done · `[x]` done · `[~]` partial / changed
   - **commit:** `refactor+test: extract and cover buildEliminertKasterid`
   - _Note: 7 tests in tests/buildEliminertKasterid.test.ts. Noted in comments that 3-player case uses orderedKasterids[2] and bypasses this function, and that ties are unreachable. Covers: p1/p2 wins, multi-round summation, null-as-0, scorePoeng fallback (empty omgData and per-player missing rows), both-null returns null. 142 tests total, all passing._
 
+- [ ] **4.4 Extract and test Gloppen (cascade) pairing logic**
+  - File: `src/services/kampGenereringInnledendeService.ts`
+  - Goal: extract the pure pairing algorithm from `_insertCascadeMatches` into an exported function `buildCascadePairs`. Keep all Supabase inserts in the caller.
+  - Signature:
+    ```typescript
+    export function buildCascadePairs(
+      N: number,
+      antallRunder: number
+    ): Array<Array<{ p1Pos: number; p2Pos: number | null; erWalkover: boolean }>>
+    ```
+    Returns one inner array per round, each element is one match (positions, not kasterids — `posToKasterid` mapping stays in the caller).
+  - Cover:
+    - Each round has exactly `Math.ceil(N/2)` matches (courts)
+    - Group 1 (positions `1..totalCourts`) only ever meets group 2 (positions `totalCourts+1..N`) — never within the same group
+    - No player position meets any other position more than once across all rounds (no rematches), for up to `totalCourts` rounds
+    - If N is odd, exactly one match per round is a walkover (`erWalkover: true`, `p2Pos: null`)
+    - If N is even, no walkovers in any round
+    - Deterministic spot-checks (N=24, totalCourts=12):
+      - Round 1, court 1: p1Pos=1, p2Pos=13
+      - Round 4, court 10: p1Pos=1, p2Pos=16
+  - Note: start numbers are assigned randomly by the caller (Fisher-Yates shuffle before building `posToKasterid`). The pairing function works on positions only — randomness is out of scope here.
+  - Note: score constraints (min 21 / max 26 / valid omgang values 1,2,3,4,6) are game scoring rules, not pairing properties — they belong in separate score-validation tests.
+  - **commit:** `refactor+test: extract and cover buildCascadePairs (Gloppen)`
+  - _Note:_
+
+- [ ] **4.5 Extract and test NHM (Swiss) pairing logic**
+  - File: `src/services/kampGenereringInnledendeService.ts`
+  - Goal: extract the two Swiss pairing algorithms from `_insertSwissRunde1` and the inline `tryPairing` closure in `genererNesteSwissRunde` into exported pure functions. Keep all Supabase calls in the callers.
+  - Signatures:
+    ```typescript
+    export function buildSwissRunde1Pairs(
+      N: number
+    ): Array<{ p1Pos: number; p2Pos: number | null; erWalkover: boolean }>
+
+    export function buildSwissPairs(
+      rankedKasterids: number[],
+      unplayedMatches: Record<number, number[]>,
+      byeCount: Record<number, number>
+    ): Array<{ p1: number; p2: number | null; erWalkover: boolean }> | null
+    ```
+    `buildSwissPairs` replaces the `tryPairing` + sorting logic. The caller (`genererNesteSwissRunde`) builds `rankedKasterids`, `unplayedMatches`, and `byeCount` from Supabase data and passes them in.
+  - Cover for **round 1** (`buildSwissRunde1Pairs`):
+    - Position 1 meets position 2, position 3 meets position 4, etc. (sequential pairing)
+    - If N is odd, the last player (position N) has walkover; all other players get a real opponent
+    - If N is even, no walkovers
+    - Produces exactly `Math.ceil(N/2)` matches
+  - Cover for **subsequent rounds** (`buildSwissPairs`):
+    - All player kasterids appear exactly once across all returned matches
+    - No pair consists of two players who have already played (both must appear in each other's `unplayedMatches`)
+    - If N is odd, the lowest-ranked player with the fewest prior byes gets the walkover
+    - Returns `null` when pairing is impossible (all remaining opponents have already played each other)
+    - Regular matches are sorted before walkovers in the output
+    - Produces exactly `Math.ceil(N/2)` matches when a valid pairing exists
+  - Note: score constraints (min 21 / max 26 / valid omgang values 1,2,3,4,6) are game scoring rules, not pairing properties — they belong in separate score-validation tests.
+  - **commit:** `refactor+test: extract and cover buildSwissRunde1Pairs and buildSwissPairs (NHM)`
+  - _Note:_
+
 ---
 
 ## Phase 5 — Integration against local Supabase (SEPARATE ROUND — do not start without instruction)
