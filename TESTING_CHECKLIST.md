@@ -168,7 +168,7 @@ Legend: `[ ]` not done · `[x]` done · `[~]` partial / changed
   - **commit:** `refactor+test: extract and cover buildCascadePairs (Gloppen)`
   - _Note: Extracted `buildCascadePairs` (exported) from `_insertCascadeMatches` in kampGenereringInnledendeService.ts. Caller now calls `buildCascadePairs` and iterates the returned arrays. Uses `KampPar[][]` return type (reuses existing file-private interface). Walkover matches now return `p2Pos: null` instead of the phantom position N+1. 11 tests in tests/buildCascadePairs.test.ts. All 3 checks pass. 153 tests total._
 
-- [ ] **4.6 Extract and test NHM (Swiss) pairing logic**
+- [x] **4.6 Extract and test NHM (Swiss) pairing logic**
   - File: `src/services/kampGenereringInnledendeService.ts`
   - Goal: extract the two Swiss pairing algorithms from `_insertSwissRunde1` and the inline `tryPairing` closure in `genererNesteSwissRunde` into exported pure functions. Keep all Supabase calls in the callers.
   - Signatures:
@@ -198,7 +198,7 @@ Legend: `[ ]` not done · `[x]` done · `[~]` partial / changed
     - Produces exactly `Math.ceil(N/2)` matches when a valid pairing exists
   - Note: score constraints (min 21 / max 26 / valid omgang values 1,2,3,4,6) are game scoring rules — see item 4.4 for the test-data update.
   - **commit:** `refactor+test: extract and cover buildSwissRunde1Pairs and buildSwissPairs (NHM)`
-  - _Note:_
+  - _Note: Extracted `buildSwissRunde1Pairs` (exported) and `buildSwissPairs` (exported) from kampGenereringInnledendeService.ts. `SwissPar` interface promoted to module level. `_insertSwissRunde1` and `genererNesteSwissRunde` now delegate to the pure functions; the 40-line closure block is gone. `buildSwissPairs` works on an internal copy of byeCount — no mutation of the caller's object. 13 tests in tests/buildSwissPairs.test.ts. All 3 checks pass. 166 tests total._
 
 ---
 

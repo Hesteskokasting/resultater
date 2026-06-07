@@ -8,6 +8,7 @@ function genMatchId(): string {
 interface KampPar { p1Pos: number; p2Pos: number | null; erWalkover: boolean }
 interface KampMedBane { id: number; bane_nummer: number | null }
 interface KampSpelarInsert { kampid: number; kasterid: number; score_poeng: number; kamp_poeng: number; antall_ringer: number }
+interface SwissPar { p1: number; p2: number | null; erWalkover: boolean }
 
 export async function genererInnledendeKamper(
   stevneid: number,
@@ -118,29 +119,31 @@ async function _insertCascadeMatches(
   return totaltKampar
 }
 
+export function buildSwissRunde1Pairs(N: number): KampPar[] {
+  const pairs: KampPar[] = []
+  for (let i = 1; i <= N; i += 2) {
+    const erWalkover = i + 1 > N
+    pairs.push({ p1Pos: i, p2Pos: erWalkover ? null : i + 1, erWalkover })
+  }
+  return pairs
+}
+
 async function _insertSwissRunde1(
   stevneid: number,
   posToKasterid: Record<number, number>,
   N: number,
 ): Promise<number> {
-  const rundekampar = []
-  const kampPairs: KampPar[] = []
-  let court = 1
+  const kampPairs = buildSwissRunde1Pairs(N)
 
-  for (let i = 1; i <= N; i += 2) {
-    const erWalkover = i + 1 > N
-    rundekampar.push({
-      match_id: genMatchId(),
-      stevneid,
-      fase: 'innledende',
-      runde_nummer: 1,
-      bane_nummer: court,
-      er_bekreftet: false,
-      er_walkover: erWalkover,
-    })
-    kampPairs.push({ p1Pos: i, p2Pos: erWalkover ? null : i + 1, erWalkover })
-    court++
-  }
+  const rundekampar = kampPairs.map((pair, ci) => ({
+    match_id: genMatchId(),
+    stevneid,
+    fase: 'innledende',
+    runde_nummer: 1,
+    bane_nummer: ci + 1,
+    er_bekreftet: false,
+    er_walkover: pair.erWalkover,
+  }))
 
   const { data: innsettaKampar, error: kampErr } = await supabase
     .from('kamp')
@@ -154,10 +157,8 @@ async function _insertSwissRunde1(
   const spelarRader: KampSpelarInsert[] = []
 
   for (let ci = 0; ci < kampPairs.length; ci++) {
-    const bane = ci + 1
-    const kampid = baneToKampId[bane]
     const { p1Pos, p2Pos, erWalkover } = kampPairs[ci]
-
+    const kampid = baneToKampId[ci + 1]
     spelarRader.push({ kampid, kasterid: posToKasterid[p1Pos], score_poeng: 0, kamp_poeng: 0, antall_ringer: 0 })
     if (!erWalkover) spelarRader.push({ kampid, kasterid: posToKasterid[p2Pos!], score_poeng: 0, kamp_poeng: 0, antall_ringer: 0 })
   }
@@ -166,6 +167,57 @@ async function _insertSwissRunde1(
   if (spErr) throw new Error('Feil ved innsetting av Swiss spelarar: ' + spErr.message)
 
   return (innsettaKampar as KampMedBane[]).length
+}
+
+export function buildSwissPairs(
+  rankedKasterids: number[],
+  unplayedMatches: Record<number, number[]>,
+  byeCount: Record<number, number>,
+): SwissPar[] | null {
+  const byes = { ...byeCount }
+
+  function getByePlayer(ids: number[]): number | null {
+    for (let i = ids.length - 1; i >= 0; i--) {
+      if ((byes[ids[i]] ?? 0) < 1) return ids[i]
+    }
+    return null
+  }
+
+  function tryPairing(ids: number[], matchesSoFar: SwissPar[]): SwissPar[] | null {
+    if (ids.length === 0) return matchesSoFar
+    if (ids.length % 2 === 1) {
+      const byeKasterid = getByePlayer(ids)
+      if (byeKasterid === null) return null
+      byes[byeKasterid]++
+      matchesSoFar.push({ p1: byeKasterid, p2: null, erWalkover: true })
+      const rest = ids.filter(k => k !== byeKasterid)
+      const result = tryPairing(rest, matchesSoFar)
+      if (result) return result
+      byes[byeKasterid]--
+      matchesSoFar.pop()
+      return null
+    }
+    for (let i = 0; i < ids.length; i++) {
+      for (let j = i + 1; j < ids.length; j++) {
+        const p1 = ids[i]
+        const p2 = ids[j]
+        if (unplayedMatches[p1]?.includes(p2)) {
+          matchesSoFar.push({ p1, p2, erWalkover: false })
+          const rest = ids.filter(k => k !== p1 && k !== p2)
+          const result = tryPairing(rest, matchesSoFar)
+          if (result) return result
+          matchesSoFar.pop()
+        }
+      }
+    }
+    return null
+  }
+
+  const pairs = tryPairing(rankedKasterids, [])
+  if (!pairs) return null
+
+  pairs.sort((a, b) => (a.erWalkover ? 1 : 0) - (b.erWalkover ? 1 : 0))
+  return pairs
 }
 
 export async function genererNesteSwissRunde(
@@ -232,49 +284,8 @@ export async function genererNesteSwissRunde(
 
   const playerStats = sorterStilling(spelarar, kampar)
 
-  interface SwissPar { p1: number; p2: number | null; erWalkover: boolean }
-
-  function getByePlayer(stats: typeof playerStats): typeof playerStats[0] | null {
-    for (let i = stats.length - 1; i >= 0; i--) {
-      if ((byes[stats[i].kasterid] ?? 0) < 1) return stats[i]
-    }
-    return null
-  }
-
-  function tryPairing(stats: typeof playerStats, matchesSoFar: SwissPar[]): SwissPar[] | null {
-    if (stats.length === 0) return matchesSoFar
-    if (stats.length % 2 === 1) {
-      const byePlayer = getByePlayer(stats)
-      if (!byePlayer) return null
-      byes[byePlayer.kasterid]++
-      matchesSoFar.push({ p1: byePlayer.kasterid, p2: null, erWalkover: true })
-      const rest = stats.filter(p => p.kasterid !== byePlayer.kasterid)
-      const result = tryPairing(rest, matchesSoFar)
-      if (result) return result
-      byes[byePlayer.kasterid]--
-      matchesSoFar.pop()
-      return null
-    }
-    for (let i = 0; i < stats.length; i++) {
-      const p1 = stats[i]
-      for (let j = i + 1; j < stats.length; j++) {
-        const p2 = stats[j]
-        if (unplayedMatches[p1.kasterid]?.includes(p2.kasterid)) {
-          matchesSoFar.push({ p1: p1.kasterid, p2: p2.kasterid, erWalkover: false })
-          const rest = stats.filter(p => p.kasterid !== p1.kasterid && p.kasterid !== p2.kasterid)
-          const result = tryPairing(rest, matchesSoFar)
-          if (result) return result
-          matchesSoFar.pop()
-        }
-      }
-    }
-    return null
-  }
-
-  const pairs = tryPairing(playerStats, [])
+  const pairs = buildSwissPairs(playerStats.map(s => s.kasterid), unplayedMatches, byes)
   if (!pairs) throw new Error('Paring er ikkje mogleg. Alle moglege motstandarar er allereie spela.')
-
-  pairs.sort((a, b) => (a.erWalkover ? 1 : 0) - (b.erWalkover ? 1 : 0))
 
   const rundekampar = pairs.map((pair, i) => ({
     match_id: genMatchId(),
