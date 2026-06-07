@@ -143,7 +143,7 @@ Legend: `[ ]` not done · `[x]` done · `[~]` partial / changed
   - **commit:** `test: use valid per-omgang score values in buildKampSpelarUpdates and buildEliminertKasterid tests`
   - _Note: Replaced invalid omgang scores (5,7,8,9,10,12,15) with values from {1,2,3,4,6}. Multi-row sets used where single rows can't reach the required total (e.g. kamp_poeng boundary tests now use 2–3 rows per player). Ring counts consistent with calcAntallRinger throughout. baseScore/scorePoeng values (match-level totals) left unchanged. 142 tests, all passing._
 
-- [ ] **4.5 Extract and test Gloppen (cascade) pairing logic**
+- [x] **4.5 Extract and test Gloppen (cascade) pairing logic**
   - File: `src/services/kampGenereringInnledendeService.ts`
   - Goal: extract the pure pairing algorithm from `_insertCascadeMatches` into an exported function `buildCascadePairs`. Keep all Supabase inserts in the caller.
   - Signature:
@@ -166,7 +166,7 @@ Legend: `[ ]` not done · `[x]` done · `[~]` partial / changed
   - Note: start numbers are assigned randomly by the caller (Fisher-Yates shuffle before building `posToKasterid`). The pairing function works on positions only — randomness is out of scope here.
   - Note: score constraints (min 21 / max 26 / valid omgang values 1,2,3,4,6) are game scoring rules — see item 4.4 for the test-data update.
   - **commit:** `refactor+test: extract and cover buildCascadePairs (Gloppen)`
-  - _Note:_
+  - _Note: Extracted `buildCascadePairs` (exported) from `_insertCascadeMatches` in kampGenereringInnledendeService.ts. Caller now calls `buildCascadePairs` and iterates the returned arrays. Uses `KampPar[][]` return type (reuses existing file-private interface). Walkover matches now return `p2Pos: null` instead of the phantom position N+1. 11 tests in tests/buildCascadePairs.test.ts. All 3 checks pass. 153 tests total._
 
 - [ ] **4.6 Extract and test NHM (Swiss) pairing logic**
   - File: `src/services/kampGenereringInnledendeService.ts`

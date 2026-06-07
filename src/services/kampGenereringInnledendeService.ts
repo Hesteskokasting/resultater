@@ -49,59 +49,68 @@ export async function genererInnledendeKamper(
   }
 }
 
+export function buildCascadePairs(N: number, antallRunder: number): KampPar[][] {
+  const paddedN = N % 2 === 0 ? N : N + 1
+  const totalCourts = paddedN / 2
+  const rounds: KampPar[][] = []
+
+  for (let r = 1; r <= antallRunder; r++) {
+    const matches: KampPar[] = []
+    for (let c = 1; c <= totalCourts; c++) {
+      const p1Pos = ((c - 1 + r - 1) % totalCourts) + 1
+      const rawP2Pos = ((c - 1 + 2 * (r - 1)) % totalCourts) + 1 + totalCourts
+      const erWalkover = rawP2Pos > N
+      matches.push({ p1Pos, p2Pos: erWalkover ? null : rawP2Pos, erWalkover })
+    }
+    rounds.push(matches)
+  }
+
+  return rounds
+}
+
 async function _insertCascadeMatches(
   stevneid: number,
   posToKasterid: Record<number, number>,
   N: number,
   antallRunder: number,
 ): Promise<number> {
-  const paddedN = N % 2 === 0 ? N : N + 1
-  const totalCourts = paddedN / 2
+  const allRounds = buildCascadePairs(N, antallRunder)
   let totaltKampar = 0
 
-  for (let r = 1; r <= antallRunder; r++) {
-    const rundekampar = []
-    const kampPairs: KampPar[] = []
+  for (let ri = 0; ri < allRounds.length; ri++) {
+    const roundPairs = allRounds[ri]
+    const rundeNummer = ri + 1
 
-    for (let c = 1; c <= totalCourts; c++) {
-      const p1Pos = ((c - 1 + r - 1) % totalCourts) + 1
-      const p2Pos = ((c - 1 + 2 * (r - 1)) % totalCourts) + 1 + totalCourts
-      const erWalkover = p2Pos > N
-
-      rundekampar.push({
-        match_id: genMatchId(),
-        stevneid,
-        fase: 'innledende',
-        runde_nummer: r,
-        bane_nummer: c,
-        er_bekreftet: false,
-        er_walkover: erWalkover,
-      })
-      kampPairs.push({ p1Pos, p2Pos, erWalkover })
-    }
+    const rundekampar = roundPairs.map((pair, ci) => ({
+      match_id: genMatchId(),
+      stevneid,
+      fase: 'innledende',
+      runde_nummer: rundeNummer,
+      bane_nummer: ci + 1,
+      er_bekreftet: false,
+      er_walkover: pair.erWalkover,
+    }))
 
     const { data: innsettaKampar, error: kampErr } = await supabase
       .from('kamp')
       .insert(rundekampar)
       .select('id, bane_nummer')
-    if (kampErr) throw new Error(`Feil ved innsetting av kampar (runde ${r}): ` + kampErr.message)
+    if (kampErr) throw new Error(`Feil ved innsetting av kampar (runde ${rundeNummer}): ` + kampErr.message)
 
     const baneToKampId: Record<number, number> = Object.fromEntries(
       (innsettaKampar as KampMedBane[]).map(k => [k.bane_nummer, k.id]),
     )
     const spelarRader: KampSpelarInsert[] = []
 
-    for (let ci = 0; ci < totalCourts; ci++) {
-      const bane = ci + 1
-      const kampid = baneToKampId[bane]
-      const { p1Pos, p2Pos, erWalkover } = kampPairs[ci]
-
+    for (let ci = 0; ci < roundPairs.length; ci++) {
+      const { p1Pos, p2Pos, erWalkover } = roundPairs[ci]
+      const kampid = baneToKampId[ci + 1]
       spelarRader.push({ kampid, kasterid: posToKasterid[p1Pos], score_poeng: 0, kamp_poeng: 0, antall_ringer: 0 })
       if (!erWalkover) spelarRader.push({ kampid, kasterid: posToKasterid[p2Pos!], score_poeng: 0, kamp_poeng: 0, antall_ringer: 0 })
     }
 
     const { error: spErr } = await supabase.from('kamp_spelar').insert(spelarRader)
-    if (spErr) throw new Error(`Feil ved innsetting av spelarar (runde ${r}): ` + spErr.message)
+    if (spErr) throw new Error(`Feil ved innsetting av spelarar (runde ${rundeNummer}): ` + spErr.message)
 
     totaltKampar += (innsettaKampar as KampMedBane[]).length
   }
