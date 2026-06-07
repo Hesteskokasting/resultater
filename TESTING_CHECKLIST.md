@@ -132,7 +132,7 @@ Legend: `[ ]` not done · `[x]` done · `[~]` partial / changed
   - **commit:** `refactor+test: extract and cover buildEliminertKasterid`
   - _Note: 7 tests in tests/buildEliminertKasterid.test.ts. Noted in comments that 3-player case uses orderedKasterids[2] and bypasses this function, and that ties are unreachable. Covers: p1/p2 wins, multi-round summation, null-as-0, scorePoeng fallback (empty omgData and per-player missing rows), both-null returns null. 142 tests total, all passing._
 
-- [ ] **4.4 Update existing tests to use realistic per-omgang score values**
+- [x] **4.4 Update existing tests to use realistic per-omgang score values**
   - Files: `tests/buildKampSpelarUpdates.test.ts`, `tests/buildEliminertKasterid.test.ts`
   - Valid per-omgang scores are `{1, 2, 3, 4, 6}` (from `KAMP_POINT_VALUES` in `src/pages/kamp.ts`). Currently both test files use invalid values (5, 7, 8, 9, 10, 12, 15) as individual omgang row scores.
   - Replace invalid per-omgang scores with valid combinations that still exercise the same summation logic. Use multiple rows where needed (e.g., sum=21 requires at least 4 rows of valid scores; `6+6+6+3=21`). Adjust `expect()` values to match the new sums.
@@ -141,7 +141,7 @@ Legend: `[ ]` not done · `[x]` done · `[~]` partial / changed
   - No new functions, no new test cases — only the input data and expected values change.
   - Note: **max score 26 is not enforced anywhere in code** (no DB constraint, no server-side check). If a constraint is desired, that is a migration task, not a test task.
   - **commit:** `test: use valid per-omgang score values in buildKampSpelarUpdates and buildEliminertKasterid tests`
-  - _Note:_
+  - _Note: Replaced invalid omgang scores (5,7,8,9,10,12,15) with values from {1,2,3,4,6}. Multi-row sets used where single rows can't reach the required total (e.g. kamp_poeng boundary tests now use 2–3 rows per player). Ring counts consistent with calcAntallRinger throughout. baseScore/scorePoeng values (match-level totals) left unchanged. 142 tests, all passing._
 
 - [ ] **4.5 Extract and test Gloppen (cascade) pairing logic**
   - File: `src/services/kampGenereringInnledendeService.ts`

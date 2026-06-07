@@ -22,28 +22,38 @@ function row(spelarId: number, score: number | null) {
 describe('buildEliminertKasterid', () => {
   describe('winner/loser from omgang scores', () => {
     it('returns p2.kasterid when p1 has the higher total', () => {
-      const omgData = [row(P1_ID, 15), row(P2_ID, 10)]
+      // p1: 6+6+4=16, p2: 6+4=10 → p2 eliminated
+      const omgData = [
+        row(P1_ID, 6), row(P2_ID, 6),
+        row(P1_ID, 6), row(P2_ID, 4),
+        row(P1_ID, 4),
+      ]
       expect(buildEliminertKasterid({ omgData, p1, p2 })).toBe(P2_KASTERID)
     })
 
     it('returns p1.kasterid when p2 has the higher total', () => {
-      const omgData = [row(P1_ID, 10), row(P2_ID, 18)]
+      // p1: 6+4=10, p2: 6+6+6=18 → p1 eliminated
+      const omgData = [
+        row(P1_ID, 6), row(P2_ID, 6),
+        row(P1_ID, 4), row(P2_ID, 6),
+                       row(P2_ID, 6),
+      ]
       expect(buildEliminertKasterid({ omgData, p1, p2 })).toBe(P1_KASTERID)
     })
 
     it('sums multiple omgang rows per player correctly', () => {
       const omgData = [
-        row(P1_ID, 5), row(P2_ID, 8),
-        row(P1_ID, 6), row(P2_ID, 9),
-        row(P1_ID, 7), row(P2_ID, 4),
+        row(P1_ID, 6), row(P2_ID, 6),
+        row(P1_ID, 6), row(P2_ID, 6),
+        row(P1_ID, 4), row(P2_ID, 6),
       ]
-      // p1 total = 18, p2 total = 21 → p1 eliminated
+      // p1 total = 16, p2 total = 18 → p1 eliminated
       expect(buildEliminertKasterid({ omgData, p1, p2 })).toBe(P1_KASTERID)
     })
 
     it('treats null score values as 0', () => {
-      const omgData = [row(P1_ID, null), row(P2_ID, 10)]
-      // p1 = 0, p2 = 10 → p1 eliminated
+      const omgData = [row(P1_ID, null), row(P2_ID, 6)]
+      // p1 = 0, p2 = 6 → p1 eliminated
       expect(buildEliminertKasterid({ omgData, p1, p2 })).toBe(P1_KASTERID)
     })
   })
@@ -60,14 +70,14 @@ describe('buildEliminertKasterid', () => {
     })
 
     it('uses scorePoeng as fallback per player when that player has no omgang rows', () => {
-      // p2 has no rows → falls back to p2.scorePoeng=5; p1 has row score=12
-      const omgData = [row(P1_ID, 12)]
+      // p2 has no rows → falls back to p2.scorePoeng=5; p1 has row score=6
+      const omgData = [row(P1_ID, 6)]
       const res = buildEliminertKasterid({
         omgData,
         p1: { ...p1, scorePoeng: 0 },
         p2: { ...p2, scorePoeng: 5 },
       })
-      // p1=12 > p2=5 → p2 eliminated
+      // p1=6 > p2=5 → p2 eliminated
       expect(res).toBe(P2_KASTERID)
     })
   })
