@@ -17,6 +17,7 @@ interface ParingParam {
   isRunde1?: boolean
   walkoverTall?: number | null
   runde1Oppsett?: RundeOppsett | null
+  shuffleFn?: <T>(arr: T[]) => T[]
 }
 
 // --- Interne hjelpar ---
@@ -144,7 +145,8 @@ export function beregnCupStruktur(n: number, { runde1 = null, walkovers1 = null 
 // isRunde1: walkover tillate for topp-rangerte spelarar
 // runde1Oppsett: {walkovers, c3, c2} — overstyrer runde 1-oppsett fullt ut
 // walkoverTall: bakoverkompatibel — overstyrer berre walkover-tal med pure 3-spelar
-export function beregnCupRundeParingar(spelarar: Spelar[], { medSeeding = true, isRunde1 = false, walkoverTall = null, runde1Oppsett = null }: ParingParam = {}): CupParing[] {
+export function beregnCupRundeParingar(spelarar: Spelar[], { medSeeding = true, isRunde1 = false, walkoverTall = null, runde1Oppsett = null, shuffleFn }: ParingParam = {}): CupParing[] {
+  const doShuffle = shuffleFn ?? shuffle
   const paringar: CupParing[] = []
   let aktive = [...spelarar]
 
@@ -178,9 +180,9 @@ export function beregnCupRundeParingar(spelarar: Spelar[], { medSeeding = true, 
     // Pulje 1 (beste totalBaner): 1 spelar til kvar bane
     // Pulje 2 (neste totalBaner): 1 spelar til kvar bane
     // Pulje 3 (resterande c3): 1 spelar til kvar 3-spelar bane
-    const p1 = shuffle(aktive.slice(0, totalBaner))
-    const p2 = shuffle(aktive.slice(totalBaner, 2 * totalBaner))
-    const p3 = shuffle(aktive.slice(2 * totalBaner)) // lengd = c3
+    const p1 = doShuffle(aktive.slice(0, totalBaner))
+    const p2 = doShuffle(aktive.slice(totalBaner, 2 * totalBaner))
+    const p3 = doShuffle(aktive.slice(2 * totalBaner)) // lengd = c3
     let p3idx = 0
     for (let bane = 0; bane < totalBaner; bane++) {
       const erTre = bane < c3
@@ -194,7 +196,7 @@ export function beregnCupRundeParingar(spelarar: Spelar[], { medSeeding = true, 
     }
   } else {
     // Ingen seeding: tilfeldig
-    const shuffled = shuffle(aktive)
+    const shuffled = doShuffle(aktive)
     let idx = 0
     for (let i = 0; i < c3; i++) {
       paringar.push({
