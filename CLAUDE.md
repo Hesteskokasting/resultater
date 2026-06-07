@@ -12,7 +12,7 @@
 - Use Supabase's generated types (`Database` from `supabase gen types`) as the source of truth. Don't hand-write types that duplicate the schema.
 - Prefer `type` for unions and simple shapes, `interface` for objects that may be extended.
 - `strict: true` in `tsconfig.json` — always on.
-- Run `npm run typecheck` before considering work done. Vite does not type-check.
+- Run `npm run typecheck` before considering work done. Vite does not type-check. When tests are involved, run all three checks — see **Unit Testing** below.
 
 ---
 
@@ -182,6 +182,21 @@ src/
 - Explain **why**, not **what**.
 - Delete commented-out code. Use git history.
 - Brief JSDoc on exported functions only if name + signature aren't self-explanatory.
+
+---
+
+## Unit Testing
+
+- Tests live in `tests/*.test.ts`. Framework: Vitest with happy-dom. Config: `vite.config.js` (test block) + `tsconfig.test.json`.
+- **Three-command check before considering any work done:**
+  ```
+  npm run typecheck && npm run typecheck:test && npm run test:run
+  ```
+  Vitest transpiles with esbuild and does NOT type-check. `typecheck:test` is the only thing that catches type errors in test files.
+- **Only test pure functions.** Never write a test that calls `supabase` directly.
+- **Extract-then-test pattern:** When logic is embedded inside a Supabase function, extract the pure computation into an exported function first, then test that. The async Supabase wrapper calls the pure function and is not tested here.
+- **Use realistic game values in test data.** Per-omgang scores must come from `KAMP_POINT_VALUES` (`{1, 2, 3, 4, 6}` — defined in `src/pages/kamp.ts`). Match-level totals (`baseScore`, `score_poeng` fallbacks) are accumulated sums and not restricted to this set.
+- Ring counts must be consistent with `calcAntallRinger`: score 6 → 2 rings, score 3 or 4 → 1 ring, anything else → 0 rings.
 
 ---
 

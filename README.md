@@ -45,6 +45,9 @@ Appen er tilgjengeleg på `http://localhost:5173`.
 | `npm run dev` | Under utvikling — startar lokal Vite-dev-server med hot reload |
 | `npm run build` | For å sjekke at prod-bygget fungerer lokalt før du pushar |
 | `npm run preview` | Køyrer det ferdige `dist/`-bygget lokalt, nyttig for å teste prod-åtferd |
+| `npm run test` | Køyrer Vitest i watch-modus — re-køyrer testar ved kvar filendring |
+| `npm run test:run` | Eingongskøyring av alle testar — bruk dette før commit og i CI |
+| `npm run typecheck:test` | Typesjekkjer testfilene (Vitest brukar esbuild, ikkje tsc — dette er einaste typesjekkinga av `tests/`) |
 
 **Du treng ikkje køyre `build` eller `dev` før du pushar.** GitHub Actions byggjer automatisk når du pushar:
 
@@ -52,6 +55,22 @@ Appen er tilgjengeleg på `http://localhost:5173`.
 - Push til `main` → GitHub Actions byggjer, ventar på manuell godkjenning, deployer til `res.hesteskokasting.no`
 
 `npm run build` lokalt er berre nyttig viss du vil stadfeste at koden kompilerer utan å pushe, eller feilsøke byggfeil.
+
+---
+
+## Testing
+
+Prosjektet nyttar [Vitest](https://vitest.dev/) med [happy-dom](https://github.com/capricorn86/happy-dom) for einingstesting av rein logikk.
+
+Testfiler ligg i `tests/` og importerer frå `@/`-aliaset. Testane dekker berre funksjonar utan Supabase-kall — logikk som er samanvevd med databasekall vert fyrst ekstrahert til ein rein funksjon, deretter testa.
+
+Tre kommandoar skal køyrast og vere grøne før kvar commit:
+
+```bash
+npm run typecheck && npm run typecheck:test && npm run test:run
+```
+
+Konfigurasjon: `vite.config.js` (test-blokk) og `tsconfig.test.json`.
 
 ---
 
@@ -164,4 +183,6 @@ src/
 
 supabase/
 └── migrations/             # SQL-migreringsfiler
+
+tests/                      # Vitest-testar for rein logikk (utils og service-funksjonar utan Supabase-kall)
 ```
