@@ -132,7 +132,18 @@ Legend: `[ ]` not done · `[x]` done · `[~]` partial / changed
   - **commit:** `refactor+test: extract and cover buildEliminertKasterid`
   - _Note: 7 tests in tests/buildEliminertKasterid.test.ts. Noted in comments that 3-player case uses orderedKasterids[2] and bypasses this function, and that ties are unreachable. Covers: p1/p2 wins, multi-round summation, null-as-0, scorePoeng fallback (empty omgData and per-player missing rows), both-null returns null. 142 tests total, all passing._
 
-- [ ] **4.4 Extract and test Gloppen (cascade) pairing logic**
+- [ ] **4.4 Update existing tests to use realistic per-omgang score values**
+  - Files: `tests/buildKampSpelarUpdates.test.ts`, `tests/buildEliminertKasterid.test.ts`
+  - Valid per-omgang scores are `{1, 2, 3, 4, 6}` (from `KAMP_POINT_VALUES` in `src/pages/kamp.ts`). Currently both test files use invalid values (5, 7, 8, 9, 10, 12, 15) as individual omgang row scores.
+  - Replace invalid per-omgang scores with valid combinations that still exercise the same summation logic. Use multiple rows where needed (e.g., sum=21 requires at least 4 rows of valid scores; `6+6+6+3=21`). Adjust `expect()` values to match the new sums.
+  - Ring counts must stay consistent with the new scores (`calcAntallRinger`: 6→2 rings, 3 or 4→1 ring, 1 or 2→0 rings).
+  - Match-level totals (score_poeng for kamp_poeng boundary tests) must still satisfy the tested conditions: winner ≥ 21 and loser ≥ 11 (or < 11) where those cases are tested.
+  - No new functions, no new test cases — only the input data and expected values change.
+  - Note: **max score 26 is not enforced anywhere in code** (no DB constraint, no server-side check). If a constraint is desired, that is a migration task, not a test task.
+  - **commit:** `test: use valid per-omgang score values in buildKampSpelarUpdates and buildEliminertKasterid tests`
+  - _Note:_
+
+- [ ] **4.5 Extract and test Gloppen (cascade) pairing logic**
   - File: `src/services/kampGenereringInnledendeService.ts`
   - Goal: extract the pure pairing algorithm from `_insertCascadeMatches` into an exported function `buildCascadePairs`. Keep all Supabase inserts in the caller.
   - Signature:
@@ -153,11 +164,11 @@ Legend: `[ ]` not done · `[x]` done · `[~]` partial / changed
       - Round 1, court 1: p1Pos=1, p2Pos=13
       - Round 4, court 10: p1Pos=1, p2Pos=16
   - Note: start numbers are assigned randomly by the caller (Fisher-Yates shuffle before building `posToKasterid`). The pairing function works on positions only — randomness is out of scope here.
-  - Note: score constraints (min 21 / max 26 / valid omgang values 1,2,3,4,6) are game scoring rules, not pairing properties — they belong in separate score-validation tests.
+  - Note: score constraints (min 21 / max 26 / valid omgang values 1,2,3,4,6) are game scoring rules — see item 4.4 for the test-data update.
   - **commit:** `refactor+test: extract and cover buildCascadePairs (Gloppen)`
   - _Note:_
 
-- [ ] **4.5 Extract and test NHM (Swiss) pairing logic**
+- [ ] **4.6 Extract and test NHM (Swiss) pairing logic**
   - File: `src/services/kampGenereringInnledendeService.ts`
   - Goal: extract the two Swiss pairing algorithms from `_insertSwissRunde1` and the inline `tryPairing` closure in `genererNesteSwissRunde` into exported pure functions. Keep all Supabase calls in the callers.
   - Signatures:
@@ -185,7 +196,7 @@ Legend: `[ ]` not done · `[x]` done · `[~]` partial / changed
     - Returns `null` when pairing is impossible (all remaining opponents have already played each other)
     - Regular matches are sorted before walkovers in the output
     - Produces exactly `Math.ceil(N/2)` matches when a valid pairing exists
-  - Note: score constraints (min 21 / max 26 / valid omgang values 1,2,3,4,6) are game scoring rules, not pairing properties — they belong in separate score-validation tests.
+  - Note: score constraints (min 21 / max 26 / valid omgang values 1,2,3,4,6) are game scoring rules — see item 4.4 for the test-data update.
   - **commit:** `refactor+test: extract and cover buildSwissRunde1Pairs and buildSwissPairs (NHM)`
   - _Note:_
 
