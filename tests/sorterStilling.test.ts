@@ -73,6 +73,19 @@ describe('sorterStilling', () => {
       expect(ids(sorterStilling([b, a], [h2h]))).toEqual([1, 2])
     })
 
+    it('ranks h2h winner first even when they have a lower max single-match score', () => {
+      // player 2 wins h2h 21–16 (kamp_poeng 2 vs 1), but player 1 scores 26 elsewhere
+      // without h2h, max-single-match would pick player 1 (26 > 21)
+      const a = p(1, { kamp_poeng: 4, score_poeng: 50 })
+      const b = p(2, { kamp_poeng: 4, score_poeng: 50 })
+      const h2h = confirmedMatch([
+        { kasterid: 1, kamp_poeng: 1, score_poeng: 16 },
+        { kasterid: 2, kamp_poeng: 2, score_poeng: 21 },
+      ])
+      const matchA = confirmedMatch([{ kasterid: 1, kamp_poeng: 2, score_poeng: 26 }])
+      expect(ids(sorterStilling([a, b], [h2h, matchA]))).toEqual([2, 1])
+    })
+
     it('ignores unconfirmed matches', () => {
       // b would win h2h if the match were confirmed, but it isn't
       const a = p(1, { kamp_poeng: 4, score_poeng: 50, startnummer: 1 })
