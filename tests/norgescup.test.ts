@@ -106,6 +106,27 @@ describe('byggSingelListe', () => {
     })
   })
 
+  describe('per-type cap and maxtotal both binding', () => {
+    it('applies per-type cap before maxtotal when both constraints are active', () => {
+      // NC: 100, 90, 85 — max_nc_total=2 drops the 85
+      // SNC: 80, 70 — no SNC cap
+      // After NC cap, 4 candidates: [100, 90, 80, 70]
+      // maxtotal=3 keeps top 3: 100+90+80=270
+      // Without NC cap: top 3 of all 5 = 100+90+85=275 (wrong)
+      // Without maxtotal: sum of 4 = 100+90+80+70=340 (wrong)
+      const resultater = [
+        mkRes(1, 1, 100),
+        mkRes(1, 2, 90),
+        mkRes(1, 3, 85),
+        mkRes(1, 4, 80),
+        mkRes(1, 5, 70),
+      ]
+      const regler = mkRegler({ max_nc_total: 2, maxtotal: 3 })
+      const liste = byggSingelListe(resultater, allStevner, regler, 'NC', 1)
+      expect(liste[0].totalPoeng).toBe(270)
+    })
+  })
+
   describe('maxtotal cap', () => {
     it('caps the number of counting results across all event types at maxtotal', () => {
       // 2 NC events (50+40) + 2 SNC events (30+20) = 140 uncapped.
