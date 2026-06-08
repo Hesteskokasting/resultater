@@ -1,1 +1,0 @@
-import{rt as e}from"./index-Cl2DyGyW.js";async function t(t){await e.removeChannel(t)}export{t};
