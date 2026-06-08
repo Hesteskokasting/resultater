@@ -1,6 +1,20 @@
 -- Baseline-migrasjon. Representerer tilstanden til databasen ved oppstart av migrasjonshistorikk.
 -- Markert som applied utan å køyrast -- tabellane eksisterer allereie.
 
+-- Sequences were auto-created by Supabase on the production instance but must be
+-- declared explicitly when applying to a fresh local database.
+CREATE SEQUENCE IF NOT EXISTS public.kjonn_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.klubb_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.klasse_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.gruppe_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.stevnetype_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.kastemetode_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.kategori_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.norgescuppoeng_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.kaster_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.stevne_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.resultat_id_seq;
+
 CREATE TABLE public.antallTellendeNc (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   year integer UNIQUE,
