@@ -15,7 +15,7 @@ CREATE SEQUENCE IF NOT EXISTS public.kaster_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.stevne_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.resultat_id_seq;
 
-CREATE TABLE public.antallTellendeNc (
+CREATE TABLE public."antallTellendeNc" (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   year integer UNIQUE,
   max_nc_total integer NOT NULL DEFAULT 3,
@@ -24,7 +24,7 @@ CREATE TABLE public.antallTellendeNc (
   maxtotal integer NOT NULL DEFAULT 10,
   max_snc integer NOT NULL DEFAULT 3,
   max_dnc integer NOT NULL DEFAULT 6,
-  CONSTRAINT antallTellendeNc_pkey PRIMARY KEY (id)
+  CONSTRAINT "antallTellendeNc_pkey" PRIMARY KEY (id)
 );
 
 CREATE TABLE public.kjonn (
