@@ -1,4 +1,5 @@
-import { scoreForSp, getMatchSides } from '@/utils/kamp'
+import { scoreForSp, getMatchSides, groupStandingsByPair, type MatchSide } from '@/utils/kamp'
+import { kasterNavnKort } from '@/utils/kaster'
 import { escHtml } from '@/utils/escHtml'
 import type { Tables } from '@/types'
 import { createTable, type ColumnDef } from '@/components/Table'
@@ -50,6 +51,24 @@ interface StillingOpts {
   harAntallKamper?: boolean
   posisjonMap?: Record<number, number>
   unitLabel?: string
+}
+
+/**
+ * Display label for one match side, HTML-escaped. Singel: full name (or
+ * "Fornavn E." when kort). Par/Mix: always short form, members joined —
+ * "Fornavn E. / Fornavn E."
+ */
+export function sideNavnHtml<T extends { kaster?: { fornavn: string; etternavn: string } | null }>(
+  side: MatchSide<T> | null,
+  kort: boolean,
+): string {
+  if (!side) return '—'
+  if (side.members.length > 1) {
+    return side.members.map(m => m.kaster ? escHtml(kasterNavnKort(m.kaster)) : '—').join(' / ')
+  }
+  const k = side.rep.kaster
+  if (!k) return '—'
+  return kort ? escHtml(kasterNavnKort(k)) : `${escHtml(k.fornavn)} ${escHtml(k.etternavn)}`
 }
 
 export function renderSpelarkamparDetalj(
@@ -453,21 +472,21 @@ export function buildAvsluttendeStilling(
   }>,
   navnMap: Record<number, string>,
   startnrMap: Record<number, number>,
+  posisjonMap: Record<number, number> = {},
 ): StillingRad[] {
   const { spelMap } = byggInnledendeSpelMap(innlKampar, startnrMap)
-  return sorterStilling(
-    resultat.map(r => ({
-      kasterid: r.kasterid,
-      navn: navnMap[r.kasterid] ?? `Spelar ${r.kasterid}`,
-      startnummer: r.startnummer,
-      plassering: r.plassering,
-      runde_eliminert: r.runde_eliminert,
-      kamp_poeng: spelMap[r.kasterid]?.kamp_poeng ?? 0,
-      score_poeng: spelMap[r.kasterid]?.score_poeng ?? 0,
-      gruppe: r.gruppe,
-    })),
-    innlKampar,
-  )
+  const rader = resultat.map(r => ({
+    kasterid: r.kasterid,
+    navn: navnMap[r.kasterid] ?? `Spelar ${r.kasterid}`,
+    startnummer: r.startnummer,
+    plassering: r.plassering,
+    runde_eliminert: r.runde_eliminert,
+    kamp_poeng: spelMap[r.kasterid]?.kamp_poeng ?? 0,
+    score_poeng: spelMap[r.kasterid]?.score_poeng ?? 0,
+    gruppe: r.gruppe,
+  }))
+  // Par/Mix: one row per pair (no-op for Singel — every startnummer is unique)
+  return sorterStilling(groupStandingsByPair(rader, posisjonMap), innlKampar)
 }
 
 export function sorterStilling(stilling: StillingRad[], kamper: KampForSortering[]): StillingRad[] {

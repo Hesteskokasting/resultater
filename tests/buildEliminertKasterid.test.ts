@@ -12,8 +12,8 @@ const P2_KASTERID = 201
 const P2_ID = 202
 const P1_KASTERID = 101
 
-const p1 = { spelarId: P1_ID, kasterid: P1_KASTERID, scorePoeng: 0 }
-const p2 = { spelarId: P2_ID, kasterid: P2_KASTERID, scorePoeng: 0 }
+const p1 = { spelarIds: [P1_ID], kasterid: P1_KASTERID, scorePoeng: 0 }
+const p2 = { spelarIds: [P2_ID], kasterid: P2_KASTERID, scorePoeng: 0 }
 
 function row(spelarId: number, score: number | null) {
   return { kamp_spelar_id: spelarId, score }
@@ -85,6 +85,36 @@ describe('buildEliminertKasterid', () => {
   describe('null player', () => {
     it('returns null when both players are null', () => {
       expect(buildEliminertKasterid({ omgData: [], p1: null, p2: null })).toBeNull()
+    })
+  })
+
+  describe('Par/Mix — side totals sum both members (they alternate omgangar)', () => {
+    // pair A: kamp_spelar ids 11 (posisjon 1) and 12; pair B: 21 and 22
+    const parA = { spelarIds: [11, 12], kasterid: 1, scorePoeng: 0 }
+    const parB = { spelarIds: [21, 22], kasterid: 3, scorePoeng: 0 }
+
+    it('eliminates the pair with the lower SIDE total, not rep total', () => {
+      // A: rep 6+4=10, partner 3+1=4 → side 14
+      // B: rep 6+6=12, partner 2+1=3 → side 15 — B's rep beats A's rep, but A... B wins by side
+      const omgData = [
+        row(11, 6), row(21, 6),  // omgang 1 (posisjon 1)
+        row(12, 3), row(22, 2),  // omgang 2 (posisjon 2)
+        row(11, 4), row(21, 6),  // omgang 3
+        row(12, 1), row(22, 1),  // omgang 4
+      ]
+      // A side = 14, B side = 15 → A eliminated
+      expect(buildEliminertKasterid({ omgData, p1: parA, p2: parB })).toBe(1)
+    })
+
+    it('falls back to the rep scorePoeng when a side has no omgang rows', () => {
+      const omgData = [row(21, 6), row(22, 6)]
+      const res = buildEliminertKasterid({
+        omgData,
+        p1: { ...parA, scorePoeng: 21 },
+        p2: parB,
+      })
+      // A side = 21 (fallback), B side = 12 → B eliminated
+      expect(res).toBe(3)
     })
   })
 })

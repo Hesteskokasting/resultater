@@ -35,6 +35,7 @@ interface ScoreboardOptions {
    */
   p1Ids?: number[] | null
   p2Ids?: number[] | null
+  p3Ids?: number[] | null
 }
 
 type OmgangRad = { omgang: number; s1: number; s2: number; r1: number; r2: number }
@@ -62,7 +63,11 @@ export async function renderScoreboard(
   } = options
 
   if (p3ks && kamp.er_tre_spelarar) {
-    return renderScoreboard3(container, kamp, p1ks, p2ks, p3ks, { pointValues, erArrangor, erDeltakar, onBekreft, onKampBekreft, omgangEl, p1Navn, p2Navn, p3Navn })
+    return renderScoreboard3(container, kamp, p1ks, p2ks, p3ks, {
+      pointValues, erArrangor, erDeltakar, onBekreft, onKampBekreft, omgangEl,
+      p1Navn, p2Navn, p3Navn,
+      p1Ids: options.p1Ids, p2Ids: options.p2Ids, p3Ids: options.p3Ids,
+    })
   }
 
   // Side member ids ordered by posisjon (rep first); Singel = one id per side
@@ -384,12 +389,19 @@ async function renderScoreboard3(
   p1ks: KampSpelarIKamp | null,
   p2ks: KampSpelarIKamp | null,
   p3ks: KampSpelarIKamp,
-  options: Pick<ScoreboardOptions, 'pointValues' | 'erArrangor' | 'erDeltakar' | 'onBekreft' | 'onKampBekreft' | 'omgangEl' | 'p1Navn' | 'p2Navn' | 'p3Navn'>,
+  options: Pick<ScoreboardOptions, 'pointValues' | 'erArrangor' | 'erDeltakar' | 'onBekreft' | 'onKampBekreft' | 'omgangEl' | 'p1Navn' | 'p2Navn' | 'p3Navn' | 'p1Ids' | 'p2Ids' | 'p3Ids'>,
 ): Promise<() => void> {
   const { pointValues, erArrangor = false, erDeltakar = false, onBekreft = null, onKampBekreft, omgangEl = null, p1Navn = null, p2Navn = null, p3Navn = null } = options
   const kanRedigere = erArrangor || (erDeltakar && !kamp.er_bekreftet)
-  const spelarar = [p1ks, p2ks, p3ks].filter((s): s is KampSpelarIKamp => s != null)
-  const spelarIds = spelarar.map(s => s.id).filter((id): id is number => id != null)
+  // Sides aligned with spelarar: member kamp_spelar ids in posisjon order (Singel = rep only)
+  const labeled: [KampSpelarIKamp | null, number[] | null | undefined][] = [
+    [p1ks, options.p1Ids], [p2ks, options.p2Ids], [p3ks, options.p3Ids],
+  ]
+  const spelarar = labeled.filter((par): par is [KampSpelarIKamp, number[] | null | undefined] => par[0] != null).map(par => par[0])
+  const sideIds: number[][] = labeled
+    .filter((par): par is [KampSpelarIKamp, number[] | null | undefined] => par[0] != null)
+    .map(([ks, ids]) => (ids?.length ? ids : [ks.id]))
+  const spelarIds = sideIds.flat()
 
   function navnFor(ks: KampSpelarIKamp): { label: string; erPar: boolean } {
     if (p1Navn && ks === p1ks) return { label: p1Navn, erPar: true }
@@ -405,9 +417,13 @@ async function renderScoreboard3(
   let modifiedPlayers3 = new Set<number>()
   let editModeIdxar: number[] = []
 
+  function radForSide(idx: number, omgang: number): KampOmgangRow | undefined {
+    return omgangData.find(o => o.kamp_spelar_id != null && sideIds[idx].includes(o.kamp_spelar_id) && o.omgang === omgang)
+  }
+
   function beregnTotal(idx: number): number {
     return omgangData
-      .filter(o => o.kamp_spelar_id === spelarar[idx]?.id)
+      .filter(o => o.kamp_spelar_id != null && sideIds[idx].includes(o.kamp_spelar_id))
       .reduce((s, o) => s + (o.score ?? 0), 0)
   }
 
@@ -420,7 +436,7 @@ async function renderScoreboard3(
 
     for (let omg = 1; omg <= maxOmgang; omg++) {
       for (const i of aktive) {
-        const rad = omgangData.find(o => o.kamp_spelar_id === spelarar[i].id && o.omgang === omg)
+        const rad = radForSide(i, omg)
         if (rad) totalar[i] += rad.score ?? 0
       }
       let nySjekk = true
@@ -542,7 +558,7 @@ async function renderScoreboard3(
           const lastNr = Math.max(...omgangData.map(o => o.omgang))
           editModeIdxar = []
           spelarar.forEach((_, i) => {
-            const row = omgangData.find(o => o.kamp_spelar_id === spelarar[i].id && o.omgang === lastNr)
+            const row = radForSide(i, lastNr)
             if (row !== undefined) {
               vals[i] = row.score || null
               editModeIdxar.push(i)
@@ -591,7 +607,7 @@ async function renderScoreboard3(
       const lastNr = Math.max(...omgangData.map(o => o.omgang))
       const rows = editModeIdxar.map(i => {
         const v = vals[i] ?? 0
-        return { kamp_spelar_id: spelarar[i].id, omgang: lastNr, score: v, antall_ringer: calcAntallRinger(v) }
+        return { kamp_spelar_id: getOmgangThrowerId(sideIds[i], lastNr)!, omgang: lastNr, score: v, antall_ringer: calcAntallRinger(v) }
       })
       const { error } = await oppdaterKampOmgang(rows)
       if (error) { showToast('Feil ved lagring', 'error'); return }
@@ -602,7 +618,7 @@ async function renderScoreboard3(
       const nr = omgangData.length ? Math.max(...omgangData.map(o => o.omgang)) + 1 : 1
       const inserts = aktiveIdxar.map(i => {
         const v = vals[i] ?? 0
-        return { kamp_spelar_id: spelarar[i].id, omgang: nr, score: v, antall_ringer: calcAntallRinger(v) }
+        return { kamp_spelar_id: getOmgangThrowerId(sideIds[i], nr)!, omgang: nr, score: v, antall_ringer: calcAntallRinger(v) }
       })
       const { error } = await lagreKampOmgang(inserts)
       if (error) { showToast('Feil ved lagring', 'error'); return }

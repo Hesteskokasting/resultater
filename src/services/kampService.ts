@@ -383,20 +383,29 @@ export async function bekreftInnledendeKamp(params: {
   return { error }
 }
 
+/**
+ * Decides which side lost by comparing SIDE totals: each side's omgang rows
+ * are summed across all members (pair members alternate omgangar), falling
+ * back to the rep's scorePoeng when the side has no rows. Returns the losing
+ * side's kasterid — any member works, the elimination RPC resolves the full
+ * side from resultat.startnummer.
+ */
 export function buildEliminertKasterid(params: {
   omgData: Array<{ kamp_spelar_id: number | null; score: number | null }>
-  p1: { spelarId: number; kasterid: number; scorePoeng: number } | null
-  p2: { spelarId: number; kasterid: number; scorePoeng: number } | null
+  p1: { spelarIds: number[]; kasterid: number; scorePoeng: number } | null
+  p2: { spelarIds: number[]; kasterid: number; scorePoeng: number } | null
 }): number | null {
   const { omgData, p1, p2 } = params
-  const totalar: Record<number, number> = {}
-  for (const o of omgData) {
-    if (o.kamp_spelar_id != null) {
-      totalar[o.kamp_spelar_id] = (totalar[o.kamp_spelar_id] ?? 0) + (o.score ?? 0)
-    }
+
+  const sideTotal = (side: { spelarIds: number[]; scorePoeng: number } | null): number => {
+    if (!side) return 0
+    const rows = omgData.filter(o => o.kamp_spelar_id != null && side.spelarIds.includes(o.kamp_spelar_id))
+    if (!rows.length) return side.scorePoeng
+    return rows.reduce((sum, o) => sum + (o.score ?? 0), 0)
   }
-  const t1 = p1 ? (totalar[p1.spelarId] ?? p1.scorePoeng) : 0
-  const t2 = p2 ? (totalar[p2.spelarId] ?? p2.scorePoeng) : 0
+
+  const t1 = sideTotal(p1)
+  const t2 = sideTotal(p2)
   return t1 >= t2 ? (p2?.kasterid ?? null) : (p1?.kasterid ?? null)
 }
 
@@ -404,24 +413,28 @@ export async function bekreftAvsluttendeKamp(params: {
   kampId: number
   p1: KampSpelarBekreftData | null
   p2: KampSpelarBekreftData | null
-  orderedKasterids: number[] | null  // 3-player: [1st, 2nd, 3rd] kasterids
+  orderedKasterids: number[] | null  // 3-unit: [1st, 2nd, 3rd] side-rep kasterids
+  // Par/Mix: partner kamp_spelar ids so side totals include both members
+  p1PartnerId?: number | null
+  p2PartnerId?: number | null
 }): Promise<{ error: unknown }> {
-  const { kampId, p1, p2, orderedKasterids } = params
+  const { kampId, p1, p2, orderedKasterids, p1PartnerId = null, p2PartnerId = null } = params
 
   let eliminertId: number | null = null
   if (orderedKasterids?.length === 3) {
     eliminertId = orderedKasterids[2]
   } else {
-    const spelarIds = [p1?.spelarId, p2?.spelarId].filter((id): id is number => id != null)
+    const side1Ids = p1 ? [p1.spelarId, ...(p1PartnerId != null ? [p1PartnerId] : [])] : []
+    const side2Ids = p2 ? [p2.spelarId, ...(p2PartnerId != null ? [p2PartnerId] : [])] : []
     const { data: omgData } = await supabase
       .from('kamp_omgang')
       .select('kamp_spelar_id, score')
-      .in('kamp_spelar_id', spelarIds)
+      .in('kamp_spelar_id', [...side1Ids, ...side2Ids])
 
     eliminertId = buildEliminertKasterid({
       omgData: omgData ?? [],
-      p1: p1 ? { spelarId: p1.spelarId, kasterid: p1.kasterid, scorePoeng: p1.scorePoeng } : null,
-      p2: p2 ? { spelarId: p2.spelarId, kasterid: p2.kasterid, scorePoeng: p2.scorePoeng } : null,
+      p1: p1 ? { spelarIds: side1Ids, kasterid: p1.kasterid, scorePoeng: p1.scorePoeng } : null,
+      p2: p2 ? { spelarIds: side2Ids, kasterid: p2.kasterid, scorePoeng: p2.scorePoeng } : null,
     })
   }
 
@@ -516,18 +529,20 @@ export async function bekreftCupKamp(params: {
   rundeNummer: number
   rundeNavn: string | null
   allKasterids: number[]
-  eliminertId: number | null
-  vidareIds: number[]
+  /** All members of the eliminated side ([] = none). Singel: one kasterid. */
+  eliminertIds: number[]
+  /** Advancing sides in rank order; every member of a side shares its kamp_plassering. */
+  vidareSider: number[][]
 }): Promise<{ error: unknown }> {
-  const { kampId, stevneId, rundeNummer, rundeNavn, allKasterids, eliminertId, vidareIds } = params
+  const { kampId, stevneId, rundeNummer, rundeNavn, allKasterids, eliminertIds, vidareSider } = params
 
   const { error: kampErr } = await supabase.from('kamp').update({ er_bekreftet: true }).eq('id', kampId)
   if (kampErr) { logError('bekreftCupKamp:kamp', kampErr); return { error: kampErr } }
 
-  // Write per-match rank to kamp_spelar for display (vidareIds = 1st, 2nd, …; eliminert = last)
+  // Write per-match rank to kamp_spelar for display (vidareSider = 1st, 2nd, …; eliminert = last)
   const kampPlaseringar = [
-    ...vidareIds.map((kid, i) => ({ kasterid: kid, plassering: i + 1 })),
-    ...(eliminertId != null ? [{ kasterid: eliminertId, plassering: vidareIds.length + 1 }] : []),
+    ...vidareSider.flatMap((side, i) => side.map(kid => ({ kasterid: kid, plassering: i + 1 }))),
+    ...eliminertIds.map(kid => ({ kasterid: kid, plassering: vidareSider.length + 1 })),
   ]
   const { error: kpErr } = await setKampSpelarPlaseringar(kampId, kampPlaseringar)
   if (kpErr) return { error: kpErr }
@@ -535,7 +550,7 @@ export async function bekreftCupKamp(params: {
   // Semifinale losers are not finally eliminated — they advance to bronsefinale
   if (rundeNavn === 'Semifinale') return { error: null }
 
-  if (!eliminertId) return { error: null }
+  if (!eliminertIds.length) return { error: null }
 
   if (rundeNavn !== 'Finale' && rundeNavn !== 'Bronsefinale') {
     // Regular rounds only: reset then mark loser as eliminated
@@ -544,25 +559,25 @@ export async function bekreftCupKamp(params: {
       .eq('stevneid', stevneId).eq('runde_eliminert', rundeNummer).in('kasterid', allKasterids)
     if (resetErr) { logError('bekreftCupKamp:reset', resetErr); return { error: resetErr } }
     const { error: elimErr } = await supabase.from('resultat')
-      .update({ runde_eliminert: rundeNummer }).eq('stevneid', stevneId).eq('kasterid', eliminertId)
+      .update({ runde_eliminert: rundeNummer }).eq('stevneid', stevneId).in('kasterid', eliminertIds)
     if (elimErr) { logError('bekreftCupKamp:eliminert', elimErr); return { error: elimErr } }
   }
 
   // Write final tournament placement for Finale and Bronsefinale
-  const vinnerId = vidareIds[0] ?? null
-  if (rundeNavn === 'Finale' && vinnerId != null) {
+  const vinnerIds = vidareSider[0] ?? []
+  if (rundeNavn === 'Finale' && vinnerIds.length) {
     const { error: vErr } = await supabase.from('resultat')
-      .update({ plassering: 1 }).eq('stevneid', stevneId).eq('kasterid', vinnerId)
+      .update({ plassering: 1 }).eq('stevneid', stevneId).in('kasterid', vinnerIds)
     if (vErr) { logError('bekreftCupKamp:plassering-vinnar', vErr); return { error: vErr } }
     const { error: tErr } = await supabase.from('resultat')
-      .update({ plassering: 2 }).eq('stevneid', stevneId).eq('kasterid', eliminertId)
+      .update({ plassering: 2 }).eq('stevneid', stevneId).in('kasterid', eliminertIds)
     if (tErr) { logError('bekreftCupKamp:plassering-tapar', tErr); return { error: tErr } }
-  } else if (rundeNavn === 'Bronsefinale' && vinnerId != null) {
+  } else if (rundeNavn === 'Bronsefinale' && vinnerIds.length) {
     const { error: vErr } = await supabase.from('resultat')
-      .update({ plassering: 3 }).eq('stevneid', stevneId).eq('kasterid', vinnerId)
+      .update({ plassering: 3 }).eq('stevneid', stevneId).in('kasterid', vinnerIds)
     if (vErr) { logError('bekreftCupKamp:plassering-vinnar', vErr); return { error: vErr } }
     const { error: tErr } = await supabase.from('resultat')
-      .update({ plassering: 4 }).eq('stevneid', stevneId).eq('kasterid', eliminertId)
+      .update({ plassering: 4 }).eq('stevneid', stevneId).in('kasterid', eliminertIds)
     if (tErr) { logError('bekreftCupKamp:plassering-tapar', tErr); return { error: tErr } }
   }
 
@@ -574,10 +589,11 @@ export async function oppdaterVinnarTapar(params: {
   rundeNummer: number
   rundeNavn: string | null
   allKasterids: number[]
-  nyVinnarId: number | null | undefined
-  nyTaparId: number | null | undefined
+  /** All members of the winning/losing side. Singel: one kasterid. */
+  nyVinnarIds: number[]
+  nyTaparIds: number[]
 }): Promise<{ error: unknown }> {
-  const { stevneId, rundeNummer, rundeNavn, allKasterids, nyVinnarId, nyTaparId } = params
+  const { stevneId, rundeNummer, rundeNavn, allKasterids, nyVinnarIds, nyTaparIds } = params
   const erSemfinale = rundeNavn === 'Semifinale'
   const erFinale = rundeNavn === 'Finale'
   const erBronsefinale = rundeNavn === 'Bronsefinale'
@@ -592,39 +608,27 @@ export async function oppdaterVinnarTapar(params: {
 
   if (erFinale || erBronsefinale) {
     // Write final tournament placement
-    if (erFinale) {
-      if (nyVinnarId) {
-        const { error } = await supabase.from('resultat')
-          .update({ plassering: 1 }).eq('stevneid', stevneId).eq('kasterid', nyVinnarId)
-        if (error) { logError('oppdaterVinnarTapar:plassering-vinnar', error); return { error } }
-      }
-      if (nyTaparId) {
-        const { error } = await supabase.from('resultat')
-          .update({ plassering: 2 }).eq('stevneid', stevneId).eq('kasterid', nyTaparId)
-        if (error) { logError('oppdaterVinnarTapar:plassering-tapar', error); return { error } }
-      }
-    } else {
-      // Bronsefinale: winner stays null runde_eliminert (3rd), loser is eliminated (4th)
-      if (nyVinnarId) {
-        const { error } = await supabase.from('resultat')
-          .update({ plassering: 3 }).eq('stevneid', stevneId).eq('kasterid', nyVinnarId)
-        if (error) { logError('oppdaterVinnarTapar:plassering-vinnar', error); return { error } }
-      }
-      if (nyTaparId) {
-        const { error } = await supabase.from('resultat')
-          .update({ plassering: 4 }).eq('stevneid', stevneId).eq('kasterid', nyTaparId)
-        if (error) { logError('oppdaterVinnarTapar:plassering-tapar', error); return { error } }
-      }
+    const vinnarPlass = erFinale ? 1 : 3
+    const taparPlass = erFinale ? 2 : 4
+    if (nyVinnarIds.length) {
+      const { error } = await supabase.from('resultat')
+        .update({ plassering: vinnarPlass }).eq('stevneid', stevneId).in('kasterid', nyVinnarIds)
+      if (error) { logError('oppdaterVinnarTapar:plassering-vinnar', error); return { error } }
+    }
+    if (nyTaparIds.length) {
+      const { error } = await supabase.from('resultat')
+        .update({ plassering: taparPlass }).eq('stevneid', stevneId).in('kasterid', nyTaparIds)
+      if (error) { logError('oppdaterVinnarTapar:plassering-tapar', error); return { error } }
     }
   } else {
     const { error: resetErr } = await supabase.from('resultat')
       .update({ runde_eliminert: null })
       .eq('stevneid', stevneId).eq('runde_eliminert', rundeNummer).in('kasterid', allKasterids)
     if (resetErr) { logError('oppdaterVinnarTapar:reset', resetErr); return { error: resetErr } }
-    if (nyTaparId) {
+    if (nyTaparIds.length) {
       const { error } = await supabase.from('resultat')
         .update({ runde_eliminert: rundeNummer })
-        .eq('stevneid', stevneId).eq('kasterid', nyTaparId)
+        .eq('stevneid', stevneId).in('kasterid', nyTaparIds)
       if (error) { logError('oppdaterVinnarTapar:tapar', error); return { error } }
     }
   }

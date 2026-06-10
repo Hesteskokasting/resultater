@@ -9,10 +9,11 @@ import { genererFinaleOgBronsefinale } from '@/services/kampGenereringCupService
 import { opnGenererRundeDialog } from './_avslCupGenererRundeDialog'
 import { opnTreSpelarBekreftDialog } from './_avslCupTreSpelarDialog'
 import { showNumberpad } from '@/components/ScoreNumberpad'
-import { scoreForSp } from '@/utils/kamp'
+import { scoreForSp, getAllMatchSides, type MatchSide } from '@/utils/kamp'
 import { livePillHtml } from '@/components/LivePill'
-import { beregnKanBekrefte } from '@/organizer/org-shared'
+import { beregnKanBekrefte, sideNavnHtml, type StillingRad } from '@/organizer/org-shared'
 import { escHtml } from '@/utils/escHtml'
+import { logError } from '@/utils/logError'
 import { showToast } from '@/components/Toast'
 import { confirmDialog } from '@/components/ConfirmDialog'
 import type { RundeOppsett } from '@/types'
@@ -42,13 +43,30 @@ import {
   type AvsluttendeVariant,
 } from './avsluttendeBase'
 
+// ── Side helpers (Par/Mix: one side = a pair, grouped by startnummer) ─────────
+
+type AvslSpelarKjent = AvslKampSpelarRow & { kasterid: number }
+
+function kampSider(
+  kamp: AvslKampRow,
+  startnrMap: Record<number, number>,
+  posisjonMap: Record<number, number>,
+): MatchSide<AvslSpelarKjent>[] {
+  const rows = kamp.spelarar.filter((s): s is AvslSpelarKjent => s.kasterid != null)
+  return getAllMatchSides(rows, startnrMap, posisjonMap)
+}
+
+function sideSum(side: MatchSide<AvslSpelarKjent> | null): number {
+  return side?.members.reduce((sum, m) => sum + scoreForSp(m), 0) ?? 0
+}
+
 // ── Cup variant ───────────────────────────────────────────────────────────────
 
 const cupVariant: AvsluttendeVariant = {
   channelName: (stevneid) => `stevne-avsl-cup-${stevneid}`,
 
   renderKamparHtml: (ctx) => {
-    const { avslKampar, stilling, startnrMap, isAdmin } = ctx
+    const { avslKampar, stilling, startnrMap, posisjonMap, erLag, isAdmin } = ctx
     const gruppeNamn = [...new Set(
       stilling.map(r => r.gruppe?.navn).filter((n): n is string => n != null),
     )].sort()
@@ -62,7 +80,7 @@ const cupVariant: AvsluttendeVariant = {
       const sisteRundeFullfort = sisteRunde.length > 0 && sisteRunde.every(k => k.er_bekreftet || k.er_walkover)
       const harSemifinaleIGruppe = kampar.some(k => k.runde_navn === 'Semifinale')
       const visGenerer = isAdmin && (kampar.length === 0 || sisteRundeFullfort) && aktiveCount > 1 && !harSemifinaleIGruppe
-      return renderGruppeKolonne(g, kampar, aktiveCount, totalCount, sisteRundeNr, visGenerer, startnrMap, isAdmin)
+      return renderGruppeKolonne(g, kampar, aktiveCount, totalCount, sisteRundeNr, visGenerer, startnrMap, posisjonMap, erLag ? 'par' : 'spelarar', isAdmin)
     }).join('')
 
     return `<div class="d-flex gap-3 flex-wrap">${gruppeKolonnar}</div>`
@@ -70,7 +88,7 @@ const cupVariant: AvsluttendeVariant = {
 
   bindKamparEvents: (container, ctx) => {
     if (!ctx.isAdmin && ctx.avslKampar.length === 0) return
-    bindKampEvents(container, ctx.stevneid, ctx.avslKampar, ctx.isAdmin, ctx.reload, ctx.startnrMap)
+    bindKampEvents(container, ctx.stevneid, ctx.avslKampar, ctx.isAdmin, ctx.reload, ctx.startnrMap, ctx.posisjonMap)
   },
 
   renderSetupHtml: (ctx) => {
@@ -94,7 +112,7 @@ const cupVariant: AvsluttendeVariant = {
   },
 
   bindHeaderEvents: (bannerSlot, ctx) => {
-    const { container, stevneid, stevne, stilling, runde1Format, alleInnlBekrefta, harGruppefordeling, gruppeNavnMap, reload } = ctx
+    const { container, stevneid, stevne, stilling, resultat, runde1Format, alleInnlBekrefta, harGruppefordeling, gruppeNavnMap, reload } = ctx
 
     bannerSlot?.querySelector('#start-avsl-btn')?.addEventListener('click', async () => {
       if (!alleInnlBekrefta) return
@@ -105,10 +123,7 @@ const cupVariant: AvsluttendeVariant = {
         const nA = runde1Format.nA
         const gruppeAId = gruppeNavnMap['A'] ?? null
         const gruppeBId = gruppeNavnMap['B'] ?? null
-        const updates = stilling.map((r, i) => ({
-          kasterid: r.kasterid,
-          gruppeid: i < nA ? gruppeAId : (gruppeBId ?? gruppeAId),
-        }))
+        const updates = buildGruppeUpdates(stilling, resultat, nA, gruppeAId, gruppeBId)
         const { error: grErr } = await setGruppeInndeling(stevneid, updates)
         if (grErr) { showToast('Feil ved lagring av gruppefordeling', 'error'); return }
       }
@@ -189,10 +204,7 @@ const cupVariant: AvsluttendeVariant = {
         if (stevne.stevne_fase === 'avsluttende') {
           const gruppeAId = gruppeNavnMap['A'] ?? null
           const gruppeBId = gruppeNavnMap['B'] ?? null
-          const updates = stilling.map((r, i) => ({
-            kasterid: r.kasterid,
-            gruppeid: i < nA ? gruppeAId : (gruppeBId ?? gruppeAId),
-          }))
+          const updates = buildGruppeUpdates(stilling, resultat, nA, gruppeAId, gruppeBId)
           const { error } = await setGruppeInndeling(stevneid, updates)
           if (error) { showToast('Feil ved lagring av gruppefordeling', 'error'); return }
         }
@@ -226,6 +238,25 @@ const cupVariant: AvsluttendeVariant = {
 
 export const render = createAvsluttendeRenderer(cupVariant)
 
+// ── Gruppe assignment (Par/Mix: both members of a pair get the gruppe) ────────
+
+function buildGruppeUpdates(
+  stilling: StillingRad[],
+  resultat: { kasterid: number; startnummer: number | null }[],
+  nA: number,
+  gruppeAId: number | null,
+  gruppeBId: number | null,
+): { kasterid: number; gruppeid: number | null }[] {
+  return stilling.flatMap((r, i) => {
+    const gruppeid = i < nA ? gruppeAId : (gruppeBId ?? gruppeAId)
+    const members = r.startnummer != null
+      ? resultat.filter(x => x.startnummer === r.startnummer).map(x => x.kasterid)
+      : []
+    const kasterids = members.length ? members : [r.kasterid]
+    return kasterids.map(kasterid => ({ kasterid, gruppeid }))
+  })
+}
+
 // ── Group column rendering ────────────────────────────────────────────────────
 
 function renderGruppeKolonne(
@@ -236,6 +267,8 @@ function renderGruppeKolonne(
   sisteRundeNr: number,
   visGenerer: boolean,
   startnrMap: Record<number, number>,
+  posisjonMap: Record<number, number>,
+  unitLabel: string,
   isAdminLocal = true,
 ): string {
   const rundeMap = new Map<number, AvslKampRow[]>()
@@ -251,7 +284,7 @@ function renderGruppeKolonne(
     return `
       <h6 class="fw-bold text-center mb-1">${escHtml(tittel)}</h6>
       <div class="d-flex flex-wrap gap-2 mb-2">
-        ${synligeKampar.map(k => renderKampBlock(k, startnrMap, isAdminLocal)).join('')}
+        ${synligeKampar.map(k => renderKampBlock(k, startnrMap, posisjonMap, isAdminLocal)).join('')}
       </div>`
   }).join('')
 
@@ -265,7 +298,7 @@ function renderGruppeKolonne(
 
   return `
     <div class="avsl-gruppe-kol">
-      <h6 class="text-center fw-bold mb-2">Gruppe ${escHtml(gruppeNavn)} (${totalCount} spelarar)</h6>
+      <h6 class="text-center fw-bold mb-2">Gruppe ${escHtml(gruppeNavn)} (${totalCount} ${escHtml(unitLabel)})</h6>
       ${genererKnapp}
       ${rundarHtml}
     </div>`
@@ -274,35 +307,32 @@ function renderGruppeKolonne(
 function renderKampBlock(
   kamp: AvslKampRow,
   startnrMap: Record<number, number>,
+  posisjonMap: Record<number, number>,
   isAdminLocal = true,
 ): string {
-  const sp = kamp.spelarar.slice().sort((a, b) =>
-    (startnrMap[a.kasterid ?? 0] ?? 999) - (startnrMap[b.kasterid ?? 0] ?? 999)
-  )
-
-  const spelarNamn = (s: AvslKampSpelarRow | undefined): string =>
-    s?.kaster ? `${escHtml(s.kaster.fornavn)} ${escHtml(s.kaster.etternavn)}` : '—'
+  const sider = kampSider(kamp, startnrMap, posisjonMap)
 
   const bekrefta = kamp.er_bekreftet || kamp.er_walkover
-  const harOmgangar = sp.some(s => (s.omgangar?.length ?? 0) > 0)
+  const harOmgangar = kamp.spelarar.some(s => (s.omgangar?.length ?? 0) > 0)
   const isLive = harOmgangar && !bekrefta
   const kanEndreScore = isAdminLocal && kamp.er_bekreftet && !kamp.er_tre_spelarar && !harOmgangar
 
   const spelarRader = kamp.er_walkover
     ? `<tr>
-        <td colspan="2">${spelarNamn(sp[0])} <span class="badge bg-secondary">Walkover</span></td>
+        <td colspan="2">${sideNavnHtml(sider[0] ?? null, false)} <span class="badge bg-secondary">Walkover</span></td>
       </tr>`
-    : sp.map(s => {
-        const tot = scoreForSp(s)
+    : sider.map(side => {
+        const tot = sideSum(side)
         const score = (tot > 0 || bekrefta || harOmgangar) ? tot : '—'
-        const nSpelarar = sp.length
-        const erEliminert = kamp.er_bekreftet && s.kamp_plassering != null && s.kamp_plassering >= nSpelarar
-        const erVidare = kamp.er_bekreftet && s.kamp_plassering != null && s.kamp_plassering < nSpelarar
+        const nSider = sider.length
+        const kampPlassering = side.rep.kamp_plassering
+        const erEliminert = kamp.er_bekreftet && kampPlassering != null && kampPlassering >= nSider
+        const erVidare = kamp.er_bekreftet && kampPlassering != null && kampPlassering < nSider
         const radKlass = erEliminert ? 'kamp-eliminert' : (erVidare ? 'kamp-vidare' : '')
         const scoreCls = `text-center fw-semibold avsl-score-cel${kanEndreScore ? ' score-redigerbar' : ''}`
         const scoreExtra = kanEndreScore ? ` data-endre-score="${kamp.id}"` : ''
         return `<tr${radKlass ? ` class="${radKlass}"` : ''}>
-          <td>${spelarNamn(s)}</td>
+          <td>${sideNavnHtml(side, false)}</td>
           <td class="${scoreCls}"${scoreExtra}>${score}</td>
         </tr>`
       }).join('')
@@ -314,7 +344,7 @@ function renderKampBlock(
     bekrftDisabled = false
     bekreftKnappKlass = ''
   } else {
-    const kanBekrefte = beregnKanBekrefte(kamp, toOrgSp(sp), harOmgangar)
+    const kanBekrefte = beregnKanBekrefte(kamp, toOrgSp(sider.map(s => s.rep)), harOmgangar)
     bekrftKlass = bekrefta ? 'btn-secondary' : (kanBekrefte ? 'btn-success' : 'btn-outline-secondary')
     bekrftTekst = bekrefta ? 'Bekreftet' : 'Bekreft'
     bekrftDisabled = bekrefta || !kanBekrefte
@@ -372,22 +402,41 @@ function bindKampEvents(
   isAdminLocal: boolean,
   reload: () => Promise<void>,
   startnrMap: Record<number, number>,
+  posisjonMap: Record<number, number>,
 ): void {
   for (const kamp of avslKampar) {
-    const sp = kamp.spelarar.slice().sort(
-      (a, b) => (startnrMap[a.kasterid ?? 0] ?? Infinity) - (startnrMap[b.kasterid ?? 0] ?? Infinity),
-    )
+    const sider = kampSider(kamp, startnrMap, posisjonMap)
+    const side1 = sider[0] ?? null
+    const side2 = sider[1] ?? null
+    const p1 = side1?.rep ?? null
+    const p2 = side2?.rep ?? null
+    const p1Namn = sideNavnHtml(side1, false)
+    const p2Namn = sideNavnHtml(side2, false)
+
+    // Quick-score writes the side total to the rep; partner rows are zeroed
+    // so the side sum is not polluted by stale per-player values.
+    const skrivSideScore = async (nyS1: number, nyS2: number): Promise<{ error: unknown } | null> => {
+      const updates: Promise<{ error: unknown }>[] = []
+      if (p1?.id) updates.push(oppdaterKampSpelarScoreRask(p1.id, nyS1))
+      if (p2?.id) updates.push(oppdaterKampSpelarScoreRask(p2.id, nyS2))
+      for (const side of [side1, side2]) {
+        for (const member of side?.members.slice(1) ?? []) {
+          updates.push(oppdaterKampSpelarScoreRask(member.id, 0))
+        }
+      }
+      try {
+        const results = await Promise.all(updates)
+        return results.find(r => r.error) ?? null
+      } catch (e) {
+        logError('cup:skrivSideScore', e)
+        return { error: e }
+      }
+    }
 
     container.querySelector(`#plus-${kamp.id}`)?.addEventListener('click', async () => {
-      const p1 = sp[0]
-      const p2 = sp[1]
-      const p1Namn = p1?.kaster ? `${p1.kaster.fornavn} ${p1.kaster.etternavn}` : '—'
-      const p2Namn = p2?.kaster ? `${p2.kaster.fornavn} ${p2.kaster.etternavn}` : '—'
-      showNumberpad(p1Namn, p2Namn, scoreForSp(p1), scoreForSp(p2), async (s1, s2) => {
-        const updates: Promise<unknown>[] = []
-        if (p1?.id) updates.push(oppdaterKampSpelarScoreRask(p1.id, s1))
-        if (p2?.id) updates.push(oppdaterKampSpelarScoreRask(p2.id, s2))
-        await Promise.all(updates)
+      showNumberpad(p1Namn, p2Namn, sideSum(side1), sideSum(side2), async (s1, s2) => {
+        const feil = await skrivSideScore(s1, s2)
+        if (feil) { showToast('DB-feil ved oppdatering av score', 'error'); return }
         await reload()
       })
     })
@@ -398,13 +447,13 @@ function bindKampEvents(
 
     container.querySelector(`#bekrft-${kamp.id}`)?.addEventListener('click', async (e) => {
       if (kamp.er_tre_spelarar) {
-        opnTreSpelarBekreftDialog(kamp, sp, stevneid, async () => { await autoGenererFinaleViss(stevneid, kamp); await reload() })
+        opnTreSpelarBekreftDialog(kamp, sider, stevneid, async () => { await autoGenererFinaleViss(stevneid, kamp); await reload() })
       } else {
         const btn = e.currentTarget as HTMLButtonElement
         btn.disabled = true
         btn.textContent = 'Lagrer…'
         try {
-          const ok = await bekreftCupKamp2Spelar(stevneid, kamp, sp, reload)
+          const ok = await bekreftCupKamp2Sider(stevneid, kamp, sider, reload)
           if (!ok) { btn.disabled = false; btn.textContent = 'Bekreft' }
         } catch {
           btn.disabled = false
@@ -414,29 +463,24 @@ function bindKampEvents(
     })
 
     if (isAdminLocal && kamp.er_bekreftet && !kamp.er_tre_spelarar) {
-      const p1 = sp[0]
-      const p2 = sp[1]
-      const p1Namn = p1?.kaster ? `${p1.kaster.fornavn} ${p1.kaster.etternavn}` : '—'
-      const p2Namn = p2?.kaster ? `${p2.kaster.fornavn} ${p2.kaster.etternavn}` : '—'
-      const allKasterids = sp.map(s => s.kasterid).filter((id): id is number => id != null)
+      const allKasterids = sider.flatMap(s => s.members.map(m => m.kasterid))
       const handler = (): void => {
-        showNumberpad(p1Namn, p2Namn, scoreForSp(p1), scoreForSp(p2), async (nyS1, nyS2) => {
-          const spelarIds = [p1?.id, p2?.id].filter((x): x is number => x != null)
+        showNumberpad(p1Namn, p2Namn, sideSum(side1), sideSum(side2), async (nyS1, nyS2) => {
+          const spelarIds = sider.flatMap(s => s.members.map(m => m.id))
           if (spelarIds.length) {
             const { error } = await slettKampOmgangar(spelarIds)
             if (error) { showToast('DB-feil ved sletting av omgangar', 'error'); return }
           }
-          const updates: Promise<{ error: unknown }>[] = []
-          if (p1?.id) updates.push(oppdaterKampSpelarScoreRask(p1.id, nyS1))
-          if (p2?.id) updates.push(oppdaterKampSpelarScoreRask(p2.id, nyS2))
-          const results = await Promise.all(updates)
-          const dbErr = results.find(r => r.error)?.error
-          if (dbErr) { showToast('DB-feil ved oppdatering av score', 'error'); return }
-          const nyVinnarId = nyS1 >= nyS2 ? p1?.kasterid : p2?.kasterid
-          const nyTaparId = nyS1 >= nyS2 ? p2?.kasterid : p1?.kasterid
-          const nyPlaseringar: { kasterid: number; plassering: number }[] = []
-          if (nyVinnarId != null) nyPlaseringar.push({ kasterid: nyVinnarId, plassering: 1 })
-          if (nyTaparId != null) nyPlaseringar.push({ kasterid: nyTaparId, plassering: 2 })
+          const feil = await skrivSideScore(nyS1, nyS2)
+          if (feil) { showToast('DB-feil ved oppdatering av score', 'error'); return }
+          const nyVinnar = nyS1 >= nyS2 ? side1 : side2
+          const nyTapar = nyS1 >= nyS2 ? side2 : side1
+          const nyVinnarIds = nyVinnar?.members.map(m => m.kasterid) ?? []
+          const nyTaparIds = nyTapar?.members.map(m => m.kasterid) ?? []
+          const nyPlaseringar = [
+            ...nyVinnarIds.map(kasterid => ({ kasterid, plassering: 1 })),
+            ...nyTaparIds.map(kasterid => ({ kasterid, plassering: 2 })),
+          ]
           const { error: plErr } = await setKampSpelarPlaseringar(kamp.id, nyPlaseringar)
           if (plErr) { showToast('DB-feil ved oppdatering av plassering', 'error'); return }
           await oppdaterVinnarTapar({
@@ -444,8 +488,8 @@ function bindKampEvents(
             rundeNummer: kamp.runde_nummer,
             rundeNavn: kamp.runde_navn,
             allKasterids,
-            nyVinnarId,
-            nyTaparId,
+            nyVinnarIds,
+            nyTaparIds,
           })
           await reload()
         })
@@ -455,31 +499,33 @@ function bindKampEvents(
   }
 }
 
-// ── Confirm 2-player cup match ────────────────────────────────────────────────
+// ── Confirm 2-side cup match (Singel: 2 players; Par/Mix: 2 pairs) ────────────
 
-async function bekreftCupKamp2Spelar(
+async function bekreftCupKamp2Sider(
   stevneid: number,
   kamp: AvslKampRow,
-  sp: AvslKampSpelarRow[],
+  sider: MatchSide<AvslSpelarKjent>[],
   reload: () => Promise<void>,
 ): Promise<boolean> {
-  const p1 = sp[0]
-  const p2 = sp[1]
+  const side1 = sider[0] ?? null
+  const side2 = sider[1] ?? null
 
+  // Re-fetch fresh scores — the rendered rows may be stale
   const { data: aktuellSp } = await hentKampSpelarar(kamp.id)
+  const ferskSideSum = (side: MatchSide<AvslSpelarKjent> | null): number =>
+    side?.members.reduce((sum, m) => {
+      const fersk = aktuellSp.find(s => s.id === m.id)
+      return sum + scoreForSp(fersk ?? m)
+    }, 0) ?? 0
 
-  const ak1 = aktuellSp.find(s => s.id === p1?.id)
-  const ak2 = aktuellSp.find(s => s.id === p2?.id)
-
-  const s1 = scoreForSp(ak1 ?? p1)
-  const s2 = scoreForSp(ak2 ?? p2)
+  const s1 = ferskSideSum(side1)
+  const s2 = ferskSideSum(side2)
 
   if (s1 === 0 && s2 === 0 && !await confirmDialog({ title: 'Ingen score registrert', message: 'Vil du bekrefte kampen likevel?' })) return false
 
-  const vinnar = s1 >= s2 ? p1 : p2
-  const tapar = s1 >= s2 ? p2 : p1
-  const allKasterids = sp.map(s => s.kasterid).filter((id): id is number => id != null)
-  const vidareIds = vinnar?.kasterid != null ? [vinnar.kasterid] : []
+  const vinnar = s1 >= s2 ? side1 : side2
+  const tapar = s1 >= s2 ? side2 : side1
+  const allKasterids = sider.flatMap(s => s.members.map(m => m.kasterid))
 
   const { error } = await bekreftCupKamp({
     kampId: kamp.id,
@@ -487,8 +533,8 @@ async function bekreftCupKamp2Spelar(
     rundeNummer: kamp.runde_nummer,
     rundeNavn: kamp.runde_navn,
     allKasterids,
-    eliminertId: tapar?.kasterid ?? null,
-    vidareIds,
+    eliminertIds: tapar?.members.map(m => m.kasterid) ?? [],
+    vidareSider: vinnar ? [vinnar.members.map(m => m.kasterid)] : [],
   })
   if (error) { showToast('DB-feil ved bekreft', 'error'); return false }
 

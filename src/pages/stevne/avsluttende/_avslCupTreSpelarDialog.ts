@@ -1,39 +1,43 @@
-import { escHtml } from '@/utils/escHtml'
 import { bekreftCupKamp, type AvslKampRow, type AvslKampSpelarRow } from '@/services/kampService'
+import { sideNavnHtml } from '@/organizer/org-shared'
+import type { MatchSide } from '@/utils/kamp'
 import { showToast } from '@/components/Toast'
 
+type AvslSpelarKjent = AvslKampSpelarRow & { kasterid: number }
+
+/**
+ * Confirm a 3-side cup match: pick the two sides that advance, the remaining
+ * side is eliminated. A side is one player (Singel) or a pair (Par/Mix).
+ * Sides are identified by their rep's kasterid.
+ */
 export function opnTreSpelarBekreftDialog(
   kamp: AvslKampRow,
-  sp: AvslKampSpelarRow[],
+  sider: MatchSide<AvslSpelarKjent>[],
   stevneid: number,
   afterConfirm: () => Promise<void>,
 ): void {
-  const navns = sp.map(s =>
-    s?.kaster
-      ? `${escHtml(s.kaster.fornavn)} ${escHtml(s.kaster.etternavn)}`
-      : 'Spelar ?'
-  )
-  const valt: number[] = []
+  const navns = sider.map(side => sideNavnHtml(side, false))
+  const valt: number[] = []  // rep kasterids of advancing sides, in rank order
 
   const modal = document.createElement('div')
   modal.className = 'avsl-dialog-overlay'
   document.body.appendChild(modal)
 
   function renderDialog(): void {
-    const eliminert = valt.length === 2 ? sp.find(s => s.kasterid != null && !valt.includes(s.kasterid)) : null
+    const eliminert = valt.length === 2 ? sider.find(s => !valt.includes(s.rep.kasterid)) : null
     modal.innerHTML = `
       <div class="card p-4 avsl-dialog-card">
         <h5 class="card-title mb-1">Bekreft 3-spelar kamp</h5>
         <p class="text-muted small mb-3">Vel dei to som går vidare. Den gjenverande er eliminert.</p>
         <div class="d-flex flex-column gap-2 mb-3">
-          ${sp.map((s, i) => {
-            const idx = s.kasterid != null ? valt.indexOf(s.kasterid) : -1
+          ${sider.map((side, i) => {
+            const idx = valt.indexOf(side.rep.kasterid)
             const erValt = idx !== -1
-            const erEliminert = !!eliminert && eliminert.kasterid === s.kasterid
+            const erEliminert = !!eliminert && eliminert.rep.kasterid === side.rep.kasterid
             const plasseringLabel = idx === 0 ? '1. plass' : idx === 1 ? '2. plass' : ''
             return `<button
               class="btn ${erValt ? 'btn-success' : erEliminert ? 'btn-outline-danger' : 'btn-outline-secondary'} text-start d-flex justify-content-between align-items-center"
-              data-kasterid="${s.kasterid}"
+              data-kasterid="${side.rep.kasterid}"
               ${erEliminert ? 'disabled' : ''}
             ><span>${navns[i]}</span>${
               plasseringLabel ? `<span class="badge bg-success-subtle text-success-emphasis">${plasseringLabel}</span>` :
@@ -62,8 +66,12 @@ export function opnTreSpelarBekreftDialog(
 
     modal.querySelector('#bekreft-tre-btn')?.addEventListener('click', async () => {
       if (valt.length !== 2) return
-      const eliminertId = sp.find(s => s.kasterid != null && !valt.includes(s.kasterid))?.kasterid ?? null
-      const allKasterids = sp.map(s => s.kasterid).filter((id): id is number => id != null)
+      const eliminertSide = sider.find(s => !valt.includes(s.rep.kasterid)) ?? null
+      const vidareSider = valt
+        .map(kid => sider.find(s => s.rep.kasterid === kid))
+        .filter((s): s is MatchSide<AvslSpelarKjent> => s != null)
+        .map(s => s.members.map(m => m.kasterid))
+      const allKasterids = sider.flatMap(s => s.members.map(m => m.kasterid))
       modal.remove()
       const { error } = await bekreftCupKamp({
         kampId: kamp.id,
@@ -71,8 +79,8 @@ export function opnTreSpelarBekreftDialog(
         rundeNummer: kamp.runde_nummer,
         rundeNavn: kamp.runde_navn,
         allKasterids,
-        eliminertId,
-        vidareIds: [...valt],
+        eliminertIds: eliminertSide?.members.map(m => m.kasterid) ?? [],
+        vidareSider,
       })
       if (error) { showToast('DB-feil ved bekreft', 'error'); return }
       await afterConfirm()

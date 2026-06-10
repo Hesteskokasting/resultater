@@ -193,6 +193,8 @@ export async function render(container: HTMLElement, params: Record<string, stri
         kampId,
         ...bekreftData,
         orderedKasterids: orderedKasterids ?? null,
+        p1PartnerId: p1Side?.members[1]?.id ?? null,
+        p2PartnerId: p2Side?.members[1]?.id ?? null,
       })
       if (error) { visKampFeil('Feil ved bekreftelse av kamp.'); return }
       await autoGenererFinaleOgBronsefinale(kampId)
@@ -234,5 +236,6 @@ export async function render(container: HTMLElement, params: Record<string, stri
     p3Navn: sideLabel(p3Side),
     p1Ids: p1Side?.members.map(m => m.id) ?? null,
     p2Ids: p2Side?.members.map(m => m.id) ?? null,
+    p3Ids: p3Side?.members.map(m => m.id) ?? null,
   })
 }

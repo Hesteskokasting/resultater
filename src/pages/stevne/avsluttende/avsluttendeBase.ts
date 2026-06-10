@@ -61,6 +61,9 @@ export interface AvsluttendeContext {
   stevne: AvslStevneRow
   stilling: StillingRad[]
   startnrMap: Record<number, number>
+  posisjonMap: Record<number, number>
+  /** Par/Mix stevne — two players share a startnummer */
+  erLag: boolean
   navnMap: Record<number, string>
   innlKampar: AvslKampRow[]
   avslKampar: AvslKampRow[]
@@ -157,9 +160,17 @@ export function createAvsluttendeRenderer(variant: AvsluttendeVariant) {
       const avslKampar = rawKampar.filter(k => k.fase === 'avsluttende')
 
       const startnrMap: Record<number, number> = {}
+      const posisjonMap: Record<number, number> = {}
+      const snrCount = new Map<number, number>()
       for (const r of typedResultat) {
-        if (r.startnummer != null) startnrMap[r.kasterid] = r.startnummer
+        if (r.startnummer != null) {
+          startnrMap[r.kasterid] = r.startnummer
+          snrCount.set(r.startnummer, (snrCount.get(r.startnummer) ?? 0) + 1)
+        }
+        if (r.posisjon != null) posisjonMap[r.kasterid] = r.posisjon
       }
+      // Par/Mix: two players share a startnummer
+      const erLag = [...snrCount.values()].some(c => c > 1)
 
       const navnMap: Record<number, string> = {}
       for (const k of rawKampar) {
@@ -171,7 +182,7 @@ export function createAvsluttendeRenderer(variant: AvsluttendeVariant) {
       }
 
       const innlKamparOrg = toOrgKamp(innlKampar)
-      const stilling = buildAvsluttendeStilling(innlKamparOrg, typedResultat, navnMap, startnrMap)
+      const stilling = buildAvsluttendeStilling(innlKamparOrg, typedResultat, navnMap, startnrMap, posisjonMap)
 
       const alleInnlBekrefta = innlKampar.length > 0 && innlKampar.every(k => k.er_bekreftet)
       const harAvslKampar = avslKampar.length > 0
@@ -185,6 +196,8 @@ export function createAvsluttendeRenderer(variant: AvsluttendeVariant) {
         stevne,
         stilling,
         startnrMap,
+        posisjonMap,
+        erLag,
         navnMap,
         innlKampar,
         avslKampar,
@@ -215,6 +228,8 @@ export function createAvsluttendeRenderer(variant: AvsluttendeVariant) {
           tableId: 'stilling-avsl',
           harGrupper: true,
           harEliminasjon: true,
+          posisjonMap,
+          unitLabel: erLag ? 'par' : 'spelarar',
         })
         container.innerHTML = renderHovudInnhald(variant.renderKamparHtml(ctx), stillingHtml)
         bindStillingDetaljar(container, 'stilling-avsl', stillingExpandedIds)

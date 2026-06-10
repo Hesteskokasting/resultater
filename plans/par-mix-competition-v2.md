@@ -190,9 +190,11 @@ Callers wired: `src/pages/kamp.ts` (`onBekreft`) and `innledendeBase.ts` (`bekre
 
 ### Step 2 — Avsluttende UI grouping (deferred from Phase 2.5)
 
-- `buildAvsluttendeStilling` output pair-grouped via `groupStandingsByPair` (one stilling row per pair; SP summed) before gruppefordeling and round generation consume it.
-- Variant renderers (`cup.ts`, `kongelag.ts`, `nordhordland.ts`): side labels via `getMatchSides`/`kasterNavnKort`, same as innledende.
-- `renderScoreboard3` needs side member ids (`p3Ids` equivalent) so omgang alternation works in 3-pair matches — the 2-side variant already has `p1Ids`/`p2Ids`.
+- `buildAvsluttendeStilling` output pair-grouped via `groupStandingsByPair` (one stilling row per pair; SP summed) before gruppefordeling and round generation consume it. `posisjonMap` and `erLag` live on `AvsluttendeContext`.
+- `cup.ts` renders one row per SIDE in match blocks (`kampSider` + shared `sideNavnHtml`), with side sums for scores and side-rep `kamp_plassering` for eliminated/advanced styling. Quick-score writes the side total to the rep and zeroes partner rows. The 3-side confirm dialog picks SIDES (rep-keyed buttons). Gruppe assignment expands each stilling row to all pair members (`buildGruppeUpdates`).
+- `bekreftCupKamp`/`oppdaterVinnarTapar` take member arrays (`eliminertIds`, `vidareSider`/`nyVinnarIds`/`nyTaparIds`) so every member of a side gets the same writes.
+- `renderScoreboard3` takes `p1Ids`/`p2Ids`/`p3Ids` — totals, win-order, and omgang inserts are side-membership based with thrower alternation via `getOmgangThrowerId`.
+- **Out of scope:** `kongelag.ts` and avsluttende `nordhordland.ts` variants — Par/Mix stevner use cup for the avsluttende phase.
 
 ### Step 3 — Elimination RPC
 

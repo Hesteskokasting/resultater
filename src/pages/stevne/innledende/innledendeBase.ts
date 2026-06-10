@@ -23,14 +23,13 @@ import { showToast } from '@/components/Toast'
 import { confirmDialog } from '@/components/ConfirmDialog'
 import { promptDialog } from '@/components/PromptDialog'
 import { getMatchSides, groupStandingsByPair, scoreForSp, type MatchSide } from '@/utils/kamp'
-import { kasterNavnKort } from '@/utils/kaster'
 import { autoFullforInnledendeKamper } from '@/services/testDataService'
 import {
   byggInnledendeSpelMap, sorterStilling, renderInnledendeKnappar, lagOnEndringHandler,
   bindStillingDetaljar, renderHovudInnhald, bindTabToggle, getActiveTab, setActiveTab, renderStillingTabell, beregnKanBekrefte,
+  sideNavnHtml,
   type StillingRad,
 } from '@/organizer/org-shared'
-import { escHtml } from '@/utils/escHtml'
 import { createLoadingState } from '@/components/LoadingState'
 import { createErrorBanner } from '@/components/ErrorBanner'
 import { logError } from '@/utils/logError'
@@ -392,19 +391,7 @@ function sideScore(side: MatchSide<InnlKampSpelarRow> | null, erBekreftet: boole
   return side.members.reduce((sum, m) => sum + (erBekreftet ? (m.score_poeng ?? 0) : scoreForSp(m)), 0)
 }
 
-/**
- * Display label for one match side. Singel: full name (or "Fornavn E." when
- * kort). Par/Mix: always short form, members joined — "Fornavn E. / Fornavn E."
- */
-function sideNavn(side: MatchSide<InnlKampSpelarRow> | null, kort: boolean): string {
-  if (!side) return '—'
-  if (side.members.length > 1) {
-    return side.members.map(m => m.kaster ? escHtml(kasterNavnKort(m.kaster)) : '—').join(' / ')
-  }
-  const k = side.rep.kaster
-  if (!k) return '—'
-  return kort ? escHtml(kasterNavnKort(k)) : `${escHtml(k.fornavn)} ${escHtml(k.etternavn)}`
-}
+const sideNavn = sideNavnHtml
 
 type KampStatus = 'ferdig' | 'pagaar' | 'ikke-startet'
 

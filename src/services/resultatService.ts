@@ -71,7 +71,7 @@ export async function oppdaterResultatHcp(stevneid: number, kasterid: number, hc
 // ── Avsluttande fase ──────────────────────────────────────────────────────────
 
 const _avslResultatQuery = supabase.from('resultat').select(`
-  kasterid, startnummer, plassering, runde_eliminert,
+  kasterid, startnummer, posisjon, plassering, runde_eliminert,
   gruppe:gruppeid(id, navn)
 `)
 export type AvslResultatRow = QueryData<typeof _avslResultatQuery>[number]
@@ -80,7 +80,7 @@ export async function hentResultatForAvsluttende(stevneid: number): Promise<{ da
   const { data, error } = await supabase
     .from('resultat')
     .select(`
-      kasterid, startnummer, plassering, runde_eliminert,
+      kasterid, startnummer, posisjon, plassering, runde_eliminert,
       gruppe:gruppeid(id, navn)
     `)
     .eq('stevneid', stevneid)
