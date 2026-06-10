@@ -190,13 +190,11 @@ export async function opprettPar(
   const [res1, res2] = await Promise.all([
     supabase
       .from('pamelding')
-      // @ts-expect-error -- lag_id, posisjon added by migration 20260610100000; remove after type regen
       .update({ lag_id: nyLagId, posisjon: 1 })
       .eq('stevneid', stevneId)
       .eq('kasterid', kasterAId),
     supabase
       .from('pamelding')
-      // @ts-expect-error -- lag_id, posisjon added by migration 20260610100000; remove after type regen
       .update({ lag_id: nyLagId, posisjon: 2 })
       .eq('stevneid', stevneId)
       .eq('kasterid', kasterBId),
@@ -210,10 +208,8 @@ export async function opprettPar(
 export async function slettPar(stevneId: number, lagId: number): Promise<{ error: unknown }> {
   const { error } = await supabase
     .from('pamelding')
-    // @ts-expect-error -- lag_id, posisjon added by migration 20260610100000; remove after type regen
     .update({ lag_id: null, posisjon: null })
     .eq('stevneid', stevneId)
-    // @ts-expect-error -- lag_id added by migration 20260610100000; remove after type regen
     .eq('lag_id', lagId)
   if (error) logError('slettPar', error)
   return { error }
