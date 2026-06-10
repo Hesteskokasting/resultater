@@ -2,14 +2,21 @@ import { createLoadingState } from '@/components/LoadingState'
 import { createErrorBanner } from '@/components/ErrorBanner'
 import { showToast } from '@/components/Toast'
 import { logError } from '@/utils/logError'
+import { errorMessage } from '@/utils/errorMessage'
 import { kasterNavn } from '@/utils/kaster'
 import type { KasterListeRow } from '@/services/kasterService'
 import { hentParForStevne, opprettPar, slettPar } from '@/services/pameldingService'
 import type { PameldingPar } from '@/services/pameldingService'
 
+// kjonn table ids — client-side UX guard only; the DB trigger is authoritative
+const KJONN_MANN = 1
+const KJONN_KVINNE = 2
+
 export interface ParTabProps {
   stevneId: number
   isAdmin: boolean
+  /** Mix: side A (posisjon 1) must be a woman, side B (posisjon 2) a man */
+  erMix: boolean
   pameldtIds: Set<number>
   alleSpelarar: KasterListeRow[]
 }
@@ -28,7 +35,7 @@ export function createParTab(props: ParTabProps): HTMLElement {
 }
 
 async function renderPar(root: HTMLElement, props: ParTabProps): Promise<void> {
-  const { stevneId, isAdmin, pameldtIds, alleSpelarar } = props
+  const { stevneId, isAdmin, erMix, pameldtIds, alleSpelarar } = props
 
   const { data: parar, error } = await hentParForStevne(stevneId)
   if (error) {
@@ -113,11 +120,12 @@ async function renderPar(root: HTMLElement, props: ParTabProps): Promise<void> {
   function makeDropZone(side: 'A' | 'B'): HTMLElement {
     const zone = document.createElement('div')
     zone.className = 'par-slot border rounded px-2 py-2 text-center flex-grow-1'
-    zone.setAttribute('aria-label', `Side ${side}`)
+    const tomLabel = erMix ? (side === 'A' ? 'Side A (kvinne)' : 'Side B (mann)') : `Side ${side}`
+    zone.setAttribute('aria-label', tomLabel)
 
     function refresh(): void {
       const player = side === 'A' ? pendingA : pendingB
-      zone.textContent = player ? kortNamn(player) : `Side ${side}`
+      zone.textContent = player ? kortNamn(player) : tomLabel
       zone.classList.toggle('par-slot--filled', player != null)
     }
 
@@ -140,6 +148,17 @@ async function renderPar(root: HTMLElement, props: ParTabProps): Promise<void> {
 
       const sp = alleSpelarar.find(s => s.id === id)
       if (!sp) return
+
+      if (erMix) {
+        if (side === 'A' && sp.kjonnid !== KJONN_KVINNE) {
+          showToast('Mix: Side A må vere ei kvinne', 'error')
+          return
+        }
+        if (side === 'B' && sp.kjonnid !== KJONN_MANN) {
+          showToast('Mix: Side B må vere ein mann', 'error')
+          return
+        }
+      }
 
       if (side === 'A') pendingA = sp
       else pendingB = sp
@@ -167,8 +186,7 @@ async function renderPar(root: HTMLElement, props: ParTabProps): Promise<void> {
     const { error: err } = await opprettPar(stevneId, pendingA.id, pendingB.id)
     confirmBtn.disabled = false
     if (err) {
-      const msg = err instanceof Error ? err.message : String(err)
-      showToast('Feil ved oppretting av par: ' + msg, 'error')
+      showToast('Feil ved oppretting av par: ' + errorMessage(err), 'error')
       return
     }
     root.replaceChildren(createLoadingState())
@@ -205,7 +223,7 @@ async function renderPar(root: HTMLElement, props: ParTabProps): Promise<void> {
           fjernBtn.disabled = true
           const { error: err } = await slettPar(stevneId, par.lag_id)
           if (err) {
-            showToast('Feil ved sletting: ' + (err instanceof Error ? err.message : String(err)), 'error')
+            showToast('Feil ved sletting: ' + errorMessage(err), 'error')
             fjernBtn.disabled = false
             return
           }

@@ -187,22 +187,36 @@ export async function opprettPar(
 
   const nyLagId = ((maxRow as { lag_id: number } | null)?.lag_id ?? 0) + 1
 
-  const [res1, res2] = await Promise.all([
-    supabase
-      .from('pamelding')
-      .update({ lag_id: nyLagId, posisjon: 1 })
-      .eq('stevneid', stevneId)
-      .eq('kasterid', kasterAId),
-    supabase
-      .from('pamelding')
-      .update({ lag_id: nyLagId, posisjon: 2 })
-      .eq('stevneid', stevneId)
-      .eq('kasterid', kasterBId),
-  ])
+  // Sequential, not Promise.all: the Mix gender trigger validates each row,
+  // and parallel transactions would race past cross-checks. On a second-step
+  // failure the first write is rolled back so no half-pair is left behind.
+  const res1 = await supabase
+    .from('pamelding')
+    .update({ lag_id: nyLagId, posisjon: 1 })
+    .eq('stevneid', stevneId)
+    .eq('kasterid', kasterAId)
+  if (res1.error) {
+    logError('opprettPar', res1.error)
+    return { error: res1.error }
+  }
 
-  const err = res1.error ?? res2.error
-  if (err) logError('opprettPar', err)
-  return { error: err ?? null }
+  const res2 = await supabase
+    .from('pamelding')
+    .update({ lag_id: nyLagId, posisjon: 2 })
+    .eq('stevneid', stevneId)
+    .eq('kasterid', kasterBId)
+  if (res2.error) {
+    logError('opprettPar', res2.error)
+    const { error: angreErr } = await supabase
+      .from('pamelding')
+      .update({ lag_id: null, posisjon: null })
+      .eq('stevneid', stevneId)
+      .eq('kasterid', kasterAId)
+    if (angreErr) logError('opprettPar.angre', angreErr)
+    return { error: res2.error }
+  }
+
+  return { error: null }
 }
 
 export async function slettPar(stevneId: number, lagId: number): Promise<{ error: unknown }> {

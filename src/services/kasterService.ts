@@ -5,7 +5,7 @@ import type { Tables } from '@/types'
 
 // Query builders used only for type inference — no HTTP calls at module load
 const _medlemQuery          = supabase.from('kaster').select('id, fornavn, etternavn, avatarurl, medlemsnummer, klasse:klasseid(id, navn)')
-const _kasterListeQuery     = supabase.from('kaster').select('id, fornavn, etternavn, eraktiv, avatarurl, klubb:klubbid(id, navn)')
+const _kasterListeQuery     = supabase.from('kaster').select('id, fornavn, etternavn, eraktiv, avatarurl, kjonnid, klubb:klubbid(id, navn)')
 const _kasterDetaljQuery    = supabase.from('kaster').select('id, fornavn, etternavn, eraktiv, avatarurl, medlemsnummer, klubbid, klubb:klubbid(id, navn), klasse:klasseid(id, navn)')
 const _kasterForKoblingQuery = supabase.from('kaster').select('id, fornavn, etternavn, klubb:klubbid(navn)')
 const _resultatDetaljQuery  = supabase.from('resultat').select(`
@@ -50,7 +50,7 @@ export async function hentKastereListeAktive(): Promise<{ data: KasterListeRow[]
   if (_kasterListeAktivCache) return { data: _kasterListeAktivCache, error: null }
   const { data, error } = await supabase
     .from('kaster')
-    .select('id, fornavn, etternavn, eraktiv, avatarurl, klubb:klubbid(id, navn)')
+    .select('id, fornavn, etternavn, eraktiv, avatarurl, kjonnid, klubb:klubbid(id, navn)')
     .eq('eraktiv', true)
     .order('etternavn')
     .order('fornavn')
@@ -63,7 +63,7 @@ export async function hentKastereListeAlle(): Promise<{ data: KasterListeRow[]; 
   if (_kasterListeAlleCache) return { data: _kasterListeAlleCache, error: null }
   const { data, error } = await supabase
     .from('kaster')
-    .select('id, fornavn, etternavn, eraktiv, avatarurl, klubb:klubbid(id, navn)')
+    .select('id, fornavn, etternavn, eraktiv, avatarurl, kjonnid, klubb:klubbid(id, navn)')
     .order('etternavn')
     .order('fornavn')
   if (error) logError('hentKastereListeAlle', error)
@@ -109,7 +109,7 @@ export async function hentKasterDetalj(id: number): Promise<{
 export async function hentKastereForKlubbar(klubbIds: number[]): Promise<{ data: KasterListeRow[]; error: unknown }> {
   const { data, error } = await supabase
     .from('kaster')
-    .select('id, fornavn, etternavn, eraktiv, avatarurl, klubb:klubbid(id, navn)')
+    .select('id, fornavn, etternavn, eraktiv, avatarurl, kjonnid, klubb:klubbid(id, navn)')
     .in('klubbid', klubbIds)
     .eq('eraktiv', true)
     .order('etternavn')

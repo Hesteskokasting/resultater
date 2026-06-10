@@ -285,6 +285,7 @@ export async function render(
       const parPanel = createParTab({
         stevneId: id,
         isAdmin: kanEndrast,
+        erMix: (stevneRes.data.kategori?.navn ?? '').toLowerCase().includes('mix'),
         pameldtIds: new Set(pameldtMap.keys()),
         alleSpelarar,
       })
