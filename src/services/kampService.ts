@@ -244,44 +244,72 @@ export type OmgRow = { kamp_spelar_id: number | null; score: number | null; anta
 
 type KampSpelarUpdateValues = { score_poeng: number; kamp_poeng: number; antall_ringer: number }
 
+/** One match side at confirmation: kamp_spelar ids ordered by posisjon (rep first). 1 id for Singel, 2 for Par/Mix. */
+export type SideBekreft = { spelarIds: number[]; baseScore: number }
+
+/**
+ * Computes the kamp_spelar write per player. Each player's score_poeng and
+ * antall_ringer come from their OWN omgang rows (pair members alternate
+ * omgangar), while kamp_poeng comes from the SIDE totals and is written to
+ * every member of the side. Side HCP and walkover/fallback scores land on the
+ * representative (spelarIds[0]) so the side sum stays correct.
+ */
 export function buildKampSpelarUpdates(params: {
   omgData: OmgRow[]
-  p1: { spelarId: number; baseScore: number } | null
-  p2: { spelarId: number; baseScore: number } | null
+  side1: SideBekreft | null
+  side2: SideBekreft | null
   hcp1: number
   hcp2: number
   erWalkover: boolean
-}): { p1: KampSpelarUpdateValues | null; p2: KampSpelarUpdateValues | null } {
-  const { omgData, p1, p2, hcp1, hcp2, erWalkover } = params
-  let t1 = 0, t2 = 0, r1 = 0, r2 = 0
+}): Map<number, KampSpelarUpdateValues> {
+  const { omgData, side1, side2, hcp1, hcp2, erWalkover } = params
+
+  const updates = new Map<number, KampSpelarUpdateValues>()
+  for (const side of [side1, side2]) {
+    for (const id of side?.spelarIds ?? []) {
+      updates.set(id, { score_poeng: 0, kamp_poeng: 0, antall_ringer: 0 })
+    }
+  }
+
+  let t1 = 0, t2 = 0
 
   if (erWalkover) {
     t1 = 21
+    const rep1 = side1?.spelarIds[0]
+    if (rep1 != null) updates.get(rep1)!.score_poeng = 21
+  } else if (omgData.length) {
+    for (const row of omgData) {
+      if (row.kamp_spelar_id == null) continue
+      const u = updates.get(row.kamp_spelar_id)
+      if (!u) continue
+      u.score_poeng += row.score ?? 0
+      u.antall_ringer += row.antall_ringer ?? 0
+      if (side1?.spelarIds.includes(row.kamp_spelar_id)) t1 += row.score ?? 0
+      else t2 += row.score ?? 0
+    }
+    // HCP applies only to scoreboard-round sums; direct scores are already final.
+    // Stored on the rep so the side sum includes it exactly once.
+    t1 += hcp1
+    t2 += hcp2
+    if (side1 && hcp1) updates.get(side1.spelarIds[0])!.score_poeng += hcp1
+    if (side2 && hcp2) updates.get(side2.spelarIds[0])!.score_poeng += hcp2
   } else {
-    if (omgData.length) {
-      for (const row of omgData) {
-        if (row.kamp_spelar_id === p1?.spelarId) {
-          t1 += row.score ?? 0
-          r1 += row.antall_ringer ?? 0
-        } else {
-          t2 += row.score ?? 0
-          r2 += row.antall_ringer ?? 0
-        }
-      }
-      // HCP applies only to scoreboard-round sums; direct scores are already final
-      t1 += hcp1
-      t2 += hcp2
-    } else {
-      t1 = p1?.baseScore ?? 0
-      t2 = p2?.baseScore ?? 0
+    // Quick-score fallback: the directly-entered side total lives on the rep row
+    if (side1) {
+      t1 = side1.baseScore
+      updates.get(side1.spelarIds[0])!.score_poeng = t1
+    }
+    if (side2) {
+      t2 = side2.baseScore
+      updates.get(side2.spelarIds[0])!.score_poeng = t2
     }
   }
 
   const [kp1, kp2] = beregnKampPoeng(t1, t2)
-  return {
-    p1: p1 ? { score_poeng: t1, kamp_poeng: kp1, antall_ringer: r1 } : null,
-    p2: p2 ? { score_poeng: t2, kamp_poeng: kp2, antall_ringer: r2 } : null,
-  }
+  for (const id of side1?.spelarIds ?? []) updates.get(id)!.kamp_poeng = kp1
+  for (const id of side2?.spelarIds ?? []) updates.get(id)!.kamp_poeng = kp2
+
+  return updates
 }
 
 export async function bekreftInnledendeKamp(params: {
@@ -297,16 +325,20 @@ export async function bekreftInnledendeKamp(params: {
   p2PartnerId?: number | null
 }): Promise<{ error: unknown }> {
   const { kampId, p1, p2, hcp1, hcp2, erWalkover = false, p1PartnerId = null, p2PartnerId = null } = params
+
+  const side1Ids = p1 ? [p1.spelarId, ...(p1PartnerId != null ? [p1PartnerId] : [])] : []
+  const side2Ids = p2 ? [p2.spelarId, ...(p2PartnerId != null ? [p2PartnerId] : [])] : []
+  const alleIds = [...side1Ids, ...side2Ids]
+
   let omgData: OmgRow[] = []
   let p1BaseScore = p1?.scorePoeng ?? 0
   let p2BaseScore = p2?.scorePoeng ?? 0
 
   if (!erWalkover) {
-    const spelarIds = [p1?.spelarId, p2?.spelarId].filter((id): id is number => id != null)
     const { data: fetched, error: omgErr } = await supabase
       .from('kamp_omgang')
       .select('kamp_spelar_id, score, antall_ringer')
-      .in('kamp_spelar_id', spelarIds)
+      .in('kamp_spelar_id', alleIds)
     if (omgErr) {
       logError('bekreftInnledendeKamp:omgangar', omgErr)
       return { error: omgErr }
@@ -315,10 +347,11 @@ export async function bekreftInnledendeKamp(params: {
 
     if (!omgData.length) {
       // Re-fetch score_poeng fresh from DB — passed scorePoeng may be stale (captured at render time)
+      const repIds = [p1?.spelarId, p2?.spelarId].filter((id): id is number => id != null)
       const { data: freshScores } = await supabase
         .from('kamp_spelar')
         .select('id, score_poeng')
-        .in('id', spelarIds)
+        .in('id', repIds)
       const scoreMap = Object.fromEntries((freshScores ?? []).map(s => [s.id, s.score_poeng ?? 0]))
       p1BaseScore = p1 ? (scoreMap[p1.spelarId] ?? p1.scorePoeng) : 0
       p2BaseScore = p2 ? (scoreMap[p2.spelarId] ?? p2.scorePoeng) : 0
@@ -327,23 +360,13 @@ export async function bekreftInnledendeKamp(params: {
 
   const updates = buildKampSpelarUpdates({
     omgData,
-    p1: p1 ? { spelarId: p1.spelarId, baseScore: p1BaseScore } : null,
-    p2: p2 ? { spelarId: p2.spelarId, baseScore: p2BaseScore } : null,
+    side1: p1 ? { spelarIds: side1Ids, baseScore: p1BaseScore } : null,
+    side2: p2 ? { spelarIds: side2Ids, baseScore: p2BaseScore } : null,
     hcp1, hcp2, erWalkover,
   })
 
-  const spelarUpdates = []
-  if (p1 && updates.p1) spelarUpdates.push(
-    supabase.from('kamp_spelar').update(updates.p1).eq('id', p1.spelarId),
-  )
-  if (p2 && updates.p2) spelarUpdates.push(
-    supabase.from('kamp_spelar').update(updates.p2).eq('id', p2.spelarId),
-  )
-  if (p1PartnerId != null && updates.p1) spelarUpdates.push(
-    supabase.from('kamp_spelar').update(updates.p1).eq('id', p1PartnerId),
-  )
-  if (p2PartnerId != null && updates.p2) spelarUpdates.push(
-    supabase.from('kamp_spelar').update(updates.p2).eq('id', p2PartnerId),
+  const spelarUpdates = [...updates.entries()].map(([id, values]) =>
+    supabase.from('kamp_spelar').update(values).eq('id', id),
   )
 
   if (spelarUpdates.length) {

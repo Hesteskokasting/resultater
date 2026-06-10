@@ -133,11 +133,11 @@ Same grouping via `getMatchSides`/`groupStandingsByPair` in `buildAvsluttendeSti
 
 **Modified component:** `src/components/Scoreboard.ts`
 
-The scoreboard design is **unchanged**. New optional `p1Navn`/`p2Navn`/`p3Navn` label overrides in `ScoreboardOptions` (both the 2- and 3-side variants); when absent, names render from the rep's kaster as before. For Par:
+The scoreboard design is **unchanged**. New optional `p1Navn`/`p2Navn`/`p3Navn` label overrides and `p1Ids`/`p2Ids` (side member kamp_spelar ids, posisjon order) in `ScoreboardOptions`; when absent, names/ids come from the rep as before. For Par:
 - The sides each represent a PAIR, not a single player
 - Name label shows `"Fornavn E. / Fornavn E."` (posisjon 1 / posisjon 2)
-- Score buttons enter the pair's **combined** score for the omgang (same buttons, same constraints)
-- `kamp_omgang` rows are created for the rep's `kamp_spelar_id` only — automatic, since the component receives the reps as `p1ks`/`p2ks`/`p3ks`
+- Score buttons enter the thrower's score for the omgang (same buttons, same constraints)
+- **Members alternate omgangar**: posisjon 1 throws omgang 1, 3, 5…, posisjon 2 throws 2, 4, 6… Each `kamp_omgang` row is written to the actual thrower's `kamp_spelar_id` (`getOmgangThrowerId` in `@/utils/kamp` — round-robin, so it generalizes to Lag). Reads group rows by side membership.
 
 **Modified page:** `src/pages/kamp.ts`
 
@@ -151,7 +151,7 @@ Uses `getAllMatchSides` (returns N sides, not hardcoded to two — covers the 3-
 
 **Modified service:** `src/services/kampService.ts`
 
-Extend `bekreftInnledendeKamp` with optional Par parameters — **simplified vs. the original sketch**: omgangar and the pair's combined total live on the rep's `kamp_spelar` row only (Phase 3 guarantees this), so the partner needs no score data or HCP of its own — just its row id to receive the same written values:
+Extend `bekreftInnledendeKamp` with optional Par parameters (`p1PartnerId`/`p2PartnerId` — the partner's `kamp_spelar.id`; no partner score data or HCP needed):
 
 ```typescript
 export async function bekreftInnledendeKamp(params: {
@@ -167,9 +167,11 @@ export async function bekreftInnledendeKamp(params: {
 }): Promise<{ error: unknown }>
 ```
 
-When a partner id is provided, the partner row gets the **same** update object as its rep (`score_poeng` = pair total, `kamp_poeng`, `antall_ringer`) — all 4 rows end up identical per side. `beregnKampPoeng` unchanged. When absent — existing Singel path, unchanged. (No `resultat` writes — the existing Singel path doesn't write resultat either; standings are computed from `kamp_spelar`.)
+`buildKampSpelarUpdates` (pure, fully tested) is side-based: each player's `score_poeng` and `antall_ringer` come from their **own** `kamp_omgang` rows (members alternate omgangar), while `kamp_poeng` comes from the **side totals** and is written identically to every member of the side. Side HCP, walkover 21, and quick-score fallback land on the rep so the side sum stays correct. Singel path = a side with one member, behavior unchanged. (No `resultat` writes — standings are computed from `kamp_spelar`.)
 
-Callers wired: `src/pages/kamp.ts` (`onBekreft`) and `innledendeBase.ts` (`bekreftKamp`) both pass `side.members[1]?.id` as the partner ids.
+**Standings consequence:** a pair's SP is the SUM of both members' `score_poeng` — implemented in `groupStandingsByPair` (stilling), the unified Swiss ranking, the match-list score display (`sideScore` in `innledendeBase`), and the stilling detail rows.
+
+Callers wired: `src/pages/kamp.ts` (`onBekreft`) and `innledendeBase.ts` (`bekreftKamp`) both pass `side.members[1]?.id` as the partner ids. `testDataService.autoFullforInnledendeKamper` is also side-aware.
 
 ---
 

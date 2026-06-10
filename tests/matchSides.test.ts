@@ -1,4 +1,4 @@
-import { getAllMatchSides, getMatchSides, groupStandingsByPair } from '@/utils/kamp'
+import { getAllMatchSides, getMatchSides, getOmgangThrowerId, groupStandingsByPair } from '@/utils/kamp'
 
 // ── getMatchSides ─────────────────────────────────────────────────────────────
 
@@ -95,17 +95,18 @@ describe('groupStandingsByPair', () => {
     expect(groupStandingsByPair(rows)).toEqual(rows)
   })
 
-  it('collapses pair members into one row with joined names', () => {
+  it('collapses pair members into one row: names joined, score_poeng summed, kamp_poeng from rep', () => {
+    // Per-player score_poeng (members alternate omgangar); kamp_poeng identical per side
     const rows = [
-      { kasterid: 1, navn: 'Anna B', startnummer: 1, kamp_poeng: 2, score_poeng: 21 },
-      { kasterid: 2, navn: 'Ola N', startnummer: 1, kamp_poeng: 2, score_poeng: 21 },
-      { kasterid: 3, navn: 'Kari S', startnummer: 2, kamp_poeng: 0, score_poeng: 9 },
-      { kasterid: 4, navn: 'Per H', startnummer: 2, kamp_poeng: 0, score_poeng: 9 },
+      { kasterid: 1, navn: 'Anna B', startnummer: 1, kamp_poeng: 2, score_poeng: 12 },
+      { kasterid: 2, navn: 'Ola N', startnummer: 1, kamp_poeng: 2, score_poeng: 9 },
+      { kasterid: 3, navn: 'Kari S', startnummer: 2, kamp_poeng: 0, score_poeng: 6 },
+      { kasterid: 4, navn: 'Per H', startnummer: 2, kamp_poeng: 0, score_poeng: 3 },
     ]
     const grouped = groupStandingsByPair(rows, { 1: 1, 2: 2, 3: 1, 4: 2 })
     expect(grouped).toHaveLength(2)
     expect(grouped[0]).toMatchObject({ kasterid: 1, navn: 'Anna B / Ola N', kamp_poeng: 2, score_poeng: 21 })
-    expect(grouped[1]).toMatchObject({ kasterid: 3, navn: 'Kari S / Per H' })
+    expect(grouped[1]).toMatchObject({ kasterid: 3, navn: 'Kari S / Per H', kamp_poeng: 0, score_poeng: 9 })
   })
 
   it('keeps the posisjon-1 member as the row identity', () => {
@@ -124,5 +125,28 @@ describe('groupStandingsByPair', () => {
       { kasterid: 2, navn: 'Ola N', startnummer: null },
     ]
     expect(groupStandingsByPair(rows)).toHaveLength(2)
+  })
+})
+
+// ── getOmgangThrowerId ────────────────────────────────────────────────────────
+
+describe('getOmgangThrowerId', () => {
+  it('Singel: the only player throws every omgang', () => {
+    for (const omgang of [1, 2, 3, 4, 5]) {
+      expect(getOmgangThrowerId([7], omgang)).toBe(7)
+    }
+  })
+
+  it('Par: posisjon 1 throws odd omgangar, posisjon 2 throws even', () => {
+    const ids = [101, 102] // ordered by posisjon
+    expect(getOmgangThrowerId(ids, 1)).toBe(101)
+    expect(getOmgangThrowerId(ids, 2)).toBe(102)
+    expect(getOmgangThrowerId(ids, 3)).toBe(101)
+    expect(getOmgangThrowerId(ids, 4)).toBe(102)
+    expect(getOmgangThrowerId(ids, 9)).toBe(101)
+  })
+
+  it('returns null for an empty side', () => {
+    expect(getOmgangThrowerId([], 1)).toBeNull()
   })
 })

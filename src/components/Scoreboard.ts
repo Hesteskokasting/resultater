@@ -4,7 +4,7 @@
 // tegn/tegn3, bereknKnappStatus/bereknKnappStatus3, nesteOmgang/nesteOmgang3,
 // and OmgangRad[] vs KampOmgangRow[] state structures.
 import type { KampOmgangRow, KampRow, KampSpelarIKamp } from '@/services/kampService'
-import { calcAntallRinger } from '@/utils/kamp'
+import { calcAntallRinger, getOmgangThrowerId } from '@/utils/kamp'
 import {
   hentKampOmgangar,
   lagreKampOmgang,
@@ -28,6 +28,13 @@ interface ScoreboardOptions {
   p1Navn?: string | null
   p2Navn?: string | null
   p3Navn?: string | null
+  /**
+   * All kamp_spelar ids per side, ordered by posisjon (rep first). Par/Mix
+   * members alternate omgangar: posisjon 1 throws odd, posisjon 2 even.
+   * Defaults to the rep's id only (Singel).
+   */
+  p1Ids?: number[] | null
+  p2Ids?: number[] | null
 }
 
 type OmgangRad = { omgang: number; s1: number; s2: number; r1: number; r2: number }
@@ -58,6 +65,10 @@ export async function renderScoreboard(
     return renderScoreboard3(container, kamp, p1ks, p2ks, p3ks, { pointValues, erArrangor, erDeltakar, onBekreft, onKampBekreft, omgangEl, p1Navn, p2Navn, p3Navn })
   }
 
+  // Side member ids ordered by posisjon (rep first); Singel = one id per side
+  const side1Ids = options.p1Ids?.length ? options.p1Ids : (p1ks ? [p1ks.id] : [])
+  const side2Ids = options.p2Ids?.length ? options.p2Ids : (p2ks ? [p2ks.id] : [])
+
   let omgangar: OmgangRad[] = []
   let val1: number | null = null
   let val2: number | null = null
@@ -70,25 +81,24 @@ export async function renderScoreboard(
   await lastOmgangar()
   tegn()
 
-  const spelarIds = [p1ks?.id, p2ks?.id].filter((id): id is number => id != null)
-
   const cleanup = setupScoreboardRealtime(
     kamp,
-    spelarIds,
+    [...side1Ids, ...side2Ids],
     async () => { await lastOmgangar(); tegn() },
     onKampBekreft,
   )
 
   async function lastOmgangar(): Promise<void> {
-    const ids = [p1ks?.id, p2ks?.id].filter((id): id is number => id != null)
+    const ids = [...side1Ids, ...side2Ids]
     if (!ids.length) return
 
     const { data } = await hentKampOmgangar(ids)
 
     const omgMap: Record<number, OmgangRad> = {}
     for (const r of data) {
+      if (r.kamp_spelar_id == null) continue
       if (!omgMap[r.omgang]) omgMap[r.omgang] = { omgang: r.omgang, s1: 0, s2: 0, r1: 0, r2: 0 }
-      if (r.kamp_spelar_id === p1ks?.id) {
+      if (side1Ids.includes(r.kamp_spelar_id)) {
         omgMap[r.omgang].s1 = r.score ?? 0
         omgMap[r.omgang].r1 = r.antall_ringer ?? 0
       } else {
@@ -271,9 +281,11 @@ export async function renderScoreboard(
 
     if (isEditMode) {
       const lastNr = omgangar[omgangar.length - 1].omgang
+      const kaster1 = getOmgangThrowerId(side1Ids, lastNr)
+      const kaster2 = getOmgangThrowerId(side2Ids, lastNr)
       const rows = []
-      if (p1ks?.id) rows.push({ kamp_spelar_id: p1ks.id, omgang: lastNr, score: s1, antall_ringer: r1 })
-      if (p2ks?.id) rows.push({ kamp_spelar_id: p2ks.id, omgang: lastNr, score: s2, antall_ringer: r2 })
+      if (kaster1 != null) rows.push({ kamp_spelar_id: kaster1, omgang: lastNr, score: s1, antall_ringer: r1 })
+      if (kaster2 != null) rows.push({ kamp_spelar_id: kaster2, omgang: lastNr, score: s2, antall_ringer: r2 })
       const { error } = await oppdaterKampOmgang(rows)
       if (error) { showToast('Feil ved lagring', 'error'); return }
       omgangar[omgangar.length - 1] = { omgang: lastNr, s1, s2, r1, r2 }
@@ -281,9 +293,11 @@ export async function renderScoreboard(
       modifiedPlayers = new Set()
     } else {
       const nr = noverAndeOmgang()
+      const kaster1 = getOmgangThrowerId(side1Ids, nr)
+      const kaster2 = getOmgangThrowerId(side2Ids, nr)
       const inserts = []
-      if (p1ks?.id) inserts.push({ kamp_spelar_id: p1ks.id, omgang: nr, score: s1, antall_ringer: r1 })
-      if (p2ks?.id) inserts.push({ kamp_spelar_id: p2ks.id, omgang: nr, score: s2, antall_ringer: r2 })
+      if (kaster1 != null) inserts.push({ kamp_spelar_id: kaster1, omgang: nr, score: s1, antall_ringer: r1 })
+      if (kaster2 != null) inserts.push({ kamp_spelar_id: kaster2, omgang: nr, score: s2, antall_ringer: r2 })
       const { error } = await lagreKampOmgang(inserts)
       if (error) { showToast('Feil ved lagring', 'error'); return }
       omgangar.push({ omgang: nr, s1, s2, r1, r2 })

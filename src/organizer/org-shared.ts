@@ -82,8 +82,11 @@ export function renderSpelarkamparDetalj(
     const oppNr = erWalkoverSeier ? '' : (oppSide ? (startnrMap[oppSide.rep.kasterid] ?? '') : '')
     const oppVis = oppNr ? `${oppNamn} (${oppNr})` : oppNamn
 
-    const myScore  = erWalkoverSeier ? 21 : scoreForSp(mySide?.rep)
-    const oppScore = erWalkoverSeier ? 0  : scoreForSp(oppSide?.rep)
+    // Side total: pair members alternate omgangar, so sum both members' rows
+    const sideSum = (side: typeof mySide) =>
+      side ? side.members.reduce((sum, m) => sum + scoreForSp(m), 0) : 0
+    const myScore  = erWalkoverSeier ? 21 : sideSum(mySide)
+    const oppScore = erWalkoverSeier ? 0  : sideSum(oppSide)
     const resultat = `${myScore} - ${oppScore}`
 
     return `<tr>

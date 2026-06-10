@@ -232,5 +232,7 @@ export async function render(container: HTMLElement, params: Record<string, stri
     p1Navn: sideLabel(p1Side),
     p2Navn: sideLabel(p2Side),
     p3Navn: sideLabel(p3Side),
+    p1Ids: p1Side?.members.map(m => m.id) ?? null,
+    p2Ids: p2Side?.members.map(m => m.id) ?? null,
   })
 }

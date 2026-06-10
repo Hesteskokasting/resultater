@@ -75,16 +75,28 @@ export function getMatchSides<T extends SpelarMedKasterid>(
   return [sides[0] ?? null, sides[1] ?? null]
 }
 
+/**
+ * Which side member throws a given omgang. Members alternate in posisjon
+ * order: posisjon 1 throws omgang 1, 3, 5…, posisjon 2 throws 2, 4, 6…
+ * (round-robin, so it generalizes to N members). Singel: always the player.
+ */
+export function getOmgangThrowerId(sideSpelarIds: number[], omgang: number): number | null {
+  if (!sideSpelarIds.length) return null
+  return sideSpelarIds[(omgang - 1) % sideSpelarIds.length]
+}
+
 export interface PairableStillingRad {
   kasterid: number
   navn?: string | null
   startnummer?: number | null
+  score_poeng?: number | null
 }
 
 /**
  * Collapses standings rows that share a startnummer (pair members) into one
- * row: the posisjon-1 member's values with both names joined. Rows with a
- * unique or missing startnummer pass through unchanged.
+ * row: the posisjon-1 member's values with both names joined and score_poeng
+ * summed (each member carries only the omgangar they threw themselves). Rows
+ * with a unique or missing startnummer pass through unchanged.
  */
 export function groupStandingsByPair<T extends PairableStillingRad>(
   rows: T[],
@@ -107,6 +119,7 @@ export function groupStandingsByPair<T extends PairableStillingRad>(
     return {
       ...members[0],
       navn: members.map(m => m.navn ?? `Spelar ${m.kasterid}`).join(' / '),
+      score_poeng: members.reduce((sum, m) => sum + (m.score_poeng ?? 0), 0),
     }
   })
 }

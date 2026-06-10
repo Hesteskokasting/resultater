@@ -346,20 +346,22 @@ export async function genererNesteSwissRunde(
     }
   }
 
-  // Rank units via one representative kasterid each. Both members of a pair get
-  // identical kamp_poeng/score_poeng at confirmation, so either member works.
+  // Rank units by side totals: kamp_poeng is identical for all members of a
+  // side (any row works), while score_poeng is per-player (pair members
+  // alternate omgangar) and must be summed across the side.
   const standing = alleSnr.map(snr => {
-    const representative = snrToKasterids[snr][0]
+    const members = snrToKasterids[snr]
     let kampPoeng = 0
     let scorePoeng = 0
     for (const kamp of kampRader) {
-      const sp = (kamp.spelarar ?? []).find(s => s.kasterid === representative)
-      if (sp) {
-        kampPoeng += sp.kamp_poeng ?? 0
-        scorePoeng += sp.score_poeng ?? 0
-      }
+      const sideRows = (kamp.spelarar ?? []).filter(
+        (s): s is typeof s & { kasterid: number } => s.kasterid != null && members.includes(s.kasterid),
+      )
+      if (!sideRows.length) continue
+      kampPoeng += sideRows[0].kamp_poeng ?? 0
+      for (const s of sideRows) scorePoeng += s.score_poeng ?? 0
     }
-    return { kasterid: representative, kamp_poeng: kampPoeng, score_poeng: scorePoeng, startnummer: snr }
+    return { kasterid: members[0], kamp_poeng: kampPoeng, score_poeng: scorePoeng, startnummer: snr }
   })
 
   const ranked = sorterStilling(standing, rawKampar as KampForSortering[])

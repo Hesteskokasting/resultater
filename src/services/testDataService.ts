@@ -1,6 +1,6 @@
 import type { QueryData } from '@supabase/supabase-js'
 import { supabase } from '@/supabase'
-import { beregnKampPoeng } from '@/utils/kamp'
+import { beregnKampPoeng, getMatchSides } from '@/utils/kamp'
 import { logError } from '@/utils/logError'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -36,8 +36,24 @@ export async function autoFullforInnledendeKamper(stevneid: number): Promise<voi
   if (error) { logError('autoFullforInnledendeKamper', error); return }
   if (!kamper?.length) return
 
+  // Side grouping via startnummer so Par matches (4 kamp_spelar rows) get the
+  // side total on the rep and 0 on the partner — not random per-row scores.
+  const { data: resultat, error: resErr } = await supabase
+    .from('resultat')
+    .select('kasterid, startnummer')
+    .eq('stevneid', stevneid)
+  if (resErr) { logError('autoFullforInnledendeKamper:resultat', resErr); return }
+  const startnrMap: Record<number, number> = Object.fromEntries(
+    (resultat ?? [])
+      .filter((r): r is typeof r & { kasterid: number; startnummer: number } => r.kasterid != null && r.startnummer != null)
+      .map(r => [r.kasterid, r.startnummer]),
+  )
+
   for (const kamp of kamper as TestKampRow[]) {
-    const [sp1, sp2] = kamp.spelarar ?? []
+    const spelarar = (kamp.spelarar ?? []).filter(
+      (s): s is typeof s & { kasterid: number } => s.kasterid != null,
+    )
+    const [side1, side2] = getMatchSides(spelarar, startnrMap)
     const [s1, s2] = kamp.er_walkover ? [21, 0] : tilfeldigScore()
     const [kp1, kp2] = beregnKampPoeng(s1, s2)
 
@@ -45,8 +61,14 @@ export async function autoFullforInnledendeKamper(stevneid: number): Promise<voi
       const updates: PromiseLike<unknown>[] = [
         supabase.from('kamp').update({ er_bekreftet: true }).eq('id', kamp.id),
       ]
-      if (sp1) updates.push(supabase.from('kamp_spelar').update({ score_poeng: s1, kamp_poeng: kp1 }).eq('id', sp1.id))
-      if (sp2) updates.push(supabase.from('kamp_spelar').update({ score_poeng: s2, kamp_poeng: kp2 }).eq('id', sp2.id))
+      for (const side of [side1, side2]) {
+        if (!side) continue
+        const [score, kampPoeng] = side === side1 ? [s1, kp1] : [s2, kp2]
+        for (const m of side.members) {
+          const erRep = m === side.rep
+          updates.push(supabase.from('kamp_spelar').update({ score_poeng: erRep ? score : 0, kamp_poeng: kampPoeng }).eq('id', m.id))
+        }
+      }
       await Promise.all(updates)
     } catch (e) {
       logError('autoFullforInnledendeKamper:update', e)

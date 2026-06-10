@@ -251,8 +251,8 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
             const hasOmg = spelarIds.length ? await harKampOmgangar(spelarIds) : false
             if (hasOmg && !await confirmDialog({ title: 'Slett detaljar', message: 'Dette sletter detaljar for denne kampen. Er du sikker?' })) return
 
-            const currentS1 = kamp.er_bekreftet ? (p1?.score_poeng ?? 0) : scoreForSp(p1)
-            const currentS2 = kamp.er_bekreftet ? (p2?.score_poeng ?? 0) : scoreForSp(p2)
+            const currentS1 = sideScore(side1, kamp.er_bekreftet)
+            const currentS2 = sideScore(side2, kamp.er_bekreftet)
 
             showNumberpad(p1Namn, p2Namn, currentS1, currentS2, async (nyS1, nyS2) => {
               try {
@@ -381,6 +381,17 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
 
 // ── Shared rendering (pure — no closure state) ────────────────────────────────
 
+/** Any member of the side has omgang rows (pair members alternate omgangar). */
+function sideHarOmgangar(side: MatchSide<InnlKampSpelarRow> | null): boolean {
+  return side?.members.some(m => (m.omgangar?.length ?? 0) > 0) ?? false
+}
+
+/** Side total: each member carries only the omgangar they threw themselves. */
+function sideScore(side: MatchSide<InnlKampSpelarRow> | null, erBekreftet: boolean): number {
+  if (!side) return 0
+  return side.members.reduce((sum, m) => sum + (erBekreftet ? (m.score_poeng ?? 0) : scoreForSp(m)), 0)
+}
+
 /**
  * Display label for one match side. Singel: full name (or "Fornavn E." when
  * kort). Par/Mix: always short form, members joined — "Fornavn E. / Fornavn E."
@@ -465,14 +476,14 @@ function kampRad(
     ? (p2Nr ? `Walkover (${p2Nr})` : 'Walkover')
     : (p2Nr ? `${p2Namn} (${p2Nr})` : p2Namn)
 
-  const harOmg1 = (p1?.omgangar?.length ?? 0) > 0
-  const harOmg2 = (p2?.omgangar?.length ?? 0) > 0
+  const harOmg1 = sideHarOmgangar(side1)
+  const harOmg2 = sideHarOmgangar(side2)
   const harOmgangar = harOmg1 || harOmg2
   const hcp1 = hcpMap[p1?.kasterid ?? -1] ?? 0
   const hcp2 = hcpMap[p2?.kasterid ?? -1] ?? 0
 
-  const s1Raw = kamp.er_bekreftet ? (p1?.score_poeng ?? 0) : (scoreForSp(p1) + (harOmg1 ? hcp1 : 0))
-  const s2Raw = kamp.er_bekreftet ? (p2?.score_poeng ?? 0) : (scoreForSp(p2) + (harOmg2 ? hcp2 : 0))
+  const s1Raw = kamp.er_bekreftet ? sideScore(side1, true) : (sideScore(side1, false) + (harOmg1 ? hcp1 : 0))
+  const s2Raw = kamp.er_bekreftet ? sideScore(side2, true) : (sideScore(side2, false) + (harOmg2 ? hcp2 : 0))
 
   const erUbekreftaWalkover = kamp.er_walkover && !kamp.er_bekreftet
   const s1 = erUbekreftaWalkover ? 21 : s1Raw
@@ -532,15 +543,15 @@ function kampRadMobil(
   const p2ErBye = kamp.er_walkover && !p2?.kaster
   const p2NavnKort = p2ErBye ? 'Walkover' : sideNavn(side2, true)
 
-  const harOmg1 = (p1?.omgangar?.length ?? 0) > 0
-  const harOmg2 = (p2?.omgangar?.length ?? 0) > 0
+  const harOmg1 = sideHarOmgangar(side1)
+  const harOmg2 = sideHarOmgangar(side2)
   const harOmgangar = harOmg1 || harOmg2
   const isLive = harOmgangar && !kamp.er_bekreftet
   const hcp1 = hcpMap[p1?.kasterid ?? -1] ?? 0
   const hcp2 = hcpMap[p2?.kasterid ?? -1] ?? 0
 
-  const s1Raw = kamp.er_bekreftet ? (p1?.score_poeng ?? 0) : (scoreForSp(p1) + (harOmg1 ? hcp1 : 0))
-  const s2Raw = kamp.er_bekreftet ? (p2?.score_poeng ?? 0) : (scoreForSp(p2) + (harOmg2 ? hcp2 : 0))
+  const s1Raw = kamp.er_bekreftet ? sideScore(side1, true) : (sideScore(side1, false) + (harOmg1 ? hcp1 : 0))
+  const s2Raw = kamp.er_bekreftet ? sideScore(side2, true) : (sideScore(side2, false) + (harOmg2 ? hcp2 : 0))
   const erUbekreftaWalkover = kamp.er_walkover && !kamp.er_bekreftet
   const s1 = erUbekreftaWalkover ? 21 : s1Raw
   const s2 = erUbekreftaWalkover ? 0 : s2Raw
