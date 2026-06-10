@@ -14,7 +14,8 @@
     "typecheck:test": "tsc --noEmit -p tsconfig.test.json",
     "test": "vitest",
     "test:run": "vitest run",
-    "preview": "vite preview --host"
+    "preview": "vite preview --host",
+    "test:db": "supabase test db"
   },
   "devDependencies": {
     "happy-dom": "^20.10.1",

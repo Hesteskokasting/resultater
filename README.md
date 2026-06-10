@@ -10,10 +10,30 @@ Nettapplikasjon for Norges Hesteskokastingsforbund. Viser resultat, terminliste,
 ## Krav
 
 - [Node.js](https://nodejs.org/) v20 eller nyare
+- [WSL 2](https://learn.microsoft.com/en-us/windows/wsl/install) (Windows Subsystem for Linux) — påkravd av Docker Desktop
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) — påkravd for lokal Supabase-stack og integrasjonstesting
 
 ---
 
 ## Oppsett på ny maskin
+
+### 1. WSL 2 og Docker Desktop
+
+WSL 2 må installerast før Docker Desktop. Køyr i PowerShell som administrator:
+
+```powershell
+wsl --install
+```
+
+Start maskinen på nytt når du vert beden om det. Installer deretter Docker Desktop:
+
+```powershell
+winget install Docker.DockerDesktop
+```
+
+Start Docker Desktop og vent til det grøne ikonet i systembrettet viser at det køyrer.
+
+### 2. Klon og installer avhengigheiter
 
 ```bash
 git clone https://github.com/hesteskokasting/resultater.git
@@ -48,6 +68,7 @@ Appen er tilgjengeleg på `http://localhost:5173`.
 | `npm run test` | Køyrer Vitest i watch-modus — re-køyrer testar ved kvar filendring |
 | `npm run test:run` | Eingongskøyring av alle testar — bruk dette før commit og i CI |
 | `npm run typecheck:test` | Typesjekkjer testfilene (Vitest brukar esbuild, ikkje tsc — dette er einaste typesjekkinga av `tests/`) |
+| `npm run test:db` | Køyrer pgTAP-integrasjonstestane mot lokal Supabase-stack (krev `npx supabase start` fyrst) |
 
 **Du treng ikkje køyre `build` eller `dev` før du pushar.** GitHub Actions byggjer automatisk når du pushar:
 
@@ -71,6 +92,20 @@ npm run typecheck && npm run typecheck:test && npm run test:run
 ```
 
 Konfigurasjon: `vite.config.js` (test-blokk) og `tsconfig.test.json`.
+
+### Integrasjonstesting (pgTAP)
+
+Integrasjonstestane verifiserer databaselaget: RLS-politikkar og `SECURITY DEFINER`-funksjonar. Testfilene ligg i `supabase/tests/` og køyrer mot ein lokal Supabase-stack.
+
+**Krav:** WSL 2 og Docker Desktop må vere installert og køyrande (sjå [Oppsett på ny maskin](#oppsett-på-ny-maskin)).
+
+```bash
+npx supabase start   # startar lokal Postgres og køyrer alle migreringsfiler
+npm run test:db      # køyrer alle pgTAP-testar i supabase/tests/
+npx supabase stop    # stoppar lokal stack når du er ferdig
+```
+
+Køyr integrasjonstestane når du endrar migreringsfiler, RLS-politikkar eller `SECURITY DEFINER`-funksjonar. Dei er ikkje ein del av den raske pre-commit-sjekkanen (Vitest).
 
 ---
 
