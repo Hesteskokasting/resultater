@@ -262,9 +262,11 @@ Phase 1 (Schema + Pair UI)
 
 **Phase 2.5:** Open the innledende page for a Par stevne. Each match row shows one label per side ("Fornavn E. / Fornavn E."), the stilling tab shows one row per pair with joined names and the title counts pairs. Expanding a stilling row shows the opposing *pair* (not the partner) as motstandar. A Singel stevne renders exactly as before.
 
-**Phase 3–4:** Play a match — scoreboard shows pair names as "A / B". Enter scores and confirm. Verify both players in the pair have identical `score_poeng` and `kamp_poeng` in `kamp_spelar`.
+**Phase 3–4:** Play a match — scoreboard shows pair names as "A / B". Enter scores and confirm. Verify both players in the pair have identical `kamp_poeng` in `kamp_spelar`. Verify `score_poeng` and `antall_ringer` is correct for each player in `kamp_omgang`.
 
 **Phase 5:** Run a Par tournament through finals. Both winning pair members get `plassering = 1` in `resultat`. Both losing pair members get `runde_eliminert` set.
+
+**Run a singel stevne** Verify that a normal singel stevne runs as before.
 
 ---
 
