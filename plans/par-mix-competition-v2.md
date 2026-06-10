@@ -92,6 +92,39 @@ New function `genererInnledendeKamperPar(stevneid, kastemetodeNavn, antallRunder
 
 ---
 
+## Phase 2.5 — Match List & Standings Grouping (innledende + avsluttende UI)
+
+**Goal:** The match lists and standings tables render a pair as **one unit** — one name label per match side, one standings row per pair. (The dispatchers `stevne-innledende.ts`/`stevne-avsluttende.ts` need no changes — the rendering lives in the shared base renderers.)
+
+### New pure helpers in `src/utils/kamp.ts`
+
+- `getMatchSides(spelarar, startnrMap, posisjonMap)` — generalizes `hentP1P2`: groups a match's `kamp_spelar` rows by `resultat.startnummer` into two sides. Each side is `{ rep, members }` — `members` ordered by `posisjon` (1 for Singel, 2 for Par/Mix), `rep` is the posisjon-1 player whose row carries the side's score and omgangar. For Singel this is behavior-identical to `hentP1P2`.
+- `groupStandingsByPair(rows, posisjonMap)` — collapses standings rows that share a `startnummer` into one row (rep's values, names joined with " / ").
+
+### Modified service: `src/services/resultatService.ts`
+
+`hentResultatForInnledende` and `hentResultatForAvsluttende` select `posisjon` (needed to order pair members and pick the representative).
+
+### Modified: `src/organizer/org-shared.ts`
+
+- `renderSpelarkamparDetalj` — resolve the opponent **by side** (different startnummer), not "the other kasterid" (which would pick the player's own partner in Par). Opponent label = joined member names.
+- `renderStillingTabell` — new opts `posisjonMap` (threaded to the detail rows) and `unitLabel` (title shows "4 par" instead of "8 spelarar").
+- `byggInnledendeSpelMap` — walkover exclusion becomes side-based (the old `hentP1P2`-based check would wrongly exclude the bye pair's own partner).
+
+### Modified: `src/pages/stevne/innledende/innledendeBase.ts`
+
+- Detect Par from data: any `startnummer` shared by 2+ kasterids in `resultat` (no kategori fetch needed).
+- Replace `hentP1P2` with `getMatchSides`; all score/confirm logic uses `side.rep` where it used `p1`/`p2`.
+- Name labels: pair sides show `"Fornavn E. / Fornavn E."` (new `kasterNavnKort()` in `@/utils/kaster`, also reused by the existing mobile rows).
+- Stilling: collapse with `groupStandingsByPair` before `sorterStilling` when Par.
+- Match confirmation still sends only the rep rows — partner write-back is Phase 4.
+
+### Avsluttende (spec now, implement with Phase 5)
+
+Same grouping via `getMatchSides`/`groupStandingsByPair` in `buildAvsluttendeStilling` and the variant renderers (`cup.ts`, `kongelag.ts`, `nordhordland.ts`). Deferred until Par cup generation exists — there is nothing to render before then.
+
+---
+
 ## Phase 3 — Scoreboard for Par/Mix (4 players, same design)
 
 **Goal:** Score entry for a Par match using the existing scoreboard design.
@@ -178,7 +211,7 @@ Existing `p_eliminert_kasterid` path is untouched (Singel).
 
 ## Phase 6 — Standings and Results Display
 
-No special code needed. Both players in a pair have identical `kamp_poeng_innl` and `score_poeng_innl`, so the existing `sorterStilling` and `renderStillingTabell` functions work without modification. Pair members always appear adjacent in standings because they share the same score values. The existing results display shows individual rows — the identical scores make pair membership visible without custom rendering.
+No special code needed. Standings grouping is handled by Phase 2.5 (`groupStandingsByPair` collapses pair members into one row), and both players in a pair carry identical `kamp_poeng_innl`/`score_poeng_innl`, so `sorterStilling` ranks the collapsed rows correctly without modification.
 
 ---
 
@@ -187,10 +220,11 @@ No special code needed. Both players in a pair have identical `kamp_poeng_innl` 
 ```
 Phase 1 (Schema + Pair UI)
     └── Phase 2 (Match Generation)
-            └── Phase 3 (Scoreboard)
-                    └── Phase 4 (Innledende Confirmation)
-                            └── Phase 5 (Cup/Finals)
-                                    └── Phase 6 — no code needed
+            └── Phase 2.5 (Match List & Standings Grouping)
+                    └── Phase 3 (Scoreboard)
+                            └── Phase 4 (Innledende Confirmation)
+                                    └── Phase 5 (Cup/Finals + avsluttende UI grouping)
+                                            └── Phase 6 — no code needed
 ```
 
 ---
@@ -204,7 +238,12 @@ Phase 1 (Schema + Pair UI)
 | `src/pages/stevne/stevne-deltakere.ts` | 1 |
 | `src/services/kampGenereringInnledendeService.ts` | 2 |
 | `src/services/kampGenereringCupService.ts` | 2, 5 |
-| `src/pages/stevne/stevne-innledende.ts` | 2 |
+| `src/utils/kamp.ts` | 2.5 |
+| `src/utils/kaster.ts` | 2.5 |
+| `src/services/resultatService.ts` | 2.5 |
+| `src/organizer/org-shared.ts` | 2.5 |
+| `src/pages/stevne/innledende/innledendeBase.ts` | 2.5 |
+| `src/pages/stevne/avsluttende/avsluttendeBase.ts` + variants | 2.5 (spec), 5 (impl) |
 | `src/services/kampService.ts` | 3 (query), 4 |
 | `src/components/Scoreboard.ts` | 3 |
 | `src/pages/kamp.ts` | 3 |
@@ -217,6 +256,8 @@ Phase 1 (Schema + Pair UI)
 **Phase 1:** Register 4 players in a Par stevne. Assign them to pairs via drag-and-drop in the Parar tab. Confirm `pamelding.lag_id` and `pamelding.posisjon` are set. Test Mix gender block via DB trigger.
 
 **Phase 2:** Generate preliminary rounds. Inspect `kamp_spelar` — 4 rows per match. Both players in a pair share the same `resultat.startnummer` and have `resultat.posisjon` set.
+
+**Phase 2.5:** Open the innledende page for a Par stevne. Each match row shows one label per side ("Fornavn E. / Fornavn E."), the stilling tab shows one row per pair with joined names and the title counts pairs. Expanding a stilling row shows the opposing *pair* (not the partner) as motstandar. A Singel stevne renders exactly as before.
 
 **Phase 3–4:** Play a match — scoreboard shows pair names as "A / B". Enter scores and confirm. Verify both players in the pair have identical `score_poeng` and `kamp_poeng` in `kamp_spelar`.
 
