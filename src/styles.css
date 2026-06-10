@@ -1715,22 +1715,33 @@ th.innl-score-th {
   border-right: none;
 }
 
+/* All sb font/button sizes are wrapped in min(<width clamp>, Xvh): the panel
+   centers content with overflow:hidden, so on short viewports (e.g. 1600x700)
+   width-based sizes overflow the panel height and clip name/buttons. The vh
+   term only wins when height is the constraint. */
+
 .sb-spelar-navn {
-  font-size: clamp(2.1rem, 4vw, 2.2rem);
+  font-size: min(clamp(2.1rem, 4vw, 2.2rem), 5vh);
   font-weight: bold;
   color: var(--sb-positiv);
   text-align: center;
 }
 
+/* Par/Mix: two names per side — smaller so the label fits on one line */
+.sb-spelar-navn--par {
+  font-size: min(clamp(1.3rem, 3.2vw, 1.7rem), 4vh);
+  line-height: 1.15;
+}
+
 .sb-score {
-  font-size: clamp(4rem, 18vw, 9rem);
+  font-size: min(clamp(4rem, 18vw, 9rem), 13vh);
   font-weight: bold;
   line-height: 1;
 }
 
 .sb-ringer-info {
   margin: 0;
-  font-size: clamp(0.85rem, 2.5vw, 1.1rem);
+  font-size: min(clamp(0.85rem, 2.5vw, 1.1rem), 3vh);
   color: var(--sb-tekst-subtil);
   text-align: center;
 }
@@ -1744,9 +1755,9 @@ th.innl-score-th {
 }
 
 .sb-poeng-btn {
-  width: clamp(54px, 14vw, 90px);
-  height: clamp(54px, 14vw, 90px);
-  font-size: clamp(1.4rem, 5vw, 2.4rem);
+  width: min(clamp(54px, 14vw, 90px), 9vh);
+  height: min(clamp(54px, 14vw, 90px), 9vh);
+  font-size: min(clamp(1.4rem, 5vw, 2.4rem), 4vh);
   font-weight: bold;
   background: var(--sb-knapp-bg);
   color: var(--sb-knapp-tekst);
@@ -1841,25 +1852,27 @@ th.innl-score-th {
 .sb-negativ { color: var(--sb-negativ); }
 
 @media (min-width: 801px) {
-  .sb-score { font-size: clamp(8rem, 20vw, 26rem); }
+  .sb-score { font-size: min(clamp(8rem, 20vw, 26rem), 38vh); }
   .sb-poeng-btn {
-    width: clamp(70px, 8vw, 120px);
-    height: clamp(70px, 8vw, 120px);
-    font-size: clamp(1.8rem, 3.5vw, 3.5rem);
+    width: min(clamp(70px, 8vw, 120px), 13vh);
+    height: min(clamp(70px, 8vw, 120px), 13vh);
+    font-size: min(clamp(1.8rem, 3.5vw, 3.5rem), 5vh);
   }
-  .sb-spelar-navn { font-size: clamp(2rem, 4vw, 5rem); }
-  .sb-ringer-info { font-size: clamp(1rem, 2vw, 2rem); }
+  .sb-spelar-navn { font-size: min(clamp(2rem, 4vw, 5rem), 8vh); }
+  .sb-spelar-navn--par { font-size: min(clamp(1.6rem, 2.2vw, 2.8rem), 6vh); }
+  .sb-ringer-info { font-size: min(clamp(1rem, 2vw, 2rem), 4vh); }
 }
 
 @media (min-width: 1500px) {
-  .sb-score { font-size: clamp(14rem, 22vw, 32rem); }
+  .sb-score { font-size: min(clamp(14rem, 22vw, 32rem), 40vh); }
   .sb-poeng-btn {
-    width: clamp(100px, 9vw, 160px);
-    height: clamp(100px, 9vw, 160px);
-    font-size: clamp(2.5rem, 4vw, 5rem);
+    width: min(clamp(100px, 9vw, 160px), 14vh);
+    height: min(clamp(100px, 9vw, 160px), 14vh);
+    font-size: min(clamp(2.5rem, 4vw, 5rem), 5vh);
   }
-  .sb-spelar-navn { font-size: clamp(3rem, 5vw, 7rem); }
-  .sb-ringer-info { font-size: clamp(1.5rem, 2.5vw, 3rem); }
+  .sb-spelar-navn { font-size: min(clamp(3rem, 5vw, 7rem), 8vh); }
+  .sb-spelar-navn--par { font-size: min(clamp(2rem, 2.6vw, 3.8rem), 6vh); }
+  .sb-ringer-info { font-size: min(clamp(1.5rem, 2.5vw, 3rem), 4vh); }
 }
 
 @media (max-width: 800px) {
@@ -1884,6 +1897,7 @@ th.innl-score-th {
   }
   .sb-spelar-panel:last-child { border-right: none; }
   .sb-spelar-navn { font-size: clamp(1.5rem, 8vh, 3rem); }
+  .sb-spelar-navn--par { font-size: clamp(1.1rem, 5vh, 1.8rem); }
   .sb-score { font-size: clamp(4rem, 32vh, 12rem); }
   .sb-ringer-info { display: none; }
   .sb-knappar {
@@ -1925,36 +1939,43 @@ th.innl-score-th {
 }
 
 .sb-wrap--3p .sb-poeng-btn {
-  width: clamp(42px, 9vw, 68px);
-  height: clamp(42px, 9vw, 68px);
-  font-size: clamp(1rem, 3.5vw, 1.7rem);
+  width: min(clamp(42px, 9vw, 68px), 9vh);
+  height: min(clamp(42px, 9vw, 68px), 9vh);
+  font-size: min(clamp(1rem, 3.5vw, 1.7rem), 4vh);
 }
 
 @media (min-width: 801px) {
   .sb-wrap--3p .sb-poeng-btn {
-    width: clamp(50px, 5vw, 85px);
-    height: clamp(50px, 5vw, 85px);
-    font-size: clamp(1.3rem, 2.3vw, 2.5rem);
+    width: min(clamp(50px, 5vw, 85px), 12vh);
+    height: min(clamp(50px, 5vw, 85px), 12vh);
+    font-size: min(clamp(1.3rem, 2.3vw, 2.5rem), 5vh);
   }
 }
 
 .sb-wrap--3p .sb-score {
-  font-size: clamp(3rem, 10vw, 6rem);
+  font-size: min(clamp(3rem, 10vw, 6rem), 13vh);
 }
 
 @media (min-width: 801px) {
   .sb-wrap--3p .sb-score {
-    font-size: clamp(5rem, 12vw, 18rem);
+    font-size: min(clamp(5rem, 12vw, 18rem), 36vh);
   }
 }
 
 .sb-wrap--3p .sb-spelar-navn {
-  font-size: clamp(1.2rem, 2.5vw, 2rem);
+  font-size: min(clamp(1.2rem, 2.5vw, 2rem), 5vh);
+}
+
+.sb-wrap--3p .sb-spelar-navn--par {
+  font-size: min(clamp(1rem, 1.8vw, 1.5rem), 4vh);
 }
 
 @media (min-width: 801px) {
   .sb-wrap--3p .sb-spelar-navn {
-    font-size: clamp(1.8rem, 2.5vw, 4rem);
+    font-size: min(clamp(1.8rem, 2.5vw, 4rem), 7vh);
+  }
+  .sb-wrap--3p .sb-spelar-navn--par {
+    font-size: min(clamp(1.3rem, 1.8vw, 2.6rem), 5vh);
   }
 }
 

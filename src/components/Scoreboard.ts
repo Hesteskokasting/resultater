@@ -175,8 +175,8 @@ export async function renderScoreboard(
     }
 
     const wrap = lagEl('div', null, isEditMode ? 'sb-wrap sb-wrap--edit-mode' : 'sb-wrap')
-    wrap.appendChild(lagSpelerPanel(p1Navn ?? spelarNamn(p1ks, 'Spelar 1'), t1, r1, maxRinger, val1, p1Dis, !kanRedigere, 1))
-    wrap.appendChild(lagSpelerPanel(p2Navn ?? spelarNamn(p2ks, 'Spelar 2'), t2, r2, maxRinger, val2, p2Dis, !kanRedigere, 2))
+    wrap.appendChild(lagSpelerPanel(p1Navn ?? spelarNamn(p1ks, 'Spelar 1'), t1, r1, maxRinger, val1, p1Dis, !kanRedigere, 1, p1Navn != null))
+    wrap.appendChild(lagSpelerPanel(p2Navn ?? spelarNamn(p2ks, 'Spelar 2'), t2, r2, maxRinger, val2, p2Dis, !kanRedigere, 2, p2Navn != null))
     container.appendChild(wrap)
 
     if (kanRedigere && !kamp.er_bekreftet) {
@@ -239,9 +239,10 @@ export async function renderScoreboard(
     disabledSet: Set<number>,
     lesvisning: boolean,
     spelarNr: number,
+    erParNavn = false,
   ): HTMLElement {
     const panel = lagEl('div', null, 'sb-spelar-panel')
-    panel.appendChild(lagEl('div', navn, 'sb-spelar-navn'))
+    panel.appendChild(lagEl('div', navn, erParNavn ? 'sb-spelar-navn sb-spelar-navn--par' : 'sb-spelar-navn'))
     panel.appendChild(lagEl('div', String(total), 'sb-score'))
 
     const ringerPct = maxRinger > 0 ? Math.round(ringer / maxRinger * 100) : 0
@@ -376,11 +377,11 @@ async function renderScoreboard3(
   const spelarar = [p1ks, p2ks, p3ks].filter((s): s is KampSpelarIKamp => s != null)
   const spelarIds = spelarar.map(s => s.id).filter((id): id is number => id != null)
 
-  function navnFor(ks: KampSpelarIKamp): string {
-    if (p1Navn && ks === p1ks) return p1Navn
-    if (p2Navn && ks === p2ks) return p2Navn
-    if (p3Navn && ks === p3ks) return p3Navn
-    return spelarNamn(ks)
+  function navnFor(ks: KampSpelarIKamp): { label: string; erPar: boolean } {
+    if (p1Navn && ks === p1ks) return { label: p1Navn, erPar: true }
+    if (p2Navn && ks === p2ks) return { label: p2Navn, erPar: true }
+    if (p3Navn && ks === p3ks) return { label: p3Navn, erPar: true }
+    return { label: spelarNamn(ks), erPar: false }
   }
 
   let omgangData: KampOmgangRow[] = []
@@ -487,7 +488,8 @@ async function renderScoreboard3(
       const visVunne = erVunne && !isEditMode3
       const plass = visVunne ? vinnRekkefolge.indexOf(i) + 1 : null
       const panel = lagEl('div', null, `sb-spelar-panel${visVunne ? ' sb-spelar-panel--vann' : ''}`)
-      panel.appendChild(lagEl('div', navnFor(ks), 'sb-spelar-navn'))
+      const navn = navnFor(ks)
+      panel.appendChild(lagEl('div', navn.label, navn.erPar ? 'sb-spelar-navn sb-spelar-navn--par' : 'sb-spelar-navn'))
       panel.appendChild(lagEl('div', String(totalar[i]), 'sb-score'))
 
       if (plass) panel.appendChild(lagEl('div', `${plass}. plass`, 'sb-plass-badge'))
