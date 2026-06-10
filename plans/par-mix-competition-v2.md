@@ -196,27 +196,17 @@ Callers wired: `src/pages/kamp.ts` (`onBekreft`) and `innledendeBase.ts` (`bekre
 
 ### Step 3 — Elimination RPC
 
-**New migration:** `supabase/migrations/<timestamp>_rpc_bekreft_avsluttende_kamp_par.sql`
+**New migration:** `supabase/migrations/<timestamp>_rpc_bekreft_avsluttende_kamp_v6.sql`
 
-Extends the existing RPC with a new optional parameter:
+**No new parameter.** The function keeps its signature — `(p_kamp_id, p_eliminert_kasterid)` — and resolves the eliminated UNIT internally: look up `p_eliminert_kasterid`'s `startnummer` in `resultat` for this stevne; everyone sharing it is the eliminated side. For Singel every group has one member, so behavior is byte-identical and the existing pgTAP test passes unchanged.
 
-```sql
-CREATE OR REPLACE FUNCTION public.bekreft_avsluttende_kamp_deltakar(
-  p_kamp_id              INT,
-  p_eliminert_kasterid   INT DEFAULT NULL,
-  p_eliminert_startnummer INT DEFAULT NULL   -- new: identifies eliminated PAIR
-)
-```
+Body changes:
+- Eliminated side's `kamp_plassering`: `kasterid IN (<group>)` instead of `= p_eliminert_kasterid`; winners stay `NOT IN`.
+- Eliminated place = number of SIDES, not rows: `COUNT(DISTINCT startnummer)` over the kamp's players (a Par match has 4 rows but 2 sides; identical count for Singel).
+- Finale/Bronsefinale `plassering` and `runde_eliminert`: written to all members of each side's group.
+- 3-pair matches (6 players): the group resolution identifies the one eliminated pair; the other two advance — no special handling.
 
-When `p_eliminert_startnummer` is provided:
-- Identify all `kasterid` values in `resultat` with this `startnummer` and this `stevneid`
-- Write `kamp_plassering = 2` to their `kamp_spelar` rows, `kamp_plassering = 1` to the other pair
-- Write `runde_eliminert` to both eliminated players' `resultat` rows
-- On Finale/Bronsefinale: write `plassering` to all 4 players
-
-Existing `p_eliminert_kasterid` path is untouched (Singel).
-
-**3-pair cup note:** For 3-pair avsluttende matches (6 players), `p_eliminert_startnummer` identifies which pair is eliminated. The remaining two pairs advance. This works with the same parameter — the function writes elimination data for the one identified pair.
+**Client change:** `buildEliminertKasterid` must compare SIDE totals (sum both members' omgang rows — members alternate omgangar, so a rep's rows alone are half the side). Any member's kasterid then works as `p_eliminert_kasterid`.
 
 ---
 
@@ -258,7 +248,7 @@ Phase 1 (Schema + Pair UI)
 | `src/services/kampService.ts` | 3 (query), 4 |
 | `src/components/Scoreboard.ts` | 3 |
 | `src/pages/kamp.ts` | 3 |
-| `supabase/migrations/20260610110000_rpc_bekreft_avsluttende_kamp_par.sql` | 5 |
+| `supabase/migrations/<timestamp>_rpc_bekreft_avsluttende_kamp_v6.sql` | 5 |
 
 ---
 
