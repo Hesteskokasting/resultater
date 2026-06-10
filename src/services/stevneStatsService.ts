@@ -40,3 +40,21 @@ export async function hentKamperForStats(
   if (error) logError('hentKamperForStats', error)
   return { data: data ?? [], error }
 }
+
+/**
+ * kasterid → posisjon for a stevne (Par/Mix only; empty for Singel).
+ * Used to compare each player's score against the same-posisjon opponent:
+ * in Par/Mix posisjon 1 plays posisjon 1, posisjon 2 plays posisjon 2.
+ */
+export async function hentPosisjonForStevne(stevneId: number): Promise<Map<number, number>> {
+  const { data, error } = await supabase
+    .from('resultat')
+    .select('kasterid, posisjon')
+    .eq('stevneid', stevneId)
+  if (error) logError('hentPosisjonForStevne', error)
+  const map = new Map<number, number>()
+  for (const r of data ?? []) {
+    if (r.kasterid != null && r.posisjon != null) map.set(r.kasterid, r.posisjon)
+  }
+  return map
+}

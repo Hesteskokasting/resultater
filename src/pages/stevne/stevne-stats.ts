@@ -4,7 +4,7 @@ import { logError } from '@/utils/logError'
 import { createLoadingState } from '@/components/LoadingState'
 import { createErrorBanner } from '@/components/ErrorBanner'
 import { createEmptyState } from '@/components/EmptyState'
-import { hentKamperForStats } from '@/services/stevneStatsService'
+import { hentKamperForStats, hentPosisjonForStevne } from '@/services/stevneStatsService'
 import type { StatsKampRow } from '@/services/stevneStatsService'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -27,7 +27,25 @@ interface PlayerStats {
 
 // ── Aggregation ───────────────────────────────────────────────────────────────
 
-function aggregateStats(kamper: StatsKampRow[]): PlayerStats[] {
+/**
+ * Sum of score_poeng of the opponents a player actually competed against:
+ * the same-posisjon players on the other side(s). In Par/Mix posisjon 1 plays
+ * posisjon 1 and posisjon 2 plays posisjon 2, so the diff must exclude the
+ * partner (other posisjon) and the player themselves. For Singel every player
+ * has posisjon null, so this reduces to "all other players in the match".
+ */
+export function sumOpponentScore(
+  sp: { kasterid: number },
+  spelarar: { kasterid: number; score_poeng: number }[],
+  posisjonMap: Map<number, number>,
+): number {
+  const spPos = posisjonMap.get(sp.kasterid) ?? null
+  return spelarar
+    .filter(o => o.kasterid !== sp.kasterid && (posisjonMap.get(o.kasterid) ?? null) === spPos)
+    .reduce((sum, o) => sum + o.score_poeng, 0)
+}
+
+function aggregateStats(kamper: StatsKampRow[], posisjonMap: Map<number, number>): PlayerStats[] {
   const map = new Map<number, PlayerStats>()
 
   for (const kamp of kamper) {
@@ -35,9 +53,7 @@ function aggregateStats(kamper: StatsKampRow[]): PlayerStats[] {
     const spelarar = kamp.spelarar
 
     for (const sp of spelarar) {
-      const opponentScore = spelarar
-        .filter(o => o.kasterid !== sp.kasterid)
-        .reduce((sum, o) => sum + o.score_poeng, 0)
+      const opponentScore = sumOpponentScore(sp, spelarar, posisjonMap)
 
       if (!map.has(sp.kasterid)) {
         map.set(sp.kasterid, {
@@ -180,14 +196,17 @@ export async function render(
   container.replaceChildren(createLoadingState('Laster statistikk…'))
 
   try {
-    const { data, error } = await hentKamperForStats(id)
+    const [{ data, error }, posisjonMap] = await Promise.all([
+      hentKamperForStats(id),
+      hentPosisjonForStevne(id),
+    ])
 
     if (error) {
       container.replaceChildren(createErrorBanner('Kunne ikkje laste statistikk.'))
       return
     }
 
-    const spelarar = aggregateStats(data)
+    const spelarar = aggregateStats(data, posisjonMap)
 
     if (!spelarar.length) {
       container.replaceChildren(createEmptyState('Ingen bekrefte kampar enno.'))

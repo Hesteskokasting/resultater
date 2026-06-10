@@ -174,6 +174,30 @@ export async function hentKampResultatInfo(
   return { startnrMap, posisjonMap, hcpMap }
 }
 
+/**
+ * startnummer per (stevneid, kasterid) across several stevner, keyed
+ * `${stevneid}:${kasterid}`. Used to group a match's players into sides
+ * (same startnummer = same pair) when the stevne context varies per match,
+ * e.g. the "Mine kampar" list which spans many stevner.
+ */
+export async function hentStartnummerForStevner(
+  stevneIds: number[],
+): Promise<Record<string, number>> {
+  if (!stevneIds.length) return {}
+  const { data, error } = await supabase
+    .from('resultat')
+    .select('stevneid, kasterid, startnummer')
+    .in('stevneid', stevneIds)
+  if (error) logError('hentStartnummerForStevner', error)
+  const map: Record<string, number> = {}
+  for (const r of data ?? []) {
+    if (r.kasterid != null && r.startnummer != null) {
+      map[`${r.stevneid}:${r.kasterid}`] = r.startnummer
+    }
+  }
+  return map
+}
+
 export async function hentNesteKampOrganisator(
   stevneId: number,
   baneNummer: number,

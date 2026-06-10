@@ -8,7 +8,7 @@ import { logError } from '@/utils/logError'
 import { formaterDato } from '@/utils/shared'
 import { hentKastereListeAktive, hentKasterForKobling } from '@/services/kasterService'
 import { hentMinePameldingar } from '@/services/pameldingService'
-import { hentMineKampar } from '@/services/kampService'
+import { hentMineKampar, hentStartnummerForStevner } from '@/services/kampService'
 import { sendProfileLinkRequest } from '@/services/brukerProfilService'
 import { createTabs } from '@/components/Tabs'
 import type { Rolle, KoblingStatus } from '@/types'
@@ -102,6 +102,11 @@ async function createMineKampar(kasterid: number): Promise<HTMLElement> {
 
   const alleKampar = data.filter(ks => !ks.kamp?.er_walkover)
 
+  // Side lookup (startnummer per stevne+player) so opponents exclude my own
+  // partner in Par/Mix; spans every stevne the matches belong to.
+  const stevneIds = [...new Set(alleKampar.map(ks => ks.kamp?.stevneid).filter((s): s is number => s != null))]
+  const snrMap = await hentStartnummerForStevner(stevneIds)
+
   const kommande = alleKampar
     .filter(ks => ks.kamp?.stevne?.erfullfort === false && !ks.kamp?.er_bekreftet)
     .sort((a, b) => (a.kamp?.runde_nummer ?? 0) - (b.kamp?.runde_nummer ?? 0))
@@ -114,9 +119,18 @@ async function createMineKampar(kasterid: number): Promise<HTMLElement> {
 
   const lagKampRad = (ks: KampSpelarRow, knapp: string): string => {
     const kamp = ks.kamp
-    const motstandar = (kamp?.spelarar ?? []).find(s => s.kasterid !== kasterid)
-    const motstandarNamn = motstandar?.kaster
-      ? escHtml(`${motstandar.kaster.fornavn} ${motstandar.kaster.etternavn}`)
+    const stevneid = kamp?.stevneid
+    // My side; opponents are everyone on a different side. Same startnummer =
+    // my partner (excluded). Singel: each player has a unique startnummer, so
+    // every other player is an opponent (covers 3-player matches too).
+    const mineSnr = stevneid != null ? snrMap[`${stevneid}:${kasterid}`] : undefined
+    const motstandarar = (kamp?.spelarar ?? []).filter(s => {
+      if (s.kasterid == null || s.kasterid === kasterid) return false
+      const oSnr = stevneid != null ? snrMap[`${stevneid}:${s.kasterid}`] : undefined
+      return mineSnr == null || oSnr == null || oSnr !== mineSnr
+    })
+    const motstandarNamn = motstandarar.length
+      ? motstandarar.map(m => escHtml(kasterNavn(m.kaster))).join(' / ')
       : '–'
     return `<tr>
       <td>R${kamp?.runde_nummer ?? ''} / B${kamp?.bane_nummer ?? ''}</td>
