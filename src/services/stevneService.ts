@@ -24,7 +24,8 @@ const _infoStevneQuery = supabase
   .select(`
     id, navn, dato, tid, sted, stevne_fase, antall_runder_innl, erfullfort, klubbid,
     kastemetodeInnl:kastemetode!stevne_innledendekastemetodeid_fkey(id, navn),
-    kastemetodeAvsl:kastemetode!stevne_avsluttendekastemetodeid_fkey(id, navn)
+    kastemetodeAvsl:kastemetode!stevne_avsluttendekastemetodeid_fkey(id, navn),
+    kategori:kategoriid(erlagbasert)
   `)
 
 export type InfoStevneRow = QueryData<typeof _infoStevneQuery>[number]
@@ -105,7 +106,8 @@ export async function hentInfoStevne(id: number): Promise<{ data: InfoStevneRow 
     .select(`
       id, navn, dato, tid, sted, stevne_fase, antall_runder_innl, erfullfort, klubbid,
       kastemetodeInnl:kastemetode!stevne_innledendekastemetodeid_fkey(id, navn),
-      kastemetodeAvsl:kastemetode!stevne_avsluttendekastemetodeid_fkey(id, navn)
+      kastemetodeAvsl:kastemetode!stevne_avsluttendekastemetodeid_fkey(id, navn),
+      kategori:kategoriid(erlagbasert)
     `)
     .eq('id', id)
     .maybeSingle()
@@ -388,14 +390,14 @@ export async function hentAvsluttendeMetodeNamn(stevneid: number): Promise<{ nav
 
 const _innlStevneQuery = supabase
   .from('stevne')
-  .select('id, navn, erfullfort, stevne_fase, antall_runder_innl, kastemetodeInnl:innledendekastemetodeid(id, navn)')
+  .select('id, navn, erfullfort, stevne_fase, antall_runder_innl, kastemetodeInnl:innledendekastemetodeid(id, navn), kategori:kategoriid(erlagbasert)')
 
 export type InnlStevneRow = QueryData<typeof _innlStevneQuery>[number]
 
 export async function hentInnledendeStevne(stevneid: number): Promise<{ data: InnlStevneRow | null; error: unknown }> {
   const { data, error } = await supabase
     .from('stevne')
-    .select('id, navn, erfullfort, stevne_fase, antall_runder_innl, kastemetodeInnl:innledendekastemetodeid(id, navn)')
+    .select('id, navn, erfullfort, stevne_fase, antall_runder_innl, kastemetodeInnl:innledendekastemetodeid(id, navn), kategori:kategoriid(erlagbasert)')
     .eq('id', stevneid)
     .maybeSingle()
   if (error) logError('hentInnledendeStevne', error)

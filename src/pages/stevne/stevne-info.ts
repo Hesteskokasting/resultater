@@ -36,6 +36,7 @@ export async function render(
     const ikkjeStarta = fase === null || fase === 'ikke_startet'
     const metodeNavn  = stevne.kastemetodeInnl?.navn ?? '—'
     const erCascade   = metodeNavn.toLowerCase().includes('gloppen')
+    const erLag       = stevne.kategori?.erlagbasert ?? false
 
     // ── Start-stevne-knapp (admin, ikkje starta) ──────────────────────────────
 
@@ -43,8 +44,13 @@ export async function render(
       bannerSlot.innerHTML = `<button id="start-stevne-btn" class="btn btn-sm btn-success">Start stevne</button>`
       const startBtn = bannerSlot.querySelector<HTMLButtonElement>('#start-stevne-btn')!
       startBtn.addEventListener('click', async () => {
-        if (antall < 2) {
-          showToast('Stevnet må ha minst 2 spelarar for å startast.', 'error')
+        if (erLag ? antall < 4 : antall < 2) {
+          showToast(
+            erLag
+              ? 'Stevnet treng minst 2 par (4 spelarar) for å startast.'
+              : 'Stevnet må ha minst 2 spelarar for å startast.',
+            'error',
+          )
           return
         }
         if (erCascade && !stevne.antall_runder_innl) {
@@ -59,7 +65,7 @@ export async function render(
         startBtn.disabled = true
         startBtn.textContent = 'Starter…'
         try {
-          await genererInnledendeKamper(id, metodeNavn, stevne.antall_runder_innl ?? 1)
+          await genererInnledendeKamper(id, metodeNavn, stevne.antall_runder_innl ?? 1, erLag)
         } catch (err) {
           showToast('Feil ved kampgenerering: ' + (err instanceof Error ? err.message : String(err)), 'error')
           startBtn.disabled = false
