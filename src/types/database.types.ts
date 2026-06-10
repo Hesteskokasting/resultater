@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -483,7 +483,9 @@ export type Database = {
           er_bekreftet: boolean
           id: number
           kasterid: number
+          lag_id: number | null
           opprettet_at: string
+          posisjon: number | null
           stevneid: number
         }
         Insert: {
@@ -491,7 +493,9 @@ export type Database = {
           er_bekreftet?: boolean
           id?: never
           kasterid: number
+          lag_id?: number | null
           opprettet_at?: string
+          posisjon?: number | null
           stevneid: number
         }
         Update: {
@@ -499,7 +503,9 @@ export type Database = {
           er_bekreftet?: boolean
           id?: never
           kasterid?: number
+          lag_id?: number | null
           opprettet_at?: string
+          posisjon?: number | null
           stevneid?: number
         }
         Relationships: [
@@ -536,6 +542,7 @@ export type Database = {
           poeng_golf: number | null
           poeng_kongelag: number | null
           poeng_xkast: number | null
+          posisjon: number | null
           runde_eliminert: number | null
           score_poeng_innl: number | null
           startnummer: number | null
@@ -557,6 +564,7 @@ export type Database = {
           poeng_golf?: number | null
           poeng_kongelag?: number | null
           poeng_xkast?: number | null
+          posisjon?: number | null
           runde_eliminert?: number | null
           score_poeng_innl?: number | null
           startnummer?: number | null
@@ -578,6 +586,7 @@ export type Database = {
           poeng_golf?: number | null
           poeng_kongelag?: number | null
           poeng_xkast?: number | null
+          posisjon?: number | null
           runde_eliminert?: number | null
           score_poeng_innl?: number | null
           startnummer?: number | null
