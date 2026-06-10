@@ -6,8 +6,7 @@ import { escHtml } from '@/utils/escHtml'
 import { renderScoreboard } from '@/components/Scoreboard'
 import {
   hentKamp,
-  hentHcp,
-  hentStartnrMap,
+  hentKampResultatInfo,
   hentNesteKampOrganisator,
   hentNesteKampDeltakar,
   erDeltakarIKamp,
@@ -15,6 +14,8 @@ import {
   bekreftAvsluttendeKamp,
   subscribeToNesteKamp,
 } from '@/services/kampService'
+import { getAllMatchSides, type MatchSide } from '@/utils/kamp'
+import { kasterNavnKort } from '@/utils/kaster'
 import { autoGenererFinaleOgBronsefinale } from '@/services/kampGenereringCupService'
 import { avmeldKanal } from '@/utils/realtime'
 import type { KampRow, KampSpelarIKamp } from '@/services/kampService'
@@ -57,22 +58,27 @@ export async function render(container: HTMLElement, params: Record<string, stri
   }
 
   const kasterids = (kamp.spelarar ?? []).map(s => s.kasterid).filter((id): id is number => id != null)
-  const [hcpMap, startnrMap] = await Promise.all([
-    hentHcp(kamp.stevneid, kasterids),
-    hentStartnrMap(kamp.stevneid, kasterids),
-  ])
+  const { startnrMap, posisjonMap, hcpMap } = await hentKampResultatInfo(kamp.stevneid, kasterids)
 
-  const spelarar = [...(kamp.spelarar ?? [])].sort(
-    (a, b) => (startnrMap[a.kasterid] ?? Infinity) - (startnrMap[b.kasterid] ?? Infinity),
-  )
+  // Sides ordered by startnummer — one member for Singel, two for Par/Mix.
+  const sides = getAllMatchSides(kamp.spelarar ?? [], startnrMap, posisjonMap)
   const kasterid = auth?.profil?.kasterid ?? null
   const rolle = auth?.profil?.rolle ?? null
   const erArrangor = rolle === 'admin' || rolle === 'klubbadmin'
-  const erDeltakar = kasterid != null && spelarar.some(s => s.kasterid === kasterid)
+  const erDeltakar = kasterid != null && (kamp.spelarar ?? []).some(s => s.kasterid === kasterid)
 
-  const p1ks: KampSpelarIKamp | null = spelarar[0] ?? null
-  const p2ks: KampSpelarIKamp | null = spelarar[1] ?? null
-  const p3ks: KampSpelarIKamp | null = kamp.er_tre_spelarar ? (spelarar[2] ?? null) : null
+  const p1Side = sides[0] ?? null
+  const p2Side = sides[1] ?? null
+  const p3Side = kamp.er_tre_spelarar ? (sides[2] ?? null) : null
+
+  const p1ks: KampSpelarIKamp | null = p1Side?.rep ?? null
+  const p2ks: KampSpelarIKamp | null = p2Side?.rep ?? null
+  const p3ks: KampSpelarIKamp | null = p3Side?.rep ?? null
+
+  function sideLabel(side: MatchSide<KampSpelarIKamp> | null): string | null {
+    if (!side || side.members.length < 2) return null
+    return side.members.map(m => kasterNavnKort(m.kaster)).join(' / ')
+  }
 
   const hcp1 = p1ks ? (hcpMap.get(p1ks.kasterid) ?? 0) : 0
   const hcp2 = p2ks ? (hcpMap.get(p2ks.kasterid) ?? 0) : 0
@@ -191,7 +197,15 @@ export async function render(container: HTMLElement, params: Record<string, stri
       if (error) { visKampFeil('Feil ved bekreftelse av kamp.'); return }
       await autoGenererFinaleOgBronsefinale(kampId)
     } else {
-      const { error } = await bekreftInnledendeKamp({ kampId, ...bekreftData, hcp1, hcp2, erWalkover: kamp.er_walkover })
+      const { error } = await bekreftInnledendeKamp({
+        kampId,
+        ...bekreftData,
+        hcp1,
+        hcp2,
+        erWalkover: kamp.er_walkover,
+        p1PartnerId: p1Side?.members[1]?.id ?? null,
+        p2PartnerId: p2Side?.members[1]?.id ?? null,
+      })
       if (error) { visKampFeil('Feil ved bekreftelse av kamp.'); return }
     }
 
@@ -215,5 +229,8 @@ export async function render(container: HTMLElement, params: Record<string, stri
     p3ks,
     hcp1,
     hcp2,
+    p1Navn: sideLabel(p1Side),
+    p2Navn: sideLabel(p2Side),
+    p3Navn: sideLabel(p3Side),
   })
 }

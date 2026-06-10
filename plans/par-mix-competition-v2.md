@@ -129,19 +129,19 @@ Same grouping via `getMatchSides`/`groupStandingsByPair` in `buildAvsluttendeSti
 
 **Goal:** Score entry for a Par match using the existing scoreboard design.
 
-**Scoreboard query change in `src/services/kampService.ts`:** Extend `_kampScoreboardQuery` to include `resultat(startnummer, posisjon)` joined via `kamp_spelar.kasterid + kamp.stevneid`. Backward-compatible — both columns are NULL for Singel.
+**Modified service: `src/services/kampService.ts`** — `hentHcp` + `hentStartnrMap` (both only used by the kamp page, both querying the same `resultat` rows) merged into one `hentKampResultatInfo(stevneid, kasterids)` returning `{ startnrMap, posisjonMap, hcpMap }` in a single query. No scoreboard-query change needed — the side grouping happens client-side via the maps.
 
 **Modified component:** `src/components/Scoreboard.ts`
 
-The scoreboard design is **unchanged**. For Par:
-- The two "sides" each represent a PAIR, not a single player
-- Name label shows `"Firstname L. / Firstname L."` (side A player / side B player), last names shortened to first initial
+The scoreboard design is **unchanged**. New optional `p1Navn`/`p2Navn`/`p3Navn` label overrides in `ScoreboardOptions` (both the 2- and 3-side variants); when absent, names render from the rep's kaster as before. For Par:
+- The sides each represent a PAIR, not a single player
+- Name label shows `"Fornavn E. / Fornavn E."` (posisjon 1 / posisjon 2)
 - Score buttons enter the pair's **combined** score for the omgang (same buttons, same constraints)
-- `kamp_omgang` rows are created for the `posisjon=1` player's `kamp_spelar_id` only (the representative for the pair)
+- `kamp_omgang` rows are created for the rep's `kamp_spelar_id` only — automatic, since the component receives the reps as `p1ks`/`p2ks`/`p3ks`
 
 **Modified page:** `src/pages/kamp.ts`
 
-Detect Par: `spelarar.some(s => s.startnummer != null && spelarar.filter(x => x.startnummer === s.startnummer).length > 1)`. (Two players share the same startnummer → Par match.) Group by `startnummer`, sort within group by `posisjon`. Call `renderScoreboard` with the two groups mapped to the existing `p1ks`/`p2ks` params — `p1ks` is the posisjon=1 player's `kamp_spelar` row (the representative).
+Uses `getAllMatchSides` (returns N sides, not hardcoded to two — covers the 3-pair avsluttende case) to group `kamp.spelarar` by startnummer. `p1ks`/`p2ks`/`p3ks` are the side reps; pair labels passed via the new Scoreboard options.
 
 ---
 
@@ -151,7 +151,7 @@ Detect Par: `spelarar.some(s => s.startnummer != null && spelarar.filter(x => x.
 
 **Modified service:** `src/services/kampService.ts`
 
-Extend `bekreftInnledendeKamp` with optional Par parameters:
+Extend `bekreftInnledendeKamp` with optional Par parameters — **simplified vs. the original sketch**: omgangar and the pair's combined total live on the rep's `kamp_spelar` row only (Phase 3 guarantees this), so the partner needs no score data or HCP of its own — just its row id to receive the same written values:
 
 ```typescript
 export async function bekreftInnledendeKamp(params: {
@@ -162,22 +162,14 @@ export async function bekreftInnledendeKamp(params: {
   hcp2: number
   erWalkover?: boolean
   // Par additions (optional):
-  p1Partner?: KampSpelarBekreftData | null  // posisjon=2 player in team 1
-  p2Partner?: KampSpelarBekreftData | null  // posisjon=2 player in team 2
-  hcp1Partner?: number
-  hcp2Partner?: number
+  p1PartnerId?: number | null  // kamp_spelar.id of posisjon=2 player in team 1
+  p2PartnerId?: number | null  // kamp_spelar.id of posisjon=2 player in team 2
 }): Promise<{ error: unknown }>
 ```
 
-When `p1Partner` is provided (Par match):
-- Sum omgang scores for `p1` + `p1Partner` to get team 1 combined score
-- Sum for `p2` + `p2Partner` for team 2
-- Call `beregnKampPoeng(team1Total, team2Total)` — unchanged
-- Write same `kamp_poeng` to all 4 `kamp_spelar` rows
-- Each player's `score_poeng` = the pair's combined total (both players in the pair get the same value)
-- Write to `resultat.kamp_poeng_innl` and `resultat.score_poeng_innl` for all 4 players
+When a partner id is provided, the partner row gets the **same** update object as its rep (`score_poeng` = pair total, `kamp_poeng`, `antall_ringer`) — all 4 rows end up identical per side. `beregnKampPoeng` unchanged. When absent — existing Singel path, unchanged. (No `resultat` writes — the existing Singel path doesn't write resultat either; standings are computed from `kamp_spelar`.)
 
-When `p1Partner` is absent — existing Singel path, unchanged.
+Callers wired: `src/pages/kamp.ts` (`onBekreft`) and `innledendeBase.ts` (`bekreftKamp`) both pass `side.members[1]?.id` as the partner ids.
 
 ---
 

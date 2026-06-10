@@ -36,15 +36,16 @@ export interface MatchSide<T> {
 }
 
 /**
- * Groups a match's kamp_spelar rows into two sides by resultat.startnummer —
- * the competition-unit identity (unique per player in Singel, shared by both
- * players of a pair in Par/Mix). Behavior-identical to hentP1P2 for Singel.
+ * Groups a match's kamp_spelar rows into sides by resultat.startnummer — the
+ * competition-unit identity (unique per player in Singel, shared by both
+ * players of a pair in Par/Mix). Sides are ordered by startnummer. Most
+ * matches have two sides; 3-unit avsluttende matches have three.
  */
-export function getMatchSides<T extends SpelarMedKasterid>(
+export function getAllMatchSides<T extends SpelarMedKasterid>(
   spelarar: T[] | null | undefined,
   startnrMap: Record<number, number>,
   posisjonMap: Record<number, number> = {},
-): [MatchSide<T> | null, MatchSide<T> | null] {
+): MatchSide<T>[] {
   const groups = new Map<number | string, T[]>()
   for (const sp of spelarar ?? []) {
     const key = startnrMap[sp.kasterid] ?? `kaster-${sp.kasterid}`
@@ -53,7 +54,7 @@ export function getMatchSides<T extends SpelarMedKasterid>(
     groups.set(key, members)
   }
 
-  const sides = [...groups.entries()]
+  return [...groups.entries()]
     .sort(([a], [b]) => (typeof a === 'number' ? a : Infinity) - (typeof b === 'number' ? b : Infinity))
     .map(([, members]) => {
       members.sort((x, y) =>
@@ -62,7 +63,15 @@ export function getMatchSides<T extends SpelarMedKasterid>(
       )
       return { rep: members[0], members }
     })
+}
 
+/** Two-sided convenience wrapper around getAllMatchSides. Behavior-identical to hentP1P2 for Singel. */
+export function getMatchSides<T extends SpelarMedKasterid>(
+  spelarar: T[] | null | undefined,
+  startnrMap: Record<number, number>,
+  posisjonMap: Record<number, number> = {},
+): [MatchSide<T> | null, MatchSide<T> | null] {
+  const sides = getAllMatchSides(spelarar, startnrMap, posisjonMap)
   return [sides[0] ?? null, sides[1] ?? null]
 }
 

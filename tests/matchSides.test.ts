@@ -1,4 +1,4 @@
-import { getMatchSides, groupStandingsByPair } from '@/utils/kamp'
+import { getAllMatchSides, getMatchSides, groupStandingsByPair } from '@/utils/kamp'
 
 // ── getMatchSides ─────────────────────────────────────────────────────────────
 
@@ -62,6 +62,24 @@ describe('getMatchSides', () => {
       )
       expect(side1?.members.map(m => m.kasterid)).toEqual([1, 2])
       expect(side2).toBeNull()
+    })
+  })
+
+  describe('getAllMatchSides — 3-unit matches', () => {
+    it('groups a 6-player 3-pair match into three sides ordered by startnummer', () => {
+      const spelarar = [1, 2, 3, 4, 5, 6].map(kasterid => ({ kasterid }))
+      const startnrMap = { 1: 3, 2: 3, 3: 1, 4: 1, 5: 2, 6: 2 }
+      const sides = getAllMatchSides(spelarar, startnrMap)
+      expect(sides).toHaveLength(3)
+      expect(sides.map(s => s.members.map(m => m.kasterid))).toEqual([[3, 4], [5, 6], [1, 2]])
+    })
+
+    it('returns three one-member sides for a Singel 3-player match', () => {
+      const sides = getAllMatchSides(
+        [{ kasterid: 7 }, { kasterid: 8 }, { kasterid: 9 }],
+        { 7: 2, 8: 1, 9: 3 },
+      )
+      expect(sides.map(s => s.rep.kasterid)).toEqual([8, 7, 9])
     })
   })
 })

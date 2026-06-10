@@ -24,6 +24,10 @@ interface ScoreboardOptions {
   p3ks?: KampSpelarIKamp | null
   hcp1?: number
   hcp2?: number
+  /** Label overrides — Par/Mix passes "Fornavn E. / Fornavn E." per side. */
+  p1Navn?: string | null
+  p2Navn?: string | null
+  p3Navn?: string | null
 }
 
 type OmgangRad = { omgang: number; s1: number; s2: number; r1: number; r2: number }
@@ -45,10 +49,13 @@ export async function renderScoreboard(
     p3ks = null,
     hcp1 = 0,
     hcp2 = 0,
+    p1Navn = null,
+    p2Navn = null,
+    p3Navn = null,
   } = options
 
   if (p3ks && kamp.er_tre_spelarar) {
-    return renderScoreboard3(container, kamp, p1ks, p2ks, p3ks, { pointValues, erArrangor, erDeltakar, onBekreft, onKampBekreft, omgangEl })
+    return renderScoreboard3(container, kamp, p1ks, p2ks, p3ks, { pointValues, erArrangor, erDeltakar, onBekreft, onKampBekreft, omgangEl, p1Navn, p2Navn, p3Navn })
   }
 
   let omgangar: OmgangRad[] = []
@@ -168,8 +175,8 @@ export async function renderScoreboard(
     }
 
     const wrap = lagEl('div', null, isEditMode ? 'sb-wrap sb-wrap--edit-mode' : 'sb-wrap')
-    wrap.appendChild(lagSpelerPanel(spelarNamn(p1ks, 'Spelar 1'), t1, r1, maxRinger, val1, p1Dis, !kanRedigere, 1))
-    wrap.appendChild(lagSpelerPanel(spelarNamn(p2ks, 'Spelar 2'), t2, r2, maxRinger, val2, p2Dis, !kanRedigere, 2))
+    wrap.appendChild(lagSpelerPanel(p1Navn ?? spelarNamn(p1ks, 'Spelar 1'), t1, r1, maxRinger, val1, p1Dis, !kanRedigere, 1))
+    wrap.appendChild(lagSpelerPanel(p2Navn ?? spelarNamn(p2ks, 'Spelar 2'), t2, r2, maxRinger, val2, p2Dis, !kanRedigere, 2))
     container.appendChild(wrap)
 
     if (kanRedigere && !kamp.er_bekreftet) {
@@ -362,12 +369,19 @@ async function renderScoreboard3(
   p1ks: KampSpelarIKamp | null,
   p2ks: KampSpelarIKamp | null,
   p3ks: KampSpelarIKamp,
-  options: Pick<ScoreboardOptions, 'pointValues' | 'erArrangor' | 'erDeltakar' | 'onBekreft' | 'onKampBekreft' | 'omgangEl'>,
+  options: Pick<ScoreboardOptions, 'pointValues' | 'erArrangor' | 'erDeltakar' | 'onBekreft' | 'onKampBekreft' | 'omgangEl' | 'p1Navn' | 'p2Navn' | 'p3Navn'>,
 ): Promise<() => void> {
-  const { pointValues, erArrangor = false, erDeltakar = false, onBekreft = null, onKampBekreft, omgangEl = null } = options
+  const { pointValues, erArrangor = false, erDeltakar = false, onBekreft = null, onKampBekreft, omgangEl = null, p1Navn = null, p2Navn = null, p3Navn = null } = options
   const kanRedigere = erArrangor || (erDeltakar && !kamp.er_bekreftet)
   const spelarar = [p1ks, p2ks, p3ks].filter((s): s is KampSpelarIKamp => s != null)
   const spelarIds = spelarar.map(s => s.id).filter((id): id is number => id != null)
+
+  function navnFor(ks: KampSpelarIKamp): string {
+    if (p1Navn && ks === p1ks) return p1Navn
+    if (p2Navn && ks === p2ks) return p2Navn
+    if (p3Navn && ks === p3ks) return p3Navn
+    return spelarNamn(ks)
+  }
 
   let omgangData: KampOmgangRow[] = []
   let vinnRekkefolge: number[] = []
@@ -473,7 +487,7 @@ async function renderScoreboard3(
       const visVunne = erVunne && !isEditMode3
       const plass = visVunne ? vinnRekkefolge.indexOf(i) + 1 : null
       const panel = lagEl('div', null, `sb-spelar-panel${visVunne ? ' sb-spelar-panel--vann' : ''}`)
-      panel.appendChild(lagEl('div', spelarNamn(ks), 'sb-spelar-navn'))
+      panel.appendChild(lagEl('div', navnFor(ks), 'sb-spelar-navn'))
       panel.appendChild(lagEl('div', String(totalar[i]), 'sb-score'))
 
       if (plass) panel.appendChild(lagEl('div', `${plass}. plass`, 'sb-plass-badge'))

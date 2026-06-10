@@ -144,40 +144,34 @@ export async function hentKamp(id: number): Promise<{ data: KampRow | null; erro
   return { data, error }
 }
 
-export async function hentHcp(
-  stevneId: number,
-  kasterids: number[],
-): Promise<Map<number, number>> {
-  if (!kasterids.length) return new Map()
-  const { data, error } = await supabase
-    .from('resultat')
-    .select('kasterid, hcp')
-    .eq('stevneid', stevneId)
-    .in('kasterid', kasterids)
-  if (error) logError('hentHcp', error)
-  return new Map(
-    (data ?? [])
-      .filter((r): r is typeof r & { kasterid: number } => r.kasterid != null)
-      .map(r => [r.kasterid, r.hcp ?? 0]),
-  )
+export interface KampResultatInfo {
+  startnrMap: Record<number, number>
+  posisjonMap: Record<number, number>
+  hcpMap: Map<number, number>
 }
 
-export async function hentStartnrMap(
+export async function hentKampResultatInfo(
   stevneId: number,
   kasterids: number[],
-): Promise<Record<number, number>> {
-  if (!kasterids.length) return {}
+): Promise<KampResultatInfo> {
+  if (!kasterids.length) return { startnrMap: {}, posisjonMap: {}, hcpMap: new Map() }
   const { data, error } = await supabase
     .from('resultat')
-    .select('kasterid, startnummer')
+    .select('kasterid, startnummer, posisjon, hcp')
     .eq('stevneid', stevneId)
     .in('kasterid', kasterids)
-  if (error) logError('hentStartnrMap', error)
-  return Object.fromEntries(
-    (data ?? [])
-      .filter((r): r is typeof r & { kasterid: number; startnummer: number } => r.kasterid != null && r.startnummer != null)
-      .map(r => [r.kasterid, r.startnummer]),
-  )
+  if (error) logError('hentKampResultatInfo', error)
+
+  const startnrMap: Record<number, number> = {}
+  const posisjonMap: Record<number, number> = {}
+  const hcpMap = new Map<number, number>()
+  for (const r of data ?? []) {
+    if (r.kasterid == null) continue
+    if (r.startnummer != null) startnrMap[r.kasterid] = r.startnummer
+    if (r.posisjon != null) posisjonMap[r.kasterid] = r.posisjon
+    hcpMap.set(r.kasterid, r.hcp ?? 0)
+  }
+  return { startnrMap, posisjonMap, hcpMap }
 }
 
 export async function hentNesteKampOrganisator(
@@ -297,8 +291,12 @@ export async function bekreftInnledendeKamp(params: {
   hcp1: number
   hcp2: number
   erWalkover?: boolean
+  // Par/Mix: the partner kamp_spelar rows receive the same written values as
+  // their side's representative (omgangar and combined totals live on the rep).
+  p1PartnerId?: number | null
+  p2PartnerId?: number | null
 }): Promise<{ error: unknown }> {
-  const { kampId, p1, p2, hcp1, hcp2, erWalkover = false } = params
+  const { kampId, p1, p2, hcp1, hcp2, erWalkover = false, p1PartnerId = null, p2PartnerId = null } = params
   let omgData: OmgRow[] = []
   let p1BaseScore = p1?.scorePoeng ?? 0
   let p2BaseScore = p2?.scorePoeng ?? 0
@@ -340,6 +338,12 @@ export async function bekreftInnledendeKamp(params: {
   )
   if (p2 && updates.p2) spelarUpdates.push(
     supabase.from('kamp_spelar').update(updates.p2).eq('id', p2.spelarId),
+  )
+  if (p1PartnerId != null && updates.p1) spelarUpdates.push(
+    supabase.from('kamp_spelar').update(updates.p1).eq('id', p1PartnerId),
+  )
+  if (p2PartnerId != null && updates.p2) spelarUpdates.push(
+    supabase.from('kamp_spelar').update(updates.p2).eq('id', p2PartnerId),
   )
 
   if (spelarUpdates.length) {

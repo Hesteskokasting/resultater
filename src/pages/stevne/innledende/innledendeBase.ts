@@ -368,6 +368,8 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
       hcp1,
       hcp2,
       erWalkover: kamp.er_walkover,
+      p1PartnerId: side1?.members[1]?.id ?? null,
+      p2PartnerId: side2?.members[1]?.id ?? null,
     })
     if (error) { showToast('DB-feil ved bekreft', 'error'); return false }
     await lastOgVis(container, stevneid)
