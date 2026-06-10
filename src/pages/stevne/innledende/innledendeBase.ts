@@ -22,7 +22,8 @@ import { showNumberpad } from '@/components/ScoreNumberpad'
 import { showToast } from '@/components/Toast'
 import { confirmDialog } from '@/components/ConfirmDialog'
 import { promptDialog } from '@/components/PromptDialog'
-import { hentP1P2, scoreForSp } from '@/utils/kamp'
+import { getMatchSides, groupStandingsByPair, scoreForSp, type MatchSide } from '@/utils/kamp'
+import { kasterNavnKort } from '@/utils/kaster'
 import { autoFullforInnledendeKamper } from '@/services/testDataService'
 import {
   byggInnledendeSpelMap, sorterStilling, renderInnledendeKnappar, lagOnEndringHandler,
@@ -116,6 +117,16 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
       const hcpMap: Record<number, number> = Object.fromEntries(
         resultat.filter(r => r.kasterid != null && (r.hcp ?? 0) > 0).map(r => [r.kasterid!, r.hcp ?? 0]),
       )
+      const posisjonMap: Record<number, number> = Object.fromEntries(
+        resultat.filter(r => r.kasterid != null && r.posisjon != null).map(r => [r.kasterid!, r.posisjon!]),
+      )
+      // Par/Mix: two players share a startnummer
+      const snrCount = new Map<number, number>()
+      for (const r of resultat) {
+        if (r.kasterid == null || r.startnummer == null) continue
+        snrCount.set(r.startnummer, (snrCount.get(r.startnummer) ?? 0) + 1)
+      }
+      const erLag = [...snrCount.values()].some(c => c > 1)
 
       const rundeMap = new Map<number, InnlKampRow[]>()
       for (const kamp of alleKamper) {
@@ -125,10 +136,11 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
 
       const { spelMap, ekteKasterids } = byggInnledendeSpelMap(alleKamper, startnrMap)
 
+      const stillingRader = Object.values(spelMap)
+        .filter(s => ekteKasterids.has(s.kasterid))
+        .map(s => ({ ...s, hcp: resultat.find(r => r.kasterid === s.kasterid)?.hcp ?? 0 }))
       const stilling = sorterStilling(
-        Object.values(spelMap)
-          .filter(s => ekteKasterids.has(s.kasterid))
-          .map(s => ({ ...s, hcp: resultat.find(r => r.kasterid === s.kasterid)?.hcp ?? 0 })),
+        erLag ? groupStandingsByPair(stillingRader, posisjonMap) : stillingRader,
         alleKamper,
       )
 
@@ -179,7 +191,7 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
       }
 
       const rundarSomVisast = (variant.filterRundar ?? (m => m))(rundeMap)
-      const kamperHtml = [...rundarSomVisast.entries()].map(([nr, rKamper]) => renderRunde(nr, rKamper, startnrMap, kanEndreKampar, hcpMap)).join('') + renderKampLegend()
+      const kamperHtml = [...rundarSomVisast.entries()].map(([nr, rKamper]) => renderRunde(nr, rKamper, startnrMap, kanEndreKampar, hcpMap, posisjonMap)).join('') + renderKampLegend()
       const harHcp = isAdmin || stilling.some(s => (s.hcp ?? 0) > 0)
       const stillingHtml = renderStillingTabell(stilling, alleKamper, startnrMap, {
         tableId: 'stilling-innl',
@@ -187,6 +199,8 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
         stevneid,
         harHcp,
         harAntallKamper: true,
+        posisjonMap,
+        unitLabel: erLag ? 'par' : 'spelarar',
       })
 
       const activeTab = getActiveTab(container)
@@ -226,10 +240,12 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
 
       for (const kamp of alleKamper) {
         if (kanEndreKampar) {
-          const [p1, p2] = hentP1P2(kamp.spelarar, startnrMap)
-          const spelarIds = [p1?.id, p2?.id].filter((id): id is number => id != null)
-          const p1Namn = p1?.kaster ? `${escHtml(p1.kaster.fornavn)} ${escHtml(p1.kaster.etternavn)}` : '—'
-          const p2Namn = p2?.kaster ? `${escHtml(p2.kaster.fornavn)} ${escHtml(p2.kaster.etternavn)}` : '—'
+          const [side1, side2] = getMatchSides(kamp.spelarar, startnrMap, posisjonMap)
+          const p1 = side1?.rep ?? null
+          const p2 = side2?.rep ?? null
+          const spelarIds = [...(side1?.members ?? []), ...(side2?.members ?? [])].map(m => m.id)
+          const p1Namn = sideNavn(side1, false)
+          const p2Namn = sideNavn(side2, false)
 
           const onScoreKlikk = async () => {
             const hasOmg = spelarIds.length ? await harKampOmgangar(spelarIds) : false
@@ -271,7 +287,7 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
           btn.disabled = true
           btn.textContent = 'Lagrer…'
           try {
-            const ok = await bekreftKamp(container, stevneid, kamp, startnrMap, hcpMap)
+            const ok = await bekreftKamp(container, stevneid, kamp, startnrMap, hcpMap, posisjonMap)
             if (!ok) { btn.disabled = false; btn.textContent = 'Bekreft' }
           } catch {
             btn.disabled = false
@@ -305,7 +321,7 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
               const btn = e.currentTarget as HTMLButtonElement
               btn.disabled = true
               btn.textContent = 'Lagrer…'
-              const ok = await bekreftKamp(container, stevneid, kamp, startnrMap, hcpMap)
+              const ok = await bekreftKamp(container, stevneid, kamp, startnrMap, hcpMap, posisjonMap)
               if (!ok) { btn.disabled = false; btn.textContent = 'Bekreft' }
             })
           } else {
@@ -337,8 +353,11 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
     kamp: InnlKampRow,
     startnrMap: Record<number, number>,
     hcpMap: Record<number, number> = {},
+    posisjonMap: Record<number, number> = {},
   ): Promise<boolean> {
-    const [p1, p2] = hentP1P2(kamp.spelarar, startnrMap)
+    const [side1, side2] = getMatchSides(kamp.spelarar, startnrMap, posisjonMap)
+    const p1 = side1?.rep ?? null
+    const p2 = side2?.rep ?? null
     const hcp1 = hcpMap[p1?.kasterid ?? -1] ?? 0
     const hcp2 = hcpMap[p2?.kasterid ?? -1] ?? 0
 
@@ -359,6 +378,20 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
 }
 
 // ── Shared rendering (pure — no closure state) ────────────────────────────────
+
+/**
+ * Display label for one match side. Singel: full name (or "Fornavn E." when
+ * kort). Par/Mix: always short form, members joined — "Fornavn E. / Fornavn E."
+ */
+function sideNavn(side: MatchSide<InnlKampSpelarRow> | null, kort: boolean): string {
+  if (!side) return '—'
+  if (side.members.length > 1) {
+    return side.members.map(m => m.kaster ? escHtml(kasterNavnKort(m.kaster)) : '—').join(' / ')
+  }
+  const k = side.rep.kaster
+  if (!k) return '—'
+  return kort ? escHtml(kasterNavnKort(k)) : `${escHtml(k.fornavn)} ${escHtml(k.etternavn)}`
+}
 
 type KampStatus = 'ferdig' | 'pagaar' | 'ikke-startet'
 
@@ -383,9 +416,10 @@ function renderRunde(
   startnrMap: Record<number, number>,
   admin: boolean,
   hcpMap: Record<number, number> = {},
+  posisjonMap: Record<number, number> = {},
 ): string {
-  const desktopRader = kamper.map(k => kampRad(k, startnrMap, admin, hcpMap)).join('')
-  const mobilRader  = kamper.map(k => kampRadMobil(k, startnrMap, admin, hcpMap)).join('')
+  const desktopRader = kamper.map(k => kampRad(k, startnrMap, admin, hcpMap, posisjonMap)).join('')
+  const mobilRader  = kamper.map(k => kampRadMobil(k, startnrMap, admin, hcpMap, posisjonMap)).join('')
 
   return `
     <div class="mb-3">
@@ -411,15 +445,18 @@ function kampRad(
   startnrMap: Record<number, number>,
   admin = true,
   hcpMap: Record<number, number> = {},
+  posisjonMap: Record<number, number> = {},
 ): string {
-  const [p1, p2] = hentP1P2(kamp.spelarar, startnrMap)
+  const [side1, side2] = getMatchSides(kamp.spelarar, startnrMap, posisjonMap)
+  const p1 = side1?.rep ?? null
+  const p2 = side2?.rep ?? null
 
   const p1Nr = p1?.kasterid ? (startnrMap[p1.kasterid] ?? '') : ''
   const p2Nr = p2?.kasterid ? (startnrMap[p2.kasterid] ?? '') : ''
 
-  const p1Namn = p1?.kaster ? `${escHtml(p1.kaster.fornavn)} ${escHtml(p1.kaster.etternavn)}` : '—'
+  const p1Namn = sideNavn(side1, false)
   const p2ErBye = kamp.er_walkover && !p2?.kaster
-  const p2Namn = p2ErBye ? 'Walkover' : (p2?.kaster ? `${escHtml(p2.kaster.fornavn)} ${escHtml(p2.kaster.etternavn)}` : '—')
+  const p2Namn = p2ErBye ? 'Walkover' : sideNavn(side2, false)
 
   const p1Vis = p1Nr ? `${p1Namn} (${p1Nr})` : p1Namn
   const p2Vis = p2ErBye
@@ -483,16 +520,15 @@ function kampRadMobil(
   startnrMap: Record<number, number>,
   admin: boolean,
   hcpMap: Record<number, number> = {},
+  posisjonMap: Record<number, number> = {},
 ): string {
-  const [p1, p2] = hentP1P2(kamp.spelarar, startnrMap)
+  const [side1, side2] = getMatchSides(kamp.spelarar, startnrMap, posisjonMap)
+  const p1 = side1?.rep ?? null
+  const p2 = side2?.rep ?? null
 
-  const p1NavnKort = p1?.kaster
-    ? `${escHtml(p1.kaster.fornavn)} ${escHtml(p1.kaster.etternavn.charAt(0))}.`
-    : '—'
+  const p1NavnKort = sideNavn(side1, true)
   const p2ErBye = kamp.er_walkover && !p2?.kaster
-  const p2NavnKort = p2ErBye
-    ? 'Walkover'
-    : (p2?.kaster ? `${escHtml(p2.kaster.fornavn)} ${escHtml(p2.kaster.etternavn.charAt(0))}.` : '—')
+  const p2NavnKort = p2ErBye ? 'Walkover' : sideNavn(side2, true)
 
   const harOmg1 = (p1?.omgangar?.length ?? 0) > 0
   const harOmg2 = (p2?.omgangar?.length ?? 0) > 0

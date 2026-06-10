@@ -50,13 +50,13 @@ export async function hentStevneMedDetaljer(id: number): Promise<{ data: StevneD
 
 // ── Innledande fase ───────────────────────────────────────────────────────────
 
-const _innlResultatQuery = supabase.from('resultat').select('kasterid, startnummer, hcp')
+const _innlResultatQuery = supabase.from('resultat').select('kasterid, startnummer, hcp, posisjon')
 export type InnlResultatRow = QueryData<typeof _innlResultatQuery>[number]
 
 export async function hentResultatForInnledende(stevneid: number): Promise<{ data: InnlResultatRow[]; error: unknown }> {
   const { data, error } = await supabase
     .from('resultat')
-    .select('kasterid, startnummer, hcp')
+    .select('kasterid, startnummer, hcp, posisjon')
     .eq('stevneid', stevneid)
   if (error) logError('hentResultatForInnledende', error)
   return { data: data ?? [], error }

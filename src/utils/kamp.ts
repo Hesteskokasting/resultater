@@ -28,6 +28,80 @@ export function hentP1P2<T extends SpelarMedKasterid>(
   return [sorted[0] ?? null, sorted[1] ?? null]
 }
 
+export interface MatchSide<T> {
+  /** Representative row (posisjon 1) — carries the side's score and omgangar. */
+  rep: T
+  /** 1 member for Singel, 2 for Par/Mix, ordered by posisjon. */
+  members: T[]
+}
+
+/**
+ * Groups a match's kamp_spelar rows into two sides by resultat.startnummer —
+ * the competition-unit identity (unique per player in Singel, shared by both
+ * players of a pair in Par/Mix). Behavior-identical to hentP1P2 for Singel.
+ */
+export function getMatchSides<T extends SpelarMedKasterid>(
+  spelarar: T[] | null | undefined,
+  startnrMap: Record<number, number>,
+  posisjonMap: Record<number, number> = {},
+): [MatchSide<T> | null, MatchSide<T> | null] {
+  const groups = new Map<number | string, T[]>()
+  for (const sp of spelarar ?? []) {
+    const key = startnrMap[sp.kasterid] ?? `kaster-${sp.kasterid}`
+    const members = groups.get(key) ?? []
+    members.push(sp)
+    groups.set(key, members)
+  }
+
+  const sides = [...groups.entries()]
+    .sort(([a], [b]) => (typeof a === 'number' ? a : Infinity) - (typeof b === 'number' ? b : Infinity))
+    .map(([, members]) => {
+      members.sort((x, y) =>
+        (posisjonMap[x.kasterid] ?? Infinity) - (posisjonMap[y.kasterid] ?? Infinity)
+        || x.kasterid - y.kasterid,
+      )
+      return { rep: members[0], members }
+    })
+
+  return [sides[0] ?? null, sides[1] ?? null]
+}
+
+export interface PairableStillingRad {
+  kasterid: number
+  navn?: string | null
+  startnummer?: number | null
+}
+
+/**
+ * Collapses standings rows that share a startnummer (pair members) into one
+ * row: the posisjon-1 member's values with both names joined. Rows with a
+ * unique or missing startnummer pass through unchanged.
+ */
+export function groupStandingsByPair<T extends PairableStillingRad>(
+  rows: T[],
+  posisjonMap: Record<number, number> = {},
+): T[] {
+  const groups = new Map<number | string, T[]>()
+  for (const row of rows) {
+    const key = row.startnummer ?? `kaster-${row.kasterid}`
+    const members = groups.get(key) ?? []
+    members.push(row)
+    groups.set(key, members)
+  }
+
+  return [...groups.values()].map(members => {
+    if (members.length === 1) return members[0]
+    members.sort((a, b) =>
+      (posisjonMap[a.kasterid] ?? Infinity) - (posisjonMap[b.kasterid] ?? Infinity)
+      || a.kasterid - b.kasterid,
+    )
+    return {
+      ...members[0],
+      navn: members.map(m => m.navn ?? `Spelar ${m.kasterid}`).join(' / '),
+    }
+  })
+}
+
 export function scoreForSp(sp: SpelarScore | null | undefined): number {
   if (sp?.omgangar?.length) return sp.omgangar.reduce((sum, o) => sum + (o.score ?? 0), 0)
   return sp?.score_poeng ?? 0

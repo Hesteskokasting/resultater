@@ -1,4 +1,4 @@
-import { scoreForSp, hentP1P2 } from '@/utils/kamp'
+import { scoreForSp, getMatchSides } from '@/utils/kamp'
 import { escHtml } from '@/utils/escHtml'
 import type { Tables } from '@/types'
 import { createTable, type ColumnDef } from '@/components/Table'
@@ -48,12 +48,15 @@ interface StillingOpts {
   harGrupper?: boolean
   harEliminasjon?: boolean
   harAntallKamper?: boolean
+  posisjonMap?: Record<number, number>
+  unitLabel?: string
 }
 
 export function renderSpelarkamparDetalj(
   kasterid: number,
   kamper: OrgKamp[] | null | undefined,
   startnrMap: Record<number, number>,
+  posisjonMap: Record<number, number> = {},
 ): string {
   const eineKamper = (kamper ?? [])
     .filter(k => k.spelarar?.some(sp => sp.kasterid === kasterid))
@@ -64,18 +67,23 @@ export function renderSpelarkamparDetalj(
   }
 
   return eineKamper.map(kamp => {
-    const sp  = kamp.spelarar?.find(s => s.kasterid === kasterid)
-    const opp = kamp.spelarar?.find(s => s.kasterid !== kasterid)
-    const erWalkoverSeier = kamp.er_walkover && (!opp || !opp.kaster)
+    const sides = getMatchSides(kamp.spelarar, startnrMap, posisjonMap)
+    const mySide  = sides.find(s => s?.members.some(m => m.kasterid === kasterid)) ?? null
+    const oppSide = sides.find(s => s != null && s !== mySide) ?? null
+    const erWalkoverSeier = kamp.er_walkover && (!oppSide || !oppSide.rep.kaster)
 
     const oppNamn = erWalkoverSeier
       ? 'Walkover'
-      : (opp?.kaster ? `${escHtml(opp.kaster.fornavn)} ${escHtml(opp.kaster.etternavn)}` : '—')
-    const oppNr = erWalkoverSeier ? '' : (opp?.kasterid ? (startnrMap[opp.kasterid] ?? '') : '')
+      : (oppSide
+          ? oppSide.members
+              .map(m => m.kaster ? `${escHtml(m.kaster.fornavn)} ${escHtml(m.kaster.etternavn)}` : '—')
+              .join(' / ')
+          : '—')
+    const oppNr = erWalkoverSeier ? '' : (oppSide ? (startnrMap[oppSide.rep.kasterid] ?? '') : '')
     const oppVis = oppNr ? `${oppNamn} (${oppNr})` : oppNamn
 
-    const myScore  = erWalkoverSeier ? 21 : scoreForSp(sp)
-    const oppScore = erWalkoverSeier ? 0  : scoreForSp(opp)
+    const myScore  = erWalkoverSeier ? 21 : scoreForSp(mySide?.rep)
+    const oppScore = erWalkoverSeier ? 0  : scoreForSp(oppSide?.rep)
     const resultat = `${myScore} - ${oppScore}`
 
     return `<tr>
@@ -165,6 +173,8 @@ export function renderStillingTabell(
     harGrupper      = false,
     harEliminasjon  = false,
     harAntallKamper = false,
+    posisjonMap     = {},
+    unitLabel       = 'spelarar',
   } = opts
 
   const thW = harAntallKamper ? 'th-32' : 'th-28'
@@ -176,7 +186,7 @@ export function renderStillingTabell(
     gruppeMap.get(g)!.push(r)
   }
   const harFleirGrupper = gruppeMap.size > 1 || !gruppeMap.has('_')
-  const tittel = harAntallKamper ? `${stilling.length} spelarar` : 'Stilling'
+  const tittel = harAntallKamper ? `${stilling.length} ${unitLabel}` : 'Stilling'
 
   const flatList: FlatStillingRad[] = [...gruppeMap.entries()]
     .sort(([a], [b]) => a === '_' ? 1 : b === '_' ? -1 : a.localeCompare(b))
@@ -232,7 +242,7 @@ export function renderStillingTabell(
       if (centered) th.className = 'text-center'
       hr.appendChild(th)
     })
-    innerTable.createTBody().innerHTML = renderSpelarkamparDetalj(item.kasterid, kamper, startnrMap)
+    innerTable.createTBody().innerHTML = renderSpelarkamparDetalj(item.kasterid, kamper, startnrMap, posisjonMap)
     return innerTable
   }
 
@@ -401,10 +411,12 @@ export function byggInnledendeSpelMap(
   const ekteKasterids = new Set<number>()
 
   for (const kamp of alleKamper) {
-    const [, byeP2] = kamp.er_walkover ? hentP1P2(kamp.spelarar, startnrMap) : [null, null]
+    // In a walkover only the bye side counts — exclude any phantom opposing side
+    // (side-based: the bye pair's own partner shares the startnummer and stays in).
+    const [, byeSide2] = kamp.er_walkover ? getMatchSides(kamp.spelarar, startnrMap) : [null, null]
     for (const sp of kamp.spelarar ?? []) {
       if (!sp.kasterid || !sp.kaster) continue
-      if (kamp.er_walkover && sp.kasterid === byeP2?.kasterid) continue
+      if (kamp.er_walkover && byeSide2?.members.some(m => m.kasterid === sp.kasterid)) continue
       ekteKasterids.add(sp.kasterid)
       if (!spelMap[sp.kasterid]) {
         spelMap[sp.kasterid] = {

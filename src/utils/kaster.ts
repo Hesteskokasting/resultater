@@ -4,6 +4,12 @@ export function kasterNavn(k: Pick<Kaster, 'fornavn' | 'etternavn'> | null | und
   return [k?.fornavn, k?.etternavn].filter(Boolean).join(' ')
 }
 
+/** "Fornavn E." — first name plus last-name initial. */
+export function kasterNavnKort(k: Pick<Kaster, 'fornavn' | 'etternavn'> | null | undefined): string {
+  const initial = k?.etternavn ? ` ${k.etternavn.charAt(0)}.` : ''
+  return `${k?.fornavn ?? ''}${initial}`.trim()
+}
+
 function lagSlugStr(str: string): string {
   return (str ?? '')
     .toLowerCase()
