@@ -88,7 +88,7 @@ New function `genererInnledendeKamperPar(stevneid, kastemetodeNavn, antallRunder
 
 **Dispatcher change:** `src/pages/stevne/stevne-innledende.ts` — route to `genererInnledendeKamperPar` when `kategori.erlagbasert` is true. Remove any `navn.includes(...)` checks in this dispatcher.
 
-**Modified service:** `src/services/kampGenereringCupService.ts` — same principle: use `lag_id` groups as bracket units. `genererFinaleOgBronsefinale` identifies winning pairs (by summing both players' omgang scores) instead of individual players.
+> Cup generation (`kampGenereringCupService.ts`) is **not** part of this phase — moved to Phase 5 step 1. (Originally sketched here as lag_id-based; superseded by the startnummer/representative design.)
 
 ---
 
@@ -175,11 +175,28 @@ Callers wired: `src/pages/kamp.ts` (`onBekreft`) and `innledendeBase.ts` (`bekre
 
 ---
 
-## Phase 5 — Cup Finals for Par/Mix
+## Phase 5 — Cup Generation, Avsluttende UI & Finals for Par/Mix
 
-**Goal:** Pair-level elimination in the avsluttende phase.
+**Goal:** The avsluttende phase treats pairs as bracket units, end to end.
 
-**New migration:** `supabase/migrations/20260610110000_rpc_bekreft_avsluttende_kamp_par.sql`
+**Identity model — NOT `lag_id`:** `lag_id` is the pre-tournament pairing in `pamelding`; the persistent pair identity after match generation is `resultat.startnummer`, which the whole innledende pipeline already keys on. The cup reuses the same representative pattern as Swiss: the pairing algorithms (`beregnCupRundeParingar`, `gyldigeRunde1Oppsett`, `beregnCupStruktur`, group splits in `gruppefordelingUi.ts`) receive **one `{kasterid, plassering}` entry per pair** (the posisjon-1 rep) and need **zero changes** — n is the number of pairs, walkover counts and 3-per-bane formats work unchanged. Only the edges change.
+
+### Step 1 — Cup generation (`kampGenereringCupService.ts`) — do this first
+
+- `_insertCupParingar` takes a `memberMap: Record<number, number[]>` (rep kasterid → all side member kasterids, ordered by posisjon; singleton for Singel — same trick as `posToKasterids` in the innledende generator). Each unit in a paring expands to one `kamp_spelar` row per member. A 3-pair bane = 6 rows with `er_tre_spelarar = true`.
+- `memberMap` is built from `resultat (kasterid, startnummer, posisjon)`.
+- `genererFinaleOgBronsefinale`: rank each semifinal's **sides** (group `kamp_spelar` rows by startnummer, sum members' omgang scores — members alternate omgangar) instead of individual rows; advance the winning side's rep, expand via `memberMap` on insert.
+- `setGruppeInndeling` callers in `cup.ts`: expand rep → both members so both resultat rows get `gruppeid`.
+
+### Step 2 — Avsluttende UI grouping (deferred from Phase 2.5)
+
+- `buildAvsluttendeStilling` output pair-grouped via `groupStandingsByPair` (one stilling row per pair; SP summed) before gruppefordeling and round generation consume it.
+- Variant renderers (`cup.ts`, `kongelag.ts`, `nordhordland.ts`): side labels via `getMatchSides`/`kasterNavnKort`, same as innledende.
+- `renderScoreboard3` needs side member ids (`p3Ids` equivalent) so omgang alternation works in 3-pair matches — the 2-side variant already has `p1Ids`/`p2Ids`.
+
+### Step 3 — Elimination RPC
+
+**New migration:** `supabase/migrations/<timestamp>_rpc_bekreft_avsluttende_kamp_par.sql`
 
 Extends the existing RPC with a new optional parameter:
 
