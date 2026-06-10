@@ -1103,6 +1103,17 @@ th.stilling-sp-th  { background: var(--stilling-sp-th) !important; color: #fff !
 .deltaker-rad { cursor: pointer; }
 .deltaker-fjern-btn { width: 22px; height: 22px; font-size: 14px; }
 
+/* ── Par/Mix tab ── */
+
+.par-spelarar-liste { min-height: 200px; }
+.par-spelar-kort { cursor: grab; background: var(--bg-2); user-select: none; }
+.par-spelar-kort:hover { background: var(--bg-3); }
+.par-spelar-kort[draggable="true"]:active { cursor: grabbing; }
+.par-slot { min-height: 40px; background: var(--bg-2); cursor: default; transition: background 0.1s; }
+.par-slot--filled { background: var(--bg-3); font-weight: 500; }
+.par-slot--hover { background: var(--bs-primary-bg-subtle); border-color: var(--bs-primary) !important; }
+.par-rad { background: var(--bg-2); }
+
 /* ── Norgescupen ── */
 
 .nc-filter-rad { margin-bottom: 16px; }

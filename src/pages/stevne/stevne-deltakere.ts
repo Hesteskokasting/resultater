@@ -12,6 +12,8 @@ import {
 } from '@/services/pameldingService'
 import { hentStevneHeader } from '@/services/stevneService'
 import { createLoadingState } from '@/components/LoadingState'
+import { createTabs } from '@/components/Tabs'
+import { createParTab } from '@/pages/stevne/parTab'
 
 // ── Hjelpefunksjonar ──────────────────────────────────────────────────────────
 
@@ -173,6 +175,7 @@ export async function render(
 
     const fase      = stevneRes.data.stevne_fase ?? null
     const kanEndrast = isAdmin && (fase === null || fase === 'ikke_startet')
+    const erLag     = stevneRes.data.kategori?.erlagbasert ?? false
     const alleSpelarar = kastereRes.data
 
     const pameldtMap = new Map<number, boolean>()
@@ -180,13 +183,17 @@ export async function render(
       if (p.kasterid != null) pameldtMap.set(p.kasterid, p.er_bekreftet ?? false)
     }
 
-    container.innerHTML = `
-      <div>
-        ${!kanEndrast ? '<div class="alert alert-warning py-2">Spelarar kan ikkje endrast etter at stevnet er starta.</div>' : ''}
-        <div class="row g-3" id="spelarar-layout"></div>
-      </div>`
+    const wrapper = document.createElement('div')
 
-    const layout = container.querySelector<HTMLElement>('#spelarar-layout')!
+    if (!kanEndrast) {
+      const warning = document.createElement('div')
+      warning.className = 'alert alert-warning py-2'
+      warning.textContent = 'Spelarar kan ikkje endrast etter at stevnet er starta.'
+      wrapper.appendChild(warning)
+    }
+
+    const layout = document.createElement('div')
+    layout.className = 'row g-3'
 
     // ── Venstre kolonne: tilgjengelege spelarar ───────────────────────────────
 
@@ -201,7 +208,6 @@ export async function render(
     const { kolonne: leftCol, tabell: tilgjengeliTabell } = lagSpelarKolonne('Tilgjengelege spelarar')
     leftWrapper.appendChild(searchInput)
     leftWrapper.appendChild(leftCol)
-    layout.appendChild(leftWrapper)
 
     // ── Høgre kolonne: påmelde spelarar ──────────────────────────────────────
 
@@ -217,7 +223,6 @@ export async function render(
     const { kolonne: rightCol, tabell: pameldtTabell, tittelEl: pameldtTittel } = lagSpelarKolonne('Påmelde spelarar')
     rightWrapper.appendChild(searchSpacer)
     rightWrapper.appendChild(rightCol)
-    layout.appendChild(rightWrapper)
 
     // ── Renderfunksjonar ──────────────────────────────────────────────────────
 
@@ -272,6 +277,28 @@ export async function render(
         }, !kanEndrast))
       }
     }
+
+    layout.appendChild(leftWrapper)
+    layout.appendChild(rightWrapper)
+
+    if (erLag) {
+      const parPanel = createParTab({
+        stevneId: id,
+        isAdmin: kanEndrast,
+        pameldtIds: new Set(pameldtMap.keys()),
+        alleSpelarar,
+      })
+      wrapper.appendChild(createTabs({
+        tabs: [
+          { id: 'spelarar', label: 'Spelarar', panel: layout },
+          { id: 'parar', label: 'Parar', panel: parPanel },
+        ],
+      }))
+    } else {
+      wrapper.appendChild(layout)
+    }
+
+    container.replaceChildren(wrapper)
 
     searchInput.addEventListener('input', renderTilgjengeliListe)
     renderPameldtListe()
