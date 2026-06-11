@@ -1,1 +1,0 @@
-function e(e,t){return e===t?[1.5,1.5]:e>t?[2,+(t>=11)]:[+(e>=11),2]}function t(e,t){let n=[...e??[]].sort((e,n)=>(t[e.kasterid]??1/0)-(t[n.kasterid]??1/0));return[n[0]??null,n[1]??null]}function n(e){return e?.omgangar?.length?e.omgangar.reduce((e,t)=>e+(t.score??0),0):e?.score_poeng??0}function r(e){return e===6?2:+(e===3||e===4)}export{n as i,r as n,t as r,e as t};

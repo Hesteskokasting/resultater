@@ -1,0 +1,1 @@
+import{G as e}from"./index-BFQjj73C.js";async function t(t,n,r=null){t.replaceChildren(e(`Nordhordlandsmetoden som avsluttande fase er ikkje implementert enno.`))}export{t as render};
