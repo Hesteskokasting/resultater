@@ -78,7 +78,7 @@ describe('byggSingelListe', () => {
       ]
       const regler = mkRegler({ max_nc_total: 2, maxtotal: 99 })
       const liste = byggSingelListe(resultater, allStevner, regler, 'NC', 1)
-      expect(liste[0].totalPoeng).toBe(180)
+      expect(liste[0]!.totalPoeng).toBe(180)
     })
   })
 
@@ -90,7 +90,7 @@ describe('byggSingelListe', () => {
       ]
       const regler = mkRegler({ max_snc_total: 1, maxtotal: 99 })
       const liste = byggSingelListe(resultater, allStevner, regler, 'NC', 1)
-      expect(liste[0].totalPoeng).toBe(100)
+      expect(liste[0]!.totalPoeng).toBe(100)
     })
   })
 
@@ -102,7 +102,7 @@ describe('byggSingelListe', () => {
       ]
       const regler = mkRegler({ max_dnc_total: 1, maxtotal: 99 })
       const liste = byggSingelListe(resultater, allStevner, regler, 'NC', 1)
-      expect(liste[0].totalPoeng).toBe(100)
+      expect(liste[0]!.totalPoeng).toBe(100)
     })
   })
 
@@ -123,7 +123,7 @@ describe('byggSingelListe', () => {
       ]
       const regler = mkRegler({ max_nc_total: 2, maxtotal: 3 })
       const liste = byggSingelListe(resultater, allStevner, regler, 'NC', 1)
-      expect(liste[0].totalPoeng).toBe(270)
+      expect(liste[0]!.totalPoeng).toBe(270)
     })
   })
 
@@ -139,7 +139,7 @@ describe('byggSingelListe', () => {
       ]
       const regler = mkRegler({ max_nc_total: 99, max_snc_total: 99, maxtotal: 3 })
       const liste = byggSingelListe(resultater, allStevner, regler, 'NC', 1)
-      expect(liste[0].totalPoeng).toBe(120)
+      expect(liste[0]!.totalPoeng).toBe(120)
     })
   })
 
@@ -151,10 +151,10 @@ describe('byggSingelListe', () => {
       ]
       const regler = mkRegler()
       const listeK1 = byggSingelListe(resultater, allStevner, regler, 'NC', 1)
-      expect(listeK1[0].totalPoeng).toBe(100)
+      expect(listeK1[0]!.totalPoeng).toBe(100)
 
       const listeK2 = byggSingelListe(resultater, allStevner, regler, 'NC', 2)
-      expect(listeK2[0].totalPoeng).toBe(80)
+      expect(listeK2[0]!.totalPoeng).toBe(80)
     })
   })
 
@@ -180,9 +180,9 @@ describe('byggSingelListe', () => {
       ]
       const regler = mkRegler()
       const liste = byggSingelListe(resultater, allStevner, regler, 'NC', 1)
-      expect(liste[0].plassering).toBe(1)
-      expect(liste[1].plassering).toBe(1)
-      expect(liste[2].plassering).toBe(3)
+      expect(liste[0]!.plassering).toBe(1)
+      expect(liste[1]!.plassering).toBe(1)
+      expect(liste[2]!.plassering).toBe(3)
     })
   })
 
@@ -194,7 +194,7 @@ describe('byggSingelListe', () => {
       ]
       const regler = mkRegler({ max_snc: 99 })
       const liste = byggSingelListe(resultater, allStevner, regler, 'SNC', 1)
-      expect(liste[0].totalPoeng).toBe(50)
+      expect(liste[0]!.totalPoeng).toBe(50)
     })
   })
 
@@ -206,7 +206,7 @@ describe('byggSingelListe', () => {
       ]
       const regler = mkRegler({ max_dnc: 99 })
       const liste = byggSingelListe(resultater, allStevner, regler, 'DNC', 1)
-      expect(liste[0].totalPoeng).toBe(70)
+      expect(liste[0]!.totalPoeng).toBe(70)
     })
   })
 })
@@ -218,12 +218,12 @@ describe('byggLagListe', () => {
     it('only counts the top 4 contributors when a club has more than 4 kasters', () => {
       // Club A has 5 kasters: 100, 80, 60, 40, 20. Top 4 = 280.
       const resultater = [1, 2, 3, 4, 5].map((kid, i) =>
-        mkRes(kid, 1, [100, 80, 60, 40, 20][i], 'Klasse 1', 10, 'Klubb A')
+        mkRes(kid, 1, [100, 80, 60, 40, 20][i]!, 'Klasse 1', 10, 'Klubb A')
       )
       const regler = mkRegler({ max_nc_total: 99, maxtotal: 99 })
       const liste = byggLagListe(resultater, [ncStevne1], regler)
-      expect(liste[0].lagTotal).toBe(280)
-      expect(liste[0].bidragsytere).toHaveLength(4)
+      expect(liste[0]!.lagTotal).toBe(280)
+      expect(liste[0]!.bidragsytere).toHaveLength(4)
     })
   })
 
@@ -235,8 +235,8 @@ describe('byggLagListe', () => {
       ]
       const regler = mkRegler()
       const liste = byggLagListe(resultater, [ncStevne1], regler)
-      expect(liste[0].klubb.navn).toBe('Klubb B')
-      expect(liste[1].klubb.navn).toBe('Klubb A')
+      expect(liste[0]!.klubb.navn).toBe('Klubb B')
+      expect(liste[1]!.klubb.navn).toBe('Klubb A')
     })
   })
 
@@ -249,9 +249,9 @@ describe('byggLagListe', () => {
       ]
       const regler = mkRegler()
       const liste = byggLagListe(resultater, [ncStevne1], regler)
-      expect(liste[0].plassering).toBe(1)
-      expect(liste[1].plassering).toBe(1)
-      expect(liste[2].plassering).toBe(3)
+      expect(liste[0]!.plassering).toBe(1)
+      expect(liste[1]!.plassering).toBe(1)
+      expect(liste[2]!.plassering).toBe(3)
     })
   })
 
@@ -264,7 +264,7 @@ describe('byggLagListe', () => {
       ]
       const regler = mkRegler()
       const liste = byggLagListe(resultater, [ncStevne1], regler)
-      expect(liste[0].lagTotal).toBe(50)
+      expect(liste[0]!.lagTotal).toBe(50)
     })
   })
 })

@@ -267,7 +267,10 @@ async function teiknGraf(canvas: HTMLCanvasElement, resultater: ResultatDetaljRo
         legend: { display: false },
         tooltip: {
           callbacks: {
-            title: items => stevneNamn[items[0].dataIndex] ?? labels[items[0].dataIndex] ?? '',
+            title: items => {
+              const idx = items[0]?.dataIndex
+              return idx != null ? (stevneNamn[idx] ?? labels[idx] ?? '') : ''
+            },
             label: items => `${yLabel}: ${items.raw}`,
           },
         },

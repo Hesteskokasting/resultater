@@ -23,7 +23,7 @@ export interface ParTabProps {
 
 function kortNamn(k: { fornavn: string | null; etternavn: string | null } | null): string {
   const fornavn = k?.fornavn ?? ''
-  const initial = k?.etternavn ? k.etternavn[0].toUpperCase() + '.' : ''
+  const initial = k?.etternavn ? k.etternavn.charAt(0).toUpperCase() + '.' : ''
   return [fornavn, initial].filter(Boolean).join(' ')
 }
 

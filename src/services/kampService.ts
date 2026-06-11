@@ -296,10 +296,11 @@ export function buildKampSpelarUpdates(params: {
   }
 
   let t1 = 0, t2 = 0
+  const rep1 = side1?.spelarIds[0]
+  const rep2 = side2?.spelarIds[0]
 
   if (erWalkover) {
     t1 = 21
-    const rep1 = side1?.spelarIds[0]
     if (rep1 != null) updates.get(rep1)!.score_poeng = 21
   } else if (omgData.length) {
     for (const row of omgData) {
@@ -315,17 +316,17 @@ export function buildKampSpelarUpdates(params: {
     // Stored on the rep so the side sum includes it exactly once.
     t1 += hcp1
     t2 += hcp2
-    if (side1 && hcp1) updates.get(side1.spelarIds[0])!.score_poeng += hcp1
-    if (side2 && hcp2) updates.get(side2.spelarIds[0])!.score_poeng += hcp2
+    if (hcp1 && rep1 != null) updates.get(rep1)!.score_poeng += hcp1
+    if (hcp2 && rep2 != null) updates.get(rep2)!.score_poeng += hcp2
   } else {
     // Quick-score fallback: the directly-entered side total lives on the rep row
     if (side1) {
       t1 = side1.baseScore
-      updates.get(side1.spelarIds[0])!.score_poeng = t1
+      if (rep1 != null) updates.get(rep1)!.score_poeng = t1
     }
     if (side2) {
       t2 = side2.baseScore
-      updates.get(side2.spelarIds[0])!.score_poeng = t2
+      if (rep2 != null) updates.get(rep2)!.score_poeng = t2
     }
   }
 
@@ -446,7 +447,7 @@ export async function bekreftAvsluttendeKamp(params: {
 
   let eliminertId: number | null = null
   if (orderedKasterids?.length === 3) {
-    eliminertId = orderedKasterids[2]
+    eliminertId = orderedKasterids[2] ?? null
   } else {
     const side1Ids = p1 ? [p1.spelarId, ...(p1PartnerId != null ? [p1PartnerId] : [])] : []
     const side2Ids = p2 ? [p2.spelarId, ...(p2PartnerId != null ? [p2PartnerId] : [])] : []

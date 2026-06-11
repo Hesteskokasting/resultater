@@ -201,8 +201,8 @@ async function _visKlubbadmin(el: HTMLElement): Promise<void> {
 
   const tildelteMap: Record<string, Set<number>> = {}
   tildelte.forEach(r => {
-    if (!tildelteMap[r.bruker_id]) tildelteMap[r.bruker_id] = new Set()
-    tildelteMap[r.bruker_id].add(r.klubbid)
+    const klubbSet = (tildelteMap[r.bruker_id] ??= new Set())
+    klubbSet.add(r.klubbid)
   })
 
   const klubbOptions = klubbar.map(k =>

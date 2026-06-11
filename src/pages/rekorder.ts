@@ -64,7 +64,7 @@ function byggOgFiltrerListe(alleData: RekorderRow[]): RangetRad[] {
 
   let pl = 1
   return filtrert.map((item, i) => {
-    if (i > 0 && (item.poeng ?? 0) < (filtrert[i - 1].poeng ?? 0)) pl = i + 1
+    if (i > 0 && (item.poeng ?? 0) < (filtrert[i - 1]?.poeng ?? 0)) pl = i + 1
     return { ...item, plassering: pl }
   })
 }

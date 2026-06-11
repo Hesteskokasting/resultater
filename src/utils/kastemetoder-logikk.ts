@@ -26,7 +26,7 @@ function shuffle<T>(arr: T[]): T[] {
   const a = [...arr]
   for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]]
+    [a[i], a[j]] = [a[j]!, a[i]!]
   }
   return a
 }
@@ -186,8 +186,9 @@ export function beregnCupRundeParingar(spelarar: Spelar[], { medSeeding = true, 
     let p3idx = 0
     for (let bane = 0; bane < totalBaner; bane++) {
       const erTre = bane < c3
-      const baneSpelarar = [p1[bane], p2[bane]]
-      if (erTre && p3[p3idx]) baneSpelarar.push(p3[p3idx++])
+      const baneSpelarar = [p1[bane], p2[bane]].filter((s): s is Spelar => s != null)
+      const tredje = erTre ? p3[p3idx] : undefined
+      if (tredje) { baneSpelarar.push(tredje); p3idx++ }
       paringar.push({
         spelarar: baneSpelarar.map(s => s.kasterid),
         erWalkover: false,

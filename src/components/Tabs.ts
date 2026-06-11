@@ -76,7 +76,7 @@ export function createTabs({ tabs, activeId }: TabsProps): HTMLElement {
       ? (activeIdx + 1) % tabs.length
       : (activeIdx - 1 + tabs.length) % tabs.length
     activate(next)
-    buttons[next].focus()
+    buttons[next]?.focus()
   })
 
   wrapper.appendChild(nav)

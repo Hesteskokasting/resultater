@@ -85,7 +85,7 @@ describe('buildCascadePairs', () => {
       for (const round of buildCascadePairs(7, 3)) {
         const walkovers = round.filter(m => m.erWalkover)
         expect(walkovers.length).toBe(1)
-        expect(walkovers[0].p2Pos).toBeNull()
+        expect(walkovers[0]!.p2Pos).toBeNull()
       }
     })
 
@@ -100,11 +100,11 @@ describe('buildCascadePairs', () => {
     const rounds = buildCascadePairs(24, 4)
 
     it('round 1, court 1: p1Pos=1, p2Pos=13', () => {
-      expect(rounds[0][0]).toEqual({ p1Pos: 1, p2Pos: 13, erWalkover: false })
+      expect(rounds[0]![0]).toEqual({ p1Pos: 1, p2Pos: 13, erWalkover: false })
     })
 
     it('round 4, court 10: p1Pos=1, p2Pos=16', () => {
-      expect(rounds[3][9]).toEqual({ p1Pos: 1, p2Pos: 16, erWalkover: false })
+      expect(rounds[3]![9]).toEqual({ p1Pos: 1, p2Pos: 16, erWalkover: false })
     })
   })
 })

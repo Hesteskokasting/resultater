@@ -199,6 +199,6 @@ async function renderKategori(container: HTMLElement): Promise<void> {
 
 export async function render(container: HTMLElement): Promise<void> {
   filtre.kategoriId = 1
-  filtre.kjonn = defaultKjonn(KATEGORIAR[0].kjonnFilter)
+  filtre.kjonn = defaultKjonn(KATEGORIAR[0]!.kjonnFilter)
   await renderKategori(container)
 }

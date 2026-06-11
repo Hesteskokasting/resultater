@@ -70,8 +70,11 @@ export function regnUtRingInfo(r: RankingResultatRow, stevneInfo: StevneInfo | u
 export function tildelPlassering(liste: RankingItem[]): void {
   let pl = 1
   for (let i = 0; i < liste.length; i++) {
-    if (i > 0 && liste[i].snittProsent < liste[i - 1].snittProsent) pl = i + 1
-    liste[i].plassering = pl
+    const item = liste[i]
+    if (item === undefined) continue
+    const forrige = liste[i - 1]
+    if (forrige !== undefined && item.snittProsent < forrige.snittProsent) pl = i + 1
+    item.plassering = pl
   }
 }
 

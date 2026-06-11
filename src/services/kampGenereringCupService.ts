@@ -46,8 +46,8 @@ async function _hentSideInfo(stevneid: number): Promise<SideInfo> {
   for (const rad of data ?? []) {
     if (rad.kasterid == null || rad.startnummer == null) continue
     kasteridToSnr[rad.kasterid] = rad.startnummer
-    if (!rawMembers[rad.startnummer]) rawMembers[rad.startnummer] = []
-    rawMembers[rad.startnummer].push({ kasterid: rad.kasterid, posisjon: rad.posisjon })
+    const sideRader = (rawMembers[rad.startnummer] ??= [])
+    sideRader.push({ kasterid: rad.kasterid, posisjon: rad.posisjon })
   }
 
   const snrToMembers: Record<number, number[]> = {}
@@ -75,7 +75,7 @@ async function _insertCupParingar(
   const matchIds = paringar.map(() => genMatchId())
   let baneNr = baneStart
   const rundekampar = paringar.map((p, i) => ({
-    match_id: matchIds[i],
+    match_id: matchIds[i]!,
     stevneid,
     fase: 'avsluttende',
     runde_nummer: rundeNummer,
@@ -96,9 +96,10 @@ async function _insertCupParingar(
   )
   const spelarRader: KampSpelarInsert[] = []
 
-  for (let i = 0; i < paringar.length; i++) {
-    const kampid = matchIdMap[matchIds[i]]
-    paringar[i].spelarar.forEach((kasterid) => {
+  for (const [i, paring] of paringar.entries()) {
+    // matchIds maps 1:1 to paringar, and every inserted kamp comes back with its match_id
+    const kampid = matchIdMap[matchIds[i]!]!
+    paring.spelarar.forEach((kasterid) => {
       for (const member of _sideMembers(sideInfo, kasterid as number)) {
         spelarRader.push({ kampid, kasterid: member, score_poeng: 0, kamp_poeng: 0, antall_ringer: 0 })
       }
@@ -134,8 +135,8 @@ export async function genererCupRunde1(
     let formatBaneOffset = 0
     if (runde1Format && gr.gruppeNavn) {
       const myIdx = gruppeOrder.indexOf(gr.gruppeNavn)
-      for (let i = 0; i < myIdx; i++) {
-        const prev = runde1Format[gruppeOrder[i]]
+      for (const gruppe of gruppeOrder.slice(0, myIdx)) {
+        const prev = runde1Format[gruppe]
         if (prev) formatBaneOffset += (prev.c3 ?? 0) + (prev.c2 ?? 0)
       }
     }
@@ -235,7 +236,7 @@ export async function genererFinaleOgBronsefinale(
 
   const sideInfo = await _hentSideInfo(stevneid)
   const typedSemi = semikampar as SemiKamp[]
-  const rundeNummer = typedSemi[0].runde_nummer + 1
+  const rundeNummer = typedSemi[0]!.runde_nummer + 1
   // One entry per side: all member kasterids of the winning/losing unit
   const vinnarar: number[][] = []
   const taparar: number[][] = []

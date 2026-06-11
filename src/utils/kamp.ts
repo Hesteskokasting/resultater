@@ -61,7 +61,8 @@ export function getAllMatchSides<T extends SpelarMedKasterid>(
         (posisjonMap[x.kasterid] ?? Infinity) - (posisjonMap[y.kasterid] ?? Infinity)
         || x.kasterid - y.kasterid,
       )
-      return { rep: members[0], members }
+      // groups entries are created non-empty (push on insert), so members[0] always exists
+      return { rep: members[0]!, members }
     })
 }
 
@@ -82,7 +83,7 @@ export function getMatchSides<T extends SpelarMedKasterid>(
  */
 export function getOmgangThrowerId(sideSpelarIds: number[], omgang: number): number | null {
   if (!sideSpelarIds.length) return null
-  return sideSpelarIds[(omgang - 1) % sideSpelarIds.length]
+  return sideSpelarIds[(omgang - 1) % sideSpelarIds.length] ?? null
 }
 
 export interface PairableStillingRad {
@@ -111,13 +112,14 @@ export function groupStandingsByPair<T extends PairableStillingRad>(
   }
 
   return [...groups.values()].map(members => {
-    if (members.length === 1) return members[0]
+    // groups entries are created non-empty (push on insert), so members[0] always exists
+    if (members.length === 1) return members[0]!
     members.sort((a, b) =>
       (posisjonMap[a.kasterid] ?? Infinity) - (posisjonMap[b.kasterid] ?? Infinity)
       || a.kasterid - b.kasterid,
     )
     return {
-      ...members[0],
+      ...members[0]!,
       navn: members.map(m => m.navn ?? `Spelar ${m.kasterid}`).join(' / '),
       score_poeng: members.reduce((sum, m) => sum + (m.score_poeng ?? 0), 0),
     }

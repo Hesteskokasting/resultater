@@ -102,13 +102,13 @@ export async function renderScoreboard(
     const omgMap: Record<number, OmgangRad> = {}
     for (const r of data) {
       if (r.kamp_spelar_id == null) continue
-      if (!omgMap[r.omgang]) omgMap[r.omgang] = { omgang: r.omgang, s1: 0, s2: 0, r1: 0, r2: 0 }
+      const entry = (omgMap[r.omgang] ??= { omgang: r.omgang, s1: 0, s2: 0, r1: 0, r2: 0 })
       if (side1Ids.includes(r.kamp_spelar_id)) {
-        omgMap[r.omgang].s1 = r.score ?? 0
-        omgMap[r.omgang].r1 = r.antall_ringer ?? 0
+        entry.s1 = r.score ?? 0
+        entry.r1 = r.antall_ringer ?? 0
       } else {
-        omgMap[r.omgang].s2 = r.score ?? 0
-        omgMap[r.omgang].r2 = r.antall_ringer ?? 0
+        entry.s2 = r.score ?? 0
+        entry.r2 = r.antall_ringer ?? 0
       }
     }
     omgangar = Object.values(omgMap).sort((a, b) => a.omgang - b.omgang)
@@ -142,7 +142,8 @@ export async function renderScoreboard(
   }
 
   function noverAndeOmgang(): number {
-    return omgangar.length > 0 ? omgangar[omgangar.length - 1].omgang + 1 : 1
+    const last = omgangar[omgangar.length - 1]
+    return last ? last.omgang + 1 : 1
   }
 
   function bereknKnappStatus(v1: number | null, v2: number | null): { p1Dis: Set<number>; p2Dis: Set<number> } {
@@ -209,6 +210,7 @@ export async function renderScoreboard(
         angreBtn.disabled = omgangar.length === 0
         angreBtn.addEventListener('click', () => {
           const last = omgangar[omgangar.length - 1]
+          if (!last) return
           val1 = last.s1 || null
           val2 = last.s2 || null
           isEditMode = true
@@ -285,7 +287,9 @@ export async function renderScoreboard(
     const r2 = calcAntallRinger(s2)
 
     if (isEditMode) {
-      const lastNr = omgangar[omgangar.length - 1].omgang
+      const lastOmgang = omgangar[omgangar.length - 1]
+      if (!lastOmgang) return
+      const lastNr = lastOmgang.omgang
       const kaster1 = getOmgangThrowerId(side1Ids, lastNr)
       const kaster2 = getOmgangThrowerId(side2Ids, lastNr)
       const rows = []
@@ -418,12 +422,12 @@ async function renderScoreboard3(
   let editModeIdxar: number[] = []
 
   function radForSide(idx: number, omgang: number): KampOmgangRow | undefined {
-    return omgangData.find(o => o.kamp_spelar_id != null && sideIds[idx].includes(o.kamp_spelar_id) && o.omgang === omgang)
+    return omgangData.find(o => o.kamp_spelar_id != null && sideIds[idx]?.includes(o.kamp_spelar_id) && o.omgang === omgang)
   }
 
   function beregnTotal(idx: number): number {
     return omgangData
-      .filter(o => o.kamp_spelar_id != null && sideIds[idx].includes(o.kamp_spelar_id))
+      .filter(o => o.kamp_spelar_id != null && sideIds[idx]?.includes(o.kamp_spelar_id))
       .reduce((s, o) => s + (o.score ?? 0), 0)
   }
 
@@ -437,15 +441,16 @@ async function renderScoreboard3(
     for (let omg = 1; omg <= maxOmgang; omg++) {
       for (const i of aktive) {
         const rad = radForSide(i, omg)
-        if (rad) totalar[i] += rad.score ?? 0
+        if (rad) totalar[i] = (totalar[i] ?? 0) + (rad.score ?? 0)
       }
       let nySjekk = true
       while (nySjekk && aktive.size > 1) {
         nySjekk = false
         for (const i of [...aktive]) {
           const andreAktive = [...aktive].filter(j => j !== i)
-          const minAndre = Math.min(...andreAktive.map(j => totalar[j]))
-          if (totalar[i] >= 21 && totalar[i] - minAndre >= 2) {
+          const minAndre = Math.min(...andreAktive.map(j => totalar[j] ?? 0))
+          const total = totalar[i] ?? 0
+          if (total >= 21 && total - minAndre >= 2) {
             rekkefolge.push(i)
             aktive.delete(i)
             nySjekk = true
@@ -454,7 +459,7 @@ async function renderScoreboard3(
         }
       }
     }
-    if (aktive.size === 1 && rekkefolge.length === 2) rekkefolge.push([...aktive][0])
+    if (aktive.size === 1 && rekkefolge.length === 2) rekkefolge.push(...aktive)
     return rekkefolge
   }
 
@@ -483,12 +488,14 @@ async function renderScoreboard3(
     const harRing = selectedIdxar.some(i => [3, 6].includes(effectiveVals[i] as number))
 
     for (const i of aktiveIdxar) {
+      const disabled = disabledSets[i]
+      if (!disabled) continue
       if (effectiveVals[i] !== null) {
-        pointValues.forEach(n => { if (n !== effectiveVals[i]) disabledSets[i].add(n) })
+        pointValues.forEach(n => { if (n !== effectiveVals[i]) disabled.add(n) })
       } else if (harNonRing) {
-        pointValues.forEach(n => disabledSets[i].add(n))
+        pointValues.forEach(n => disabled.add(n))
       } else if (harRing) {
-        ;[1, 2, 4].forEach(n => disabledSets[i].add(n))
+        ;[1, 2, 4].forEach(n => disabled.add(n))
       }
     }
     return disabledSets
@@ -504,7 +511,7 @@ async function renderScoreboard3(
     const disabledSets = bereknKnappStatus3(editIdxar, vals)
     if (isEditMode3) {
       editIdxar.forEach(i => {
-        if (vals[i] !== null && !modifiedPlayers3.has(i)) pointValues.forEach(n => { if (n !== vals[i]) disabledSets[i].add(n) })
+        if (vals[i] !== null && !modifiedPlayers3.has(i)) pointValues.forEach(n => { if (n !== vals[i]) disabledSets[i]?.add(n) })
       })
     }
 
@@ -584,7 +591,7 @@ async function renderScoreboard3(
     }
 
     if (erFerdig && !isEditMode3 && !kamp.er_bekreftet && onBekreft && kanRedigere) {
-      container.appendChild(lagBekreftKnapp(() => onBekreft(vinnRekkefolge.map(i => spelarar[i].kasterid))))
+      container.appendChild(lagBekreftKnapp(() => onBekreft(vinnRekkefolge.map(i => spelarar[i]!.kasterid))))
     } else if (kamp.er_bekreftet) {
       container.appendChild(lagEl('div', 'Kamp fullført', 'alert alert-success mt-2'))
     }
@@ -607,7 +614,7 @@ async function renderScoreboard3(
       const lastNr = Math.max(...omgangData.map(o => o.omgang))
       const rows = editModeIdxar.map(i => {
         const v = vals[i] ?? 0
-        return { kamp_spelar_id: getOmgangThrowerId(sideIds[i], lastNr)!, omgang: lastNr, score: v, antall_ringer: calcAntallRinger(v) }
+        return { kamp_spelar_id: getOmgangThrowerId(sideIds[i] ?? [], lastNr)!, omgang: lastNr, score: v, antall_ringer: calcAntallRinger(v) }
       })
       const { error } = await oppdaterKampOmgang(rows)
       if (error) { showToast('Feil ved lagring', 'error'); return }
@@ -618,7 +625,7 @@ async function renderScoreboard3(
       const nr = omgangData.length ? Math.max(...omgangData.map(o => o.omgang)) + 1 : 1
       const inserts = aktiveIdxar.map(i => {
         const v = vals[i] ?? 0
-        return { kamp_spelar_id: getOmgangThrowerId(sideIds[i], nr)!, omgang: nr, score: v, antall_ringer: calcAntallRinger(v) }
+        return { kamp_spelar_id: getOmgangThrowerId(sideIds[i] ?? [], nr)!, omgang: nr, score: v, antall_ringer: calcAntallRinger(v) }
       })
       const { error } = await lagreKampOmgang(inserts)
       if (error) { showToast('Feil ved lagring', 'error'); return }

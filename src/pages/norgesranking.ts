@@ -8,7 +8,7 @@ import { bindExpandableRows } from '@/utils/expandableRows'
 import { hentStevnerOgResultater } from '@/services/norgesrankingService'
 import type { RankingStevneRow, RankingResultatRow } from '@/services/norgesrankingService'
 import { MIN_STEVNER, lagStevnerMap, byggRankingListe } from '@/utils/norgesrankingLogikk'
-import type { StevneInfo, RingInfo, RankingItem } from '@/utils/norgesrankingLogikk'
+import type { RingInfo, RankingItem } from '@/utils/norgesrankingLogikk'
 
 const FOERSTE_AR = 2018
 

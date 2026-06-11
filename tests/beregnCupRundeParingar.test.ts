@@ -93,7 +93,7 @@ describe('beregnCupRundeParingar', () => {
       const parings = beregnCupRundeParingar(players(4), { isRunde1: true })
       const walkovers = parings.filter(p => p.erWalkover)
       expect(walkovers).toHaveLength(1)
-      expect(walkovers[0].spelarar).toEqual([1])
+      expect(walkovers[0]!.spelarar).toEqual([1])
     })
 
     it('walkover entries always contain exactly 1 player', () => {

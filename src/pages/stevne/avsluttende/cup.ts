@@ -35,11 +35,9 @@ import {
 import {
   setGruppeInndeling,
   clearGruppeInndeling,
-  type AvslResultatRow,
 } from '@/services/resultatService'
 import {
   createAvsluttendeRenderer,
-  type AvsluttendeContext,
   type AvsluttendeVariant,
 } from './avsluttendeBase'
 

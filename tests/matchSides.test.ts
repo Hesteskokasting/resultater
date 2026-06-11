@@ -115,8 +115,8 @@ describe('groupStandingsByPair', () => {
       { kasterid: 2, navn: 'Ola N', startnummer: 1 },
     ]
     const grouped = groupStandingsByPair(rows, { 1: 2, 2: 1 })
-    expect(grouped[0].kasterid).toBe(2)
-    expect(grouped[0].navn).toBe('Ola N / Anna B')
+    expect(grouped[0]!.kasterid).toBe(2)
+    expect(grouped[0]!.navn).toBe('Ola N / Anna B')
   })
 
   it('keeps rows without startnummer as their own rows', () => {

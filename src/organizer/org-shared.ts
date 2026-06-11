@@ -126,8 +126,10 @@ export function beregnKanBekrefte(
   if (kamp.er_bekreftet) return false
   if (kamp.er_walkover) return true
   if (harOmgangar) return false
-  const hcp1 = hcpMap[sp[0]?.kasterid] ?? 0
-  const hcp2 = hcpMap[sp[1]?.kasterid] ?? 0
+  const kasterid1 = sp[0]?.kasterid
+  const kasterid2 = sp[1]?.kasterid
+  const hcp1 = (kasterid1 != null ? hcpMap[kasterid1] : undefined) ?? 0
+  const hcp2 = (kasterid2 != null ? hcpMap[kasterid2] : undefined) ?? 0
   const s1 = scoreForSp(sp[0])
   const s2 = sp[1] ? scoreForSp(sp[1]) : 0
   return s1 + hcp1 >= 21 || s2 + hcp2 >= 21
@@ -440,20 +442,18 @@ export function byggInnledendeSpelMap(
       if (!sp.kasterid || !sp.kaster) continue
       if (kamp.er_walkover && byeSide2?.members.some(m => m.kasterid === sp.kasterid)) continue
       ekteKasterids.add(sp.kasterid)
-      if (!spelMap[sp.kasterid]) {
-        spelMap[sp.kasterid] = {
-          kasterid:      sp.kasterid,
-          navn:          `${sp.kaster.fornavn} ${sp.kaster.etternavn}`,
-          startnummer:   startnrMap[sp.kasterid] ?? null,
-          kamp_poeng:    0,
-          score_poeng:   0,
-          antall_kamper: 0,
-        }
-      }
+      const spelarRad = (spelMap[sp.kasterid] ??= {
+        kasterid:      sp.kasterid,
+        navn:          `${sp.kaster.fornavn} ${sp.kaster.etternavn}`,
+        startnummer:   startnrMap[sp.kasterid] ?? null,
+        kamp_poeng:    0,
+        score_poeng:   0,
+        antall_kamper: 0,
+      })
       if (kamp.er_bekreftet) {
-        spelMap[sp.kasterid].kamp_poeng    += sp.kamp_poeng
-        spelMap[sp.kasterid].score_poeng   += sp.score_poeng
-        spelMap[sp.kasterid].antall_kamper += 1
+        spelarRad.kamp_poeng    += sp.kamp_poeng
+        spelarRad.score_poeng   += sp.score_poeng
+        spelarRad.antall_kamper += 1
       }
     }
   }
@@ -535,7 +535,9 @@ export function sorterStilling(stilling: StillingRad[], kamper: KampForSortering
     const sA = scoresFor(a.kasterid)
     const sB = scoresFor(b.kasterid)
     for (let i = 0; i < Math.min(sA.length, sB.length); i++) {
-      if (sB[i] !== sA[i]) return sB[i] - sA[i]
+      const scoreA = sA[i] ?? 0
+      const scoreB = sB[i] ?? 0
+      if (scoreB !== scoreA) return scoreB - scoreA
     }
 
     return (a.startnummer ?? Infinity) - (b.startnummer ?? Infinity)

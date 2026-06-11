@@ -12,7 +12,17 @@
       "Bash(grep -rn \"from.*innledende/types\\\\|from.*innledende\\\\\\\\\\\\\\\\types\" \"d:/repos/resultater/src\" --include=\"*.ts\")",
       "Bash(Remove-Item \"d:/repos/resultater/src/pages/stevne/innledende/types.ts\")",
       "Bash(grep -v \"//\")",
-      "PowerShell(npm run typecheck 2>&1)"
+      "PowerShell(npm run typecheck 2>&1)",
+      "PowerShell(Get-Content $env:TEMP\\\\tserrors2.txt | Where-Object { $_ -match 'kampGenereringInnledendeService' })",
+      "PowerShell(npx tsc --noEmit 2>$null | Out-File -Encoding utf8 $env:TEMP\\\\tserr3.txt; $lines = Get-Content $env:TEMP\\\\tserr3.txt | Where-Object { $_ -match 'error TS' }; \"Remaining: $\\($lines.Count\\)\"; $lines | Where-Object { $_ -match 'kampGenereringInnledende' })",
+      "PowerShell(Get-Content $env:TEMP\\\\tserr3.txt)",
+      "PowerShell(npx tsc --noEmit 2>$null | Out-File -Encoding utf8 $env:TEMP\\\\tserr3.txt; $lines = Get-Content $env:TEMP\\\\tserr3.txt | Where-Object { $_ -match 'error TS' }; \"Remaining: $\\($lines.Count\\)\"; $lines | ForEach-Object { \\($_ -split '\\\\\\('\\)[0] } | Group-Object | Sort-Object Count -Descending | Format-Table Count, Name -AutoSize)",
+      "PowerShell(Get-Content $env:TEMP\\\\tserr3.txt | Where-Object { $_ -match 'Scoreboard' })",
+      "PowerShell(npx tsc --noEmit 2>$null | Out-File -Encoding utf8 $env:TEMP\\\\tserr3.txt; $lines = Get-Content $env:TEMP\\\\tserr3.txt | Where-Object { $_ -match 'error TS' }; \"Remaining: $\\($lines.Count\\)\"; Get-Content $env:TEMP\\\\tserr3.txt | Where-Object { $_ -match 'org-shared|kampGenereringCup|kampService|stevne-stats' })",
+      "PowerShell(npx tsc --noEmit 2>$null | Out-File -Encoding utf8 $env:TEMP\\\\tserr3.txt; Get-Content $env:TEMP\\\\tserr3.txt)",
+      "PowerShell(npx tsc --noEmit 2>$null | Out-File -Encoding utf8 $env:TEMP\\\\tserr3.txt; Get-Content $env:TEMP\\\\tserr3.txt; \"Exit: $LASTEXITCODE\")",
+      "PowerShell(npx tsc --noEmit -p tsconfig.test.json 2>$null | Out-File -Encoding utf8 $env:TEMP\\\\tserrtest.txt; Get-Content $env:TEMP\\\\tserrtest.txt)",
+      "PowerShell($errs = Get-Content $env:TEMP\\\\tserrtest.txt | Where-Object { $_ -match '^tests/' } | ForEach-Object { if \\($_ -match '^\\(tests/[^\\(]+\\)\\\\\\(\\(\\\\d+\\),'\\) { [pscustomobject]@{File=$matches[1]; Line=[int]$matches[2]} } } | Sort-Object File, Line -Unique; $errs | Group-Object File | ForEach-Object { $f = $_.Name; $content = Get-Content $f; \"\"; \"=== $f ===\"; $_.Group.Line | Sort-Object -Unique | ForEach-Object { \"{0}: {1}\" -f $_, $content[$_-1] } })"
     ]
   }
 }

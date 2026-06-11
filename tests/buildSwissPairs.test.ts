@@ -102,7 +102,7 @@ describe('buildSwissPairs', () => {
       const pairs = buildSwissPairs(ids, allUnplayed(ids), zeroByes(ids))
       const walkovers = pairs!.filter(p => p.erWalkover)
       expect(walkovers.length).toBe(1)
-      expect(walkovers[0].p2).toBeNull()
+      expect(walkovers[0]!.p2).toBeNull()
     })
 
     it('walkover goes to the lowest-ranked player (last in rankedKasterids) with 0 prior byes', () => {
@@ -126,8 +126,8 @@ describe('buildSwissPairs', () => {
       const ids = [1, 2, 3]
       const pairs = buildSwissPairs(ids, allUnplayed(ids), zeroByes(ids))
       // tryPairing adds the bye first internally; sort must push it to the end
-      expect(pairs![pairs!.length - 1].erWalkover).toBe(true)
-      expect(pairs![0].erWalkover).toBe(false)
+      expect(pairs![pairs!.length - 1]!.erWalkover).toBe(true)
+      expect(pairs![0]!.erWalkover).toBe(false)
     })
 
     it('does not mutate the caller\'s byeCount object', () => {

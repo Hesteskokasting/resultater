@@ -26,7 +26,7 @@ describe('beregnCupStruktur', () => {
     })
 
     it('first round always has spelarar equal to n', () => {
-      expect(beregnCupStruktur(9)[0].spelarar).toBe(9)
+      expect(beregnCupStruktur(9)[0]!.spelarar).toBe(9)
     })
   })
 
@@ -34,14 +34,14 @@ describe('beregnCupStruktur', () => {
     it('each round\'s vidare equals the next round\'s spelarar', () => {
       const rounds = beregnCupStruktur(9)
       for (let i = 0; i < rounds.length - 1; i++) {
-        expect(rounds[i].vidare).toBe(rounds[i + 1].spelarar)
+        expect(rounds[i]!.vidare).toBe(rounds[i + 1]!.spelarar)
       }
     })
 
     it('last round always advances to exactly 2 (for the final)', () => {
       for (const n of [4, 8, 9, 10]) {
         const rounds = beregnCupStruktur(n)
-        expect(rounds[rounds.length - 1].vidare).toBe(2)
+        expect(rounds[rounds.length - 1]!.vidare).toBe(2)
       }
     })
   })
@@ -49,7 +49,7 @@ describe('beregnCupStruktur', () => {
   describe('walkover allocation', () => {
     it('round 1 has walkovers when the default oppsett requires them', () => {
       // n=10: gyldigeRunde1Oppsett(10) first entry is {walkovers:2, c3:0, c2:4}
-      expect(beregnCupStruktur(10)[0].walkovers).toBe(2)
+      expect(beregnCupStruktur(10)[0]!.walkovers).toBe(2)
     })
 
     it('all rounds after round 1 have zero walkovers', () => {
@@ -60,14 +60,14 @@ describe('beregnCupStruktur', () => {
     })
 
     it('round 1 has zero walkovers for clean group sizes like n=9', () => {
-      expect(beregnCupStruktur(9)[0].walkovers).toBe(0)
+      expect(beregnCupStruktur(9)[0]!.walkovers).toBe(0)
     })
   })
 
   describe('group sizes (treSpelarar and baner)', () => {
     it('treSpelarar is true when round uses 3-player matches', () => {
       // n=9: round 1 uses 3 groups of 3 players
-      expect(beregnCupStruktur(9)[0].treSpelarar).toBe(true)
+      expect(beregnCupStruktur(9)[0]!.treSpelarar).toBe(true)
     })
 
     it('treSpelarar is false for pure 2-player rounds', () => {
@@ -79,14 +79,14 @@ describe('beregnCupStruktur', () => {
 
     it('baner equals c3+c2 (number of matches, not counting walkovers)', () => {
       // n=4: 2 semi-finals → 2 matches
-      expect(beregnCupStruktur(4)[0].baner).toBe(2)
+      expect(beregnCupStruktur(4)[0]!.baner).toBe(2)
       // n=9 round 1: 3 groups of 3 → 3 matches
-      expect(beregnCupStruktur(9)[0].baner).toBe(3)
+      expect(beregnCupStruktur(9)[0]!.baner).toBe(3)
     })
 
     it('spelarar = baner*3 + walkovers for all-3-player rounds', () => {
       // n=9: 9 = 3 matches * 3 players + 0 walkovers
-      const r1 = beregnCupStruktur(9)[0]
+      const r1 = beregnCupStruktur(9)[0]!
       expect(r1.spelarar).toBe(r1.baner * 3 + r1.walkovers)
     })
   })
@@ -96,9 +96,9 @@ describe('beregnCupStruktur', () => {
       // Default for n=8: {walkovers:0, c3:0, c2:4} → vidare=4 → 2 rounds total
       // Override with:   {walkovers:2, c3:2, c2:0} → vidare=6 → 3 rounds total
       const rounds = beregnCupStruktur(8, { runde1: { walkovers: 2, c3: 2, c2: 0 } })
-      expect(rounds[0].walkovers).toBe(2)
-      expect(rounds[0].treSpelarar).toBe(true)
-      expect(rounds[0].baner).toBe(2)
+      expect(rounds[0]!.walkovers).toBe(2)
+      expect(rounds[0]!.treSpelarar).toBe(true)
+      expect(rounds[0]!.baner).toBe(2)
       expect(rounds).toHaveLength(3)
     })
   })

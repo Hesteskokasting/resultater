@@ -110,8 +110,8 @@ describe('renderStillingTabell', () => {
       ]
       const el = parse(renderStillingTabell(stilling, NO_KAMPER, NO_STARTNR, { harEliminasjon: true }))
       const rows = [...el.querySelectorAll('tr.stilling-spelar-rad')]
-      expect(rows[0].querySelector('td')?.classList.contains('avsl-elim-plass')).toBe(false)
-      expect(rows[1].querySelector('td')?.classList.contains('avsl-elim-plass')).toBe(true)
+      expect(rows[0]!.querySelector('td')?.classList.contains('avsl-elim-plass')).toBe(false)
+      expect(rows[1]!.querySelector('td')?.classList.contains('avsl-elim-plass')).toBe(true)
     })
 
     it('avsl-elim-plass is absent when harEliminasjon is false even for eliminated players', () => {
@@ -130,8 +130,8 @@ describe('renderStillingTabell', () => {
       const el = parse(renderStillingTabell(stilling, NO_KAMPER, NO_STARTNR, { harGrupper: true }))
       const groupHeaders = el.querySelectorAll('.fw-semibold')
       expect(groupHeaders.length).toBe(2)
-      expect(groupHeaders[0].textContent).toBe('Gruppe A')
-      expect(groupHeaders[1].textContent).toBe('Gruppe B')
+      expect(groupHeaders[0]!.textContent).toBe('Gruppe A')
+      expect(groupHeaders[1]!.textContent).toBe('Gruppe B')
     })
 
     it('resets position counter within each group', () => {

@@ -172,17 +172,19 @@ function bindDragScroll(el: HTMLElement): void {
 
 function bindStickyColumns(table: HTMLTableElement, count: number): void {
   const rows = [...table.querySelectorAll<HTMLTableRowElement>('tr')]
-  if (!rows.length) return
+  const firstRow = rows[0]
+  if (!firstRow) return
   // Measure widths from the first row before mutating anything
-  const widths = [...rows[0].cells].slice(0, count).map(c => c.offsetWidth)
+  const widths = [...firstRow.cells].slice(0, count).map(c => c.offsetWidth)
   for (const row of rows) {
     let offset = 0
     for (let i = 0; i < count && i < row.cells.length; i++) {
       const cell = row.cells[i]
+      if (!cell) continue
       cell.classList.add('stats-col-sticky')
       if (i === count - 1) cell.classList.add('stats-col-sticky-last')
       cell.style.setProperty('--col-left', `${offset}px`)
-      offset += widths[i]
+      offset += widths[i] ?? 0
     }
   }
 }
