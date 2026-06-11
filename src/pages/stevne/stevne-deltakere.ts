@@ -293,7 +293,7 @@ export async function render(
       wrapper.appendChild(createTabs({
         tabs: [
           { id: 'spelarar', label: 'Spelarar', panel: layout },
-          { id: 'parar', label: 'Parar', panel: parPanel },
+          { id: 'pairs', label: 'Administrer par', panel: parPanel },
         ],
       }))
     } else {

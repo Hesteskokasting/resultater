@@ -158,11 +158,11 @@ export async function hentParForStevne(stevneId: number): Promise<{ data: Pameld
     else if (row.posisjon === 2) par.sideB = row
   }
 
-  const parar = Array.from(parMap.values()).filter(
+  const pairs = Array.from(parMap.values()).filter(
     (p): p is PameldingPar => p.sideA != null && p.sideB != null,
   )
 
-  return { data: parar, error: null }
+  return { data: pairs, error: null }
 }
 
 export async function opprettPar(

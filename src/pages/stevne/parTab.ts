@@ -37,14 +37,14 @@ export function createParTab(props: ParTabProps): HTMLElement {
 async function renderPar(root: HTMLElement, props: ParTabProps): Promise<void> {
   const { stevneId, isAdmin, erMix, pameldtIds, alleSpelarar } = props
 
-  const { data: parar, error } = await hentParForStevne(stevneId)
+  const { data: pairs, error } = await hentParForStevne(stevneId)
   if (error) {
     logError('createParTab', error)
     root.replaceChildren(createErrorBanner('Kunne ikkje laste par.'))
     return
   }
 
-  const pairedIds = new Set(parar.flatMap(p => [p.sideA.kasterid, p.sideB.kasterid]))
+  const pairedIds = new Set(pairs.flatMap(p => [p.sideA.kasterid, p.sideB.kasterid]))
   const unpaired = alleSpelarar.filter(s => pameldtIds.has(s.id) && !pairedIds.has(s.id))
 
   let pendingA: KasterListeRow | null = null
@@ -194,7 +194,7 @@ async function renderPar(root: HTMLElement, props: ParTabProps): Promise<void> {
   })
 
   function renderParListe(parList: PameldingPar[]): void {
-    rightTitle.textContent = `Parar: ${parList.length}`
+    rightTitle.textContent = `Antal par: ${parList.length}`
     parContainer.innerHTML = ''
 
     if (!parList.length) {
@@ -259,5 +259,5 @@ async function renderPar(root: HTMLElement, props: ParTabProps): Promise<void> {
   root.replaceChildren(layout)
 
   renderUnpaired()
-  renderParListe(parar)
+  renderParListe(pairs)
 }
