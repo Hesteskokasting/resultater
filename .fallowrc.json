@@ -5,5 +5,8 @@
     { "file": "src/pages/**", "exports": ["render"] },
     { "file": "src/admin/**", "exports": ["render"] },
     { "file": "src/types/database.types.ts", "exports": ["*"] }
-  ]
+  ],
+  "duplicates": {
+    "ignore": ["src/types/database.types.ts", "tests/**"]
+  }
 }

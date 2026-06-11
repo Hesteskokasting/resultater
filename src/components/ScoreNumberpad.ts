@@ -1,3 +1,5 @@
+import { createEl } from '@/utils/createEl'
+
 export function showNumberpad(
   p1Namn: string,
   p2Namn: string,
@@ -18,11 +20,11 @@ export function showNumberpad(
     const visP1 = !isMobil || steg === 0
     const visP2 = !isMobil || steg === 1
 
-    const xBtn = lagEl('button', 'X', 'np-lukk-btn')
+    const xBtn = createEl('button', 'X', 'np-lukk-btn')
     xBtn.addEventListener('click', () => document.body.removeChild(overlay))
     overlay.appendChild(xBtn)
 
-    const lagreBtn = lagEl('button', 'Lagre', 'np-lagre-btn') as HTMLButtonElement
+    const lagreBtn = createEl('button', 'Lagre', 'np-lagre-btn') as HTMLButtonElement
     lagreBtn.addEventListener('click', async () => {
       lagreBtn.disabled = true
       lagreBtn.textContent = 'Lagrer…'
@@ -31,7 +33,7 @@ export function showNumberpad(
     })
     overlay.appendChild(lagreBtn)
 
-    const wrap = lagEl('div', null, 'np-wrap')
+    const wrap = createEl('div', null, 'np-wrap')
     overlay.appendChild(wrap)
 
     if (visP1) {
@@ -46,7 +48,7 @@ export function showNumberpad(
     }
 
     if (isMobil) {
-      const navBtn = lagEl('button', steg === 0 ? 'Neste →' : '← Tilbake', 'np-nav-btn')
+      const navBtn = createEl('button', steg === 0 ? 'Neste →' : '← Tilbake', 'np-nav-btn')
       navBtn.addEventListener('click', () => { steg ^= 1; tegn() })
       overlay.appendChild(navBtn)
     }
@@ -57,27 +59,27 @@ export function showNumberpad(
 }
 
 function lagPad(navn: string, initScore: number): HTMLElement {
-  const pad = lagEl('div', null, 'np-pad')
+  const pad = createEl('div', null, 'np-pad')
 
-  pad.appendChild(lagEl('h3', navn, 'np-navn'))
+  pad.appendChild(createEl('h3', navn, 'np-navn'))
 
-  const scoreEl = lagEl('div', String(initScore), 'np-score')
+  const scoreEl = createEl('div', String(initScore), 'np-score')
   scoreEl.dataset.scoreEl = '1'
   pad.appendChild(scoreEl)
 
-  const resetBtn = lagEl('button', 'Reset', 'np-reset-btn') as HTMLButtonElement
+  const resetBtn = createEl('button', 'Reset', 'np-reset-btn') as HTMLButtonElement
   resetBtn.disabled = initScore === 0
   resetBtn.dataset.resetBtn = '1'
   pad.appendChild(resetBtn)
 
-  const grid = lagEl('div', null, 'np-grid')
+  const grid = createEl('div', null, 'np-grid')
   for (let i = 1; i <= 9; i++) {
-    const btn = lagEl('button', String(i), 'np-num-btn') as HTMLButtonElement
+    const btn = createEl('button', String(i), 'np-num-btn') as HTMLButtonElement
     btn.dataset.val = String(i)
     grid.appendChild(btn)
   }
   grid.appendChild(document.createElement('div'))
-  const nulBtn = lagEl('button', '0', 'np-num-btn') as HTMLButtonElement
+  const nulBtn = createEl('button', '0', 'np-num-btn') as HTMLButtonElement
   nulBtn.dataset.val = '0'
   grid.appendChild(nulBtn)
   grid.appendChild(document.createElement('div'))
@@ -111,9 +113,3 @@ function fiksKnappar(
   })
 }
 
-function lagEl(tag: string, tekst: string | null, klasse: string): HTMLElement {
-  const el = document.createElement(tag)
-  if (tekst != null) el.textContent = tekst
-  if (klasse) el.className = klasse
-  return el
-}

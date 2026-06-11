@@ -1,4 +1,5 @@
 import { kasterNavn } from '@/utils/kaster'
+import { tildelPlassering } from '@/utils/tildelPlassering'
 import type { RankingStevneRow, RankingResultatRow } from '@/services/norgesrankingService'
 
 export const MIN_STEVNER = 5
@@ -67,17 +68,6 @@ export function regnUtRingInfo(r: RankingResultatRow, stevneInfo: StevneInfo | u
   return liste
 }
 
-function tildelPlassering(liste: RankingItem[]): void {
-  let pl = 1
-  for (let i = 0; i < liste.length; i++) {
-    const item = liste[i]
-    if (item === undefined) continue
-    const forrige = liste[i - 1]
-    if (forrige !== undefined && item.snittProsent < forrige.snittProsent) pl = i + 1
-    item.plassering = pl
-  }
-}
-
 export function byggRankingListe(resultater: RankingResultatRow[], stevnerMap: Map<number, StevneInfo>): RankingItem[] {
   const kasterMap = new Map<number, { kaster: RankingResultatRow['kaster']; klubb: RankingResultatRow['klubb']; rader: RingInfo[] }>()
 
@@ -119,7 +109,7 @@ export function byggRankingListe(resultater: RankingResultatRow[], stevnerMap: M
 
   gyldig.sort((a, b) => b.snittProsent - a.snittProsent || a.navn.localeCompare(b.navn))
   ugyldig.sort((a, b) => b.snittProsent - a.snittProsent || a.navn.localeCompare(b.navn))
-  tildelPlassering(gyldig)
+  tildelPlassering(gyldig, r => r.snittProsent)
 
   return [...gyldig, ...ugyldig]
 }

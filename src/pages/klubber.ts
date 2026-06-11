@@ -1,5 +1,5 @@
 import { kasterNavn, lagKasterSlug, lagKlubbSlug } from '@/utils/kaster'
-import { getUser } from '@/services/authService'
+import { prependAdminLinkBar } from '@/components/AdminLinkBar'
 import { createErrorBanner } from '@/components/ErrorBanner'
 import { createLoadingState } from '@/components/LoadingState'
 import { createEmptyState } from '@/components/EmptyState'
@@ -156,12 +156,11 @@ async function renderListe(container: HTMLElement): Promise<void> {
       filtrerOgVis()
     })
 
-    void getUser().then(auth => {
-      if (auth?.profil?.rolle !== 'admin') return
-      const bar = document.createElement('div')
-      bar.className = 'mb-2 px-2'
-      bar.innerHTML = `<a href="#/klubber/ny" class="btn btn-sm btn-success">+ Ny klubb</a>`
-      container.querySelector('.nc-side')?.prepend(bar)
+    prependAdminLinkBar(container, {
+      href: '#/klubber/ny',
+      label: '+ Ny klubb',
+      variant: 'success',
+      canShow: auth => auth.profil?.rolle === 'admin',
     })
   } catch (err) {
     logError('renderListe', err)
@@ -211,15 +210,12 @@ async function renderDetalj(container: HTMLElement, id: number): Promise<void> {
       oppdaterListe()
     })
 
-    void getUser().then(auth => {
-      if (!auth?.profil) return
-      const kanRedigere = auth.profil.rolle === 'admin' ||
-        (auth.profil.rolle === 'klubbadmin' && auth.klubber.includes(id))
-      if (!kanRedigere) return
-      const bar = document.createElement('div')
-      bar.className = 'mb-2 px-2'
-      bar.innerHTML = `<a href="#/klubber/${id}/admin" class="btn btn-sm btn-warning">Rediger klubb</a>`
-      container.querySelector('.nc-side')?.prepend(bar)
+    prependAdminLinkBar(container, {
+      href: `#/klubber/${id}/admin`,
+      label: 'Rediger klubb',
+      variant: 'warning',
+      canShow: auth => auth.profil?.rolle === 'admin' ||
+        (auth.profil?.rolle === 'klubbadmin' && auth.klubber.includes(id)),
     })
   } catch (err) {
     logError('renderDetalj', err)

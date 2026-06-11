@@ -1,5 +1,5 @@
 import { kasterNavn, lagKasterSlug as lagSlug } from '@/utils/kaster'
-import { getUser } from '@/services/authService'
+import { prependAdminLinkBar } from '@/components/AdminLinkBar'
 import { createErrorBanner } from '@/components/ErrorBanner'
 import { createLoadingState } from '@/components/LoadingState'
 import { escHtml } from '@/utils/escHtml'
@@ -130,13 +130,11 @@ export async function renderListe(container: HTMLElement): Promise<void> {
       container.querySelector('.nc-side')?.scrollIntoView({ behavior: 'smooth' })
     })
 
-    void getUser().then(auth => {
-      if (!auth?.profil) return
-      if (auth.profil.rolle !== 'admin' && auth.profil.rolle !== 'klubbadmin') return
-      const bar = document.createElement('div')
-      bar.className = 'mb-2 px-2'
-      bar.innerHTML = `<a href="#/kaster/ny" class="btn btn-sm btn-success">+ Ny utøvar</a>`
-      container.querySelector('.nc-side')?.prepend(bar)
+    prependAdminLinkBar(container, {
+      href: '#/kaster/ny',
+      label: '+ Ny utøvar',
+      variant: 'success',
+      canShow: auth => auth.profil?.rolle === 'admin' || auth.profil?.rolle === 'klubbadmin',
     })
   } catch (err) {
     logError('renderListe', err)

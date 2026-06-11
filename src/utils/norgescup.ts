@@ -1,5 +1,6 @@
 import type { Tables, Kaster, Klubb } from '@/types'
 import { kasterNavn } from './kaster'
+import { tildelPlassering } from './tildelPlassering'
 import type { ResultatMedRelasjonar, StevneForNc } from '@/services/norgescupService'
 
 export type { ResultatMedRelasjonar, StevneForNc }
@@ -92,15 +93,15 @@ function velgBeregnFunksjon(cupType: string): BeregnFn {
   return beregnNcPoeng
 }
 
-function tildelPlassering<T extends { plassering: number }>(liste: T[], getPoeng: (item: T) => number): void {
-  let pl = 1
-  for (let i = 0; i < liste.length; i++) {
-    const item = liste[i]
-    if (item === undefined) continue
-    const forrige = liste[i - 1]
-    if (forrige !== undefined && getPoeng(item) < getPoeng(forrige)) pl = i + 1
-    item.plassering = pl
+/** Groups result rows per kaster, dropping rows without a known kaster. */
+function grupperPerKaster(rader: ResultatMedRelasjonar[]): Map<number, { kaster: Kaster; rader: ResultatMedRelasjonar[] }> {
+  const kasterMap = new Map<number, { kaster: Kaster; rader: ResultatMedRelasjonar[] }>()
+  for (const r of rader) {
+    if (r.kasterid == null || r.kaster == null) continue
+    if (!kasterMap.has(r.kasterid)) kasterMap.set(r.kasterid, { kaster: r.kaster, rader: [] })
+    kasterMap.get(r.kasterid)!.rader.push(r)
   }
+  return kasterMap
 }
 
 // ── Eksporterte listebyggarar ─────────────────────────────────────────────────
@@ -116,14 +117,7 @@ export function byggSingelListe(
   const beregn = velgBeregnFunksjon(cupType)
   const klasseNavn = klasse === 1 ? 'Klasse 1' : 'Klasse 2'
 
-  const filtrert = resultater.filter(r => r.klasse?.navn === klasseNavn)
-
-  const kasterMap = new Map<number, { kaster: Kaster; rader: ResultatMedRelasjonar[] }>()
-  for (const r of filtrert) {
-    if (r.kasterid == null || r.kaster == null) continue
-    if (!kasterMap.has(r.kasterid)) kasterMap.set(r.kasterid, { kaster: r.kaster, rader: [] })
-    kasterMap.get(r.kasterid)!.rader.push(r)
-  }
+  const kasterMap = grupperPerKaster(resultater.filter(r => r.klasse?.navn === klasseNavn))
 
   const liste: SingelListeRad[] = []
   for (const [, entry] of kasterMap) {
@@ -147,14 +141,7 @@ export function byggLagListe(
   regler: Regler
 ): LagListeRad[] {
   const stevnerMap = lagStevnerMap(stevner)
-  const filtrert = resultater.filter(r => r.klasse?.navn === 'Klasse 1')
-
-  const kasterMap = new Map<number, { kaster: Kaster; rader: ResultatMedRelasjonar[] }>()
-  for (const r of filtrert) {
-    if (r.kasterid == null || r.kaster == null) continue
-    if (!kasterMap.has(r.kasterid)) kasterMap.set(r.kasterid, { kaster: r.kaster, rader: [] })
-    kasterMap.get(r.kasterid)!.rader.push(r)
-  }
+  const kasterMap = grupperPerKaster(resultater.filter(r => r.klasse?.navn === 'Klasse 1'))
 
   const bidragMap = new Map<string, { kaster: Kaster; klubbId: number; sum: number }>()
   const klubbInfoMap = new Map<number, Klubb>()

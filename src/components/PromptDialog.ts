@@ -1,3 +1,5 @@
+import { createModalEl, createModalLifecycle } from '@/components/ModalBase'
+
 export interface PromptDialogProps {
   title: string
   message: string
@@ -6,20 +8,16 @@ export interface PromptDialogProps {
 }
 
 let _el: HTMLElement | null = null
-let _backdrop: HTMLElement | null = null
 let _resolve: ((value: string | null) => void) | null = null
-let _onKeydown: ((e: KeyboardEvent) => void) | null = null
+const _modal = createModalLifecycle()
 
 function getEl(): HTMLElement {
   if (_el) return _el
 
-  _el = document.createElement('div')
-  _el.className = 'modal'
-  _el.style.display = 'none'
-  _el.setAttribute('role', 'dialog')
-  _el.setAttribute('aria-modal', 'true')
-  _el.setAttribute('aria-labelledby', 'pd-title')
-  _el.innerHTML = `
+  _el = createModalEl({
+    role: 'dialog',
+    labelledBy: 'pd-title',
+    html: `
     <div class="modal-dialog modal-dialog-centered modal-sm">
       <div class="modal-content">
         <div class="modal-header border-0 pb-0">
@@ -35,37 +33,14 @@ function getEl(): HTMLElement {
         </div>
       </div>
     </div>
-  `
-  document.body.appendChild(_el)
+  `,
+  })
   _el.querySelector('#pd-cancel')!.addEventListener('click', () => { dismiss(null) })
   _el.querySelector('#pd-confirm')!.addEventListener('click', () => { confirm() })
   _el.querySelector('#pd-input')!.addEventListener('keydown', (e) => {
     if ((e as KeyboardEvent).key === 'Enter') { e.preventDefault(); confirm() }
   })
   return _el
-}
-
-function openModal(el: HTMLElement): void {
-  _backdrop = document.createElement('div')
-  _backdrop.className = 'modal-backdrop show'
-  document.body.appendChild(_backdrop)
-  document.body.classList.add('modal-open')
-
-  el.style.display = 'block'
-  el.classList.add('show')
-  el.querySelector<HTMLInputElement>('#pd-input')?.focus()
-
-  _onKeydown = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.preventDefault(); dismiss(null) } }
-  document.addEventListener('keydown', _onKeydown)
-}
-
-function closeModal(el: HTMLElement): void {
-  el.classList.remove('show')
-  el.style.display = 'none'
-  _backdrop?.remove()
-  _backdrop = null
-  document.body.classList.remove('modal-open')
-  if (_onKeydown) { document.removeEventListener('keydown', _onKeydown); _onKeydown = null }
 }
 
 function confirm(): void {
@@ -77,7 +52,7 @@ function dismiss(value: string | null): void {
   if (!_el || !_resolve) return
   const resolve = _resolve
   _resolve = null
-  closeModal(_el)
+  _modal.close(_el)
   resolve(value)
 }
 
@@ -93,6 +68,6 @@ export function promptDialog(props: PromptDialogProps): Promise<string | null> {
 
   return new Promise(resolve => {
     _resolve = resolve
-    openModal(el)
+    _modal.open(el, { focus: '#pd-input', onEscape: () => { dismiss(null) } })
   })
 }

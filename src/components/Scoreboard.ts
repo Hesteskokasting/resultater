@@ -1,10 +1,11 @@
-// Shared helpers (lagEl, spelarNamn, lagAsyncKnapp, lagBekreftKnapp, setupScoreboardRealtime)
+// Shared helpers (spelarNamn, lagAsyncKnapp, lagBekreftKnapp, setupScoreboardRealtime)
 // serve both renderScoreboard (2-player) and renderScoreboard3 (3-player) — fixes to
 // realtime, button behaviour, or DOM utilities apply once. Genuine divergences:
 // tegn/tegn3, bereknKnappStatus/bereknKnappStatus3, nesteOmgang/nesteOmgang3,
 // and OmgangRad[] vs KampOmgangRow[] state structures.
 import type { KampOmgangRow, KampRow, KampSpelarIKamp } from '@/services/kampService'
 import { calcAntallRinger, getOmgangThrowerId } from '@/utils/kamp'
+import { createEl } from '@/utils/createEl'
 import {
   hentKampOmgangar,
   lagreKampOmgang,
@@ -190,19 +191,19 @@ export async function renderScoreboard(
       omgangEl.textContent = kamp.er_bekreftet ? 'Fullført' : (kampFerdig ? 'Ferdig' : `Omgang ${nr}`)
     }
 
-    const wrap = lagEl('div', null, isEditMode ? 'sb-wrap sb-wrap--edit-mode' : 'sb-wrap')
+    const wrap = createEl('div', null, isEditMode ? 'sb-wrap sb-wrap--edit-mode' : 'sb-wrap')
     wrap.appendChild(lagSpelerPanel(p1Navn ?? spelarNamn(p1ks, 'Spelar 1'), t1, r1, maxRinger, val1, p1Dis, !kanRedigere, 1, p1Navn != null))
     wrap.appendChild(lagSpelerPanel(p2Navn ?? spelarNamn(p2ks, 'Spelar 2'), t2, r2, maxRinger, val2, p2Dis, !kanRedigere, 2, p2Navn != null))
     container.appendChild(wrap)
 
     if (kanRedigere && !kamp.er_bekreftet) {
-      const angreRad = lagEl('div', null, 'sb-angre-rad')
-      const angreBtn = lagEl('button', '↩', 'sb-angre-btn')
+      const angreRad = createEl('div', null, 'sb-angre-rad')
+      const angreBtn = createEl('button', '↩', 'sb-angre-btn')
       if (isEditMode) {
         angreBtn.title = 'Avbryt endring'
         angreBtn.addEventListener('click', () => { isEditMode = false; modifiedPlayers = new Set(); val1 = null; val2 = null; tegn() })
         angreRad.appendChild(angreBtn)
-        const avbrytBtn = lagEl('button', 'Avbryt endring', 'sb-avbryt-btn')
+        const avbrytBtn = createEl('button', 'Avbryt endring', 'sb-avbryt-btn')
         avbrytBtn.addEventListener('click', () => { isEditMode = false; modifiedPlayers = new Set(); val1 = null; val2 = null; tegn() })
         angreRad.appendChild(avbrytBtn)
       } else {
@@ -258,17 +259,17 @@ export async function renderScoreboard(
     spelarNr: number,
     erParNavn = false,
   ): HTMLElement {
-    const panel = lagEl('div', null, 'sb-spelar-panel')
-    panel.appendChild(lagEl('div', navn, erParNavn ? 'sb-spelar-navn sb-spelar-navn--par' : 'sb-spelar-navn'))
-    panel.appendChild(lagEl('div', String(total), 'sb-score'))
+    const panel = createEl('div', null, 'sb-spelar-panel')
+    panel.appendChild(createEl('div', navn, erParNavn ? 'sb-spelar-navn sb-spelar-navn--par' : 'sb-spelar-navn'))
+    panel.appendChild(createEl('div', String(total), 'sb-score'))
 
     const ringerPct = maxRinger > 0 ? Math.round(ringer / maxRinger * 100) : 0
-    panel.appendChild(lagEl('p', `Ring: ${ringer} av ${maxRinger} ( ${ringerPct}% )`, 'sb-ringer-info'))
+    panel.appendChild(createEl('p', `Ring: ${ringer} av ${maxRinger} ( ${ringerPct}% )`, 'sb-ringer-info'))
 
     if (!lesvisning) {
-      const knappar = lagEl('div', null, 'sb-knappar')
+      const knappar = createEl('div', null, 'sb-knappar')
       for (const n of pointValues) {
-        const btn = lagEl('button', String(n), 'sb-poeng-btn')
+        const btn = createEl('button', String(n), 'sb-poeng-btn')
         btn.dataset.spelar = String(spelarNr)
         btn.dataset.val = String(n)
         if (disabledSet.has(n)) btn.disabled = true
@@ -324,15 +325,6 @@ export async function renderScoreboard(
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function lagEl(tag: string, tekst: string | null, klasse: string): HTMLButtonElement
-function lagEl(tag: string, tekst: string | null, klasse?: string): HTMLElement
-function lagEl(tag: string, tekst: string | null, klasse?: string): HTMLElement {
-  const el = document.createElement(tag)
-  if (tekst != null) el.textContent = tekst
-  if (klasse) el.className = klasse
-  return el
-}
-
 function spelarNamn(ks: KampSpelarIKamp | null, fallback = 'Spelar'): string {
   return ks?.kaster ? `${ks.kaster.fornavn} ${ks.kaster.etternavn}` : fallback
 }
@@ -343,7 +335,7 @@ function lagAsyncKnapp(
   klasse: string,
   onClick: () => Promise<void>,
 ): HTMLButtonElement {
-  const btn = lagEl('button', label, klasse)
+  const btn = createEl('button', label, klasse)
   btn.addEventListener('click', async () => {
     btn.disabled = true
     btn.textContent = 'Lagrer…'
@@ -519,22 +511,22 @@ async function renderScoreboard3(
       omgangEl.textContent = kamp.er_bekreftet ? 'Fullført' : (erFerdig ? 'Ferdig' : `Omgang ${maxOmgang + 1}`)
     }
 
-    const wrap = lagEl('div', null, isEditMode3 ? 'sb-wrap sb-wrap--3p sb-wrap--edit-mode' : 'sb-wrap sb-wrap--3p')
+    const wrap = createEl('div', null, isEditMode3 ? 'sb-wrap sb-wrap--3p sb-wrap--edit-mode' : 'sb-wrap sb-wrap--3p')
     spelarar.forEach((ks, i) => {
       const erVunne = vinnRekkefolge.includes(i)
       const visVunne = erVunne && !isEditMode3
       const plass = visVunne ? vinnRekkefolge.indexOf(i) + 1 : null
-      const panel = lagEl('div', null, `sb-spelar-panel${visVunne ? ' sb-spelar-panel--vann' : ''}`)
+      const panel = createEl('div', null, `sb-spelar-panel${visVunne ? ' sb-spelar-panel--vann' : ''}`)
       const navn = navnFor(ks)
-      panel.appendChild(lagEl('div', navn.label, navn.erPar ? 'sb-spelar-navn sb-spelar-navn--par' : 'sb-spelar-navn'))
-      panel.appendChild(lagEl('div', String(totalar[i]), 'sb-score'))
+      panel.appendChild(createEl('div', navn.label, navn.erPar ? 'sb-spelar-navn sb-spelar-navn--par' : 'sb-spelar-navn'))
+      panel.appendChild(createEl('div', String(totalar[i]), 'sb-score'))
 
-      if (plass) panel.appendChild(lagEl('div', `${plass}. plass`, 'sb-plass-badge'))
+      if (plass) panel.appendChild(createEl('div', `${plass}. plass`, 'sb-plass-badge'))
 
       if (editIdxar.includes(i) && kanRedigere && !kamp.er_bekreftet) {
-        const knappar = lagEl('div', null, 'sb-knappar')
+        const knappar = createEl('div', null, 'sb-knappar')
         for (const n of pointValues) {
-          const btn = lagEl('button', String(n), 'sb-poeng-btn')
+          const btn = createEl('button', String(n), 'sb-poeng-btn')
           btn.dataset.spelar = String(i)
           btn.dataset.val = String(n)
           if (vals[i] === n) btn.classList.add('sb-valgt')
@@ -549,13 +541,13 @@ async function renderScoreboard3(
     container.appendChild(wrap)
 
     if (kanRedigere && !kamp.er_bekreftet) {
-      const angreRad = lagEl('div', null, 'sb-angre-rad')
-      const angreBtn = lagEl('button', '↩', 'sb-angre-btn')
+      const angreRad = createEl('div', null, 'sb-angre-rad')
+      const angreBtn = createEl('button', '↩', 'sb-angre-btn')
       if (isEditMode3) {
         angreBtn.title = 'Avbryt endring'
         angreBtn.addEventListener('click', () => { isEditMode3 = false; modifiedPlayers3 = new Set(); editModeIdxar = []; vals = [null, null, null]; tegn3() })
         angreRad.appendChild(angreBtn)
-        const avbrytBtn = lagEl('button', 'Avbryt endring', 'sb-avbryt-btn')
+        const avbrytBtn = createEl('button', 'Avbryt endring', 'sb-avbryt-btn')
         avbrytBtn.addEventListener('click', () => { isEditMode3 = false; modifiedPlayers3 = new Set(); editModeIdxar = []; vals = [null, null, null]; tegn3() })
         angreRad.appendChild(avbrytBtn)
       } else {
@@ -593,7 +585,7 @@ async function renderScoreboard3(
     if (erFerdig && !isEditMode3 && !kamp.er_bekreftet && onBekreft && kanRedigere) {
       container.appendChild(lagBekreftKnapp(() => onBekreft(vinnRekkefolge.map(i => spelarar[i]!.kasterid))))
     } else if (kamp.er_bekreftet) {
-      container.appendChild(lagEl('div', 'Kamp fullført', 'alert alert-success mt-2'))
+      container.appendChild(createEl('div', 'Kamp fullført', 'alert alert-success mt-2'))
     }
 
     container.querySelectorAll<HTMLButtonElement>('[data-spelar]').forEach(btn => {

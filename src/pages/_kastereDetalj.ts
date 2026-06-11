@@ -1,6 +1,6 @@
 import type { Chart } from 'chart.js'
 import { kasterNavn } from '@/utils/kaster'
-import { getUser } from '@/services/authService'
+import { prependAdminLinkBar } from '@/components/AdminLinkBar'
 import { formaterDato, formaterProsent } from '@/utils/shared'
 import { createErrorBanner } from '@/components/ErrorBanner'
 import { createLoadingState } from '@/components/LoadingState'
@@ -377,15 +377,12 @@ export async function renderDetalj(container: HTMLElement, id: number): Promise<
       oppdaterGraf()
     })
 
-    void getUser().then(auth => {
-      if (!auth?.profil) return
-      const kanRedigere = auth.profil.rolle === 'admin' ||
-        (auth.profil.rolle === 'klubbadmin' && auth.klubber.includes(kaster.klubbid ?? -1))
-      if (!kanRedigere) return
-      const bar = document.createElement('div')
-      bar.className = 'mb-2 px-2'
-      bar.innerHTML = `<a href="#/kaster/${id}/admin" class="btn btn-sm btn-warning">Rediger utøvar</a>`
-      container.querySelector('.nc-side')?.prepend(bar)
+    prependAdminLinkBar(container, {
+      href: `#/kaster/${id}/admin`,
+      label: 'Rediger utøvar',
+      variant: 'warning',
+      canShow: auth => auth.profil?.rolle === 'admin' ||
+        (auth.profil?.rolle === 'klubbadmin' && auth.klubber.includes(kaster.klubbid ?? -1)),
     })
   } catch (err) {
     logError('renderDetalj', err)

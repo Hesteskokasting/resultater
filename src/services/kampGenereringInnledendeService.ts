@@ -130,6 +130,47 @@ function _pushSpelarRader(spelarRader: KampSpelarInsert[], kampid: number, kaste
   }
 }
 
+/** Inserts one round of matches plus their kamp_spelar rows; returns the match count. */
+async function _insertRundeKampar(
+  stevneid: number,
+  roundPairs: KampPar[],
+  rundeNummer: number,
+  posToKasterids: Record<number, number[]>,
+  errorContext: string,
+): Promise<number> {
+  const rundekampar = roundPairs.map((pair, ci) => ({
+    match_id: genMatchId(),
+    stevneid,
+    fase: 'innledende',
+    runde_nummer: rundeNummer,
+    bane_nummer: ci + 1,
+    er_bekreftet: false,
+    er_walkover: pair.erWalkover,
+  }))
+
+  const { data: innsettaKampar, error: kampErr } = await supabase
+    .from('kamp')
+    .insert(rundekampar)
+    .select('id, bane_nummer')
+  if (kampErr) throw new Error(`Feil ved innsetting av kampar (${errorContext}): ` + kampErr.message)
+
+  const baneToKampId: Record<number, number> = Object.fromEntries(
+    (innsettaKampar as KampMedBane[]).map(k => [k.bane_nummer, k.id]),
+  )
+  const spelarRader: KampSpelarInsert[] = []
+
+  for (const [ci, pair] of roundPairs.entries()) {
+    const kampid = baneToKampId[ci + 1]!
+    _pushSpelarRader(spelarRader, kampid, posToKasterids[pair.p1Pos] ?? [])
+    if (pair.p2Pos != null) _pushSpelarRader(spelarRader, kampid, posToKasterids[pair.p2Pos] ?? [])
+  }
+
+  const { error: spErr } = await supabase.from('kamp_spelar').insert(spelarRader)
+  if (spErr) throw new Error(`Feil ved innsetting av spelarar (${errorContext}): ` + spErr.message)
+
+  return (innsettaKampar as KampMedBane[]).length
+}
+
 async function _insertCascadeMatches(
   stevneid: number,
   posToKasterids: Record<number, number[]>,
@@ -141,38 +182,7 @@ async function _insertCascadeMatches(
 
   for (const [ri, roundPairs] of allRounds.entries()) {
     const rundeNummer = ri + 1
-
-    const rundekampar = roundPairs.map((pair, ci) => ({
-      match_id: genMatchId(),
-      stevneid,
-      fase: 'innledende',
-      runde_nummer: rundeNummer,
-      bane_nummer: ci + 1,
-      er_bekreftet: false,
-      er_walkover: pair.erWalkover,
-    }))
-
-    const { data: innsettaKampar, error: kampErr } = await supabase
-      .from('kamp')
-      .insert(rundekampar)
-      .select('id, bane_nummer')
-    if (kampErr) throw new Error(`Feil ved innsetting av kampar (runde ${rundeNummer}): ` + kampErr.message)
-
-    const baneToKampId: Record<number, number> = Object.fromEntries(
-      (innsettaKampar as KampMedBane[]).map(k => [k.bane_nummer, k.id]),
-    )
-    const spelarRader: KampSpelarInsert[] = []
-
-    for (const [ci, pair] of roundPairs.entries()) {
-      const kampid = baneToKampId[ci + 1]!
-      _pushSpelarRader(spelarRader, kampid, posToKasterids[pair.p1Pos] ?? [])
-      if (pair.p2Pos != null) _pushSpelarRader(spelarRader, kampid, posToKasterids[pair.p2Pos] ?? [])
-    }
-
-    const { error: spErr } = await supabase.from('kamp_spelar').insert(spelarRader)
-    if (spErr) throw new Error(`Feil ved innsetting av spelarar (runde ${rundeNummer}): ` + spErr.message)
-
-    totaltKampar += (innsettaKampar as KampMedBane[]).length
+    totaltKampar += await _insertRundeKampar(stevneid, roundPairs, rundeNummer, posToKasterids, `runde ${rundeNummer}`)
   }
 
   return totaltKampar
@@ -192,39 +202,7 @@ async function _insertSwissRunde1(
   posToKasterids: Record<number, number[]>,
   N: number,
 ): Promise<number> {
-  const kampPairs = buildSwissRunde1Pairs(N)
-
-  const rundekampar = kampPairs.map((pair, ci) => ({
-    match_id: genMatchId(),
-    stevneid,
-    fase: 'innledende',
-    runde_nummer: 1,
-    bane_nummer: ci + 1,
-    er_bekreftet: false,
-    er_walkover: pair.erWalkover,
-  }))
-
-  const { data: innsettaKampar, error: kampErr } = await supabase
-    .from('kamp')
-    .insert(rundekampar)
-    .select('id, bane_nummer')
-  if (kampErr) throw new Error('Feil ved innsetting av Swiss runde 1: ' + kampErr.message)
-
-  const baneToKampId: Record<number, number> = Object.fromEntries(
-    (innsettaKampar as KampMedBane[]).map(k => [k.bane_nummer, k.id]),
-  )
-  const spelarRader: KampSpelarInsert[] = []
-
-  for (const [ci, pair] of kampPairs.entries()) {
-    const kampid = baneToKampId[ci + 1]!
-    _pushSpelarRader(spelarRader, kampid, posToKasterids[pair.p1Pos] ?? [])
-    if (pair.p2Pos != null) _pushSpelarRader(spelarRader, kampid, posToKasterids[pair.p2Pos] ?? [])
-  }
-
-  const { error: spErr } = await supabase.from('kamp_spelar').insert(spelarRader)
-  if (spErr) throw new Error('Feil ved innsetting av Swiss spelarar: ' + spErr.message)
-
-  return (innsettaKampar as KampMedBane[]).length
+  return _insertRundeKampar(stevneid, buildSwissRunde1Pairs(N), 1, posToKasterids, 'Swiss runde 1')
 }
 
 export function buildSwissPairs(

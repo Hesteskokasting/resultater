@@ -38,6 +38,7 @@ import {
 } from '@/services/resultatService'
 import {
   createAvsluttendeRenderer,
+  toOrgSp,
   type AvsluttendeVariant,
 } from './avsluttendeBase'
 
@@ -145,6 +146,15 @@ const cupVariant: AvsluttendeVariant = {
         return gyldigeRunde1Oppsett(nGruppe)[0] ?? null
       }
 
+      function oppdaterGruppePreview(nA: number, oppsettA: RundeOppsett | null, oppsettB: RundeOppsett | null): void {
+        const prevEl = container.querySelector('#gruppe-preview')
+        if (!prevEl) return
+        prevEl.innerHTML = renderGruppePreview(
+          stilling.map((r, i) => ({ ...r, cupPlassering: i + 1 })),
+          nA, oppsettA?.walkovers ?? 0, oppsettB?.walkovers ?? 0,
+        )
+      }
+
       const panelerEl = container.querySelector<HTMLElement>('#gruppe-paneler')
       if (panelerEl) {
         panelerEl.addEventListener('change', (e) => {
@@ -161,12 +171,7 @@ const cupVariant: AvsluttendeVariant = {
             const strEl = container.querySelector('#struktur-b')
             if (strEl) strEl.outerHTML = renderStrukturListeHtml(nB, oppsettB, 'b')
           }
-          const woA = oppsettA?.walkovers ?? 0
-          const woB = oppsettB?.walkovers ?? 0
-          const prevEl = container.querySelector('#gruppe-preview')
-          if (prevEl) prevEl.innerHTML = renderGruppePreview(
-            stilling.map((r, i) => ({ ...r, cupPlassering: i + 1 })), nA, woA, woB,
-          )
+          oppdaterGruppePreview(nA, oppsettA, oppsettB)
         })
       }
 
@@ -185,12 +190,7 @@ const cupVariant: AvsluttendeVariant = {
                 ${renderGruppePanelInnhald('Gruppe B', nB, 'runde1-format-b', oppsettB)}
               </div>` : '')
           }
-          const woA = oppsettA?.walkovers ?? 0
-          const woB = oppsettB?.walkovers ?? 0
-          const prevEl = container.querySelector('#gruppe-preview')
-          if (prevEl) prevEl.innerHTML = renderGruppePreview(
-            stilling.map((r, i) => ({ ...r, cupPlassering: i + 1 })), nA, woA, woB,
-          )
+          oppdaterGruppePreview(nA, oppsettA, oppsettB)
         })
       })
 
@@ -381,19 +381,6 @@ function renderKampBlock(
         </tbody>
       </table>
     </div>`
-}
-
-// ── Local spelarar conversion (OrgKamp shape) ─────────────────────────────────
-
-function toOrgSp(sp: AvslKampSpelarRow[]) {
-  return sp.map(s => ({
-    kasterid: s.kasterid ?? 0,
-    kamp_poeng: s.kamp_poeng ?? 0,
-    score_poeng: s.score_poeng ?? 0,
-    antall_ringer: s.antall_ringer,
-    omgangar: s.omgangar,
-    kaster: s.kaster,
-  }))
 }
 
 // ── Match event binding ───────────────────────────────────────────────────────

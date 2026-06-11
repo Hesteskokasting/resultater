@@ -219,18 +219,31 @@ export async function render(container: HTMLElement): Promise<void> {
 
     allData = data ?? []
 
+    // Same select set renders twice: desktop filter row ('') and mobile bottom sheet ('-mobil')
+    function filterSelects(suffix: '' | '-mobil'): Record<'ar' | 'stevnetype' | 'kastemetode' | 'arrangor' | 'kategori', string> {
+      return {
+        ar:          `<select class="tl-select" id="tl-ar${suffix}">${arOptions(filtre.ar, 1983, new Date().getFullYear() + 1)}</select>`,
+        stevnetype:  `<select class="tl-select" id="tl-stevnetype${suffix}">${buildDropdownOptions(filtervalg.stevnetyper, filtre.stevnetypeId, 'Alle typer')}</select>`,
+        kastemetode: `<select class="tl-select" id="tl-kastemetode${suffix}">${buildDropdownOptions(filtervalg.kastemetoder, filtre.kastemetodeId, 'Alle metoder')}</select>`,
+        arrangor:    `<select class="tl-select" id="tl-arrangorklubb${suffix}">${buildDropdownOptions(filtervalg.klubber, filtre.klubbId, 'Alle arrangører')}</select>`,
+        kategori:    `<select class="tl-select" id="tl-kategori${suffix}">${buildDropdownOptions(filtervalg.kategorier, filtre.kategoriId, 'Alle kategorier')}</select>`,
+      }
+    }
+    const desktopSel = filterSelects('')
+    const mobilSel = filterSelects('-mobil')
+
     container.innerHTML = `
       <div class="terminliste">
         <h1 class="tl-tittel">Terminliste ${filtre.ar}</h1>
 
         <!-- Desktop-filterrad -->
         <div class="tl-filter-rad">
-          <select class="tl-select" id="tl-ar">${arOptions(filtre.ar, 1983, new Date().getFullYear() + 1)}</select>
+          ${desktopSel.ar}
           <input class="tl-input" id="tl-tekst" type="search" placeholder="Søk..." value="${escHtml(filtre.tekst)}">
-          <select class="tl-select" id="tl-stevnetype">${buildDropdownOptions(filtervalg.stevnetyper, filtre.stevnetypeId, 'Alle typer')}</select>
-          <select class="tl-select" id="tl-kastemetode">${buildDropdownOptions(filtervalg.kastemetoder, filtre.kastemetodeId, 'Alle metoder')}</select>
-          <select class="tl-select" id="tl-arrangorklubb">${buildDropdownOptions(filtervalg.klubber, filtre.klubbId, 'Alle arrangører')}</select>
-          <select class="tl-select" id="tl-kategori">${buildDropdownOptions(filtervalg.kategorier, filtre.kategoriId, 'Alle kategorier')}</select>
+          ${desktopSel.stevnetype}
+          ${desktopSel.kastemetode}
+          ${desktopSel.arrangor}
+          ${desktopSel.kategori}
           <button class="tl-excel-knapp" id="tl-excel-desktop">⬇ Excel</button>
         </div>
 
@@ -252,19 +265,19 @@ export async function render(container: HTMLElement): Promise<void> {
         <div class="tl-bunnark-innhold">
           <h2 class="tl-bunnark-tittel">Filtre</h2>
           <label class="tl-label">År
-            <select class="tl-select" id="tl-ar-mobil">${arOptions(filtre.ar, 1983, new Date().getFullYear() + 1)}</select>
+            ${mobilSel.ar}
           </label>
           <label class="tl-label">Stevnetype
-            <select class="tl-select" id="tl-stevnetype-mobil">${buildDropdownOptions(filtervalg.stevnetyper, filtre.stevnetypeId, 'Alle typer')}</select>
+            ${mobilSel.stevnetype}
           </label>
           <label class="tl-label">Kastemetode
-            <select class="tl-select" id="tl-kastemetode-mobil">${buildDropdownOptions(filtervalg.kastemetoder, filtre.kastemetodeId, 'Alle metoder')}</select>
+            ${mobilSel.kastemetode}
           </label>
           <label class="tl-label">Arrangør
-            <select class="tl-select" id="tl-arrangorklubb-mobil">${buildDropdownOptions(filtervalg.klubber, filtre.klubbId, 'Alle arrangører')}</select>
+            ${mobilSel.arrangor}
           </label>
           <label class="tl-label">Kategori
-            <select class="tl-select" id="tl-kategori-mobil">${buildDropdownOptions(filtervalg.kategorier, filtre.kategoriId, 'Alle kategorier')}</select>
+            ${mobilSel.kategori}
           </label>
           <div class="tl-bunnark-knapper">
             <button class="tl-tilbakestill-knapp" id="tl-tilbakestill">Tilbakestill</button>
@@ -333,18 +346,22 @@ export async function render(container: HTMLElement): Promise<void> {
       resizeTimer = setTimeout(oppdaterListe, 200)
     })
 
-    arSelect.addEventListener('change', async () => {
-      filtre.ar = Number(arSelect.value)
+    async function reloadYear(logContext: string): Promise<boolean> {
       container.querySelector('.tl-tittel')!.textContent = `Terminliste ${filtre.ar}`
       container.querySelector('.tl-liste-container')!.replaceChildren(createLoadingState("Laster..."))
       const { data: nyData, error: nyFeil } = await hentTerminlisteStevner(filtre.ar)
       if (nyFeil) {
-        logError('terminliste.arChange', nyFeil)
+        logError(logContext, nyFeil)
         container.querySelector<HTMLElement>('.tl-liste-container')!.replaceChildren(createErrorBanner('Feil ved henting.'))
-        return
+        return false
       }
       allData = nyData ?? []
-      oppdaterListe()
+      return true
+    }
+
+    arSelect.addEventListener('change', async () => {
+      filtre.ar = Number(arSelect.value)
+      if (await reloadYear('terminliste.arChange')) oppdaterListe()
     })
 
     tekstInput.addEventListener('input', () => {
@@ -398,17 +415,7 @@ export async function render(container: HTMLElement): Promise<void> {
       filtre.kategoriId = kategoriMobilSelect.value
       lukkBunnark()
 
-      if (arEndret) {
-        container.querySelector('.tl-tittel')!.textContent = `Terminliste ${filtre.ar}`
-        container.querySelector('.tl-liste-container')!.replaceChildren(createLoadingState("Laster..."))
-        const { data: nyData, error: nyFeil } = await hentTerminlisteStevner(filtre.ar)
-        if (nyFeil) {
-          logError('terminliste.brukFilter', nyFeil)
-          container.querySelector<HTMLElement>('.tl-liste-container')!.replaceChildren(createErrorBanner('Feil ved henting.'))
-          return
-        }
-        allData = nyData ?? []
-      }
+      if (arEndret && !await reloadYear('terminliste.brukFilter')) return
       oppdaterListe()
     })
   } catch (err) {

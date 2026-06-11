@@ -111,17 +111,7 @@ export async function oppdaterKampSpelarScoreRask(
   const update = kampPoeng !== undefined
     ? { score_poeng: scorePoeng, kamp_poeng: kampPoeng }
     : { score_poeng: scorePoeng }
-  try {
-    const timeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('Request timed out')), LAGRE_TIMEOUT_MS),
-    )
-    const { error } = await Promise.race([supabase.from('kamp_spelar').update(update).eq('id', id), timeout])
-    if (error) logError('oppdaterKampSpelarScoreRask', error)
-    return { error }
-  } catch (e) {
-    logError('oppdaterKampSpelarScoreRask', e)
-    return { error: e }
-  }
+  return _runWithTimeout('oppdaterKampSpelarScoreRask', supabase.from('kamp_spelar').update(update).eq('id', id))
 }
 
 // ── Scoreboard read ───────────────────────────────────────────────────────────
@@ -337,6 +327,11 @@ export function buildKampSpelarUpdates(params: {
   return updates
 }
 
+/** Par/Mix: a side's kamp_spelar ids include the rep and (when present) the partner. */
+function _sideSpelarIds(p: { spelarId: number } | null, partnerId: number | null): number[] {
+  return p ? [p.spelarId, ...(partnerId != null ? [partnerId] : [])] : []
+}
+
 export async function bekreftInnledendeKamp(params: {
   kampId: number
   p1: KampSpelarBekreftData | null
@@ -351,8 +346,8 @@ export async function bekreftInnledendeKamp(params: {
 }): Promise<{ error: unknown }> {
   const { kampId, p1, p2, hcp1, hcp2, erWalkover = false, p1PartnerId = null, p2PartnerId = null } = params
 
-  const side1Ids = p1 ? [p1.spelarId, ...(p1PartnerId != null ? [p1PartnerId] : [])] : []
-  const side2Ids = p2 ? [p2.spelarId, ...(p2PartnerId != null ? [p2PartnerId] : [])] : []
+  const side1Ids = _sideSpelarIds(p1, p1PartnerId)
+  const side2Ids = _sideSpelarIds(p2, p2PartnerId)
   const alleIds = [...side1Ids, ...side2Ids]
 
   let omgData: OmgRow[] = []
@@ -449,8 +444,8 @@ export async function bekreftAvsluttendeKamp(params: {
   if (orderedKasterids?.length === 3) {
     eliminertId = orderedKasterids[2] ?? null
   } else {
-    const side1Ids = p1 ? [p1.spelarId, ...(p1PartnerId != null ? [p1PartnerId] : [])] : []
-    const side2Ids = p2 ? [p2.spelarId, ...(p2PartnerId != null ? [p2PartnerId] : [])] : []
+    const side1Ids = _sideSpelarIds(p1, p1PartnerId)
+    const side2Ids = _sideSpelarIds(p2, p2PartnerId)
     const { data: omgData } = await supabase
       .from('kamp_omgang')
       .select('kamp_spelar_id, score')
@@ -578,14 +573,8 @@ export async function bekreftCupKamp(params: {
   if (!eliminertIds.length) return { error: null }
 
   if (rundeNavn !== 'Finale' && rundeNavn !== 'Bronsefinale') {
-    // Regular rounds only: reset then mark loser as eliminated
-    const { error: resetErr } = await supabase.from('resultat')
-      .update({ runde_eliminert: null })
-      .eq('stevneid', stevneId).eq('runde_eliminert', rundeNummer).in('kasterid', allKasterids)
-    if (resetErr) { logError('bekreftCupKamp:reset', resetErr); return { error: resetErr } }
-    const { error: elimErr } = await supabase.from('resultat')
-      .update({ runde_eliminert: rundeNummer }).eq('stevneid', stevneId).in('kasterid', eliminertIds)
-    if (elimErr) { logError('bekreftCupKamp:eliminert', elimErr); return { error: elimErr } }
+    const { error } = await _resetOgMarkerEliminert(stevneId, rundeNummer, allKasterids, eliminertIds, 'bekreftCupKamp')
+    if (error) return { error }
   }
 
   // Write final tournament placement for Finale and Bronsefinale
@@ -606,6 +595,26 @@ export async function bekreftCupKamp(params: {
     if (tErr) { logError('bekreftCupKamp:plassering-tapar', tErr); return { error: tErr } }
   }
 
+  return { error: null }
+}
+
+/** Regular cup rounds: clear this round's eliminations for the match's players, then mark the losers. */
+async function _resetOgMarkerEliminert(
+  stevneId: number,
+  rundeNummer: number,
+  allKasterids: number[],
+  eliminertIds: number[],
+  logContext: string,
+): Promise<{ error: unknown }> {
+  const { error: resetErr } = await supabase.from('resultat')
+    .update({ runde_eliminert: null })
+    .eq('stevneid', stevneId).eq('runde_eliminert', rundeNummer).in('kasterid', allKasterids)
+  if (resetErr) { logError(`${logContext}:reset`, resetErr); return { error: resetErr } }
+  if (eliminertIds.length) {
+    const { error } = await supabase.from('resultat')
+      .update({ runde_eliminert: rundeNummer }).eq('stevneid', stevneId).in('kasterid', eliminertIds)
+    if (error) { logError(`${logContext}:eliminert`, error); return { error } }
+  }
   return { error: null }
 }
 
@@ -646,16 +655,8 @@ export async function oppdaterVinnarTapar(params: {
       if (error) { logError('oppdaterVinnarTapar:plassering-tapar', error); return { error } }
     }
   } else {
-    const { error: resetErr } = await supabase.from('resultat')
-      .update({ runde_eliminert: null })
-      .eq('stevneid', stevneId).eq('runde_eliminert', rundeNummer).in('kasterid', allKasterids)
-    if (resetErr) { logError('oppdaterVinnarTapar:reset', resetErr); return { error: resetErr } }
-    if (nyTaparIds.length) {
-      const { error } = await supabase.from('resultat')
-        .update({ runde_eliminert: rundeNummer })
-        .eq('stevneid', stevneId).in('kasterid', nyTaparIds)
-      if (error) { logError('oppdaterVinnarTapar:tapar', error); return { error } }
-    }
+    const { error } = await _resetOgMarkerEliminert(stevneId, rundeNummer, allKasterids, nyTaparIds, 'oppdaterVinnarTapar')
+    if (error) return { error }
   }
 
   return { error: null }
@@ -681,21 +682,29 @@ export async function hentKampOmgangar(spelarIds: number[]): Promise<{ data: Kam
 
 const LAGRE_TIMEOUT_MS = 10_000
 
-export async function lagreKampOmgang(
-  inserts: { kamp_spelar_id: number; omgang: number; score: number; antall_ringer: number }[],
+/** Races a Supabase write against LAGRE_TIMEOUT_MS so scoreboard saves never hang. */
+async function _runWithTimeout(
+  logContext: string,
+  query: PromiseLike<{ error: unknown }>,
 ): Promise<{ error: unknown }> {
-  if (!inserts.length) return { error: null }
   try {
     const timeout = new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error('Request timed out')), LAGRE_TIMEOUT_MS),
     )
-    const { error } = await Promise.race([supabase.from('kamp_omgang').insert(inserts), timeout])
-    if (error) logError('lagreKampOmgang', error)
+    const { error } = await Promise.race([query, timeout])
+    if (error) logError(logContext, error)
     return { error }
   } catch (e) {
-    logError('lagreKampOmgang', e)
+    logError(logContext, e)
     return { error: e }
   }
+}
+
+export async function lagreKampOmgang(
+  inserts: { kamp_spelar_id: number; omgang: number; score: number; antall_ringer: number }[],
+): Promise<{ error: unknown }> {
+  if (!inserts.length) return { error: null }
+  return _runWithTimeout('lagreKampOmgang', supabase.from('kamp_omgang').insert(inserts))
 }
 
 export async function oppdaterKampOmgang(

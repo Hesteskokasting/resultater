@@ -148,6 +148,15 @@ export async function genererCupRunde1(
   return totalKampar
 }
 
+/** Highest assigned bane number for the round, so new matches continue after it. */
+async function _hentBaneStart(stevneid: number, rundeNummer: number): Promise<number> {
+  const { data: maxBane } = await supabase.from('kamp')
+    .select('bane_nummer').eq('stevneid', stevneid).eq('fase', 'avsluttende')
+    .eq('runde_nummer', rundeNummer).not('bane_nummer', 'is', null)
+    .order('bane_nummer', { ascending: false }).limit(1)
+  return (maxBane as KampMedBane[] | null)?.[0]?.bane_nummer ?? 0
+}
+
 export async function genererNesteCupRundeForGruppe(
   stevneid: number,
   gruppeNavn: string,
@@ -164,11 +173,7 @@ export async function genererNesteCupRundeForGruppe(
   const erSemfinale = spelarar.length === 4
   const paringar = beregnCupRundeParingar(spelarar, { medSeeding, isRunde1: false })
 
-  const { data: maxBane } = await supabase.from('kamp')
-    .select('bane_nummer').eq('stevneid', stevneid).eq('fase', 'avsluttende')
-    .eq('runde_nummer', rundeNummer).not('bane_nummer', 'is', null)
-    .order('bane_nummer', { ascending: false }).limit(1)
-  const baneStart = (maxBane as KampMedBane[] | null)?.[0]?.bane_nummer ?? 0
+  const baneStart = await _hentBaneStart(stevneid, rundeNummer)
 
   const sideInfo = await _hentSideInfo(stevneid)
   const antallKampar = await _insertCupParingar(
@@ -231,11 +236,7 @@ export async function genererFinaleOgBronsefinale(
     if (sorted[1]) taparar.push(sorted[1].kasterids)
   }
 
-  const { data: maxBane } = await supabase.from('kamp')
-    .select('bane_nummer').eq('stevneid', stevneid).eq('fase', 'avsluttende')
-    .eq('runde_nummer', rundeNummer).not('bane_nummer', 'is', null)
-    .order('bane_nummer', { ascending: false }).limit(1)
-  const baneStart = (maxBane as KampMedBane[] | null)?.[0]?.bane_nummer ?? 0
+  const baneStart = await _hentBaneStart(stevneid, rundeNummer)
 
   const finale = {
     match_id: genMatchId(), stevneid, fase: 'avsluttende', runde_nummer: rundeNummer,

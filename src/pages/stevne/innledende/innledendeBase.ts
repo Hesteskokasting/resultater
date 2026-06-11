@@ -440,28 +440,17 @@ function renderRunde(
     </div>`
 }
 
-function kampRad(
+/** Per-match view state shared by the desktop and mobile row renderers. */
+function beregnKampRadState(
   kamp: InnlKampRow,
   startnrMap: Record<number, number>,
-  admin = true,
-  hcpMap: Record<number, number> = {},
-  posisjonMap: Record<number, number> = {},
-): string {
+  hcpMap: Record<number, number>,
+  posisjonMap: Record<number, number>,
+) {
   const [side1, side2] = getMatchSides(kamp.spelarar, startnrMap, posisjonMap)
   const p1 = side1?.rep ?? null
   const p2 = side2?.rep ?? null
-
-  const p1Nr = p1?.kasterid ? (startnrMap[p1.kasterid] ?? '') : ''
-  const p2Nr = p2?.kasterid ? (startnrMap[p2.kasterid] ?? '') : ''
-
-  const p1Namn = sideNavn(side1, false)
   const p2ErBye = kamp.er_walkover && !p2?.kaster
-  const p2Namn = p2ErBye ? 'Walkover' : sideNavn(side2, false)
-
-  const p1Vis = p1Nr ? `${p1Namn} (${p1Nr})` : p1Namn
-  const p2Vis = p2ErBye
-    ? (p2Nr ? `Walkover (${p2Nr})` : 'Walkover')
-    : (p2Nr ? `${p2Namn} (${p2Nr})` : p2Namn)
 
   const harOmg1 = sideHarOmgangar(side1)
   const harOmg2 = sideHarOmgangar(side2)
@@ -477,10 +466,40 @@ function kampRad(
   const s2 = erUbekreftaWalkover ? 0 : s2Raw
   const harPoeng = kamp.er_bekreftet || kamp.er_walkover || harOmgangar || s1Raw > 0 || s2Raw > 0
 
-  const status = resolveKampStatus(kamp, harPoeng, harOmgangar)
   const sp = [p1, p2].filter((s): s is InnlKampSpelarRow => s != null)
-  const kanBekrefte = beregnKanBekrefte(kamp, sp, harOmgangar, hcpMap)
-  const isLive = harOmgangar && !kamp.er_bekreftet
+  return {
+    side1, side2, p1, p2, p2ErBye, harOmgangar, s1, s2, harPoeng,
+    status: resolveKampStatus(kamp, harPoeng, harOmgangar),
+    kanBekrefte: beregnKanBekrefte(kamp, sp, harOmgangar, hcpMap),
+    isLive: harOmgangar && !kamp.er_bekreftet,
+  }
+}
+
+function scoreInnerHtml(s1: number | string, s2: number | string, sep = '–'): string {
+  return `<span class="innl-score-inner"><span class="innl-s1">${s1}</span><span class="innl-sep">${sep}</span><span class="innl-s2">${s2}</span></span>`
+}
+
+function kampRad(
+  kamp: InnlKampRow,
+  startnrMap: Record<number, number>,
+  admin = true,
+  hcpMap: Record<number, number> = {},
+  posisjonMap: Record<number, number> = {},
+): string {
+  const { side1, side2, p1, p2, p2ErBye, harOmgangar, s1, s2, harPoeng, status, kanBekrefte, isLive } =
+    beregnKampRadState(kamp, startnrMap, hcpMap, posisjonMap)
+
+  const p1Nr = p1?.kasterid ? (startnrMap[p1.kasterid] ?? '') : ''
+  const p2Nr = p2?.kasterid ? (startnrMap[p2.kasterid] ?? '') : ''
+
+  const p1Namn = sideNavn(side1, false)
+  const p2Namn = p2ErBye ? 'Walkover' : sideNavn(side2, false)
+
+  const p1Vis = p1Nr ? `${p1Namn} (${p1Nr})` : p1Namn
+  const p2Vis = p2ErBye
+    ? (p2Nr ? `Walkover (${p2Nr})` : 'Walkover')
+    : (p2Nr ? `${p2Namn} (${p2Nr})` : p2Namn)
+
   const kanEndreScore = admin && !kamp.er_walkover
   const scoreCls = `text-center innl-score-cel${kanEndreScore ? ' score-redigerbar' : ''}`
   const scoreExtra = kanEndreScore ? ` data-endre-score="${kamp.id}"` : ''
@@ -509,7 +528,7 @@ function kampRad(
     <tr class="kamp-rad-desktop" data-kamp-id="${kamp.id}" data-status="${status}">
       <td class="text-center">${kamp.bane_nummer ?? ''}</td>
       <td>${p1Vis}</td>
-      <td class="${scoreCls}"${scoreExtra}>${harPoeng ? `<span class="innl-score-inner"><span class="innl-s1">${s1}</span><span class="innl-sep">–</span><span class="innl-s2">${s2}</span></span>` : '—'}</td>
+      <td class="${scoreCls}"${scoreExtra}>${harPoeng ? scoreInnerHtml(s1, s2) : '—'}</td>
       <td>${p2Vis}</td>
       ${knapperTd}
     </tr>`
@@ -522,37 +541,16 @@ function kampRadMobil(
   hcpMap: Record<number, number> = {},
   posisjonMap: Record<number, number> = {},
 ): string {
-  const [side1, side2] = getMatchSides(kamp.spelarar, startnrMap, posisjonMap)
-  const p1 = side1?.rep ?? null
-  const p2 = side2?.rep ?? null
+  const { side1, side2, p2ErBye, s1, s2, harPoeng, status, kanBekrefte, isLive } =
+    beregnKampRadState(kamp, startnrMap, hcpMap, posisjonMap)
 
   const p1NavnKort = sideNavn(side1, true)
-  const p2ErBye = kamp.er_walkover && !p2?.kaster
   const p2NavnKort = p2ErBye ? 'Walkover' : sideNavn(side2, true)
 
-  const harOmg1 = sideHarOmgangar(side1)
-  const harOmg2 = sideHarOmgangar(side2)
-  const harOmgangar = harOmg1 || harOmg2
-  const isLive = harOmgangar && !kamp.er_bekreftet
-  const hcp1 = hcpMap[p1?.kasterid ?? -1] ?? 0
-  const hcp2 = hcpMap[p2?.kasterid ?? -1] ?? 0
-
-  const s1Raw = kamp.er_bekreftet ? sideScore(side1, true) : (sideScore(side1, false) + (harOmg1 ? hcp1 : 0))
-  const s2Raw = kamp.er_bekreftet ? sideScore(side2, true) : (sideScore(side2, false) + (harOmg2 ? hcp2 : 0))
-  const erUbekreftaWalkover = kamp.er_walkover && !kamp.er_bekreftet
-  const s1 = erUbekreftaWalkover ? 21 : s1Raw
-  const s2 = erUbekreftaWalkover ? 0 : s2Raw
-  const harPoeng = kamp.er_bekreftet || kamp.er_walkover || harOmgangar || s1Raw > 0 || s2Raw > 0
-
-  const status = resolveKampStatus(kamp, harPoeng, harOmgangar)
-  const resultatTekst = harPoeng
-    ? `<span class="innl-score-inner"><span class="innl-s1">${s1}</span><span class="innl-sep">–</span><span class="innl-s2">${s2}</span></span>`
-    : `<span class="innl-score-inner"><span class="innl-s1"></span><span class="innl-sep">—</span><span class="innl-s2"></span></span>`
+  const resultatTekst = harPoeng ? scoreInnerHtml(s1, s2) : scoreInnerHtml('', '', '—')
 
   let knapperHtml = ''
   if (admin) {
-    const sp = [p1, p2].filter((s): s is InnlKampSpelarRow => s != null)
-    const kanBekrefte = beregnKanBekrefte(kamp, sp, harOmgangar, hcpMap)
     const bekrftCell = kamp.er_bekreftet
       ? `<span class="kamp-bekreftet-mobil">✓ Bekreftet</span>`
       : `<button class="kamp-knapp-mobil kamp-knapp-bekreft-mobil" id="m-bekrft-${kamp.id}"${!kanBekrefte ? ' disabled' : ''}>Bekreft</button>`

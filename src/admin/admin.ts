@@ -118,14 +118,17 @@ async function _visKobling(el: HTMLElement): Promise<void> {
 
 // ── Brukarar ────────────────────────────────────────────────
 
+async function _hentEpostMap(ids: string[]): Promise<Record<string, string>> {
+  const { data: epostar } = await hentBrukarEpost(ids)
+  return Object.fromEntries((epostar ?? []).map(r => [r.id, r.epost]))
+}
+
 async function _visBrukarar(el: HTMLElement): Promise<void> {
   const { data, error } = await hentAlleBrukarar()
   if (error) { el.innerHTML = `<div class="alert alert-danger">${escHtml(errMsg(error))}</div>`; return }
   if (!data.length) { el.replaceChildren(createEmptyState('Ingen brukarar.')); return }
 
-  const ids = data.map(r => r.id)
-  const { data: epostar } = await hentBrukarEpost(ids)
-  const epostMap = Object.fromEntries((epostar ?? []).map(r => [r.id, r.epost]))
+  const epostMap = await _hentEpostMap(data.map(r => r.id))
 
   const rolleOptions = ['bruker', 'klubbadmin', 'admin']
     .map(r => `<option value="${r}">${r}</option>`).join('')
@@ -195,9 +198,7 @@ async function _visKlubbadmin(el: HTMLElement): Promise<void> {
 
   if (!brukarar.length) { el.replaceChildren(createEmptyState('Ingen brukarar med rolle "klubbadmin".')); return }
 
-  const ids = brukarar.map(r => r.id)
-  const { data: epostar } = await hentBrukarEpost(ids)
-  const epostMap = Object.fromEntries((epostar ?? []).map(r => [r.id, r.epost]))
+  const epostMap = await _hentEpostMap(brukarar.map(r => r.id))
 
   const tildelteMap: Record<string, Set<number>> = {}
   tildelte.forEach(r => {

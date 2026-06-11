@@ -105,7 +105,7 @@ function toOrgKamp(kampar: AvslKampRow[]): OrgKamp[] {
   }))
 }
 
-function toOrgSp(sp: AvslKampSpelarRow[]) {
+export function toOrgSp(sp: AvslKampSpelarRow[]) {
   return sp.map(s => ({
     kasterid: s.kasterid ?? 0,
     kamp_poeng: s.kamp_poeng ?? 0,
