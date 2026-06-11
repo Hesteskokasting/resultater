@@ -307,6 +307,84 @@ function renderGruppeKolonne(
     </div>`
 }
 
+interface KampBlockFlags {
+  bekrefta: boolean
+  harOmgangar: boolean
+  kanEndreScore: boolean
+}
+
+function sideRadHtml(
+  kamp: AvslKampRow,
+  side: MatchSide<AvslSpelarKjent>,
+  nSider: number,
+  flags: KampBlockFlags,
+): string {
+  const tot = sideSum(side)
+  const score = (tot > 0 || flags.bekrefta || flags.harOmgangar) ? tot : '—'
+  const kampPlassering = side.rep.kamp_plassering
+  const erEliminert = kamp.er_bekreftet && kampPlassering != null && kampPlassering >= nSider
+  const erVidare = kamp.er_bekreftet && kampPlassering != null && kampPlassering < nSider
+  const radKlass = erEliminert ? 'kamp-eliminert' : (erVidare ? 'kamp-vidare' : '')
+  const scoreCls = `text-center fw-semibold avsl-score-cel${flags.kanEndreScore ? ' score-redigerbar' : ''}`
+  const scoreExtra = flags.kanEndreScore ? ` data-endre-score="${kamp.id}"` : ''
+  return `<tr${radKlass ? ` class="${radKlass}"` : ''}>
+    <td>${sideNavnHtml(side, false)}</td>
+    <td class="${scoreCls}"${scoreExtra}>${score}</td>
+  </tr>`
+}
+
+function spelarRaderHtml(kamp: AvslKampRow, sider: MatchSide<AvslSpelarKjent>[], flags: KampBlockFlags): string {
+  if (kamp.er_walkover) {
+    return `<tr>
+        <td colspan="2">${sideNavnHtml(sider[0] ?? null, false)} <span class="badge bg-secondary">Walkover</span></td>
+      </tr>`
+  }
+  return sider.map(side => sideRadHtml(kamp, side, sider.length, flags)).join('')
+}
+
+interface BekreftKnappState {
+  klass: string
+  tekst: string
+  disabled: boolean
+  ekstraKlass: string
+}
+
+function bekreftKnappState(
+  kamp: AvslKampRow,
+  sider: MatchSide<AvslSpelarKjent>[],
+  harOmgangar: boolean,
+  bekrefta: boolean,
+): BekreftKnappState {
+  // 3-unit matches confirm via the placement dialog, which stays available after confirm
+  if (kamp.er_tre_spelarar) {
+    return {
+      klass: bekrefta ? 'btn-secondary' : 'btn-outline-secondary',
+      tekst: bekrefta ? 'Endre plassering' : 'Sett plassering',
+      disabled: false,
+      ekstraKlass: '',
+    }
+  }
+  const kanBekrefte = beregnKanBekrefte(kamp, toOrgSp(sider.map(s => s.rep)), harOmgangar)
+  return {
+    klass: bekrefta ? 'btn-secondary' : (kanBekrefte ? 'btn-success' : 'btn-outline-secondary'),
+    tekst: bekrefta ? 'Bekreftet' : 'Bekreft',
+    disabled: bekrefta || !kanBekrefte,
+    ekstraKlass: ' btn-bekreft',
+  }
+}
+
+function adminRadHtml(kamp: AvslKampRow, bekrefta: boolean, knapp: BekreftKnappState): string {
+  return `<tr>
+            <td colspan="2" class="text-end pe-1">
+              ${!kamp.er_walkover && !kamp.er_tre_spelarar
+                ? `<button class="btn btn-primary btn-sm" id="plus-${kamp.id}"${bekrefta ? ' disabled' : ''}>+</button> `
+                : ''}
+              ${!bekrefta ? `<button class="btn btn-secondary btn-sm" id="scoreboard-${kamp.id}">Score</button> ` : ''}
+              <button class="btn ${knapp.klass} btn-sm${knapp.ekstraKlass}" id="bekrft-${kamp.id}"${knapp.disabled ? ' disabled' : ''}>${knapp.tekst}</button>
+            </td>
+          </tr>`
+}
+
 function renderKampBlock(
   kamp: AvslKampRow,
   startnrMap: Record<number, number>,
@@ -317,67 +395,26 @@ function renderKampBlock(
 
   const bekrefta = kamp.er_bekreftet || kamp.er_walkover
   const harOmgangar = kamp.spelarar.some(s => (s.omgangar?.length ?? 0) > 0)
-  const isLive = harOmgangar && !bekrefta
-  const kanEndreScore = isAdminLocal && kamp.er_bekreftet && !kamp.er_tre_spelarar && !harOmgangar
-
-  const spelarRader = kamp.er_walkover
-    ? `<tr>
-        <td colspan="2">${sideNavnHtml(sider[0] ?? null, false)} <span class="badge bg-secondary">Walkover</span></td>
-      </tr>`
-    : sider.map(side => {
-        const tot = sideSum(side)
-        const score = (tot > 0 || bekrefta || harOmgangar) ? tot : '—'
-        const nSider = sider.length
-        const kampPlassering = side.rep.kamp_plassering
-        const erEliminert = kamp.er_bekreftet && kampPlassering != null && kampPlassering >= nSider
-        const erVidare = kamp.er_bekreftet && kampPlassering != null && kampPlassering < nSider
-        const radKlass = erEliminert ? 'kamp-eliminert' : (erVidare ? 'kamp-vidare' : '')
-        const scoreCls = `text-center fw-semibold avsl-score-cel${kanEndreScore ? ' score-redigerbar' : ''}`
-        const scoreExtra = kanEndreScore ? ` data-endre-score="${kamp.id}"` : ''
-        return `<tr${radKlass ? ` class="${radKlass}"` : ''}>
-          <td>${sideNavnHtml(side, false)}</td>
-          <td class="${scoreCls}"${scoreExtra}>${score}</td>
-        </tr>`
-      }).join('')
-
-  let bekrftKlass: string, bekrftTekst: string, bekrftDisabled: boolean, bekreftKnappKlass: string
-  if (kamp.er_tre_spelarar) {
-    bekrftKlass = bekrefta ? 'btn-secondary' : 'btn-outline-secondary'
-    bekrftTekst = bekrefta ? 'Endre plassering' : 'Sett plassering'
-    bekrftDisabled = false
-    bekreftKnappKlass = ''
-  } else {
-    const kanBekrefte = beregnKanBekrefte(kamp, toOrgSp(sider.map(s => s.rep)), harOmgangar)
-    bekrftKlass = bekrefta ? 'btn-secondary' : (kanBekrefte ? 'btn-success' : 'btn-outline-secondary')
-    bekrftTekst = bekrefta ? 'Bekreftet' : 'Bekreft'
-    bekrftDisabled = bekrefta || !kanBekrefte
-    bekreftKnappKlass = ' btn-bekreft'
+  const flags: KampBlockFlags = {
+    bekrefta,
+    harOmgangar,
+    kanEndreScore: isAdminLocal && kamp.er_bekreftet && !kamp.er_tre_spelarar && !harOmgangar,
   }
 
-  const livePill = isLive ? livePillHtml() : ''
-
-  const adminRow = isAdminLocal
-    ? `<tr>
-            <td colspan="2" class="text-end pe-1">
-              ${!kamp.er_walkover && !kamp.er_tre_spelarar
-                ? `<button class="btn btn-primary btn-sm" id="plus-${kamp.id}"${bekrefta ? ' disabled' : ''}>+</button> `
-                : ''}
-              ${!bekrefta ? `<button class="btn btn-secondary btn-sm" id="scoreboard-${kamp.id}">Score</button> ` : ''}
-              <button class="btn ${bekrftKlass} btn-sm${bekreftKnappKlass}" id="bekrft-${kamp.id}"${bekrftDisabled ? ' disabled' : ''}>${bekrftTekst}</button>
-            </td>
-          </tr>`
+  const adminRad = isAdminLocal
+    ? adminRadHtml(kamp, bekrefta, bekreftKnappState(kamp, sider, harOmgangar, bekrefta))
     : ''
 
   return `
     <div class="avsl-kamp-block">
       <div class="avsl-kamp-header">
         <span class="avsl-kamp-bane">Bane ${kamp.bane_nummer}</span>
-        ${livePill}
+        ${harOmgangar && !bekrefta ? livePillHtml() : ''}
       </div>
       <table class="table table-sm table-bordered mb-0">
         <tbody>
-          ${spelarRader}
-          ${adminRow}
+          ${spelarRaderHtml(kamp, sider, flags)}
+          ${adminRad}
         </tbody>
       </table>
     </div>`
