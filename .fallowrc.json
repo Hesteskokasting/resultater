@@ -1,0 +1,9 @@
+{
+  "$schema": "https://raw.githubusercontent.com/fallow-dev/fallow/main/schema/fallowrc.json",
+  "entry": ["src/index.html", "src/app.ts"],
+  "ignoreExports": [
+    { "file": "src/pages/**", "exports": ["render"] },
+    { "file": "src/admin/**", "exports": ["render"] },
+    { "file": "src/types/database.types.ts", "exports": ["*"] }
+  ]
+}
