@@ -45,6 +45,9 @@ export async function render(
 
     container.innerHTML = `
       <div>
+        <div class="mb-3">
+          <a href="#/stevne/${id}/rediger" class="btn btn-outline-secondary btn-sm">Rediger stevne</a>
+        </div>
         <h4 class="mb-3">Innstillingar</h4>
         <form id="innstillingar-form" class="org-max-480">
           <div class="mb-3">

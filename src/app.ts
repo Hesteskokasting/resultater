@@ -46,7 +46,7 @@ const ruter: Rute[] = [
   { pattern: /^\/minside$/,                      side: authGuard('bruker', lazy(() => import('./pages/minside'))),    params: () => ({}) },
   { pattern: /^\/admin$/,                        side: authGuard('admin',  lazy(() => import('./admin/admin'))),      params: () => ({}) },
   { pattern: /^\/stevne\/ny$/,                   side: authGuard('klubbadmin', lazy(() => import('./admin/stevneadmin'))), params: () => ({}) },
-  { pattern: /^\/stevne\/(\d+)\/admin$/,         side: authGuard('klubbadmin', lazy(() => import('./admin/stevneadmin'))), params: m => ({ id: Number(m[1]) }) },
+  { pattern: /^\/stevne\/(\d+)\/rediger$/,        side: authGuard('klubbadmin', lazy(() => import('./admin/stevneadmin'))), params: m => ({ id: Number(m[1]) }) },
   { pattern: /^\/kamp\/(\d+)$/,                 side: lazy(() => import('./pages/kamp')),                            params: m => ({ id: Number(m[1]) }) },
   { pattern: /^\/stevne\/(\d+)\/pamelding$/,    side: lazy(() => import('./pages/pamelding')),                       params: m => ({ id: m[1] }) },
   { pattern: /^\/stevne\/(\d+)(?:\/([^/]*))?$/, side: lazy(() => import('./pages/stevne')),                         params: m => ({ id: Number(m[1]), tab: m[2] ?? 'info' }) },

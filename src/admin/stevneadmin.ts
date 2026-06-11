@@ -131,7 +131,7 @@ export async function render(
 
     if (error) { visLagreFeil(container, errMsg(error)); return }
     visSuksess(container, 'Stevnet er lagra.')
-    if (!id) setTimeout(() => { location.hash = `#/stevne/${lagra!.id}/admin` }, 1500)
+    if (!id) setTimeout(() => { location.hash = `#/stevne/${lagra!.id}/rediger` }, 1500)
   })
 
   container.querySelector<HTMLButtonElement>('#slett-knapp')?.addEventListener('click', async () => {
