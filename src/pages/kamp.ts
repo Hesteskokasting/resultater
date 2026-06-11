@@ -19,10 +19,11 @@ import { kasterNavnKort } from '@/utils/kaster'
 import { autoGenererFinaleOgBronsefinale } from '@/services/kampGenereringCupService'
 import { avmeldKanal } from '@/utils/realtime'
 import type { KampRow, KampSpelarIKamp } from '@/services/kampService'
+import type { Params } from '@/types'
 
 const KAMP_POINT_VALUES = [1, 2, 3, 4, 6]
 
-export async function render(container: HTMLElement, params: Record<string, string | number | undefined>): Promise<void> {
+export async function render(container: HTMLElement, params: Params): Promise<void> {
   const kampId = Number(params.id)
 
   const hovudHeader = document.querySelector<HTMLElement>('.topp-header')

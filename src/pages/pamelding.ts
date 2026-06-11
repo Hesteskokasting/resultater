@@ -15,7 +15,7 @@ import {
 import type { PameldingMedKasterRow } from '@/services/pameldingService'
 import type { KasterListeRow } from '@/services/kasterService'
 import type { RelatertStevneRow } from '@/services/stevneService'
-import type { AuthUser } from '@/types'
+import type { AuthUser, Params } from '@/types'
 
 // ── HTML-byggjarar ────────────────────────────────────────────────────────────
 
@@ -182,7 +182,7 @@ function bindEventHandlers(
 
 // ── Hovudfunksjon ─────────────────────────────────────────────────────────────
 
-export async function render(container: HTMLElement, params: Record<string, string | number | undefined> = {}): Promise<void> {
+export async function render(container: HTMLElement, params: Params = {}): Promise<void> {
   const rawId = params.id
   if (!rawId) {
     container.replaceChildren(createErrorBanner('Manglande stevne-ID.'))

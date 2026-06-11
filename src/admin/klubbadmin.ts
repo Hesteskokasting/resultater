@@ -8,10 +8,11 @@ import {
   oppdaterKlubb,
   type KlubbAdminRow,
 } from '@/services/klubbService'
+import type { Params } from '@/types'
 
 export async function render(
   container: HTMLElement,
-  params: Record<string, string | number | undefined> = {},
+  params: Params = {},
 ): Promise<void> {
   const id = params.id !== undefined ? Number(params.id) : undefined
   if (!id) { container.replaceChildren(createErrorBanner('Manglande ID.')); return }

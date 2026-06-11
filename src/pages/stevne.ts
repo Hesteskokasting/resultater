@@ -13,6 +13,7 @@ import { render as renderAvsluttende }   from './stevne/stevne-avsluttende'
 import { render as renderInnstillingar } from './stevne/stevne-innstillinger'
 import { render as renderResultat }      from './stevne/stevne-resultat'
 import { render as renderStats }         from './stevne/stevne-stats'
+import type { Params } from '@/types'
 
 // ── Typar ─────────────────────────────────────────────────────────────────────
 
@@ -75,7 +76,7 @@ let kanal: RealtimeChannel | null = null
 
 export async function render(
   container: HTMLElement,
-  params: Record<string, string | number | undefined>,
+  params: Params,
 ): Promise<void> {
   const id = Number(params.id)
   const tab = String(params.tab ?? 'info')

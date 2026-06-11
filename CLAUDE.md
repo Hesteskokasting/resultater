@@ -142,7 +142,7 @@ src/
 
 ## Conventions
 
-- **Page render signatures use `Params`** — All exported `render` functions type their second argument as `Params` (from `@/types`), never a narrower inline type. Extract values in the body: `Number(params.id)`, `String(params.tab ?? 'default')`.
+- **Router-mounted pages use `Params`** — `render` functions registered in `app.ts` (`ruter`) type their second argument as `Params` (from `@/types`), never an inline `Record<...>`. Extract values in the body: `Number(params.id)`, `String(params.tab ?? 'default')`. Sub-pages called directly (e.g. stevne tabs) take typed props instead.
 
 ---
 
