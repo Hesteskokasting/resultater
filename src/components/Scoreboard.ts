@@ -15,7 +15,7 @@ import {
 import { avmeldKanal } from '@/utils/realtime'
 import { showToast } from './Toast'
 
-interface ScoreboardOptions {
+export interface ScoreboardOptions {
   pointValues: number[]
   erArrangor?: boolean
   erDeltakar?: boolean
