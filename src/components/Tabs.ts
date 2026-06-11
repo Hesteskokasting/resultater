@@ -7,9 +7,11 @@ export interface TabDef {
 export interface TabsProps {
   tabs: TabDef[]
   activeId?: string
+  /** Called when the user switches tab (not on initial render) */
+  onChange?: (id: string) => void
 }
 
-export function createTabs({ tabs, activeId }: TabsProps): HTMLElement {
+export function createTabs({ tabs, activeId, onChange }: TabsProps): HTMLElement {
   if (!tabs.length) return document.createElement('div')
 
   let activeIdx = Math.max(tabs.findIndex(t => t.id === (activeId ?? '')), 0)
@@ -63,6 +65,8 @@ export function createTabs({ tabs, activeId }: TabsProps): HTMLElement {
     panelWrappers.forEach((panel, i) => {
       panel.classList.toggle('d-none', i !== idx)
     })
+    const tab = tabs[idx]
+    if (tab) onChange?.(tab.id)
   }
 
   buttons.forEach((btn, i) => {

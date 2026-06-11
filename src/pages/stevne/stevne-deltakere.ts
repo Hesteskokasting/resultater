@@ -180,9 +180,17 @@ export async function render(
     const alleSpelarar = kastereRes.data
 
     const pameldtMap = new Map<number, boolean>()
+    const pairedIds = new Set<number>()
     for (const p of pameldingRes.data) {
-      if (p.kasterid != null) pameldtMap.set(p.kasterid, p.er_bekreftet ?? false)
+      if (p.kasterid != null) {
+        pameldtMap.set(p.kasterid, p.er_bekreftet ?? false)
+        if (p.lag_id != null) pairedIds.add(p.kasterid)
+      }
     }
+
+    // Par tab renders lazily on first activation; true again whenever
+    // enrollment changes so the next activation re-fetches
+    let parTabDirty = true
 
     const wrapper = document.createElement('div')
 
@@ -242,9 +250,11 @@ export async function render(
           sp,
           pameldtMap.get(sp.id) ?? false,
           async s => {
+            if (pairedIds.has(s.id)) { showToast('Kan ikkje fjerne spelar som er i eit par. Slett paret fyrst.', 'error'); return }
             const { error } = await fjernPameldingForKaster(id, s.id)
             if (error) { showToast('Feil ved fjerning: ' + errorMessage(error), 'error'); return }
             pameldtMap.delete(s.id)
+            parTabDirty = true
             renderPameldtListe()
             renderTilgjengeliListe()
           },
@@ -273,6 +283,7 @@ export async function render(
           const { error } = await leggTilPameldingAdmin(id, s.id)
           if (error) { showToast('Feil ved innmelding: ' + errorMessage(error), 'error'); return }
           pameldtMap.set(s.id, false)
+          parTabDirty = true
           renderPameldtListe()
           renderTilgjengeliListe()
         }, !kanEndrast))
@@ -283,18 +294,28 @@ export async function render(
     layout.appendChild(rightWrapper)
 
     if (erLag) {
-      const parPanel = createParTab({
+      const parTab = createParTab({
         stevneId: id,
         isAdmin: kanEndrast,
         erMix: (stevneRes.data.kategori?.navn ?? '').toLowerCase().includes('mix'),
-        pameldtIds: new Set(pameldtMap.keys()),
+        getPameldtIds: () => new Set(pameldtMap.keys()),
         alleSpelarar,
+        onPairsChanged: ids => {
+          pairedIds.clear()
+          for (const kid of ids) pairedIds.add(kid)
+        },
       })
       wrapper.appendChild(createTabs({
         tabs: [
           { id: 'spelarar', label: 'Spelarar', panel: layout },
-          { id: 'pairs', label: 'Administrer par', panel: parPanel },
+          { id: 'pairs', label: 'Administrer par', panel: parTab.element },
         ],
+        onChange: tabId => {
+          if (tabId === 'pairs' && parTabDirty) {
+            parTabDirty = false
+            parTab.refresh()
+          }
+        },
       }))
     } else {
       wrapper.appendChild(layout)

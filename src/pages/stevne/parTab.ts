@@ -17,8 +17,16 @@ export interface ParTabProps {
   isAdmin: boolean
   /** Mix: side A (posisjon 1) must be a woman, side B (posisjon 2) a man */
   erMix: boolean
-  pameldtIds: Set<number>
+  getPameldtIds: () => Set<number>
   alleSpelarar: KasterListeRow[]
+  /** Reports current pair membership after every (re)render, so the parent can keep its guards in sync */
+  onPairsChanged?: (pairedIds: Set<number>) => void
+}
+
+export interface ParTabHandle {
+  element: HTMLElement
+  /** Re-fetches pairs and re-renders with fresh pameldtIds */
+  refresh: () => void
 }
 
 function kortNamn(k: { fornavn: string | null; etternavn: string | null } | null): string {
@@ -27,15 +35,22 @@ function kortNamn(k: { fornavn: string | null; etternavn: string | null } | null
   return [fornavn, initial].filter(Boolean).join(' ')
 }
 
-export function createParTab(props: ParTabProps): HTMLElement {
+/**
+ * Renders nothing until the first refresh() — the parent calls it on tab
+ * activation, so pairs are only fetched when (and if) the tab is opened.
+ */
+export function createParTab(props: ParTabProps): ParTabHandle {
   const root = document.createElement('div')
   root.appendChild(createLoadingState())
-  void renderPar(root, props)
-  return root
+  return {
+    element: root,
+    refresh: () => { void renderPar(root, props) },
+  }
 }
 
 async function renderPar(root: HTMLElement, props: ParTabProps): Promise<void> {
-  const { stevneId, isAdmin, erMix, pameldtIds, alleSpelarar } = props
+  const { stevneId, isAdmin, erMix, getPameldtIds, alleSpelarar } = props
+  const pameldtIds = getPameldtIds()
 
   const { data: pairs, error } = await hentParForStevne(stevneId)
   if (error) {
@@ -45,6 +60,7 @@ async function renderPar(root: HTMLElement, props: ParTabProps): Promise<void> {
   }
 
   const pairedIds = new Set(pairs.flatMap(p => [p.sideA.kasterid, p.sideB.kasterid]))
+  props.onPairsChanged?.(pairedIds)
   const unpaired = alleSpelarar.filter(s => pameldtIds.has(s.id) && !pairedIds.has(s.id))
 
   let pendingA: KasterListeRow | null = null

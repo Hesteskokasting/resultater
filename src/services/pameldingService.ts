@@ -7,7 +7,7 @@ const _pameldingQuery = supabase.from('pamelding').select('id, stevne:stevneid(i
 const _pameldingMedKasterQuery = supabase
   .from('pamelding')
   .select('id, kasterid, kaster:kasterid(id, fornavn, etternavn, klubb:klubbid(navn))')
-const _pameldingStatusQuery = supabase.from('pamelding').select('id, kasterid, er_bekreftet')
+const _pameldingStatusQuery = supabase.from('pamelding').select('id, kasterid, er_bekreftet, lag_id')
 
 export type PameldingRow = QueryData<typeof _pameldingQuery>[number]
 export type PameldingMedKasterRow = QueryData<typeof _pameldingMedKasterQuery>[number]
@@ -94,7 +94,7 @@ export async function hentAntallUbekrefta(stevneId: number): Promise<number> {
 export async function hentPameldingStatusForStevne(stevneId: number): Promise<{ data: PameldingStatusRow[]; error: unknown }> {
   const { data, error } = await supabase
     .from('pamelding')
-    .select('id, kasterid, er_bekreftet')
+    .select('id, kasterid, er_bekreftet, lag_id')
     .eq('stevneid', stevneId)
     .order('id')
   if (error) logError('hentPameldingStatusForStevne', error)
