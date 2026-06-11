@@ -90,7 +90,7 @@ const cupVariant: AvsluttendeVariant = {
   },
 
   renderSetupHtml: (ctx) => {
-    const { stevne, isAdmin, runde1Format, pameldingCount, stilling } = ctx
+    const { stevne, isAdmin, runde1Format, unitCount, stilling } = ctx
     const initNa = runde1Format?.nA ?? null
 
     if (stevne.stevne_fase === 'avsluttende') {
@@ -98,15 +98,20 @@ const cupVariant: AvsluttendeVariant = {
       return renderGruppefordeling(stilling, { visSpelarliste: true, initNa, initFormat: runde1Format })
     }
 
-    if (pameldingCount > 0 && isAdmin) {
-      const hasPlayers = stilling.length > 0
-      return renderGruppefordeling(
-        hasPlayers ? stilling : pameldingCount,
-        { visSpelarliste: hasPlayers, initNa, initFormat: runde1Format },
-      )
+    if (!isAdmin) return ''
+
+    if (unitCount < 2) {
+      const melding = stevne.kategori?.erlagbasert
+        ? 'Minst 2 par må vere oppretta før gruppefordelinga kan setjast.'
+        : 'Minst 2 spelarar må vere påmelde før gruppefordelinga kan setjast.'
+      return `<p class="text-muted fst-italic">${melding}</p>`
     }
 
-    return ''
+    const hasPlayers = stilling.length > 0
+    return renderGruppefordeling(
+      hasPlayers ? stilling : unitCount,
+      { visSpelarliste: hasPlayers, initNa, initFormat: runde1Format },
+    )
   },
 
   bindHeaderEvents: (bannerSlot, ctx) => {

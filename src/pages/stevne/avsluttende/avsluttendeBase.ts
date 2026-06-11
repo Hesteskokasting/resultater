@@ -49,6 +49,7 @@ import {
   skrivPlaseringar,
   type AvslResultatRow,
 } from '@/services/resultatService'
+import { hentParForStevne } from '@/services/pameldingService'
 import type { Runde1FormatTyped, Json } from '@/types'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -73,7 +74,8 @@ export interface AvsluttendeContext {
   alleInnlBekrefta: boolean
   harAvslKampar: boolean
   runde1Format: Runde1FormatTyped | null
-  pameldingCount: number
+  /** Competing units for setup: complete pairs for lag-based stevner, enrolled players otherwise */
+  unitCount: number
   gruppeNavnMap: Record<string, number>
   reload: () => Promise<void>
 }
@@ -190,6 +192,14 @@ export function createAvsluttendeRenderer(variant: AvsluttendeVariant) {
       const gruppeNavnMap: Record<string, number> = Object.fromEntries(rawGrupper.map(g => [g.navn, g.id]))
       const runde1Format = parseRunde1Format(stevne.runde1_format)
 
+      // Lag-based: the competing unit is a pair, so setup must count
+      // complete pairs — not enrolled players
+      let unitCount = pameldingCount ?? 0
+      if (stevne.kategori?.erlagbasert) {
+        const { data: pairs } = await hentParForStevne(stevneid)
+        unitCount = pairs.length
+      }
+
       const ctx: AvsluttendeContext = {
         container,
         stevneid,
@@ -207,7 +217,7 @@ export function createAvsluttendeRenderer(variant: AvsluttendeVariant) {
         alleInnlBekrefta,
         harAvslKampar,
         runde1Format,
-        pameldingCount: pameldingCount ?? 0,
+        unitCount,
         gruppeNavnMap,
         reload: () => lastOgVis(container, stevneid),
       }

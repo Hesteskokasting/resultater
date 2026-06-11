@@ -279,14 +279,14 @@ export function subscribeToStevneFase(
 
 const _avslStevneQuery = supabase
   .from('stevne')
-  .select('id, navn, stevne_fase, erfullfort, runde1_format, avsluttendemetode:avsluttendekastemetodeid(id, navn)')
+  .select('id, navn, stevne_fase, erfullfort, runde1_format, avsluttendemetode:avsluttendekastemetodeid(id, navn), kategori:kategoriid(erlagbasert)')
 
 export type AvslStevneRow = QueryData<typeof _avslStevneQuery>[number]
 
 export async function hentAvsluttendeStevne(stevneid: number): Promise<{ data: AvslStevneRow | null; error: unknown }> {
   const { data, error } = await supabase
     .from('stevne')
-    .select('id, navn, stevne_fase, erfullfort, runde1_format, avsluttendemetode:avsluttendekastemetodeid(id, navn)')
+    .select('id, navn, stevne_fase, erfullfort, runde1_format, avsluttendemetode:avsluttendekastemetodeid(id, navn), kategori:kategoriid(erlagbasert)')
     .eq('id', stevneid)
     .maybeSingle()
   if (error) logError('hentAvsluttendeStevne', error)
