@@ -4,6 +4,7 @@ import { createErrorBanner } from '@/components/ErrorBanner'
 import { createLoadingState } from '@/components/LoadingState'
 import { escHtml } from '@/utils/escHtml'
 import { logError } from '@/utils/logError'
+import { errorMessage } from '@/utils/errorMessage'
 import { showToast } from '@/components/Toast'
 import { confirmDialog } from '@/components/ConfirmDialog'
 import { hentInfoStevne, oppdaterStevneFase } from '@/services/stevneService'
@@ -67,7 +68,7 @@ export async function render(
         try {
           await genererInnledendeKamper(id, metodeNavn, stevne.antall_runder_innl ?? 1, erLag)
         } catch (err) {
-          showToast('Feil ved kampgenerering: ' + (err instanceof Error ? err.message : String(err)), 'error')
+          showToast('Feil ved kampgenerering: ' + errorMessage(err), 'error')
           startBtn.disabled = false
           startBtn.textContent = 'Start stevne'
           return

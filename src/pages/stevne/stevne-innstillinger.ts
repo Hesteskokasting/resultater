@@ -1,4 +1,5 @@
 import { logError } from '@/utils/logError'
+import { errorMessage } from '@/utils/errorMessage'
 import { showToast } from '@/components/Toast'
 import { confirmDialog } from '@/components/ConfirmDialog'
 import { escHtml } from '@/utils/escHtml'
@@ -91,7 +92,7 @@ export async function render(
 
       if (error) {
         logError('stevne-innstillingar.lagre', error)
-        showToast('Feil ved lagring: ' + (error instanceof Error ? error.message : String(error)), 'error')
+        showToast('Feil ved lagring: ' + errorMessage(error), 'error')
         return
       }
 
