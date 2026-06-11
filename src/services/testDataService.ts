@@ -76,7 +76,7 @@ export async function autoFullforInnledendeKamper(stevneid: number): Promise<voi
   }
 }
 
-export async function slettKamperForFase(stevneid: number, fase: string): Promise<void> {
+async function slettKamperForFase(stevneid: number, fase: string): Promise<void> {
   const { data: kamper, error: kampErr } = await supabase
     .from('kamp')
     .select('id')

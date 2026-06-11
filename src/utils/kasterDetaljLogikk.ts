@@ -4,7 +4,7 @@ import type { ResultatDetaljRow } from '@/services/kasterService'
 // ── Konstanter ────────────────────────────────────────────────────────────────
 
 export const FOERSTE_RING_AR = 2017
-export const MAX_RING = { kongelag: 40, minimatch: 60, halvmatch: 100, heilmatch: 200 } as const
+const MAX_RING = { kongelag: 40, minimatch: 60, halvmatch: 100, heilmatch: 200 } as const
 export type MetodeNamn = keyof typeof MAX_RING
 
 // ── Hjelpefunksjonar ──────────────────────────────────────────────────────────
@@ -13,14 +13,14 @@ export function hentAr(datoStr: string | null | undefined): number | null {
   return datoStr ? parseInt(datoStr.substring(0, 4)) : null
 }
 
-export function snitt(tal: number[]): number | null {
+function snitt(tal: number[]): number | null {
   if (!tal.length) return null
   return Math.round(tal.reduce((s, t) => s + t, 0) / tal.length)
 }
 
 // ── Statistikk-reknereglar ────────────────────────────────────────────────────
 
-export function harMetode(r: ResultatDetaljRow, metode: string): boolean {
+function harMetode(r: ResultatDetaljRow, metode: string): boolean {
   const innled = (r.stevne?.innledendekastemetode?.navn ?? '').toLowerCase()
   const avsl   = (r.stevne?.avsluttendekastemetode?.navn ?? '').toLowerCase()
   return innled === metode || avsl === metode
@@ -85,7 +85,7 @@ export function hentTidlegareKlubbar(resultater: ResultatDetaljRow[], noverandeK
 
 // ── Graf-databygging ──────────────────────────────────────────────────────────
 
-export function beregnGrafVerdi(r: ResultatDetaljRow, metrikk: string, metode: MetodeNamn): number | null {
+function beregnGrafVerdi(r: ResultatDetaljRow, metrikk: string, metode: MetodeNamn): number | null {
   if (metrikk === 'plassering') return r.plassering ?? null
   if (metode === 'kongelag') {
     return r.antall_ring_kongelag != null

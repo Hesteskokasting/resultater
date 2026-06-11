@@ -18,16 +18,6 @@ export function beregnKampPoeng(s1: number, s2: number): [number, number] {
   return [s1 >= 11 ? 1 : 0, 2]
 }
 
-export function hentP1P2<T extends SpelarMedKasterid>(
-  spelarar: T[] | null | undefined,
-  startnrMap: Record<number, number>,
-): [T | null, T | null] {
-  const sorted = [...(spelarar ?? [])].sort(
-    (a, b) => (startnrMap[a.kasterid] ?? Infinity) - (startnrMap[b.kasterid] ?? Infinity),
-  )
-  return [sorted[0] ?? null, sorted[1] ?? null]
-}
-
 export interface MatchSide<T> {
   /** Representative row (posisjon 1) — carries the side's score and omgangar. */
   rep: T
@@ -66,7 +56,7 @@ export function getAllMatchSides<T extends SpelarMedKasterid>(
     })
 }
 
-/** Two-sided convenience wrapper around getAllMatchSides. Behavior-identical to hentP1P2 for Singel. */
+/** Two-sided convenience wrapper around getAllMatchSides. */
 export function getMatchSides<T extends SpelarMedKasterid>(
   spelarar: T[] | null | undefined,
   startnrMap: Record<number, number>,

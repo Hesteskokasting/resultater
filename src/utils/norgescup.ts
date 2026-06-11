@@ -86,7 +86,7 @@ function beregnDncPoeng(rader: ResultatMedRelasjonar[], regler: Regler, stevnerM
   return sorterDesc(dnc).slice(0, regler.max_dnc)
 }
 
-export function velgBeregnFunksjon(cupType: string): BeregnFn {
+function velgBeregnFunksjon(cupType: string): BeregnFn {
   if (cupType === 'SNC') return beregnSncPoeng
   if (cupType === 'DNC') return beregnDncPoeng
   return beregnNcPoeng

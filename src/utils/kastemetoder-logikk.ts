@@ -82,7 +82,7 @@ export function gyldigeRunde1Oppsett(n: number): RundeOppsett[] {
 }
 
 // Er n ein gyldig gruppestr. for Cup? (inkl. 2-spelar-baner i runde 1)
-export function erGyldigGruppeStorrelse(n: number): boolean {
+function erGyldigGruppeStorrelse(n: number): boolean {
   if (n === 2) return true // finale-match direkte — inga runde 1 nødvendig
   return gyldigeRunde1Oppsett(n).length > 0
 }

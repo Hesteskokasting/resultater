@@ -5,11 +5,11 @@ import { hentKlubbadminKlubbarForBruker } from '@/services/adminService'
 
 const ROLLER = ['admin', 'klubbadmin', 'bruker'] as const
 
-export function isRolle(value: unknown): value is Rolle {
+function isRolle(value: unknown): value is Rolle {
   return typeof value === 'string' && (ROLLER as readonly string[]).includes(value)
 }
 
-export function isProfil(obj: unknown): obj is Profil {
+function isProfil(obj: unknown): obj is Profil {
   return obj !== null && typeof obj === 'object' && isRolle((obj as Record<string, unknown>).rolle)
 }
 
@@ -45,13 +45,9 @@ export async function getUser(): Promise<AuthUser | null> {
   return _hentCache()
 }
 
-export async function getRolle(): Promise<Rolle | null> {
+async function getRolle(): Promise<Rolle | null> {
   const auth = await _hentCache()
   return auth?.profil?.rolle ?? null
-}
-
-export async function erInnlogget(): Promise<boolean> {
-  return (await _hentCache()) !== null
 }
 
 export async function erAdmin(): Promise<boolean> {

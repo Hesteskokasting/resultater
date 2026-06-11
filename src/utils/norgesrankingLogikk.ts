@@ -67,7 +67,7 @@ export function regnUtRingInfo(r: RankingResultatRow, stevneInfo: StevneInfo | u
   return liste
 }
 
-export function tildelPlassering(liste: RankingItem[]): void {
+function tildelPlassering(liste: RankingItem[]): void {
   let pl = 1
   for (let i = 0; i < liste.length; i++) {
     const item = liste[i]

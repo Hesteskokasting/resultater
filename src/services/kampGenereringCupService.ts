@@ -178,35 +178,6 @@ export async function genererNesteCupRundeForGruppe(
   return { rundeNummer, antallKampar }
 }
 
-// Generates the next round for all active groups simultaneously.
-// Delegates to genererNesteCupRundeForGruppe per group so bane numbering
-// stays consistent whether groups advance together or independently.
-export async function genererNesteCupRunde(
-  stevneid: number,
-  medSeeding: boolean,
-  stilling: { kasterid: number; runde_eliminert: number | null; gruppe: { navn: string } | null; kamp_poeng: number; score_poeng: number; startnummer: number | null }[],
-): Promise<{ rundeNummer: number; antallKampar: number; erSemfinale: boolean }> {
-  const aktive = stilling.filter(r => r.runde_eliminert == null)
-  const erSemfinale = aktive.length === 4
-
-  const gruppeNavns = [...new Set(
-    aktive.map(sp => sp.gruppe?.navn).filter((n): n is string => n != null)
-  )]
-
-  let rundeNummer = 0
-  let totalKampar = 0
-
-  for (const gruppeNavn of gruppeNavns) {
-    const gruppeAktive = aktive.filter(r => r.gruppe?.navn === gruppeNavn)
-    const spelarar = gruppeAktive.map((r, i) => ({ kasterid: r.kasterid, plassering: i + 1 }))
-    const result = await genererNesteCupRundeForGruppe(stevneid, gruppeNavn, medSeeding, spelarar)
-    rundeNummer = result.rundeNummer
-    totalKampar += result.antallKampar
-  }
-
-  return { rundeNummer, antallKampar: totalKampar, erSemfinale }
-}
-
 export async function genererFinaleOgBronsefinale(
   stevneid: number,
   gruppeNavn: string,

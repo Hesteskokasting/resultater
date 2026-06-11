@@ -727,17 +727,6 @@ export async function unbekreftKamp(kampId: number): Promise<{ error: unknown }>
   return { error }
 }
 
-export async function slettKampOmgangarFra(spelarIds: number[], fraOmgang: number): Promise<{ error: unknown }> {
-  if (!spelarIds.length) return { error: null }
-  const { error } = await supabase
-    .from('kamp_omgang')
-    .delete()
-    .in('kamp_spelar_id', spelarIds)
-    .gte('omgang', fraOmgang)
-  if (error) logError('slettKampOmgangarFra', error)
-  return { error }
-}
-
 // ── Realtime ──────────────────────────────────────────────────────────────────
 
 export type NesteKampPayload = { id: number; bane_nummer: number | null; er_walkover: boolean }

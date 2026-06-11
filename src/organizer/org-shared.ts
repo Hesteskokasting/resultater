@@ -71,7 +71,7 @@ export function sideNavnHtml<T extends { kaster?: { fornavn: string; etternavn: 
   return kort ? escHtml(kasterNavnKort(k)) : `${escHtml(k.fornavn)} ${escHtml(k.etternavn)}`
 }
 
-export function renderSpelarkamparDetalj(
+function renderSpelarkamparDetalj(
   kasterid: number,
   kamper: OrgKamp[] | null | undefined,
   startnrMap: Record<number, number>,
@@ -406,15 +406,6 @@ export function renderAvsluttendeKnappar(
   return `
     ${handlingsHtml}
     <button id="fullfør-turnering-btn" class="btn btn-sm btn-success"${stevne.erfullfort ? ' disabled' : ''}>Fullfør turnering</button>
-  `
-}
-
-export function renderOrgBanner(stevneNavn: string, knapperHtml = ''): string {
-  return `
-    <div class="org-fase-header d-flex align-items-center gap-2 mb-3">
-      <h5 class="mb-0 flex-grow-1">${escHtml(stevneNavn)}</h5>
-      ${knapperHtml}
-    </div>
   `
 }
 
