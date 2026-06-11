@@ -170,68 +170,54 @@ export async function renderScoreboard(
     return { p1Dis, p2Dis }
   }
 
-  function tegn(): void {
-    container.innerHTML = ''
-
-    const [t1, t2] = beregnEffektiveTotalar()
-    const [r1, r2] = beregnRingarTotalar()
-    const nr = noverAndeOmgang()
+  function beregnDisabledSets(): { p1Dis: Set<number>; p2Dis: Set<number> } {
     const { p1Dis, p2Dis } = bereknKnappStatus(val1, val2)
+    // Edit mode: a player's saved value stays locked until they actively change it
     if (isEditMode) {
       if (val1 !== null && !modifiedPlayers.has(1)) pointValues.forEach(n => { if (n !== val1) p1Dis.add(n) })
       if (val2 !== null && !modifiedPlayers.has(2)) pointValues.forEach(n => { if (n !== val2) p2Dis.add(n) })
     }
-    const kanNeste = isEditMode
-      ? modifiedPlayers.size > 0 && (val1 !== null || val2 !== null)
-      : kanRedigere && (val1 !== null || val2 !== null) && !kampFerdig
-    const kanBekrefte = kampFerdig && !isEditMode && !kamp.er_bekreftet && (erArrangor || erDeltakar) && !!onBekreft
-    const maxRinger = omgangar.length * 2
+    return { p1Dis, p2Dis }
+  }
 
-    if (omgangEl) {
-      omgangEl.textContent = kamp.er_bekreftet ? 'Fullført' : (kampFerdig ? 'Ferdig' : `Omgang ${nr}`)
+  function avbrytEditMode(): void {
+    isEditMode = false
+    modifiedPlayers = new Set()
+    val1 = null
+    val2 = null
+    tegn()
+  }
+
+  function startEditMode(): void {
+    const last = omgangar[omgangar.length - 1]
+    if (!last) return
+    val1 = last.s1 || null
+    val2 = last.s2 || null
+    isEditMode = true
+    modifiedPlayers = new Set()
+    tegn()
+  }
+
+  function lagAngreRad(): HTMLElement {
+    const angreRad = createEl('div', null, 'sb-angre-rad')
+    const angreBtn = createEl('button', '↩', 'sb-angre-btn')
+    if (isEditMode) {
+      angreBtn.title = 'Avbryt endring'
+      angreBtn.addEventListener('click', avbrytEditMode)
+      angreRad.appendChild(angreBtn)
+      const avbrytBtn = createEl('button', 'Avbryt endring', 'sb-avbryt-btn')
+      avbrytBtn.addEventListener('click', avbrytEditMode)
+      angreRad.appendChild(avbrytBtn)
+    } else {
+      angreBtn.title = 'Endre siste omgang'
+      angreBtn.disabled = omgangar.length === 0
+      angreBtn.addEventListener('click', startEditMode)
+      angreRad.appendChild(angreBtn)
     }
+    return angreRad
+  }
 
-    const wrap = createEl('div', null, isEditMode ? 'sb-wrap sb-wrap--edit-mode' : 'sb-wrap')
-    wrap.appendChild(lagSpelerPanel(p1Navn ?? spelarNamn(p1ks, 'Spelar 1'), t1, r1, maxRinger, val1, p1Dis, !kanRedigere, 1, p1Navn != null))
-    wrap.appendChild(lagSpelerPanel(p2Navn ?? spelarNamn(p2ks, 'Spelar 2'), t2, r2, maxRinger, val2, p2Dis, !kanRedigere, 2, p2Navn != null))
-    container.appendChild(wrap)
-
-    if (kanRedigere && !kamp.er_bekreftet) {
-      const angreRad = createEl('div', null, 'sb-angre-rad')
-      const angreBtn = createEl('button', '↩', 'sb-angre-btn')
-      if (isEditMode) {
-        angreBtn.title = 'Avbryt endring'
-        angreBtn.addEventListener('click', () => { isEditMode = false; modifiedPlayers = new Set(); val1 = null; val2 = null; tegn() })
-        angreRad.appendChild(angreBtn)
-        const avbrytBtn = createEl('button', 'Avbryt endring', 'sb-avbryt-btn')
-        avbrytBtn.addEventListener('click', () => { isEditMode = false; modifiedPlayers = new Set(); val1 = null; val2 = null; tegn() })
-        angreRad.appendChild(avbrytBtn)
-      } else {
-        angreBtn.title = 'Endre siste omgang'
-        angreBtn.disabled = omgangar.length === 0
-        angreBtn.addEventListener('click', () => {
-          const last = omgangar[omgangar.length - 1]
-          if (!last) return
-          val1 = last.s1 || null
-          val2 = last.s2 || null
-          isEditMode = true
-          modifiedPlayers = new Set()
-          tegn()
-        })
-        angreRad.appendChild(angreBtn)
-      }
-      container.appendChild(angreRad)
-    }
-
-    if (kanBekrefte) {
-      container.appendChild(lagBekreftKnapp(() => onBekreft!()))
-    } else if (kanRedigere) {
-      const nesteLabel = isEditMode ? 'Bekreft endring' : 'Neste omgang'
-      const nesteBtn = lagAsyncKnapp(nesteLabel, 'sb-neste-btn', nesteOmgang)
-      nesteBtn.disabled = !kanNeste
-      container.appendChild(nesteBtn)
-    }
-
+  function bindPoengKnappar(): void {
     container.querySelectorAll<HTMLButtonElement>('[data-spelar]').forEach(btn => {
       btn.addEventListener('click', () => {
         const spelar = parseInt(btn.dataset.spelar ?? '0')
@@ -246,6 +232,51 @@ export async function renderScoreboard(
         tegn()
       })
     })
+  }
+
+  function kanGaaVidare(): boolean {
+    const harVal = val1 !== null || val2 !== null
+    if (isEditMode) return modifiedPlayers.size > 0 && harVal
+    return kanRedigere && harVal && !kampFerdig
+  }
+
+  function kanBekrefteKamp(): boolean {
+    return kampFerdig && !isEditMode && !kamp.er_bekreftet && (erArrangor || erDeltakar) && !!onBekreft
+  }
+
+  function settOmgangTittel(nr: number, ferdig: boolean): void {
+    if (!omgangEl) return
+    omgangEl.textContent = kamp.er_bekreftet ? 'Fullført' : (ferdig ? 'Ferdig' : `Omgang ${nr}`)
+  }
+
+  function tegn(): void {
+    container.innerHTML = ''
+
+    const [t1, t2] = beregnEffektiveTotalar()
+    const [r1, r2] = beregnRingarTotalar()
+    const { p1Dis, p2Dis } = beregnDisabledSets()
+    const kanNeste = kanGaaVidare()
+    const kanBekrefte = kanBekrefteKamp()
+    const maxRinger = omgangar.length * 2
+
+    settOmgangTittel(noverAndeOmgang(), kampFerdig)
+
+    const wrap = createEl('div', null, isEditMode ? 'sb-wrap sb-wrap--edit-mode' : 'sb-wrap')
+    wrap.appendChild(lagSpelerPanel(p1Navn ?? spelarNamn(p1ks, 'Spelar 1'), t1, r1, maxRinger, val1, p1Dis, !kanRedigere, 1, p1Navn != null))
+    wrap.appendChild(lagSpelerPanel(p2Navn ?? spelarNamn(p2ks, 'Spelar 2'), t2, r2, maxRinger, val2, p2Dis, !kanRedigere, 2, p2Navn != null))
+    container.appendChild(wrap)
+
+    if (kanRedigere && !kamp.er_bekreftet) container.appendChild(lagAngreRad())
+
+    if (kanBekrefte) {
+      container.appendChild(lagBekreftKnapp(() => onBekreft!()))
+    } else if (kanRedigere) {
+      const nesteBtn = lagAsyncKnapp(isEditMode ? 'Bekreft endring' : 'Neste omgang', 'sb-neste-btn', nesteOmgang)
+      nesteBtn.disabled = !kanNeste
+      container.appendChild(nesteBtn)
+    }
+
+    bindPoengKnappar()
   }
 
   function lagSpelerPanel(
@@ -281,39 +312,44 @@ export async function renderScoreboard(
     return panel
   }
 
+  function omgangRows(omgang: number, rad: OmgangRad): { kamp_spelar_id: number; omgang: number; score: number; antall_ringer: number }[] {
+    const kaster1 = getOmgangThrowerId(side1Ids, omgang)
+    const kaster2 = getOmgangThrowerId(side2Ids, omgang)
+    const rows = []
+    if (kaster1 != null) rows.push({ kamp_spelar_id: kaster1, omgang, score: rad.s1, antall_ringer: rad.r1 })
+    if (kaster2 != null) rows.push({ kamp_spelar_id: kaster2, omgang, score: rad.s2, antall_ringer: rad.r2 })
+    return rows
+  }
+
+  async function lagreEndraOmgang(rad: OmgangRad): Promise<boolean> {
+    const lastOmgang = omgangar[omgangar.length - 1]
+    if (!lastOmgang) return false
+    const lastNr = lastOmgang.omgang
+    const { error } = await oppdaterKampOmgang(omgangRows(lastNr, rad))
+    if (error) { showToast('Feil ved lagring', 'error'); return false }
+    omgangar[omgangar.length - 1] = { ...rad, omgang: lastNr }
+    isEditMode = false
+    modifiedPlayers = new Set()
+    return true
+  }
+
+  async function lagreNyOmgang(rad: OmgangRad): Promise<boolean> {
+    const nr = noverAndeOmgang()
+    const { error } = await lagreKampOmgang(omgangRows(nr, rad))
+    if (error) { showToast('Feil ved lagring', 'error'); return false }
+    omgangar.push({ ...rad, omgang: nr })
+    const [newT1, newT2] = beregnEffektiveTotalar()
+    kampFerdig = erVinnarKondisjon(newT1, newT2)
+    return true
+  }
+
   async function nesteOmgang(): Promise<void> {
     const s1 = val1 ?? 0
     const s2 = val2 ?? 0
-    const r1 = calcAntallRinger(s1)
-    const r2 = calcAntallRinger(s2)
+    const rad: OmgangRad = { omgang: 0, s1, s2, r1: calcAntallRinger(s1), r2: calcAntallRinger(s2) }
 
-    if (isEditMode) {
-      const lastOmgang = omgangar[omgangar.length - 1]
-      if (!lastOmgang) return
-      const lastNr = lastOmgang.omgang
-      const kaster1 = getOmgangThrowerId(side1Ids, lastNr)
-      const kaster2 = getOmgangThrowerId(side2Ids, lastNr)
-      const rows = []
-      if (kaster1 != null) rows.push({ kamp_spelar_id: kaster1, omgang: lastNr, score: s1, antall_ringer: r1 })
-      if (kaster2 != null) rows.push({ kamp_spelar_id: kaster2, omgang: lastNr, score: s2, antall_ringer: r2 })
-      const { error } = await oppdaterKampOmgang(rows)
-      if (error) { showToast('Feil ved lagring', 'error'); return }
-      omgangar[omgangar.length - 1] = { omgang: lastNr, s1, s2, r1, r2 }
-      isEditMode = false
-      modifiedPlayers = new Set()
-    } else {
-      const nr = noverAndeOmgang()
-      const kaster1 = getOmgangThrowerId(side1Ids, nr)
-      const kaster2 = getOmgangThrowerId(side2Ids, nr)
-      const inserts = []
-      if (kaster1 != null) inserts.push({ kamp_spelar_id: kaster1, omgang: nr, score: s1, antall_ringer: r1 })
-      if (kaster2 != null) inserts.push({ kamp_spelar_id: kaster2, omgang: nr, score: s2, antall_ringer: r2 })
-      const { error } = await lagreKampOmgang(inserts)
-      if (error) { showToast('Feil ved lagring', 'error'); return }
-      omgangar.push({ omgang: nr, s1, s2, r1, r2 })
-      const [newT1, newT2] = beregnEffektiveTotalar()
-      kampFerdig = erVinnarKondisjon(newT1, newT2)
-    }
+    const lagra = isEditMode ? await lagreEndraOmgang(rad) : await lagreNyOmgang(rad)
+    if (!lagra) return
 
     val1 = null
     val2 = null
@@ -423,6 +459,17 @@ async function renderScoreboard3(
       .reduce((s, o) => s + (o.score ?? 0), 0)
   }
 
+  /** Index of a still-active player who has won (≥21 and ≥2 ahead of the rest), or null. */
+  function finnFerdigSpelar(aktive: Set<number>, totalar: number[]): number | null {
+    for (const i of aktive) {
+      const andreAktive = [...aktive].filter(j => j !== i)
+      const minAndre = Math.min(...andreAktive.map(j => totalar[j] ?? 0))
+      const total = totalar[i] ?? 0
+      if (total >= 21 && total - minAndre >= 2) return i
+    }
+    return null
+  }
+
   function beregnVinnRekkefolge(): number[] {
     if (!omgangData.length) return []
     const maxOmgang = Math.max(...omgangData.map(o => o.omgang))
@@ -435,20 +482,12 @@ async function renderScoreboard3(
         const rad = radForSide(i, omg)
         if (rad) totalar[i] = (totalar[i] ?? 0) + (rad.score ?? 0)
       }
-      let nySjekk = true
-      while (nySjekk && aktive.size > 1) {
-        nySjekk = false
-        for (const i of [...aktive]) {
-          const andreAktive = [...aktive].filter(j => j !== i)
-          const minAndre = Math.min(...andreAktive.map(j => totalar[j] ?? 0))
-          const total = totalar[i] ?? 0
-          if (total >= 21 && total - minAndre >= 2) {
-            rekkefolge.push(i)
-            aktive.delete(i)
-            nySjekk = true
-            break
-          }
-        }
+      // Repeat: a finished player leaving can make the next one finished too
+      let ferdig = finnFerdigSpelar(aktive, totalar)
+      while (ferdig !== null && aktive.size > 1) {
+        rekkefolge.push(ferdig)
+        aktive.delete(ferdig)
+        ferdig = finnFerdigSpelar(aktive, totalar)
       }
     }
     if (aktive.size === 1 && rekkefolge.length === 2) rekkefolge.push(...aktive)
@@ -493,101 +532,95 @@ async function renderScoreboard3(
     return disabledSets
   }
 
-  function tegn3(): void {
-    container.innerHTML = ''
-    const totalar = spelarar.map((_, i) => beregnTotal(i))
-    const aktiveIdxar = [0, 1, 2].filter(i => spelarar[i] && !vinnRekkefolge.includes(i))
-    const editIdxar = isEditMode3 ? editModeIdxar : aktiveIdxar
-    const erFerdig = vinnRekkefolge.length === spelarar.length
-    const maxOmgang = omgangData.length ? Math.max(...omgangData.map(o => o.omgang)) : 0
+  function beregnDisabledSets3(editIdxar: number[]): Set<number>[] {
     const disabledSets = bereknKnappStatus3(editIdxar, vals)
+    // Edit mode: a player's saved value stays locked until they actively change it
     if (isEditMode3) {
       editIdxar.forEach(i => {
         if (vals[i] !== null && !modifiedPlayers3.has(i)) pointValues.forEach(n => { if (n !== vals[i]) disabledSets[i]?.add(n) })
       })
     }
+    return disabledSets
+  }
 
-    if (omgangEl) {
-      omgangEl.textContent = kamp.er_bekreftet ? 'Fullført' : (erFerdig ? 'Ferdig' : `Omgang ${maxOmgang + 1}`)
-    }
+  function avbrytEditMode3(): void {
+    isEditMode3 = false
+    modifiedPlayers3 = new Set()
+    editModeIdxar = []
+    vals = [null, null, null]
+    tegn3()
+  }
 
-    const wrap = createEl('div', null, isEditMode3 ? 'sb-wrap sb-wrap--3p sb-wrap--edit-mode' : 'sb-wrap sb-wrap--3p')
-    spelarar.forEach((ks, i) => {
-      const erVunne = vinnRekkefolge.includes(i)
-      const visVunne = erVunne && !isEditMode3
-      const plass = visVunne ? vinnRekkefolge.indexOf(i) + 1 : null
-      const panel = createEl('div', null, `sb-spelar-panel${visVunne ? ' sb-spelar-panel--vann' : ''}`)
-      const navn = navnFor(ks)
-      panel.appendChild(createEl('div', navn.label, navn.erPar ? 'sb-spelar-navn sb-spelar-navn--par' : 'sb-spelar-navn'))
-      panel.appendChild(createEl('div', String(totalar[i]), 'sb-score'))
-
-      if (plass) panel.appendChild(createEl('div', `${plass}. plass`, 'sb-plass-badge'))
-
-      if (editIdxar.includes(i) && kanRedigere && !kamp.er_bekreftet) {
-        const knappar = createEl('div', null, 'sb-knappar')
-        for (const n of pointValues) {
-          const btn = createEl('button', String(n), 'sb-poeng-btn')
-          btn.dataset.spelar = String(i)
-          btn.dataset.val = String(n)
-          if (vals[i] === n) btn.classList.add('sb-valgt')
-          if (disabledSets[i]?.has(n)) btn.disabled = true
-          knappar.appendChild(btn)
-        }
-        panel.appendChild(knappar)
+  function startEditMode3(): void {
+    const lastNr = Math.max(...omgangData.map(o => o.omgang))
+    editModeIdxar = []
+    spelarar.forEach((_, i) => {
+      const row = radForSide(i, lastNr)
+      if (row !== undefined) {
+        vals[i] = row.score || null
+        editModeIdxar.push(i)
       }
-
-      wrap.appendChild(panel)
     })
-    container.appendChild(wrap)
+    isEditMode3 = true
+    modifiedPlayers3 = new Set()
+    tegn3()
+  }
 
-    if (kanRedigere && !kamp.er_bekreftet) {
-      const angreRad = createEl('div', null, 'sb-angre-rad')
-      const angreBtn = createEl('button', '↩', 'sb-angre-btn')
-      if (isEditMode3) {
-        angreBtn.title = 'Avbryt endring'
-        angreBtn.addEventListener('click', () => { isEditMode3 = false; modifiedPlayers3 = new Set(); editModeIdxar = []; vals = [null, null, null]; tegn3() })
-        angreRad.appendChild(angreBtn)
-        const avbrytBtn = createEl('button', 'Avbryt endring', 'sb-avbryt-btn')
-        avbrytBtn.addEventListener('click', () => { isEditMode3 = false; modifiedPlayers3 = new Set(); editModeIdxar = []; vals = [null, null, null]; tegn3() })
-        angreRad.appendChild(avbrytBtn)
-      } else {
-        angreBtn.title = 'Endre siste omgang'
-        angreBtn.disabled = omgangData.length === 0
-        angreBtn.addEventListener('click', () => {
-          const lastNr = Math.max(...omgangData.map(o => o.omgang))
-          editModeIdxar = []
-          spelarar.forEach((_, i) => {
-            const row = radForSide(i, lastNr)
-            if (row !== undefined) {
-              vals[i] = row.score || null
-              editModeIdxar.push(i)
-            }
-          })
-          isEditMode3 = true
-          modifiedPlayers3 = new Set()
-          tegn3()
-        })
-        angreRad.appendChild(angreBtn)
-      }
-      container.appendChild(angreRad)
-
-      if (isEditMode3 || !erFerdig) {
-        const kanNeste = isEditMode3
-          ? modifiedPlayers3.size > 0 && editIdxar.some(i => vals[i] !== null)
-          : aktiveIdxar.some(i => vals[i] !== null)
-        const nesteLabel = isEditMode3 ? 'Bekreft endring' : 'Neste omgang'
-        const nesteBtn = lagAsyncKnapp(nesteLabel, 'sb-neste-btn', nesteOmgang3)
-        nesteBtn.disabled = !kanNeste
-        container.appendChild(nesteBtn)
-      }
+  function lagAngreRad3(): HTMLElement {
+    const angreRad = createEl('div', null, 'sb-angre-rad')
+    const angreBtn = createEl('button', '↩', 'sb-angre-btn')
+    if (isEditMode3) {
+      angreBtn.title = 'Avbryt endring'
+      angreBtn.addEventListener('click', avbrytEditMode3)
+      angreRad.appendChild(angreBtn)
+      const avbrytBtn = createEl('button', 'Avbryt endring', 'sb-avbryt-btn')
+      avbrytBtn.addEventListener('click', avbrytEditMode3)
+      angreRad.appendChild(avbrytBtn)
+    } else {
+      angreBtn.title = 'Endre siste omgang'
+      angreBtn.disabled = omgangData.length === 0
+      angreBtn.addEventListener('click', startEditMode3)
+      angreRad.appendChild(angreBtn)
     }
+    return angreRad
+  }
 
-    if (erFerdig && !isEditMode3 && !kamp.er_bekreftet && onBekreft && kanRedigere) {
-      container.appendChild(lagBekreftKnapp(() => onBekreft(vinnRekkefolge.map(i => spelarar[i]!.kasterid))))
-    } else if (kamp.er_bekreftet) {
-      container.appendChild(createEl('div', 'Kamp fullført', 'alert alert-success mt-2'))
+  function lagPoengKnappar3(i: number, disabledSet: Set<number> | undefined): HTMLElement {
+    const knappar = createEl('div', null, 'sb-knappar')
+    for (const n of pointValues) {
+      const btn = createEl('button', String(n), 'sb-poeng-btn')
+      btn.dataset.spelar = String(i)
+      btn.dataset.val = String(n)
+      if (vals[i] === n) btn.classList.add('sb-valgt')
+      if (disabledSet?.has(n)) btn.disabled = true
+      knappar.appendChild(btn)
     }
+    return knappar
+  }
 
+  function lagSpelerPanel3(
+    ks: (typeof spelarar)[number],
+    i: number,
+    total: number,
+    editIdxar: number[],
+    disabledSets: Set<number>[],
+  ): HTMLElement {
+    const visVunne = vinnRekkefolge.includes(i) && !isEditMode3
+    const plass = visVunne ? vinnRekkefolge.indexOf(i) + 1 : null
+    const panel = createEl('div', null, `sb-spelar-panel${visVunne ? ' sb-spelar-panel--vann' : ''}`)
+    const navn = navnFor(ks)
+    panel.appendChild(createEl('div', navn.label, navn.erPar ? 'sb-spelar-navn sb-spelar-navn--par' : 'sb-spelar-navn'))
+    panel.appendChild(createEl('div', String(total), 'sb-score'))
+
+    if (plass) panel.appendChild(createEl('div', `${plass}. plass`, 'sb-plass-badge'))
+
+    if (editIdxar.includes(i) && kanRedigere && !kamp.er_bekreftet) {
+      panel.appendChild(lagPoengKnappar3(i, disabledSets[i]))
+    }
+    return panel
+  }
+
+  function bindPoengKnappar3(): void {
     container.querySelectorAll<HTMLButtonElement>('[data-spelar]').forEach(btn => {
       btn.addEventListener('click', () => {
         const idx = parseInt(btn.dataset.spelar ?? '0')
@@ -597,6 +630,57 @@ async function renderScoreboard3(
         tegn3()
       })
     })
+  }
+
+  function kanGaaVidare3(editIdxar: number[], aktiveIdxar: number[]): boolean {
+    if (isEditMode3) return modifiedPlayers3.size > 0 && editIdxar.some(i => vals[i] !== null)
+    return aktiveIdxar.some(i => vals[i] !== null)
+  }
+
+  function settOmgangTittel3(erFerdig: boolean): void {
+    if (!omgangEl) return
+    const maxOmgang = omgangData.length ? Math.max(...omgangData.map(o => o.omgang)) : 0
+    omgangEl.textContent = kamp.er_bekreftet ? 'Fullført' : (erFerdig ? 'Ferdig' : `Omgang ${maxOmgang + 1}`)
+  }
+
+  function lagStatusFooter3(erFerdig: boolean): HTMLElement | null {
+    if (erFerdig && !isEditMode3 && !kamp.er_bekreftet && onBekreft && kanRedigere) {
+      return lagBekreftKnapp(() => onBekreft(vinnRekkefolge.map(i => spelarar[i]!.kasterid)))
+    }
+    if (kamp.er_bekreftet) return createEl('div', 'Kamp fullført', 'alert alert-success mt-2')
+    return null
+  }
+
+  function tegn3(): void {
+    container.innerHTML = ''
+    const totalar = spelarar.map((_, i) => beregnTotal(i))
+    const aktiveIdxar = [0, 1, 2].filter(i => spelarar[i] && !vinnRekkefolge.includes(i))
+    const editIdxar = isEditMode3 ? editModeIdxar : aktiveIdxar
+    const erFerdig = vinnRekkefolge.length === spelarar.length
+    const disabledSets = beregnDisabledSets3(editIdxar)
+
+    settOmgangTittel3(erFerdig)
+
+    const wrap = createEl('div', null, isEditMode3 ? 'sb-wrap sb-wrap--3p sb-wrap--edit-mode' : 'sb-wrap sb-wrap--3p')
+    spelarar.forEach((ks, i) => {
+      wrap.appendChild(lagSpelerPanel3(ks, i, totalar[i] ?? 0, editIdxar, disabledSets))
+    })
+    container.appendChild(wrap)
+
+    if (kanRedigere && !kamp.er_bekreftet) {
+      container.appendChild(lagAngreRad3())
+
+      if (isEditMode3 || !erFerdig) {
+        const nesteBtn = lagAsyncKnapp(isEditMode3 ? 'Bekreft endring' : 'Neste omgang', 'sb-neste-btn', nesteOmgang3)
+        nesteBtn.disabled = !kanGaaVidare3(editIdxar, aktiveIdxar)
+        container.appendChild(nesteBtn)
+      }
+    }
+
+    const footer = lagStatusFooter3(erFerdig)
+    if (footer) container.appendChild(footer)
+
+    bindPoengKnappar3()
   }
 
   async function nesteOmgang3(): Promise<void> {
