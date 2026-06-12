@@ -514,6 +514,33 @@ function renderRunde(
     </div>`
 }
 
+/** A side's raw score: confirmed total, or live omgang sum plus handicap. */
+function sideRawScore(side: MatchSide<InnlKampSpelarRow> | null, erBekreftet: boolean, harOmg: boolean, hcp: number): number {
+  if (erBekreftet) return sideScore(side, true)
+  return sideScore(side, false) + (harOmg ? hcp : 0)
+}
+
+/** Displayed scores: an unconfirmed walkover shows 21–0; otherwise the raw side totals. */
+function beregnRadScorar(
+  kamp: InnlKampRow,
+  side1: MatchSide<InnlKampSpelarRow> | null,
+  side2: MatchSide<InnlKampSpelarRow> | null,
+  harOmg1: boolean,
+  harOmg2: boolean,
+  hcp1: number,
+  hcp2: number,
+): { s1: number; s2: number; harPoeng: boolean } {
+  const s1Raw = sideRawScore(side1, kamp.er_bekreftet, harOmg1, hcp1)
+  const s2Raw = sideRawScore(side2, kamp.er_bekreftet, harOmg2, hcp2)
+  const erUbekreftaWalkover = kamp.er_walkover && !kamp.er_bekreftet
+  const harPoeng = kamp.er_bekreftet || kamp.er_walkover || harOmg1 || harOmg2 || s1Raw > 0 || s2Raw > 0
+  return {
+    s1: erUbekreftaWalkover ? 21 : s1Raw,
+    s2: erUbekreftaWalkover ? 0 : s2Raw,
+    harPoeng,
+  }
+}
+
 /** Per-match view state shared by the desktop and mobile row renderers. */
 function beregnKampRadState(
   kamp: InnlKampRow,
@@ -532,13 +559,7 @@ function beregnKampRadState(
   const hcp1 = hcpMap[p1?.kasterid ?? -1] ?? 0
   const hcp2 = hcpMap[p2?.kasterid ?? -1] ?? 0
 
-  const s1Raw = kamp.er_bekreftet ? sideScore(side1, true) : (sideScore(side1, false) + (harOmg1 ? hcp1 : 0))
-  const s2Raw = kamp.er_bekreftet ? sideScore(side2, true) : (sideScore(side2, false) + (harOmg2 ? hcp2 : 0))
-
-  const erUbekreftaWalkover = kamp.er_walkover && !kamp.er_bekreftet
-  const s1 = erUbekreftaWalkover ? 21 : s1Raw
-  const s2 = erUbekreftaWalkover ? 0 : s2Raw
-  const harPoeng = kamp.er_bekreftet || kamp.er_walkover || harOmgangar || s1Raw > 0 || s2Raw > 0
+  const { s1, s2, harPoeng } = beregnRadScorar(kamp, side1, side2, harOmg1, harOmg2, hcp1, hcp2)
 
   const sp = [p1, p2].filter((s): s is InnlKampSpelarRow => s != null)
   return {
@@ -553,6 +574,32 @@ function scoreInnerHtml(s1: number | string, s2: number | string, sep = '–'): 
   return `<span class="innl-score-inner"><span class="innl-s1">${s1}</span><span class="innl-sep">${sep}</span><span class="innl-s2">${s2}</span></span>`
 }
 
+/** Prefixes the startnummer in parentheses when present. */
+function medStartnr(namn: string, nr: number | string): string {
+  return nr ? `${namn} (${nr})` : namn
+}
+
+/** The right-hand action cell for a desktop match row. */
+function kampRadKnapperTd(kamp: InnlKampRow, admin: boolean, harOmgangar: boolean, kanBekrefte: boolean, isLive: boolean): string {
+  if (kamp.er_bekreftet) {
+    return `<td class="text-end pe-2"><span class="kamp-bekreftet-indikator">✓ Bekreftet</span></td>`
+  }
+  const pill = isLive ? livePillHtml() : ''
+  if (!admin) {
+    return `<td class="text-end pe-2 text-nowrap">
+        ${pill}
+        <button class="kamp-knapp" id="scoreboard-${kamp.id}" title="Scoreboard">Score</button>
+      </td>`
+  }
+  const scoreKl = `kamp-knapp${harOmgangar ? ' kamp-knapp-primaer' : ''}`
+  const bekrftKl = `kamp-knapp${kanBekrefte ? ' kamp-knapp-suksess' : ''}`
+  return `<td class="text-end pe-2 text-nowrap">
+        ${pill}
+        <button class="${scoreKl}" id="scoreboard-${kamp.id}" title="Scoreboard">Score</button>
+        <button class="${bekrftKl}" id="bekrft-${kamp.id}"${!kanBekrefte ? ' disabled' : ''}>Bekreft</button>
+      </td>`
+}
+
 function kampRad(
   kamp: InnlKampRow,
   startnrMap: Record<number, number>,
@@ -565,38 +612,12 @@ function kampRad(
 
   const p1Nr = p1?.kasterid ? (startnrMap[p1.kasterid] ?? '') : ''
   const p2Nr = p2?.kasterid ? (startnrMap[p2.kasterid] ?? '') : ''
-
-  const p1Namn = sideNavn(side1, false)
-  const p2Namn = p2ErBye ? 'Walkover' : sideNavn(side2, false)
-
-  const p1Vis = p1Nr ? `${p1Namn} (${p1Nr})` : p1Namn
-  const p2Vis = p2ErBye
-    ? (p2Nr ? `Walkover (${p2Nr})` : 'Walkover')
-    : (p2Nr ? `${p2Namn} (${p2Nr})` : p2Namn)
+  const p1Vis = medStartnr(sideNavn(side1, false), p1Nr)
+  const p2Vis = medStartnr(p2ErBye ? 'Walkover' : sideNavn(side2, false), p2Nr)
 
   const kanEndreScore = admin && !kamp.er_walkover
   const scoreCls = `text-center innl-score-cel${kanEndreScore ? ' score-redigerbar' : ''}`
   const scoreExtra = kanEndreScore ? ` data-endre-score="${kamp.id}"` : ''
-
-  let knapperTd: string
-  if (kamp.er_bekreftet) {
-    knapperTd = `<td class="text-end pe-2"><span class="kamp-bekreftet-indikator">✓ Bekreftet</span></td>`
-  } else if (admin) {
-    const scorePrimaer = harOmgangar
-    const bekrftPrimaer = kanBekrefte
-    const scoreKl = `kamp-knapp${scorePrimaer ? ' kamp-knapp-primaer' : ''}`
-    const bekrftKl = `kamp-knapp${bekrftPrimaer ? ' kamp-knapp-suksess' : ''}`
-    knapperTd = `<td class="text-end pe-2 text-nowrap">
-        ${isLive ? livePillHtml() : ''}
-        <button class="${scoreKl}" id="scoreboard-${kamp.id}" title="Scoreboard">Score</button>
-        <button class="${bekrftKl}" id="bekrft-${kamp.id}"${!kanBekrefte ? ' disabled' : ''}>Bekreft</button>
-      </td>`
-  } else {
-    knapperTd = `<td class="text-end pe-2 text-nowrap">
-        ${isLive ? livePillHtml() : ''}
-        <button class="kamp-knapp" id="scoreboard-${kamp.id}" title="Scoreboard">Score</button>
-      </td>`
-  }
 
   return `
     <tr class="kamp-rad-desktop" data-kamp-id="${kamp.id}" data-status="${status}">
@@ -604,7 +625,7 @@ function kampRad(
       <td>${p1Vis}</td>
       <td class="${scoreCls}"${scoreExtra}>${harPoeng ? scoreInnerHtml(s1, s2) : '—'}</td>
       <td>${p2Vis}</td>
-      ${knapperTd}
+      ${kampRadKnapperTd(kamp, admin, harOmgangar, kanBekrefte, isLive)}
     </tr>`
 }
 
@@ -620,30 +641,33 @@ function kampRadMobil(
 
   const p1NavnKort = sideNavn(side1, true)
   const p2NavnKort = p2ErBye ? 'Walkover' : sideNavn(side2, true)
-
   const resultatTekst = harPoeng ? scoreInnerHtml(s1, s2) : scoreInnerHtml('', '', '—')
 
-  let knapperHtml = ''
-  if (admin) {
-    const bekrftCell = kamp.er_bekreftet
-      ? `<span class="kamp-bekreftet-mobil">✓ Bekreftet</span>`
-      : `<button class="kamp-knapp-mobil kamp-knapp-bekreft-mobil" id="m-bekrft-${kamp.id}"${!kanBekrefte ? ' disabled' : ''}>Bekreft</button>`
-    knapperHtml = `
-      <div class="kamp-mobil-knapper">
-        <button class="kamp-knapp-mobil" id="m-scoreboard-${kamp.id}">Score</button>
-        ${bekrftCell}
-      </div>`
-  }
-
+  const kanEndreScore = admin && !kamp.er_walkover
+  const resultatAttr = kanEndreScore ? ` id="m-score-${kamp.id}"` : ''
+  const resultatKlass = kanEndreScore ? ' score-redigerbar' : ''
   const rolleKlass = admin ? '' : ' kamp-rad-mobil--viewer'
+
   return `
     <li class="kamp-rad-mobil${rolleKlass}" data-kamp-id="${kamp.id}" data-status="${status}" role="button" tabindex="0">
       <div class="kamp-rad-mobil__hoved">
         <span class="kamp-mobil-bane">${kamp.bane_nummer ?? ''}</span>
         <span class="kamp-mobil-namn">${p1NavnKort} <span class="kamp-mobil-vs">vs</span> ${p2NavnKort}</span>
         <span class="kamp-mobil-pill-slot">${isLive ? livePillHtml() : ''}</span>
-        <span class="kamp-mobil-resultat${admin && !kamp.er_walkover ? ' score-redigerbar' : ''}"${admin && !kamp.er_walkover ? ` id="m-score-${kamp.id}"` : ''}>${resultatTekst}</span>
+        <span class="kamp-mobil-resultat${resultatKlass}"${resultatAttr}>${resultatTekst}</span>
       </div>
-      ${knapperHtml}
+      ${admin ? kampRadMobilKnapper(kamp, kanBekrefte) : ''}
     </li>`
+}
+
+/** The mobile score/confirm button row, shown only to admins. */
+function kampRadMobilKnapper(kamp: InnlKampRow, kanBekrefte: boolean): string {
+  const bekrftCell = kamp.er_bekreftet
+    ? `<span class="kamp-bekreftet-mobil">✓ Bekreftet</span>`
+    : `<button class="kamp-knapp-mobil kamp-knapp-bekreft-mobil" id="m-bekrft-${kamp.id}"${!kanBekrefte ? ' disabled' : ''}>Bekreft</button>`
+  return `
+      <div class="kamp-mobil-knapper">
+        <button class="kamp-knapp-mobil" id="m-scoreboard-${kamp.id}">Score</button>
+        ${bekrftCell}
+      </div>`
 }
