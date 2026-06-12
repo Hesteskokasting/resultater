@@ -1,1 +1,0 @@
-import{rt as e}from"./index-CT9_SLr0.js";async function t(t){await e.removeChannel(t)}export{t};
