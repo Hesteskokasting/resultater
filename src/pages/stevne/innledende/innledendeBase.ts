@@ -47,6 +47,7 @@ import { avmeldKanal } from '@/utils/realtime'
 import { livePillHtml } from '@/components/LivePill'
 import {
   hentResultatForInnledende, oppdaterResultatHcp, skrivPlaseringar,
+  type InnlResultatRow,
 } from '@/services/resultatService'
 
 // ── Variant API ───────────────────────────────────────────────────────────────
@@ -110,46 +111,10 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
         return
       }
 
-      const startnrMap: Record<number, number> = Object.fromEntries(
-        resultat.filter(r => r.kasterid != null).map(r => [r.kasterid!, r.startnummer ?? 0]),
-      )
-      const hcpMap: Record<number, number> = Object.fromEntries(
-        resultat.filter(r => r.kasterid != null && (r.hcp ?? 0) > 0).map(r => [r.kasterid!, r.hcp ?? 0]),
-      )
-      const posisjonMap: Record<number, number> = Object.fromEntries(
-        resultat.filter(r => r.kasterid != null && r.posisjon != null).map(r => [r.kasterid!, r.posisjon!]),
-      )
-      // Par/Mix: two players share a startnummer
-      const snrCount = new Map<number, number>()
-      for (const r of resultat) {
-        if (r.kasterid == null || r.startnummer == null) continue
-        snrCount.set(r.startnummer, (snrCount.get(r.startnummer) ?? 0) + 1)
-      }
-      const erLag = [...snrCount.values()].some(c => c > 1)
-
-      const rundeMap = new Map<number, InnlKampRow[]>()
-      for (const kamp of alleKamper) {
-        if (!rundeMap.has(kamp.runde_nummer)) rundeMap.set(kamp.runde_nummer, [])
-        rundeMap.get(kamp.runde_nummer)!.push(kamp)
-      }
-
-      const { spelMap, ekteKasterids } = byggInnledendeSpelMap(alleKamper, startnrMap)
-
-      const stillingRader = Object.values(spelMap)
-        .filter(s => ekteKasterids.has(s.kasterid))
-        .map(s => ({ ...s, hcp: resultat.find(r => r.kasterid === s.kasterid)?.hcp ?? 0 }))
-      const stilling = sorterStilling(
-        erLag ? groupStandingsByPair(stillingRader, posisjonMap) : stillingRader,
-        alleKamper,
-      )
-
-      const currentConfirmedIds = new Set(alleKamper.filter(k => k.er_bekreftet).map(k => k.id))
-      const newlyConfirmedIds = prevConfirmedIds
-        ? new Set([...currentConfirmedIds].filter(id => !prevConfirmedIds!.has(id)))
-        : new Set<number>()
-      const idsToFlash = new Set([...newlyConfirmedIds, ...pendingAnimationIds])
-      pendingAnimationIds = new Set(newlyConfirmedIds)
-      prevConfirmedIds = currentConfirmedIds
+      const { startnrMap, hcpMap, posisjonMap, erLag } = byggDeltakarMaps(resultat)
+      const rundeMap = byggRundeMap(alleKamper)
+      const stilling = byggStilling(alleKamper, resultat, startnrMap, posisjonMap, erLag)
+      const idsToFlash = beregnFlashIds(alleKamper)
 
       const erAlleKamperBekreftet = alleKamper.length > 0 && alleKamper.every(k => k.er_bekreftet)
       const kanEndreKampar = isAdmin && stevne.stevne_fase !== 'avsluttende'
@@ -167,30 +132,12 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
         reload: () => lastOgVis(container, stevneid),
       }
 
-      if (bannerSlot) {
-        bannerSlot.innerHTML = (isAdmin ? renderInnledendeKnappar(stevne, variant.erSwiss) : '') + variant.getBannerExtra(ctx)
-        variant.bindBannerExtra(bannerSlot, ctx)
-
-        bannerSlot.querySelector('#fullfør-turnering-btn')?.addEventListener('click', async () => {
-          if (!await confirmDialog({ title: 'Fullfør turnering', message: 'Vil du fullføre turneringa? Dette kan ikkje angrast.', danger: true })) return
-          const { error: plErr } = await skrivPlaseringar(stevneid, stilling)
-          if (plErr) { showToast('Feil ved lagring av plasseringar', 'error'); return }
-          const { error } = await setStevneErfullfort(stevneid)
-          if (error) { showToast('Feil ved lagring', 'error'); return }
-          await lastOgVis(container, stevneid)
-        })
-
-        bannerSlot.querySelector('#test-autofullfør-btn')?.addEventListener('click', async (e) => {
-          const btn = e.currentTarget as HTMLButtonElement
-          if (!await confirmDialog({ title: 'Autofullfør kampar', message: 'Autofullfør alle ubekreftede innledande kampar?' })) return
-          btn.disabled = true
-          await autoFullforInnledendeKamper(stevneid)
-          await lastOgVis(container, stevneid)
-        })
-      }
+      setupBanner(ctx)
 
       const rundarSomVisast = (variant.filterRundar ?? (m => m))(rundeMap)
-      const kamperHtml = [...rundarSomVisast.entries()].map(([nr, rKamper]) => renderRunde(nr, rKamper, startnrMap, kanEndreKampar, hcpMap, posisjonMap)).join('') + renderKampLegend()
+      const kamperHtml = [...rundarSomVisast.entries()]
+        .map(([nr, rKamper]) => renderRunde(nr, rKamper, startnrMap, kanEndreKampar, hcpMap, posisjonMap))
+        .join('') + renderKampLegend()
       const harHcp = isAdmin || stilling.some(s => (s.hcp ?? 0) > 0)
       const stillingHtml = renderStillingTabell(stilling, alleKamper, startnrMap, {
         tableId: 'stilling-innl',
@@ -208,127 +155,12 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
       if (activeTab === 'stilling') setActiveTab(container, 'stilling')
       bindStillingDetaljar(container, 'stilling-innl', stillingExpandedIds)
 
-      for (const kampId of idsToFlash) {
-        container.querySelectorAll(`[data-kamp-id="${kampId}"]`).forEach(el => el.classList.add('kamp-ny-bekreftet'))
-        const kamp = alleKamper.find(k => k.id === kampId)
-        if (kamp) {
-          for (const sp of kamp.spelarar) {
-            container.querySelectorAll(`#stilling-innl tr.stilling-spelar-rad[data-kasterid="${sp.kasterid}"] td`).forEach(el => el.classList.add('stilling-ny-bekreftet'))
-          }
-        }
-      }
+      applyFlashClasses(container, idsToFlash, alleKamper)
 
-      if (isAdmin) {
-        container.querySelectorAll('.stilling-hcp-celle').forEach(celle => {
-          celle.addEventListener('click', async (e) => {
-            e.stopPropagation()
-            const el = e.currentTarget as HTMLElement
-            const kid = Number(el.dataset.kasterid)
-            const sid = Number(el.dataset.stevneid)
-            const gjeldande = resultat.find(r => r.kasterid === kid)?.hcp ?? 0
-            const input = await promptDialog({ title: 'Sett HCP', message: 'Sett HCP for spelar:', defaultValue: String(gjeldande), inputType: 'number' })
-            if (input === null) return
-            const nyHcp = parseInt(input, 10)
-            if (isNaN(nyHcp) || nyHcp < 0) { showToast('Ugyldig HCP-verdi', 'error'); return }
-            const { error } = await oppdaterResultatHcp(sid, kid, nyHcp)
-            if (error) { showToast('Feil ved lagring av HCP', 'error'); return }
-            await lastOgVis(container, stevneid)
-          })
-        })
-      }
+      if (isAdmin) bindHcpCeller(container, stevneid, resultat)
 
       for (const kamp of alleKamper) {
-        if (kanEndreKampar) {
-          const [side1, side2] = getMatchSides(kamp.spelarar, startnrMap, posisjonMap)
-          const p1 = side1?.rep ?? null
-          const p2 = side2?.rep ?? null
-          const spelarIds = [...(side1?.members ?? []), ...(side2?.members ?? [])].map(m => m.id)
-          const p1Namn = sideNavn(side1, false)
-          const p2Namn = sideNavn(side2, false)
-
-          const onScoreKlikk = async () => {
-            const hasOmg = spelarIds.length ? await harKampOmgangar(spelarIds) : false
-            if (hasOmg && !await confirmDialog({ title: 'Slett detaljar', message: 'Dette sletter detaljar for denne kampen. Er du sikker?' })) return
-
-            const currentS1 = sideScore(side1, kamp.er_bekreftet)
-            const currentS2 = sideScore(side2, kamp.er_bekreftet)
-
-            showNumberpad(p1Namn, p2Namn, currentS1, currentS2, async (nyS1, nyS2) => {
-              try {
-                if (hasOmg && spelarIds.length) await slettKampOmgangar(spelarIds)
-                await Promise.all([
-                  p1 ? oppdaterKampSpelarScoreRask(p1.id, nyS1) : Promise.resolve({ error: null }),
-                  p2 ? oppdaterKampSpelarScoreRask(p2.id, nyS2) : Promise.resolve({ error: null }),
-                  ...(kamp.er_bekreftet ? [unbekreftKamp(kamp.id)] : []),
-                ])
-              } catch (err) {
-                logError(`${variant.logPrefix}:scoreKlikk`, err)
-                showToast('Feil ved lagring av score', 'error')
-                return
-              }
-              await lastOgVis(container, stevneid)
-            })
-          }
-
-          container.querySelectorAll(`[data-endre-score="${kamp.id}"]`).forEach(el => el.addEventListener('click', onScoreKlikk))
-          container.querySelector(`#m-score-${kamp.id}`)?.addEventListener('click', (e) => {
-            e.stopPropagation()
-            void onScoreKlikk()
-          })
-        }
-
-        container.querySelector(`#scoreboard-${kamp.id}`)?.addEventListener('click', () => {
-          window.open(`#/kamp/${kamp.id}`, '_blank')
-        })
-
-        container.querySelector(`#bekrft-${kamp.id}`)?.addEventListener('click', async (e) => {
-          const btn = e.currentTarget as HTMLButtonElement
-          btn.disabled = true
-          btn.textContent = 'Lagrer…'
-          try {
-            const ok = await bekreftKamp(container, stevneid, kamp, startnrMap, hcpMap, posisjonMap)
-            if (!ok) { btn.disabled = false; btn.textContent = 'Bekreft' }
-          } catch {
-            btn.disabled = false
-            btn.textContent = 'Bekreft'
-          }
-        })
-
-        // ── Mobile row interaction ─────────────────────────────────────────────
-        const mobilRad = container.querySelector<HTMLElement>(`.kamp-rad-mobil[data-kamp-id="${kamp.id}"]`)
-        if (mobilRad) {
-          if (isAdmin) {
-            mobilRad.querySelector('.kamp-rad-mobil__hoved')?.addEventListener('click', () => {
-              const expanded = mobilRad.dataset.expanded === 'true'
-              container.querySelectorAll<HTMLElement>('.kamp-rad-mobil[data-expanded="true"]').forEach(r => {
-                r.dataset.expanded = 'false'
-                r.setAttribute('aria-expanded', 'false')
-              })
-              mobilRad.dataset.expanded = expanded ? 'false' : 'true'
-              mobilRad.setAttribute('aria-expanded', String(!expanded))
-            })
-
-            // Mobile scoreboard
-            container.querySelector(`#m-scoreboard-${kamp.id}`)?.addEventListener('click', (e) => {
-              e.stopPropagation()
-              window.open(`#/kamp/${kamp.id}`, '_blank')
-            })
-
-            // Mobile bekreft
-            container.querySelector(`#m-bekrft-${kamp.id}`)?.addEventListener('click', async (e) => {
-              e.stopPropagation()
-              const btn = e.currentTarget as HTMLButtonElement
-              btn.disabled = true
-              btn.textContent = 'Lagrer…'
-              const ok = await bekreftKamp(container, stevneid, kamp, startnrMap, hcpMap, posisjonMap)
-              if (!ok) { btn.disabled = false; btn.textContent = 'Bekreft' }
-            })
-          } else {
-            mobilRad.addEventListener('click', () => {
-              window.open(`#/kamp/${kamp.id}`, '_blank')
-            })
-          }
-        }
+        bindKampEvents(container, stevneid, kamp, startnrMap, hcpMap, posisjonMap, kanEndreKampar)
       }
 
       abonnerPaaEndringar(container, stevneid)
@@ -336,6 +168,182 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
       logError(`${variant.logPrefix}.lastOgVis`, err)
       container.replaceChildren(createErrorBanner('Kunne ikkje laste innledande fase.'))
     }
+  }
+
+  /** Tracks confirmed-match ids across renders so the newly-confirmed rows flash once. */
+  function beregnFlashIds(alleKamper: InnlKampRow[]): Set<number> {
+    const currentConfirmedIds = new Set(alleKamper.filter(k => k.er_bekreftet).map(k => k.id))
+    const newlyConfirmedIds = prevConfirmedIds
+      ? new Set([...currentConfirmedIds].filter(id => !prevConfirmedIds!.has(id)))
+      : new Set<number>()
+    const idsToFlash = new Set([...newlyConfirmedIds, ...pendingAnimationIds])
+    pendingAnimationIds = new Set(newlyConfirmedIds)
+    prevConfirmedIds = currentConfirmedIds
+    return idsToFlash
+  }
+
+  function setupBanner(ctx: InnledendeContext): void {
+    if (!bannerSlot) return
+    bannerSlot.innerHTML = (isAdmin ? renderInnledendeKnappar(ctx.stevne, variant.erSwiss) : '') + variant.getBannerExtra(ctx)
+    variant.bindBannerExtra(bannerSlot, ctx)
+
+    bannerSlot.querySelector('#fullfør-turnering-btn')?.addEventListener('click', async () => {
+      if (!await confirmDialog({ title: 'Fullfør turnering', message: 'Vil du fullføre turneringa? Dette kan ikkje angrast.', danger: true })) return
+      const { error: plErr } = await skrivPlaseringar(ctx.stevneid, ctx.stilling)
+      if (plErr) { showToast('Feil ved lagring av plasseringar', 'error'); return }
+      const { error } = await setStevneErfullfort(ctx.stevneid)
+      if (error) { showToast('Feil ved lagring', 'error'); return }
+      await ctx.reload()
+    })
+
+    bannerSlot.querySelector('#test-autofullfør-btn')?.addEventListener('click', async (e) => {
+      const btn = e.currentTarget as HTMLButtonElement
+      if (!await confirmDialog({ title: 'Autofullfør kampar', message: 'Autofullfør alle ubekreftede innledande kampar?' })) return
+      btn.disabled = true
+      await autoFullforInnledendeKamper(ctx.stevneid)
+      await ctx.reload()
+    })
+  }
+
+  function bindHcpCeller(container: HTMLElement, stevneid: number, resultat: InnlResultatRow[]): void {
+    container.querySelectorAll('.stilling-hcp-celle').forEach(celle => {
+      celle.addEventListener('click', async (e) => {
+        e.stopPropagation()
+        const el = e.currentTarget as HTMLElement
+        const kid = Number(el.dataset.kasterid)
+        const sid = Number(el.dataset.stevneid)
+        const gjeldande = resultat.find(r => r.kasterid === kid)?.hcp ?? 0
+        const input = await promptDialog({ title: 'Sett HCP', message: 'Sett HCP for spelar:', defaultValue: String(gjeldande), inputType: 'number' })
+        if (input === null) return
+        const nyHcp = parseInt(input, 10)
+        if (isNaN(nyHcp) || nyHcp < 0) { showToast('Ugyldig HCP-verdi', 'error'); return }
+        const { error } = await oppdaterResultatHcp(sid, kid, nyHcp)
+        if (error) { showToast('Feil ved lagring av HCP', 'error'); return }
+        await lastOgVis(container, stevneid)
+      })
+    })
+  }
+
+  function bindScoreRedigering(
+    container: HTMLElement,
+    stevneid: number,
+    kamp: InnlKampRow,
+    startnrMap: Record<number, number>,
+    posisjonMap: Record<number, number>,
+  ): void {
+    const [side1, side2] = getMatchSides(kamp.spelarar, startnrMap, posisjonMap)
+    const p1 = side1?.rep ?? null
+    const p2 = side2?.rep ?? null
+    const spelarIds = [...(side1?.members ?? []), ...(side2?.members ?? [])].map(m => m.id)
+    const p1Namn = sideNavn(side1, false)
+    const p2Namn = sideNavn(side2, false)
+
+    const onScoreKlikk = async () => {
+      const hasOmg = spelarIds.length ? await harKampOmgangar(spelarIds) : false
+      if (hasOmg && !await confirmDialog({ title: 'Slett detaljar', message: 'Dette sletter detaljar for denne kampen. Er du sikker?' })) return
+
+      const currentS1 = sideScore(side1, kamp.er_bekreftet)
+      const currentS2 = sideScore(side2, kamp.er_bekreftet)
+
+      showNumberpad(p1Namn, p2Namn, currentS1, currentS2, async (nyS1, nyS2) => {
+        try {
+          if (hasOmg && spelarIds.length) await slettKampOmgangar(spelarIds)
+          await Promise.all([
+            p1 ? oppdaterKampSpelarScoreRask(p1.id, nyS1) : Promise.resolve({ error: null }),
+            p2 ? oppdaterKampSpelarScoreRask(p2.id, nyS2) : Promise.resolve({ error: null }),
+            ...(kamp.er_bekreftet ? [unbekreftKamp(kamp.id)] : []),
+          ])
+        } catch (err) {
+          logError(`${variant.logPrefix}:scoreKlikk`, err)
+          showToast('Feil ved lagring av score', 'error')
+          return
+        }
+        await lastOgVis(container, stevneid)
+      })
+    }
+
+    container.querySelectorAll(`[data-endre-score="${kamp.id}"]`).forEach(el => el.addEventListener('click', onScoreKlikk))
+    container.querySelector(`#m-score-${kamp.id}`)?.addEventListener('click', (e) => {
+      e.stopPropagation()
+      void onScoreKlikk()
+    })
+  }
+
+  function lagBekreftHandler(
+    container: HTMLElement,
+    stevneid: number,
+    kamp: InnlKampRow,
+    startnrMap: Record<number, number>,
+    hcpMap: Record<number, number>,
+    posisjonMap: Record<number, number>,
+    stopProp: boolean,
+  ): (e: Event) => Promise<void> {
+    return async (e: Event) => {
+      if (stopProp) e.stopPropagation()
+      const btn = e.currentTarget as HTMLButtonElement
+      btn.disabled = true
+      btn.textContent = 'Lagrer…'
+      try {
+        const ok = await bekreftKamp(container, stevneid, kamp, startnrMap, hcpMap, posisjonMap)
+        if (!ok) { btn.disabled = false; btn.textContent = 'Bekreft' }
+      } catch {
+        btn.disabled = false
+        btn.textContent = 'Bekreft'
+      }
+    }
+  }
+
+  function bindMobilRad(
+    container: HTMLElement,
+    stevneid: number,
+    kamp: InnlKampRow,
+    startnrMap: Record<number, number>,
+    hcpMap: Record<number, number>,
+    posisjonMap: Record<number, number>,
+  ): void {
+    const mobilRad = container.querySelector<HTMLElement>(`.kamp-rad-mobil[data-kamp-id="${kamp.id}"]`)
+    if (!mobilRad) return
+
+    if (!isAdmin) {
+      mobilRad.addEventListener('click', () => { window.open(`#/kamp/${kamp.id}`, '_blank') })
+      return
+    }
+
+    mobilRad.querySelector('.kamp-rad-mobil__hoved')?.addEventListener('click', () => {
+      const expanded = mobilRad.dataset.expanded === 'true'
+      container.querySelectorAll<HTMLElement>('.kamp-rad-mobil[data-expanded="true"]').forEach(r => {
+        r.dataset.expanded = 'false'
+        r.setAttribute('aria-expanded', 'false')
+      })
+      mobilRad.dataset.expanded = expanded ? 'false' : 'true'
+      mobilRad.setAttribute('aria-expanded', String(!expanded))
+    })
+    container.querySelector(`#m-scoreboard-${kamp.id}`)?.addEventListener('click', (e) => {
+      e.stopPropagation()
+      window.open(`#/kamp/${kamp.id}`, '_blank')
+    })
+    container.querySelector(`#m-bekrft-${kamp.id}`)?.addEventListener('click',
+      lagBekreftHandler(container, stevneid, kamp, startnrMap, hcpMap, posisjonMap, true))
+  }
+
+  function bindKampEvents(
+    container: HTMLElement,
+    stevneid: number,
+    kamp: InnlKampRow,
+    startnrMap: Record<number, number>,
+    hcpMap: Record<number, number>,
+    posisjonMap: Record<number, number>,
+    kanEndreKampar: boolean,
+  ): void {
+    if (kanEndreKampar) bindScoreRedigering(container, stevneid, kamp, startnrMap, posisjonMap)
+
+    container.querySelector(`#scoreboard-${kamp.id}`)?.addEventListener('click', () => {
+      window.open(`#/kamp/${kamp.id}`, '_blank')
+    })
+    container.querySelector(`#bekrft-${kamp.id}`)?.addEventListener('click',
+      lagBekreftHandler(container, stevneid, kamp, startnrMap, hcpMap, posisjonMap, false))
+
+    bindMobilRad(container, stevneid, kamp, startnrMap, hcpMap, posisjonMap)
   }
 
   function abonnerPaaEndringar(container: HTMLElement, stevneid: number): void {
@@ -376,6 +384,72 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
   }
 
   return render
+}
+
+// ── Data-bygging (pure — no closure state) ────────────────────────────────────
+
+interface DeltakarMaps {
+  startnrMap: Record<number, number>
+  hcpMap: Record<number, number>
+  posisjonMap: Record<number, number>
+  /** Par/Mix: two players share a startnummer */
+  erLag: boolean
+}
+
+function byggDeltakarMaps(resultat: InnlResultatRow[]): DeltakarMaps {
+  const startnrMap: Record<number, number> = Object.fromEntries(
+    resultat.filter(r => r.kasterid != null).map(r => [r.kasterid!, r.startnummer ?? 0]),
+  )
+  const hcpMap: Record<number, number> = Object.fromEntries(
+    resultat.filter(r => r.kasterid != null && (r.hcp ?? 0) > 0).map(r => [r.kasterid!, r.hcp ?? 0]),
+  )
+  const posisjonMap: Record<number, number> = Object.fromEntries(
+    resultat.filter(r => r.kasterid != null && r.posisjon != null).map(r => [r.kasterid!, r.posisjon!]),
+  )
+  const snrCount = new Map<number, number>()
+  for (const r of resultat) {
+    if (r.kasterid == null || r.startnummer == null) continue
+    snrCount.set(r.startnummer, (snrCount.get(r.startnummer) ?? 0) + 1)
+  }
+  return { startnrMap, hcpMap, posisjonMap, erLag: [...snrCount.values()].some(c => c > 1) }
+}
+
+function byggRundeMap(alleKamper: InnlKampRow[]): Map<number, InnlKampRow[]> {
+  const rundeMap = new Map<number, InnlKampRow[]>()
+  for (const kamp of alleKamper) {
+    if (!rundeMap.has(kamp.runde_nummer)) rundeMap.set(kamp.runde_nummer, [])
+    rundeMap.get(kamp.runde_nummer)!.push(kamp)
+  }
+  return rundeMap
+}
+
+function byggStilling(
+  alleKamper: InnlKampRow[],
+  resultat: InnlResultatRow[],
+  startnrMap: Record<number, number>,
+  posisjonMap: Record<number, number>,
+  erLag: boolean,
+): StillingRad[] {
+  const { spelMap, ekteKasterids } = byggInnledendeSpelMap(alleKamper, startnrMap)
+  const stillingRader = Object.values(spelMap)
+    .filter(s => ekteKasterids.has(s.kasterid))
+    .map(s => ({ ...s, hcp: resultat.find(r => r.kasterid === s.kasterid)?.hcp ?? 0 }))
+  return sorterStilling(
+    erLag ? groupStandingsByPair(stillingRader, posisjonMap) : stillingRader,
+    alleKamper,
+  )
+}
+
+/** Adds the one-shot flash class to rows whose match was just confirmed. */
+function applyFlashClasses(container: HTMLElement, idsToFlash: Set<number>, alleKamper: InnlKampRow[]): void {
+  for (const kampId of idsToFlash) {
+    container.querySelectorAll(`[data-kamp-id="${kampId}"]`).forEach(el => el.classList.add('kamp-ny-bekreftet'))
+    const kamp = alleKamper.find(k => k.id === kampId)
+    if (!kamp) continue
+    for (const sp of kamp.spelarar) {
+      container.querySelectorAll(`#stilling-innl tr.stilling-spelar-rad[data-kasterid="${sp.kasterid}"] td`).forEach(el => el.classList.add('stilling-ny-bekreftet'))
+    }
+  }
 }
 
 // ── Shared rendering (pure — no closure state) ────────────────────────────────
