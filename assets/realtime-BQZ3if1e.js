@@ -1,0 +1,1 @@
+import{rt as e}from"./index-DfQSuSl0.js";async function t(t){await e.removeChannel(t)}export{t};

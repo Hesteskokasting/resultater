@@ -1,0 +1,1 @@
+function e(e,t,n){let r=document.createElement(e);return t!=null&&(r.textContent=t),n&&(r.className=n),r}export{e as t};
