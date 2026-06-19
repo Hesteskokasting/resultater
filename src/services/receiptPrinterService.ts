@@ -21,8 +21,12 @@ export function isPrinterConnected(): boolean {
   return port !== null
 }
 
-/** Register a callback that fires whenever the printer disconnects (USB pull or forget). */
-export function setOnDisconnect(cb: () => void): void {
+/**
+ * Register a callback that fires whenever the printer disconnects (USB pull or forget).
+ * Pass null to clear it — call this when the registering view is torn down so a stale
+ * closure can't poke detached DOM on a later disconnect.
+ */
+export function setOnDisconnect(cb: (() => void) | null): void {
   onDisconnectCb = cb
 }
 

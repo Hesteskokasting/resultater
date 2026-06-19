@@ -42,12 +42,16 @@ export function charSize(widthMul: 1 | 2, heightMul: 1 | 2): Uint8Array {
  * Encode a text string as Latin-1 bytes.
  * Norwegian special chars are transliterated so they print correctly
  * regardless of which code page the printer is configured to use.
+ * Control bytes (< 0x20) are stripped to spaces so user-sourced text
+ * (player/club names) can't inject ESC/POS commands into the stream.
  * The line is truncated to RECEIPT_COLS and a LF is appended.
  */
 export function textLine(s: string): Uint8Array {
   const normalized = s
     .replace(/æ/g, 'ae').replace(/ø/g, 'oe').replace(/å/g, 'aa')
     .replace(/Æ/g, 'Ae').replace(/Ø/g, 'Oe').replace(/Å/g, 'Aa')
+    // eslint-disable-next-line no-control-regex
+    .replace(/[\x00-\x1F\x7F]/g, ' ')
     .slice(0, RECEIPT_COLS)
 
   const out = new Uint8Array(normalized.length + 1)

@@ -199,6 +199,10 @@ export async function render(
 ): Promise<void> {
   container.replaceChildren(createLoadingState())
 
+  // Drop any disconnect callback from a previous render of this page; the banner
+  // block below re-registers a fresh one when applicable.
+  setOnDisconnect(null)
+
   try {
     const [stevneRes, kastereRes, pameldingRes, metodeRes] = await Promise.all([
       hentStevneHeader(id),
