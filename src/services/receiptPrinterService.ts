@@ -5,6 +5,10 @@ import { logError } from '@/utils/logError'
 
 let port: SerialPort | null = null
 
+// Star Micronics USB vendor ID. If the printer enumerates via a generic
+// USB-serial chip (FTDI 0x0403, CP210x 0x10C4, CH340 0x1A86) update this.
+const PRINTER_FILTERS: SerialPortFilter[] = [{ usbVendorId: 0x0519 }]
+
 export function isWebSerialSupported(): boolean {
   return 'serial' in navigator
 }
@@ -36,7 +40,7 @@ export async function tryAutoReconnect(): Promise<boolean> {
 export async function connectUsb(): Promise<void> {
   if (!isWebSerialSupported()) throw new Error('Web Serial API is not supported in this browser.')
   if (port) return
-  const selected = await navigator.serial.requestPort()
+  const selected = await navigator.serial.requestPort({ filters: PRINTER_FILTERS })
   await selected.open({ baudRate: 9600 })
   port = selected
 }
