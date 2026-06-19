@@ -25,7 +25,6 @@ import {
   setOnDisconnect,
   tryAutoReconnect,
   connectUsb,
-  disconnect as disconnectPrinter,
   forget as forgetPrinter,
   printBytes,
 } from '@/services/receiptPrinterService'
@@ -199,8 +198,7 @@ export async function render(
 ): Promise<void> {
   container.replaceChildren(createLoadingState())
 
-  // Drop any disconnect callback from a previous render of this page; the banner
-  // block below re-registers a fresh one when applicable.
+  // Drop any disconnect callback from a previous render; the banner block re-registers a fresh one.
   setOnDisconnect(null)
 
   try {
@@ -303,23 +301,28 @@ export async function render(
         note.textContent = 'Kvitteringsprintar ikkje tilgjengeleg i denne nettlesaren (bruk Chrome/Edge).'
         printerBanner.appendChild(note)
       } else {
-        const connectBtn = document.createElement('button')
-        const disconnectBtn = document.createElement('button')
-        const forgetBtn = document.createElement('button')
+        const statusDot = document.createElement('span')
+        const statusLabel = document.createElement('span')
+        statusLabel.textContent = 'Printer status'
+        const statusEl = document.createElement('span')
+        statusEl.className = 'd-flex align-items-center gap-1 small'
+        statusEl.appendChild(statusDot)
+        statusEl.appendChild(statusLabel)
 
+        const connectBtn = document.createElement('button')
+        connectBtn.textContent = 'Koble til kvitteringsprintar'
+        connectBtn.className = 'btn btn-sm btn-outline-secondary'
+
+        const disconnectBtn = document.createElement('button')
         disconnectBtn.textContent = 'Koble frå'
         disconnectBtn.className = 'btn btn-sm btn-outline-warning d-none'
 
-        forgetBtn.textContent = 'Gløym printar'
-        forgetBtn.className = 'btn btn-sm btn-link text-muted small d-none'
-
         function updatePrinterUI(rerenderList = true): void {
           const connected = isPrinterConnected()
-          connectBtn.textContent = connected ? 'Kvitteringsprintar tilkopla' : 'Koble til kvitteringsprintar'
-          connectBtn.className = connected ? 'btn btn-sm btn-outline-success' : 'btn btn-sm btn-outline-secondary'
-          connectBtn.disabled = connected
+          statusDot.textContent = '●'
+          statusDot.className = connected ? 'text-success' : 'text-muted'
+          connectBtn.classList.toggle('d-none', connected)
           disconnectBtn.classList.toggle('d-none', !connected)
-          forgetBtn.classList.toggle('d-none', !connected)
           if (rerenderList) renderPameldtListe()
         }
 
@@ -340,25 +343,14 @@ export async function render(
 
         disconnectBtn.addEventListener('click', async () => {
           disconnectBtn.disabled = true
-          forgetBtn.disabled = true
-          await disconnectPrinter()
-          updatePrinterUI()
-          disconnectBtn.disabled = false
-          forgetBtn.disabled = false
-        })
-
-        forgetBtn.addEventListener('click', async () => {
-          forgetBtn.disabled = true
-          disconnectBtn.disabled = true
           await forgetPrinter()
           updatePrinterUI()
           disconnectBtn.disabled = false
-          forgetBtn.disabled = false
         })
 
+        printerBanner.appendChild(statusEl)
         printerBanner.appendChild(connectBtn)
         printerBanner.appendChild(disconnectBtn)
-        printerBanner.appendChild(forgetBtn)
         updatePrinterUI(false)
 
         // Reconnect in the background — opening a (Bluetooth) serial port can

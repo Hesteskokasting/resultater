@@ -22,9 +22,8 @@ export function isPrinterConnected(): boolean {
 }
 
 /**
- * Register a callback that fires whenever the printer disconnects (USB pull or forget).
- * Pass null to clear it — call this when the registering view is torn down so a stale
- * closure can't poke detached DOM on a later disconnect.
+ * Register a callback that fires when the printer disconnects.
+ * Pass null to clear — call this when the registering view is torn down.
  */
 export function setOnDisconnect(cb: (() => void) | null): void {
   onDisconnectCb = cb
@@ -34,14 +33,10 @@ function attachDisconnectListener(): void {
   if (activeDisconnectHandler) {
     navigator.serial.removeEventListener('disconnect', activeDisconnectHandler)
   }
-  // We only track one port, so any disconnect event means our port was pulled.
-  // Forget the port so tryAutoReconnect() won't silently reconnect on next page load.
   activeDisconnectHandler = (_event: SerialConnectionEvent) => {
     if (port !== null) {
-      const gone = port
       port = null
       activeDisconnectHandler = null
-      gone.forget().catch(err => logError('receiptPrinterService.autoForget', err))
       onDisconnectCb?.()
     }
   }
@@ -50,7 +45,8 @@ function attachDisconnectListener(): void {
 
 /**
  * Re-open a previously-granted port without a user gesture.
- * Called automatically on page load. Returns true if reconnected.
+ * Called on page load in the background — does not block render.
+ * Returns true if reconnected.
  */
 export async function tryAutoReconnect(): Promise<boolean> {
   if (!isWebSerialSupported() || port) return false
@@ -67,7 +63,7 @@ export async function tryAutoReconnect(): Promise<boolean> {
   }
 }
 
-/** Prompt the user to select a USB serial port and open it. */
+/** Prompt the user to select a serial port and open it. */
 export async function connectUsb(): Promise<void> {
   if (!isWebSerialSupported()) throw new Error('Web Serial API is not supported in this browser.')
   if (port) return
@@ -78,7 +74,7 @@ export async function connectUsb(): Promise<void> {
   attachDisconnectListener()
 }
 
-/** Close the current connection. The port remains in getPorts() — auto-reconnects on next load. */
+/** Close the current connection. Port stays in getPorts() so auto-reconnect works on next load. */
 export async function disconnect(): Promise<void> {
   if (!port) return
   if (activeDisconnectHandler) {
