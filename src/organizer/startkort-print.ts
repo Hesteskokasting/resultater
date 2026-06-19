@@ -1,39 +1,19 @@
-import { startcardTemplate, type RoundInfo } from '@/utils/startcard/startcard-template'
+import { startcardTemplate } from '@/utils/startcard/startcard-template'
+import { buildRoundInfos, hentKlubbNamn, type PrintMatch } from '@/utils/startcard/roundInfoBuilder'
+import type { RoundInfo } from '@/utils/startcard/startcard-template'
 import { logError } from '@/utils/logError'
 
-interface StartkortKlubb {
-  kortnavn?: string | null
-  navn?: string | null
-}
-
-interface StartkortKaster {
-  fornavn: string
-  etternavn: string
-  klubb?: StartkortKlubb | null
-}
-
-interface StartkortKampSpelar {
-  kasterid: number
-  kaster?: StartkortKaster | null
-}
-
-interface StartkortKamp {
-  spelarar?: StartkortKampSpelar[] | null
-  er_walkover?: boolean | null
-  bane_nummer?: number | null
-}
-
-interface StartkortStillingRad {
+interface PrintStandingsRow {
   kasterid: number
   startnummer?: number | string | null
   navn?: string | null
 }
 
-interface StartkortStevne {
+interface PrintTournament {
   navn: string
 }
 
-interface StartkortSpelarData {
+interface PrintPlayerData {
   startnummer: number | string
   navn: string | null
   klubb: string
@@ -43,15 +23,15 @@ interface StartkortSpelarData {
 const CSS_URL = new URL('../utils/startcard/startcard.css', import.meta.url).href
 
 export function printStartkort(
-  stevne: StartkortStevne,
-  alleKamper: StartkortKamp[],
-  rundeMap: Map<number, StartkortKamp[]>,
+  stevne: PrintTournament,
+  alleKamper: PrintMatch[],
+  rundeMap: Map<number, PrintMatch[]>,
   startnrMap: Record<number, number>,
-  stilling: StartkortStillingRad[],
+  stilling: PrintStandingsRow[],
 ): void {
   const sortertRundar = [...rundeMap.keys()].sort((a, b) => a - b)
 
-  const spelarar: StartkortSpelarData[] = stilling
+  const spelarar: PrintPlayerData[] = stilling
     .map(s => ({
       startnummer: s.startnummer ?? '',
       navn: s.navn ?? null,
@@ -78,41 +58,4 @@ export function printStartkort(
   styleLink.onload = () => {
     setTimeout(() => { printWindow.focus(); printWindow.print() }, 50)
   }
-}
-
-function hentKlubbNamn(kasterid: number, alleKamper: StartkortKamp[]): string {
-  for (const kamp of alleKamper) {
-    const sp = kamp.spelarar?.find(s => s.kasterid === kasterid)
-    if (sp?.kaster?.klubb) return sp.kaster.klubb.kortnavn || sp.kaster.klubb.navn || ''
-  }
-  return ''
-}
-
-function buildRoundInfos(
-  kasterid: number,
-  sortertRundar: number[],
-  rundeMap: Map<number, StartkortKamp[]>,
-  startnrMap: Record<number, number>,
-): RoundInfo[] {
-  return sortertRundar.map(nr => {
-    const kamp = (rundeMap.get(nr) ?? []).find(k => k.spelarar?.some(sp => sp.kasterid === kasterid))
-    if (!kamp) return { court: '', opponentId: '', opponentName: '' }
-    const opp = kamp.spelarar?.find(sp => sp.kasterid !== kasterid)
-    const erWalkoverSeier = kamp.er_walkover && !opp?.kaster
-    if (erWalkoverSeier) {
-      return {
-        court: kamp.bane_nummer ?? '',
-        matchPoints: '2',
-        playerScore: '21',
-        opponentId: '-',
-        opponentName: 'Walkover',
-        opponentScore: '-',
-      }
-    }
-    return {
-      court: kamp.bane_nummer ?? '',
-      opponentId: opp?.kasterid ? (startnrMap[opp.kasterid] ?? '') : '',
-      opponentName: opp?.kaster ? `${opp.kaster.fornavn} ${opp.kaster.etternavn}` : '',
-    }
-  })
 }
