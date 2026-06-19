@@ -4,10 +4,14 @@
 import { logError } from '@/utils/logError'
 
 let port: SerialPort | null = null
+let activeDisconnectHandler: ((event: SerialConnectionEvent) => void) | null = null
+let onDisconnectCb: (() => void) | null = null
 
-// Star Micronics USB vendor ID. If the printer enumerates via a generic
-// USB-serial chip (FTDI 0x0403, CP210x 0x10C4, CH340 0x1A86) update this.
-const PRINTER_FILTERS: SerialPortFilter[] = [{ usbVendorId: 0x0519 }]
+// To restrict the port picker to a specific printer, set a USB vendor/product ID here.
+// Find it in Windows Device Manager → Ports (COM & LPT) → right-click → Properties
+// → Details → Hardware IDs. Example: "USB\VID_0519&PID_0001" → usbVendorId: 0x0519.
+// Leave the array empty to show all serial ports.
+const PRINTER_FILTERS: SerialPortFilter[] = []
 
 export function isWebSerialSupported(): boolean {
   return 'serial' in navigator
@@ -17,6 +21,29 @@ export function isPrinterConnected(): boolean {
   return port !== null
 }
 
+/** Register a callback that fires whenever the printer disconnects (USB pull or forget). */
+export function setOnDisconnect(cb: () => void): void {
+  onDisconnectCb = cb
+}
+
+function attachDisconnectListener(): void {
+  if (activeDisconnectHandler) {
+    navigator.serial.removeEventListener('disconnect', activeDisconnectHandler)
+  }
+  // We only track one port, so any disconnect event means our port was pulled.
+  // Forget the port so tryAutoReconnect() won't silently reconnect on next page load.
+  activeDisconnectHandler = (_event: SerialConnectionEvent) => {
+    if (port !== null) {
+      const gone = port
+      port = null
+      activeDisconnectHandler = null
+      gone.forget().catch(err => logError('receiptPrinterService.autoForget', err))
+      onDisconnectCb?.()
+    }
+  }
+  navigator.serial.addEventListener('disconnect', activeDisconnectHandler)
+}
+
 /**
  * Re-open a previously-granted port without a user gesture.
  * Called automatically on page load. Returns true if reconnected.
@@ -24,12 +51,12 @@ export function isPrinterConnected(): boolean {
 export async function tryAutoReconnect(): Promise<boolean> {
   if (!isWebSerialSupported() || port) return false
   const ports = await navigator.serial.getPorts()
-  if (ports.length === 0) return false
   const candidate = ports[0]
   if (!candidate) return false
   try {
     await candidate.open({ baudRate: 9600 })
     port = candidate
+    attachDisconnectListener()
     return true
   } catch {
     return false
@@ -40,20 +67,37 @@ export async function tryAutoReconnect(): Promise<boolean> {
 export async function connectUsb(): Promise<void> {
   if (!isWebSerialSupported()) throw new Error('Web Serial API is not supported in this browser.')
   if (port) return
-  const selected = await navigator.serial.requestPort({ filters: PRINTER_FILTERS })
+  const options = PRINTER_FILTERS.length > 0 ? { filters: PRINTER_FILTERS } : undefined
+  const selected = await navigator.serial.requestPort(options)
   await selected.open({ baudRate: 9600 })
   port = selected
+  attachDisconnectListener()
 }
 
-/** Close the current connection, if any. */
+/** Close the current connection. The port remains in getPorts() — auto-reconnects on next load. */
 export async function disconnect(): Promise<void> {
   if (!port) return
+  if (activeDisconnectHandler) {
+    navigator.serial.removeEventListener('disconnect', activeDisconnectHandler)
+    activeDisconnectHandler = null
+  }
   try {
     await port.close()
   } catch (err) {
     logError('receiptPrinterService.disconnect', err)
   } finally {
     port = null
+  }
+}
+
+/** Close and forget the port — revokes permission so auto-reconnect won't trigger next load. */
+export async function forget(): Promise<void> {
+  const target = port
+  await disconnect()
+  try {
+    await target?.forget()
+  } catch (err) {
+    logError('receiptPrinterService.forget', err)
   }
 }
 

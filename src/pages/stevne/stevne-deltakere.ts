@@ -22,8 +22,11 @@ import { formatStartkortReceipt } from '@/utils/receipt/receiptFormat'
 import {
   isWebSerialSupported,
   isPrinterConnected,
+  setOnDisconnect,
   tryAutoReconnect,
   connectUsb,
+  disconnect as disconnectPrinter,
+  forget as forgetPrinter,
   printBytes,
 } from '@/services/receiptPrinterService'
 import { createLoadingState } from '@/components/LoadingState'
@@ -299,22 +302,26 @@ export async function render(
         printerBanner.appendChild(note)
       } else {
         const connectBtn = document.createElement('button')
-        connectBtn.className = 'btn btn-sm btn-outline-secondary'
-        connectBtn.id = 'receipt-connect-btn'
+        const disconnectBtn = document.createElement('button')
+        const forgetBtn = document.createElement('button')
 
-        const statusSpan = document.createElement('span')
-        statusSpan.id = 'receipt-status'
-        statusSpan.className = 'small'
+        disconnectBtn.textContent = 'Koble frå'
+        disconnectBtn.className = 'btn btn-sm btn-outline-warning d-none'
+
+        forgetBtn.textContent = 'Gløym printar'
+        forgetBtn.className = 'btn btn-sm btn-link text-muted small d-none'
 
         function updatePrinterUI(rerenderList = true): void {
           const connected = isPrinterConnected()
           connectBtn.textContent = connected ? 'Kvitteringsprintar tilkopla' : 'Koble til kvitteringsprintar'
-          connectBtn.className = connected
-            ? 'btn btn-sm btn-outline-success'
-            : 'btn btn-sm btn-outline-secondary'
+          connectBtn.className = connected ? 'btn btn-sm btn-outline-success' : 'btn btn-sm btn-outline-secondary'
           connectBtn.disabled = connected
+          disconnectBtn.classList.toggle('d-none', !connected)
+          forgetBtn.classList.toggle('d-none', !connected)
           if (rerenderList) renderPameldtListe()
         }
+
+        setOnDisconnect(() => updatePrinterUI())
 
         connectBtn.addEventListener('click', async () => {
           connectBtn.disabled = true
@@ -322,16 +329,34 @@ export async function render(
             await connectUsb()
             updatePrinterUI()
           } catch (err) {
+            connectBtn.disabled = false
             if (err instanceof Error && err.name !== 'NotFoundError') {
               showToast('Feil ved tilkopling: ' + errorMessage(err), 'error')
             }
-          } finally {
-            connectBtn.disabled = false
           }
         })
 
+        disconnectBtn.addEventListener('click', async () => {
+          disconnectBtn.disabled = true
+          forgetBtn.disabled = true
+          await disconnectPrinter()
+          updatePrinterUI()
+          disconnectBtn.disabled = false
+          forgetBtn.disabled = false
+        })
+
+        forgetBtn.addEventListener('click', async () => {
+          forgetBtn.disabled = true
+          disconnectBtn.disabled = true
+          await forgetPrinter()
+          updatePrinterUI()
+          disconnectBtn.disabled = false
+          forgetBtn.disabled = false
+        })
+
         printerBanner.appendChild(connectBtn)
-        printerBanner.appendChild(statusSpan)
+        printerBanner.appendChild(disconnectBtn)
+        printerBanner.appendChild(forgetBtn)
         updatePrinterUI(false)
       }
 

@@ -24,11 +24,18 @@ interface SerialPort {
   readonly writable: WritableStream<Uint8Array> | null
   open(options: SerialOptions): Promise<void>
   close(): Promise<void>
+  forget(): Promise<void>  // Chrome 103+
+}
+
+interface SerialConnectionEvent extends Event {
+  readonly port: SerialPort
 }
 
 interface Serial extends EventTarget {
   requestPort(options?: SerialPortRequestOptions): Promise<SerialPort>
   getPorts(): Promise<SerialPort[]>
+  addEventListener(type: 'connect' | 'disconnect', listener: (event: SerialConnectionEvent) => void): void
+  removeEventListener(type: 'connect' | 'disconnect', listener: (event: SerialConnectionEvent) => void): void
 }
 
 interface Navigator {
