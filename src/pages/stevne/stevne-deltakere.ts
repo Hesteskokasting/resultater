@@ -290,8 +290,6 @@ export async function render(
     // ── Printer connect banner (admin + Gloppen only) ─────────────────────────
 
     if (isAdmin && isGloppen && isStarted) {
-      await tryAutoReconnect()
-
       const printerBanner = document.createElement('div')
       printerBanner.className = 'd-flex align-items-center gap-2 mb-2'
 
@@ -358,6 +356,12 @@ export async function render(
         printerBanner.appendChild(disconnectBtn)
         printerBanner.appendChild(forgetBtn)
         updatePrinterUI(false)
+
+        // Reconnect in the background — opening a (Bluetooth) serial port can
+        // take several seconds on Windows, so it must not block first paint.
+        void tryAutoReconnect().then(reconnected => {
+          if (reconnected) updatePrinterUI()
+        })
       }
 
       wrapper.appendChild(printerBanner)
