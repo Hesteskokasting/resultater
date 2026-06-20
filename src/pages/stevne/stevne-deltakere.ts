@@ -303,7 +303,7 @@ export async function render(
       } else {
         const statusDot = document.createElement('span')
         const statusLabel = document.createElement('span')
-        statusLabel.textContent = 'Printer status'
+        statusLabel.textContent = 'Printer'
         const statusEl = document.createElement('span')
         statusEl.className = 'd-flex align-items-center gap-1 small'
         statusEl.appendChild(statusDot)
