@@ -10,24 +10,11 @@ import {
   leggTilPameldingAdmin,
   bekreftPameldingForKaster,
   fjernPameldingForKaster,
-  hentParForStevne,
 } from '@/services/pameldingService'
-import type { PameldingPar } from '@/services/pameldingService'
 import { hentStevneHeader, hentInnledendeMetodeNamn } from '@/services/stevneService'
-import { hentInnledendeKamper } from '@/services/kampService'
-import { hentResultatForInnledende } from '@/services/resultatService'
-import { buildRoundInfos, hentKlubbNamn } from '@/utils/startcard/roundInfoBuilder'
-import type { PrintMatch } from '@/utils/startcard/roundInfoBuilder'
-import { formatStartkortReceipt } from '@/utils/receipt/receiptFormat'
-import {
-  isWebSerialSupported,
-  isPrinterConnected,
-  setOnDisconnect,
-  tryAutoReconnect,
-  connectUsb,
-  forget as forgetPrinter,
-  printBytes,
-} from '@/services/receiptPrinterService'
+import { setOnDisconnect } from '@/services/receiptPrinterService'
+import { createPrinterBanner } from '@/pages/stevne/PrinterBanner'
+import type { PrinterBanner } from '@/pages/stevne/PrinterBanner'
 import { createLoadingState } from '@/components/LoadingState'
 import { createTabs } from '@/components/Tabs'
 import { createParTab } from '@/pages/stevne/parTab'
@@ -184,14 +171,6 @@ function lagTomRad(melding: string, kolSpan: number): HTMLTableRowElement {
 
 // ── Render ────────────────────────────────────────────────────────────────────
 
-interface InnlData {
-  alleKamperPrint: PrintMatch[]
-  rundeMap: Map<number, PrintMatch[]>
-  startnrMap: Record<number, number>
-  sortertRundar: number[]
-  pairs: PameldingPar[]
-}
-
 export async function render(
   container: HTMLElement,
   { id, isAdmin = false }: { id: number; isAdmin?: boolean },
@@ -238,48 +217,6 @@ export async function render(
     // enrollment changes so the next activation re-fetches
     let parTabDirty = true
 
-    // Lazy-loaded match data for Gloppen receipt printing
-    let innlData: InnlData | null = null
-
-    async function ensureInnlData(): Promise<InnlData | null> {
-      if (innlData) return innlData
-      const [kamperRes, resultatRes, parRes] = await Promise.all([
-        hentInnledendeKamper(id),
-        hentResultatForInnledende(id),
-        erLag ? hentParForStevne(id) : Promise.resolve({ data: [] as PameldingPar[], error: null }),
-      ])
-      if (kamperRes.error) { showToast('Feil ved lasting av kampdata', 'error'); return null }
-      if (resultatRes.error) { showToast('Feil ved lasting av resultatdata', 'error'); return null }
-
-      const startnrMap: Record<number, number> = {}
-      for (const r of resultatRes.data) {
-        if (r.kasterid != null) startnrMap[r.kasterid] = r.startnummer ?? 0
-      }
-
-      const alleKamperPrint: PrintMatch[] = []
-      const rundeMap = new Map<number, PrintMatch[]>()
-      for (const kamp of kamperRes.data) {
-        const pm: PrintMatch = {
-          spelarar: kamp.spelarar,
-          er_walkover: kamp.er_walkover,
-          bane_nummer: kamp.bane_nummer,
-        }
-        alleKamperPrint.push(pm)
-        const list = rundeMap.get(kamp.runde_nummer) ?? []
-        list.push(pm)
-        rundeMap.set(kamp.runde_nummer, list)
-      }
-
-      innlData = {
-        alleKamperPrint,
-        rundeMap,
-        startnrMap,
-        sortertRundar: [...rundeMap.keys()].sort((a, b) => a - b),
-        pairs: parRes.data,
-      }
-      return innlData
-    }
-
     const wrapper = document.createElement('div')
 
     if (!kanEndrast) {
@@ -291,76 +228,15 @@ export async function render(
 
     // ── Printer connect banner (admin + Gloppen only) ─────────────────────────
 
+    let printerBanner: PrinterBanner | undefined
     if (isAdmin && isGloppen && isStarted) {
-      const printerBanner = document.createElement('div')
-      printerBanner.className = 'd-flex align-items-center gap-2 mb-2'
-
-      if (!isWebSerialSupported()) {
-        const note = document.createElement('small')
-        note.className = 'text-muted'
-        note.textContent = 'Kvitteringsprintar ikkje tilgjengeleg i denne nettlesaren (bruk Chrome/Edge).'
-        printerBanner.appendChild(note)
-      } else {
-        const statusDot = document.createElement('span')
-        const statusLabel = document.createElement('span')
-        statusLabel.textContent = 'Printer'
-        const statusEl = document.createElement('span')
-        statusEl.className = 'd-flex align-items-center gap-1 small'
-        statusEl.appendChild(statusDot)
-        statusEl.appendChild(statusLabel)
-
-        const connectBtn = document.createElement('button')
-        connectBtn.textContent = 'Koble til kvitteringsprintar'
-        connectBtn.className = 'btn btn-sm btn-outline-secondary'
-
-        const disconnectBtn = document.createElement('button')
-        disconnectBtn.textContent = 'Koble frå'
-        disconnectBtn.className = 'btn btn-sm btn-outline-warning d-none'
-
-        function updatePrinterUI(rerenderList = true): void {
-          const connected = isPrinterConnected()
-          statusDot.textContent = '●'
-          statusDot.className = connected ? 'text-success' : 'text-muted'
-          connectBtn.classList.toggle('d-none', connected)
-          disconnectBtn.classList.toggle('d-none', !connected)
-          if (rerenderList) renderPameldtListe()
-        }
-
-        setOnDisconnect(() => updatePrinterUI())
-
-        connectBtn.addEventListener('click', async () => {
-          connectBtn.disabled = true
-          try {
-            await connectUsb()
-            updatePrinterUI()
-          } catch (err) {
-            connectBtn.disabled = false
-            if (err instanceof Error && err.name !== 'NotFoundError') {
-              showToast('Feil ved tilkopling: ' + errorMessage(err), 'error')
-            }
-          }
-        })
-
-        disconnectBtn.addEventListener('click', async () => {
-          disconnectBtn.disabled = true
-          await forgetPrinter()
-          updatePrinterUI()
-          disconnectBtn.disabled = false
-        })
-
-        printerBanner.appendChild(statusEl)
-        printerBanner.appendChild(connectBtn)
-        printerBanner.appendChild(disconnectBtn)
-        updatePrinterUI(false)
-
-        // Reconnect in the background — opening a (Bluetooth) serial port can
-        // take several seconds on Windows, so it must not block first paint.
-        void tryAutoReconnect().then(reconnected => {
-          if (reconnected) updatePrinterUI()
-        })
-      }
-
-      wrapper.appendChild(printerBanner)
+      printerBanner = createPrinterBanner({
+        stevneId: id,
+        stevneNavn: stevneRes.data.navn,
+        erLag,
+        onStateChange: () => renderPameldtListe(),
+      })
+      wrapper.appendChild(printerBanner.element)
     }
 
     const layout = document.createElement('div')
@@ -402,45 +278,14 @@ export async function render(
       const lista = sorterKastere(alleSpelarar.filter(p => pameldtMap.has(p.id)))
       pameldtTittel.textContent = `Påmelde spelarar: ${lista.length}`
 
-      const showPrint = isAdmin && isGloppen && isStarted && isPrinterConnected()
+      const onPrint = printerBanner ? printerBanner.getPrintHandler() : undefined
 
       if (!lista.length) {
-        pameldtTabell.appendChild(lagTomRad('Ingen spelarar påmelde', showPrint ? 5 : 4))
+        pameldtTabell.appendChild(lagTomRad('Ingen spelarar påmelde', onPrint !== undefined ? 5 : 4))
         return
       }
 
       for (const sp of lista) {
-        const onPrint: ((s: KasterListeRow) => void) | null | undefined = showPrint
-          ? async (spelar: KasterListeRow) => {
-            const data = await ensureInnlData()
-            if (!data) return
-            const pair = data.pairs.find(p => p.sideA.kasterid === spelar.id || p.sideB.kasterid === spelar.id)
-            let namn: string
-            if (pair) {
-              const partnerMember = pair.sideA.kasterid === spelar.id ? pair.sideB : pair.sideA
-              const pk = partnerMember.kaster
-              const partnerNavn = pk ? `${pk.fornavn ?? ''} ${pk.etternavn ?? ''}`.trim() : ''
-              namn = `${kasterNavn(spelar)} / ${partnerNavn}`
-            } else {
-              namn = kasterNavn(spelar)
-            }
-            const startnummer = data.startnrMap[spelar.id] ?? ''
-            const roundInfos = buildRoundInfos(spelar.id, data.sortertRundar, data.rundeMap, data.startnrMap)
-            const klubb = hentKlubbNamn(spelar.id, data.alleKamperPrint)
-            const bytes = formatStartkortReceipt({
-              startnummer,
-              namn,
-              klubb,
-              roundInfos,
-              stevneNavn: stevneRes.data!.navn,
-            })
-            try {
-              await printBytes(bytes)
-            } catch (err) {
-              showToast('Feil ved utskrift: ' + errorMessage(err), 'error')
-            }
-          }
-          : isAdmin && isGloppen ? null : undefined
 
         pameldtTabell.appendChild(lagPameldtRad(
           sp,
@@ -451,7 +296,7 @@ export async function render(
             if (error) { showToast('Feil ved fjerning: ' + errorMessage(error), 'error'); return }
             pameldtMap.delete(s.id)
             parTabDirty = true
-            innlData = null
+            printerBanner?.invalidateMatchData()
             renderPameldtListe()
             renderTilgjengeliListe()
           },
@@ -482,7 +327,7 @@ export async function render(
           if (error) { showToast('Feil ved innmelding: ' + errorMessage(error), 'error'); return }
           pameldtMap.set(s.id, false)
           parTabDirty = true
-          innlData = null
+          printerBanner?.invalidateMatchData()
           renderPameldtListe()
           renderTilgjengeliListe()
         }, !kanEndrast))
