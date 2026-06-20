@@ -1574,15 +1574,20 @@ th.innl-score-th {
   cursor: pointer;
 }
 
-.np-nav-btn {
-  margin-top: 16px;
-  padding: 10px 32px;
+.np-grid-btn {
+  background: rgba(255, 255, 255, 0.45);
+  color: var(--np-knapp-tekst);
   font-size: 1rem;
-  background: var(--np-nav-bg);
-  color: var(--np-tekst);
-  border: 1px solid var(--np-tekst);
-  border-radius: 6px;
-  cursor: pointer;
+  padding: 12px 6px;
+}
+
+.np-grid-close-btn {
+  font-size: 2.5rem;
+  line-height: 1;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* ===================== SCOREBOARD ===================== */

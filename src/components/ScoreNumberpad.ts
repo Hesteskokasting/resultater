@@ -29,43 +29,62 @@ export function showNumberpad(
 
   window.addEventListener('popstate', handlePopState)
 
-  function tegn(): void {
-    overlay.innerHTML = ''
-    const isMobil = window.matchMedia('(max-width: 767px)').matches
-    const visP1 = !isMobil || steg === 0
-    const visP2 = !isMobil || steg === 1
-
-    const xBtn = createEl('button', '×', 'np-lukk-btn')
-    xBtn.addEventListener('click', closeOverlay)
-    overlay.appendChild(xBtn)
-
-    const lagreBtn = createEl('button', 'Lagre', 'np-lagre-btn') as HTMLButtonElement
-    lagreBtn.addEventListener('click', async () => {
-      lagreBtn.disabled = true
-      lagreBtn.textContent = 'Lagrer…'
+  function makeSaveBtn(className: string): HTMLButtonElement {
+    const btn = createEl('button', 'Lagre', className) as HTMLButtonElement
+    btn.addEventListener('click', async () => {
+      btn.disabled = true
+      btn.textContent = 'Lagrer…'
       await onLagre(s1, s2)
       closeOverlay()
     })
-    overlay.appendChild(lagreBtn)
+    return btn
+  }
+
+  function tegn(): void {
+    overlay.innerHTML = ''
+    const isMobil = window.matchMedia('(max-width: 767px)').matches
+
+    if (!isMobil) {
+      const xBtn = createEl('button', '×', 'np-lukk-btn')
+      xBtn.addEventListener('click', closeOverlay)
+      overlay.appendChild(xBtn)
+      overlay.appendChild(makeSaveBtn('np-lagre-btn'))
+    }
 
     const wrap = createEl('div', null, 'np-wrap')
     overlay.appendChild(wrap)
 
-    if (visP1) {
+    if (isMobil) {
+      const closeBtn = createEl('button', '×', 'np-num-btn np-grid-btn np-grid-close-btn')
+      closeBtn.addEventListener('click', closeOverlay)
+
+      let actionBtn: HTMLElement
+      if (steg === 0) {
+        const nesteBtn = createEl('button', '→', 'np-num-btn')
+        nesteBtn.addEventListener('click', () => { steg = 1; tegn() })
+        actionBtn = nesteBtn
+      } else {
+        actionBtn = makeSaveBtn('np-num-btn')
+      }
+
+      const navn = steg === 0 ? p1Namn : p2Namn
+      const score = steg === 0 ? s1 : s2
+      const getter = steg === 0 ? (): number => s1 : (): number => s2
+      const setter = steg === 0
+        ? (v: number): void => { s1 = v }
+        : (v: number): void => { s2 = v }
+
+      const pad = lagPad(navn, score, closeBtn, actionBtn)
+      wrap.appendChild(pad)
+      fiksKnappar(pad, getter, setter)
+    } else {
       const pad1 = lagPad(p1Namn, s1)
       wrap.appendChild(pad1)
       fiksKnappar(pad1, () => s1, v => { s1 = v })
-    }
-    if (visP2) {
+
       const pad2 = lagPad(p2Namn, s2)
       wrap.appendChild(pad2)
       fiksKnappar(pad2, () => s2, v => { s2 = v })
-    }
-
-    if (isMobil) {
-      const navBtn = createEl('button', steg === 0 ? 'Neste →' : '← Tilbake', 'np-nav-btn')
-      navBtn.addEventListener('click', () => { steg ^= 1; tegn() })
-      overlay.appendChild(navBtn)
     }
   }
 
@@ -73,7 +92,12 @@ export function showNumberpad(
   document.body.appendChild(overlay)
 }
 
-function lagPad(navn: string, initScore: number): HTMLElement {
+function lagPad(
+  navn: string,
+  initScore: number,
+  bottomLeft?: HTMLElement,
+  bottomRight?: HTMLElement,
+): HTMLElement {
   const pad = createEl('div', null, 'np-pad')
 
   pad.appendChild(createEl('h3', navn, 'np-navn'))
@@ -93,11 +117,11 @@ function lagPad(navn: string, initScore: number): HTMLElement {
     btn.dataset.val = String(i)
     grid.appendChild(btn)
   }
-  grid.appendChild(document.createElement('div'))
+  grid.appendChild(bottomLeft ?? document.createElement('div'))
   const nulBtn = createEl('button', '0', 'np-num-btn') as HTMLButtonElement
   nulBtn.dataset.val = '0'
   grid.appendChild(nulBtn)
-  grid.appendChild(document.createElement('div'))
+  grid.appendChild(bottomRight ?? document.createElement('div'))
 
   pad.appendChild(grid)
   return pad
@@ -127,4 +151,3 @@ function fiksKnappar(
     resetBtn.disabled = true
   })
 }
-
