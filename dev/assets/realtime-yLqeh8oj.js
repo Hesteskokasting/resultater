@@ -1,1 +1,0 @@
-import{rt as e}from"./index-gM0KgVjM.js";async function t(t){await e.removeChannel(t)}export{t};
