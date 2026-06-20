@@ -219,13 +219,6 @@ export async function render(
 
     const wrapper = document.createElement('div')
 
-    if (!kanEndrast) {
-      const warning = document.createElement('div')
-      warning.className = 'alert alert-warning py-2'
-      warning.textContent = 'Spelarar kan ikkje endrast etter at stevnet er starta.'
-      wrapper.appendChild(warning)
-    }
-
     // ── Printer connect banner (admin + Gloppen only) ─────────────────────────
 
     let printerBanner: PrinterBanner | undefined
@@ -242,33 +235,42 @@ export async function render(
     const layout = document.createElement('div')
     layout.className = 'row g-3'
 
-    // ── Venstre kolonne: tilgjengelege spelarar ───────────────────────────────
+    // ── Venstre kolonne: tilgjengelege spelarar (berre når stevnet ikkje er starta) ──
 
-    const leftWrapper = document.createElement('div')
-    leftWrapper.className = 'col-md-6 d-flex flex-column'
+    let searchInput: HTMLInputElement | null = null
+    let tilgjengeliTabell: HTMLTableElement | null = null
 
-    const searchInput = document.createElement('input')
-    searchInput.type = 'text'
-    searchInput.placeholder = 'Søk etter navn eller klubb…'
-    searchInput.className = 'form-control mb-2'
+    if (!isStarted) {
+      const leftWrapper = document.createElement('div')
+      leftWrapper.className = 'col-md-6 d-flex flex-column deltaker-kolonne'
 
-    const { kolonne: leftCol, tabell: tilgjengeliTabell } = lagSpelarKolonne('Tilgjengelege spelarar')
-    leftWrapper.appendChild(searchInput)
-    leftWrapper.appendChild(leftCol)
+      searchInput = document.createElement('input')
+      searchInput.type = 'text'
+      searchInput.placeholder = 'Søk etter navn eller klubb…'
+      searchInput.className = 'form-control mb-2'
+
+      const { kolonne: leftCol, tabell } = lagSpelarKolonne('Tilgjengelege spelarar')
+      tilgjengeliTabell = tabell
+      leftWrapper.appendChild(searchInput)
+      leftWrapper.appendChild(leftCol)
+      layout.appendChild(leftWrapper)
+    }
 
     // ── Høgre kolonne: påmelde spelarar ──────────────────────────────────────
 
     const rightWrapper = document.createElement('div')
-    rightWrapper.className = 'col-md-6 d-flex flex-column'
+    rightWrapper.className = `${isStarted ? 'col-12' : 'col-md-6'} d-flex flex-column deltaker-kolonne`
 
-    const searchSpacer = document.createElement('input')
-    searchSpacer.type = 'text'
-    searchSpacer.className = 'form-control mb-2 deltaker-search-spacer'
-    searchSpacer.tabIndex = -1
-    searchSpacer.disabled = true
+    if (!isStarted) {
+      const searchSpacer = document.createElement('input')
+      searchSpacer.type = 'text'
+      searchSpacer.className = 'form-control mb-2 deltaker-search-spacer'
+      searchSpacer.tabIndex = -1
+      searchSpacer.disabled = true
+      rightWrapper.appendChild(searchSpacer)
+    }
 
     const { kolonne: rightCol, tabell: pameldtTabell, tittelEl: pameldtTittel } = lagSpelarKolonne('Påmelde spelarar')
-    rightWrapper.appendChild(searchSpacer)
     rightWrapper.appendChild(rightCol)
 
     // ── Renderfunksjonar ──────────────────────────────────────────────────────
@@ -313,6 +315,7 @@ export async function render(
     }
 
     function renderTilgjengeliListe(): void {
+      if (!searchInput || !tilgjengeliTabell) return
       const filtrert = sorterKastere(filtrerTilgjengelege(alleSpelarar, searchInput.value, pameldtMap))
       tilgjengeliTabell.innerHTML = ''
 
@@ -334,7 +337,6 @@ export async function render(
       }
     }
 
-    layout.appendChild(leftWrapper)
     layout.appendChild(rightWrapper)
 
     if (erLag) {
@@ -367,7 +369,7 @@ export async function render(
 
     container.replaceChildren(wrapper)
 
-    searchInput.addEventListener('input', renderTilgjengeliListe)
+    if (searchInput) searchInput.addEventListener('input', renderTilgjengeliListe)
     renderPameldtListe()
     renderTilgjengeliListe()
   } catch (err) {

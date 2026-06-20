@@ -1102,6 +1102,7 @@ th.stilling-sp-th  { background: var(--stilling-sp-th) !important; color: #fff !
 .deltaker-søk-spacer { visibility: hidden; pointer-events: none; }
 .deltaker-rad { cursor: pointer; }
 .deltaker-fjern-btn { width: 22px; height: 22px; font-size: 14px; }
+.deltaker-kolonne { max-width: 450px; }
 
 /* ── Par/Mix tab ── */
 
