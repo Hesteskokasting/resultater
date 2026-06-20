@@ -1480,15 +1480,20 @@ th.innl-score-th {
 
 .np-lukk-btn {
   position: absolute;
-  top: 10px;
+  top: 12px;
   right: 14px;
-  background: none;
-  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1.5px solid rgba(255, 255, 255, 0.55);
+  border-radius: 6px;
   color: var(--np-tekst);
-  font-size: 1.3rem;
+  font-size: 1.4rem;
   cursor: pointer;
   line-height: 1;
-  padding: 4px 8px;
+  padding: 5px 10px;
+}
+
+.np-lukk-btn:hover {
+  background: rgba(255, 255, 255, 0.28);
 }
 
 .np-lagre-btn {

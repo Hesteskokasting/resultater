@@ -14,14 +14,29 @@ export function showNumberpad(
   const overlay = document.createElement('div')
   overlay.className = 'np-overlay'
 
+  history.pushState({ numberpad: true }, '')
+
+  function closeOverlay(): void {
+    window.removeEventListener('popstate', handlePopState)
+    if (document.body.contains(overlay)) document.body.removeChild(overlay)
+    if ((history.state as { numberpad?: boolean } | null)?.numberpad) history.back()
+  }
+
+  function handlePopState(): void {
+    window.removeEventListener('popstate', handlePopState)
+    if (document.body.contains(overlay)) document.body.removeChild(overlay)
+  }
+
+  window.addEventListener('popstate', handlePopState)
+
   function tegn(): void {
     overlay.innerHTML = ''
     const isMobil = window.matchMedia('(max-width: 767px)').matches
     const visP1 = !isMobil || steg === 0
     const visP2 = !isMobil || steg === 1
 
-    const xBtn = createEl('button', 'X', 'np-lukk-btn')
-    xBtn.addEventListener('click', () => document.body.removeChild(overlay))
+    const xBtn = createEl('button', '×', 'np-lukk-btn')
+    xBtn.addEventListener('click', closeOverlay)
     overlay.appendChild(xBtn)
 
     const lagreBtn = createEl('button', 'Lagre', 'np-lagre-btn') as HTMLButtonElement
@@ -29,7 +44,7 @@ export function showNumberpad(
       lagreBtn.disabled = true
       lagreBtn.textContent = 'Lagrer…'
       await onLagre(s1, s2)
-      document.body.removeChild(overlay)
+      closeOverlay()
     })
     overlay.appendChild(lagreBtn)
 
