@@ -1,0 +1,65 @@
+import{G as e,V as t,nt as n,t as r,w as i}from"./index-D-FxIV0h.js";import{t as a}from"./LoadingState-RVZNML7E.js";import{n as o,r as s,t as c}from"./ConfirmDialog-3D8QuJxP.js";import{A as l,C as u,E as d,M as f,N as p,S as m,c as h,o as g,r as _,y as v}from"./kampService-tEpNFmZh.js";import{t as y}from"./realtime-B6ConMp8.js";import{C as b,S as x,b as S,d as C,f as w,g as T,h as E,i as D,l as O,m as k,s as ee,u as A,v as te,x as ne,y as j}from"./resultatService-Ba_DMs2Z.js";import{t as M}from"./testDataService-DSN9f6cC.js";import{n as N,t as P}from"./LivePill-BHiOZwGU.js";var F=null,I=null,L=s();function R(){return F||(F=o({role:`dialog`,labelledBy:`pd-title`,html:`
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+      <div class="modal-content">
+        <div class="modal-header border-0 pb-0">
+          <h5 class="modal-title" id="pd-title"></h5>
+        </div>
+        <div class="modal-body pt-2">
+          <label class="form-label" id="pd-message" for="pd-input"></label>
+          <input type="text" class="form-control" id="pd-input" autocomplete="off" />
+        </div>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-secondary" id="pd-cancel">Avbryt</button>
+          <button type="button" class="btn btn-primary" id="pd-confirm">OK</button>
+        </div>
+      </div>
+    </div>
+  `}),F.querySelector(`#pd-cancel`).addEventListener(`click`,()=>{B(null)}),F.querySelector(`#pd-confirm`).addEventListener(`click`,()=>{z()}),F.querySelector(`#pd-input`).addEventListener(`keydown`,e=>{e.key===`Enter`&&(e.preventDefault(),z())}),F)}function z(){B(F?.querySelector(`#pd-input`)?.value??``)}function B(e){if(!F||!I)return;let t=I;I=null,L.close(F),t(e)}function V(e){let{title:t,message:n,defaultValue:r=``,inputType:i=`text`}=e,a=R();a.querySelector(`#pd-title`).textContent=t,a.querySelector(`#pd-message`).textContent=n;let o=a.querySelector(`#pd-input`);return o.type=i,o.value=r,new Promise(e=>{I=e,L.open(a,{focus:`#pd-input`,onEscape:()=>{B(null)}})})}function H(o){let s=null,f=null,p=!1,b=new Set,x=null,k=new Set;async function A(e,{id:t,isAdmin:n=!1},r=null){f=r,p=n,o.onReset?.(),s&&=(await y(s),null),e.replaceChildren(a(`Laster…`)),await P(e,t)}async function P(t,r){try{let[{data:n},{data:a},{data:s}]=await Promise.all([i(r),h(r),D(r)]);if(!n){t.replaceChildren(e(`Stevne ikkje funne.`));return}let{startnrMap:c,hcpMap:l,posisjonMap:u,erLag:d}=U(s),f=W(a),m=G(a,s,c,u,d),g=F(a),_=a.length>0&&a.every(e=>e.er_bekreftet),v=p&&n.stevne_fase!==`avsluttende`;I({container:t,stevneid:r,stevne:n,alleKamper:a,rundeMap:f,startnrMap:c,stilling:m,isAdmin:p,erAlleKamperBekreftet:_,reload:()=>P(t,r)});let y=[...(o.filterRundar??(e=>e))(f).entries()].map(([e,t])=>ae(e,t,c,v,l,u)).join(``)+ie(),x=p||m.some(e=>(e.hcp??0)>0),T=S(m,a,c,{tableId:`stilling-innl`,isAdmin:p,stevneid:r,harHcp:x,harAntallKamper:!0,posisjonMap:u,unitLabel:d?`par`:`spelarar`}),O=E(t);t.innerHTML=te(y,T),w(t),O===`stilling`&&ne(t,`stilling`),C(t,`stilling-innl`,b),re(t,g,a),p&&L(t,r,s);for(let e of a)H(t,r,e,c,l,u,v);K(t,r)}catch(r){n(`${o.logPrefix}.lastOgVis`,r),t.replaceChildren(e(`Kunne ikkje laste innledande fase.`))}}function F(e){let t=new Set(e.filter(e=>e.er_bekreftet).map(e=>e.id)),n=x?new Set([...t].filter(e=>!x.has(e))):new Set,r=new Set([...n,...k]);return k=new Set(n),x=t,r}function I(e){f&&(f.innerHTML=(p?j(e.stevne,o.erSwiss):``)+o.getBannerExtra(e),o.bindBannerExtra(f,e),f.querySelector(`#fullfør-turnering-btn`)?.addEventListener(`click`,async()=>{if(!await c({title:`Fullfør turnering`,message:`Vil du fullføre turneringa? Dette kan ikkje angrast.`,danger:!0}))return;let{error:n}=await O(e.stevneid,e.stilling);if(n){r(`Feil ved lagring av plasseringar`,`error`);return}let{error:i}=await t(e.stevneid);if(i){r(`Feil ved lagring`,`error`);return}await e.reload()}),f.querySelector(`#test-autofullfør-btn`)?.addEventListener(`click`,async t=>{let n=t.currentTarget;await c({title:`Autofullfør kampar`,message:`Autofullfør alle ubekreftede innledande kampar?`})&&(n.disabled=!0,await M(e.stevneid),await e.reload())}))}function L(e,t,n){e.querySelectorAll(`.stilling-hcp-celle`).forEach(i=>{i.addEventListener(`click`,async i=>{i.stopPropagation();let a=i.currentTarget,o=Number(a.dataset.kasterid),s=Number(a.dataset.stevneid),c=n.find(e=>e.kasterid===o)?.hcp??0,l=await V({title:`Sett HCP`,message:`Sett HCP for spelar:`,defaultValue:String(c),inputType:`number`});if(l===null)return;let u=parseInt(l,10);if(isNaN(u)||u<0){r(`Ugyldig HCP-verdi`,`error`);return}let{error:d}=await ee(s,o,u);if(d){r(`Feil ved lagring av HCP`,`error`);return}await P(e,t)})})}function R(e,t,i,a,s){let[u,f]=l(i.spelarar,a,s),p=u?.rep??null,h=f?.rep??null,_=[...u?.members??[],...f?.members??[]].map(e=>e.id),y=J(u,!1),b=J(f,!1),x=async()=>{let a=_.length?await g(_):!1;a&&!await c({title:`Slett detaljar`,message:`Dette sletter detaljar for denne kampen. Er du sikker?`})||N(y,b,q(u,i.er_bekreftet),q(f,i.er_bekreftet),async(s,c)=>{try{a&&_.length&&await m(_),await Promise.all([p?v(p.id,s):Promise.resolve({error:null}),h?v(h.id,c):Promise.resolve({error:null}),...i.er_bekreftet?[d(i.id)]:[]])}catch(e){n(`${o.logPrefix}:scoreKlikk`,e),r(`Feil ved lagring av score`,`error`);return}await P(e,t)})};e.querySelectorAll(`[data-endre-score="${i.id}"]`).forEach(e=>e.addEventListener(`click`,x)),e.querySelector(`#m-score-${i.id}`)?.addEventListener(`click`,e=>{e.stopPropagation(),x()})}function z(e,t,n,r,i,a,o){return async s=>{o&&s.stopPropagation();let c=s.currentTarget;c.disabled=!0,c.textContent=`Lagrer…`;try{await Y(e,t,n,r,i,a)||(c.disabled=!1,c.textContent=`Bekreft`)}catch{c.disabled=!1,c.textContent=`Bekreft`}}}function B(e,t,n,r,i,a){let o=e.querySelector(`.kamp-rad-mobil[data-kamp-id="${n.id}"]`);if(o){if(!p){o.addEventListener(`click`,()=>{window.open(`#/kamp/${n.id}`,`_blank`)});return}o.querySelector(`.kamp-rad-mobil__hoved`)?.addEventListener(`click`,()=>{let t=o.dataset.expanded===`true`;e.querySelectorAll(`.kamp-rad-mobil[data-expanded="true"]`).forEach(e=>{e.dataset.expanded=`false`,e.setAttribute(`aria-expanded`,`false`)}),o.dataset.expanded=t?`false`:`true`,o.setAttribute(`aria-expanded`,String(!t))}),e.querySelector(`#m-scoreboard-${n.id}`)?.addEventListener(`click`,e=>{e.stopPropagation(),window.open(`#/kamp/${n.id}`,`_blank`)}),e.querySelector(`#m-bekrft-${n.id}`)?.addEventListener(`click`,z(e,t,n,r,i,a,!0))}}function H(e,t,n,r,i,a,o){o&&R(e,t,n,r,a),e.querySelector(`#scoreboard-${n.id}`)?.addEventListener(`click`,()=>{window.open(`#/kamp/${n.id}`,`_blank`)}),e.querySelector(`#bekrft-${n.id}`)?.addEventListener(`click`,z(e,t,n,r,i,a,!1)),B(e,t,n,r,i,a)}function K(e,t){if(s)return;let n=T(t,[`innledende`],e,P,()=>{s&&=(y(s),null)});s=u(t,o.channelName(t),n)}async function Y(e,t,n,i,a={},o={}){let[s,c]=l(n.spelarar,i,o),u=s?.rep??null,d=c?.rep??null,f=a[u?.kasterid??-1]??0,p=a[d?.kasterid??-1]??0,{error:m}=await _({kampId:n.id,p1:u?{spelarId:u.id,kasterid:u.kasterid,scorePoeng:u.score_poeng}:null,p2:d?{spelarId:d.id,kasterid:d.kasterid,scorePoeng:d.score_poeng}:null,hcp1:f,hcp2:p,erWalkover:n.er_walkover,p1PartnerId:s?.members[1]?.id??null,p2PartnerId:c?.members[1]?.id??null});return m?(r(`DB-feil ved bekreft`,`error`),!1):(await P(e,t),!0)}return A}function U(e){let t=Object.fromEntries(e.filter(e=>e.kasterid!=null).map(e=>[e.kasterid,e.startnummer??0])),n=Object.fromEntries(e.filter(e=>e.kasterid!=null&&(e.hcp??0)>0).map(e=>[e.kasterid,e.hcp??0])),r=Object.fromEntries(e.filter(e=>e.kasterid!=null&&e.posisjon!=null).map(e=>[e.kasterid,e.posisjon])),i=new Map;for(let t of e)t.kasterid==null||t.startnummer==null||i.set(t.startnummer,(i.get(t.startnummer)??0)+1);return{startnrMap:t,hcpMap:n,posisjonMap:r,erLag:[...i.values()].some(e=>e>1)}}function W(e){let t=new Map;for(let n of e)t.has(n.runde_nummer)||t.set(n.runde_nummer,[]),t.get(n.runde_nummer).push(n);return t}function G(e,t,n,r,i){let{spelMap:a,ekteKasterids:o}=k(e,n),s=Object.values(a).filter(e=>o.has(e.kasterid)).map(e=>({...e,hcp:t.find(t=>t.kasterid===e.kasterid)?.hcp??0}));return b(i?f(s,r):s,e)}function re(e,t,n){for(let r of t){e.querySelectorAll(`[data-kamp-id="${r}"]`).forEach(e=>e.classList.add(`kamp-ny-bekreftet`));let t=n.find(e=>e.id===r);if(t)for(let n of t.spelarar)e.querySelectorAll(`#stilling-innl tr.stilling-spelar-rad[data-kasterid="${n.kasterid}"] td`).forEach(e=>e.classList.add(`stilling-ny-bekreftet`))}}function K(e){return e?.members.some(e=>(e.omgangar?.length??0)>0)??!1}function q(e,t){return e?e.members.reduce((e,n)=>e+(t?n.score_poeng??0:p(n)),0):0}var J=x;function Y(e,t,n){return e.er_bekreftet?`ferdig`:n||t?`pagaar`:`ikke-startet`}function ie(){return`
+    <div class="kamp-legend">
+      <div class="kamp-legend__item"><div class="kamp-legend__stripe kamp-legend__stripe--ikke"></div> Ikke startet</div>
+      <div class="kamp-legend__item"><div class="kamp-legend__stripe kamp-legend__stripe--pagaar"></div> Pågår</div>
+      <div class="kamp-legend__item"><div class="kamp-legend__stripe kamp-legend__stripe--ferdig"></div> Ferdig</div>
+    </div>`}function ae(e,t,n,r,i={},a={}){let o=t.map(e=>ce(e,n,r,i,a)).join(``),s=t.map(e=>le(e,n,r,i,a)).join(``);return`
+    <div class="mb-3">
+      <h6 class="text-center fw-bold mb-1">Runde ${e}</h6>
+      <table class="table table-sm kamp-tabell mb-0 kamp-tabell--desktop">
+        <thead class="org-thead">
+          <tr>
+            <th class="th-36 text-center">B</th>
+            <th>P1</th>
+            <th class="th-96 text-center innl-score-th">SCORE</th>
+            <th>P2</th>
+            ${r?`<th class="th-148"></th>`:`<th class="th-80"></th>`}
+          </tr>
+        </thead>
+        <tbody>${o}</tbody>
+      </table>
+      <ul class="kamp-liste-mobil list-unstyled mb-0">${s}</ul>
+    </div>`}function X(e,t,n,r){return t?q(e,!0):q(e,!1)+(n?r:0)}function oe(e,t,n,r,i,a,o){let s=X(t,e.er_bekreftet,r,a),c=X(n,e.er_bekreftet,i,o),l=e.er_walkover&&!e.er_bekreftet,u=e.er_bekreftet||e.er_walkover||r||i||s>0||c>0;return{s1:l?21:s,s2:l?0:c,harPoeng:u}}function Z(e,t,n,r){let[i,a]=l(e.spelarar,t,r),o=i?.rep??null,s=a?.rep??null,c=e.er_walkover&&!s?.kaster,u=K(i),d=K(a),f=u||d,{s1:p,s2:m,harPoeng:h}=oe(e,i,a,u,d,n[o?.kasterid??-1]??0,n[s?.kasterid??-1]??0),g=[o,s].filter(e=>e!=null);return{side1:i,side2:a,p1:o,p2:s,p2ErBye:c,harOmgangar:f,s1:p,s2:m,harPoeng:h,status:Y(e,h,f),kanBekrefte:A(e,g,f,n),isLive:f&&!e.er_bekreftet}}function Q(e,t,n=`–`){return`<span class="innl-score-inner"><span class="innl-s1">${e}</span><span class="innl-sep">${n}</span><span class="innl-s2">${t}</span></span>`}function $(e,t){return t?`${e} (${t})`:e}function se(e,t,n,r,i){if(e.er_bekreftet)return`<td class="text-end pe-2"><span class="kamp-bekreftet-indikator">✓ Bekreftet</span></td>`;let a=i?P():``;if(!t)return`<td class="text-end pe-2 text-nowrap">
+        ${a}
+        <button class="kamp-knapp" id="scoreboard-${e.id}" title="Scoreboard">Score</button>
+      </td>`;let o=`kamp-knapp${n?` kamp-knapp-primaer`:``}`,s=`kamp-knapp${r?` kamp-knapp-suksess`:``}`;return`<td class="text-end pe-2 text-nowrap">
+        ${a}
+        <button class="${o}" id="scoreboard-${e.id}" title="Scoreboard">Score</button>
+        <button class="${s}" id="bekrft-${e.id}"${r?``:` disabled`}>Bekreft</button>
+      </td>`}function ce(e,t,n=!0,r={},i={}){let{side1:a,side2:o,p1:s,p2:c,p2ErBye:l,harOmgangar:u,s1:d,s2:f,harPoeng:p,status:m,kanBekrefte:h,isLive:g}=Z(e,t,r,i),_=s?.kasterid?t[s.kasterid]??``:``,v=c?.kasterid?t[c.kasterid]??``:``,y=$(J(a,!1),_),b=$(l?`Walkover`:J(o,!1),v),x=n&&!e.er_walkover,S=`text-center innl-score-cel${x?` score-redigerbar`:``}`,C=x?` data-endre-score="${e.id}"`:``;return`
+    <tr class="kamp-rad-desktop" data-kamp-id="${e.id}" data-status="${m}">
+      <td class="text-center">${e.bane_nummer??``}</td>
+      <td>${y}</td>
+      <td class="${S}"${C}>${p?Q(d,f):`—`}</td>
+      <td>${b}</td>
+      ${se(e,n,u,h,g)}
+    </tr>`}function le(e,t,n,r={},i={}){let{side1:a,side2:o,p2ErBye:s,s1:c,s2:l,harPoeng:u,status:d,kanBekrefte:f,isLive:p}=Z(e,t,r,i),m=J(a,!0),h=s?`Walkover`:J(o,!0),g=u?Q(c,l):Q(``,``,`—`),_=n&&!e.er_walkover,v=_?` id="m-score-${e.id}"`:``,y=_?` score-redigerbar`:``;return`
+    <li class="kamp-rad-mobil${n?``:` kamp-rad-mobil--viewer`}" data-kamp-id="${e.id}" data-status="${d}" role="button" tabindex="0">
+      <div class="kamp-rad-mobil__hoved">
+        <span class="kamp-mobil-bane">${e.bane_nummer??``}</span>
+        <span class="kamp-mobil-namn">${m} <span class="kamp-mobil-vs">vs</span> ${h}</span>
+        <span class="kamp-mobil-pill-slot">${p?P():``}</span>
+        <span class="kamp-mobil-resultat${y}"${v}>${g}</span>
+      </div>
+      ${n?ue(e,f):``}
+    </li>`}function ue(e,t){let n=e.er_bekreftet?`<span class="kamp-bekreftet-mobil">✓ Bekreftet</span>`:`<button class="kamp-knapp-mobil kamp-knapp-bekreft-mobil" id="m-bekrft-${e.id}"${t?``:` disabled`}>Bekreft</button>`;return`
+      <div class="kamp-mobil-knapper">
+        <button class="kamp-knapp-mobil" id="m-scoreboard-${e.id}">Score</button>
+        ${n}
+      </div>`}export{H as t};
