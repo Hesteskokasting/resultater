@@ -94,7 +94,7 @@ function relaterteStevnerHtml(relaterte: RelatertStevneRow[]): string {
   }).join('')
   return `
     <div class="mt-4 mb-3">
-      <h5>Andre stevner same helg (same arrangør)</h5>
+      <h5>Stevner samme helg</h5>
       <ul class="list-unstyled">${items}</ul>
     </div>`
 }
@@ -109,10 +109,7 @@ function parListeHtml(pairs: PameldingPar[]): string {
       : '—'
     return `<tr><td>${cell(a)}</td><td>${cell(b)}</td></tr>`
   }).join('')
-  return `<table class="table table-sm">
-    <thead><tr><th>Side A</th><th>Side B</th></tr></thead>
-    <tbody>${rader}</tbody>
-  </table>`
+  return `<table class="table table-sm"><tbody>${rader}</tbody></table>`
 }
 
 function pameldingListeHtml(pameldingar: PameldingMedKasterRow[], erPrivilegert: boolean): string {
