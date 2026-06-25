@@ -69,7 +69,7 @@ function renderNav(stevneid: number, aktiv: string, isAdmin: boolean, harAvslutt
            href="#/stevne/${stevneid}/${key}">${label}</a>
       </li>`)
     .join('')
-  return `<ul class="nav nav-underline stevne-nav mb-0">${items}</ul>`
+  return `<ul class="nav nav-underline stevne-nav mb-0 px-3">${items}</ul>`
 }
 
 // ── Render ────────────────────────────────────────────────────────────────────
@@ -102,13 +102,13 @@ export async function render(
     const badge = FASE_LABEL[stevne.stevne_fase ?? 'ikke_startet'] ?? ''
 
     container.innerHTML = `
-      <div class="org-shell pb-3 px-3 pt-1">
+      <div class="org-shell pb-3 pt-1">
         ${renderNav(id, aktiv, isAdmin, harAvsluttande, isCompleted)}
         <div class="org-fase-header d-flex align-items-center gap-2 mb-3">
           <h5 class="mb-0 flex-grow-1">${escHtml(stevne.navn)} <span id="fase-badge">${badge}</span></h5>
           <div id="org-banner-knappar"></div>
         </div>
-        <div id="org-subside"></div>
+        <div id="org-subside" class="px-3"></div>
       </div>`
 
     const bannerSlot = container.querySelector<HTMLElement>('#org-banner-knappar')
