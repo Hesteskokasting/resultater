@@ -39,6 +39,10 @@ body {
   font-size: 2em;
   font-weight: bold;
 }
+.tournament-header {
+  font-size: 1.15em;
+  text-align: center;
+}
 
 .info-table {
   width: 100%;

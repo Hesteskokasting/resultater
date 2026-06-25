@@ -7,7 +7,7 @@ export interface RoundInfo {
   opponentScore?: string
 }
 
-function createHeader(playerId: number | string): HTMLDivElement {
+function createHeader(playerId: number | string, tournamentName: string): HTMLDivElement {
   const header = document.createElement('div')
   header.className = 'header'
 
@@ -19,15 +19,19 @@ function createHeader(playerId: number | string): HTMLDivElement {
   startNumber.className = 'start-number'
   startNumber.textContent = String(playerId)
 
+  const tournamentEl = document.createElement('div')
+  tournamentEl.className = 'tournament-header'
+  tournamentEl.textContent = tournamentName
+
   header.appendChild(mainTitle)
   header.appendChild(startNumber)
+  header.appendChild(tournamentEl)
   return header
 }
 
 function createInfoTable(
   playerName: string | null,
   clubName: string,
-  tournamentName: string,
 ): HTMLTableElement {
   const infoTable = document.createElement('table')
   infoTable.className = 'info-table'
@@ -41,17 +45,10 @@ function createInfoTable(
 
   const clubRow = document.createElement('tr')
   clubRow.appendChild(createInfoCell('Klubb:'))
-  clubRow.appendChild(createInfoCell(clubName, 'value', 'player-club'))
-  clubRow.appendChild(createInfoCell('Klasse/Gruppe'))
-  clubRow.appendChild(createInfoCell('', 'value'))
+  const clubCell = createInfoCell(clubName, 'value', 'player-club')
+  clubCell.colSpan = 3
+  clubRow.appendChild(clubCell)
   infoTable.appendChild(clubRow)
-
-  const tournamentRow = document.createElement('tr')
-  tournamentRow.appendChild(createInfoCell('Stevne:'))
-  tournamentRow.appendChild(createInfoCell(tournamentName, 'value', 'tournament-name'))
-  tournamentRow.appendChild(createInfoCell(''))
-  tournamentRow.appendChild(createInfoCell(''))
-  infoTable.appendChild(tournamentRow)
 
   return infoTable
 }
@@ -161,8 +158,8 @@ export function startcardTemplate(
 ): HTMLDivElement {
   const card = document.createElement('div')
   card.className = 'startcard'
-  card.appendChild(createHeader(playerId))
-  card.appendChild(createInfoTable(playerName, clubName, tournamentName))
+  card.appendChild(createHeader(playerId, tournamentName))
+  card.appendChild(createInfoTable(playerName, clubName))
   card.appendChild(createRoundsTable(roundInfos))
   card.appendChild(createCupTable())
   return card
