@@ -62,12 +62,6 @@ export async function hentResultatForInnledende(stevneid: number): Promise<{ dat
   return { data: data ?? [], error }
 }
 
-export async function oppdaterResultatHcp(stevneid: number, kasterid: number, hcp: number): Promise<{ error: unknown }> {
-  const { error } = await supabase.from('resultat').update({ hcp }).eq('stevneid', stevneid).eq('kasterid', kasterid)
-  if (error) logError('oppdaterResultatHcp', error)
-  return { error }
-}
-
 // ── Avsluttande fase ──────────────────────────────────────────────────────────
 
 const _avslResultatQuery = supabase.from('resultat').select(`

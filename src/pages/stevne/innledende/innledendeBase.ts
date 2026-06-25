@@ -21,7 +21,6 @@
 import { showNumberpad } from '@/components/ScoreNumberpad'
 import { showToast } from '@/components/Toast'
 import { confirmDialog } from '@/components/ConfirmDialog'
-import { promptDialog } from '@/components/PromptDialog'
 import { getMatchSides, groupStandingsByPair, scoreForSp, type MatchSide } from '@/utils/kamp'
 import { autoFullforInnledendeKamper } from '@/services/testDataService'
 import {
@@ -46,7 +45,7 @@ import {
 import { avmeldKanal } from '@/utils/realtime'
 import { livePillHtml } from '@/components/LivePill'
 import {
-  hentResultatForInnledende, oppdaterResultatHcp, skrivPlaseringar,
+  hentResultatForInnledende, skrivPlaseringar,
   type InnlResultatRow,
 } from '@/services/resultatService'
 
@@ -138,12 +137,8 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
       const kamperHtml = [...rundarSomVisast.entries()]
         .map(([nr, rKamper]) => renderRunde(nr, rKamper, startnrMap, kanEndreKampar, hcpMap, posisjonMap))
         .join('') + renderKampLegend()
-      const harHcp = isAdmin || stilling.some(s => (s.hcp ?? 0) > 0)
       const stillingHtml = renderStillingTabell(stilling, alleKamper, startnrMap, {
         tableId: 'stilling-innl',
-        isAdmin,
-        stevneid,
-        harHcp,
         harAntallKamper: true,
         posisjonMap,
         unitLabel: erLag ? 'par' : 'spelarar',
@@ -157,7 +152,6 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
 
       applyFlashClasses(container, idsToFlash, alleKamper)
 
-      if (isAdmin) bindHcpCeller(container, stevneid, resultat)
 
       for (const kamp of alleKamper) {
         bindKampEvents(container, stevneid, kamp, startnrMap, hcpMap, posisjonMap, kanEndreKampar)
@@ -202,25 +196,6 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
       btn.disabled = true
       await autoFullforInnledendeKamper(ctx.stevneid)
       await ctx.reload()
-    })
-  }
-
-  function bindHcpCeller(container: HTMLElement, stevneid: number, resultat: InnlResultatRow[]): void {
-    container.querySelectorAll('.stilling-hcp-celle').forEach(celle => {
-      celle.addEventListener('click', async (e) => {
-        e.stopPropagation()
-        const el = e.currentTarget as HTMLElement
-        const kid = Number(el.dataset.kasterid)
-        const sid = Number(el.dataset.stevneid)
-        const gjeldande = resultat.find(r => r.kasterid === kid)?.hcp ?? 0
-        const input = await promptDialog({ title: 'Sett HCP', message: 'Sett HCP for spelar:', defaultValue: String(gjeldande), inputType: 'number' })
-        if (input === null) return
-        const nyHcp = parseInt(input, 10)
-        if (isNaN(nyHcp) || nyHcp < 0) { showToast('Ugyldig HCP-verdi', 'error'); return }
-        const { error } = await oppdaterResultatHcp(sid, kid, nyHcp)
-        if (error) { showToast('Feil ved lagring av HCP', 'error'); return }
-        await lastOgVis(container, stevneid)
-      })
     })
   }
 

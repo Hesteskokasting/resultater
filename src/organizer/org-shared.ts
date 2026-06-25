@@ -43,9 +43,6 @@ export interface StillingRad {
 
 interface StillingOpts {
   tableId?: string
-  isAdmin?: boolean
-  stevneid?: number | null
-  harHcp?: boolean
   harGrupper?: boolean
   harEliminasjon?: boolean
   harAntallKamper?: boolean
@@ -191,9 +188,6 @@ export function renderStillingTabell(
 ): string {
   const {
     tableId         = 'stilling-tabell',
-    isAdmin         = false,
-    stevneid        = null,
-    harHcp          = false,
     harGrupper      = false,
     harEliminasjon  = false,
     harAntallKamper = false,
@@ -229,14 +223,6 @@ export function renderStillingTabell(
     ...(harAntallKamper ? [{ label: 'K', thClass: 'th-50 stilling-tal', cellClass: 'stilling-tal stilling-dim-cel' as const, render: (r: FlatStillingRad) => String(r.antall_kamper ?? 0) }] : []),
     { label: 'KP', thClass: 'th-44 stilling-tal stilling-kp-th', cellClass: 'stilling-tal stilling-kp-cel', render: (r) => String(r.kamp_poeng ?? 0) },
     { label: 'SP', thClass: 'th-44 stilling-tal stilling-sp-th', cellClass: 'stilling-tal stilling-sp-cel', render: (r) => String(r.score_poeng ?? 0) },
-    ...(harHcp ? [{
-      label: 'HCP', thClass: 'th-44 stilling-tal',
-      cellClass: (_r: FlatStillingRad) => isAdmin ? 'stilling-tal stilling-hcp-celle' : 'stilling-tal',
-      cellAttrs: isAdmin
-        ? (r: FlatStillingRad) => ({ 'data-kasterid': String(r.kasterid), 'data-stevneid': String(stevneid) })
-        : undefined,
-      render: (r: FlatStillingRad) => { const h = r.hcp ?? 0; return h > 0 ? String(h) : '—' },
-    }] : []),
   ]
 
   const colspan = columns.length
