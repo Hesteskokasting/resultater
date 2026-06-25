@@ -27,6 +27,7 @@ export interface PameldingParMember {
     fornavn: string | null
     etternavn: string | null
     kjonnid: number | null
+    klubb: { navn: string } | null
   } | null
 }
 
@@ -165,7 +166,7 @@ export async function fjernPameldingForKaster(stevneId: number, kasterid: number
 export async function hentParForStevne(stevneId: number): Promise<{ data: PameldingPar[]; error: unknown }> {
   const { data, error } = await supabase
     .from('pamelding')
-    .select('id, kasterid, lag_id, posisjon, kaster:kasterid(id, fornavn, etternavn, kjonnid)')
+    .select('id, kasterid, lag_id, posisjon, kaster:kasterid(id, fornavn, etternavn, kjonnid, klubb:klubbid(navn))')
     .eq('stevneid', stevneId)
     .not('lag_id', 'is', null)
     .order('lag_id')

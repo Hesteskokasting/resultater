@@ -4,15 +4,17 @@ import { formaterDato, formaterTid } from '@/utils/shared'
 import { createErrorBanner } from '@/components/ErrorBanner'
 import { createLoadingState } from '@/components/LoadingState'
 import { escHtml } from '@/utils/escHtml'
+import { kasterNavn } from '@/utils/kaster'
 import { logError } from '@/utils/logError'
 import { hentStevneForPamelding, hentRelaterteStevner } from '@/services/stevneService'
 import { hentKastereListeAktive, hentKastereForKlubbar } from '@/services/kasterService'
 import {
   hentPameldingarForStevne,
+  hentParForStevne,
   meldPaStevne,
   fjernPamelding,
 } from '@/services/pameldingService'
-import type { PameldingMedKasterRow } from '@/services/pameldingService'
+import type { PameldingMedKasterRow, PameldingPar } from '@/services/pameldingService'
 import type { KasterListeRow } from '@/services/kasterService'
 import type { RelatertStevneRow } from '@/services/stevneService'
 import type { AuthUser, Params } from '@/types'
@@ -95,6 +97,22 @@ function relaterteStevnerHtml(relaterte: RelatertStevneRow[]): string {
       <h5>Andre stevner same helg (same arrangør)</h5>
       <ul class="list-unstyled">${items}</ul>
     </div>`
+}
+
+function parListeHtml(pairs: PameldingPar[]): string {
+  if (!pairs.length) return '<p class="empty-state">Ingen par registrerte enno.</p>'
+  const rader = pairs.map(par => {
+    const a = par.sideA.kaster
+    const b = par.sideB.kaster
+    const cell = (k: typeof a) => k
+      ? `<a href="#/kastere/${k.id}">${escHtml(kasterNavn(k))}</a>${k.klubb?.navn ? `<br><small class="text-muted">${escHtml(k.klubb.navn)}</small>` : ''}`
+      : '—'
+    return `<tr><td>${cell(a)}</td><td>${cell(b)}</td></tr>`
+  }).join('')
+  return `<table class="table table-sm">
+    <thead><tr><th>Side A</th><th>Side B</th></tr></thead>
+    <tbody>${rader}</tbody>
+  </table>`
 }
 
 function pameldingListeHtml(pameldingar: PameldingMedKasterRow[], erPrivilegert: boolean): string {
@@ -214,6 +232,8 @@ export async function render(container: HTMLElement, params: Params = {}): Promi
     const erAdminRolle      = auth?.profil?.rolle === 'admin'
     const erKlubbadminRolle = auth?.profil?.rolle === 'klubbadmin'
     const erPrivilegert     = erAdminRolle || erKlubbadminRolle
+    const kategoriNamn      = (stevne.kategori?.navn ?? '').toLowerCase()
+    const erParEllerMix     = kategoriNamn.includes('par') || kategoriNamn.includes('mix')
 
     const datoVindu = stevne.dato
       ? {
@@ -229,17 +249,19 @@ export async function render(container: HTMLElement, params: Params = {}): Promi
       return Promise.resolve({ data: [], error: null })
     })()
 
-    const [pamRes, relatertRes, kasterRes] = await Promise.all([
+    const [pamRes, relatertRes, kasterRes, parRes] = await Promise.all([
       hentPameldingarForStevne(stevneId),
       stevne.klubbid != null && datoVindu
         ? hentRelaterteStevner(stevne.klubbid, datoVindu.fraDato, datoVindu.tilDato, stevneId)
         : Promise.resolve({ data: [] as RelatertStevneRow[], error: null }),
       kasterFetch,
+      erParEllerMix ? hentParForStevne(stevneId) : Promise.resolve({ data: [] as PameldingPar[], error: null }),
     ])
 
     const pameldingar  = pamRes.data
     const relaterte    = relatertRes.data
     const klubbKastere = kasterRes.data
+    const pairs        = parRes.data
 
     const kasterid  = auth?.profil?.kasterid ?? null
     const erKobla   = auth?.profil?.kobling_status === 'godkjent'
@@ -259,8 +281,8 @@ export async function render(container: HTMLElement, params: Params = {}): Promi
         ${eigetSkjemaHtml(auth, erPrivilegert, erKobla, erPameldt, stevne.erfullfort ?? false, stevneId)}
         ${adminSkjemaHtml(erPrivilegert, stevne.erfullfort ?? false, pameldingar, klubbKastere)}
         ${relaterteStevnerHtml(relaterte)}
-        <h5 class="mt-4 mb-2">Påmeldingar (${pameldingar.length})</h5>
-        ${pameldingListeHtml(pameldingar, erPrivilegert)}
+        <h5 class="mt-4 mb-2">${erParEllerMix ? `Par (${pairs.length})` : `Påmeldingar (${pameldingar.length})`}</h5>
+        ${erParEllerMix ? parListeHtml(pairs) : pameldingListeHtml(pameldingar, erPrivilegert)}
       </div>`
 
     if (auth) {
