@@ -67,7 +67,7 @@ const ruter: Rute[] = [
 ]
 
 function naviger(): void {
-  const hash = location.hash.replace(/^#/, '') || '/'
+  const hash = (location.hash.replace(/^#/, '') || '/').split('?')[0]
 
   for (const rute of ruter) {
     const treff = hash.match(rute.pattern)
