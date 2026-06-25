@@ -15,6 +15,7 @@ import { hentStevneHeader, hentInnledendeMetodeNamn } from '@/services/stevneSer
 import { setOnDisconnect } from '@/services/receiptPrinterService'
 import { createPrinterBanner } from '@/pages/stevne/PrinterBanner'
 import type { PrinterBanner } from '@/pages/stevne/PrinterBanner'
+import { createRemoveButton } from '@/components/RemoveButton'
 import { createLoadingState } from '@/components/LoadingState'
 import { createTabs } from '@/components/Tabs'
 import { createParTab } from '@/pages/stevne/parTab'
@@ -106,12 +107,7 @@ function lagPameldtRad(
   fjernCell.className = 'text-center th-40'
 
   if (!deaktivert) {
-    const fjernBtn = document.createElement('button')
-    fjernBtn.innerHTML = '&times;'
-    fjernBtn.className = 'btn btn-danger btn-sm rounded-circle p-0 lh-1 deltaker-fjern-btn'
-    fjernBtn.title = 'Fjern spelar'
-    fjernBtn.addEventListener('click', e => { e.stopPropagation(); onFjern(spelar) })
-    fjernCell.appendChild(fjernBtn)
+    fjernCell.appendChild(createRemoveButton({ title: 'Fjern spelar', onClick: () => onFjern(spelar) }))
   }
 
   rad.appendChild(bekreftCell)

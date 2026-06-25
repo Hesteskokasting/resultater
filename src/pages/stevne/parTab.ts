@@ -5,6 +5,7 @@ import { logError } from '@/utils/logError'
 import { errorMessage } from '@/utils/errorMessage'
 import { kasterNavn } from '@/utils/kaster'
 import type { KasterListeRow } from '@/services/kasterService'
+import { createRemoveButton } from '@/components/RemoveButton'
 import { hentParForStevne, opprettPar, slettPar } from '@/services/pameldingService'
 import type { PameldingPar } from '@/services/pameldingService'
 
@@ -73,7 +74,7 @@ async function renderPar(root: HTMLElement, props: ParTabProps): Promise<void> {
   // ── Left: unpaired players ─────────────────────────────────────────────────
 
   const leftCol = document.createElement('div')
-  leftCol.className = 'col-md-6 d-flex flex-column'
+  leftCol.className = 'col-md-6 d-flex flex-column deltaker-kolonne'
 
   const leftTitle = document.createElement('h6')
   leftTitle.className = 'fw-bold mb-1'
@@ -96,8 +97,17 @@ async function renderPar(root: HTMLElement, props: ParTabProps): Promise<void> {
 
     for (const sp of available) {
       const card = document.createElement('div')
-      card.className = 'par-spelar-kort px-2 py-1 border-bottom'
-      card.textContent = kasterNavn(sp)
+      card.className = 'par-spelar-kort d-flex justify-content-between align-items-center px-2 py-1 border-bottom'
+
+      const nameSpan = document.createElement('span')
+      nameSpan.textContent = kasterNavn(sp)
+
+      const clubSpan = document.createElement('span')
+      clubSpan.className = 'text-muted small ms-2'
+      clubSpan.textContent = sp.klubb?.navn ?? ''
+
+      card.appendChild(nameSpan)
+      card.appendChild(clubSpan)
 
       if (isAdmin) {
         card.draggable = true
@@ -125,7 +135,7 @@ async function renderPar(root: HTMLElement, props: ParTabProps): Promise<void> {
   // ── Right: pair creator + existing pairs ───────────────────────────────────
 
   const rightCol = document.createElement('div')
-  rightCol.className = 'col-md-6 d-flex flex-column'
+  rightCol.className = 'col-md-6 d-flex flex-column deltaker-kolonne'
 
   const rightTitle = document.createElement('h6')
   rightTitle.className = 'fw-bold mb-1'
@@ -230,21 +240,19 @@ async function renderPar(root: HTMLElement, props: ParTabProps): Promise<void> {
       row.appendChild(nameSpan)
 
       if (isAdmin) {
-        const fjernBtn = document.createElement('button')
-        fjernBtn.type = 'button'
-        fjernBtn.innerHTML = '&times;'
-        fjernBtn.className = 'btn btn-danger btn-sm rounded-circle p-0 lh-1 deltaker-fjern-btn'
-        fjernBtn.title = 'Slett par'
-        fjernBtn.addEventListener('click', async () => {
-          fjernBtn.disabled = true
-          const { error: err } = await slettPar(stevneId, par.lag_id)
-          if (err) {
-            showToast('Feil ved sletting: ' + errorMessage(err), 'error')
-            fjernBtn.disabled = false
-            return
-          }
-          root.replaceChildren(createLoadingState())
-          void renderPar(root, props)
+        const fjernBtn = createRemoveButton({
+          title: 'Slett par',
+          onClick: async () => {
+            fjernBtn.disabled = true
+            const { error: err } = await slettPar(stevneId, par.lag_id)
+            if (err) {
+              showToast('Feil ved sletting: ' + errorMessage(err), 'error')
+              fjernBtn.disabled = false
+              return
+            }
+            root.replaceChildren(createLoadingState())
+            void renderPar(root, props)
+          },
         })
         row.appendChild(fjernBtn)
       }
