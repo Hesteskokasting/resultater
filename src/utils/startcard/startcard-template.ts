@@ -70,17 +70,17 @@ function createRoundsTable(roundInfos: RoundInfo[]): HTMLTableElement {
 
   const thead = document.createElement('thead')
   const headerRow1 = document.createElement('tr')
-  headerRow1.appendChild(createTh('BANE', 2, 1, 'small'))
-  headerRow1.appendChild(createTh('RUNDE', 2, 1, 'small'))
-  headerRow1.appendChild(createTh('POENG', 2, 1, 'small allow-wrap'))
-  headerRow1.appendChild(createTh('SKÅR', 2, 1, 'small'))
+  headerRow1.appendChild(createTh('B', 2, 1, 'small'))
+  headerRow1.appendChild(createTh('R', 2, 1, 'small'))
+  headerRow1.appendChild(createTh('KP', 2, 1, 'small'))
+  headerRow1.appendChild(createTh('SP', 2, 1, 'small'))
   headerRow1.appendChild(createTh('MOTSTANDAR', 1, 3, 'wide'))
   thead.appendChild(headerRow1)
 
   const headerRow2 = document.createElement('tr')
   headerRow2.appendChild(createTh('NR.', 1, 1, 'small'))
   headerRow2.appendChild(createTh('NAVN', 1, 1, 'wide'))
-  headerRow2.appendChild(createTh('SKÅR', 1, 1, 'small'))
+  headerRow2.appendChild(createTh('SP', 1, 1, 'small'))
   thead.appendChild(headerRow2)
 
   roundsTable.appendChild(thead)

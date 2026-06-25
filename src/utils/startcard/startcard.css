@@ -78,9 +78,6 @@ body {
   white-space: pre-line;
 }
 
-.rounds-table th.allow-wrap {
-  white-space: pre-line;
-}
 
 .rounds-table td {
   white-space: nowrap;
