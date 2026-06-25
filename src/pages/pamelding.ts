@@ -99,7 +99,14 @@ function relaterteStevnerHtml(relaterte: RelatertStevneRow[]): string {
 
 function pameldingListeHtml(pameldingar: PameldingMedKasterRow[], erPrivilegert: boolean): string {
   if (!pameldingar.length) return '<p class="empty-state">Ingen påmeldingar enno.</p>'
-  const rader = pameldingar.map(p => `<tr>
+  const sorted = [...pameldingar].sort((a, b) => {
+    const klubbA = a.kaster?.klubb?.navn ?? ''
+    const klubbB = b.kaster?.klubb?.navn ?? ''
+    const klubbCmp = klubbA.localeCompare(klubbB, 'nb')
+    if (klubbCmp !== 0) return klubbCmp
+    return (a.kaster?.etternavn ?? '').localeCompare(b.kaster?.etternavn ?? '', 'nb')
+  })
+  const rader = sorted.map(p => `<tr>
     <td>${p.kaster
       ? `<a href="#/kastere/${p.kaster.id}">${escHtml(p.kaster.fornavn)} ${escHtml(p.kaster.etternavn)}</a>`
       : '—'
