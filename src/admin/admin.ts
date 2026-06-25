@@ -40,7 +40,7 @@ function liveKortHtml(s: LiveStevneRow): string {
 
 export async function render(container: HTMLElement): Promise<void> {
   container.innerHTML = `
-    <div class="container py-4 admin-skjema-xl">
+    <div class="content-page">
       <div id="live-seksjon"></div>
       <h2 class="mb-3">Administrasjon</h2>
       <ul class="nav nav-tabs mb-4" id="admin-faner">

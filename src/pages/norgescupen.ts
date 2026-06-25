@@ -182,7 +182,7 @@ function createLagTabell(lagListe: LagListeRad[]): HTMLElement {
 
 function sideSkelettHtml(ar: number, cupType: string): string {
   return `
-    <div class="nc-side">
+    <div class="content-page">
       <h1 class="nc-hovudtittel">Norgescupen ${ar}</h1>
       <div class="nc-filter-rad">
         <select id="nc-ar" class="tl-select">${arOptions(ar, FOERSTE_AR)}</select>

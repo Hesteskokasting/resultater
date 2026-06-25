@@ -13,7 +13,7 @@ export interface AdminLinkBarProps {
 
 /**
  * Prepends an admin action link (e.g. "Rediger klubb", "+ Ny utøvar") to the
- * page's .nc-side column when the logged-in user has access.
+ * page's .content-page column when the logged-in user has access.
  */
 export function prependAdminLinkBar(
   container: HTMLElement,
@@ -24,6 +24,6 @@ export function prependAdminLinkBar(
     const bar = document.createElement('div')
     bar.className = 'mb-2 px-2'
     bar.innerHTML = `<a href="${href}" class="btn btn-sm btn-${variant}">${escHtml(label)}</a>`
-    container.querySelector('.nc-side')?.prepend(bar)
+    container.querySelector('.content-page')?.prepend(bar)
   })
 }

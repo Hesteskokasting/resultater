@@ -257,7 +257,7 @@
 .heimeside,
 .terminliste,
 .res-side,
-.nc-side { padding-bottom: 40px; }
+.content-page { padding-bottom: 40px; }
 
 .live-banner {
   display: flex;

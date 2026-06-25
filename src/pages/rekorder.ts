@@ -129,7 +129,7 @@ function sideSkelettHtml(): string {
   ).join('')
 
   return `
-    <div class="nc-side">
+    <div class="content-page">
       <h1 class="rek-tittel">Rekorder</h1>
       <p id="rek-maks-tekst" class="rek-maks-tekst"></p>
       <div class="nc-filter-rad">

@@ -147,7 +147,7 @@ function sideSkelettHtml(kategori: NmKategoriKonfig, maxAr: number): string {
   }
 
   return `
-    <div class="nc-side">
+    <div class="content-page">
       <div class="nc-filter-rad">
         <select id="nm-kategori" class="tl-select">${katOptions}</select>
         ${kjonnHtml}

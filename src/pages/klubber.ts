@@ -29,7 +29,7 @@ function klubbKortHtml(k: KlubbListeRow): string {
 
 function listeSkelettHtml(): string {
   return `
-    <div class="nc-side">
+    <div class="content-page">
       <div class="kaster-liste-kontroller">
         <div class="nc-filter-rad">
           <input id="klubb-sok" type="text" class="tl-select" placeholder="Søk på klubbnavn eller utøvar" value="">
@@ -44,7 +44,7 @@ function listeSkelettHtml(): string {
 
 function detaljSkelettHtml(klubb: KlubbListeRow, antall: number): string {
   return `
-    <div class="nc-side">
+    <div class="content-page">
       <div class="mb-3">
         <a href="#/klubber" class="btn btn-sm btn-outline-secondary">← Tilbake</a>
       </div>

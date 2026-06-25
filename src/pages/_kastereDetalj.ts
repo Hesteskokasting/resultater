@@ -54,7 +54,7 @@ function detaljSkelettHtml(kaster: KasterDetaljRow, resultater: ResultatDetaljRo
   const metodeSkjult = filtreDetalj.grafMetrikk !== 'prosent' ? ' d-none' : ''
 
   return `
-    <div class="nc-side">
+    <div class="content-page">
       <div class="mb-3">
         <a href="#/kastere" class="btn btn-sm btn-outline-secondary">← Tilbake</a>
       </div>

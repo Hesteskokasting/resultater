@@ -27,7 +27,7 @@ function kasterKortHtml(k: KasterListeRow): string {
 
 function listeSkelettHtml(): string {
   return `
-    <div class="nc-side">
+    <div class="content-page">
       <div class="kaster-liste-kontroller">
         <div class="nc-filter-rad">
           <input id="kaster-sok" type="search" class="tl-select" placeholder="Søk på navn/klubb" value="">
@@ -127,7 +127,7 @@ export async function renderListe(container: HTMLElement): Promise<void> {
       if (!knapp || knapp.disabled) return
       filtreListe.side = Number(knapp.dataset.side)
       filtrerOgVis()
-      container.querySelector('.nc-side')?.scrollIntoView({ behavior: 'smooth' })
+      container.querySelector('.content-page')?.scrollIntoView({ behavior: 'smooth' })
     })
 
     prependAdminLinkBar(container, {

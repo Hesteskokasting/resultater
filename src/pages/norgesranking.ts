@@ -148,7 +148,7 @@ function createRankingTabell(liste: RankingItem[], sokeTekst: string): HTMLEleme
 
 function sideSkelettHtml(ar: number): string {
   return `
-    <div class="nc-side">
+    <div class="content-page">
       <h1 class="nc-hovudtittel">Norgesranking ${ar}</h1>
       <div class="nc-info-knapp-rad">
         <button id="nr-info-knapp" class="btn btn-sm btn-outline-secondary">Vis info</button>
