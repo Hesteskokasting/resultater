@@ -1114,6 +1114,7 @@ th.stilling-sp-th  { background: var(--stilling-sp-th) !important; color: #fff !
 /* ── Deltakere-side ── */
 
 .deltaker-tabell-wrapper { height: 500px; overflow: auto; }
+.deltaker-tabell-wrapper .table { --bs-table-bg: transparent; }
 .deltaker-søk-spacer { visibility: hidden; pointer-events: none; }
 .deltaker-rad { cursor: pointer; }
 .deltaker-kolonne { max-width: 450px; }

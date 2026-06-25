@@ -41,10 +41,10 @@ export function createPlayerTable(props: PlayerTableProps): PlayerTableHandle {
   titleEl.className = 'fw-bold mb-1'
 
   const wrapper = document.createElement('div')
-  wrapper.className = 'border rounded deltaker-tabell-wrapper flex-grow-1 overflow-auto'
+  wrapper.className = 'deltaker-tabell-wrapper flex-grow-1 overflow-auto'
 
   const table = document.createElement('table')
-  table.className = 'table table-sm table-hover table-bordered mb-0'
+  table.className = 'table table-sm table-hover mb-0'
   const tbody = document.createElement('tbody')
   table.appendChild(tbody)
 
