@@ -978,7 +978,8 @@ a.stevne-navn {
 .kamp-liste-mobil {
   list-style: none;
   padding: 0;
-  margin: 0;
+  margin: 0 auto;
+  max-width: 500px;
   border: 1px solid var(--kant);
   border-radius: 6px;
   overflow: hidden;
