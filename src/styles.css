@@ -1126,6 +1126,11 @@ th.stilling-sp-th  { background: var(--stilling-sp-th) !important; color: #fff !
 /* ── Par/Mix tab ── */
 
 .par-slot { min-height: 40px; background: var(--bg-2); cursor: default; transition: background 0.1s; }
+.par-par-celle { background: var(--bg-2); font-size: 0.9rem; min-width: 0; }
+/* Grid (not flex) so the two cells are content-independent equal tracks; the
+   22px track lines up the remove button with the slot above it. Shared by the
+   slots row and every pair row, guaranteeing column alignment between them. */
+.par-grid-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 22px; gap: 8px; align-items: center; }
 .par-slot--filled { background: var(--bg-3); font-weight: 500; }
 .par-slot--hover { background: var(--bs-primary-bg-subtle); border-color: var(--bs-primary) !important; }
 .par-rad { background: var(--bg-2); }

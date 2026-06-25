@@ -3,6 +3,7 @@ import { createErrorBanner } from '@/components/ErrorBanner'
 import { showToast } from '@/components/Toast'
 import { logError } from '@/utils/logError'
 import { errorMessage } from '@/utils/errorMessage'
+import { kasterNavn } from '@/utils/kaster'
 import type { KasterListeRow } from '@/services/kasterService'
 import { createRemoveButton } from '@/components/RemoveButton'
 import { createPlayerTable } from '@/components/PlayerTable'
@@ -76,6 +77,11 @@ async function renderPar(root: HTMLElement, props: ParTabProps): Promise<void> {
   const leftCol = document.createElement('div')
   leftCol.className = 'col-md-6 d-flex flex-column deltaker-kolonne'
 
+  const searchInput = document.createElement('input')
+  searchInput.type = 'text'
+  searchInput.placeholder = 'Søk spelar…'
+  searchInput.className = 'form-control mb-2'
+
   const unpairedTable = createPlayerTable({
     formatTitle: n => `Spelarar utan par: ${n}`,
     emptyText: 'Ingen fleire spelarar å tilordne',
@@ -91,10 +97,18 @@ async function renderPar(root: HTMLElement, props: ParTabProps): Promise<void> {
   })
 
   function renderUnpaired(): void {
-    const available = unpaired.filter(s => s.id !== pendingA?.id && s.id !== pendingB?.id)
+    const q = searchInput.value.toLowerCase()
+    const available = unpaired.filter(s => {
+      if (s.id === pendingA?.id || s.id === pendingB?.id) return false
+      if (!q) return true
+      return kasterNavn(s).toLowerCase().includes(q) || (s.klubb?.navn ?? '').toLowerCase().includes(q)
+    })
     unpairedTable.setPlayers(available)
   }
 
+  searchInput.addEventListener('input', renderUnpaired)
+
+  leftCol.appendChild(searchInput)
   leftCol.appendChild(unpairedTable.element)
 
   // ── Right: pair creator + existing pairs ───────────────────────────────────
@@ -110,7 +124,7 @@ async function renderPar(root: HTMLElement, props: ParTabProps): Promise<void> {
 
   function makeDropZone(side: 'A' | 'B'): HTMLElement {
     const zone = document.createElement('div')
-    zone.className = 'par-slot border rounded px-2 py-2 text-center flex-grow-1'
+    zone.className = 'par-slot border rounded px-2 py-2 text-center'
     const tomLabel = erMix ? (side === 'A' ? 'Side A (kvinne)' : 'Side B (mann)') : `Side ${side}`
     zone.setAttribute('aria-label', tomLabel)
 
@@ -197,12 +211,21 @@ async function renderPar(root: HTMLElement, props: ParTabProps): Promise<void> {
     }
 
     for (const par of parList) {
+      // Same grid as the slots row, so each cell lines up exactly under its
+      // drop zone (cell A, cell B, then the 22px remove-button track)
       const row = document.createElement('div')
-      row.className = 'par-rad d-flex justify-content-between align-items-center border rounded px-2 py-1 mb-1'
+      row.className = 'par-rad par-grid-row mb-1'
 
-      const nameSpan = document.createElement('span')
-      nameSpan.textContent = `${kortNamn(par.sideA.kaster)} / ${kortNamn(par.sideB.kaster)}`
-      row.appendChild(nameSpan)
+      const sideACell = document.createElement('span')
+      sideACell.className = 'par-par-celle border rounded px-2 py-1'
+      sideACell.textContent = kortNamn(par.sideA.kaster)
+
+      const sideBCell = document.createElement('span')
+      sideBCell.className = 'par-par-celle border rounded px-2 py-1'
+      sideBCell.textContent = kortNamn(par.sideB.kaster)
+
+      row.appendChild(sideACell)
+      row.appendChild(sideBCell)
 
       if (isAdmin) {
         const fjernBtn = createRemoveButton({
@@ -226,18 +249,21 @@ async function renderPar(root: HTMLElement, props: ParTabProps): Promise<void> {
     }
   }
 
-  // Assemble right column
+  // Assemble right column — slots row sits at the top aligned with the left
+  // column's search input; a spacer preserves that alignment for non-admin.
   if (isAdmin) {
+    // Same grid as the pair rows; the empty third (22px) track reserves space
+    // for the remove button that pair rows have, keeping columns aligned.
     const slotsRow = document.createElement('div')
-    slotsRow.className = 'd-flex gap-2 mb-1'
+    slotsRow.className = 'par-grid-row mb-2'
     slotsRow.appendChild(makeDropZone('A'))
     slotsRow.appendChild(makeDropZone('B'))
-
-    const newParSection = document.createElement('div')
-    newParSection.className = 'mb-3'
-    newParSection.appendChild(slotsRow)
-    newParSection.appendChild(confirmBtn)
-    rightCol.appendChild(newParSection)
+    rightCol.appendChild(slotsRow)
+    rightCol.appendChild(confirmBtn)
+  } else {
+    const spacer = document.createElement('div')
+    spacer.className = 'form-control mb-2 deltaker-search-spacer'
+    rightCol.appendChild(spacer)
   }
 
   rightCol.appendChild(rightTitle)
