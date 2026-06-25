@@ -2044,6 +2044,15 @@ th.innl-score-th {
 .avsl-gruppe-kol  { flex: 1 1 0; min-width: 0; }
 .avsl-gruppe-kol + .avsl-gruppe-kol { border-left: 1px solid var(--kant); padding-left: 1rem; }
 
+.bekreft-banner {
+  position: sticky;
+  bottom: 0;
+  padding: 12px 0;
+  background: var(--bg);
+  border-top: 1px solid var(--kant);
+  z-index: 10;
+}
+
 #gruppe-val-wrapper .form-check { min-height: 44px; display: flex; align-items: center; }
 #gruppe-val-wrapper .btn-check:checked + .btn::before { content: '✓ '; }
 .avsl-kamp-block  { width: calc(50% - 0.5rem); min-width: 220px; }

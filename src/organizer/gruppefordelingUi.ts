@@ -79,7 +79,7 @@ export function renderGruppefordeling(
 
   return `
     <div id="gruppe-val-wrapper" data-n="${n}">
-      <h5 class="mb-3">Velg gruppeinndeling for cup</h5>
+      <h5 class="mb-3">Velg gruppefordeling for cup</h5>
       <div class="d-flex flex-column flex-lg-row gap-3 align-items-start mb-3">
         <div class="card">
           <div class="card-body">
@@ -95,10 +95,10 @@ export function renderGruppefordeling(
           </div>` : ''}
         </div>
       </div>
-      <div class="mt-3">
+      ${gruppePreviewHtml}
+      <div class="bekreft-banner">
         <button id="bekreft-gruppe-btn" class="btn btn-success btn-lg w-100">Bekreft gruppefordeling</button>
       </div>
-      ${gruppePreviewHtml}
     </div>
   `
 }
