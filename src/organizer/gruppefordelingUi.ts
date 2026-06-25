@@ -118,7 +118,6 @@ export function renderGruppePreview(
       return `
       <tr>
         <td>${r.cupPlassering}</td>
-        <td>${escHtml(String(r.startnummer ?? ''))}</td>
         <td>${escHtml(r.navn ?? '')}${erWo ? ' <span class="badge bg-info text-dark">Walkover</span>' : ''}</td>
         <td class="text-center">${r.kamp_poeng ?? 0}</td>
         <td class="text-center">${r.score_poeng ?? 0}</td>
@@ -128,7 +127,7 @@ export function renderGruppePreview(
 
   const tabellHeader = `
     <thead class="org-thead"><tr>
-      <th class="th-32">#</th><th class="th-36">S</th><th>NAMN</th>
+      <th class="th-32">#</th><th>NAMN</th>
       <th class="th-44 text-center">KP</th>
       <th class="th-44 text-center">SP</th>
     </tr></thead>`
@@ -210,7 +209,7 @@ export function renderStrukturListeHtml(n: number, oppsett: RundeOppsett | null,
   return `<div id="struktur-${suffix}">
     <table class="table table-sm table-bordered mb-0">
       <thead><tr>
-        <th>Runde</th><th>Deltakere (w.o.)</th><th>Baner</th><th>Per bane</th>
+        <th>Runde</th><th>Deltakere</th><th>Baner</th><th>Per bane</th>
       </tr></thead>
       <tbody>${rows}</tbody>
     </table>
