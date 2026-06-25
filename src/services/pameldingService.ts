@@ -99,6 +99,16 @@ export async function hentAntallPameldingar(stevneId: number): Promise<number> {
   return count ?? 0
 }
 
+export async function hentAntallPar(stevneId: number): Promise<number> {
+  const { count, error } = await supabase
+    .from('pamelding')
+    .select('id', { count: 'exact', head: true })
+    .eq('stevneid', stevneId)
+    .not('lag_id', 'is', null)
+  if (error) logError('hentAntallPar', error)
+  return Math.floor((count ?? 0) / 2)
+}
+
 export async function hentAntallUbekrefta(stevneId: number): Promise<number> {
   const { count, error } = await supabase
     .from('pamelding')

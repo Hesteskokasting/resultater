@@ -25,7 +25,7 @@ const _infoStevneQuery = supabase
     id, navn, dato, tid, sted, stevne_fase, antall_runder_innl, erfullfort, klubbid,
     kastemetodeInnl:kastemetode!stevne_innledendekastemetodeid_fkey(id, navn),
     kastemetodeAvsl:kastemetode!stevne_avsluttendekastemetodeid_fkey(id, navn),
-    kategori:kategoriid(erlagbasert)
+    kategori:kategoriid(erlagbasert, navn)
   `)
 
 export type InfoStevneRow = QueryData<typeof _infoStevneQuery>[number]
@@ -107,7 +107,7 @@ export async function hentInfoStevne(id: number): Promise<{ data: InfoStevneRow 
       id, navn, dato, tid, sted, stevne_fase, antall_runder_innl, erfullfort, klubbid,
       kastemetodeInnl:kastemetode!stevne_innledendekastemetodeid_fkey(id, navn),
       kastemetodeAvsl:kastemetode!stevne_avsluttendekastemetodeid_fkey(id, navn),
-      kategori:kategoriid(erlagbasert)
+      kategori:kategoriid(erlagbasert, navn)
     `)
     .eq('id', id)
     .maybeSingle()

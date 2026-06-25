@@ -9,7 +9,7 @@ import { showToast } from '@/components/Toast'
 import { confirmDialog } from '@/components/ConfirmDialog'
 import { hentInfoStevne, oppdaterStevneFase } from '@/services/stevneService'
 import { livePillHtml } from '@/components/LivePill'
-import { hentAntallPameldingar, hentAntallUbekrefta, hentMinPameldingForStevne } from '@/services/pameldingService'
+import { hentAntallPameldingar, hentAntallPar, hentAntallUbekrefta, hentMinPameldingForStevne } from '@/services/pameldingService'
 import { createPameldingKnapp } from '@/components/PameldingKnapp'
 import { genererInnledendeKamper } from '@/services/kampGenereringInnledendeService'
 
@@ -32,9 +32,10 @@ export async function render(
   container.replaceChildren(createLoadingState())
 
   try {
-    const [stevneRes, antall, auth] = await Promise.all([
+    const [stevneRes, antall, antallPar, auth] = await Promise.all([
       hentInfoStevne(id),
       hentAntallPameldingar(id),
+      hentAntallPar(id),
       getUser(),
     ])
 
@@ -49,6 +50,8 @@ export async function render(
     const metodeNavn  = stevne.kastemetodeInnl?.navn ?? '—'
     const erCascade   = metodeNavn.toLowerCase().includes('gloppen')
     const erLag       = stevne.kategori?.erlagbasert ?? false
+    const kategoriNamn = (stevne.kategori?.navn ?? '').toLowerCase()
+    const erParEllerMix = kategoriNamn.includes('par') || kategoriNamn.includes('mix')
 
     // ── Start-stevne-knapp (admin, ikkje starta) ──────────────────────────────
 
@@ -113,7 +116,7 @@ export async function render(
               <tr><th>Kastemetode innleiande</th><td>${escHtml(metodeNavn)}</td></tr>
               <tr><th>Kastemetode avsluttande</th><td>${escHtml(stevne.kastemetodeAvsl?.navn ?? '—')}</td></tr>
               <tr><th>Antal rundar innleiande</th><td>${stevne.antall_runder_innl ?? '—'}</td></tr>
-              <tr><th>Påmelde spelarar</th><td>${antall}</td></tr>
+              <tr><th>Påmelde ${erParEllerMix ? 'par' : 'spelarar'}</th><td>${erParEllerMix ? antallPar : antall}</td></tr>
             </tbody>
           </table>
         </div>
