@@ -41,7 +41,7 @@ export function createPlayerTable(props: PlayerTableProps): PlayerTableHandle {
   titleEl.className = 'fw-bold mb-1'
 
   const wrapper = document.createElement('div')
-  wrapper.className = 'deltaker-tabell-wrapper flex-grow-1 overflow-auto'
+  wrapper.className = 'deltaker-tabell-wrapper border rounded flex-grow-1 overflow-auto'
 
   const table = document.createElement('table')
   table.className = 'table table-sm table-hover mb-0'
