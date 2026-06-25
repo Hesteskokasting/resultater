@@ -248,14 +248,14 @@ export async function hentFiltervalg(): Promise<{ data: Filtervalg; error: unkno
 
 const _stevneHeaderQuery = supabase
   .from('stevne')
-  .select('id, navn, stevne_fase, avsluttendekastemetodeid, kategori:kategoriid(id, navn, erlagbasert)')
+  .select('id, navn, stevne_fase, erfullfort, avsluttendekastemetodeid, kategori:kategoriid(id, navn, erlagbasert)')
 
 export type StevneHeaderRow = QueryData<typeof _stevneHeaderQuery>[number]
 
 export async function hentStevneHeader(id: number): Promise<{ data: StevneHeaderRow | null; error: unknown }> {
   const { data, error } = await supabase
     .from('stevne')
-    .select('id, navn, stevne_fase, avsluttendekastemetodeid, kategori:kategoriid(id, navn, erlagbasert)')
+    .select('id, navn, stevne_fase, erfullfort, avsluttendekastemetodeid, kategori:kategoriid(id, navn, erlagbasert)')
     .eq('id', id)
     .single()
   if (error) logError('hentStevneHeader', error)

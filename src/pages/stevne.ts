@@ -26,18 +26,19 @@ type TabRender = (
 // ── Tab-konfigurasjon ─────────────────────────────────────────────────────────
 
 const FANER = [
-  { key: 'info',          label: 'Info',          adminOnly: false },
-  { key: 'deltakere',     label: 'Deltakere',     adminOnly: true  },
-  { key: 'innledende',    label: 'Innledande',    adminOnly: false },
-  { key: 'avsluttende',   label: 'Avsluttande',   adminOnly: false },
-  { key: 'resultat',      label: 'Sluttresultat', adminOnly: false },
-  { key: 'innstillinger', label: 'Innstillingar', adminOnly: true  },
-  { key: 'stats',         label: 'Statistikk',    adminOnly: false },
+  { key: 'info',          label: 'Info',          adminOnly: false, completedOnly: false },
+  { key: 'deltakere',     label: 'Deltakere',     adminOnly: true,  completedOnly: false },
+  { key: 'innledende',    label: 'Innl.',          adminOnly: false, completedOnly: false },
+  { key: 'avsluttende',   label: 'Avsl.',          adminOnly: false, completedOnly: false },
+  { key: 'resultat',      label: 'Sluttresultat', adminOnly: false, completedOnly: true  },
+  { key: 'innstillinger', label: 'Innstillingar', adminOnly: true,  completedOnly: false },
+  { key: 'stats',         label: 'Stats',         adminOnly: false, completedOnly: false },
 ] as const
 
 type TabKey = (typeof FANER)[number]['key']
 
-const ADMIN_FANER = new Set<string>(FANER.filter(f => f.adminOnly).map(f => f.key))
+const ADMIN_FANER     = new Set<string>(FANER.filter(f => f.adminOnly).map(f => f.key))
+const COMPLETED_FANER = new Set<string>(FANER.filter(f => f.completedOnly).map(f => f.key))
 
 const TAB_RENDER: Record<TabKey, TabRender> = {
   info:          renderInfo,
@@ -57,10 +58,11 @@ const FASE_LABEL: Record<string, string> = {
 
 // ── Hjelpefunksjonar ──────────────────────────────────────────────────────────
 
-function renderNav(stevneid: number, aktiv: string, isAdmin: boolean, harAvsluttande: boolean): string {
+function renderNav(stevneid: number, aktiv: string, isAdmin: boolean, harAvsluttande: boolean, isCompleted: boolean): string {
   const items = FANER
     .filter(f => isAdmin || !f.adminOnly)
     .filter(f => f.key !== 'avsluttende' || harAvsluttande)
+    .filter(f => !f.completedOnly || isCompleted)
     .map(({ key, label }) => `
       <li class="nav-item">
         <a class="nav-link${aktiv === key ? ' active' : ''}"
@@ -93,12 +95,15 @@ export async function render(
 
     const isAdmin = (await erAdmin()) || (await erKlubbadmin())
     const harAvsluttande = stevne.avsluttendekastemetodeid != null
-    const aktiv = (!isAdmin && ADMIN_FANER.has(tab)) ? 'info' : tab as TabKey
+    const isCompleted = stevne.erfullfort === true
+    const aktiv = ((!isAdmin && ADMIN_FANER.has(tab)) || (!isCompleted && COMPLETED_FANER.has(tab)))
+      ? 'info'
+      : tab as TabKey
     const badge = FASE_LABEL[stevne.stevne_fase ?? 'ikke_startet'] ?? ''
 
     container.innerHTML = `
       <div class="org-shell py-3 px-3">
-        ${renderNav(id, aktiv, isAdmin, harAvsluttande)}
+        ${renderNav(id, aktiv, isAdmin, harAvsluttande, isCompleted)}
         <div class="org-fase-header d-flex align-items-center gap-2 mb-3">
           <h5 class="mb-0 flex-grow-1">${escHtml(stevne.navn)} <span id="fase-badge">${badge}</span></h5>
           <div id="org-banner-knappar"></div>
