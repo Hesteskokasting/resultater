@@ -80,7 +80,7 @@ export function renderGruppefordeling(
   return `
     <div id="gruppe-val-wrapper" data-n="${n}">
       <h5 class="mb-3">Velg gruppefordeling for cup</h5>
-      <div class="d-flex flex-column flex-lg-row gap-3 align-items-start mb-3">
+      <div class="d-flex gruppe-layout gap-3 align-items-start mb-3">
         <div class="card">
           <div class="card-body">
             ${splitOptions}

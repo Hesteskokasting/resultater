@@ -2053,6 +2053,18 @@ th.innl-score-th {
   z-index: 10;
 }
 
+.gruppe-layout { flex-direction: column; }
+@media (min-width: 800px) {
+  .gruppe-layout { flex-direction: row; }
+}
+#gruppe-paneler .avsl-gruppe-kol { min-width: 400px; max-width: 400px; flex: 1 1 0; }
+#gruppe-paneler .avsl-gruppe-kol + .avsl-gruppe-kol {
+  border-left: 1px solid var(--kant);
+  border-top: none;
+  padding-left: 1rem;
+  padding-top: 0;
+}
+
 #gruppe-val-wrapper .form-check {
   min-height: 32px;
   display: flex;
