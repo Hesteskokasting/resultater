@@ -1,0 +1,41 @@
+import{n as e,t}from"./logError-DhxY2JQv.js";import{X as n,Y as r,Z as i,et as a,lt as o,nt as s,ut as c}from"./index-D1GzXyr3.js";import{t as l}from"./LoadingState-xRmJ3K_t.js";import{t as u}from"./EmptyState-BvE_0HiD.js";import{t as d}from"./Table-DSqyRM9K.js";import{t as f}from"./expandableRows-ECRCQeHx.js";e.from(`stevne`).select(`id, navn, dato, stevnetype:stevnetypeid(id, navn), innledendekastemetode:kastemetode!innledendekastemetodeid(navn), avsluttendekastemetode:kastemetode!avsluttendekastemetodeid(navn)`),e.from(`resultat`).select(`
+    id, kasterid, klubbid, stevneid,
+    antall_ring_xkast, antall_ring_kongelag,
+    kaster:kasterid(id, fornavn, etternavn),
+    klubb:klubbid(id, navn)
+  `);async function p(n){let{data:r,error:i}=await e.from(`stevne`).select(`id, navn, dato, stevnetype:stevnetypeid(id, navn), innledendekastemetode:kastemetode!innledendekastemetodeid(navn), avsluttendekastemetode:kastemetode!avsluttendekastemetodeid(navn)`).eq(`ernorgesranking`,!0).gte(`dato`,`${n}-01-01`).lte(`dato`,`${n}-12-31`);if(i)return t(`hentStevnerOgResultater.stevner`,i),{stevner:[],resultater:[],error:i};let a=r??[],o=a.map(e=>e.id);if(o.length===0)return{stevner:a,resultater:[],error:null};let{data:s,error:c}=await e.from(`resultat`).select(`
+      id, kasterid, klubbid, stevneid,
+      antall_ring_xkast, antall_ring_kongelag,
+      kaster:kasterid(id, fornavn, etternavn),
+      klubb:klubbid(id, navn)
+    `).in(`stevneid`,o);return c?(t(`hentStevnerOgResultater.resultater`,c),{stevner:a,resultater:[],error:c}):{stevner:a,resultater:(s??[]).filter(e=>e.antall_ring_xkast!=null||e.antall_ring_kongelag!=null),error:null}}function m(e){let t=new Map;for(let n of e)t.set(n.id,{navn:n.navn,dato:n.dato,typeNamn:n.stevnetype?.navn??``,innledMetode:n.innledendekastemetode?.navn??null,avslMetode:n.avsluttendekastemetode?.navn??null});return t}function h(e,t){let n=(t?.innledMetode??``).toLowerCase(),r=(t?.avslMetode??``).toLowerCase(),i=e=>n===e||r===e,a={_stevne:t},o=[];return e.antall_ring_xkast!=null&&(i(`minimatch`)?o.push({...a,prosent:e.antall_ring_xkast/60*100,metodeNamn:`Minimatch`,antallRing:e.antall_ring_xkast}):i(`halvmatch`)?o.push({...a,prosent:e.antall_ring_xkast,metodeNamn:`Halvmatch`,antallRing:e.antall_ring_xkast}):i(`heilmatch`)&&o.push({...a,prosent:e.antall_ring_xkast/200*100,metodeNamn:`Heilmatch`,antallRing:e.antall_ring_xkast})),e.antall_ring_kongelag!=null&&o.push({...a,prosent:e.antall_ring_kongelag/40*100,metodeNamn:`Kongelag`,antallRing:e.antall_ring_kongelag}),o}function g(e,t){let n=new Map;for(let r of e){if(r.kasterid==null)continue;let e=h(r,r.stevneid==null?void 0:t.get(r.stevneid));if(e.length){n.has(r.kasterid)||n.set(r.kasterid,{kaster:r.kaster,klubb:r.klubb,rader:[]});for(let t of e)n.get(r.kasterid).rader.push(t)}}let r=[],i=[];for(let[,e]of n){let{rader:t}=e,n=[...t].sort((e,t)=>t.prosent-e.prosent),a=n.slice(0,5),o=Math.round(a.reduce((e,t)=>e+t.prosent,0)/a.length*100)/100,s=t.length,l=s>=5,u={navn:c(e.kaster),klubb:e.klubb?.navn??`–`,antallStevner:s,snittProsent:o,erGyldig:l,detaljRader:n};l?r.push(u):i.push(u)}return r.sort((e,t)=>t.snittProsent-e.snittProsent||e.navn.localeCompare(t.navn)),i.sort((e,t)=>t.snittProsent-e.snittProsent||e.navn.localeCompare(t.navn)),o(r,e=>e.snittProsent),[...r,...i]}var _=2018,v={ar:new Date().getFullYear(),sokeTekst:``,infoSynleg:!1},y={ar:null,stevner:[],resultater:[]};async function b(e){if(y.ar===e)return!0;try{let{stevner:t,resultater:n,error:r}=await p(e);return r?!1:(y.ar=e,y.stevner=t,y.resultater=n,!0)}catch(e){return t(`hentOgBufferData`,e),!1}}async function x(){let e=m(y.stevner);await s(g(y.resultater,e).map(e=>({Plass:e.erGyldig?e.plassering:`–`,Kaster:e.navn,Klubb:e.klubb,"Snitt %":e.snittProsent,"Antal stevner":e.antallStevner})),`norgesranking-${v.ar}.xlsx`,`Norgesranking`)}function S(e){return`
+    <div id="nr-info-seksjon"${e?``:` class="d-none"`}>
+      <p class="nc-info-tekst">
+        Norgesranking er ein konkurranse som pågår innanfor eit kalenderår, dvs. 1. januar – 31. desember.
+        <strong>Dei 5 beste prosentane er teljande.</strong>
+      </p>
+      <p class="nc-info-tekst">
+        For å få eit gyldig årsresultat skal kasteren minst ha vore gjennom 5 rankingrunder.
+      </p>
+      <p class="nc-info-tekst nc-info-tekst--advarsel">
+        Resultater merket med rødt er ikkje gyldig (mindre enn 5 runder).
+      </p>
+    </div>`}function C(e,t){let n=t.trim().toLowerCase(),r=n?e.filter(e=>e.navn.toLowerCase().includes(n)||e.klubb.toLowerCase().includes(n)):e;return r.length===0?u(`Ingen resultater funnet.`):d({rows:r,rowClass:e=>e.erGyldig?`nc-singel-rad`:`nc-singel-rad nc-rad--ugyldig`,rowAttrs:(e,t)=>({"data-idx":String(t)}),detailRowClass:`nc-detalj-rad d-none`,detailRow:e=>d({rows:e.detaljRader,tableClass:`detalj-tabell`,theadClass:``,columns:[{label:`Dato`,render:e=>i(e._stevne?.dato)},{label:`Type`,render:e=>e._stevne?.typeNamn??`–`},{label:`Stevne`,render:e=>e._stevne?.navn??`–`},{label:`Metode`,render:e=>e.metodeNamn},{label:`Ring`,render:e=>String(e.antallRing)},{label:`%Ring`,render:e=>a(e.prosent)}]}),columns:[{label:`Pl.`,thClass:`nc-td-pl`,cellClass:`nc-td-pl`,render:e=>e.erGyldig?String(e.plassering??`–`):`–`},{label:`Navn`,render:e=>e.navn},{label:`Klubb`,render:e=>e.klubb},{label:`Stevner`,thClass:`nc-td-sentrum`,cellClass:`nc-td-sentrum`,render:e=>String(e.antallStevner)},{label:`%Snitt`,thClass:`nc-td-poeng`,cellClass:`nc-td-poeng nc-poeng-celle`,cellAttrs:(e,t)=>({"data-idx":String(t)}),render:e=>{let t=document.createDocumentFragment();t.appendChild(document.createTextNode(a(e.snittProsent)));let n=document.createElement(`span`);return n.className=`nc-chevron`,n.textContent=` ▼`,t.appendChild(n),t}}]})}function w(e){return`
+    <div class="content-page">
+      <h1 class="nc-hovudtittel">Norgesranking ${e}</h1>
+      <div class="nc-info-knapp-rad">
+        <button id="nr-info-knapp" class="btn btn-sm btn-outline-secondary">Vis info</button>
+      </div>
+      <hr>
+      ${S(!1)}
+      <hr>
+      <div class="nc-filter-rad">
+        <select id="nr-ar" class="tl-select">${n(e,_)}</select>
+        <input id="nr-sok" type="text" class="tl-select" placeholder="Søk på navn/klubb..." value="">
+        <button class="tl-excel-knapp" id="nr-excel">⬇ Excel</button>
+      </div>
+      <div class="nc-klikk-hint-rad">
+        <span class="nc-klikk-hint">Klikk prosent for å vise detaljer</span>
+      </div>
+      <div id="nr-tabell-container"></div>
+    </div>`}async function T(e){v.ar=new Date().getFullYear(),v.sokeTekst=``,v.infoSynleg=!1,y={ar:null,stevner:[],resultater:[]},e.replaceChildren(l(`Laster Norgesranking…`));try{if(!await b(v.ar)){e.replaceChildren(r(`Kunne ikkje laste data for Norgesranking.`));return}e.innerHTML=w(v.ar);function n(){let t=m(y.stevner),n=g(y.resultater,t),r=e.querySelector(`#nr-tabell-container`),i=document.createElement(`div`);i.id=`nr-tabell-inner`,i.appendChild(C(n,v.sokeTekst)),r.replaceChildren(i),f(i,{triggerSel:`.nc-poeng-celle`,idAttr:`idx`,detailSel:`.nc-detalj-rad`})}n();let i=e.querySelector(`#nr-ar`),a=e.querySelector(`#nr-sok`),o=e.querySelector(`#nr-excel`),s=e.querySelector(`#nr-info-knapp`);i.addEventListener(`change`,async()=>{v.ar=Number(i.value),v.sokeTekst=``,a.value=``,e.querySelector(`.nc-hovudtittel`).textContent=`Norgesranking ${v.ar}`,e.querySelector(`#nr-tabell-container`).replaceChildren(l(`Laster...`));try{if(!await b(v.ar)){e.querySelector(`#nr-tabell-container`).replaceChildren(r(`Feil ved henting av data.`));return}n()}catch(n){t(`norgesranking.arChange`,n),e.querySelector(`#nr-tabell-container`).replaceChildren(r(`Feil ved henting av data.`))}}),a.addEventListener(`input`,()=>{v.sokeTekst=a.value,n()}),o.addEventListener(`click`,x),s.addEventListener(`click`,()=>{v.infoSynleg=!v.infoSynleg,e.querySelector(`#nr-info-seksjon`).classList.toggle(`d-none`,!v.infoSynleg),s.textContent=v.infoSynleg?`Skjul info`:`Vis info`})}catch(n){t(`norgesranking.render`,n),e.replaceChildren(r(`Kunne ikkje laste Norgesranking.`))}}export{T as render};
