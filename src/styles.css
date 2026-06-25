@@ -1007,7 +1007,7 @@ a.stevne-navn {
   display: grid;
   grid-template-columns: 24px 1fr auto auto;
   gap: 10px;
-  padding: 0 0 0 0px;
+  padding: 6px 0;
   align-items: center;
   cursor: pointer;
   user-select: none;
@@ -1025,28 +1025,34 @@ a.stevne-navn {
   text-align: center;
 }
 .kamp-mobil-namn {
-  font-size: 16px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.kamp-mobil-namn__p1 {
+  font-size: 13px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  min-width: 0;
   color: var(--tekst);
+}
+.kamp-mobil-namn__p2 {
+  font-size: 13px;
+  color: var(--tekst);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .kamp-mobil-vs {
   color: var(--tekst-3);
-  font-size: 0.8em;
-  font-weight: 400;
+  font-size: 0.85em;
 }
 .kamp-mobil-resultat {
   font-size: 19px;
   font-weight: 600;
   color: var(--tekst);
   white-space: nowrap;
-  background: var(--avsl-score-bg);
-  border-left: 2px solid var(--stilling-kp-th);
-  border-right: 2px solid var(--stilling-kp-th);
-  align-items: center;
-  justify-content: center;
   text-align: center;
 }
 
