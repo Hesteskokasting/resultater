@@ -93,7 +93,7 @@ export async function render(
       <div class="org-shell pb-3 pt-1">
         ${renderNav(id, aktiv, isAdmin, harAvsluttande, isCompleted)}
         <div class="org-fase-header d-flex align-items-center gap-2 mb-3">
-          <h5 class="mb-0 flex-grow-1">${escHtml(stevne.navn)}</h5>
+          <h5 class="mb-0">${escHtml(stevne.navn)}</h5>
           <div id="org-banner-knappar"></div>
         </div>
         <div id="org-subside" class="px-3"></div>
