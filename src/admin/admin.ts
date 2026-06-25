@@ -14,8 +14,11 @@ import {
 } from '@/services/adminService'
 import { hentKlubbar } from '@/services/klubbService'
 import { hentKastereByIds } from '@/services/kasterService'
+import { hentLiveStevner } from '@/services/stevneService'
+import type { LiveStevneRow } from '@/services/stevneService'
 import { createLoadingState } from '@/components/LoadingState'
 import { createEmptyState } from '@/components/EmptyState'
+import { livePillHtml } from '@/components/LivePill'
 
 type Fane = 'kobling' | 'brukarar' | 'klubbadmin'
 
@@ -26,9 +29,19 @@ const FANE_LABEL: Record<Fane, string> = {
   klubbadmin: 'Klubbadmin-tilgang',
 }
 
+function liveKortHtml(s: LiveStevneRow): string {
+  const tab = s.stevne_fase === 'avsluttende' ? 'avsluttende' : 'innledende'
+  return `
+    <a class="live-kort" href="#/stevne/${s.id}/${tab}">
+      ${livePillHtml()}
+      <span>${escHtml(s.navn)}</span>
+    </a>`
+}
+
 export async function render(container: HTMLElement): Promise<void> {
   container.innerHTML = `
     <div class="container py-4 admin-skjema-xl">
+      <div id="live-seksjon"></div>
       <h2 class="mb-3">Administrasjon</h2>
       <ul class="nav nav-tabs mb-4" id="admin-faner">
         ${FANER.map((f, i) => `<li class="nav-item">
@@ -55,7 +68,16 @@ export async function render(container: HTMLElement): Promise<void> {
     if (knapp?.dataset.fane) visFane(knapp.dataset.fane as Fane)
   })
 
-  visFane('kobling')
+  const [, { data: liveStevner }] = await Promise.all([
+    visFane('kobling'),
+    hentLiveStevner(),
+  ])
+
+  const live = (liveStevner ?? []).filter(s => !s.erfullfort)
+  if (live.length) {
+    container.querySelector<HTMLElement>('#live-seksjon')!.innerHTML =
+      `<div class="live-banner">${live.map(liveKortHtml).join('')}</div>`
+  }
 }
 
 // ── Koblingforespørslar ──────────────────────────────────────
