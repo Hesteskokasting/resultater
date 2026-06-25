@@ -20,6 +20,8 @@ let _intentionalSignOut = false
 // Track whether an authenticated session is currently active, so the UI can tell
 // "session expired" (auth → unauth) apart from restoring a dead token on load.
 let _hasActiveSession = false
+// Survives cache clearing on SIGNED_OUT so the re-auth modal can pre-fill the email.
+let _lastKnownEmail: string | null = null
 
 async function _fetchUser(): Promise<AuthUser | null> {
   const { data: { session } } = await supabase.auth.getSession()
@@ -33,8 +35,13 @@ async function _fetchUser(): Promise<AuthUser | null> {
     klubber = klubbIds
   }
 
+  _lastKnownEmail = session.user.email ?? _lastKnownEmail
   _cache = { user: session.user, profil: isProfil(profil) ? profil : null, klubber }
   return _cache
+}
+
+export function getLastKnownEmail(): string | null {
+  return _lastKnownEmail
 }
 
 async function _hentCache(): Promise<AuthUser | null> {

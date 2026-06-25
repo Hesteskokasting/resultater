@@ -2,7 +2,7 @@ import 'bootstrap'
 import { render as renderHome } from './pages/home'
 import { getUser, erAdmin, erKlubbadmin, loggUt } from './services/authService'
 import { createErrorBanner } from './components/ErrorBanner'
-import { showToast } from './components/Toast'
+import { showReauthModal } from './components/ReauthModal'
 import type { PageRenderFn, Rute } from '@/types'
 
 if (import.meta.env.VITE_ENV === 'dev') {
@@ -119,18 +119,16 @@ document.addEventListener('DOMContentLoaded', () => {
   naviger()
 })
 
-let sesjonUtloeptVarslet = false
 document.addEventListener('authStateChanged', (e) => {
   const { event, intentional, hadSession } = (e as CustomEvent<{ event: string; intentional: boolean; hadSession: boolean }>).detail
   if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
     oppdaterAuthMeny()
   }
-  if (event === 'SIGNED_IN') sesjonUtloeptVarslet = false
-  // Only warn on a genuine authenticated → signed-out transition (not restoring a
-  // dead token on load), and only once per page load.
-  if (event === 'SIGNED_OUT' && !intentional && hadSession && !sesjonUtloeptVarslet) {
-    sesjonUtloeptVarslet = true
-    showToast('Sesjonen din er utløpt. Logg inn igjen for å halde fram.', 'warning', true)
+  // On a genuine authenticated → signed-out transition (not restoring a dead token on
+  // load), let the operator re-authenticate in place instead of being bounced to the
+  // login page mid-task. showReauthModal() is idempotent against repeat SIGNED_OUT events.
+  if (event === 'SIGNED_OUT' && !intentional && hadSession) {
+    showReauthModal()
   }
 })
 
