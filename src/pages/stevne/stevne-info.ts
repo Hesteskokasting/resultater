@@ -46,6 +46,10 @@ export async function render(
       bannerSlot.innerHTML = `<button id="start-stevne-btn" class="btn btn-sm btn-success">Start stevne</button>`
       const startBtn = bannerSlot.querySelector<HTMLButtonElement>('#start-stevne-btn')!
       startBtn.addEventListener('click', async () => {
+        if (!stevne.kastemetodeInnl) {
+          showToast('Du må velje kastemetode for innledande fase. Gå til Innstillingar for å endre.', 'error')
+          return
+        }
         if (erLag ? antall < 4 : antall < 2) {
           showToast(
             erLag
