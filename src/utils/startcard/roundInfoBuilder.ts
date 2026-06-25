@@ -1,4 +1,5 @@
 import type { RoundInfo } from './startcard-template'
+import { getMatchSides } from '@/utils/kamp'
 
 export interface PrintKlubb {
   kortnavn?: string | null
@@ -39,8 +40,10 @@ export function buildRoundInfos(
   return sortertRundar.map(nr => {
     const kamp = (rundeMap.get(nr) ?? []).find(k => k.spelarar?.some(sp => sp.kasterid === kasterid))
     if (!kamp) return { court: '', opponentId: '', opponentName: '' }
-    const opp = kamp.spelarar?.find(sp => sp.kasterid !== kasterid)
-    const erWalkoverSeier = kamp.er_walkover && !opp?.kaster
+    const [sideA, sideB] = getMatchSides(kamp.spelarar, startnrMap)
+    const isMySideA = sideA?.members.some(m => m.kasterid === kasterid) ?? false
+    const oppSide = isMySideA ? sideB : sideA
+    const erWalkoverSeier = kamp.er_walkover && !oppSide?.members.some(m => m.kaster)
     if (erWalkoverSeier) {
       return {
         court: kamp.bane_nummer ?? '',
@@ -51,10 +54,15 @@ export function buildRoundInfos(
         opponentScore: '-',
       }
     }
+    const oppId = oppSide?.rep?.kasterid ? (startnrMap[oppSide.rep.kasterid] ?? '') : ''
+    const oppName = (oppSide?.members ?? [])
+      .map(m => m.kaster ? `${m.kaster.fornavn} ${m.kaster.etternavn}` : '')
+      .filter(Boolean)
+      .join(' / ')
     return {
       court: kamp.bane_nummer ?? '',
-      opponentId: opp?.kasterid ? (startnrMap[opp.kasterid] ?? '') : '',
-      opponentName: opp?.kaster ? `${opp.kaster.fornavn} ${opp.kaster.etternavn}` : '',
+      opponentId: oppId,
+      opponentName: oppName,
     }
   })
 }
