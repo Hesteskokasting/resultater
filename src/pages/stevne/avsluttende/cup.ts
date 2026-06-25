@@ -12,6 +12,7 @@ import { showNumberpad } from '@/components/ScoreNumberpad'
 import { scoreForSp, getAllMatchSides, type MatchSide } from '@/utils/kamp'
 import { livePillHtml } from '@/components/LivePill'
 import { beregnKanBekrefte, sideNavnHtml, type StillingRad } from '@/organizer/org-shared'
+import { showScoreEditor } from '@/organizer/scoreEditor'
 import { escHtml } from '@/utils/escHtml'
 import { logError } from '@/utils/logError'
 import { showToast } from '@/components/Toast'
@@ -441,6 +442,7 @@ function bindKampEvents(
     const p2 = side2?.rep ?? null
     const p1Namn = sideNavnHtml(side1, false)
     const p2Namn = sideNavnHtml(side2, false)
+    const spelarIds = sider.flatMap(s => s.members.map(m => m.id))
 
     // Quick-score writes the side total to the rep; partner rows are zeroed
     // so the side sum is not polluted by stale per-player values.
@@ -462,11 +464,17 @@ function bindKampEvents(
       }
     }
 
-    container.querySelector(`#plus-${kamp.id}`)?.addEventListener('click', async () => {
-      showNumberpad(p1Namn, p2Namn, sideSum(side1), sideSum(side2), async (s1, s2) => {
-        const feil = await skrivSideScore(s1, s2)
-        if (feil) { showToast('DB-feil ved oppdatering av score', 'error'); return }
-        await reload()
+    container.querySelector(`#plus-${kamp.id}`)?.addEventListener('click', () => {
+      void showScoreEditor({
+        side1Name: p1Namn,
+        side2Name: p2Namn,
+        currentS1: sideSum(side1),
+        currentS2: sideSum(side2),
+        spelarIds,
+        hasOmgangar: kamp.spelarar.some(s => (s.omgangar?.length ?? 0) > 0),
+        logPrefix: 'cup',
+        onSave: skrivSideScore,
+        onSaved: reload,
       })
     })
 
@@ -495,7 +503,6 @@ function bindKampEvents(
       const allKasterids = sider.flatMap(s => s.members.map(m => m.kasterid))
       const handler = (): void => {
         showNumberpad(p1Namn, p2Namn, sideSum(side1), sideSum(side2), async (nyS1, nyS2) => {
-          const spelarIds = sider.flatMap(s => s.members.map(m => m.id))
           if (spelarIds.length) {
             const { error } = await slettKampOmgangar(spelarIds)
             if (error) { showToast('DB-feil ved sletting av omgangar', 'error'); return }

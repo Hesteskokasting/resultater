@@ -18,7 +18,7 @@
 // an InnledendeVariant and exports `createInnledendeRenderer(variant)`.
 // See gloppen.ts (no-Swiss) and nordhordland.ts (Swiss) for examples.
 //
-import { showNumberpad } from '@/components/ScoreNumberpad'
+import { showScoreEditor } from '@/organizer/scoreEditor'
 import { showToast } from '@/components/Toast'
 import { confirmDialog } from '@/components/ConfirmDialog'
 import { getMatchSides, groupStandingsByPair, scoreForSp, type MatchSide } from '@/utils/kamp'
@@ -34,7 +34,7 @@ import { createErrorBanner } from '@/components/ErrorBanner'
 import { logError } from '@/utils/logError'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import {
-  hentInnledendeKamper, harKampOmgangar, slettKampOmgangar,
+  hentInnledendeKamper, harKampOmgangar,
   oppdaterKampSpelarScoreRask, bekreftInnledendeKamp, subscribeToKampEndringar, unbekreftKamp,
   type InnlKampRow, type InnlKampSpelarRow,
 } from '@/services/kampService'
@@ -210,30 +210,26 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
     const p1 = side1?.rep ?? null
     const p2 = side2?.rep ?? null
     const spelarIds = [...(side1?.members ?? []), ...(side2?.members ?? [])].map(m => m.id)
-    const p1Namn = sideNavn(side1, false)
-    const p2Namn = sideNavn(side2, false)
 
     const onScoreKlikk = async () => {
-      const hasOmg = spelarIds.length ? await harKampOmgangar(spelarIds) : false
-      if (hasOmg && !await confirmDialog({ title: 'Slett detaljar', message: 'Dette sletter detaljar for denne kampen. Er du sikker?' })) return
-
-      const currentS1 = sideScore(side1, kamp.er_bekreftet)
-      const currentS2 = sideScore(side2, kamp.er_bekreftet)
-
-      showNumberpad(p1Namn, p2Namn, currentS1, currentS2, async (nyS1, nyS2) => {
-        try {
-          if (hasOmg && spelarIds.length) await slettKampOmgangar(spelarIds)
+      const hasOmgangar = spelarIds.length ? await harKampOmgangar(spelarIds) : false
+      await showScoreEditor({
+        side1Name: sideNavn(side1, false),
+        side2Name: sideNavn(side2, false),
+        currentS1: sideScore(side1, kamp.er_bekreftet),
+        currentS2: sideScore(side2, kamp.er_bekreftet),
+        spelarIds,
+        hasOmgangar,
+        logPrefix: variant.logPrefix,
+        onSave: async (nyS1, nyS2) => {
           await Promise.all([
             p1 ? oppdaterKampSpelarScoreRask(p1.id, nyS1) : Promise.resolve({ error: null }),
             p2 ? oppdaterKampSpelarScoreRask(p2.id, nyS2) : Promise.resolve({ error: null }),
             ...(kamp.er_bekreftet ? [unbekreftKamp(kamp.id)] : []),
           ])
-        } catch (err) {
-          logError(`${variant.logPrefix}:scoreKlikk`, err)
-          showToast('Feil ved lagring av score', 'error')
-          return
-        }
-        await lastOgVis(container, stevneid)
+          return null
+        },
+        onSaved: () => lastOgVis(container, stevneid),
       })
     }
 
