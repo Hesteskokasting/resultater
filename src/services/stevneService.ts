@@ -32,7 +32,7 @@ export type InfoStevneRow = QueryData<typeof _infoStevneQuery>[number]
 
 export type SisteResultatRow  = Pick<Tables<'stevne'>, 'id' | 'navn' | 'dato'>
 export type LiveStevneRow     = Pick<Tables<'stevne'>, 'id' | 'navn' | 'stevne_fase' | 'erfullfort'>
-export type KommendeStevneRow = Pick<Tables<'stevne'>, 'id' | 'navn' | 'dato' | 'innbydelseurl'>
+export type KommendeStevneRow = Pick<Tables<'stevne'>, 'id' | 'navn' | 'dato' | 'innbydelseurl' | 'stevne_fase' | 'erfullfort'>
 export type PameldingStevneRow = Pick<Tables<'stevne'>, 'id' | 'navn' | 'dato' | 'sted' | 'erfullfort' | 'klubbid'>
 export type RelatertStevneRow  = Pick<Tables<'stevne'>, 'id' | 'navn' | 'dato'>
 
@@ -63,7 +63,7 @@ export async function hentKommendeStevner(): Promise<{ data: KommendeStevneRow[]
   const dagsdato = new Date().toISOString().slice(0, 10)
   const { data, error } = await supabase
     .from('stevne')
-    .select('id, navn, dato, innbydelseurl')
+    .select('id, navn, dato, innbydelseurl, stevne_fase, erfullfort')
     .gte('dato', dagsdato)
     .order('dato', { ascending: true })
     .limit(5)
@@ -196,7 +196,7 @@ export interface Filtervalg {
 const _terminlisteStevneQuery = supabase
   .from('stevne')
   .select(`
-    id, navn, sted, dato, tid, ernm, erfullfort, innbydelseurl, resultaturl,
+    id, navn, sted, dato, tid, ernm, erfullfort, stevne_fase, innbydelseurl, resultaturl,
     klubb:klubbid(id, navn),
     stevnetype:stevnetypeid(id, navn),
     innledende:kastemetode!innledendekastemetodeid(id, navn),
@@ -210,7 +210,7 @@ export async function hentTerminlisteStevner(ar: number): Promise<{ data: Termin
   const { data, error } = await supabase
     .from('stevne')
     .select(`
-      id, navn, sted, dato, tid, ernm, erfullfort, innbydelseurl, resultaturl,
+      id, navn, sted, dato, tid, ernm, erfullfort, stevne_fase, innbydelseurl, resultaturl,
       klubb:klubbid(id, navn),
       stevnetype:stevnetypeid(id, navn),
       innledende:kastemetode!innledendekastemetodeid(id, navn),
@@ -351,13 +351,17 @@ export async function oppdaterStevneInnstillingar(
   return { error }
 }
 
-export async function hentPameldteForBruker(userId: string): Promise<Set<number>> {
+export async function hentPameldteForBruker(kasterid: number): Promise<Map<number, number>> {
   const { data, error } = await supabase
     .from('pamelding')
-    .select('stevneid')
-    .eq('bruker_id', userId)
+    .select('id, stevneid')
+    .eq('kasterid', kasterid)
   if (error) logError('hentPameldteForBruker', error)
-  return new Set((data ?? []).map(r => r.stevneid).filter((id): id is number => id != null))
+  const map = new Map<number, number>()
+  for (const row of data ?? []) {
+    if (row.stevneid != null) map.set(row.stevneid, row.id)
+  }
+  return map
 }
 
 // ── Dispatcher-hjelparar ──────────────────────────────────────────────────────

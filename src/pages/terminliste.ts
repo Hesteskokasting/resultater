@@ -8,6 +8,7 @@ import { createErrorBanner } from '@/components/ErrorBanner'
 import { createLoadingState } from '@/components/LoadingState'
 import { escHtml } from '@/utils/escHtml'
 import { logError } from '@/utils/logError'
+import { bindPameldingSlots } from '@/components/PameldingKnapp'
 
 type StevneRow = TerminlisteStevneRow
 
@@ -50,7 +51,7 @@ const filtre = {
 
 let allData: StevneRow[] = []
 let _auth: AuthUser | null = null
-let _pameldteIds: Set<number> = new Set()
+let _pameldteMap: Map<number, number> = new Map()
 
 // ── Klient-side filtrering ────────────────────────────────────────────────────
 
@@ -170,22 +171,18 @@ function kortHtml(s: StevneRow): string {
     : ''
 
   const erKomande = s.dato && new Date(s.dato + 'T12:00:00') > new Date()
-  const rolle = _auth?.profil?.rolle
-  const harTilgang = _auth?.profil?.kobling_status === 'godkjent' || rolle === 'admin' || rolle === 'klubbadmin'
-  const erPameldt = _pameldteIds.has(s.id)
-  const pameldingLenke = !harTilgang ? ''
-    : erPameldt
-      ? `<a class="stevne-lenke" href="#/stevne/${s.id}/pamelding">Påmeldt ✓</a>`
-      : erKomande && !s.erfullfort
-        ? `<a class="stevne-lenke" href="#/stevne/${s.id}/pamelding">Meld meg på</a>`
-        : ''
+  const ikkjeStarta = s.stevne_fase === null || s.stevne_fase === 'ikke_startet'
+  const harTilgang = _auth?.profil?.kobling_status === 'godkjent'
+  const pameldingSlot = harTilgang && erKomande && ikkjeStarta && !s.erfullfort
+    ? `<span data-pm-slot="${s.id}"></span>`
+    : ''
 
   return `
     <div class="stevne-kort tl-kort">
       <a class="tl-navn tl-navn-lenke" href="#/stevne/${s.id}/resultat">${nm}${escHtml(s.navn ?? '')}</a>
       <p class="stevne-dato">${dato}</p>
       ${sted}${organizer}${type}
-      ${innbydelse}${resultat}${pameldingLenke}
+      ${innbydelse}${resultat}${pameldingSlot}
     </div>
   `
 }
@@ -209,7 +206,7 @@ export async function render(container: HTMLElement): Promise<void> {
       getUser(),
     ])
     _auth = auth
-    _pameldteIds = auth?.user ? await hentPameldteForBruker(auth.user.id) : new Set()
+    _pameldteMap = auth?.profil?.kasterid != null ? await hentPameldteForBruker(auth.profil.kasterid) : new Map()
 
     if (error) {
       logError('terminliste.render', error)
@@ -289,9 +286,13 @@ export async function render(container: HTMLElement): Promise<void> {
 
     function oppdaterListe(): StevneRow[] {
       const filtrert = filtrerData(allData)
-      container.querySelector<HTMLElement>('.tl-liste-container')!.innerHTML = byggVisning(filtrert)
+      const listeEl = container.querySelector<HTMLElement>('.tl-liste-container')!
+      listeEl.innerHTML = byggVisning(filtrert)
       const antall = container.querySelector('.tl-antall')
       if (antall) antall.textContent = `${filtrert.length} stevner`
+      const kasterid = _auth?.profil?.kasterid
+      const brukerId = _auth?.user.id
+      if (kasterid != null && brukerId) bindPameldingSlots(listeEl, kasterid, brukerId, _pameldteMap)
       return filtrert
     }
 

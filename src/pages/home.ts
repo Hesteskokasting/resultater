@@ -7,6 +7,9 @@ import { hentSisteResultater, hentLiveStevner, hentKommendeStevner } from '@/ser
 import type { SisteResultatRow, LiveStevneRow, KommendeStevneRow } from '@/services/stevneService'
 import { logError } from '@/utils/logError'
 import type { SingelListeRad } from '@/utils/norgescup'
+import { getUser } from '@/services/authService'
+import { hentPameldteForBruker } from '@/services/stevneService'
+import { bindPameldingSlots } from '@/components/PameldingKnapp'
 
 // ── HTML-byggjarar ────────────────────────────────────────────────────────────
 
@@ -51,10 +54,14 @@ function resultatKortHtml(s: SisteResultatRow): string {
     </div>`
 }
 
-function kommendeKortHtml(s: KommendeStevneRow): string {
+function kommendeKortHtml(s: KommendeStevneRow, showSlot: boolean): string {
+  const ikkjeStarta = s.stevne_fase === null || s.stevne_fase === 'ikke_startet'
+  const canRegister = showSlot && ikkjeStarta && !s.erfullfort
   const innbydelse = s.innbydelseurl
     ? `<a class="stevne-lenke" href="${escHtml(s.innbydelseurl)}" target="_blank" rel="noopener">Innbydelse &#128196;</a>`
-    : `<span class="stevne-lenke-inaktiv">Innbydelse er ikkje klar</span>`
+    : canRegister
+      ? `<span data-pm-slot="${s.id}"></span>`
+      : `<span class="stevne-lenke-inaktiv">Innbydelse er ikkje klar</span>`
   return `
     <div class="stevne-kort">
       <p class="stevne-dato">${formaterDato(s.dato)}</p>
@@ -98,12 +105,14 @@ export async function render(container: HTMLElement): Promise<void> {
       { data: r3, error: e3 },
       { stevner: s4, resultater: r4, error: e4 },
       { data: r5, error: _e5 },
+      auth,
     ] = await Promise.all([
       hentSisteResultater(),
       hentKommendeStevner(),
       hentRegler(ar),
       hentStevnerOgResultater(ar),
       hentLiveStevner(),
+      getUser(),
     ])
 
     if (e1 || e2 || e3 || e4) {
@@ -113,6 +122,8 @@ export async function render(container: HTMLElement): Promise<void> {
 
     const live = r5.filter(s => !s.erfullfort)
     const ncListe = r3 ? byggSingelListe(r4, s4, r3, 'NC', 1) : []
+    const kasterid = auth?.profil?.kasterid ?? null
+    const showSlot = kasterid !== null && auth?.profil?.kobling_status === 'godkjent'
 
     // Update sections in-place to avoid layout shift
     if (live.length) {
@@ -125,8 +136,14 @@ export async function render(container: HTMLElement): Promise<void> {
     container.querySelector<HTMLElement>('#resultater-innhald')!.outerHTML =
       `<div class="stevne-liste">${r1.map(resultatKortHtml).join('')}</div>`
 
+    const kommendeSection = container.querySelector<HTMLElement>('.heimeside-kommende')!
     container.querySelector<HTMLElement>('#kommende-innhald')!.outerHTML =
-      `<div class="stevne-liste">${r2.map(kommendeKortHtml).join('')}</div>`
+      `<div class="stevne-liste">${r2.map(s => kommendeKortHtml(s, showSlot)).join('')}</div>`
+
+    if (kasterid !== null && auth?.user.id) {
+      const pameldteMap = await hentPameldteForBruker(kasterid)
+      bindPameldingSlots(kommendeSection, kasterid, auth.user.id, pameldteMap)
+    }
 
   } catch (err) {
     logError('home.render', err)

@@ -56,14 +56,32 @@ export async function hentPameldingarForStevne(stevneId: number): Promise<{ data
   return { data: data ?? [], error }
 }
 
+export async function hentMinPameldingForStevne(
+  stevneId: number,
+  kasterid: number,
+): Promise<{ data: { id: number } | null; error: unknown }> {
+  const { data, error } = await supabase
+    .from('pamelding')
+    .select('id')
+    .eq('stevneid', stevneId)
+    .eq('kasterid', kasterid)
+    .maybeSingle()
+  if (error) logError('hentMinPameldingForStevne', error)
+  return { data, error }
+}
+
 export async function meldPaStevne(
   stevneId: number,
   kasterid: number,
   brukerId: string,
-): Promise<{ error: unknown }> {
-  const { error } = await supabase.from('pamelding').insert({ stevneid: stevneId, kasterid, bruker_id: brukerId })
+): Promise<{ error: unknown; id: number | null }> {
+  const { data, error } = await supabase
+    .from('pamelding')
+    .insert({ stevneid: stevneId, kasterid, bruker_id: brukerId })
+    .select('id')
+    .single()
   if (error) logError('meldPaStevne', error)
-  return { error }
+  return { error, id: data?.id ?? null }
 }
 
 export async function fjernPamelding(pameldingId: number): Promise<{ error: unknown }> {

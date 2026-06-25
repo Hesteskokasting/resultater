@@ -8,7 +8,8 @@ import { errorMessage } from '@/utils/errorMessage'
 import { showToast } from '@/components/Toast'
 import { confirmDialog } from '@/components/ConfirmDialog'
 import { hentInfoStevne, oppdaterStevneFase } from '@/services/stevneService'
-import { hentAntallPameldingar, hentAntallUbekrefta } from '@/services/pameldingService'
+import { hentAntallPameldingar, hentAntallUbekrefta, hentMinPameldingForStevne } from '@/services/pameldingService'
+import { createPameldingKnapp } from '@/components/PameldingKnapp'
 import { genererInnledendeKamper } from '@/services/kampGenereringInnledendeService'
 
 // ── Render ────────────────────────────────────────────────────────────────────
@@ -107,14 +108,20 @@ export async function render(
     // ── Handlingsknapper ──────────────────────────────────────────────────────
 
     const knapper = container.querySelector<HTMLElement>('#info-handling-knapper')!
-    const erFerdig = stevne.erfullfort ?? false
+    if (auth?.profil?.kobling_status === 'godkjent' && ikkjeStarta) {
+      const kasterid = auth.profil.kasterid
+      if (kasterid === null) return
 
-    if (auth?.profil?.kobling_status === 'godkjent' && !erFerdig) {
-      const knapp = document.createElement('a')
-      knapp.href = `#/stevne/${id}/pamelding`
-      knapp.className = 'btn btn-sm btn-primary'
-      knapp.textContent = 'Meld deg på'
-      knapper.appendChild(knapp)
+      const minPamelding = (await hentMinPameldingForStevne(id, kasterid)).data
+
+      knapper.appendChild(createPameldingKnapp({
+        stevneId: id,
+        kasterid,
+        brukerId: auth.user.id,
+        isRegistered: minPamelding !== null,
+        pameldingId: minPamelding?.id,
+        onAction: () => { void render(container, { id, isAdmin }, bannerSlot) },
+      }))
     }
 
     const sjaaLenke = document.createElement('a')
