@@ -1,6 +1,6 @@
 import { getUser } from '@/services/authService'
 import { confirmDialog } from '@/components/ConfirmDialog'
-import { formaterDato } from '@/utils/shared'
+import { formaterDato, formaterTid } from '@/utils/shared'
 import { createErrorBanner } from '@/components/ErrorBanner'
 import { createLoadingState } from '@/components/LoadingState'
 import { escHtml } from '@/utils/escHtml'
@@ -245,11 +245,17 @@ export async function render(container: HTMLElement, params: Params = {}): Promi
     const erKobla   = auth?.profil?.kobling_status === 'godkjent'
     const erPameldt = kasterid != null && pameldingar.some(p => p.kasterid === kasterid)
     const dato      = stevne.dato ? formaterDato(stevne.dato) : ''
+    const metaParts = [
+      dato,
+      stevne.tid ? formaterTid(stevne.tid) : '',
+      stevne.kategori?.navn ? escHtml(stevne.kategori.navn) : '',
+      stevne.sted ? escHtml(stevne.sted) : '',
+    ].filter(Boolean).join(' · ')
 
     container.innerHTML = `
       <div class="container py-4 pm-side">
         <h2 class="mb-1">${escHtml(stevne.navn ?? '')}</h2>
-        <p class="text-muted mb-4">${dato}${stevne.sted ? ' · ' + escHtml(stevne.sted) : ''}</p>
+        <p class="text-muted mb-4">${metaParts}</p>
         ${eigetSkjemaHtml(auth, erPrivilegert, erKobla, erPameldt, stevne.erfullfort ?? false, stevneId)}
         ${adminSkjemaHtml(erPrivilegert, stevne.erfullfort ?? false, pameldingar, klubbKastere)}
         ${relaterteStevnerHtml(relaterte)}

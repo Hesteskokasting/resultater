@@ -33,7 +33,11 @@ export type InfoStevneRow = QueryData<typeof _infoStevneQuery>[number]
 export type SisteResultatRow  = Pick<Tables<'stevne'>, 'id' | 'navn' | 'dato'>
 export type LiveStevneRow     = Pick<Tables<'stevne'>, 'id' | 'navn' | 'stevne_fase' | 'erfullfort'>
 export type KommendeStevneRow = Pick<Tables<'stevne'>, 'id' | 'navn' | 'dato' | 'innbydelseurl' | 'stevne_fase' | 'erfullfort'>
-export type PameldingStevneRow = Pick<Tables<'stevne'>, 'id' | 'navn' | 'dato' | 'sted' | 'erfullfort' | 'klubbid'>
+const _pameldingStevneQuery = supabase
+  .from('stevne')
+  .select('id, navn, dato, tid, sted, erfullfort, klubbid, kategori:kategoriid(navn)')
+
+export type PameldingStevneRow = QueryData<typeof _pameldingStevneQuery>[number]
 export type RelatertStevneRow  = Pick<Tables<'stevne'>, 'id' | 'navn' | 'dato'>
 
 export async function hentSisteResultater(): Promise<{ data: SisteResultatRow[]; error: unknown }> {
@@ -74,7 +78,7 @@ export async function hentKommendeStevner(): Promise<{ data: KommendeStevneRow[]
 export async function hentStevneForPamelding(id: number): Promise<{ data: PameldingStevneRow | null; error: unknown }> {
   const { data, error } = await supabase
     .from('stevne')
-    .select('id, navn, dato, sted, erfullfort, klubbid')
+    .select('id, navn, dato, tid, sted, erfullfort, klubbid, kategori:kategoriid(navn)')
     .eq('id', id)
     .maybeSingle()
   if (error) logError('hentStevneForPamelding', error)
