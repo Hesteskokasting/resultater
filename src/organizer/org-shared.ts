@@ -365,13 +365,14 @@ export function lagOnEndringHandler(
 }
 
 export function renderInnledendeKnappar(
-  stevne: Pick<Tables<'stevne'>, 'erfullfort'>,
+  stevne: Pick<Tables<'stevne'>, 'erfullfort' | 'avsluttendekastemetodeid'>,
   erSwiss: boolean,
 ): string {
+  const harAvsluttande = stevne.avsluttendekastemetodeid != null
   return `
     ${erSwiss ? `<button id="neste-runde-btn" class="btn btn-sm btn-warning">Generer neste runde</button>` : ''}
-    <button id="fullfør-turnering-btn" class="btn btn-sm btn-success"${stevne.erfullfort ? ' disabled' : ''}>Fullfør turnering</button>
-    <button id="test-autofullfør-btn" class="btn btn-sm btn-outline-warning">TEST: Autofullfør</button>
+    ${!harAvsluttande ? `<button id="fullfør-turnering-btn" class="btn btn-sm btn-success"${stevne.erfullfort ? ' disabled' : ''}>Fullfør turnering</button>` : ''}
+    ${import.meta.env.VITE_ENV === 'dev' ? `<button id="test-autofullfør-btn" class="btn btn-sm btn-outline-warning">TEST: Autofullfør</button>` : ''}
   `
 }
 

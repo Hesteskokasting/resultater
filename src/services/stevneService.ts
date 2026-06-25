@@ -394,14 +394,14 @@ export async function hentAvsluttendeMetodeNamn(stevneid: number): Promise<{ nav
 
 const _innlStevneQuery = supabase
   .from('stevne')
-  .select('id, navn, erfullfort, stevne_fase, antall_runder_innl, kastemetodeInnl:innledendekastemetodeid(id, navn), kategori:kategoriid(erlagbasert)')
+  .select('id, navn, erfullfort, stevne_fase, antall_runder_innl, avsluttendekastemetodeid, kastemetodeInnl:innledendekastemetodeid(id, navn), kategori:kategoriid(erlagbasert)')
 
 export type InnlStevneRow = QueryData<typeof _innlStevneQuery>[number]
 
 export async function hentInnledendeStevne(stevneid: number): Promise<{ data: InnlStevneRow | null; error: unknown }> {
   const { data, error } = await supabase
     .from('stevne')
-    .select('id, navn, erfullfort, stevne_fase, antall_runder_innl, kastemetodeInnl:innledendekastemetodeid(id, navn), kategori:kategoriid(erlagbasert)')
+    .select('id, navn, erfullfort, stevne_fase, antall_runder_innl, avsluttendekastemetodeid, kastemetodeInnl:innledendekastemetodeid(id, navn), kategori:kategoriid(erlagbasert)')
     .eq('id', stevneid)
     .maybeSingle()
   if (error) logError('hentInnledendeStevne', error)
