@@ -58,7 +58,7 @@ function kommendeKortHtml(s: KommendeStevneRow): string {
   return `
     <div class="stevne-kort">
       <p class="stevne-dato">${formaterDato(s.dato)}</p>
-      <a class="stevne-navn" href="#/stevne/${s.id}/resultat">${escHtml(s.navn)}</a>
+      <a class="stevne-navn" href="#/stevne/${s.id}/info">${escHtml(s.navn)}</a>
       ${innbydelse}
     </div>`
 }
