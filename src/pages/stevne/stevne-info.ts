@@ -12,6 +12,15 @@ import { hentAntallPameldingar, hentAntallUbekrefta, hentMinPameldingForStevne }
 import { createPameldingKnapp } from '@/components/PameldingKnapp'
 import { genererInnledendeKamper } from '@/services/kampGenereringInnledendeService'
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function statusBadge(fase: string | null, erfullfort: boolean | null): string {
+  if (erfullfort) return '<span class="badge bg-success">Fullført</span>'
+  if (fase === 'avsluttende') return '<span class="badge bg-warning text-dark">Avsluttande fase</span>'
+  if (fase === 'innledende')  return '<span class="badge bg-primary">Innledande fase</span>'
+  return '<span class="badge bg-secondary">Ikkje starta</span>'
+}
+
 // ── Render ────────────────────────────────────────────────────────────────────
 
 export async function render(
@@ -96,6 +105,7 @@ export async function render(
         <div class="card-body">
           <table class="table table-sm mb-0">
             <tbody>
+              <tr><th>Status</th><td>${statusBadge(stevne.stevne_fase, stevne.erfullfort)}</td></tr>
               <tr><th>Stad</th><td>${escHtml(stevne.sted ?? '—')}</td></tr>
               <tr><th>Dato</th><td>${stevne.dato ? formaterDatoNumeric(stevne.dato) : '—'}</td></tr>
               <tr><th>Tid</th><td>${stevne.tid ? formaterTid(stevne.tid) : '—'}</td></tr>

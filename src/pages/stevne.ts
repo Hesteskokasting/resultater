@@ -1,7 +1,5 @@
-import type { RealtimeChannel } from '@supabase/supabase-js'
 import { erAdmin, erKlubbadmin } from '@/services/authService'
-import { hentStevneHeader, subscribeToStevneFase } from '@/services/stevneService'
-import { avmeldKanal } from '@/utils/realtime'
+import { hentStevneHeader } from '@/services/stevneService'
 import { createErrorBanner } from '@/components/ErrorBanner'
 import { createLoadingState } from '@/components/LoadingState'
 import { logError } from '@/utils/logError'
@@ -50,12 +48,6 @@ const TAB_RENDER: Record<TabKey, TabRender> = {
   stats:         renderStats as TabRender,
 }
 
-const FASE_LABEL: Record<string, string> = {
-  ikke_startet: '<span class="badge bg-secondary">Ikkje starta</span>',
-  innledende:   '<span class="badge bg-primary">Innledande fase</span>',
-  avsluttende:  '<span class="badge bg-success">Avsluttande fase</span>',
-}
-
 // ── Hjelpefunksjonar ──────────────────────────────────────────────────────────
 
 function renderNav(stevneid: number, aktiv: string, isAdmin: boolean, harAvsluttande: boolean, isCompleted: boolean): string {
@@ -74,15 +66,12 @@ function renderNav(stevneid: number, aktiv: string, isAdmin: boolean, harAvslutt
 
 // ── Render ────────────────────────────────────────────────────────────────────
 
-let kanal: RealtimeChannel | null = null
-
 export async function render(
   container: HTMLElement,
   params: Params,
 ): Promise<void> {
   const id = Number(params.id)
   const tab = String(params.tab ?? 'info')
-  if (kanal) { await avmeldKanal(kanal); kanal = null }
   container.replaceChildren(createLoadingState())
 
   try {
@@ -99,13 +88,12 @@ export async function render(
     const aktiv = ((!isAdmin && ADMIN_FANER.has(tab)) || (!isCompleted && COMPLETED_FANER.has(tab)))
       ? 'info'
       : tab as TabKey
-    const badge = FASE_LABEL[stevne.stevne_fase ?? 'ikke_startet'] ?? ''
 
     container.innerHTML = `
       <div class="org-shell pb-3 pt-1">
         ${renderNav(id, aktiv, isAdmin, harAvsluttande, isCompleted)}
         <div class="org-fase-header d-flex align-items-center gap-2 mb-3">
-          <h5 class="mb-0 flex-grow-1">${escHtml(stevne.navn)} <span id="fase-badge">${badge}</span></h5>
+          <h5 class="mb-0 flex-grow-1">${escHtml(stevne.navn)}</h5>
           <div id="org-banner-knappar"></div>
         </div>
         <div id="org-subside" class="px-3"></div>
@@ -116,11 +104,6 @@ export async function render(
     const renderFn   = TAB_RENDER[aktiv] ?? renderInfo
 
     await renderFn(subside, { id, isAdmin }, bannerSlot)
-
-    kanal = subscribeToStevneFase(id, fase => {
-      const el = container.querySelector('#fase-badge')
-      if (el) el.innerHTML = FASE_LABEL[fase ?? 'ikke_startet'] ?? ''
-    })
   } catch (err) {
     logError('stevne.render', err)
     container.replaceChildren(createErrorBanner('Kunne ikkje laste stevnet.'))
