@@ -311,6 +311,7 @@ interface KampBlockFlags {
   bekrefta: boolean
   harOmgangar: boolean
   kanEndreScore: boolean
+  erTreSpelarar: boolean
 }
 
 function sideRadHtml(
@@ -320,7 +321,7 @@ function sideRadHtml(
   flags: KampBlockFlags,
 ): string {
   const tot = sideSum(side)
-  const score = (tot > 0 || flags.bekrefta || flags.harOmgangar) ? tot : '—'
+  const score = (tot > 0 || (flags.bekrefta && !flags.erTreSpelarar) || flags.harOmgangar) ? tot : '—'
   const kampPlassering = side.rep.kamp_plassering
   const erEliminert = kamp.er_bekreftet && kampPlassering != null && kampPlassering >= nSider
   const erVidare = kamp.er_bekreftet && kampPlassering != null && kampPlassering < nSider
@@ -399,6 +400,7 @@ function renderKampBlock(
     bekrefta,
     harOmgangar,
     kanEndreScore: isAdminLocal && kamp.er_bekreftet && !kamp.er_tre_spelarar && !harOmgangar,
+    erTreSpelarar: kamp.er_tre_spelarar,
   }
 
   const adminRad = isAdminLocal
