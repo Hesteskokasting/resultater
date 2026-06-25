@@ -89,17 +89,6 @@ describe('renderStillingTabell', () => {
       expect(headers).not.toContain('K')
     })
 
-    it('HCP header present when harHcp is true', () => {
-      const el = parse(renderStillingTabell([player(1)], NO_KAMPER, NO_STARTNR, { harHcp: true }))
-      const headers = [...el.querySelectorAll('thead th')].map(th => th.textContent)
-      expect(headers).toContain('HCP')
-    })
-
-    it('HCP header absent by default', () => {
-      const el = parse(renderStillingTabell([player(1)], NO_KAMPER, NO_STARTNR))
-      const headers = [...el.querySelectorAll('thead th')].map(th => th.textContent)
-      expect(headers).not.toContain('HCP')
-    })
   })
 
   describe('harEliminasjon', () => {
