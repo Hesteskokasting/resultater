@@ -17,6 +17,9 @@ function isProfil(obj: unknown): obj is Profil {
 let _cache: AuthUser | null = null
 let _inflight: Promise<AuthUser | null> | null = null
 let _intentionalSignOut = false
+// Track whether an authenticated session is currently active, so the UI can tell
+// "session expired" (auth → unauth) apart from restoring a dead token on load.
+let _hasActiveSession = false
 
 async function _fetchUser(): Promise<AuthUser | null> {
   const { data: { session } } = await supabase.auth.getSession()
@@ -83,10 +86,18 @@ supabase.auth.onAuthStateChange((event, session) => {
     // SIGNED_IN: no cache clear needed — before real login _cache is already null (cleared by loggUt());
     // for session restore on page load, the cache is valid and clearing it causes a redundant DB fetch.
   }
+  if (session && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION' || event === 'USER_UPDATED')) {
+    _hasActiveSession = true
+  }
   const intentional = _intentionalSignOut
+  // Captured before reset: true only when an authenticated session was actually live.
+  // On a SIGNED_OUT this also de-dupes — the reset means a second failed-refresh
+  // SIGNED_OUT reports hadSession=false, so the "session expired" toast fires once.
+  const hadSession = _hasActiveSession
   if (event === 'SIGNED_OUT') {
     _intentionalSignOut = false
-    if (!intentional) {
+    _hasActiveSession = false
+    if (!intentional && hadSession) {
       // Log context to help diagnose unexpected sign-outs (token refresh failure, multi-tab, etc.)
       console.warn('[auth] Unexpected SIGNED_OUT event', {
         hadSession: session !== null,
@@ -96,5 +107,5 @@ supabase.auth.onAuthStateChange((event, session) => {
       })
     }
   }
-  document.dispatchEvent(new CustomEvent('authStateChanged', { detail: { event, intentional } }))
+  document.dispatchEvent(new CustomEvent('authStateChanged', { detail: { event, intentional, hadSession } }))
 })
