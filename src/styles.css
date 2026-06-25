@@ -1101,15 +1101,30 @@ th.stilling-sp-th  { background: var(--stilling-sp-th) !important; color: #fff !
 .deltaker-tabell-wrapper { height: 500px; overflow: auto; }
 .deltaker-søk-spacer { visibility: hidden; pointer-events: none; }
 .deltaker-rad { cursor: pointer; }
-.deltaker-fjern-btn { width: 22px; height: 22px; font-size: 14px; }
 .deltaker-kolonne { max-width: 450px; }
+
+/* Draggable rows (par tab) — inside a Bootstrap .table, so grab cursor is set on the row */
+.deltaker-tabell-wrapper tr[draggable="true"] { cursor: grab; user-select: none; }
+.deltaker-tabell-wrapper tr[draggable="true"]:active { cursor: grabbing; }
+
+/* Remove button — colors set as real properties (not Bootstrap's --bs-btn-* vars)
+   so the Bootstrap .table cell cascade can't bleed into it inside a <td> */
+.remove-btn {
+  width: 22px;
+  height: 22px;
+  font-size: 14px;
+  background-color: var(--bs-danger);
+  border: 1px solid var(--bs-danger);
+  color: #fff;
+}
+.remove-btn:hover {
+  background-color: color-mix(in srgb, var(--bs-danger) 85%, black);
+  border-color: color-mix(in srgb, var(--bs-danger) 85%, black);
+  color: #fff;
+}
 
 /* ── Par/Mix tab ── */
 
-.par-spelarar-liste { min-height: 200px; }
-.par-spelar-kort { cursor: grab; background: var(--bg-2); user-select: none; }
-.par-spelar-kort:hover { background: var(--bg-3); }
-.par-spelar-kort[draggable="true"]:active { cursor: grabbing; }
 .par-slot { min-height: 40px; background: var(--bg-2); cursor: default; transition: background 0.1s; }
 .par-slot--filled { background: var(--bg-3); font-weight: 500; }
 .par-slot--hover { background: var(--bs-primary-bg-subtle); border-color: var(--bs-primary) !important; }

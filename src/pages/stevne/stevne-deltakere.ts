@@ -16,6 +16,8 @@ import { setOnDisconnect } from '@/services/receiptPrinterService'
 import { createPrinterBanner } from '@/pages/stevne/PrinterBanner'
 import type { PrinterBanner } from '@/pages/stevne/PrinterBanner'
 import { createRemoveButton } from '@/components/RemoveButton'
+import { createPlayerTable } from '@/components/PlayerTable'
+import type { PlayerTableHandle } from '@/components/PlayerTable'
 import { createLoadingState } from '@/components/LoadingState'
 import { createTabs } from '@/components/Tabs'
 import { createParTab } from '@/pages/stevne/parTab'
@@ -42,127 +44,6 @@ function filtrerTilgjengelege(
     if (registrerte.has(p.id)) return false
     return !q || kasterNavn(p).toLowerCase().includes(q) || (p.klubb?.navn ?? '').toLowerCase().includes(q)
   })
-}
-
-// ── DOM-byggjarar ─────────────────────────────────────────────────────────────
-
-function lagSpelarKolonne(tittel: string): {
-  kolonne: HTMLDivElement
-  tabell: HTMLTableElement
-  tittelEl: HTMLHeadingElement
-} {
-  const kolonne = document.createElement('div')
-  kolonne.className = 'd-flex flex-column flex-grow-1'
-
-  const tittelEl = document.createElement('h6')
-  tittelEl.textContent = tittel
-  tittelEl.className = 'fw-bold mb-1'
-
-  const tabellWrapper = document.createElement('div')
-  tabellWrapper.className = 'border rounded deltaker-tabell-wrapper flex-grow-1 overflow-auto'
-
-  const tabell = document.createElement('table')
-  tabell.className = 'table table-sm table-hover table-bordered mb-0'
-
-  tabellWrapper.appendChild(tabell)
-  kolonne.appendChild(tittelEl)
-  kolonne.appendChild(tabellWrapper)
-  return { kolonne, tabell, tittelEl }
-}
-
-function lagPameldtRad(
-  spelar: KasterListeRow,
-  erBekreftet: boolean,
-  onFjern: (s: KasterListeRow) => void,
-  onBekreft: (s: KasterListeRow) => void,
-  deaktivert: boolean,
-  onPrint?: ((s: KasterListeRow) => void) | null,
-): HTMLTableRowElement {
-  const rad = document.createElement('tr')
-
-  const bekreftCell = document.createElement('td')
-  bekreftCell.className = 'text-center th-40'
-
-  if (erBekreftet) {
-    const hake = document.createElement('span')
-    hake.className = 'text-success fw-bold'
-    hake.textContent = '✓'
-    bekreftCell.appendChild(hake)
-  } else if (!deaktivert) {
-    const bekreftBtn = document.createElement('button')
-    bekreftBtn.textContent = '✓'
-    bekreftBtn.className = 'btn btn-outline-danger btn-sm rounded-circle p-0 lh-1 deltaker-bekreft-btn'
-    bekreftBtn.title = 'Bekreft spelar'
-    bekreftBtn.addEventListener('click', e => { e.stopPropagation(); onBekreft(spelar) })
-    bekreftCell.appendChild(bekreftBtn)
-  }
-
-  const navneCell = document.createElement('td')
-  navneCell.textContent = kasterNavn(spelar)
-
-  const klubbCell = document.createElement('td')
-  klubbCell.textContent = spelar.klubb?.navn ?? ''
-
-  const fjernCell = document.createElement('td')
-  fjernCell.className = 'text-center th-40'
-
-  if (!deaktivert) {
-    fjernCell.appendChild(createRemoveButton({ title: 'Fjern spelar', onClick: () => onFjern(spelar) }))
-  }
-
-  rad.appendChild(bekreftCell)
-  rad.appendChild(navneCell)
-  rad.appendChild(klubbCell)
-  rad.appendChild(fjernCell)
-
-  if (onPrint !== undefined) {
-    const printCell = document.createElement('td')
-    printCell.className = 'text-center th-40'
-    if (onPrint) {
-      const printBtn = document.createElement('button')
-      printBtn.textContent = '🖨'
-      printBtn.className = 'btn btn-outline-secondary btn-sm p-0 lh-1 deltaker-print-btn'
-      printBtn.title = 'Skriv ut startkort'
-      printBtn.addEventListener('click', e => { e.stopPropagation(); onPrint(spelar) })
-      printCell.appendChild(printBtn)
-    }
-    rad.appendChild(printCell)
-  }
-
-  return rad
-}
-
-function lagTilgjengeliRad(
-  spelar: KasterListeRow,
-  onVelg: (s: KasterListeRow) => void,
-  deaktivert: boolean,
-): HTMLTableRowElement {
-  const rad = document.createElement('tr')
-
-  const navneCell = document.createElement('td')
-  navneCell.textContent = kasterNavn(spelar)
-
-  const klubbCell = document.createElement('td')
-  klubbCell.textContent = spelar.klubb?.navn ?? 'Ingen klubb'
-
-  if (!deaktivert) {
-    rad.classList.add('deltaker-rad')
-    rad.addEventListener('click', () => onVelg(spelar))
-  }
-
-  rad.appendChild(navneCell)
-  rad.appendChild(klubbCell)
-  return rad
-}
-
-function lagTomRad(melding: string, kolSpan: number): HTMLTableRowElement {
-  const rad = document.createElement('tr')
-  const celle = document.createElement('td')
-  celle.className = 'text-center text-muted fst-italic py-3'
-  celle.textContent = melding
-  celle.colSpan = kolSpan
-  rad.appendChild(celle)
-  return rad
 }
 
 // ── Render ────────────────────────────────────────────────────────────────────
@@ -234,7 +115,7 @@ export async function render(
     // ── Venstre kolonne: tilgjengelege spelarar (berre når stevnet ikkje er starta) ──
 
     let searchInput: HTMLInputElement | null = null
-    let tilgjengeliTabell: HTMLTableElement | null = null
+    let tilgjengeliTable: PlayerTableHandle | null = null
 
     if (!isStarted) {
       const leftWrapper = document.createElement('div')
@@ -245,10 +126,24 @@ export async function render(
       searchInput.placeholder = 'Søk etter navn eller klubb…'
       searchInput.className = 'form-control mb-2'
 
-      const { kolonne: leftCol, tabell } = lagSpelarKolonne('Tilgjengelege spelarar')
-      tilgjengeliTabell = tabell
+      tilgjengeliTable = createPlayerTable({
+        formatTitle: () => 'Tilgjengelege spelarar',
+        emptyText: 'Ingen spelarar funne',
+        clubFallback: 'Ingen klubb',
+        onRowClick: kanEndrast
+          ? async s => {
+              const { error } = await leggTilPameldingAdmin(id, s.id)
+              if (error) { showToast('Feil ved innmelding: ' + errorMessage(error), 'error'); return }
+              pameldtMap.set(s.id, false)
+              parTabDirty = true
+              printerBanner?.invalidateMatchData()
+              renderPameldtListe()
+              renderTilgjengeliListe()
+            }
+          : undefined,
+      })
       leftWrapper.appendChild(searchInput)
-      leftWrapper.appendChild(leftCol)
+      leftWrapper.appendChild(tilgjengeliTable.element)
       layout.appendChild(leftWrapper)
     }
 
@@ -266,71 +161,75 @@ export async function render(
       rightWrapper.appendChild(searchSpacer)
     }
 
-    const { kolonne: rightCol, tabell: pameldtTabell, tittelEl: pameldtTittel } = lagSpelarKolonne('Påmelde spelarar')
-    rightWrapper.appendChild(rightCol)
+    // Print column exists whenever the banner does; the per-row button is
+    // re-evaluated on every render so it tracks the live printer connection.
+    const renderPrintCell = printerBanner
+      ? (sp: KasterListeRow): HTMLElement | null => {
+          const handler = printerBanner.getPrintHandler()
+          if (!handler) return null
+          const printBtn = document.createElement('button')
+          printBtn.textContent = '🖨'
+          printBtn.className = 'btn btn-outline-secondary btn-sm p-0 lh-1 deltaker-print-btn'
+          printBtn.title = 'Skriv ut startkort'
+          printBtn.addEventListener('click', e => { e.stopPropagation(); handler(sp) })
+          return printBtn
+        }
+      : null
+
+    const pameldtTable = createPlayerTable({
+      formatTitle: n => `Påmelde spelarar: ${n}`,
+      emptyText: 'Ingen spelarar påmelde',
+      renderLeading: sp => {
+        if (pameldtMap.get(sp.id) ?? false) {
+          const hake = document.createElement('span')
+          hake.className = 'text-success fw-bold'
+          hake.textContent = '✓'
+          return hake
+        }
+        if (!kanEndrast) return null
+        const bekreftBtn = document.createElement('button')
+        bekreftBtn.textContent = '✓'
+        bekreftBtn.className = 'btn btn-outline-danger btn-sm rounded-circle p-0 lh-1 deltaker-bekreft-btn'
+        bekreftBtn.title = 'Bekreft spelar'
+        bekreftBtn.addEventListener('click', async e => {
+          e.stopPropagation()
+          const { error } = await bekreftPameldingForKaster(id, sp.id)
+          if (error) { showToast('Feil ved bekreftelse: ' + errorMessage(error), 'error'); return }
+          pameldtMap.set(sp.id, true)
+          renderPameldtListe()
+        })
+        return bekreftBtn
+      },
+      renderTrailing: [
+        sp => kanEndrast
+          ? createRemoveButton({
+              title: 'Fjern spelar',
+              onClick: async () => {
+                if (pairedIds.has(sp.id)) { showToast('Kan ikkje fjerne spelar som er i eit par. Slett paret fyrst.', 'error'); return }
+                const { error } = await fjernPameldingForKaster(id, sp.id)
+                if (error) { showToast('Feil ved fjerning: ' + errorMessage(error), 'error'); return }
+                pameldtMap.delete(sp.id)
+                parTabDirty = true
+                printerBanner?.invalidateMatchData()
+                renderPameldtListe()
+                renderTilgjengeliListe()
+              },
+            })
+          : null,
+        ...(renderPrintCell ? [renderPrintCell] : []),
+      ],
+    })
+    rightWrapper.appendChild(pameldtTable.element)
 
     // ── Renderfunksjonar ──────────────────────────────────────────────────────
 
     function renderPameldtListe(): void {
-      pameldtTabell.innerHTML = ''
-      const lista = sorterKastere(alleSpelarar.filter(p => pameldtMap.has(p.id)))
-      pameldtTittel.textContent = `Påmelde spelarar: ${lista.length}`
-
-      const onPrint = printerBanner ? printerBanner.getPrintHandler() : undefined
-
-      if (!lista.length) {
-        pameldtTabell.appendChild(lagTomRad('Ingen spelarar påmelde', onPrint !== undefined ? 5 : 4))
-        return
-      }
-
-      for (const sp of lista) {
-
-        pameldtTabell.appendChild(lagPameldtRad(
-          sp,
-          pameldtMap.get(sp.id) ?? false,
-          async s => {
-            if (pairedIds.has(s.id)) { showToast('Kan ikkje fjerne spelar som er i eit par. Slett paret fyrst.', 'error'); return }
-            const { error } = await fjernPameldingForKaster(id, s.id)
-            if (error) { showToast('Feil ved fjerning: ' + errorMessage(error), 'error'); return }
-            pameldtMap.delete(s.id)
-            parTabDirty = true
-            printerBanner?.invalidateMatchData()
-            renderPameldtListe()
-            renderTilgjengeliListe()
-          },
-          async s => {
-            const { error } = await bekreftPameldingForKaster(id, s.id)
-            if (error) { showToast('Feil ved bekreftelse: ' + errorMessage(error), 'error'); return }
-            pameldtMap.set(s.id, true)
-            renderPameldtListe()
-          },
-          !kanEndrast,
-          onPrint,
-        ))
-      }
+      pameldtTable.setPlayers(sorterKastere(alleSpelarar.filter(p => pameldtMap.has(p.id))))
     }
 
     function renderTilgjengeliListe(): void {
-      if (!searchInput || !tilgjengeliTabell) return
-      const filtrert = sorterKastere(filtrerTilgjengelege(alleSpelarar, searchInput.value, pameldtMap))
-      tilgjengeliTabell.innerHTML = ''
-
-      if (!filtrert.length) {
-        tilgjengeliTabell.appendChild(lagTomRad('Ingen spelarar funne', 2))
-        return
-      }
-
-      for (const sp of filtrert) {
-        tilgjengeliTabell.appendChild(lagTilgjengeliRad(sp, async s => {
-          const { error } = await leggTilPameldingAdmin(id, s.id)
-          if (error) { showToast('Feil ved innmelding: ' + errorMessage(error), 'error'); return }
-          pameldtMap.set(s.id, false)
-          parTabDirty = true
-          printerBanner?.invalidateMatchData()
-          renderPameldtListe()
-          renderTilgjengeliListe()
-        }, !kanEndrast))
-      }
+      if (!searchInput || !tilgjengeliTable) return
+      tilgjengeliTable.setPlayers(sorterKastere(filtrerTilgjengelege(alleSpelarar, searchInput.value, pameldtMap)))
     }
 
     layout.appendChild(rightWrapper)

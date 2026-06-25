@@ -3,9 +3,9 @@ import { createErrorBanner } from '@/components/ErrorBanner'
 import { showToast } from '@/components/Toast'
 import { logError } from '@/utils/logError'
 import { errorMessage } from '@/utils/errorMessage'
-import { kasterNavn } from '@/utils/kaster'
 import type { KasterListeRow } from '@/services/kasterService'
 import { createRemoveButton } from '@/components/RemoveButton'
+import { createPlayerTable } from '@/components/PlayerTable'
 import { hentParForStevne, opprettPar, slettPar } from '@/services/pameldingService'
 import type { PameldingPar } from '@/services/pameldingService'
 
@@ -76,61 +76,26 @@ async function renderPar(root: HTMLElement, props: ParTabProps): Promise<void> {
   const leftCol = document.createElement('div')
   leftCol.className = 'col-md-6 d-flex flex-column deltaker-kolonne'
 
-  const leftTitle = document.createElement('h6')
-  leftTitle.className = 'fw-bold mb-1'
-
-  const playerListWrapper = document.createElement('div')
-  playerListWrapper.className = 'border rounded par-spelarar-liste flex-grow-1 overflow-auto'
+  const unpairedTable = createPlayerTable({
+    formatTitle: n => `Spelarar utan par: ${n}`,
+    emptyText: 'Ingen fleire spelarar å tilordne',
+    isDraggable: isAdmin,
+    onDragStart: (sp, row) => {
+      draggedId = sp.id
+      row.classList.add('opacity-50')
+    },
+    onDragEnd: (_sp, row) => {
+      draggedId = null
+      row.classList.remove('opacity-50')
+    },
+  })
 
   function renderUnpaired(): void {
     const available = unpaired.filter(s => s.id !== pendingA?.id && s.id !== pendingB?.id)
-    leftTitle.textContent = `Spelarar utan par: ${available.length}`
-    playerListWrapper.innerHTML = ''
-
-    if (!available.length) {
-      const empty = document.createElement('p')
-      empty.className = 'text-muted fst-italic text-center py-3 mb-0'
-      empty.textContent = 'Ingen fleire spelarar å tilordne'
-      playerListWrapper.appendChild(empty)
-      return
-    }
-
-    for (const sp of available) {
-      const card = document.createElement('div')
-      card.className = 'par-spelar-kort d-flex justify-content-between align-items-center px-2 py-1 border-bottom'
-
-      const nameSpan = document.createElement('span')
-      nameSpan.textContent = kasterNavn(sp)
-
-      const clubSpan = document.createElement('span')
-      clubSpan.className = 'text-muted small ms-2'
-      clubSpan.textContent = sp.klubb?.navn ?? ''
-
-      card.appendChild(nameSpan)
-      card.appendChild(clubSpan)
-
-      if (isAdmin) {
-        card.draggable = true
-        card.setAttribute('tabindex', '0')
-        card.dataset.kasterid = String(sp.id)
-
-        card.addEventListener('dragstart', e => {
-          draggedId = sp.id
-          e.dataTransfer?.setData('text/plain', String(sp.id))
-          card.classList.add('opacity-50')
-        })
-        card.addEventListener('dragend', () => {
-          draggedId = null
-          card.classList.remove('opacity-50')
-        })
-      }
-
-      playerListWrapper.appendChild(card)
-    }
+    unpairedTable.setPlayers(available)
   }
 
-  leftCol.appendChild(leftTitle)
-  leftCol.appendChild(playerListWrapper)
+  leftCol.appendChild(unpairedTable.element)
 
   // ── Right: pair creator + existing pairs ───────────────────────────────────
 
