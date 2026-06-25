@@ -1,11 +1,11 @@
 import type { Kaster, Klubb } from '@/types'
 
-export function kasterNavn(k: Pick<Kaster, 'fornavn' | 'etternavn'> | null | undefined): string {
+export function kasterNavn(k: { fornavn?: string | null; etternavn?: string | null } | null | undefined): string {
   return [k?.fornavn, k?.etternavn].filter(Boolean).join(' ')
 }
 
 /** "Fornavn E." — first name plus last-name initial. */
-export function kasterNavnKort(k: Pick<Kaster, 'fornavn' | 'etternavn'> | null | undefined): string {
+export function kasterNavnKort(k: { fornavn?: string | null; etternavn?: string | null } | null | undefined): string {
   const initial = k?.etternavn ? ` ${k.etternavn.charAt(0)}.` : ''
   return `${k?.fornavn ?? ''}${initial}`.trim()
 }

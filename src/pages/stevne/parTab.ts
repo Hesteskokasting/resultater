@@ -31,11 +31,6 @@ export interface ParTabHandle {
   refresh: () => void
 }
 
-function kortNamn(k: { fornavn: string | null; etternavn: string | null } | null): string {
-  const fornavn = k?.fornavn ?? ''
-  const initial = k?.etternavn ? k.etternavn.charAt(0).toUpperCase() + '.' : ''
-  return [fornavn, initial].filter(Boolean).join(' ')
-}
 
 /**
  * Renders nothing until the first refresh() — the parent calls it on tab
@@ -130,7 +125,7 @@ async function renderPar(root: HTMLElement, props: ParTabProps): Promise<void> {
 
     function refresh(): void {
       const player = side === 'A' ? pendingA : pendingB
-      zone.textContent = player ? kortNamn(player) : tomLabel
+      zone.textContent = player ? kasterNavn(player) : tomLabel
       zone.classList.toggle('par-slot--filled', player != null)
     }
 
@@ -218,11 +213,11 @@ async function renderPar(root: HTMLElement, props: ParTabProps): Promise<void> {
 
       const sideACell = document.createElement('span')
       sideACell.className = 'par-par-celle border rounded px-2 py-1'
-      sideACell.textContent = kortNamn(par.sideA.kaster)
+      sideACell.textContent = kasterNavn(par.sideA.kaster)
 
       const sideBCell = document.createElement('span')
       sideBCell.className = 'par-par-celle border rounded px-2 py-1'
-      sideBCell.textContent = kortNamn(par.sideB.kaster)
+      sideBCell.textContent = kasterNavn(par.sideB.kaster)
 
       row.appendChild(sideACell)
       row.appendChild(sideBCell)
