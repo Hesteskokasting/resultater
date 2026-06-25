@@ -272,6 +272,7 @@ export function renderStillingTabell(
   table.id = tableId
 
   const wrapper = document.createElement('div')
+  wrapper.className = 'stilling-tabell-wrap'
   const h6 = document.createElement('h6')
   h6.className = 'text-center fw-bold mb-1'
   h6.textContent = tittel
