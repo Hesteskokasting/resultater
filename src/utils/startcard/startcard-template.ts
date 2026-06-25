@@ -7,25 +7,24 @@ export interface RoundInfo {
   opponentScore?: string
 }
 
-function createHeader(): HTMLDivElement {
+function createHeader(playerId: number | string): HTMLDivElement {
   const header = document.createElement('div')
   header.className = 'header'
-  const title = document.createElement('div')
-  title.className = 'title'
+
   const mainTitle = document.createElement('div')
   mainTitle.className = 'main-title'
   mainTitle.textContent = 'STARTKORT'
-  const subTitle = document.createElement('div')
-  subTitle.className = 'subtitle'
-  subTitle.textContent = 'GLOPPEN-METODEN'
-  title.appendChild(mainTitle)
-  title.appendChild(subTitle)
-  header.appendChild(title)
+
+  const startNumber = document.createElement('div')
+  startNumber.className = 'start-number'
+  startNumber.textContent = String(playerId)
+
+  header.appendChild(mainTitle)
+  header.appendChild(startNumber)
   return header
 }
 
 function createInfoTable(
-  playerId: number | string,
   playerName: string | null,
   clubName: string,
   tournamentName: string,
@@ -35,9 +34,9 @@ function createInfoTable(
 
   const nameRow = document.createElement('tr')
   nameRow.appendChild(createInfoCell('Navn:'))
-  nameRow.appendChild(createInfoCell(playerName ?? '', 'value', 'player-name'))
-  nameRow.appendChild(createInfoCell('Startnr.'))
-  nameRow.appendChild(createInfoCell(String(playerId), 'value', 'player-id'))
+  const nameCell = createInfoCell(playerName ?? '', 'value', 'player-name')
+  nameCell.colSpan = 3
+  nameRow.appendChild(nameCell)
   infoTable.appendChild(nameRow)
 
   const clubRow = document.createElement('tr')
@@ -141,17 +140,6 @@ function createTd(text: string, colspan = 1, id?: string, className?: string): H
   return td
 }
 
-function createNotes(): HTMLDivElement {
-  const notes = document.createElement('div')
-  notes.className = 'notes'
-  notes.innerHTML = `
-    <div>Ved under 10 i skår, for eksempel 7 - skriv 07</div>
-    <div>Unngå rettingar/overstrykningar - ved feilskriving - kontakt domar</div>
-    <div class="wo">Møter du W.O. fører du 2kp og 21sp (nytt frå 2011)</div>
-  `
-  return notes
-}
-
 function createCupTable(): HTMLTableElement {
   const cupTable = document.createElement('table')
   cupTable.className = 'cup-table'
@@ -172,10 +160,9 @@ export function startcardTemplate(
 ): HTMLDivElement {
   const card = document.createElement('div')
   card.className = 'startcard'
-  card.appendChild(createHeader())
-  card.appendChild(createInfoTable(playerId, playerName, clubName, tournamentName))
+  card.appendChild(createHeader(playerId))
+  card.appendChild(createInfoTable(playerName, clubName, tournamentName))
   card.appendChild(createRoundsTable(roundInfos))
-  card.appendChild(createNotes())
   card.appendChild(createCupTable())
   return card
 }
