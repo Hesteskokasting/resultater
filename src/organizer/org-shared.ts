@@ -364,7 +364,7 @@ export function renderInnledendeKnappar(
 }
 
 interface AvsluttendeState {
-  alleInnlBekrefta: boolean
+  allMatchesConfirmed: boolean
   harAvslKampar: boolean
   harGruppefordeling: boolean
   harPrekonfigurertFormat?: boolean
@@ -374,15 +374,13 @@ export function renderAvsluttendeKnappar(
   stevne: Pick<Tables<'stevne'>, 'erfullfort' | 'stevne_fase'>,
   state: AvsluttendeState,
 ): string {
-  const { alleInnlBekrefta, harAvslKampar, harGruppefordeling, harPrekonfigurertFormat = false } = state
+  const { allMatchesConfirmed, harAvslKampar, harGruppefordeling, harPrekonfigurertFormat = false } = state
   const fase = stevne.stevne_fase
 
   let handlingsHtml = ''
 
   if (fase !== 'avsluttende') {
-    if (!alleInnlBekrefta) {
-      handlingsHtml = '<span class="badge bg-warning text-dark">Innleiande fase er ikkje ferdig</span>'
-    } else {
+    if (allMatchesConfirmed) {
       handlingsHtml = `
         <button id="start-avsl-btn" class="btn btn-sm btn-success">Start avsluttande fase</button>
         ${harPrekonfigurertFormat ? `<button id="endre-gruppeinndeling-btn" class="btn btn-sm btn-outline-secondary">Endre gruppefordeling</button>` : ''}`
@@ -393,7 +391,7 @@ export function renderAvsluttendeKnappar(
 
   return `
     ${handlingsHtml}
-    <button id="fullfør-turnering-btn" class="btn btn-sm btn-success"${stevne.erfullfort ? ' disabled' : ''}>Fullfør turnering</button>
+    ${allMatchesConfirmed ? `<button id="fullfør-turnering-btn" class="btn btn-sm btn-success"${stevne.erfullfort ? ' disabled' : ''}>Fullfør turnering</button>` : ''}
   `
 }
 

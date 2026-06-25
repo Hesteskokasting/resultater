@@ -188,6 +188,7 @@ export function createAvsluttendeRenderer(variant: AvsluttendeVariant) {
 
       const alleInnlBekrefta = innlKampar.length > 0 && innlKampar.every(k => k.er_bekreftet)
       const harAvslKampar = avslKampar.length > 0
+      const allMatchesConfirmed = alleInnlBekrefta && (!harAvslKampar || avslKampar.every(k => k.er_bekreftet))
       const harGruppefordeling = typedResultat.some(r => r.gruppe != null)
       const gruppeNavnMap: Record<string, number> = Object.fromEntries(rawGrupper.map(g => [g.navn, g.id]))
       const runde1Format = parseRunde1Format(stevne.runde1_format)
@@ -224,7 +225,7 @@ export function createAvsluttendeRenderer(variant: AvsluttendeVariant) {
 
       if (isAdmin && bannerSlot) {
         bannerSlot.innerHTML = renderAvsluttendeKnappar(stevne, {
-          alleInnlBekrefta,
+          allMatchesConfirmed,
           harAvslKampar,
           harGruppefordeling,
           harPrekonfigurertFormat: runde1Format != null && stevne.stevne_fase !== 'avsluttende',
