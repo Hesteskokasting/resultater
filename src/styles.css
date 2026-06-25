@@ -821,7 +821,7 @@ a.stevne-navn {
 
 .org-max-480 { max-width: 480px; }
 .org-tab-knappar  { display: none; }
-.org-stilling-kol { width: 400px; flex-shrink: 0; }
+.org-stilling-kol { width: 100%; max-width: 500px; flex-shrink: 0; }
 
 @media (min-width: 1200px) {
   .org-stilling-kol {
@@ -2084,7 +2084,7 @@ th.innl-score-th {
   .avsl-kamp-block { width: 100%; }
 }
 .avsl-score-cel { font-variant-numeric: tabular-nums; background: var(--avsl-score-bg) !important; }
-.avsl-stilling-einzel { max-width: 400px; }
+.avsl-stilling-einzel { max-width: 500px; }
 .avsl-maks-600 { max-width: 600px; margin-inline: auto; }
 
 .avsl-elim-plass {
