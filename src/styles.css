@@ -823,7 +823,7 @@ a.stevne-navn {
 .org-tab-knappar  { display: none; }
 .org-stilling-kol { width: 400px; flex-shrink: 0; }
 
-@media (min-width: 931px) {
+@media (min-width: 1200px) {
   .org-stilling-kol {
     position: sticky;
     top: 0;
@@ -842,7 +842,7 @@ a.stevne-navn {
 .stevne-nav .nav-link:focus   { color: var(--tekst); }
 .stevne-nav .nav-link.active  { color: var(--lenke); }
 
-@media (max-width: 930px) {
+@media (max-width: 1199px) {
   .org-tab-knappar  { display: flex; margin-bottom: 0.75rem; }
   .org-tab-btn      { flex: 1; }
   .org-stilling-kol { width: 100%; }
@@ -863,10 +863,10 @@ a.stevne-navn {
 /* ── Kampliste - felles ─────────────────────────────────────────────────────── */
 
 /* Responsive show/hide */
-@media (max-width: 767px) {
+@media (max-width: 699px) {
   .kamp-tabell--desktop { display: none !important; }
 }
-@media (min-width: 768px) {
+@media (min-width: 700px) {
   .kamp-liste-mobil { display: none !important; }
 }
 
@@ -2071,7 +2071,7 @@ th.innl-score-th {
   border-radius: 6px;
   padding: 2px 8px;
 }
-@media (max-width: 930px) {
+@media (max-width: 1199px) {
   .avsl-gruppe-kol { flex: 0 0 100%; }
   .avsl-gruppe-kol + .avsl-gruppe-kol {
     border-left: none;
