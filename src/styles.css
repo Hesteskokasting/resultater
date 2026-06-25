@@ -837,6 +837,12 @@ a.stevne-navn {
 .org-kampar-panel { min-width: 0; }
 .btn-bekreft      { min-width: 5rem; }
 
+.stevne-nav                   { font-size: 0.875rem; }
+.stevne-nav .nav-link         { color: var(--tekst-2); }
+.stevne-nav .nav-link:hover,
+.stevne-nav .nav-link:focus   { color: var(--tekst); }
+.stevne-nav .nav-link.active  { color: var(--lenke); }
+
 @media (max-width: 930px) {
   .org-tab-knappar  { display: flex; margin-bottom: 0.75rem; }
   .org-tab-btn      { flex: 1; }
