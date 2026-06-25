@@ -76,7 +76,7 @@ export async function signUp(email: string, password: string) {
 }
 
 // Abonner på auth-endringar. Tømer cache og sender DOM-event.
-supabase.auth.onAuthStateChange((event) => {
+supabase.auth.onAuthStateChange((event, session) => {
   if (event === 'SIGNED_OUT') {
     _cache = null
     _inflight = null
@@ -84,6 +84,17 @@ supabase.auth.onAuthStateChange((event) => {
     // for session restore on page load, the cache is valid and clearing it causes a redundant DB fetch.
   }
   const intentional = _intentionalSignOut
-  if (event === 'SIGNED_OUT') _intentionalSignOut = false
+  if (event === 'SIGNED_OUT') {
+    _intentionalSignOut = false
+    if (!intentional) {
+      // Log context to help diagnose unexpected sign-outs (token refresh failure, multi-tab, etc.)
+      console.warn('[auth] Unexpected SIGNED_OUT event', {
+        hadSession: session !== null,
+        hadCache: _cache !== null,
+        userAgent: navigator.userAgent,
+        url: window.location.href,
+      })
+    }
+  }
   document.dispatchEvent(new CustomEvent('authStateChanged', { detail: { event, intentional } }))
 })
