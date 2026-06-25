@@ -3,6 +3,7 @@ import { hentRegler, hentStevnerOgResultater } from '@/services/norgescupService
 import { formaterDatoLang as formaterDato } from '@/utils/shared'
 import { createErrorBanner } from '@/components/ErrorBanner'
 import { escHtml } from '@/utils/escHtml'
+import { livePillHtml } from '@/components/LivePill'
 import { hentSisteResultater, hentLiveStevner, hentKommendeStevner } from '@/services/stevneService'
 import type { SisteResultatRow, LiveStevneRow, KommendeStevneRow } from '@/services/stevneService'
 import { logError } from '@/utils/logError'
@@ -40,8 +41,8 @@ function liveKortHtml(s: LiveStevneRow): string {
   const tab = s.stevne_fase === 'avsluttende' ? 'avsluttende' : 'innledende'
   return `
     <a class="live-kort" href="#/stevne/${s.id}/${tab}">
-      <span class="live-prikk"></span>
-      <span>LIVE: ${escHtml(s.navn)}</span>
+      ${livePillHtml()}
+      <span>${escHtml(s.navn)}</span>
     </a>`
 }
 
