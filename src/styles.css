@@ -2053,7 +2053,18 @@ th.innl-score-th {
   z-index: 10;
 }
 
-#gruppe-val-wrapper .form-check { min-height: 44px; display: flex; align-items: center; }
+#gruppe-val-wrapper .form-check {
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-left: 0;
+}
+#gruppe-val-wrapper .form-check .form-check-input {
+  float: none;
+  margin: 0;
+  flex-shrink: 0;
+}
 #gruppe-val-wrapper .btn-check:checked + .btn::before { content: '✓ '; }
 .avsl-kamp-block  { width: calc(50% - 0.5rem); min-width: 220px; }
 .avsl-kamp-header {

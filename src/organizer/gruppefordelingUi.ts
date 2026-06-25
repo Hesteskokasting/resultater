@@ -65,7 +65,7 @@ export function renderGruppefordeling(
     splitParts.push(`
       <div class="form-check">
         <input class="form-check-input" type="radio" name="gruppe-split" id="split-ingen" value="${n}" ${initNa === n ? 'checked' : ''}>
-        <label class="form-check-label" for="split-ingen">Ingen gruppeinndeling (alle i A)</label>
+        <label class="form-check-label" for="split-ingen">Alle i A</label>
       </div>`)
   }
   const splitOptions = splitParts.join('')
