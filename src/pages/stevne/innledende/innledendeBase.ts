@@ -588,14 +588,14 @@ function kampRadKnapperTd(kamp: InnlKampRow, admin: boolean, harOmgangar: boolea
   if (!admin) {
     return `<td class="text-end pe-2 text-nowrap">
         ${pill}
-        <button class="kamp-knapp" id="scoreboard-${kamp.id}" title="Scoreboard">Score</button>
+        <button class="kamp-knapp" id="scoreboard-${kamp.id}" title="Scoreboard">Scoreboard</button>
       </td>`
   }
   const scoreKl = `kamp-knapp${harOmgangar ? ' kamp-knapp-primaer' : ''}`
   const bekrftKl = `kamp-knapp${kanBekrefte ? ' kamp-knapp-suksess' : ''}`
   return `<td class="text-end pe-2 text-nowrap">
         ${pill}
-        <button class="${scoreKl}" id="scoreboard-${kamp.id}" title="Scoreboard">Score</button>
+        <button class="${scoreKl}" id="scoreboard-${kamp.id}" title="Scoreboard">Scoreboard</button>
         <button class="${bekrftKl}" id="bekrft-${kamp.id}"${!kanBekrefte ? ' disabled' : ''}>Bekreft</button>
       </td>`
 }
@@ -667,7 +667,7 @@ function kampRadMobilKnapper(kamp: InnlKampRow, kanBekrefte: boolean): string {
     : `<button class="kamp-knapp-mobil kamp-knapp-bekreft-mobil" id="m-bekrft-${kamp.id}"${!kanBekrefte ? ' disabled' : ''}>Bekreft</button>`
   return `
       <div class="kamp-mobil-knapper">
-        <button class="kamp-knapp-mobil" id="m-scoreboard-${kamp.id}">Score</button>
+        <button class="kamp-knapp-mobil" id="m-scoreboard-${kamp.id}">Scoreboard</button>
         ${bekrftCell}
       </div>`
 }

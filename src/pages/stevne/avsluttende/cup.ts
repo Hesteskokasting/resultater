@@ -379,7 +379,7 @@ function adminRadHtml(kamp: AvslKampRow, bekrefta: boolean, knapp: BekreftKnappS
               ${!kamp.er_walkover && !kamp.er_tre_spelarar
                 ? `<button class="btn btn-primary btn-sm" id="plus-${kamp.id}"${bekrefta ? ' disabled' : ''}>+</button> `
                 : ''}
-              ${!bekrefta ? `<button class="btn btn-secondary btn-sm" id="scoreboard-${kamp.id}">Score</button> ` : ''}
+              ${!bekrefta ? `<button class="btn btn-secondary btn-sm" id="scoreboard-${kamp.id}">Scoreboard</button> ` : ''}
               <button class="btn ${knapp.klass} btn-sm${knapp.ekstraKlass}" id="bekrft-${kamp.id}"${knapp.disabled ? ' disabled' : ''}>${knapp.tekst}</button>
             </td>
           </tr>`
