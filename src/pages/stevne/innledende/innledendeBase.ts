@@ -166,7 +166,7 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
       abonnerPaaEndringar(container, stevneid)
     } catch (err) {
       logError(`${variant.logPrefix}.lastOgVis`, err)
-      container.replaceChildren(createErrorBanner('Kunne ikkje laste innledande fase.'))
+      container.replaceChildren(createErrorBanner('Kunne ikkje laste innleiande fase.'))
     }
   }
 
@@ -198,7 +198,7 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
 
     bannerSlot.querySelector('#test-autofullfør-btn')?.addEventListener('click', async (e) => {
       const btn = e.currentTarget as HTMLButtonElement
-      if (!await confirmDialog({ title: 'Autofullfør kampar', message: 'Autofullfør alle ubekreftede innledande kampar?' })) return
+      if (!await confirmDialog({ title: 'Autofullfør kampar', message: 'Autofullfør alle ubekreftede innleiande kampar?' })) return
       btn.disabled = true
       await autoFullforInnledendeKamper(ctx.stevneid)
       await ctx.reload()

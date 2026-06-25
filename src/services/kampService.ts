@@ -53,7 +53,7 @@ const _kampScoreboardQuery = supabase
 export type KampRow = QueryData<typeof _kampScoreboardQuery>[number]
 export type KampSpelarIKamp = KampRow['spelarar'][number]
 
-// ── Innledande fase ───────────────────────────────────────────────────────────
+// ── Innleiande fase ───────────────────────────────────────────────────────────
 
 const _innlKamperQuery = supabase.from('kamp').select(`
   id, stevneid, runde_nummer, bane_nummer, er_bekreftet, er_walkover, fase,

@@ -390,7 +390,7 @@ export async function hentAvsluttendeMetodeNamn(stevneid: number): Promise<{ nav
   return { navn: navn.toLowerCase(), error }
 }
 
-// ── Innledande fase ───────────────────────────────────────────────────────────
+// ── Innleiande fase ───────────────────────────────────────────────────────────
 
 const _innlStevneQuery = supabase
   .from('stevne')

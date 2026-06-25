@@ -8,6 +8,7 @@ import { errorMessage } from '@/utils/errorMessage'
 import { showToast } from '@/components/Toast'
 import { confirmDialog } from '@/components/ConfirmDialog'
 import { hentInfoStevne, oppdaterStevneFase } from '@/services/stevneService'
+import { livePillHtml } from '@/components/LivePill'
 import { hentAntallPameldingar, hentAntallUbekrefta, hentMinPameldingForStevne } from '@/services/pameldingService'
 import { createPameldingKnapp } from '@/components/PameldingKnapp'
 import { genererInnledendeKamper } from '@/services/kampGenereringInnledendeService'
@@ -15,10 +16,10 @@ import { genererInnledendeKamper } from '@/services/kampGenereringInnledendeServ
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function statusBadge(fase: string | null, erfullfort: boolean | null): string {
-  if (erfullfort) return '<span class="badge bg-success">Fullført</span>'
-  if (fase === 'avsluttende') return '<span class="badge bg-warning text-dark">Avsluttande fase</span>'
-  if (fase === 'innledende')  return '<span class="badge bg-primary">Innledande fase</span>'
-  return '<span class="badge bg-secondary">Ikkje starta</span>'
+  if (erfullfort)             return 'Fullført'
+  if (fase === 'avsluttende') return `Avsluttande fase ${livePillHtml()}`
+  if (fase === 'innledende')  return `Innleiande fase ${livePillHtml()}`
+  return 'Ikkje starta'
 }
 
 // ── Render ────────────────────────────────────────────────────────────────────
@@ -56,7 +57,7 @@ export async function render(
       const startBtn = bannerSlot.querySelector<HTMLButtonElement>('#start-stevne-btn')!
       startBtn.addEventListener('click', async () => {
         if (!stevne.kastemetodeInnl) {
-          showToast('Du må velje kastemetode for innledande fase. Gå til Innstillingar for å endre.', 'error')
+          showToast('Du må velje kastemetode for innleiande fase. Gå til Innstillingar for å endre.', 'error')
           return
         }
         if (erLag ? antall < 4 : antall < 2) {
@@ -69,7 +70,7 @@ export async function render(
           return
         }
         if (erCascade && !stevne.antall_runder_innl) {
-          showToast('Du må setje antal rundar for innledande fase. Gå til Innstillingar for å endre.', 'error')
+          showToast('Du må setje antal rundar for innleiande fase. Gå til Innstillingar for å endre.', 'error')
           return
         }
         const ubekrefta = await hentAntallUbekrefta(id)
@@ -109,9 +110,9 @@ export async function render(
               <tr><th>Stad</th><td>${escHtml(stevne.sted ?? '—')}</td></tr>
               <tr><th>Dato</th><td>${stevne.dato ? formaterDatoNumeric(stevne.dato) : '—'}</td></tr>
               <tr><th>Tid</th><td>${stevne.tid ? formaterTid(stevne.tid) : '—'}</td></tr>
-              <tr><th>Kastemetode innledande</th><td>${escHtml(metodeNavn)}</td></tr>
+              <tr><th>Kastemetode innleiande</th><td>${escHtml(metodeNavn)}</td></tr>
               <tr><th>Kastemetode avsluttande</th><td>${escHtml(stevne.kastemetodeAvsl?.navn ?? '—')}</td></tr>
-              <tr><th>Antal rundar innledande</th><td>${stevne.antall_runder_innl ?? '—'}</td></tr>
+              <tr><th>Antal rundar innleiande</th><td>${stevne.antall_runder_innl ?? '—'}</td></tr>
               <tr><th>Påmelde spelarar</th><td>${antall}</td></tr>
             </tbody>
           </table>

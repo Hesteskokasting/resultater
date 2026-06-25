@@ -394,7 +394,7 @@ export function renderAvsluttendeKnappar(
 
   if (fase !== 'avsluttende') {
     if (!alleInnlBekrefta) {
-      handlingsHtml = '<span class="badge bg-warning text-dark">Innledande fase er ikkje ferdig</span>'
+      handlingsHtml = '<span class="badge bg-warning text-dark">Innleiande fase er ikkje ferdig</span>'
     } else {
       handlingsHtml = `
         <button id="start-avsl-btn" class="btn btn-sm btn-success">Start avsluttande fase</button>

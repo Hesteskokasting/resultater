@@ -26,6 +26,6 @@ export async function render(
     const { render: r } = await import('./innledende/xkast')
     await r(container, { id, isAdmin }, bannerSlot)
   } else {
-    container.replaceChildren(createErrorBanner(`Ukjend innledande kastemetode: ${navn || '(ikkje sett)'}`))
+    container.replaceChildren(createErrorBanner(`Ukjend innleiande kastemetode: ${navn || '(ikkje sett)'}`))
   }
 }

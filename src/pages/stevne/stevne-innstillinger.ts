@@ -51,7 +51,7 @@ export async function render(
         <h4 class="mb-3">Innstillingar</h4>
         <form id="innstillingar-form" class="org-max-480">
           <div class="mb-3">
-            <label class="form-label fw-semibold">Kastemetode innledande</label>
+            <label class="form-label fw-semibold">Kastemetode innleiande</label>
             <select id="innl-metode" class="form-select">
               <option value="">— Ikkje vald —</option>
               ${optionsHtml(innlMetodar, stevne.innledendekastemetodeid)}
@@ -65,7 +65,7 @@ export async function render(
             </select>
           </div>
           <div class="mb-4">
-            <label class="form-label fw-semibold">Antal rundar innledande</label>
+            <label class="form-label fw-semibold">Antal rundar innleiande</label>
             <input id="antall-rundar" type="number" min="1" class="form-control"
               value="${stevne.antall_runder_innl ?? ''}" placeholder="t.d. 6">
           </div>

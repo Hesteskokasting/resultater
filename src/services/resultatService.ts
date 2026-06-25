@@ -48,7 +48,7 @@ export async function hentStevneMedDetaljer(id: number): Promise<{ data: StevneD
   return { data, error }
 }
 
-// ── Innledande fase ───────────────────────────────────────────────────────────
+// ── Innleiande fase ───────────────────────────────────────────────────────────
 
 const _innlResultatQuery = supabase.from('resultat').select('kasterid, startnummer, hcp, posisjon')
 export type InnlResultatRow = QueryData<typeof _innlResultatQuery>[number]
