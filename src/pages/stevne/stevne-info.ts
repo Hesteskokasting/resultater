@@ -113,6 +113,7 @@ export async function render(
               <tr><th>Stad</th><td>${escHtml(stevne.sted ?? '—')}</td></tr>
               <tr><th>Dato</th><td>${stevne.dato ? formaterDatoNumeric(stevne.dato) : '—'}</td></tr>
               <tr><th>Tid</th><td>${stevne.tid ? formaterTid(stevne.tid) : '—'}</td></tr>
+              <tr><th>Kategori</th><td>${escHtml(stevne.kategori?.navn ?? '—')}</td></tr>
               <tr><th>Kastemetode innleiande</th><td>${escHtml(metodeNavn)}</td></tr>
               <tr><th>Kastemetode avsluttande</th><td>${escHtml(stevne.kastemetodeAvsl?.navn ?? '—')}</td></tr>
               <tr><th>Antal rundar innleiande</th><td>${stevne.antall_runder_innl ?? '—'}</td></tr>
