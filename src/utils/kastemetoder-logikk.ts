@@ -91,7 +91,7 @@ function erGyldigGruppeStorrelse(n: number): boolean {
 // nA: 50–80 % av n, nB = n - nA, begge gyldige gruppestr.
 export function beregnGyldigeGruppeStorrelsar(n: number): { nA: number; nB: number }[] {
   const minA = Math.ceil(n * 0.5)
-  const maxA = Math.floor(n * 0.8)
+  const maxA = Math.round(n * 0.8)
   const splits: { nA: number; nB: number }[] = []
   for (let nA = maxA; nA >= minA; nA--) {
     const nB = n - nA
