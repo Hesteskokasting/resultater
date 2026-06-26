@@ -1,5 +1,5 @@
 const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/charts-DOFOLNDj.js","assets/rolldown-runtime-lhHHWwHU.js"])))=>i.map(i=>d[i]);
-import{t as e}from"./logError-DhxY2JQv.js";import{J as t,Y as n,Z as r,et as i,ft as a,rt as o,ut as s}from"./index-D1GzXyr3.js";import{o as c,s as l,t as u}from"./kasterService-D1rq1bik.js";import{t as d}from"./LoadingState-xRmJ3K_t.js";import{t as f}from"./EmptyState-BvE_0HiD.js";import{t as p}from"./AdminLinkBar-Bn6_UCBr.js";var m=24,h=`https://placehold.co/200x200/444/888?text=?`,g={visAlle:!1,sokeTekst:``,side:1};function _(e){let n=s(e);return`
+import{t as e}from"./logError-DhxY2JQv.js";import{J as t,Y as n,Z as r,et as i,ft as a,rt as o,ut as s}from"./index-B_yOZcdN.js";import{o as c,s as l,t as u}from"./kasterService-D1rq1bik.js";import{t as d}from"./LoadingState-xRmJ3K_t.js";import{t as f}from"./EmptyState-BvE_0HiD.js";import{t as p}from"./AdminLinkBar-nnjG7bPK.js";var m=24,h=`https://placehold.co/200x200/444/888?text=?`,g={visAlle:!1,sokeTekst:``,side:1};function _(e){let n=s(e);return`
     <a href="#/kastere/${a(e)}" class="kaster-kort">
       <img src="${t(e.avatarurl||h)}" alt="${t(n)}" loading="lazy">
       <div class="kaster-navn">${t(n)}</div>

@@ -1,4 +1,4 @@
-import{i as e,o as t,s as n,t as r}from"./authService-CcI7FLUE.js";import{J as i}from"./index-D1GzXyr3.js";import{t as a}from"./Tabs-D6JHD9IR.js";function o(e){let t=document.createElement(`div`);return t.innerHTML=e,t}async function s(s){let c=await e();if(c){s.innerHTML=`
+import{i as e,o as t,s as n,t as r}from"./authService-CcI7FLUE.js";import{J as i}from"./index-B_yOZcdN.js";import{t as a}from"./Tabs-D6JHD9IR.js";function o(e){let t=document.createElement(`div`);return t.innerHTML=e,t}async function s(s){let c=await e();if(c){s.innerHTML=`
       <div class="container py-4 konto-container">
         <p>Du er allereie innlogga som <strong>${i(c.user.email)}</strong>.</p>
         <a href="#/minside" class="btn btn-primary">Gå til Min side</a>
