@@ -1,4 +1,4 @@
-import{t as e}from"./logError-DhxY2JQv.js";import{i as t}from"./authService-CcI7FLUE.js";import{F as n,J as r,N as i,Y as a,Z as o,f as s,h as c,i as l,p as u,tt as d,ut as f,y as p}from"./index-pllV3QU0.js";import{a as m,o as h}from"./kasterService-D1rq1bik.js";import{t as g}from"./LoadingState-xRmJ3K_t.js";function _(e,t,n,r,i,a){return e?!n&&!t?`<div class="alert alert-warning">
+import{t as e}from"./logError-DhxY2JQv.js";import{i as t}from"./authService-CcI7FLUE.js";import{F as n,J as r,N as i,Y as a,Z as o,f as s,h as c,i as l,p as u,tt as d,ut as f,y as p}from"./index-C_tXKeOg.js";import{a as m,o as h}from"./kasterService-D1rq1bik.js";import{t as g}from"./LoadingState-xRmJ3K_t.js";function _(e,t,n,r,i,a){return e?!n&&!t?`<div class="alert alert-warning">
       Du må <a href="#/minside">koble kontoen din til ein utøvarprofil</a> for å melde deg på.
     </div>`:i?`<div class="alert alert-secondary">Dette stevnet er fullført. Påmelding er stengt.</div>`:n&&r?`
       <div class="alert alert-success d-flex justify-content-between align-items-center">
