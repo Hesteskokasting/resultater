@@ -96,7 +96,7 @@ function aggregateStats(kamper: StatsKampRow[], posisjonMap: Map<number, number>
     s.ringerPct = s.shoesThrown > 0 ? (s.ringers / s.shoesThrown) * 100 : 0
   }
 
-  return result.sort((a, b) => b.shoesThrown - a.shoesThrown)
+  return result.sort((a, b) => b.ringerPct - a.ringerPct)
 }
 
 // ── HTML builder ──────────────────────────────────────────────────────────────
