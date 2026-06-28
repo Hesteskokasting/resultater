@@ -139,7 +139,7 @@ export async function render(container: HTMLElement): Promise<void> {
 
     const kommendeSection = container.querySelector<HTMLElement>('.heimeside-kommende')!
     container.querySelector<HTMLElement>('#kommende-innhald')!.outerHTML =
-      `<div class="stevne-liste">${r2.map(s => kommendeKortHtml(s, showSlot)).join('')}</div>`
+      `<div class="stevne-liste">${r2.filter(s => s.stevne_fase === null || s.stevne_fase === 'ikke_startet').map(s => kommendeKortHtml(s, showSlot)).join('')}</div>`
 
     if (kasterid !== null && auth?.user.id) {
       const pameldteMap = await hentPameldteForBruker(kasterid)
