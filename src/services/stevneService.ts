@@ -45,7 +45,7 @@ export async function hentSisteResultater(): Promise<{ data: SisteResultatRow[];
   const { data, error } = await supabase
     .from('stevne')
     .select('id, navn, dato')
-    .lt('dato', dagsdato)
+    .lte('dato', dagsdato)
     .eq('erfullfort', true)
     .order('dato', { ascending: false })
     .limit(5)
