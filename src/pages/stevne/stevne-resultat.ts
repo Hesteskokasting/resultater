@@ -16,6 +16,19 @@ interface GruppeEntry {
 
 // ── Hjelpefunksjonar ──────────────────────────────────────────────────────────
 
+/** Groups rows within a gruppe by startnummer for Par/Mix display. */
+function grupperParVis(rader: ResultatRad[]): ResultatRad[][] {
+  const map = new Map<number | string, ResultatRad[]>()
+  let fallbackIdx = 0
+  for (const r of rader) {
+    const key = r.startnummer != null ? r.startnummer : `_${fallbackIdx++}`
+    const group = map.get(key) ?? []
+    group.push(r)
+    map.set(key, group)
+  }
+  return [...map.values()]
+}
+
 function grupperResultater(resultater: ResultatRad[], erFoer2026: boolean): GruppeEntry[] {
   const grupper = new Map<string, GruppeEntry>()
 
@@ -34,15 +47,28 @@ function grupperResultater(resultater: ResultatRad[], erFoer2026: boolean): Grup
 
 // ── HTML-byggjarar ────────────────────────────────────────────────────────────
 
-function mobilGruppeHtml(gruppe: GruppeEntry): string {
-  const rader = gruppe.rader.map(r => `
-    <div class="res-rad">
-      <span class="res-pl">${r.plassering ?? '–'}.</span>
-      <div class="res-info">
-        <span class="res-navn">${escHtml(kasterNavn(r.kaster) || '–')}</span>
-        <span class="res-klubb">${escHtml(r.klubb?.navn ?? '–')}</span>
-      </div>
-    </div>`).join('')
+function mobilGruppeHtml(gruppe: GruppeEntry, isParMix: boolean): string {
+  const rader = isParMix
+    ? grupperParVis(gruppe.rader).map(par => {
+        const rep = par[0]!
+        const navneHtml = par.map(r => escHtml(kasterNavn(r.kaster) || '–')).join(' og ')
+        return `
+          <div class="res-rad">
+            <span class="res-pl">${rep.plassering ?? '–'}.</span>
+            <div class="res-info">
+              <span class="res-navn">${navneHtml}</span>
+              <span class="res-klubb">${escHtml(rep.klubb?.navn ?? '–')}</span>
+            </div>
+          </div>`
+      }).join('')
+    : gruppe.rader.map(r => `
+        <div class="res-rad">
+          <span class="res-pl">${r.plassering ?? '–'}.</span>
+          <div class="res-info">
+            <span class="res-navn">${escHtml(kasterNavn(r.kaster) || '–')}</span>
+            <span class="res-klubb">${escHtml(r.klubb?.navn ?? '–')}</span>
+          </div>
+        </div>`).join('')
 
   return `
     <div class="res-gruppe">
@@ -51,20 +77,37 @@ function mobilGruppeHtml(gruppe: GruppeEntry): string {
     </div>`
 }
 
-function desktopGruppeHtml(gruppe: GruppeEntry): string {
-  const rader = gruppe.rader.map(r => {
-    const k = r.kaster
-    const navneHtml = k
-      ? `<a href="#/kastere/${lagKasterSlug(k)}" class="res-kaster-lenke">${escHtml(kasterNavn(k))}</a>`
-      : '–'
-    return `
-      <tr>
-        <td class="res-td-pl">${r.plassering ?? '–'}</td>
-        <td class="res-td-navn">${navneHtml}</td>
-        <td class="res-td-klubb">${escHtml(r.klubb?.navn ?? '–')}</td>
-        <td class="res-td-nc">${r.nc_poeng != null ? r.nc_poeng : ''}</td>
-      </tr>`
-  }).join('')
+function desktopGruppeHtml(gruppe: GruppeEntry, isParMix: boolean): string {
+  const rader = isParMix
+    ? grupperParVis(gruppe.rader).map(par => {
+        const rep = par[0]!
+        const navneHtml = par.map(r => {
+          const k = r.kaster
+          return k
+            ? `<a href="#/kastere/${lagKasterSlug(k)}" class="res-kaster-lenke">${escHtml(kasterNavn(k))}</a>`
+            : '–'
+        }).join(' og ')
+        return `
+          <tr>
+            <td class="res-td-pl">${rep.plassering ?? '–'}</td>
+            <td class="res-td-navn">${navneHtml}</td>
+            <td class="res-td-klubb">${escHtml(rep.klubb?.navn ?? '–')}</td>
+            <td class="res-td-nc">${rep.nc_poeng != null ? rep.nc_poeng : ''}</td>
+          </tr>`
+      }).join('')
+    : gruppe.rader.map(r => {
+        const k = r.kaster
+        const navneHtml = k
+          ? `<a href="#/kastere/${lagKasterSlug(k)}" class="res-kaster-lenke">${escHtml(kasterNavn(k))}</a>`
+          : '–'
+        return `
+          <tr>
+            <td class="res-td-pl">${r.plassering ?? '–'}</td>
+            <td class="res-td-navn">${navneHtml}</td>
+            <td class="res-td-klubb">${escHtml(r.klubb?.navn ?? '–')}</td>
+            <td class="res-td-nc">${r.nc_poeng != null ? r.nc_poeng : ''}</td>
+          </tr>`
+      }).join('')
 
   return `
     <div class="res-tabell-seksjon">
@@ -118,9 +161,10 @@ export async function render(
       return
     }
 
-    const aar    = stevne.dato ? new Date(stevne.dato + 'T12:00:00').getFullYear() : 9999
-    const grupper = grupperResultater(resultater, aar < 2026)
-    const antall  = resultater.length
+    const aar      = stevne.dato ? new Date(stevne.dato + 'T12:00:00').getFullYear() : 9999
+    const grupper  = grupperResultater(resultater, aar < 2026)
+    const antall   = resultater.length
+    const isParMix = stevne.kategori?.erlagbasert ?? false
 
     const pdfHtml = stevne.resultaturl?.startsWith('http')
       ? `<a class="res-pdf-lenke" href="${escHtml(stevne.resultaturl)}" target="_blank" rel="noopener">Resultat som pdf 📄</a>`
@@ -138,10 +182,10 @@ export async function render(
           <p class="res-antall"><strong>Antall deltakarar: ${antall}</strong></p>
         </div>
         <div class="res-mobil-blokk">
-          ${grupper.map(mobilGruppeHtml).join('')}
+          ${grupper.map(g => mobilGruppeHtml(g, isParMix)).join('')}
         </div>
         <div class="res-desktop-blokk">
-          ${grupper.map(desktopGruppeHtml).join('')}
+          ${grupper.map(g => desktopGruppeHtml(g, isParMix)).join('')}
         </div>
       </div>`
   } catch (err) {
