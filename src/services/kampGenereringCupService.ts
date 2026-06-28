@@ -81,7 +81,7 @@ async function _insertCupParingar(
     runde_nummer: rundeNummer,
     gruppe_navn: gruppeNavn ?? null,
     bane_nummer: p.erWalkover ? null : ++baneNr,
-    er_bekreftet: false,
+    er_bekreftet: p.erWalkover,
     er_walkover: p.erWalkover,
     er_tre_spelarar: p.erTreSpelarar,
     runde_navn: rundeNavn,

@@ -144,7 +144,7 @@ async function _insertRundeKampar(
     fase: 'innledende',
     runde_nummer: rundeNummer,
     bane_nummer: ci + 1,
-    er_bekreftet: false,
+    er_bekreftet: pair.erWalkover,
     er_walkover: pair.erWalkover,
   }))
 
@@ -359,7 +359,7 @@ export async function genererNesteSwissRunde(
     fase: 'innledende',
     runde_nummer: rundeNummer,
     bane_nummer: i + 1,
-    er_bekreftet: false,
+    er_bekreftet: pair.erWalkover,
     er_walkover: pair.erWalkover,
   }))
 
