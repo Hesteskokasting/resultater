@@ -16,6 +16,17 @@ interface GruppeEntry {
 
 // ── Hjelpefunksjonar ──────────────────────────────────────────────────────────
 
+/** Club display for a pair — "Klubb A / Klubb B" if different, "Klubb A" if same. */
+function parKlubbDisplay(par: ResultatRad[]): string {
+  const seen = new Set<string>()
+  const names: string[] = []
+  for (const r of par) {
+    const name = r.klubb?.navn ?? '–'
+    if (!seen.has(name)) { seen.add(name); names.push(name) }
+  }
+  return names.map(escHtml).join(' / ')
+}
+
 /** Groups rows within a gruppe by startnummer for Par/Mix display. */
 function grupperParVis(rader: ResultatRad[]): ResultatRad[][] {
   const map = new Map<number | string, ResultatRad[]>()
@@ -57,7 +68,7 @@ function mobilGruppeHtml(gruppe: GruppeEntry, isParMix: boolean): string {
             <span class="res-pl">${rep.plassering ?? '–'}.</span>
             <div class="res-info">
               <span class="res-navn">${navneHtml}</span>
-              <span class="res-klubb">${escHtml(rep.klubb?.navn ?? '–')}</span>
+              <span class="res-klubb">${parKlubbDisplay(par)}</span>
             </div>
           </div>`
       }).join('')
@@ -91,7 +102,7 @@ function desktopGruppeHtml(gruppe: GruppeEntry, isParMix: boolean): string {
           <tr>
             <td class="res-td-pl">${rep.plassering ?? '–'}</td>
             <td class="res-td-navn">${navneHtml}</td>
-            <td class="res-td-klubb">${escHtml(rep.klubb?.navn ?? '–')}</td>
+            <td class="res-td-klubb">${parKlubbDisplay(par)}</td>
             <td class="res-td-nc">${rep.nc_poeng != null ? rep.nc_poeng : ''}</td>
           </tr>`
       }).join('')
