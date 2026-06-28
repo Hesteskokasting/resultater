@@ -14,6 +14,15 @@ interface GruppeEntry {
   rader: ResultatRad[]
 }
 
+interface ColFlags {
+  isParMix: boolean
+  showKpSp: boolean
+  showNc: boolean
+}
+
+const NC_STEVNETYPER = new Set(['NC', 'SNC', 'DNC'])
+const KP_SP_INNLEDENDE = new Set(['Gloppen', 'Nordhordlandsmetoden'])
+
 // ── Hjelpefunksjonar ──────────────────────────────────────────────────────────
 
 /** Club display for a pair — "Klubb A / Klubb B" if different, "Klubb A" if same. */
@@ -58,8 +67,15 @@ function grupperResultater(resultater: ResultatRad[], erFoer2026: boolean): Grup
 
 // ── HTML-byggjarar ────────────────────────────────────────────────────────────
 
-function mobilGruppeHtml(gruppe: GruppeEntry, isParMix: boolean): string {
-  const rader = isParMix
+function mobilMetaHtml(rep: ResultatRad, cols: ColFlags): string {
+  const parts: string[] = []
+  if (cols.showKpSp) parts.push(`KP ${rep.kamp_poeng_innl ?? '–'}`, `SP ${rep.score_poeng_innl ?? '–'}`)
+  if (cols.showNc)   parts.push(`NC ${rep.nc_poeng ?? '–'}`)
+  return parts.length ? `<span class="res-meta">${parts.join('  ')}</span>` : ''
+}
+
+function mobilGruppeHtml(gruppe: GruppeEntry, cols: ColFlags): string {
+  const rader = cols.isParMix
     ? grupperParVis(gruppe.rader).map(par => {
         const rep = par[0]!
         const navneHtml = par.map(r => escHtml(kasterNavn(r.kaster) || '–')).join(' og ')
@@ -69,6 +85,7 @@ function mobilGruppeHtml(gruppe: GruppeEntry, isParMix: boolean): string {
             <div class="res-info">
               <span class="res-navn">${navneHtml}</span>
               <span class="res-klubb">${parKlubbDisplay(par)}</span>
+              ${mobilMetaHtml(rep, cols)}
             </div>
           </div>`
       }).join('')
@@ -78,6 +95,7 @@ function mobilGruppeHtml(gruppe: GruppeEntry, isParMix: boolean): string {
           <div class="res-info">
             <span class="res-navn">${escHtml(kasterNavn(r.kaster) || '–')}</span>
             <span class="res-klubb">${escHtml(r.klubb?.navn ?? '–')}</span>
+            ${mobilMetaHtml(r, cols)}
           </div>
         </div>`).join('')
 
@@ -88,8 +106,25 @@ function mobilGruppeHtml(gruppe: GruppeEntry, isParMix: boolean): string {
     </div>`
 }
 
-function desktopGruppeHtml(gruppe: GruppeEntry, isParMix: boolean): string {
-  const rader = isParMix
+function desktopRadHtml(
+  plassering: number | null,
+  navneHtml: string,
+  klubbHtml: string,
+  rep: ResultatRad,
+  cols: ColFlags,
+): string {
+  return `
+    <tr>
+      <td class="res-td-pl">${plassering ?? '–'}</td>
+      <td class="res-td-navn">${navneHtml}</td>
+      <td class="res-td-klubb">${klubbHtml}</td>
+      ${cols.showKpSp ? `<td class="res-td-kp">${rep.kamp_poeng_innl ?? ''}</td><td class="res-td-sp">${rep.score_poeng_innl ?? ''}</td>` : ''}
+      ${cols.showNc   ? `<td class="res-td-nc">${rep.nc_poeng ?? ''}</td>` : ''}
+    </tr>`
+}
+
+function desktopGruppeHtml(gruppe: GruppeEntry, cols: ColFlags): string {
+  const rader = cols.isParMix
     ? grupperParVis(gruppe.rader).map(par => {
         const rep = par[0]!
         const navneHtml = par.map(r => {
@@ -98,40 +133,31 @@ function desktopGruppeHtml(gruppe: GruppeEntry, isParMix: boolean): string {
             ? `<a href="#/kastere/${lagKasterSlug(k)}" class="res-kaster-lenke">${escHtml(kasterNavn(k))}</a>`
             : '–'
         }).join(' og ')
-        return `
-          <tr>
-            <td class="res-td-pl">${rep.plassering ?? '–'}</td>
-            <td class="res-td-navn">${navneHtml}</td>
-            <td class="res-td-klubb">${parKlubbDisplay(par)}</td>
-            <td class="res-td-nc">${rep.nc_poeng != null ? rep.nc_poeng : ''}</td>
-          </tr>`
+        return desktopRadHtml(rep.plassering, navneHtml, parKlubbDisplay(par), rep, cols)
       }).join('')
     : gruppe.rader.map(r => {
         const k = r.kaster
         const navneHtml = k
           ? `<a href="#/kastere/${lagKasterSlug(k)}" class="res-kaster-lenke">${escHtml(kasterNavn(k))}</a>`
           : '–'
-        return `
-          <tr>
-            <td class="res-td-pl">${r.plassering ?? '–'}</td>
-            <td class="res-td-navn">${navneHtml}</td>
-            <td class="res-td-klubb">${escHtml(r.klubb?.navn ?? '–')}</td>
-            <td class="res-td-nc">${r.nc_poeng != null ? r.nc_poeng : ''}</td>
-          </tr>`
+        return desktopRadHtml(r.plassering, navneHtml, escHtml(r.klubb?.navn ?? '–'), r, cols)
       }).join('')
+
+  const colspan = 3 + (cols.showKpSp ? 2 : 0) + (cols.showNc ? 1 : 0)
 
   return `
     <div class="res-tabell-seksjon">
       <table class="res-tabell">
         <thead>
           <tr class="res-thead-gruppe">
-            <td colspan="4" class="res-td-gruppe-header">${escHtml(gruppe.label)}</td>
+            <td colspan="${colspan}" class="res-td-gruppe-header">${escHtml(gruppe.label)}</td>
           </tr>
           <tr class="res-thead-kolonner">
             <th class="res-td-pl">Pl</th>
             <th class="res-td-navn">NAVN</th>
             <th class="res-td-klubb">KLUBB</th>
-            <th class="res-td-nc">NC</th>
+            ${cols.showKpSp ? '<th class="res-td-kp">KP</th><th class="res-td-sp">SP</th>' : ''}
+            ${cols.showNc   ? '<th class="res-td-nc">NC</th>' : ''}
           </tr>
         </thead>
         <tbody>${rader}</tbody>
@@ -172,10 +198,14 @@ export async function render(
       return
     }
 
-    const aar      = stevne.dato ? new Date(stevne.dato + 'T12:00:00').getFullYear() : 9999
-    const grupper  = grupperResultater(resultater, aar < 2026)
-    const antall   = resultater.length
-    const isParMix = stevne.kategori?.erlagbasert ?? false
+    const aar  = stevne.dato ? new Date(stevne.dato + 'T12:00:00').getFullYear() : 9999
+    const grupper = grupperResultater(resultater, aar < 2026)
+    const antall  = resultater.length
+    const cols: ColFlags = {
+      isParMix: stevne.kategori?.erlagbasert ?? false,
+      showNc:   NC_STEVNETYPER.has(stevne.stevnetype?.navn ?? ''),
+      showKpSp: KP_SP_INNLEDENDE.has(stevne.innledende?.navn ?? ''),
+    }
 
     const pdfHtml = stevne.resultaturl?.startsWith('http')
       ? `<a class="res-pdf-lenke" href="${escHtml(stevne.resultaturl)}" target="_blank" rel="noopener">Resultat som pdf 📄</a>`
@@ -193,10 +223,10 @@ export async function render(
           <p class="res-antall"><strong>Antall deltakarar: ${antall}</strong></p>
         </div>
         <div class="res-mobil-blokk">
-          ${grupper.map(g => mobilGruppeHtml(g, isParMix)).join('')}
+          ${grupper.map(g => mobilGruppeHtml(g, cols)).join('')}
         </div>
         <div class="res-desktop-blokk">
-          ${grupper.map(g => desktopGruppeHtml(g, isParMix)).join('')}
+          ${grupper.map(g => desktopGruppeHtml(g, cols)).join('')}
         </div>
       </div>`
   } catch (err) {

@@ -11,8 +11,8 @@ const _stevneDetaljerQuery = supabase
     stevnetype:stevnetypeid(navn),
     kategori:kategoriid(navn, erlagbasert),
     kontakt:kontaktkasterid(fornavn, etternavn),
-    innledende:innledendekastemetodeid(navn),
-    avsluttende:avsluttendekastemetodeid(navn)
+    innledende:kastemetode!innledendekastemetodeid(navn),
+    avsluttende:kastemetode!avsluttendekastemetodeid(navn)
   `)
 
 export type StevneDetaljerRow = QueryData<typeof _stevneDetaljerQuery>[number]
@@ -20,7 +20,7 @@ export type StevneDetaljerRow = QueryData<typeof _stevneDetaljerQuery>[number]
 const _resultatRadQuery = supabase
   .from('resultat')
   .select(`
-    plassering, nc_poeng, startnummer,
+    plassering, nc_poeng, startnummer, kamp_poeng_innl, score_poeng_innl,
     kaster:kasterid(id, fornavn, etternavn),
     klubb:klubbid(navn),
     klasse:klasseid(navn),
@@ -39,8 +39,8 @@ export async function hentStevneMedDetaljer(id: number): Promise<{ data: StevneD
       stevnetype:stevnetypeid(navn),
       kategori:kategoriid(navn, erlagbasert),
       kontakt:kontaktkasterid(fornavn, etternavn),
-      innledende:innledendekastemetodeid(navn),
-      avsluttende:avsluttendekastemetodeid(navn)
+      innledende:kastemetode!innledendekastemetodeid(navn),
+      avsluttende:kastemetode!avsluttendekastemetodeid(navn)
     `)
     .eq('id', id)
     .maybeSingle()
@@ -130,7 +130,7 @@ export async function hentResultaterForStevne(stevneId: number): Promise<{ data:
   const { data, error } = await supabase
     .from('resultat')
     .select(`
-      plassering, nc_poeng, startnummer,
+      plassering, nc_poeng, startnummer, kamp_poeng_innl, score_poeng_innl,
       kaster:kasterid(id, fornavn, etternavn),
       klubb:klubbid(navn),
       klasse:klasseid(navn),
