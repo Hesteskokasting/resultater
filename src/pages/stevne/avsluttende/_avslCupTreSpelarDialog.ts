@@ -28,7 +28,7 @@ export function opnTreSpelarBekreftDialog(
     modal.innerHTML = `
       <div class="card p-4 avsl-dialog-card">
         <h5 class="card-title mb-1">Bekreft 3-spelar kamp</h5>
-        <p class="text-muted small mb-3">Vel dei to som går vidare. Den gjenverande er eliminert.</p>
+        <p class="text-muted small mb-3">Vel dei to som går vidare. Den gjenverande er utslått.</p>
         <div class="d-flex flex-column gap-2 mb-3">
           ${sider.map((side, i) => {
             const idx = valt.indexOf(side.rep.kasterid)
@@ -41,7 +41,7 @@ export function opnTreSpelarBekreftDialog(
               ${erEliminert ? 'disabled' : ''}
             ><span>${navns[i]}</span>${
               plasseringLabel ? `<span class="badge bg-success-subtle text-success-emphasis">${plasseringLabel}</span>` :
-              erEliminert ? `<span class="badge bg-danger">Eliminert</span>` : ''
+              erEliminert ? `<span class="badge bg-danger">Utslått</span>` : ''
             }</button>`
           }).join('')}
         </div>
