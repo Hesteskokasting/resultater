@@ -69,6 +69,7 @@ export async function hentKommendeStevner(): Promise<{ data: KommendeStevneRow[]
     .from('stevne')
     .select('id, navn, dato, innbydelseurl, stevne_fase, erfullfort')
     .gte('dato', dagsdato)
+    .or('stevne_fase.is.null,stevne_fase.eq.ikke_startet')
     .order('dato', { ascending: true })
     .limit(5)
   if (error) logError('hentKommendeStevner', error)
