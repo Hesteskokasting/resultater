@@ -71,7 +71,7 @@ export function opnGenererRundeDialog(
     </div>`
   }
 
-  function renderModal(medSeeding: boolean): void {
+  function renderModal(medSeeding: boolean | null): void {
     const walkoverPlayers = aktive.slice(0, wo)
 
     const walkoversHtml = walkoverPlayers.length > 0
@@ -81,13 +81,13 @@ export function opnGenererRundeDialog(
         </div>`
       : ''
 
-    const seedingInfoHtml = medSeeding && totalBaner > 0
+    const seedingInfoHtml = medSeeding === true && totalBaner > 0
       ? `<div class="alert alert-info small mb-3 py-2">
           Dette er seedinggrupper, ikkje kampar. Spelarar i same gruppe kan ikkje trekkast mot kvarandre. Kampane blir oppretta når du klikkar «Bekreft og opprett kampar».
         </div>`
       : ''
 
-    const poolsSection = medSeeding && totalBaner > 0
+    const poolsSection = medSeeding === true && totalBaner > 0
       ? `<div class="d-flex gap-3 flex-wrap mb-3">
           ${[
             { label: 'Seeding 1', pool: pool1 },
@@ -117,9 +117,16 @@ export function opnGenererRundeDialog(
           <p class="text-muted small mb-0">${n} av ${totalCount} spelarar igjen</p>
         </div>
         <div class="avsl-dialog-body">
-          <div class="form-check mb-2">
-            <input class="form-check-input" type="checkbox" id="seeding-dlg" ${medSeeding ? 'checked' : ''}>
-            <label class="form-check-label" for="seeding-dlg">Bruk seeding</label>
+          <div class="mb-3">
+            <span class="form-label fw-semibold d-block mb-1">Bruk seeding</span>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" name="seeding-dlg" id="seeding-ja" value="ja" ${medSeeding === true ? 'checked' : ''}>
+              <label class="form-check-label" for="seeding-ja">Ja</label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" name="seeding-dlg" id="seeding-nei" value="nei" ${medSeeding === false ? 'checked' : ''}>
+              <label class="form-check-label" for="seeding-nei">Nei</label>
+            </div>
           </div>
           ${seedingInfoHtml}
           ${walkoversHtml}
@@ -127,7 +134,7 @@ export function opnGenererRundeDialog(
         </div>
         <div class="avsl-dialog-footer">
           <div class="d-flex gap-2">
-            <button id="bekreft-gen-btn" class="btn btn-primary">Bekreft og opprett kampar</button>
+            <button id="bekreft-gen-btn" class="btn btn-primary" ${medSeeding === null ? 'disabled' : ''}>Bekreft og opprett kampar</button>
             <button id="avbryt-gen-btn" class="btn btn-secondary">Avbryt</button>
           </div>
         </div>
@@ -157,15 +164,14 @@ export function opnGenererRundeDialog(
       document.body.style.userSelect = 'none'
     })
 
-    modal.querySelector<HTMLInputElement>('#seeding-dlg')!.addEventListener('change', e =>
-      renderModal((e.target as HTMLInputElement).checked)
-    )
+    modal.querySelector<HTMLInputElement>('#seeding-ja')!.addEventListener('change', () => renderModal(true))
+    modal.querySelector<HTMLInputElement>('#seeding-nei')!.addEventListener('change', () => renderModal(false))
     modal.querySelector('#avbryt-gen-btn')!.addEventListener('click', () => {
       removeListeners()
       modal.remove()
     })
     modal.querySelector('#bekreft-gen-btn')!.addEventListener('click', async () => {
-      const medSeedingVal = modal.querySelector<HTMLInputElement>('#seeding-dlg')!.checked
+      if (medSeeding === null) return
       const btn = modal.querySelector<HTMLButtonElement>('#bekreft-gen-btn')!
       btn.disabled = true
       btn.textContent = 'Lagrer…'
@@ -179,11 +185,11 @@ export function opnGenererRundeDialog(
           await genererCupRunde1(
             stevneid,
             [{ gruppeNavn, spelarar, runde1Oppsett }],
-            medSeedingVal,
+            medSeeding,
             runde1Format ? runde1FormatRecord : null,
           )
         } else {
-          await genererNesteCupRundeForGruppe(stevneid, gruppeNavn, medSeedingVal, spelarar)
+          await genererNesteCupRundeForGruppe(stevneid, gruppeNavn, medSeeding, spelarar)
         }
         removeListeners()
         modal.remove()
@@ -197,5 +203,5 @@ export function opnGenererRundeDialog(
     })
   }
 
-  renderModal(true)
+  renderModal(null)
 }
