@@ -109,12 +109,7 @@ async function createMineKampar(kasterid: number): Promise<HTMLElement> {
 
   const active = alleKampar
     .filter(ks => ks.kamp?.stevne?.erfullfort === false)
-    .sort((a, b) => {
-      const aBekreftet = a.kamp?.er_bekreftet ? 1 : 0
-      const bBekreftet = b.kamp?.er_bekreftet ? 1 : 0
-      if (aBekreftet !== bBekreftet) return aBekreftet - bBekreftet
-      return (a.kamp?.runde_nummer ?? 0) - (b.kamp?.runde_nummer ?? 0)
-    })
+    .sort((a, b) => (a.kamp?.runde_nummer ?? 0) - (b.kamp?.runde_nummer ?? 0))
 
   const ferdige = alleKampar
     .filter(ks => ks.kamp?.stevne?.erfullfort === true)
