@@ -117,7 +117,7 @@ export async function resetTournament(stevneid: number): Promise<void> {
 
   const { error: stevneErr } = await supabase
     .from('stevne')
-    .update({ stevne_fase: 'ikke_startet', runde1_format: null })
+    .update({ stevne_fase: 'ikke_startet', runde1_format: null, erfullfort: false })
     .eq('id', stevneid)
   if (stevneErr) logError('resetTournament:stevne', stevneErr)
 }
