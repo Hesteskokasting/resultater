@@ -151,10 +151,14 @@ function visVentePaaNesteKamp(ctx: KampViewCtx): void {
     ctx,
     'Fullført',
     `<div class="sb-ventar-innhald">
-      <div class="alert alert-success mb-3"><strong>Kampen er ferdig!</strong></div>
-      <div class="alert alert-info">Ventar på neste kamp…</div>
+      <div class="alert alert-info sb-ventar-tekst">Ventar på neste kamp…</div>
+      <button class="btn btn-primary btn-lg w-100 sb-ventar-oppdater">Oppdater</button>
     </div>`,
   )
+
+  ctx.container.querySelector('.sb-ventar-oppdater')?.addEventListener('click', () => {
+    location.reload()
+  })
 
   const kanal = subscribeToNextMatch(ctx.kamp.stevneid, ctx.kampId, async (nyKamp) => {
     if (await erRelevantKamp(ctx, nyKamp)) {

@@ -1707,6 +1707,8 @@ th.innl-score-th {
 }
 
 .sb-ventar-innhald { padding: 20px; }
+.sb-ventar-tekst { font-size: 1.4rem; }
+.sb-ventar-oppdater { margin-top: 12px; font-size: 1.2rem; padding: 14px; }
 
 /* ── Overlay-variant (fixed, full-screen) ── */
 
