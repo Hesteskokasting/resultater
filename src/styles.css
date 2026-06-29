@@ -1776,6 +1776,17 @@ th.innl-score-th {
   text-align: center;
 }
 
+.sb-spelar-navn--starter::before {
+  content: '';
+  display: inline-block;
+  width: 0.45em;
+  height: 0.45em;
+  background: var(--sb-positiv);
+  border-radius: 50%;
+  margin-right: 0.4em;
+  vertical-align: middle;
+}
+
 /* Par/Mix: two names per side — smaller so the label fits on one line */
 .sb-spelar-navn--par {
   font-size: min(clamp(1.3rem, 3.2vw, 1.7rem), 4vh);

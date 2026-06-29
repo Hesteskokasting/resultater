@@ -76,6 +76,11 @@ export function getOmgangThrowerId(sideSpelarIds: number[], omgang: number): num
   return sideSpelarIds[(omgang - 1) % sideSpelarIds.length] ?? null
 }
 
+/** 0-based index of the side that starts a given omgang (2 omgangar per side). */
+export function getOmgangStarterIndex(omgang: number, numSides: number): number {
+  return Math.floor((omgang - 1) / 2) % numSides
+}
+
 export interface PairableStandingRow {
   kasterid: number
   navn?: string | null

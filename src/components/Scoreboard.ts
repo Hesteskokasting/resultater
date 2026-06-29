@@ -4,7 +4,7 @@
 // tegn/tegn3, bereknKnappStatus/bereknKnappStatus3, nesteOmgang/nesteOmgang3,
 // and OmgangRad[] vs MatchRoundRow[] state structures.
 import type { MatchRoundRow, MatchRow, MatchPlayerInMatch } from '@/services/kampService'
-import { calcRingCount, getOmgangThrowerId } from '@/utils/kamp'
+import { calcRingCount, getOmgangThrowerId, getOmgangStarterIndex } from '@/utils/kamp'
 import { createEl } from '@/utils/createEl'
 import {
   getMatchRounds,
@@ -258,12 +258,13 @@ export async function renderScoreboard(
     const kanNeste = kanGaaVidare()
     const kanBekrefte = kanBekrefteKamp()
     const maxRinger = omgangar.length * 2
+    const starterIdx = (!kampFerdig && !isEditMode) ? getOmgangStarterIndex(noverAndeOmgang(), 2) : -1
 
     settOmgangTittel(noverAndeOmgang(), kampFerdig)
 
     const wrap = createEl('div', null, isEditMode ? 'sb-wrap sb-wrap--edit-mode' : 'sb-wrap')
-    wrap.appendChild(lagSpelerPanel(p1Navn ?? spelarNamn(p1ks, 'Spelar 1'), t1, r1, maxRinger, val1, p1Dis, !kanRedigere, 1, p1Navn != null))
-    wrap.appendChild(lagSpelerPanel(p2Navn ?? spelarNamn(p2ks, 'Spelar 2'), t2, r2, maxRinger, val2, p2Dis, !kanRedigere, 2, p2Navn != null))
+    wrap.appendChild(lagSpelerPanel(p1Navn ?? spelarNamn(p1ks, 'Spelar 1'), t1, r1, maxRinger, val1, p1Dis, !kanRedigere, 1, p1Navn != null, starterIdx === 0))
+    wrap.appendChild(lagSpelerPanel(p2Navn ?? spelarNamn(p2ks, 'Spelar 2'), t2, r2, maxRinger, val2, p2Dis, !kanRedigere, 2, p2Navn != null, starterIdx === 1))
     container.appendChild(wrap)
 
     if (kanRedigere && !kamp.er_bekreftet) container.appendChild(lagAngreRad())
@@ -289,9 +290,12 @@ export async function renderScoreboard(
     lesvisning: boolean,
     spelarNr: number,
     erParNavn = false,
+    isStarter = false,
   ): HTMLElement {
     const panel = createEl('div', null, 'sb-spelar-panel')
-    panel.appendChild(createEl('div', navn, erParNavn ? 'sb-spelar-navn sb-spelar-navn--par' : 'sb-spelar-navn'))
+    let navnClass = erParNavn ? 'sb-spelar-navn sb-spelar-navn--par' : 'sb-spelar-navn'
+    if (isStarter) navnClass += ' sb-spelar-navn--starter'
+    panel.appendChild(createEl('div', navn, navnClass))
     panel.appendChild(createEl('div', String(total), 'sb-score'))
 
     const ringerPct = maxRinger > 0 ? Math.round(ringer / maxRinger * 100) : 0
@@ -604,12 +608,15 @@ async function renderScoreboard3(
     total: number,
     editIdxar: number[],
     disabledSets: Set<number>[],
+    isStarter = false,
   ): HTMLElement {
     const visVunne = vinnRekkefolge.includes(i) && !isEditMode3
     const plass = visVunne ? vinnRekkefolge.indexOf(i) + 1 : null
     const panel = createEl('div', null, `sb-spelar-panel${visVunne ? ' sb-spelar-panel--vann' : ''}`)
     const navn = navnFor(ks)
-    panel.appendChild(createEl('div', navn.label, navn.erPar ? 'sb-spelar-navn sb-spelar-navn--par' : 'sb-spelar-navn'))
+    let navnClass3 = navn.erPar ? 'sb-spelar-navn sb-spelar-navn--par' : 'sb-spelar-navn'
+    if (isStarter) navnClass3 += ' sb-spelar-navn--starter'
+    panel.appendChild(createEl('div', navn.label, navnClass3))
     panel.appendChild(createEl('div', String(total), 'sb-score'))
 
     if (plass) panel.appendChild(createEl('div', `${plass}. plass`, 'sb-plass-badge'))
@@ -658,12 +665,15 @@ async function renderScoreboard3(
     const editIdxar = isEditMode3 ? editModeIdxar : aktiveIdxar
     const erFerdig = vinnRekkefolge.length === spelarar.length
     const disabledSets = beregnDisabledSets3(editIdxar)
+    const currentOmgang3 = omgangData.length ? Math.max(...omgangData.map(o => o.omgang)) + 1 : 1
+    const starterIdx3 = (!erFerdig && !isEditMode3) ? getOmgangStarterIndex(currentOmgang3, 3) : -1
 
     settOmgangTittel3(erFerdig)
 
     const wrap = createEl('div', null, isEditMode3 ? 'sb-wrap sb-wrap--3p sb-wrap--edit-mode' : 'sb-wrap sb-wrap--3p')
     spelarar.forEach((ks, i) => {
-      wrap.appendChild(lagSpelerPanel3(ks, i, totalar[i] ?? 0, editIdxar, disabledSets))
+      const isStarter3 = i === starterIdx3 && aktiveIdxar.includes(i)
+      wrap.appendChild(lagSpelerPanel3(ks, i, totalar[i] ?? 0, editIdxar, disabledSets, isStarter3))
     })
     container.appendChild(wrap)
 
