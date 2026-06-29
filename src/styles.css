@@ -1776,15 +1776,32 @@ th.innl-score-th {
   text-align: center;
 }
 
-.sb-spelar-navn--starter::before {
+.sb-spelar-navn--starter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Invisible right mirror keeps text optically centered when dot is present */
+.sb-spelar-navn--starter::before,
+.sb-spelar-navn--starter::after {
   content: '';
-  display: inline-block;
-  width: 0.45em;
-  height: 0.45em;
-  background: var(--sb-positiv);
+  display: block;
+  flex-shrink: 0;
+  width: 0.5em;
+  height: 0.5em;
+}
+
+.sb-spelar-navn--starter::before {
+  background: color-mix(in srgb, var(--sb-positiv) 70%, white);
   border-radius: 50%;
+  box-shadow: 0 0 0.5em 0.15em color-mix(in srgb, var(--sb-positiv) 35%, transparent);
   margin-right: 0.4em;
-  vertical-align: middle;
+}
+
+.sb-spelar-navn--starter::after {
+  visibility: hidden;
+  margin-left: 0.4em;
 }
 
 /* Par/Mix: two names per side — smaller so the label fits on one line */
