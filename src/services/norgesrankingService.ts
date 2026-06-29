@@ -6,7 +6,7 @@ const _rankingStevneQuery = supabase
   .from('stevne')
   .select('id, navn, dato, stevnetype:stevnetypeid(id, navn), innledendekastemetode:kastemetode!innledendekastemetodeid(navn), avsluttendekastemetode:kastemetode!avsluttendekastemetodeid(navn)')
 
-export type RankingStevneRow = QueryData<typeof _rankingStevneQuery>[number]
+export type RankingTournamentRow = QueryData<typeof _rankingStevneQuery>[number]
 
 const _rankingResultatQuery = supabase
   .from('resultat')
@@ -17,11 +17,11 @@ const _rankingResultatQuery = supabase
     klubb:klubbid(id, navn)
   `)
 
-export type RankingResultatRow = QueryData<typeof _rankingResultatQuery>[number]
+export type RankingResultRow = QueryData<typeof _rankingResultatQuery>[number]
 
-export async function hentStevnerOgResultater(ar: number): Promise<{
-  stevner: RankingStevneRow[]
-  resultater: RankingResultatRow[]
+export async function getTournamentsAndResults(ar: number): Promise<{
+  stevner: RankingTournamentRow[]
+  resultater: RankingResultRow[]
   error: unknown
 }> {
   const { data: allStevner, error: e1 } = await supabase
@@ -32,7 +32,7 @@ export async function hentStevnerOgResultater(ar: number): Promise<{
     .lte('dato', `${ar}-12-31`)
 
   if (e1) {
-    logError('hentStevnerOgResultater.stevner', e1)
+    logError('getTournamentsAndResults.stevner', e1)
     return { stevner: [], resultater: [], error: e1 }
   }
 
@@ -52,7 +52,7 @@ export async function hentStevnerOgResultater(ar: number): Promise<{
     .in('stevneid', ids)
 
   if (e2) {
-    logError('hentStevnerOgResultater.resultater', e2)
+    logError('getTournamentsAndResults.resultater', e2)
     return { stevner, resultater: [], error: e2 }
   }
 

@@ -1,4 +1,4 @@
-import { kasterNavn, lagKasterSlug, lagKlubbSlug } from '@/utils/kaster'
+import { throwerName, buildThrowerSlug, buildClubSlug } from '@/utils/kaster'
 import { prependAdminLinkBar } from '@/components/AdminLinkBar'
 import { createErrorBanner } from '@/components/ErrorBanner'
 import { createLoadingState } from '@/components/LoadingState'
@@ -6,11 +6,11 @@ import { createEmptyState } from '@/components/EmptyState'
 import { createTable } from '@/components/Table'
 import { escHtml } from '@/utils/escHtml'
 import { logError } from '@/utils/logError'
-import { hentKlubbar, hentKlubbById } from '@/services/klubbService'
-import { hentKastereListeAktive, hentKlubbMedlemmar } from '@/services/kasterService'
+import { getClubs, getClubById } from '@/services/klubbService'
+import { getActiveThrowerList, getClubMembers } from '@/services/kasterService'
 import type { PageRenderFn } from '@/types'
-import type { KlubbListeRow } from '@/services/klubbService'
-import type { MedlemRow } from '@/services/kasterService'
+import type { ClubListRow } from '@/services/klubbService'
+import type { MemberRow } from '@/services/kasterService'
 
 const PLACEHOLDER_LOGO = 'https://placehold.co/200x200/444/888?text=?'
 
@@ -19,9 +19,9 @@ const filtreDetalj = { sokeTekst: '' }
 
 // ── HTML-byggjarar: Liste ─────────────────────────────────────────────────────
 
-function klubbKortHtml(k: KlubbListeRow): string {
+function klubbKortHtml(k: ClubListRow): string {
   return `
-    <a href="#/klubber/${lagKlubbSlug(k)}" class="kaster-kort">
+    <a href="#/klubber/${buildClubSlug(k)}" class="kaster-kort">
       <img src="${escHtml(k.logourl || PLACEHOLDER_LOGO)}" alt="${escHtml(k.navn)}" loading="lazy">
       <div class="kaster-navn">${escHtml(k.navn)}</div>
     </a>`
@@ -42,7 +42,7 @@ function listeSkelettHtml(): string {
 
 // ── HTML-byggjarar: Detalj ────────────────────────────────────────────────────
 
-function detaljSkelettHtml(klubb: KlubbListeRow, antall: number): string {
+function detaljSkelettHtml(klubb: ClubListRow, antall: number): string {
   return `
     <div class="content-page">
       <div class="mb-3">
@@ -61,17 +61,17 @@ function detaljSkelettHtml(klubb: KlubbListeRow, antall: number): string {
     </div>`
 }
 
-function createMedlemTabell(medlemmar: MedlemRow[], sokeTekst: string): HTMLElement {
+function createMedlemTabell(medlemmar: MemberRow[], sokeTekst: string): HTMLElement {
   const sok = sokeTekst.trim().toLowerCase()
   const filtrert = sok
-    ? medlemmar.filter(k => kasterNavn(k).toLowerCase().includes(sok))
+    ? medlemmar.filter(k => throwerName(k).toLowerCase().includes(sok))
     : medlemmar
 
   if (!filtrert.length) return createEmptyState('Ingen aktive utøvarar funnet.')
 
   const wrapper = document.createElement('div')
   wrapper.className = 'table-responsive'
-  wrapper.appendChild(createTable<MedlemRow>({
+  wrapper.appendChild(createTable<MemberRow>({
     rows: filtrert,
     columns: [
       {
@@ -82,9 +82,9 @@ function createMedlemTabell(medlemmar: MedlemRow[], sokeTekst: string): HTMLElem
         label: 'Utøvar',
         render: item => {
           const a = document.createElement('a')
-          a.href = `#/kastere/${lagKasterSlug(item)}`
+          a.href = `#/kastere/${buildThrowerSlug(item)}`
           a.className = 'tl-lenkje'
-          a.textContent = kasterNavn(item)
+          a.textContent = throwerName(item)
           return a
         },
       },
@@ -108,8 +108,8 @@ async function renderListe(container: HTMLElement): Promise<void> {
 
   try {
     const [{ data: alleKlubbar, error }, { data: alleKastere }] = await Promise.all([
-      hentKlubbar(),
-      hentKastereListeAktive(),
+      getClubs(),
+      getActiveThrowerList(),
     ])
 
     if (error) {
@@ -121,7 +121,7 @@ async function renderListe(container: HTMLElement): Promise<void> {
     for (const k of alleKastere) {
       if (!k.klubb?.id) continue
       if (!kasterPerKlubb.has(k.klubb.id)) kasterPerKlubb.set(k.klubb.id, [])
-      kasterPerKlubb.get(k.klubb.id)!.push(kasterNavn(k).toLowerCase())
+      kasterPerKlubb.get(k.klubb.id)!.push(throwerName(k).toLowerCase())
     }
 
     container.innerHTML = listeSkelettHtml()
@@ -160,7 +160,7 @@ async function renderListe(container: HTMLElement): Promise<void> {
       href: '#/klubber/ny',
       label: '+ Ny klubb',
       variant: 'success',
-      canShow: auth => auth.profil?.rolle === 'admin',
+      canShow: auth => auth.profil?.role === 'admin',
     })
   } catch (err) {
     logError('renderListe', err)
@@ -176,8 +176,8 @@ async function renderDetalj(container: HTMLElement, id: number): Promise<void> {
 
   try {
     const [klubbRes, { data: medlemmar }] = await Promise.all([
-      hentKlubbById(id),
-      hentKlubbMedlemmar(id),
+      getClubById(id),
+      getClubMembers(id),
     ])
 
     if (klubbRes.error || !klubbRes.data) {
@@ -214,8 +214,8 @@ async function renderDetalj(container: HTMLElement, id: number): Promise<void> {
       href: `#/klubber/${id}/admin`,
       label: 'Rediger klubb',
       variant: 'warning',
-      canShow: auth => auth.profil?.rolle === 'admin' ||
-        (auth.profil?.rolle === 'klubbadmin' && auth.klubber.includes(id)),
+      canShow: auth => auth.profil?.role === 'admin' ||
+        (auth.profil?.role === 'klubbadmin' && auth.klubber.includes(id)),
     })
   } catch (err) {
     logError('renderDetalj', err)

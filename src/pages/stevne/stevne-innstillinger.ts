@@ -6,12 +6,12 @@ import { escHtml } from '@/utils/escHtml'
 import { createErrorBanner } from '@/components/ErrorBanner'
 import { createLoadingState } from '@/components/LoadingState'
 import {
-  hentStevneInnstillingar,
-  hentAktiveKastemetodar,
-  oppdaterStevneInnstillingar,
+  getTournamentSettings,
+  getActiveThrowingMethods,
+  updateTournamentSettings,
 } from '@/services/stevneService'
-import type { AktivKastemetodeRow } from '@/services/stevneService'
-import { nullstillStevne } from '@/services/testDataService'
+import type { ActiveThrowingMethodRow } from '@/services/stevneService'
+import { resetTournament } from '@/services/testDataService'
 
 // ── Render ────────────────────────────────────────────────────────────────────
 
@@ -23,8 +23,8 @@ export async function render(
 
   try {
     const [stevneRes, metodarRes] = await Promise.all([
-      hentStevneInnstillingar(id),
-      hentAktiveKastemetodar(),
+      getTournamentSettings(id),
+      getActiveThrowingMethods(),
     ])
 
     if (stevneRes.error || !stevneRes.data) {
@@ -37,7 +37,7 @@ export async function render(
     const innlMetodar = metodar.filter(m => m.er_innledende)
     const avslMetodar = metodar.filter(m => m.er_avsluttende)
 
-    function optionsHtml(liste: AktivKastemetodeRow[], valdId: number | null): string {
+    function optionsHtml(liste: ActiveThrowingMethodRow[], valdId: number | null): string {
       return liste.map(m =>
         `<option value="${m.id}"${m.id === valdId ? ' selected' : ''}>${escHtml(m.navn)}</option>`
       ).join('')
@@ -87,7 +87,7 @@ export async function render(
       const avslId = container.querySelector<HTMLSelectElement>('#avsl-metode')!.value || null
       const rundar = container.querySelector<HTMLInputElement>('#antall-rundar')!.value
 
-      const { error } = await oppdaterStevneInnstillingar(id, {
+      const { error } = await updateTournamentSettings(id, {
         innledendekastemetodeid:  innlId ? Number(innlId) : null,
         avsluttendekastemetodeid: avslId ? Number(avslId) : null,
         antall_runder_innl:       rundar ? Number(rundar) : null,
@@ -108,7 +108,7 @@ export async function render(
       const btn = e.currentTarget as HTMLButtonElement
       if (!await confirmDialog({ title: 'Nullstill stevne', message: 'Dette slettar alle kampar og resultat og set stevnet tilbake til starttilstanden. Er du sikker?', danger: true })) return
       btn.disabled = true
-      await nullstillStevne(id)
+      await resetTournament(id)
       await render(container, { id })
     })
   } catch (err) {

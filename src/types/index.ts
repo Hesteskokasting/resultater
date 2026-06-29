@@ -5,8 +5,8 @@ export type { Json, Tables } from './database.types'
 
 // --- String literals ---
 
-export type Rolle = 'admin' | 'klubbadmin' | 'bruker'
-export type KoblingStatus = 'ingen' | 'venter' | 'godkjent' | 'avvist'
+export type Role = 'admin' | 'klubbadmin' | 'bruker'
+export type LinkStatus = 'ingen' | 'venter' | 'godkjent' | 'avvist'
 
 // --- Basis-entitetar (delsett av DB-rader) ---
 
@@ -15,45 +15,45 @@ export type Klubb = Pick<Tables<'klubb'>, 'id' | 'navn'>
 
 // --- Businesslogikk-typar (kastemetoder-logikk) ---
 
-export interface RundeOppsett {
+export interface RoundSetup {
   walkovers: number
   c3: number
   c2: number
 }
 
-export interface Runde1FormatTyped {
-  A?: RundeOppsett | null
-  B?: RundeOppsett | null
+export interface Round1FormatTyped {
+  A?: RoundSetup | null
+  B?: RoundSetup | null
   nA?: number | null
 }
 
-export interface CupRunde {
+export interface CupRound {
   runde: number
-  spelarar: number
-  baner: number
-  treSpelarar: boolean
+  players: number
+  lanes: number
+  threePlayers: boolean
   walkovers: number
-  vidare: number
+  advancing: number
 }
 
-export interface CupParing {
-  spelarar: (string | number)[]
-  erWalkover: boolean
-  erTreSpelarar: boolean
+export interface CupPairing {
+  players: (string | number)[]
+  isWalkover: boolean
+  isThreePlayers: boolean
 }
 
 // --- Auth ---
 
-export interface Profil {
-  rolle: Rolle
+export interface Profile {
+  role: Role
   kasterid: number | null
-  kobling_status: KoblingStatus | null
+  kobling_status: LinkStatus | null
   kobling_kasterid: number | null
 }
 
 export interface AuthUser {
   user: User
-  profil: Profil | null
+  profil: Profile | null
   klubber: number[]
 }
 
@@ -62,8 +62,8 @@ export interface AuthUser {
 export type Params = Record<string, string | number | undefined>
 export type PageRenderFn = (container: HTMLElement, params: Params) => void | Promise<void>
 
-export interface Rute {
+export interface Route {
   pattern: RegExp
-  side: PageRenderFn
+  page: PageRenderFn
   params: (match: RegExpMatchArray) => Params
 }

@@ -1,16 +1,16 @@
-import { kasterNavn } from '@/utils/kaster'
+import { throwerName } from '@/utils/kaster'
 import { logError } from '@/utils/logError'
 import { bindExpandableRows } from '@/utils/expandableRows'
-import { formaterPoeng, byggSingelListe, byggLagListe } from '@/utils/norgescup'
-import { hentRegler, hentStevnerOgResultater } from '@/services/norgescupService'
-import { formaterDato, arOptions } from '@/utils/shared'
+import { formaterPoeng, buildSingleList, buildTeamList } from '@/utils/norgescup'
+import { getRules, getTournamentsAndResults } from '@/services/norgescupService'
+import { formatDate, yearOptions } from '@/utils/shared'
 import { createErrorBanner } from '@/components/ErrorBanner'
 import { createLoadingState } from '@/components/LoadingState'
 import { createEmptyState } from '@/components/EmptyState'
 import { createTable } from '@/components/Table'
 import type { Tables } from '@/types'
-import type { ResultatMedRelasjonar, StevneForNc } from '@/services/norgescupService'
-import type { SingelListeRad, LagListeRad } from '@/utils/norgescup'
+import type { ResultWithRelations, TournamentForNC } from '@/services/norgescupService'
+import type { SingleListRow, TeamListRow } from '@/utils/norgescup'
 
 const FOERSTE_AR = 2007
 const FOERSTE_AR_MULTI_CUP = 2024
@@ -25,8 +25,8 @@ interface Filtre {
 interface NcCache {
   ar: number | null
   regler: Tables<'antallTellendeNc'> | null
-  stevner: StevneForNc[]
-  resultater: ResultatMedRelasjonar[]
+  stevner: TournamentForNC[]
+  resultater: ResultWithRelations[]
 }
 
 const filtre: Filtre = {
@@ -50,8 +50,8 @@ async function hentOgBufferData(ar: number): Promise<boolean> {
 
   try {
     const [{ data: regler, error: e1 }, { stevner, resultater, error: e2 }] = await Promise.all([
-      hentRegler(ar),
-      hentStevnerOgResultater(ar),
+      getRules(ar),
+      getTournamentsAndResults(ar),
     ])
 
     if (e1 || e2) return false
@@ -104,10 +104,10 @@ function lagPoengCelleInnhald(poeng: number): DocumentFragment {
   return frag
 }
 
-function createSingelTabell(liste: SingelListeRad[]): HTMLElement {
+function createSingelTabell(liste: SingleListRow[]): HTMLElement {
   if (liste.length === 0) return createEmptyState('Ingen resultater funnet.')
 
-  return createTable<SingelListeRad>({
+  return createTable<SingleListRow>({
     rows: liste,
     rowClass: 'nc-singel-rad',
     rowAttrs: (_, i) => ({ 'data-idx': String(i) }),
@@ -117,7 +117,7 @@ function createSingelTabell(liste: SingelListeRad[]): HTMLElement {
       tableClass: 'detalj-tabell',
       theadClass: '',
       columns: [
-        { label: 'Dato',   render: r => formaterDato(r._stevne?.dato) },
+        { label: 'Dato',   render: r => formatDate(r._stevne?.dato) },
         { label: 'Type',   render: r => r._stevne?.typeNavn ?? '–' },
         { label: 'Stevne', render: r => r._stevne?.navn ?? '–' },
         { label: 'Pl.',    render: r => String(r.plassering ?? '–') },
@@ -144,10 +144,10 @@ function createSingelTabell(liste: SingelListeRad[]): HTMLElement {
   })
 }
 
-function createLagTabell(lagListe: LagListeRad[]): HTMLElement {
+function createLagTabell(lagListe: TeamListRow[]): HTMLElement {
   if (lagListe.length === 0) return createEmptyState('Ingen lag funnet.')
 
-  return createTable<LagListeRad>({
+  return createTable<TeamListRow>({
     rows: lagListe,
     rowClass: 'nc-lag-rad',
     rowAttrs: (_, i) => ({ 'data-lag-idx': String(i) }),
@@ -157,7 +157,7 @@ function createLagTabell(lagListe: LagListeRad[]): HTMLElement {
       tableClass: 'detalj-tabell',
       showHeader: false,
       columns: [
-        { label: '', render: b => kasterNavn(b.kaster) },
+        { label: '', render: b => throwerName(b.kaster) },
         { label: '', cellClass: 'nc-td-poeng', render: b => formaterPoeng(b.sum) },
       ],
     }),
@@ -185,7 +185,7 @@ function sideSkelettHtml(ar: number, cupType: string): string {
     <div class="content-page">
       <h1 class="nc-hovudtittel">Norgescupen ${ar}</h1>
       <div class="nc-filter-rad">
-        <select id="nc-ar" class="tl-select">${arOptions(ar, FOERSTE_AR)}</select>
+        <select id="nc-ar" class="tl-select">${yearOptions(ar, FOERSTE_AR)}</select>
         <select id="nc-cuptype" class="tl-select${ar < FOERSTE_AR_MULTI_CUP ? ' d-none' : ''}">
           <option value="NC"${cupType === 'NC' ? ' selected' : ''}>NC</option>
           <option value="SNC"${cupType === 'SNC' ? ' selected' : ''}>SNC</option>
@@ -240,7 +240,7 @@ export async function render(container: HTMLElement): Promise<void> {
       if (!regler) {
         lagContainer.replaceChildren(createEmptyState('Ingen data.'))
       } else {
-        const lagListe = byggLagListe(cache.resultater, cache.stevner, regler)
+        const lagListe = buildTeamList(cache.resultater, cache.stevner, regler)
         lagContainer.replaceChildren(createLagTabell(lagListe))
         bindExpandableRows(lagContainer, { triggerSel: '.nc-lag-poeng-celle', idAttr: 'lag-idx', detailSel: '.nc-lag-detalj-rad', lookupRoot: content })
       }
@@ -257,7 +257,7 @@ export async function render(container: HTMLElement): Promise<void> {
       if (!regler) {
         singelContainer.replaceChildren(createEmptyState('Ingen data.'))
       } else {
-        const singelListe = byggSingelListe(cache.resultater, cache.stevner, regler, cupType, klasse)
+        const singelListe = buildSingleList(cache.resultater, cache.stevner, regler, cupType, klasse)
         singelContainer.replaceChildren(createSingelTabell(singelListe))
         bindExpandableRows(singelContainer, { triggerSel: '.nc-poeng-celle', idAttr: 'idx', detailSel: '.nc-detalj-rad', lookupRoot: content })
       }

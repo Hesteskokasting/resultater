@@ -1,11 +1,11 @@
-import { scoreForSp, getMatchSides, groupStandingsByPair, type MatchSide } from '@/utils/kamp'
-import { kasterNavnKort } from '@/utils/kaster'
+import { scoreForPlayer, getMatchSides, groupStandingsByPair, type MatchSide } from '@/utils/kamp'
+import { throwerNameShort } from '@/utils/kaster'
 import { escHtml } from '@/utils/escHtml'
 import type { Tables } from '@/types'
 import { createTable, type ColumnDef } from '@/components/Table'
 
 // Minimal shapes for organizer kamp data (spelarar is an aliased join from kamp_spelar)
-export interface OrgKampSpelar {
+export interface OrgMatchPlayer {
   kasterid: number
   kamp_poeng: number
   score_poeng: number
@@ -14,11 +14,11 @@ export interface OrgKampSpelar {
   kaster?: { fornavn: string; etternavn: string } | null
 }
 
-export interface OrgKamp extends Pick<Tables<'kamp'>, 'er_bekreftet' | 'er_walkover' | 'runde_nummer' | 'bane_nummer'> {
-  spelarar?: OrgKampSpelar[] | null
+export interface OrgMatch extends Pick<Tables<'kamp'>, 'er_bekreftet' | 'er_walkover' | 'runde_nummer' | 'bane_nummer'> {
+  spelarar?: OrgMatchPlayer[] | null
 }
 
-export interface KampForSortering {
+export interface MatchForSorting {
   er_bekreftet: boolean
   spelarar?: {
     kasterid: number | null
@@ -28,7 +28,7 @@ export interface KampForSortering {
   }[] | null
 }
 
-export interface StillingRad {
+export interface StandingRow {
   kasterid: number
   navn?: string | null
   startnummer?: number | null
@@ -41,12 +41,12 @@ export interface StillingRad {
   antall_kamper?: number | null
 }
 
-interface StillingOpts {
+interface StandingOptions {
   tableId?: string
-  harGrupper?: boolean
-  harEliminasjon?: boolean
-  harAntallKamper?: boolean
-  posisjonMap?: Record<number, number>
+  hasGroups?: boolean
+  hasElimination?: boolean
+  hasMatchCount?: boolean
+  positionMap?: Record<number, number>
   unitLabel?: string
 }
 
@@ -55,68 +55,68 @@ interface StillingOpts {
  * "Fornavn E." when kort). Par/Mix: always short form, members joined —
  * "Fornavn E. / Fornavn E."
  */
-export function sideNavnHtml<T extends { kaster?: { fornavn: string; etternavn: string } | null }>(
+export function sideNameHtml<T extends { kaster?: { fornavn: string; etternavn: string } | null }>(
   side: MatchSide<T> | null,
   kort: boolean,
 ): string {
   if (!side) return '—'
   if (side.members.length > 1) {
-    return side.members.map(m => m.kaster ? escHtml(kasterNavnKort(m.kaster)) : '—').join(' / ')
+    return side.members.map(m => m.kaster ? escHtml(throwerNameShort(m.kaster)) : '—').join(' / ')
   }
   const k = side.rep.kaster
   if (!k) return '—'
-  return kort ? escHtml(kasterNavnKort(k)) : `${escHtml(k.fornavn)} ${escHtml(k.etternavn)}`
+  return kort ? escHtml(throwerNameShort(k)) : `${escHtml(k.fornavn)} ${escHtml(k.etternavn)}`
 }
 
-function renderSpelarkamparDetalj(
+function renderPlayerMatchDetails(
   kasterid: number,
-  kamper: OrgKamp[] | null | undefined,
-  startnrMap: Record<number, number>,
-  posisjonMap: Record<number, number> = {},
+  kamper: OrgMatch[] | null | undefined,
+  startNumberMap: Record<number, number>,
+  positionMap: Record<number, number> = {},
 ): string {
-  const eineKamper = (kamper ?? [])
+  const playerMatches = (kamper ?? [])
     .filter(k => k.spelarar?.some(sp => sp.kasterid === kasterid))
     .sort((a, b) => a.runde_nummer - b.runde_nummer)
 
-  if (!eineKamper.length) {
+  if (!playerMatches.length) {
     return '<tr><td colspan="4" class="text-muted small fst-italic text-center">Ingen kampar</td></tr>'
   }
 
-  return eineKamper.map(kamp => {
-    const sides = getMatchSides(kamp.spelarar, startnrMap, posisjonMap)
+  return playerMatches.map(kamp => {
+    const sides = getMatchSides(kamp.spelarar, startNumberMap, positionMap)
     const mySide  = sides.find(s => s?.members.some(m => m.kasterid === kasterid)) ?? null
     const oppSide = sides.find(s => s != null && s !== mySide) ?? null
-    const erWalkoverSeier = kamp.er_walkover && (!oppSide || !oppSide.rep.kaster)
+    const isWalkoverWin = kamp.er_walkover && (!oppSide || !oppSide.rep.kaster)
 
-    const oppNamn = erWalkoverSeier
+    const opponentName = isWalkoverWin
       ? 'Walkover'
       : (oppSide
           ? oppSide.members
               .map(m => m.kaster ? `${escHtml(m.kaster.fornavn)} ${escHtml(m.kaster.etternavn)}` : '—')
               .join(' / ')
           : '—')
-    const oppNr = erWalkoverSeier ? '' : (oppSide ? (startnrMap[oppSide.rep.kasterid] ?? '') : '')
-    const oppVis = oppNr ? `${oppNamn} (${oppNr})` : oppNamn
+    const opponentNumber = isWalkoverWin ? '' : (oppSide ? (startNumberMap[oppSide.rep.kasterid] ?? '') : '')
+    const opponentDisplay = opponentNumber ? `${opponentName} (${opponentNumber})` : opponentName
 
     // Side total: pair members alternate omgangar, so sum both members' rows
     const sideSum = (side: typeof mySide) =>
-      side ? side.members.reduce((sum, m) => sum + scoreForSp(m), 0) : 0
-    const myScore  = erWalkoverSeier ? 21 : sideSum(mySide)
-    const oppScore = erWalkoverSeier ? 0  : sideSum(oppSide)
+      side ? side.members.reduce((sum, m) => sum + scoreForPlayer(m), 0) : 0
+    const myScore  = isWalkoverWin ? 21 : sideSum(mySide)
+    const oppScore = isWalkoverWin ? 0  : sideSum(oppSide)
     const resultat = `${myScore} - ${oppScore}`
 
     return `<tr>
       <td class="text-center">${kamp.runde_nummer}</td>
       <td class="text-center">${kamp.bane_nummer ?? ''}</td>
-      <td>${oppVis}</td>
+      <td>${opponentDisplay}</td>
       <td class="text-center">${resultat}</td>
     </tr>`
   }).join('')
 }
 
-export function beregnKanBekrefte(
-  kamp: OrgKamp,
-  sp: OrgKampSpelar[],
+export function canConfirmMatch(
+  kamp: OrgMatch,
+  sp: OrgMatchPlayer[],
   harOmgangar: boolean,
   hcpMap: Record<number, number> = {},
 ): boolean {
@@ -127,12 +127,12 @@ export function beregnKanBekrefte(
   const kasterid2 = sp[1]?.kasterid
   const hcp1 = (kasterid1 != null ? hcpMap[kasterid1] : undefined) ?? 0
   const hcp2 = (kasterid2 != null ? hcpMap[kasterid2] : undefined) ?? 0
-  const s1 = scoreForSp(sp[0])
-  const s2 = sp[1] ? scoreForSp(sp[1]) : 0
+  const s1 = scoreForPlayer(sp[0])
+  const s2 = sp[1] ? scoreForPlayer(sp[1]) : 0
   return s1 + hcp1 >= 21 || s2 + hcp2 >= 21
 }
 
-export function renderHovudInnhald(kamperHtml: string, stillingHtml: string): string {
+export function renderMainContent(kamperHtml: string, stillingHtml: string): string {
   return `
     <div class="org-hovud-innhald">
       <div class="org-tab-knappar btn-group w-100 mb-2">
@@ -178,49 +178,49 @@ export function bindTabToggle(container: HTMLElement): void {
   })
 }
 
-type FlatStillingRad = StillingRad & { posInGroup: number }
+type FlatStandingRow = StandingRow & { posInGroup: number }
 
-export function renderStillingTabell(
-  stilling: StillingRad[],
-  kamper: OrgKamp[],
-  startnrMap: Record<number, number>,
-  opts: StillingOpts = {},
+export function renderStandingTable(
+  stilling: StandingRow[],
+  kamper: OrgMatch[],
+  startNumberMap: Record<number, number>,
+  opts: StandingOptions = {},
 ): string {
   const {
-    tableId         = 'stilling-tabell',
-    harGrupper      = false,
-    harEliminasjon  = false,
-    harAntallKamper = false,
-    posisjonMap     = {},
-    unitLabel       = 'spelarar',
+    tableId        = 'stilling-tabell',
+    hasGroups      = false,
+    hasElimination = false,
+    hasMatchCount  = false,
+    positionMap    = {},
+    unitLabel      = 'spelarar',
   } = opts
 
-  const thW = harAntallKamper ? 'th-32' : 'th-28'
+  const thW = hasMatchCount ? 'th-32' : 'th-28'
 
-  const gruppeMap = new Map<string, StillingRad[]>()
+  const groupMap = new Map<string, StandingRow[]>()
   for (const r of stilling) {
-    const g = harGrupper ? (r.gruppe?.navn ?? '_') : '_'
-    if (!gruppeMap.has(g)) gruppeMap.set(g, [])
-    gruppeMap.get(g)!.push(r)
+    const g = hasGroups ? (r.gruppe?.navn ?? '_') : '_'
+    if (!groupMap.has(g)) groupMap.set(g, [])
+    groupMap.get(g)!.push(r)
   }
-  const harFleirGrupper = gruppeMap.size > 1 || !gruppeMap.has('_')
-  const tittel = harAntallKamper ? `${stilling.length} ${unitLabel}` : 'Stilling'
+  const hasMultipleGroups = groupMap.size > 1 || !groupMap.has('_')
+  const title = hasMatchCount ? `${stilling.length} ${unitLabel}` : 'Stilling'
 
-  const flatList: FlatStillingRad[] = [...gruppeMap.entries()]
+  const flatList: FlatStandingRow[] = [...groupMap.entries()]
     .sort(([a], [b]) => a === '_' ? 1 : b === '_' ? -1 : a.localeCompare(b))
-    .flatMap(([, spelararIGruppe]) => spelararIGruppe.map((r, i) => ({ ...r, posInGroup: i + 1 })))
+    .flatMap(([, groupPlayers]) => groupPlayers.map((r, i) => ({ ...r, posInGroup: i + 1 })))
 
-  const columns: ColumnDef<FlatStillingRad>[] = [
+  const columns: ColumnDef<FlatStandingRow>[] = [
     {
       label: '#', thClass: thW,
       cellClass: (r) => {
         const base = 'stilling-dim-cel'
-        return harEliminasjon && r.runde_eliminert != null ? `avsl-elim-plass ${base}` : base
+        return hasElimination && r.runde_eliminert != null ? `avsl-elim-plass ${base}` : base
       },
       render: (r) => String(r.posInGroup),
     },
     { label: 'NAMN', render: (r) => escHtml(r.navn ?? `Spelar ${r.kasterid}`) },
-    ...(harAntallKamper ? [{ label: 'K', thClass: 'th-50 stilling-tal', cellClass: 'stilling-tal stilling-dim-cel' as const, render: (r: FlatStillingRad) => String(r.antall_kamper ?? 0) }] : []),
+    ...(hasMatchCount ? [{ label: 'K', thClass: 'th-50 stilling-tal', cellClass: 'stilling-tal stilling-dim-cel' as const, render: (r: FlatStandingRow) => String(r.antall_kamper ?? 0) }] : []),
     { label: 'KP', thClass: 'th-44 stilling-tal stilling-kp-th', cellClass: 'stilling-tal stilling-kp-cel', render: (r) => String(r.kamp_poeng ?? 0) },
     { label: 'SP', thClass: 'th-44 stilling-tal stilling-sp-th', cellClass: 'stilling-tal stilling-sp-cel', render: (r) => String(r.score_poeng ?? 0) },
   ]
@@ -228,11 +228,11 @@ export function renderStillingTabell(
   const colspan = columns.length
 
   let lastGroup: string | null = null
-  const sectionHeaderFn = (item: FlatStillingRad): HTMLElement | null => {
-    const g = harGrupper ? (item.gruppe?.navn ?? '_') : '_'
+  const sectionHeaderFn = (item: FlatStandingRow): HTMLElement | null => {
+    const g = hasGroups ? (item.gruppe?.navn ?? '_') : '_'
     if (g === lastGroup) return null
     lastGroup = g
-    if (!harFleirGrupper || g === '_') return null
+    if (!hasMultipleGroups || g === '_') return null
     const tr = document.createElement('tr')
     const td = tr.insertCell()
     td.colSpan = colspan
@@ -241,7 +241,7 @@ export function renderStillingTabell(
     return tr
   }
 
-  const buildDetailElement = (item: FlatStillingRad): HTMLElement => {
+  const buildDetailElement = (item: FlatStandingRow): HTMLElement => {
     const innerTable = document.createElement('table')
     innerTable.className = 'stilling-detalj-tabell table table-sm table-bordered mb-0'
     const thead = innerTable.createTHead()
@@ -252,11 +252,11 @@ export function renderStillingTabell(
       if (centered) th.className = 'text-center'
       hr.appendChild(th)
     })
-    innerTable.createTBody().innerHTML = renderSpelarkamparDetalj(item.kasterid, kamper, startnrMap, posisjonMap)
+    innerTable.createTBody().innerHTML = renderPlayerMatchDetails(item.kasterid, kamper, startNumberMap, positionMap)
     return innerTable
   }
 
-  const table = createTable<FlatStillingRad>({
+  const table = createTable<FlatStandingRow>({
     columns,
     rows: flatList,
     tableClass: 'table table-sm kamp-tabell mb-0',
@@ -275,14 +275,14 @@ export function renderStillingTabell(
   wrapper.className = 'stilling-tabell-wrap'
   const h6 = document.createElement('h6')
   h6.className = 'text-center fw-bold mb-1'
-  h6.textContent = tittel
+  h6.textContent = title
   wrapper.appendChild(h6)
   wrapper.appendChild(table)
 
   return wrapper.outerHTML
 }
 
-export function bindStillingDetaljar(
+export function bindStandingDetails(
   container: HTMLElement,
   tableId: string,
   expandedIds: Set<string> = new Set(),
@@ -293,11 +293,11 @@ export function bindStillingDetaljar(
   // Restore rows that were open before the last re-render
   expandedIds.forEach(kid => {
     const detaljRad = tabell.querySelector<HTMLElement>(`tr.stilling-detalj[data-kasterid="${kid}"]`)
-    const spelarRad = tabell.querySelector<HTMLElement>(`tr.stilling-spelar-rad[data-kasterid="${kid}"]`)
+    const playerRow = tabell.querySelector<HTMLElement>(`tr.stilling-spelar-rad[data-kasterid="${kid}"]`)
     if (detaljRad) detaljRad.removeAttribute('hidden')
-    if (spelarRad) {
-      spelarRad.classList.add('stilling-aktiv')
-      spelarRad.setAttribute('aria-expanded', 'true')
+    if (playerRow) {
+      playerRow.classList.add('stilling-aktiv')
+      playerRow.setAttribute('aria-expanded', 'true')
     }
   })
 
@@ -333,7 +333,7 @@ export function bindStillingDetaljar(
   })
 }
 
-export function lagOnEndringHandler(
+export function createChangeHandler(
   stevneid: number,
   faner: string[],
   container: HTMLElement,
@@ -351,7 +351,7 @@ export function lagOnEndringHandler(
   }
 }
 
-export function renderInnledendeKnappar(
+export function renderInitialButtons(
   stevne: Pick<Tables<'stevne'>, 'erfullfort' | 'avsluttendekastemetodeid'>,
   erSwiss: boolean,
 ): string {
@@ -363,39 +363,39 @@ export function renderInnledendeKnappar(
   `
 }
 
-interface AvsluttendeState {
+interface FinalPhaseState {
   allMatchesConfirmed: boolean
-  harAvslKampar: boolean
-  harGruppefordeling: boolean
-  harPrekonfigurertFormat?: boolean
+  hasFinalMatches: boolean
+  hasGroupAssignment: boolean
+  hasPreconfiguredFormat?: boolean
 }
 
-export function renderAvsluttendeKnappar(
+export function renderFinalButtons(
   stevne: Pick<Tables<'stevne'>, 'erfullfort' | 'stevne_fase'>,
-  state: AvsluttendeState,
+  state: FinalPhaseState,
 ): string {
-  const { allMatchesConfirmed, harAvslKampar, harGruppefordeling, harPrekonfigurertFormat = false } = state
+  const { allMatchesConfirmed, hasFinalMatches, hasGroupAssignment, hasPreconfiguredFormat = false } = state
   const fase = stevne.stevne_fase
 
-  let handlingsHtml = ''
+  let actionsHtml = ''
 
   if (fase !== 'avsluttende') {
     if (allMatchesConfirmed) {
-      handlingsHtml = `
+      actionsHtml = `
         <button id="start-avsl-btn" class="btn btn-sm btn-success">Start avsluttande fase</button>
-        ${harPrekonfigurertFormat ? `<button id="endre-gruppeinndeling-btn" class="btn btn-sm btn-outline-secondary">Endre gruppefordeling</button>` : ''}`
+        ${hasPreconfiguredFormat ? `<button id="endre-gruppeinndeling-btn" class="btn btn-sm btn-outline-secondary">Endre gruppefordeling</button>` : ''}`
     }
-  } else if (harGruppefordeling && !harAvslKampar) {
-    handlingsHtml = `<button id="endre-gruppeinndeling-btn" class="btn btn-sm btn-outline-secondary">Endre gruppeinndeling</button>`
+  } else if (hasGroupAssignment && !hasFinalMatches) {
+    actionsHtml = `<button id="endre-gruppeinndeling-btn" class="btn btn-sm btn-outline-secondary">Endre gruppeinndeling</button>`
   }
 
   return `
-    ${handlingsHtml}
+    ${actionsHtml}
     ${allMatchesConfirmed ? `<button id="fullfør-turnering-btn" class="btn btn-sm btn-success"${stevne.erfullfort ? ' disabled' : ''}>Fullfør turnering</button>` : ''}
   `
 }
 
-export interface SpelMapRad {
+export interface PlayerMapRow {
   kasterid: number
   navn: string
   startnummer: number | null
@@ -404,42 +404,42 @@ export interface SpelMapRad {
   antall_kamper: number
 }
 
-export function byggInnledendeSpelMap(
-  alleKamper: OrgKamp[],
-  startnrMap: Record<number, number>,
-): { spelMap: Record<number, SpelMapRad>; ekteKasterids: Set<number> } {
-  const spelMap: Record<number, SpelMapRad> = {}
-  const ekteKasterids = new Set<number>()
+export function buildInitialPlayerMap(
+  alleKamper: OrgMatch[],
+  startNumberMap: Record<number, number>,
+): { playerMap: Record<number, PlayerMapRow>; realThrowerIds: Set<number> } {
+  const playerMap: Record<number, PlayerMapRow> = {}
+  const realThrowerIds = new Set<number>()
 
   for (const kamp of alleKamper) {
     // In a walkover only the bye side counts — exclude any phantom opposing side
     // (side-based: the bye pair's own partner shares the startnummer and stays in).
-    const [, byeSide2] = kamp.er_walkover ? getMatchSides(kamp.spelarar, startnrMap) : [null, null]
+    const [, byeSide2] = kamp.er_walkover ? getMatchSides(kamp.spelarar, startNumberMap) : [null, null]
     for (const sp of kamp.spelarar ?? []) {
       if (!sp.kasterid || !sp.kaster) continue
       if (kamp.er_walkover && byeSide2?.members.some(m => m.kasterid === sp.kasterid)) continue
-      ekteKasterids.add(sp.kasterid)
-      const spelarRad = (spelMap[sp.kasterid] ??= {
+      realThrowerIds.add(sp.kasterid)
+      const playerRow = (playerMap[sp.kasterid] ??= {
         kasterid:      sp.kasterid,
         navn:          `${sp.kaster.fornavn} ${sp.kaster.etternavn}`,
-        startnummer:   startnrMap[sp.kasterid] ?? null,
+        startnummer:   startNumberMap[sp.kasterid] ?? null,
         kamp_poeng:    0,
         score_poeng:   0,
         antall_kamper: 0,
       })
       if (kamp.er_bekreftet) {
-        spelarRad.kamp_poeng    += sp.kamp_poeng
-        spelarRad.score_poeng   += sp.score_poeng
-        spelarRad.antall_kamper += 1
+        playerRow.kamp_poeng    += sp.kamp_poeng
+        playerRow.score_poeng   += sp.score_poeng
+        playerRow.antall_kamper += 1
       }
     }
   }
 
-  return { spelMap, ekteKasterids }
+  return { playerMap, realThrowerIds }
 }
 
-export function buildAvsluttendeStilling(
-  innlKampar: OrgKamp[],
+export function buildFinalStandings(
+  innlKampar: OrgMatch[],
   resultat: Array<{
     kasterid: number
     startnummer: number | null
@@ -448,26 +448,26 @@ export function buildAvsluttendeStilling(
     gruppe: { navn: string } | null
   }>,
   navnMap: Record<number, string>,
-  startnrMap: Record<number, number>,
-  posisjonMap: Record<number, number> = {},
-): StillingRad[] {
-  const { spelMap } = byggInnledendeSpelMap(innlKampar, startnrMap)
+  startNumberMap: Record<number, number>,
+  positionMap: Record<number, number> = {},
+): StandingRow[] {
+  const { playerMap } = buildInitialPlayerMap(innlKampar, startNumberMap)
   const rader = resultat.map(r => ({
     kasterid: r.kasterid,
     navn: navnMap[r.kasterid] ?? `Spelar ${r.kasterid}`,
     startnummer: r.startnummer,
     plassering: r.plassering,
     runde_eliminert: r.runde_eliminert,
-    kamp_poeng: spelMap[r.kasterid]?.kamp_poeng ?? 0,
-    score_poeng: spelMap[r.kasterid]?.score_poeng ?? 0,
+    kamp_poeng: playerMap[r.kasterid]?.kamp_poeng ?? 0,
+    score_poeng: playerMap[r.kasterid]?.score_poeng ?? 0,
     gruppe: r.gruppe,
   }))
   // Par/Mix: one row per pair (no-op for Singel — every startnummer is unique)
-  return sorterStilling(groupStandingsByPair(rader, posisjonMap), innlKampar)
+  return sortStandings(groupStandingsByPair(rader, positionMap), innlKampar)
 }
 
-export function sorterStilling(stilling: StillingRad[], kamper: KampForSortering[]): StillingRad[] {
-  const bekrefta = kamper.filter(k => k.er_bekreftet)
+export function sortStandings(stilling: StandingRow[], kamper: MatchForSorting[]): StandingRow[] {
+  const confirmed = kamper.filter(k => k.er_bekreftet)
 
   return [...stilling].sort((a, b) => {
     // Players with a final plassering (1–4) always rank above non-plassered players.
@@ -475,13 +475,13 @@ export function sorterStilling(stilling: StillingRad[], kamper: KampForSortering
     if (a.plassering != null) return -1
     if (b.plassering != null) return 1
 
-    // Aktive (runde_eliminert == null) kjem alltid først
-    const aAktiv = a.runde_eliminert == null
-    const bAktiv = b.runde_eliminert == null
-    if (aAktiv !== bAktiv) return aAktiv ? -1 : 1
+    // Active players (runde_eliminert == null) always come first
+    const aActive = a.runde_eliminert == null
+    const bActive = b.runde_eliminert == null
+    if (aActive !== bActive) return aActive ? -1 : 1
 
-    // For eliminerte: seinare runde = betre plassering
-    if (!aAktiv) {
+    // For eliminated: later round = better placement
+    if (!aActive) {
       const rundeDiff = (b.runde_eliminert ?? 0) - (a.runde_eliminert ?? 0)
       if (rundeDiff !== 0) return rundeDiff
     }
@@ -495,19 +495,19 @@ export function sorterStilling(stilling: StillingRad[], kamper: KampForSortering
     if (b.kamp_poeng !== a.kamp_poeng) return (b.kamp_poeng ?? 0) - (a.kamp_poeng ?? 0)
     if (b.score_poeng !== a.score_poeng) return (b.score_poeng ?? 0) - (a.score_poeng ?? 0)
 
-    // Innbyrdes (kamppoeng i kampar der begge møttest)
+    // Head-to-head (match points in matches where both met)
     let kpA = 0, kpB = 0
-    for (const kamp of bekrefta) {
+    for (const kamp of confirmed) {
       const spA = kamp.spelarar?.find(s => s.kasterid === a.kasterid)
       const spB = kamp.spelarar?.find(s => s.kasterid === b.kasterid)
       if (spA && spB) { kpA += spA.kamp_poeng ?? 0; kpB += spB.kamp_poeng ?? 0 }
     }
     if (kpA !== kpB) return kpB - kpA
 
-    // Høgaste score i ein enkeltkamp
-    const scoresFor = (kid: number) => bekrefta
+    // Highest score in a single match
+    const scoresFor = (kid: number) => confirmed
       .flatMap(k => k.spelarar?.filter(s => s.kasterid === kid) ?? [])
-      .map(s => scoreForSp(s))
+      .map(s => scoreForPlayer(s))
       .sort((x, y) => y - x)
     const sA = scoresFor(a.kasterid)
     const sB = scoresFor(b.kasterid)

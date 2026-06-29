@@ -1,5 +1,5 @@
-import { kasterNavn } from '@/utils/kaster'
-import type { KasterListeRow } from '@/services/kasterService'
+import { throwerName } from '@/utils/kaster'
+import type { ThrowerListRow } from '@/services/kasterService'
 
 export interface PlayerTableProps {
   /** Builds the heading text from the current row count (callers decide whether to show the count) */
@@ -7,15 +7,15 @@ export interface PlayerTableProps {
   /** Shown when there are no rows */
   emptyText: string
   /** Optional click handler on the whole row (e.g. add to enrollment) */
-  onRowClick?: (player: KasterListeRow) => void
+  onRowClick?: (player: ThrowerListRow) => void
   /** Make rows draggable (sets dataset.kasterid + text/plain = player id) */
   isDraggable?: boolean
-  onDragStart?: (player: KasterListeRow, row: HTMLTableRowElement) => void
-  onDragEnd?: (player: KasterListeRow, row: HTMLTableRowElement) => void
+  onDragStart?: (player: ThrowerListRow, row: HTMLTableRowElement) => void
+  onDragEnd?: (player: ThrowerListRow, row: HTMLTableRowElement) => void
   /** Cell rendered before the name (e.g. confirm button / checkmark). Return null for an empty cell. */
-  renderLeading?: (player: KasterListeRow) => HTMLElement | null
+  renderLeading?: (player: ThrowerListRow) => HTMLElement | null
   /** Cells rendered after the club column (e.g. remove, print). Each returns null for an empty cell. */
-  renderTrailing?: ((player: KasterListeRow) => HTMLElement | null)[]
+  renderTrailing?: ((player: ThrowerListRow) => HTMLElement | null)[]
   /** Text shown when a player has no club */
   clubFallback?: string
 }
@@ -24,7 +24,7 @@ export interface PlayerTableHandle {
   /** The titled, scrollable, width-capped column — drop into a col-md-6 wrapper */
   element: HTMLElement
   /** Re-render the body with the given players and update the heading count */
-  setPlayers: (players: KasterListeRow[]) => void
+  setPlayers: (players: ThrowerListRow[]) => void
 }
 
 export function createPlayerTable(props: PlayerTableProps): PlayerTableHandle {
@@ -59,13 +59,13 @@ export function createPlayerTable(props: PlayerTableProps): PlayerTableHandle {
     return cell
   }
 
-  function buildRow(player: KasterListeRow): HTMLTableRowElement {
+  function buildRow(player: ThrowerListRow): HTMLTableRowElement {
     const row = document.createElement('tr')
 
     if (hasLeading) row.appendChild(actionCell(renderLeading(player)))
 
     const nameCell = document.createElement('td')
-    nameCell.textContent = kasterNavn(player)
+    nameCell.textContent = throwerName(player)
     row.appendChild(nameCell)
 
     const clubCell = document.createElement('td')
@@ -92,7 +92,7 @@ export function createPlayerTable(props: PlayerTableProps): PlayerTableHandle {
     return row
   }
 
-  function setPlayers(players: KasterListeRow[]): void {
+  function setPlayers(players: ThrowerListRow[]): void {
     titleEl.textContent = formatTitle(players.length)
     tbody.replaceChildren()
 

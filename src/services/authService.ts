@@ -1,16 +1,24 @@
 import { supabase } from '@/supabase'
-import type { AuthUser, Profil, Rolle } from '@/types'
+import type { AuthUser, Profile, Role } from '@/types'
 import { hentProfilForBruker } from '@/services/brukerProfilService'
-import { hentKlubbadminKlubbarForBruker } from '@/services/adminService'
+import { getClubAdminClubsForUser } from '@/services/adminService'
 
-const ROLLER = ['admin', 'klubbadmin', 'bruker'] as const
+const ROLES = ['admin', 'klubbadmin', 'bruker'] as const
 
-function isRolle(value: unknown): value is Rolle {
-  return typeof value === 'string' && (ROLLER as readonly string[]).includes(value)
+function isRole(value: unknown): value is Role {
+  return typeof value === 'string' && (ROLES as readonly string[]).includes(value)
 }
 
-function isProfil(obj: unknown): obj is Profil {
-  return obj !== null && typeof obj === 'object' && isRolle((obj as Record<string, unknown>).rolle)
+function mapToProfile(obj: unknown): Profile | null {
+  if (obj === null || typeof obj !== 'object') return null
+  const raw = obj as Record<string, unknown>
+  if (!isRole(raw.rolle)) return null
+  return {
+    role: raw.rolle,
+    kasterid: typeof raw.kasterid === 'number' ? raw.kasterid : null,
+    kobling_status: typeof raw.kobling_status === 'string' ? raw.kobling_status as Profile['kobling_status'] : null,
+    kobling_kasterid: typeof raw.kobling_kasterid === 'number' ? raw.kobling_kasterid : null,
+  }
 }
 
 // Cache per sesjon. Tømt ved SIGNED_OUT / ny innlogging.
@@ -27,16 +35,16 @@ async function _fetchUser(): Promise<AuthUser | null> {
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) return null
 
-  const { data: profil } = await hentProfilForBruker(session.user.id)
+  const { data: profilRow } = await hentProfilForBruker(session.user.id)
 
   let klubber: number[] = []
-  if (profil?.rolle === 'klubbadmin') {
-    const { data: klubbIds } = await hentKlubbadminKlubbarForBruker(session.user.id)
+  if (profilRow?.rolle === 'klubbadmin') {
+    const { data: klubbIds } = await getClubAdminClubsForUser(session.user.id)
     klubber = klubbIds
   }
 
   _lastKnownEmail = session.user.email ?? _lastKnownEmail
-  _cache = { user: session.user, profil: isProfil(profil) ? profil : null, klubber }
+  _cache = { user: session.user, profil: mapToProfile(profilRow), klubber }
   return _cache
 }
 
@@ -44,7 +52,7 @@ export function getLastKnownEmail(): string | null {
   return _lastKnownEmail
 }
 
-async function _hentCache(): Promise<AuthUser | null> {
+async function _fetchCache(): Promise<AuthUser | null> {
   if (_cache) return _cache
   if (_inflight) return _inflight
   _inflight = _fetchUser().finally(() => { _inflight = null })
@@ -52,21 +60,21 @@ async function _hentCache(): Promise<AuthUser | null> {
 }
 
 export async function getUser(): Promise<AuthUser | null> {
-  return _hentCache()
+  return _fetchCache()
 }
 
-async function getRolle(): Promise<Rolle | null> {
-  const auth = await _hentCache()
-  return auth?.profil?.rolle ?? null
+async function getRole(): Promise<Role | null> {
+  const auth = await _fetchCache()
+  return auth?.profil?.role ?? null
 }
 
 export async function erAdmin(): Promise<boolean> {
-  return (await getRolle()) === 'admin'
+  return (await getRole()) === 'admin'
 }
 
 export async function erKlubbadmin(klubbId: number | string | null = null): Promise<boolean> {
-  const auth = await _hentCache()
-  if (!auth || auth.profil?.rolle !== 'klubbadmin') return false
+  const auth = await _fetchCache()
+  if (!auth || auth.profil?.role !== 'klubbadmin') return false
   if (klubbId === null) return true
   return auth.klubber.includes(Number(klubbId))
 }

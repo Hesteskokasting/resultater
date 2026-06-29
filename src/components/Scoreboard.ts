@@ -2,15 +2,15 @@
 // serve both renderScoreboard (2-player) and renderScoreboard3 (3-player) — fixes to
 // realtime, button behaviour, or DOM utilities apply once. Genuine divergences:
 // tegn/tegn3, bereknKnappStatus/bereknKnappStatus3, nesteOmgang/nesteOmgang3,
-// and OmgangRad[] vs KampOmgangRow[] state structures.
-import type { KampOmgangRow, KampRow, KampSpelarIKamp } from '@/services/kampService'
-import { calcAntallRinger, getOmgangThrowerId } from '@/utils/kamp'
+// and OmgangRad[] vs MatchRoundRow[] state structures.
+import type { MatchRoundRow, MatchRow, MatchPlayerInMatch } from '@/services/kampService'
+import { calcRingCount, getOmgangThrowerId } from '@/utils/kamp'
 import { createEl } from '@/utils/createEl'
 import {
-  hentKampOmgangar,
-  lagreKampOmgang,
-  oppdaterKampOmgang,
-  subscribeToScoreboardEndringar,
+  getMatchRounds,
+  saveMatchRound,
+  updateMatchRound,
+  subscribeToScoreboardChanges,
 } from '@/services/kampService'
 import { avmeldKanal } from '@/utils/realtime'
 import { showToast } from './Toast'
@@ -22,7 +22,7 @@ export interface ScoreboardOptions {
   onBekreft?: ((orderedKasterids?: number[] | null) => Promise<void>) | null
   onKampBekreft?: () => Promise<void>
   omgangEl?: HTMLElement | null
-  p3ks?: KampSpelarIKamp | null
+  p3ks?: MatchPlayerInMatch | null
   hcp1?: number
   hcp2?: number
   /** Label overrides — Par/Mix passes "Fornavn E. / Fornavn E." per side. */
@@ -43,9 +43,9 @@ type OmgangRad = { omgang: number; s1: number; s2: number; r1: number; r2: numbe
 
 export async function renderScoreboard(
   container: HTMLElement,
-  kamp: KampRow,
-  p1ks: KampSpelarIKamp | null,
-  p2ks: KampSpelarIKamp | null,
+  kamp: MatchRow,
+  p1ks: MatchPlayerInMatch | null,
+  p2ks: MatchPlayerInMatch | null,
   options: ScoreboardOptions,
 ): Promise<() => void> {
   const {
@@ -98,7 +98,7 @@ export async function renderScoreboard(
     const ids = [...side1Ids, ...side2Ids]
     if (!ids.length) return
 
-    const { data } = await hentKampOmgangar(ids)
+    const { data } = await getMatchRounds(ids)
 
     const omgMap: Record<number, OmgangRad> = {}
     for (const r of data) {
@@ -325,7 +325,7 @@ export async function renderScoreboard(
     const lastOmgang = omgangar[omgangar.length - 1]
     if (!lastOmgang) return false
     const lastNr = lastOmgang.omgang
-    const { error } = await oppdaterKampOmgang(omgangRows(lastNr, rad))
+    const { error } = await updateMatchRound(omgangRows(lastNr, rad))
     if (error) { showToast('Feil ved lagring', 'error'); return false }
     omgangar[omgangar.length - 1] = { ...rad, omgang: lastNr }
     isEditMode = false
@@ -335,7 +335,7 @@ export async function renderScoreboard(
 
   async function lagreNyOmgang(rad: OmgangRad): Promise<boolean> {
     const nr = noverAndeOmgang()
-    const { error } = await lagreKampOmgang(omgangRows(nr, rad))
+    const { error } = await saveMatchRound(omgangRows(nr, rad))
     if (error) { showToast('Feil ved lagring', 'error'); return false }
     omgangar.push({ ...rad, omgang: nr })
     const [newT1, newT2] = beregnEffektiveTotalar()
@@ -346,7 +346,7 @@ export async function renderScoreboard(
   async function nesteOmgang(): Promise<void> {
     const s1 = val1 ?? 0
     const s2 = val2 ?? 0
-    const rad: OmgangRad = { omgang: 0, s1, s2, r1: calcAntallRinger(s1), r2: calcAntallRinger(s2) }
+    const rad: OmgangRad = { omgang: 0, s1, s2, r1: calcRingCount(s1), r2: calcRingCount(s2) }
 
     const lagra = isEditMode ? await lagreEndraOmgang(rad) : await lagreNyOmgang(rad)
     if (!lagra) return
@@ -361,7 +361,7 @@ export async function renderScoreboard(
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function spelarNamn(ks: KampSpelarIKamp | null, fallback = 'Spelar'): string {
+function spelarNamn(ks: MatchPlayerInMatch | null, fallback = 'Spelar'): string {
   return ks?.kaster ? `${ks.kaster.fornavn} ${ks.kaster.etternavn}` : fallback
 }
 
@@ -390,12 +390,12 @@ function lagBekreftKnapp(onBekreft: () => Promise<void>): HTMLButtonElement {
 }
 
 function setupScoreboardRealtime(
-  kamp: KampRow,
+  kamp: MatchRow,
   spelarIds: number[],
   reloadAndDraw: () => Promise<void>,
   onKampBekreft?: () => Promise<void>,
 ): () => void {
-  const kanal = subscribeToScoreboardEndringar(
+  const kanal = subscribeToScoreboardChanges(
     kamp.id,
     spelarIds,
     reloadAndDraw,
@@ -417,39 +417,39 @@ function setupScoreboardRealtime(
 
 async function renderScoreboard3(
   container: HTMLElement,
-  kamp: KampRow,
-  p1ks: KampSpelarIKamp | null,
-  p2ks: KampSpelarIKamp | null,
-  p3ks: KampSpelarIKamp,
+  kamp: MatchRow,
+  p1ks: MatchPlayerInMatch | null,
+  p2ks: MatchPlayerInMatch | null,
+  p3ks: MatchPlayerInMatch,
   options: Pick<ScoreboardOptions, 'pointValues' | 'erArrangor' | 'erDeltakar' | 'onBekreft' | 'onKampBekreft' | 'omgangEl' | 'p1Navn' | 'p2Navn' | 'p3Navn' | 'p1Ids' | 'p2Ids' | 'p3Ids'>,
 ): Promise<() => void> {
   const { pointValues, erArrangor = false, erDeltakar = false, onBekreft = null, onKampBekreft, omgangEl = null, p1Navn = null, p2Navn = null, p3Navn = null } = options
   const kanRedigere = erArrangor || (erDeltakar && !kamp.er_bekreftet)
   // Sides aligned with spelarar: member kamp_spelar ids in posisjon order (Singel = rep only)
-  const labeled: [KampSpelarIKamp | null, number[] | null | undefined][] = [
+  const labeled: [MatchPlayerInMatch | null, number[] | null | undefined][] = [
     [p1ks, options.p1Ids], [p2ks, options.p2Ids], [p3ks, options.p3Ids],
   ]
-  const spelarar = labeled.filter((par): par is [KampSpelarIKamp, number[] | null | undefined] => par[0] != null).map(par => par[0])
+  const spelarar = labeled.filter((par): par is [MatchPlayerInMatch, number[] | null | undefined] => par[0] != null).map(par => par[0])
   const sideIds: number[][] = labeled
-    .filter((par): par is [KampSpelarIKamp, number[] | null | undefined] => par[0] != null)
+    .filter((par): par is [MatchPlayerInMatch, number[] | null | undefined] => par[0] != null)
     .map(([ks, ids]) => (ids?.length ? ids : [ks.id]))
   const spelarIds = sideIds.flat()
 
-  function navnFor(ks: KampSpelarIKamp): { label: string; erPar: boolean } {
+  function navnFor(ks: MatchPlayerInMatch): { label: string; erPar: boolean } {
     if (p1Navn && ks === p1ks) return { label: p1Navn, erPar: true }
     if (p2Navn && ks === p2ks) return { label: p2Navn, erPar: true }
     if (p3Navn && ks === p3ks) return { label: p3Navn, erPar: true }
     return { label: spelarNamn(ks), erPar: false }
   }
 
-  let omgangData: KampOmgangRow[] = []
+  let omgangData: MatchRoundRow[] = []
   let vinnRekkefolge: number[] = []
   let vals: (number | null)[] = [null, null, null]
   let isEditMode3 = false
   let modifiedPlayers3 = new Set<number>()
   let editModeIdxar: number[] = []
 
-  function radForSide(idx: number, omgang: number): KampOmgangRow | undefined {
+  function radForSide(idx: number, omgang: number): MatchRoundRow | undefined {
     return omgangData.find(o => o.kamp_spelar_id != null && sideIds[idx]?.includes(o.kamp_spelar_id) && o.omgang === omgang)
   }
 
@@ -496,7 +496,7 @@ async function renderScoreboard3(
 
   async function lastOmgangar3(): Promise<void> {
     if (!spelarIds.length) return
-    const { data } = await hentKampOmgangar(spelarIds)
+    const { data } = await getMatchRounds(spelarIds)
     omgangData = data
     vinnRekkefolge = beregnVinnRekkefolge()
   }
@@ -690,9 +690,9 @@ async function renderScoreboard3(
       const lastNr = Math.max(...omgangData.map(o => o.omgang))
       const rows = editModeIdxar.map(i => {
         const v = vals[i] ?? 0
-        return { kamp_spelar_id: getOmgangThrowerId(sideIds[i] ?? [], lastNr)!, omgang: lastNr, score: v, antall_ringer: calcAntallRinger(v) }
+        return { kamp_spelar_id: getOmgangThrowerId(sideIds[i] ?? [], lastNr)!, omgang: lastNr, score: v, antall_ringer: calcRingCount(v) }
       })
-      const { error } = await oppdaterKampOmgang(rows)
+      const { error } = await updateMatchRound(rows)
       if (error) { showToast('Feil ved lagring', 'error'); return }
       isEditMode3 = false
       modifiedPlayers3 = new Set()
@@ -701,9 +701,9 @@ async function renderScoreboard3(
       const nr = omgangData.length ? Math.max(...omgangData.map(o => o.omgang)) + 1 : 1
       const inserts = aktiveIdxar.map(i => {
         const v = vals[i] ?? 0
-        return { kamp_spelar_id: getOmgangThrowerId(sideIds[i] ?? [], nr)!, omgang: nr, score: v, antall_ringer: calcAntallRinger(v) }
+        return { kamp_spelar_id: getOmgangThrowerId(sideIds[i] ?? [], nr)!, omgang: nr, score: v, antall_ringer: calcRingCount(v) }
       })
-      const { error } = await lagreKampOmgang(inserts)
+      const { error } = await saveMatchRound(inserts)
       if (error) { showToast('Feil ved lagring', 'error'); return }
       await lastOmgangar3()
     }

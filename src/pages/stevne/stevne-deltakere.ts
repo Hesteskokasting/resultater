@@ -1,17 +1,17 @@
-import { kasterNavn } from '@/utils/kaster'
+import { throwerName } from '@/utils/kaster'
 import { createErrorBanner } from '@/components/ErrorBanner'
 import { showToast } from '@/components/Toast'
 import { logError } from '@/utils/logError'
 import { errorMessage } from '@/utils/errorMessage'
-import { hentKastereListeAktive } from '@/services/kasterService'
-import type { KasterListeRow } from '@/services/kasterService'
+import { getActiveThrowerList } from '@/services/kasterService'
+import type { ThrowerListRow } from '@/services/kasterService'
 import {
-  hentPameldingStatusForStevne,
-  leggTilPameldingAdmin,
-  bekreftPameldingForKaster,
-  fjernPameldingForKaster,
+  getRegistrationStatusForTournament,
+  addRegistrationAdmin,
+  confirmRegistrationForThrower,
+  removeRegistrationForThrower,
 } from '@/services/pameldingService'
-import { hentStevneHeader, hentInnledendeMetodeNamn } from '@/services/stevneService'
+import { getTournamentHeader, getInitialMethodName } from '@/services/stevneService'
 import { setOnDisconnect } from '@/services/receiptPrinterService'
 import { createPrinterBanner } from '@/pages/stevne/PrinterBanner'
 import type { PrinterBanner } from '@/pages/stevne/PrinterBanner'
@@ -24,7 +24,7 @@ import { createParTab } from '@/pages/stevne/parTab'
 
 // ── Hjelpefunksjonar ──────────────────────────────────────────────────────────
 
-function sorterKastere(kastere: KasterListeRow[]): KasterListeRow[] {
+function sorterKastere(kastere: ThrowerListRow[]): ThrowerListRow[] {
   return [...kastere].sort((a, b) => {
     const klubbCmp = (a.klubb?.navn ?? '').localeCompare(b.klubb?.navn ?? '', 'nb')
     if (klubbCmp !== 0) return klubbCmp
@@ -35,14 +35,14 @@ function sorterKastere(kastere: KasterListeRow[]): KasterListeRow[] {
 }
 
 function filtrerTilgjengelege(
-  kastere: KasterListeRow[],
+  kastere: ThrowerListRow[],
   search: string,
   registrerte: Map<number, boolean>,
-): KasterListeRow[] {
+): ThrowerListRow[] {
   const q = search.toLowerCase()
   return kastere.filter(p => {
     if (registrerte.has(p.id)) return false
-    return !q || kasterNavn(p).toLowerCase().includes(q) || (p.klubb?.navn ?? '').toLowerCase().includes(q)
+    return !q || throwerName(p).toLowerCase().includes(q) || (p.klubb?.navn ?? '').toLowerCase().includes(q)
   })
 }
 
@@ -59,10 +59,10 @@ export async function render(
 
   try {
     const [stevneRes, kastereRes, pameldingRes, metodeRes] = await Promise.all([
-      hentStevneHeader(id),
-      hentKastereListeAktive(),
-      hentPameldingStatusForStevne(id),
-      hentInnledendeMetodeNamn(id),
+      getTournamentHeader(id),
+      getActiveThrowerList(),
+      getRegistrationStatusForTournament(id),
+      getInitialMethodName(id),
     ])
 
     if (stevneRes.error || !stevneRes.data) {
@@ -132,7 +132,7 @@ export async function render(
         clubFallback: 'Ingen klubb',
         onRowClick: kanEndrast
           ? async s => {
-              const { error } = await leggTilPameldingAdmin(id, s.id)
+              const { error } = await addRegistrationAdmin(id, s.id)
               if (error) { showToast('Feil ved innmelding: ' + errorMessage(error), 'error'); return }
               pameldtMap.set(s.id, false)
               parTabDirty = true
@@ -164,7 +164,7 @@ export async function render(
     // Print column exists whenever the banner does; the per-row button is
     // re-evaluated on every render so it tracks the live printer connection.
     const renderPrintCell = printerBanner
-      ? (sp: KasterListeRow): HTMLElement | null => {
+      ? (sp: ThrowerListRow): HTMLElement | null => {
           const handler = printerBanner.getPrintHandler()
           if (!handler) return null
           const printBtn = document.createElement('button')
@@ -193,7 +193,7 @@ export async function render(
         bekreftBtn.title = 'Bekreft spelar'
         bekreftBtn.addEventListener('click', async e => {
           e.stopPropagation()
-          const { error } = await bekreftPameldingForKaster(id, sp.id)
+          const { error } = await confirmRegistrationForThrower(id, sp.id)
           if (error) { showToast('Feil ved bekreftelse: ' + errorMessage(error), 'error'); return }
           pameldtMap.set(sp.id, true)
           renderPameldtListe()
@@ -206,7 +206,7 @@ export async function render(
               title: 'Fjern spelar',
               onClick: async () => {
                 if (pairedIds.has(sp.id)) { showToast('Kan ikkje fjerne spelar som er i eit par. Slett paret fyrst.', 'error'); return }
-                const { error } = await fjernPameldingForKaster(id, sp.id)
+                const { error } = await removeRegistrationForThrower(id, sp.id)
                 if (error) { showToast('Feil ved fjerning: ' + errorMessage(error), 'error'); return }
                 pameldtMap.delete(sp.id)
                 parTabDirty = true

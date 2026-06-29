@@ -14,24 +14,24 @@ const _resultatDetaljQuery  = supabase.from('resultat').select(`
   stevne:stevneid(id, navn, dato, stevnetype:stevnetypeid(id, navn), innledendekastemetode:kastemetode!stevne_innledendekastemetodeid_fkey(navn), avsluttendekastemetode:kastemetode!stevne_avsluttendekastemetodeid_fkey(navn))
 `)
 
-export type MedlemRow            = QueryData<typeof _medlemQuery>[number]
-export type KasterListeRow       = QueryData<typeof _kasterListeQuery>[number]
-export type KasterDetaljRow      = QueryData<typeof _kasterDetaljQuery>[number]
-export type KasterForKoblingRow  = QueryData<typeof _kasterForKoblingQuery>[number]
-export type ResultatDetaljRow    = QueryData<typeof _resultatDetaljQuery>[number]
+export type MemberRow            = QueryData<typeof _medlemQuery>[number]
+export type ThrowerListRow       = QueryData<typeof _kasterListeQuery>[number]
+export type ThrowerDetailRow     = QueryData<typeof _kasterDetaljQuery>[number]
+export type ThrowerForLinkRow    = QueryData<typeof _kasterForKoblingQuery>[number]
+export type ResultDetailRow      = QueryData<typeof _resultatDetaljQuery>[number]
 
 // ── Caches ────────────────────────────────────────────────────────────────────
 
-let _kasterListeAktivCache: KasterListeRow[] | null = null
-let _kasterListeAlleCache:  KasterListeRow[] | null = null
+let _kasterListeAktivCache: ThrowerListRow[] | null = null
+let _kasterListeAlleCache:  ThrowerListRow[] | null = null
 
-const _klubbDetaljCache    = new Map<number, { data: MedlemRow[];            error: unknown }>()
-const _kasterDetaljCache   = new Map<number, { kaster: KasterDetaljRow | null; resultater: ResultatDetaljRow[]; error: unknown }>()
-const _kasterKoblingCache  = new Map<number, { data: KasterForKoblingRow | null; error: unknown }>()
+const _klubbDetaljCache    = new Map<number, { data: MemberRow[];            error: unknown }>()
+const _kasterDetaljCache   = new Map<number, { kaster: ThrowerDetailRow | null; resultater: ResultDetailRow[]; error: unknown }>()
+const _kasterKoblingCache  = new Map<number, { data: ThrowerForLinkRow | null; error: unknown }>()
 
-// ── Eksporterte funksjonar ────────────────────────────────────────────────────
+// ── Exported functions ────────────────────────────────────────────────────────
 
-export async function hentKlubbMedlemmar(klubbId: number): Promise<{ data: MedlemRow[]; error: unknown }> {
+export async function getClubMembers(klubbId: number): Promise<{ data: MemberRow[]; error: unknown }> {
   if (_klubbDetaljCache.has(klubbId)) return _klubbDetaljCache.get(klubbId)!
   const { data, error } = await supabase
     .from('kaster')
@@ -40,13 +40,13 @@ export async function hentKlubbMedlemmar(klubbId: number): Promise<{ data: Medle
     .eq('eraktiv', true)
     .order('etternavn')
     .order('fornavn')
-  if (error) logError('hentKlubbMedlemmar', error)
+  if (error) logError('getClubMembers', error)
   const entry = { data: data ?? [], error }
   _klubbDetaljCache.set(klubbId, entry)
   return entry
 }
 
-export async function hentKastereListeAktive(): Promise<{ data: KasterListeRow[]; error: unknown }> {
+export async function getActiveThrowerList(): Promise<{ data: ThrowerListRow[]; error: unknown }> {
   if (_kasterListeAktivCache) return { data: _kasterListeAktivCache, error: null }
   const { data, error } = await supabase
     .from('kaster')
@@ -54,26 +54,26 @@ export async function hentKastereListeAktive(): Promise<{ data: KasterListeRow[]
     .eq('eraktiv', true)
     .order('etternavn')
     .order('fornavn')
-  if (error) logError('hentKastereListeAktive', error)
+  if (error) logError('getActiveThrowerList', error)
   _kasterListeAktivCache = data ?? []
   return { data: _kasterListeAktivCache, error }
 }
 
-export async function hentKastereListeAlle(): Promise<{ data: KasterListeRow[]; error: unknown }> {
+export async function getAllThrowerList(): Promise<{ data: ThrowerListRow[]; error: unknown }> {
   if (_kasterListeAlleCache) return { data: _kasterListeAlleCache, error: null }
   const { data, error } = await supabase
     .from('kaster')
     .select('id, fornavn, etternavn, eraktiv, avatarurl, kjonnid, klubb:klubbid(id, navn)')
     .order('etternavn')
     .order('fornavn')
-  if (error) logError('hentKastereListeAlle', error)
+  if (error) logError('getAllThrowerList', error)
   _kasterListeAlleCache = data ?? []
   return { data: _kasterListeAlleCache, error }
 }
 
-export async function hentKasterDetalj(id: number): Promise<{
-  kaster: KasterDetaljRow | null
-  resultater: ResultatDetaljRow[]
+export async function getThrowerDetail(id: number): Promise<{
+  kaster: ThrowerDetailRow | null
+  resultater: ResultDetailRow[]
   error: unknown
 }> {
   if (_kasterDetaljCache.has(id)) return _kasterDetaljCache.get(id)!
@@ -95,7 +95,7 @@ export async function hentKasterDetalj(id: number): Promise<{
   ])
 
   const error = kasterRes.error || resultatRes.error
-  if (error) logError('hentKasterDetalj', error)
+  if (error) logError('getThrowerDetail', error)
 
   const resultater = (resultatRes.data ?? [])
     .filter(r => r.stevne?.dato)
@@ -106,7 +106,7 @@ export async function hentKasterDetalj(id: number): Promise<{
   return entry
 }
 
-export async function hentKastereForKlubbar(klubbIds: number[]): Promise<{ data: KasterListeRow[]; error: unknown }> {
+export async function getThrowersForClubs(klubbIds: number[]): Promise<{ data: ThrowerListRow[]; error: unknown }> {
   const { data, error } = await supabase
     .from('kaster')
     .select('id, fornavn, etternavn, eraktiv, avatarurl, kjonnid, klubb:klubbid(id, navn)')
@@ -114,85 +114,85 @@ export async function hentKastereForKlubbar(klubbIds: number[]): Promise<{ data:
     .eq('eraktiv', true)
     .order('etternavn')
     .order('fornavn')
-  if (error) logError('hentKastereForKlubbar', error)
+  if (error) logError('getThrowersForClubs', error)
   return { data: data ?? [], error }
 }
 
-export async function hentKasterForKobling(id: number): Promise<{ data: KasterForKoblingRow | null; error: unknown }> {
+export async function getThrowerForLink(id: number): Promise<{ data: ThrowerForLinkRow | null; error: unknown }> {
   if (_kasterKoblingCache.has(id)) return _kasterKoblingCache.get(id)!
   const { data, error } = await supabase
     .from('kaster')
     .select('id, fornavn, etternavn, klubb:klubbid(navn)')
     .eq('id', id)
     .single()
-  if (error) logError('hentKasterForKobling', error)
+  if (error) logError('getThrowerForLink', error)
   const entry = { data, error }
   _kasterKoblingCache.set(id, entry)
   return entry
 }
 
-// ── Admin-funksjonar ──────────────────────────────────────────────────────────
+// ── Admin functions ───────────────────────────────────────────────────────────
 
-export type KlasseRow = Pick<Tables<'klasse'>, 'id' | 'navn'>
-export type KjonnRow  = Pick<Tables<'kjonn'>,  'id' | 'navn'>
+export type ClassRow = Pick<Tables<'klasse'>, 'id' | 'navn'>
+export type GenderRow  = Pick<Tables<'kjonn'>,  'id' | 'navn'>
 
-export type KasterAdminRow = Pick<Tables<'kaster'>,
+export type ThrowerAdminRow = Pick<Tables<'kaster'>,
   'id' | 'fornavn' | 'etternavn' | 'kjonnid' | 'klasseid' | 'klubbid' |
   'epost' | 'telefon' | 'medlemsnummer' | 'eraktiv'
 >
-export type KasterAdminPayload = Omit<KasterAdminRow, 'id'>
+export type ThrowerAdminPayload = Omit<ThrowerAdminRow, 'id'>
 
-export async function hentKlassar(): Promise<{ data: KlasseRow[]; error: unknown }> {
+export async function getClasses(): Promise<{ data: ClassRow[]; error: unknown }> {
   const { data, error } = await supabase.from('klasse').select('id, navn').order('navn')
-  if (error) logError('hentKlassar', error)
+  if (error) logError('getClasses', error)
   return { data: data ?? [], error }
 }
 
-export async function hentKjonn(): Promise<{ data: KjonnRow[]; error: unknown }> {
+export async function getGenders(): Promise<{ data: GenderRow[]; error: unknown }> {
   const { data, error } = await supabase.from('kjonn').select('id, navn').order('id')
-  if (error) logError('hentKjonn', error)
+  if (error) logError('getGenders', error)
   return { data: data ?? [], error }
 }
 
-export async function hentKastereByIds(ids: number[]): Promise<{ data: KasterForKoblingRow[]; error: unknown }> {
+export async function getThrowersById(ids: number[]): Promise<{ data: ThrowerForLinkRow[]; error: unknown }> {
   if (!ids.length) return { data: [], error: null }
   const { data, error } = await supabase
     .from('kaster')
     .select('id, fornavn, etternavn, klubb:klubbid(navn)')
     .in('id', ids)
-  if (error) logError('hentKastereByIds', error)
+  if (error) logError('getThrowersById', error)
   return { data: data ?? [], error }
 }
 
-export async function hentKasterForAdmin(id: number): Promise<{ data: KasterAdminRow | null; error: unknown }> {
+export async function getThrowerForAdmin(id: number): Promise<{ data: ThrowerAdminRow | null; error: unknown }> {
   const { data, error } = await supabase
     .from('kaster')
     .select('id, fornavn, etternavn, kjonnid, klasseid, klubbid, epost, telefon, medlemsnummer, eraktiv')
     .eq('id', id)
     .single()
-  if (error) logError('hentKasterForAdmin', error)
+  if (error) logError('getThrowerForAdmin', error)
   return { data, error }
 }
 
-export async function opprettKaster(
-  payload: KasterAdminPayload,
+export async function createThrower(
+  payload: ThrowerAdminPayload,
 ): Promise<{ data: { id: number } | null; error: unknown }> {
   const { data, error } = await supabase.from('kaster').insert(payload).select('id').single()
-  if (error) logError('opprettKaster', error)
+  if (error) logError('createThrower', error)
   return { data, error }
 }
 
-export async function oppdaterKaster(
+export async function updateThrower(
   id: number,
-  payload: KasterAdminPayload,
+  payload: ThrowerAdminPayload,
 ): Promise<{ data: { id: number } | null; error: unknown }> {
   const { data, error } = await supabase.from('kaster').update(payload).eq('id', id).select('id').single()
-  if (error) logError('oppdaterKaster', error)
+  if (error) logError('updateThrower', error)
   return { data, error }
 }
 
-export async function slettKaster(id: number): Promise<{ error: unknown }> {
+export async function deleteThrower(id: number): Promise<{ error: unknown }> {
   const { error } = await supabase.from('kaster').delete().eq('id', id)
-  if (error) logError('slettKaster', error)
+  if (error) logError('deleteThrower', error)
   return { error }
 }

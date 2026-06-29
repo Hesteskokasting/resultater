@@ -21,32 +21,32 @@
 import { showScoreEditor } from '@/organizer/scoreEditor'
 import { showToast } from '@/components/Toast'
 import { confirmDialog } from '@/components/ConfirmDialog'
-import { getMatchSides, groupStandingsByPair, scoreForSp, type MatchSide } from '@/utils/kamp'
-import { autoFullforInnledendeKamper } from '@/services/testDataService'
+import { getMatchSides, groupStandingsByPair, scoreForPlayer, type MatchSide } from '@/utils/kamp'
+import { autoCompleteInitialRoundMatches } from '@/services/testDataService'
 import {
-  byggInnledendeSpelMap, sorterStilling, renderInnledendeKnappar, lagOnEndringHandler,
-  bindStillingDetaljar, renderHovudInnhald, bindTabToggle, getActiveTab, setActiveTab, renderStillingTabell, beregnKanBekrefte,
-  sideNavnHtml,
-  type StillingRad,
+  buildInitialPlayerMap, sortStandings, renderInitialButtons, createChangeHandler,
+  bindStandingDetails, renderMainContent, bindTabToggle, getActiveTab, setActiveTab, renderStandingTable, canConfirmMatch,
+  sideNameHtml,
+  type StandingRow,
 } from '@/organizer/org-shared'
 import { createLoadingState } from '@/components/LoadingState'
 import { createErrorBanner } from '@/components/ErrorBanner'
 import { logError } from '@/utils/logError'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import {
-  hentInnledendeKamper, harKampOmgangar,
-  oppdaterKampSpelarScoreRask, bekreftInnledendeKamp, subscribeToKampEndringar, unbekreftKamp,
-  type InnlKampRow, type InnlKampSpelarRow,
+  getInitialRoundMatches, hasMatchRounds,
+  updateMatchPlayerScoreFast, confirmInitialMatch, subscribeToMatchChanges, unconfirmMatch,
+  type InitialMatchRow, type InitialMatchPlayerRow,
 } from '@/services/kampService'
 import {
-  hentInnledendeStevne, setStevneErfullfort,
-  type InnlStevneRow,
+  getInitialPhaseTournament, setTournamentCompleted,
+  type InitialPhaseTournamentRow,
 } from '@/services/stevneService'
 import { avmeldKanal } from '@/utils/realtime'
 import { livePillHtml } from '@/components/LivePill'
 import {
-  hentResultatForInnledende, skrivPlaseringar,
-  type InnlResultatRow,
+  getResultsForInitialRound, writePlacements,
+  type InitialResultRow,
 } from '@/services/resultatService'
 
 // ── Variant API ───────────────────────────────────────────────────────────────
@@ -54,11 +54,11 @@ import {
 export interface InnledendeContext {
   container: HTMLElement
   stevneid: number
-  stevne: InnlStevneRow
-  alleKamper: InnlKampRow[]
-  rundeMap: Map<number, InnlKampRow[]>
+  stevne: InitialPhaseTournamentRow
+  alleKamper: InitialMatchRow[]
+  rundeMap: Map<number, InitialMatchRow[]>
   startnrMap: Record<number, number>
-  stilling: StillingRad[]
+  stilling: StandingRow[]
   isAdmin: boolean
   erAlleKamperBekreftet: boolean
   reload: () => Promise<void>
@@ -71,7 +71,7 @@ export interface InnledendeVariant {
   onReset?: () => void
   getBannerExtra: (ctx: InnledendeContext) => string
   bindBannerExtra: (bannerSlot: HTMLElement, ctx: InnledendeContext) => void
-  filterRundar?: (rundeMap: Map<number, InnlKampRow[]>) => Map<number, InnlKampRow[]>
+  filterRundar?: (rundeMap: Map<number, InitialMatchRow[]>) => Map<number, InitialMatchRow[]>
 }
 
 // ── Factory ───────────────────────────────────────────────────────────────────
@@ -100,9 +100,9 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
   async function lastOgVis(container: HTMLElement, stevneid: number): Promise<void> {
     try {
       const [{ data: stevne }, { data: alleKamper }, { data: resultat }] = await Promise.all([
-        hentInnledendeStevne(stevneid),
-        hentInnledendeKamper(stevneid),
-        hentResultatForInnledende(stevneid),
+        getInitialPhaseTournament(stevneid),
+        getInitialRoundMatches(stevneid),
+        getResultsForInitialRound(stevneid),
       ])
 
       if (!stevne) {
@@ -137,18 +137,18 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
       const kamperHtml = [...rundarSomVisast.entries()]
         .map(([nr, rKamper]) => renderRunde(nr, rKamper, startnrMap, kanEndreKampar, hcpMap, posisjonMap))
         .join('') + renderKampLegend()
-      const stillingHtml = renderStillingTabell(stilling, alleKamper, startnrMap, {
+      const stillingHtml = renderStandingTable(stilling, alleKamper, startnrMap, {
         tableId: 'stilling-innl',
-        harAntallKamper: true,
-        posisjonMap,
+        hasMatchCount: true,
+        positionMap: posisjonMap,
         unitLabel: erLag ? 'par' : 'spelarar',
       })
 
       const activeTab = getActiveTab(container)
-      container.innerHTML = renderHovudInnhald(kamperHtml, stillingHtml)
+      container.innerHTML = renderMainContent(kamperHtml, stillingHtml)
       bindTabToggle(container)
       if (activeTab === 'stilling') setActiveTab(container, 'stilling')
-      bindStillingDetaljar(container, 'stilling-innl', stillingExpandedIds)
+      bindStandingDetails(container, 'stilling-innl', stillingExpandedIds)
 
       applyFlashClasses(container, idsToFlash, alleKamper)
 
@@ -165,7 +165,7 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
   }
 
   /** Tracks confirmed-match ids across renders so the newly-confirmed rows flash once. */
-  function beregnFlashIds(alleKamper: InnlKampRow[]): Set<number> {
+  function beregnFlashIds(alleKamper: InitialMatchRow[]): Set<number> {
     const currentConfirmedIds = new Set(alleKamper.filter(k => k.er_bekreftet).map(k => k.id))
     const newlyConfirmedIds = prevConfirmedIds
       ? new Set([...currentConfirmedIds].filter(id => !prevConfirmedIds!.has(id)))
@@ -178,14 +178,14 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
 
   function setupBanner(ctx: InnledendeContext): void {
     if (!bannerSlot) return
-    bannerSlot.innerHTML = (isAdmin ? renderInnledendeKnappar(ctx.stevne, variant.erSwiss) : '') + variant.getBannerExtra(ctx)
+    bannerSlot.innerHTML = (isAdmin ? renderInitialButtons(ctx.stevne, variant.erSwiss) : '') + variant.getBannerExtra(ctx)
     variant.bindBannerExtra(bannerSlot, ctx)
 
     bannerSlot.querySelector('#fullfør-turnering-btn')?.addEventListener('click', async () => {
       if (!await confirmDialog({ title: 'Fullfør turnering', message: 'Vil du fullføre turneringa? Dette kan ikkje angrast.', danger: true })) return
-      const { error: plErr } = await skrivPlaseringar(ctx.stevneid, ctx.stilling)
+      const { error: plErr } = await writePlacements(ctx.stevneid, ctx.stilling)
       if (plErr) { showToast('Feil ved lagring av plasseringar', 'error'); return }
-      const { error } = await setStevneErfullfort(ctx.stevneid)
+      const { error } = await setTournamentCompleted(ctx.stevneid)
       if (error) { showToast('Feil ved lagring', 'error'); return }
       await ctx.reload()
     })
@@ -194,7 +194,7 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
       const btn = e.currentTarget as HTMLButtonElement
       if (!await confirmDialog({ title: 'Autofullfør kampar', message: 'Autofullfør alle ubekreftede innleiande kampar?' })) return
       btn.disabled = true
-      await autoFullforInnledendeKamper(ctx.stevneid)
+      await autoCompleteInitialRoundMatches(ctx.stevneid)
       await ctx.reload()
     })
   }
@@ -202,7 +202,7 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
   function bindScoreRedigering(
     container: HTMLElement,
     stevneid: number,
-    kamp: InnlKampRow,
+    kamp: InitialMatchRow,
     startnrMap: Record<number, number>,
     posisjonMap: Record<number, number>,
   ): void {
@@ -212,7 +212,7 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
     const spelarIds = [...(side1?.members ?? []), ...(side2?.members ?? [])].map(m => m.id)
 
     const onScoreKlikk = async () => {
-      const hasOmgangar = spelarIds.length ? await harKampOmgangar(spelarIds) : false
+      const hasOmgangar = spelarIds.length ? await hasMatchRounds(spelarIds) : false
       await showScoreEditor({
         side1Name: sideNavn(side1, false),
         side2Name: sideNavn(side2, false),
@@ -223,9 +223,9 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
         logPrefix: variant.logPrefix,
         onSave: async (nyS1, nyS2) => {
           await Promise.all([
-            p1 ? oppdaterKampSpelarScoreRask(p1.id, nyS1) : Promise.resolve({ error: null }),
-            p2 ? oppdaterKampSpelarScoreRask(p2.id, nyS2) : Promise.resolve({ error: null }),
-            ...(kamp.er_bekreftet ? [unbekreftKamp(kamp.id)] : []),
+            p1 ? updateMatchPlayerScoreFast(p1.id, nyS1) : Promise.resolve({ error: null }),
+            p2 ? updateMatchPlayerScoreFast(p2.id, nyS2) : Promise.resolve({ error: null }),
+            ...(kamp.er_bekreftet ? [unconfirmMatch(kamp.id)] : []),
           ])
           return null
         },
@@ -243,7 +243,7 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
   function lagBekreftHandler(
     container: HTMLElement,
     stevneid: number,
-    kamp: InnlKampRow,
+    kamp: InitialMatchRow,
     startnrMap: Record<number, number>,
     hcpMap: Record<number, number>,
     posisjonMap: Record<number, number>,
@@ -267,7 +267,7 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
   function bindMobilRad(
     container: HTMLElement,
     stevneid: number,
-    kamp: InnlKampRow,
+    kamp: InitialMatchRow,
     startnrMap: Record<number, number>,
     hcpMap: Record<number, number>,
     posisjonMap: Record<number, number>,
@@ -300,7 +300,7 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
   function bindKampEvents(
     container: HTMLElement,
     stevneid: number,
-    kamp: InnlKampRow,
+    kamp: InitialMatchRow,
     startnrMap: Record<number, number>,
     hcpMap: Record<number, number>,
     posisjonMap: Record<number, number>,
@@ -319,16 +319,16 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
 
   function abonnerPaaEndringar(container: HTMLElement, stevneid: number): void {
     if (kanal) return
-    const onEndring = lagOnEndringHandler(stevneid, ['innledende'], container, lastOgVis, () => {
+    const onEndring = createChangeHandler(stevneid, ['innledende'], container, lastOgVis, () => {
       if (kanal) { void avmeldKanal(kanal); kanal = null }
     })
-    kanal = subscribeToKampEndringar(stevneid, variant.channelName(stevneid), onEndring)
+    kanal = subscribeToMatchChanges(stevneid, variant.channelName(stevneid), onEndring)
   }
 
   async function bekreftKamp(
     container: HTMLElement,
     stevneid: number,
-    kamp: InnlKampRow,
+    kamp: InitialMatchRow,
     startnrMap: Record<number, number>,
     hcpMap: Record<number, number> = {},
     posisjonMap: Record<number, number> = {},
@@ -339,10 +339,10 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
     const hcp1 = hcpMap[p1?.kasterid ?? -1] ?? 0
     const hcp2 = hcpMap[p2?.kasterid ?? -1] ?? 0
 
-    const { error } = await bekreftInnledendeKamp({
+    const { error } = await confirmInitialMatch({
       kampId: kamp.id,
-      p1: p1 ? { spelarId: p1.id, kasterid: p1.kasterid, scorePoeng: p1.score_poeng } : null,
-      p2: p2 ? { spelarId: p2.id, kasterid: p2.kasterid, scorePoeng: p2.score_poeng } : null,
+      p1: p1 ? { playerId: p1.id, kasterid: p1.kasterid, scorePoints: p1.score_poeng } : null,
+      p2: p2 ? { playerId: p2.id, kasterid: p2.kasterid, scorePoints: p2.score_poeng } : null,
       hcp1,
       hcp2,
       erWalkover: kamp.er_walkover,
@@ -367,7 +367,7 @@ interface DeltakarMaps {
   erLag: boolean
 }
 
-function byggDeltakarMaps(resultat: InnlResultatRow[]): DeltakarMaps {
+function byggDeltakarMaps(resultat: InitialResultRow[]): DeltakarMaps {
   const startnrMap: Record<number, number> = Object.fromEntries(
     resultat.filter(r => r.kasterid != null).map(r => [r.kasterid!, r.startnummer ?? 0]),
   )
@@ -385,8 +385,8 @@ function byggDeltakarMaps(resultat: InnlResultatRow[]): DeltakarMaps {
   return { startnrMap, hcpMap, posisjonMap, erLag: [...snrCount.values()].some(c => c > 1) }
 }
 
-function byggRundeMap(alleKamper: InnlKampRow[]): Map<number, InnlKampRow[]> {
-  const rundeMap = new Map<number, InnlKampRow[]>()
+function byggRundeMap(alleKamper: InitialMatchRow[]): Map<number, InitialMatchRow[]> {
+  const rundeMap = new Map<number, InitialMatchRow[]>()
   for (const kamp of alleKamper) {
     if (!rundeMap.has(kamp.runde_nummer)) rundeMap.set(kamp.runde_nummer, [])
     rundeMap.get(kamp.runde_nummer)!.push(kamp)
@@ -395,24 +395,24 @@ function byggRundeMap(alleKamper: InnlKampRow[]): Map<number, InnlKampRow[]> {
 }
 
 function byggStilling(
-  alleKamper: InnlKampRow[],
-  resultat: InnlResultatRow[],
+  alleKamper: InitialMatchRow[],
+  resultat: InitialResultRow[],
   startnrMap: Record<number, number>,
   posisjonMap: Record<number, number>,
   erLag: boolean,
-): StillingRad[] {
-  const { spelMap, ekteKasterids } = byggInnledendeSpelMap(alleKamper, startnrMap)
-  const stillingRader = Object.values(spelMap)
-    .filter(s => ekteKasterids.has(s.kasterid))
+): StandingRow[] {
+  const { playerMap, realThrowerIds } = buildInitialPlayerMap(alleKamper, startnrMap)
+  const stillingRader = Object.values(playerMap)
+    .filter(s => realThrowerIds.has(s.kasterid))
     .map(s => ({ ...s, hcp: resultat.find(r => r.kasterid === s.kasterid)?.hcp ?? 0 }))
-  return sorterStilling(
+  return sortStandings(
     erLag ? groupStandingsByPair(stillingRader, posisjonMap) : stillingRader,
     alleKamper,
   )
 }
 
 /** Adds the one-shot flash class to rows whose match was just confirmed. */
-function applyFlashClasses(container: HTMLElement, idsToFlash: Set<number>, alleKamper: InnlKampRow[]): void {
+function applyFlashClasses(container: HTMLElement, idsToFlash: Set<number>, alleKamper: InitialMatchRow[]): void {
   for (const kampId of idsToFlash) {
     container.querySelectorAll(`[data-kamp-id="${kampId}"]`).forEach(el => el.classList.add('kamp-ny-bekreftet'))
     const kamp = alleKamper.find(k => k.id === kampId)
@@ -426,21 +426,21 @@ function applyFlashClasses(container: HTMLElement, idsToFlash: Set<number>, alle
 // ── Shared rendering (pure — no closure state) ────────────────────────────────
 
 /** Any member of the side has omgang rows (pair members alternate omgangar). */
-function sideHarOmgangar(side: MatchSide<InnlKampSpelarRow> | null): boolean {
+function sideHarOmgangar(side: MatchSide<InitialMatchPlayerRow> | null): boolean {
   return side?.members.some(m => (m.omgangar?.length ?? 0) > 0) ?? false
 }
 
 /** Side total: each member carries only the omgangar they threw themselves. */
-function sideScore(side: MatchSide<InnlKampSpelarRow> | null, erBekreftet: boolean): number {
+function sideScore(side: MatchSide<InitialMatchPlayerRow> | null, erBekreftet: boolean): number {
   if (!side) return 0
-  return side.members.reduce((sum, m) => sum + (erBekreftet ? (m.score_poeng ?? 0) : scoreForSp(m)), 0)
+  return side.members.reduce((sum, m) => sum + (erBekreftet ? (m.score_poeng ?? 0) : scoreForPlayer(m)), 0)
 }
 
-const sideNavn = sideNavnHtml
+const sideNavn = sideNameHtml
 
 type KampStatus = 'ferdig' | 'pagaar' | 'ikke-startet'
 
-function resolveKampStatus(kamp: InnlKampRow, harPoeng: boolean, harOmgangar: boolean): KampStatus {
+function resolveKampStatus(kamp: InitialMatchRow, harPoeng: boolean, harOmgangar: boolean): KampStatus {
   if (kamp.er_bekreftet) return 'ferdig'
   if (harOmgangar || harPoeng) return 'pagaar'
   return 'ikke-startet'
@@ -457,7 +457,7 @@ function renderKampLegend(): string {
 
 function renderRunde(
   nr: number,
-  kamper: InnlKampRow[],
+  kamper: InitialMatchRow[],
   startnrMap: Record<number, number>,
   admin: boolean,
   hcpMap: Record<number, number> = {},
@@ -486,16 +486,16 @@ function renderRunde(
 }
 
 /** A side's raw score: confirmed total, or live omgang sum plus handicap. */
-function sideRawScore(side: MatchSide<InnlKampSpelarRow> | null, erBekreftet: boolean, harOmg: boolean, hcp: number): number {
+function sideRawScore(side: MatchSide<InitialMatchPlayerRow> | null, erBekreftet: boolean, harOmg: boolean, hcp: number): number {
   if (erBekreftet) return sideScore(side, true)
   return sideScore(side, false) + (harOmg ? hcp : 0)
 }
 
 /** Displayed scores: an unconfirmed walkover shows 21–0; otherwise the raw side totals. */
 function beregnRadScorar(
-  kamp: InnlKampRow,
-  side1: MatchSide<InnlKampSpelarRow> | null,
-  side2: MatchSide<InnlKampSpelarRow> | null,
+  kamp: InitialMatchRow,
+  side1: MatchSide<InitialMatchPlayerRow> | null,
+  side2: MatchSide<InitialMatchPlayerRow> | null,
   harOmg1: boolean,
   harOmg2: boolean,
   hcp1: number,
@@ -514,7 +514,7 @@ function beregnRadScorar(
 
 /** Per-match view state shared by the desktop and mobile row renderers. */
 function beregnKampRadState(
-  kamp: InnlKampRow,
+  kamp: InitialMatchRow,
   startnrMap: Record<number, number>,
   hcpMap: Record<number, number>,
   posisjonMap: Record<number, number>,
@@ -532,11 +532,11 @@ function beregnKampRadState(
 
   const { s1, s2, harPoeng } = beregnRadScorar(kamp, side1, side2, harOmg1, harOmg2, hcp1, hcp2)
 
-  const sp = [p1, p2].filter((s): s is InnlKampSpelarRow => s != null)
+  const sp = [p1, p2].filter((s): s is InitialMatchPlayerRow => s != null)
   return {
     side1, side2, p1, p2, p2ErBye, harOmgangar, s1, s2, harPoeng,
     status: resolveKampStatus(kamp, harPoeng, harOmgangar),
-    kanBekrefte: beregnKanBekrefte(kamp, sp, harOmgangar, hcpMap),
+    kanBekrefte: canConfirmMatch(kamp, sp, harOmgangar, hcpMap),
     isLive: harOmgangar && !kamp.er_bekreftet,
   }
 }
@@ -551,7 +551,7 @@ function medStartnr(namn: string, nr: number | string): string {
 }
 
 /** The right-hand action cell for a desktop match row. */
-function kampRadKnapperTd(kamp: InnlKampRow, admin: boolean, harOmgangar: boolean, kanBekrefte: boolean, isLive: boolean): string {
+function kampRadKnapperTd(kamp: InitialMatchRow, admin: boolean, harOmgangar: boolean, kanBekrefte: boolean, isLive: boolean): string {
   if (kamp.er_bekreftet) {
     return `<td class="text-end pe-2"><span class="kamp-bekreftet-indikator">✓ Bekreftet</span></td>`
   }
@@ -572,7 +572,7 @@ function kampRadKnapperTd(kamp: InnlKampRow, admin: boolean, harOmgangar: boolea
 }
 
 function kampRad(
-  kamp: InnlKampRow,
+  kamp: InitialMatchRow,
   startnrMap: Record<number, number>,
   admin = true,
   hcpMap: Record<number, number> = {},
@@ -601,7 +601,7 @@ function kampRad(
 }
 
 function kampRadMobil(
-  kamp: InnlKampRow,
+  kamp: InitialMatchRow,
   startnrMap: Record<number, number>,
   admin: boolean,
   hcpMap: Record<number, number> = {},
@@ -632,7 +632,7 @@ function kampRadMobil(
 }
 
 /** The mobile score/confirm button row, shown only to admins. */
-function kampRadMobilKnapper(kamp: InnlKampRow, kanBekrefte: boolean): string {
+function kampRadMobilKnapper(kamp: InitialMatchRow, kanBekrefte: boolean): string {
   const bekrftCell = kamp.er_bekreftet
     ? `<span class="kamp-bekreftet-mobil">✓ Bekreftet</span>`
     : `<button class="kamp-knapp-mobil kamp-knapp-bekreft-mobil" id="m-bekrft-${kamp.id}"${!kanBekrefte ? ' disabled' : ''}>Bekreft</button>`

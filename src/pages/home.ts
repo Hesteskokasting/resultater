@@ -1,20 +1,20 @@
-import { formaterPoeng, byggSingelListe } from '@/utils/norgescup'
-import { hentRegler, hentStevnerOgResultater } from '@/services/norgescupService'
-import { formaterDatoLang as formaterDato } from '@/utils/shared'
+import { formaterPoeng, buildSingleList } from '@/utils/norgescup'
+import { getRules, getTournamentsAndResults } from '@/services/norgescupService'
+import { formatDateLong } from '@/utils/shared'
 import { createErrorBanner } from '@/components/ErrorBanner'
 import { escHtml } from '@/utils/escHtml'
 import { livePillHtml } from '@/components/LivePill'
-import { hentSisteResultater, hentLiveStevner, hentKommendeStevner } from '@/services/stevneService'
-import type { SisteResultatRow, LiveStevneRow, KommendeStevneRow } from '@/services/stevneService'
+import { getLatestResults, getLiveTournaments, getUpcomingTournaments } from '@/services/stevneService'
+import type { LatestResultRow, LiveTournamentRow, UpcomingTournamentRow } from '@/services/stevneService'
 import { logError } from '@/utils/logError'
-import type { SingelListeRad } from '@/utils/norgescup'
+import type { SingleListRow } from '@/utils/norgescup'
 import { getUser } from '@/services/authService'
-import { hentPameldteForBruker } from '@/services/stevneService'
+import { getRegistrationsForThrower } from '@/services/stevneService'
 import { bindPameldingSlots } from '@/components/PameldingKnapp'
 
 // ── HTML-byggjarar ────────────────────────────────────────────────────────────
 
-function ncTopp20Html(liste: SingelListeRad[]): string {
+function ncTopp20Html(liste: SingleListRow[]): string {
   if (liste.length === 0) return '<p class="empty-state">Ingen data.</p>'
   const rader = liste.slice(0, 20).map(k => `
     <tr>
@@ -37,7 +37,7 @@ function ncTopp20Html(liste: SingelListeRad[]): string {
     </table>`
 }
 
-function liveKortHtml(s: LiveStevneRow): string {
+function liveKortHtml(s: LiveTournamentRow): string {
   const tab = s.stevne_fase === 'avsluttende' ? 'avsluttende' : 'innledende'
   return `
     <a class="live-kort" href="#/stevne/${s.id}/${tab}">
@@ -46,16 +46,16 @@ function liveKortHtml(s: LiveStevneRow): string {
     </a>`
 }
 
-function resultatKortHtml(s: SisteResultatRow): string {
+function resultatKortHtml(s: LatestResultRow): string {
   return `
     <div class="stevne-kort">
-      <p class="stevne-dato">${formaterDato(s.dato)}</p>
+      <p class="stevne-dato">${formatDateLong(s.dato)}</p>
       <p class="stevne-navn">${escHtml(s.navn)}</p>
       <a class="stevne-lenke" href="#/stevne/${s.id}/resultat">Vis resultat</a>
     </div>`
 }
 
-function kommendeKortHtml(s: KommendeStevneRow, showSlot: boolean): string {
+function kommendeKortHtml(s: UpcomingTournamentRow, showSlot: boolean): string {
   const ikkjeStarta = s.stevne_fase === null || s.stevne_fase === 'ikke_startet'
   const canRegister = showSlot && ikkjeStarta && !s.erfullfort
   const innbydelse = s.innbydelseurl
@@ -65,7 +65,7 @@ function kommendeKortHtml(s: KommendeStevneRow, showSlot: boolean): string {
       : `<span class="stevne-lenke-inaktiv">Innbydelse er ikkje klar</span>`
   return `
     <div class="stevne-kort">
-      <p class="stevne-dato">${formaterDato(s.dato)}</p>
+      <p class="stevne-dato">${formatDateLong(s.dato)}</p>
       <a class="stevne-navn" href="#/stevne/${s.id}/info">${escHtml(s.navn)}</a>
       ${innbydelse}
     </div>`
@@ -108,11 +108,11 @@ export async function render(container: HTMLElement): Promise<void> {
       { data: r5, error: _e5 },
       auth,
     ] = await Promise.all([
-      hentSisteResultater(),
-      hentKommendeStevner(),
-      hentRegler(ar),
-      hentStevnerOgResultater(ar),
-      hentLiveStevner(),
+      getLatestResults(),
+      getUpcomingTournaments(),
+      getRules(ar),
+      getTournamentsAndResults(ar),
+      getLiveTournaments(),
       getUser(),
     ])
 
@@ -122,7 +122,7 @@ export async function render(container: HTMLElement): Promise<void> {
     }
 
     const live = r5.filter(s => !s.erfullfort)
-    const ncListe = r3 ? byggSingelListe(r4, s4, r3, 'NC', 1) : []
+    const ncListe = r3 ? buildSingleList(r4, s4, r3, 'NC', 1) : []
     const kasterid = auth?.profil?.kasterid ?? null
     const showSlot = kasterid !== null && auth?.profil?.kobling_status === 'godkjent'
 
@@ -142,7 +142,7 @@ export async function render(container: HTMLElement): Promise<void> {
       `<div class="stevne-liste">${r2.map(s => kommendeKortHtml(s, showSlot)).join('')}</div>`
 
     if (kasterid !== null && auth?.user.id) {
-      const pameldteMap = await hentPameldteForBruker(kasterid)
+      const pameldteMap = await getRegistrationsForThrower(kasterid)
       bindPameldingSlots(kommendeSection, kasterid, auth.user.id, pameldteMap)
     }
 

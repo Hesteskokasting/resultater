@@ -9,15 +9,15 @@ const _pameldingMedKasterQuery = supabase
   .select('id, kasterid, kaster:kasterid(id, fornavn, etternavn, klubb:klubbid(navn))')
 const _pameldingStatusQuery = supabase.from('pamelding').select('id, kasterid, er_bekreftet, lag_id')
 
-export type PameldingRow = QueryData<typeof _pameldingQuery>[number]
-export type PameldingMedKasterRow = QueryData<typeof _pameldingMedKasterQuery>[number]
-export type PameldingStatusRow = QueryData<typeof _pameldingStatusQuery>[number]
+export type RegistrationRow = QueryData<typeof _pameldingQuery>[number]
+export type RegistrationWithThrowerRow = QueryData<typeof _pameldingMedKasterQuery>[number]
+export type RegistrationStatusRow = QueryData<typeof _pameldingStatusQuery>[number]
 
 // ── Par/Mix pair types ────────────────────────────────────────────────────────
 // Manually typed until migration 20260610100000 is applied and types regenerated.
 // After: npx supabase gen types typescript --project-id urtvpewjlevhlevtnvkf > src/types/database.types.ts
 
-export interface PameldingParMember {
+export interface RegistrationPairMember {
   id: number
   kasterid: number
   lag_id: number
@@ -31,33 +31,33 @@ export interface PameldingParMember {
   } | null
 }
 
-export interface PameldingPar {
+export interface RegistrationPair {
   lag_id: number
-  sideA: PameldingParMember  // posisjon 1
-  sideB: PameldingParMember  // posisjon 2
+  sideA: RegistrationPairMember  // posisjon 1
+  sideB: RegistrationPairMember  // posisjon 2
 }
 
-export async function hentMinePameldingar(brukerId: string): Promise<{ data: PameldingRow[]; error: unknown }> {
+export async function getMyRegistrations(brukerId: string): Promise<{ data: RegistrationRow[]; error: unknown }> {
   const { data, error } = await supabase
     .from('pamelding')
     .select('id, stevne:stevneid(id, navn, dato)')
     .eq('bruker_id', brukerId)
     .limit(50)
-  if (error) logError('hentMinePameldingar', error)
+  if (error) logError('getMyRegistrations', error)
   return { data: data ?? [], error }
 }
 
-export async function hentPameldingarForStevne(stevneId: number): Promise<{ data: PameldingMedKasterRow[]; error: unknown }> {
+export async function getRegistrationsForTournament(stevneId: number): Promise<{ data: RegistrationWithThrowerRow[]; error: unknown }> {
   const { data, error } = await supabase
     .from('pamelding')
     .select('id, kasterid, kaster:kasterid(id, fornavn, etternavn, klubb:klubbid(navn))')
     .eq('stevneid', stevneId)
     .order('id')
-  if (error) logError('hentPameldingarForStevne', error)
+  if (error) logError('getRegistrationsForTournament', error)
   return { data: data ?? [], error }
 }
 
-export async function hentMinPameldingForStevne(
+export async function getMyRegistrationForTournament(
   stevneId: number,
   kasterid: number,
 ): Promise<{ data: { id: number } | null; error: unknown }> {
@@ -67,11 +67,11 @@ export async function hentMinPameldingForStevne(
     .eq('stevneid', stevneId)
     .eq('kasterid', kasterid)
     .maybeSingle()
-  if (error) logError('hentMinPameldingForStevne', error)
+  if (error) logError('getMyRegistrationForTournament', error)
   return { data, error }
 }
 
-export async function meldPaStevne(
+export async function registerForTournament(
   stevneId: number,
   kasterid: number,
   brukerId: string,
@@ -81,89 +81,89 @@ export async function meldPaStevne(
     .insert({ stevneid: stevneId, kasterid, bruker_id: brukerId })
     .select('id')
     .single()
-  if (error) logError('meldPaStevne', error)
+  if (error) logError('registerForTournament', error)
   return { error, id: data?.id ?? null }
 }
 
-export async function fjernPamelding(pameldingId: number): Promise<{ error: unknown }> {
+export async function removeRegistration(pameldingId: number): Promise<{ error: unknown }> {
   const { error } = await supabase.from('pamelding').delete().eq('id', pameldingId)
-  if (error) logError('fjernPamelding', error)
+  if (error) logError('removeRegistration', error)
   return { error }
 }
 
-export async function hentAntallPameldingar(stevneId: number): Promise<number> {
+export async function getRegistrationCount(stevneId: number): Promise<number> {
   const { count, error } = await supabase
     .from('pamelding')
     .select('id', { count: 'exact', head: true })
     .eq('stevneid', stevneId)
-  if (error) logError('hentAntallPameldingar', error)
+  if (error) logError('getRegistrationCount', error)
   return count ?? 0
 }
 
-export async function hentAntallPar(stevneId: number): Promise<number> {
+export async function getPairCount(stevneId: number): Promise<number> {
   const { count, error } = await supabase
     .from('pamelding')
     .select('id', { count: 'exact', head: true })
     .eq('stevneid', stevneId)
     .not('lag_id', 'is', null)
-  if (error) logError('hentAntallPar', error)
+  if (error) logError('getPairCount', error)
   return Math.floor((count ?? 0) / 2)
 }
 
-export async function hentAntallUbekrefta(stevneId: number): Promise<number> {
+export async function getUnconfirmedCount(stevneId: number): Promise<number> {
   const { count, error } = await supabase
     .from('pamelding')
     .select('id', { count: 'exact', head: true })
     .eq('stevneid', stevneId)
     .eq('er_bekreftet', false)
-  if (error) logError('hentAntallUbekrefta', error)
+  if (error) logError('getUnconfirmedCount', error)
   return count ?? 0
 }
 
-export async function hentPameldingStatusForStevne(stevneId: number): Promise<{ data: PameldingStatusRow[]; error: unknown }> {
+export async function getRegistrationStatusForTournament(stevneId: number): Promise<{ data: RegistrationStatusRow[]; error: unknown }> {
   const { data, error } = await supabase
     .from('pamelding')
     .select('id, kasterid, er_bekreftet, lag_id')
     .eq('stevneid', stevneId)
     .order('id')
-  if (error) logError('hentPameldingStatusForStevne', error)
+  if (error) logError('getRegistrationStatusForTournament', error)
   return { data: data ?? [], error }
 }
 
-export async function leggTilPameldingAdmin(stevneId: number, kasterid: number): Promise<{ error: unknown }> {
+export async function addRegistrationAdmin(stevneId: number, kasterid: number): Promise<{ error: unknown }> {
   const auth = await getUser()
   const { error } = await supabase.from('pamelding').insert({
     stevneid: stevneId,
     kasterid,
     ...(auth?.user ? { bruker_id: auth.user.id } : {}),
   })
-  if (error) logError('leggTilPameldingAdmin', error)
+  if (error) logError('addRegistrationAdmin', error)
   return { error }
 }
 
-export async function bekreftPameldingForKaster(stevneId: number, kasterid: number): Promise<{ error: unknown }> {
+export async function confirmRegistrationForThrower(stevneId: number, kasterid: number): Promise<{ error: unknown }> {
   const { error } = await supabase
     .from('pamelding')
     .update({ er_bekreftet: true })
     .eq('stevneid', stevneId)
     .eq('kasterid', kasterid)
-  if (error) logError('bekreftPameldingForKaster', error)
+  if (error) logError('confirmRegistrationForThrower', error)
   return { error }
 }
 
-export async function fjernPameldingForKaster(stevneId: number, kasterid: number): Promise<{ error: unknown }> {
+export async function removeRegistrationForThrower(stevneId: number, kasterid: number): Promise<{ error: unknown }> {
   const { error } = await supabase
     .from('pamelding')
     .delete()
     .eq('stevneid', stevneId)
     .eq('kasterid', kasterid)
-  if (error) logError('fjernPameldingForKaster', error)
+  if (error) logError('removeRegistrationForThrower', error)
   return { error }
 }
 
 // ── Par/Mix functions ─────────────────────────────────────────────────────────
 
-export async function hentParForStevne(stevneId: number): Promise<{ data: PameldingPar[]; error: unknown }> {
+export async function getPairsForTournament(stevneId: number): Promise<{ data: RegistrationPair[]; error: unknown }> {
   const { data, error } = await supabase
     .from('pamelding')
     .select('id, kasterid, lag_id, posisjon, kaster:kasterid(id, fornavn, etternavn, kjonnid, klubb:klubbid(navn))')
@@ -173,12 +173,12 @@ export async function hentParForStevne(stevneId: number): Promise<{ data: Pameld
     .order('posisjon')
 
   if (error) {
-    logError('hentParForStevne', error)
+    logError('getPairsForTournament', error)
     return { data: [], error }
   }
 
-  const rows = (data ?? []) as unknown as PameldingParMember[]
-  const parMap = new Map<number, Partial<PameldingPar>>()
+  const rows = (data ?? []) as unknown as RegistrationPairMember[]
+  const parMap = new Map<number, Partial<RegistrationPair>>()
 
   for (const row of rows) {
     if (!parMap.has(row.lag_id)) parMap.set(row.lag_id, { lag_id: row.lag_id })
@@ -188,13 +188,13 @@ export async function hentParForStevne(stevneId: number): Promise<{ data: Pameld
   }
 
   const pairs = Array.from(parMap.values()).filter(
-    (p): p is PameldingPar => p.sideA != null && p.sideB != null,
+    (p): p is RegistrationPair => p.sideA != null && p.sideB != null,
   )
 
   return { data: pairs, error: null }
 }
 
-export async function opprettPar(
+export async function createPair(
   stevneId: number,
   kasterAId: number,
   kasterBId: number,
@@ -210,50 +210,50 @@ export async function opprettPar(
     .maybeSingle()
 
   if (fetchError) {
-    logError('opprettPar.hentMaxLagId', fetchError)
+    logError('createPair.hentMaxLagId', fetchError)
     return { error: fetchError }
   }
 
-  const nyLagId = ((maxRow as { lag_id: number } | null)?.lag_id ?? 0) + 1
+  const newTeamId = ((maxRow as { lag_id: number } | null)?.lag_id ?? 0) + 1
 
   // Sequential, not Promise.all: the Mix gender trigger validates each row,
   // and parallel transactions would race past cross-checks. On a second-step
   // failure the first write is rolled back so no half-pair is left behind.
   const res1 = await supabase
     .from('pamelding')
-    .update({ lag_id: nyLagId, posisjon: 1 })
+    .update({ lag_id: newTeamId, posisjon: 1 })
     .eq('stevneid', stevneId)
     .eq('kasterid', kasterAId)
   if (res1.error) {
-    logError('opprettPar', res1.error)
+    logError('createPair', res1.error)
     return { error: res1.error }
   }
 
   const res2 = await supabase
     .from('pamelding')
-    .update({ lag_id: nyLagId, posisjon: 2 })
+    .update({ lag_id: newTeamId, posisjon: 2 })
     .eq('stevneid', stevneId)
     .eq('kasterid', kasterBId)
   if (res2.error) {
-    logError('opprettPar', res2.error)
-    const { error: angreErr } = await supabase
+    logError('createPair', res2.error)
+    const { error: rollbackErr } = await supabase
       .from('pamelding')
       .update({ lag_id: null, posisjon: null })
       .eq('stevneid', stevneId)
       .eq('kasterid', kasterAId)
-    if (angreErr) logError('opprettPar.angre', angreErr)
+    if (rollbackErr) logError('createPair.angre', rollbackErr)
     return { error: res2.error }
   }
 
   return { error: null }
 }
 
-export async function slettPar(stevneId: number, lagId: number): Promise<{ error: unknown }> {
+export async function deletePair(stevneId: number, lagId: number): Promise<{ error: unknown }> {
   const { error } = await supabase
     .from('pamelding')
     .update({ lag_id: null, posisjon: null })
     .eq('stevneid', stevneId)
     .eq('lag_id', lagId)
-  if (error) logError('slettPar', error)
+  if (error) logError('deletePair', error)
   return { error }
 }

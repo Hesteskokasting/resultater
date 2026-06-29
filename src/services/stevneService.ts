@@ -1,21 +1,21 @@
 import type { QueryData, RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '@/supabase'
 import { logError } from '@/utils/logError'
-import type { Tables, Json, Runde1FormatTyped } from '@/types'
+import type { Tables, Json, Round1FormatTyped } from '@/types'
 
 // ── Admin-typar ───────────────────────────────────────────────────────────────
 
-export type StevneAdminRow = Pick<Tables<'stevne'>,
+export type TournamentAdminRow = Pick<Tables<'stevne'>,
   'id' | 'navn' | 'sted' | 'dato' | 'tid' | 'klubbid' | 'stevnetypeid' |
   'innledendekastemetodeid' | 'avsluttendekastemetodeid' | 'kategoriid' |
   'ernm' | 'ernorgesranking' | 'erfullfort' | 'erekskludertfrarekorder' |
   'innbydelseurl' | 'resultaturl'
 >
-export type StevneAdminPayload = Omit<StevneAdminRow, 'id'>
+export type TournamentAdminPayload = Omit<TournamentAdminRow, 'id'>
 
-export type StevnetypeRow  = Pick<Tables<'stevnetype'>,  'id' | 'navn'>
-export type KastemetodeRow = Pick<Tables<'kastemetode'>, 'id' | 'navn'>
-export type KategoriRow    = Pick<Tables<'kategori'>,    'id' | 'navn'>
+export type TournamentTypeRow  = Pick<Tables<'stevnetype'>,  'id' | 'navn'>
+export type ThrowingMethodRow = Pick<Tables<'kastemetode'>, 'id' | 'navn'>
+export type CategoryRow    = Pick<Tables<'kategori'>,    'id' | 'navn'>
 
 // ── Info-tab typar ────────────────────────────────────────────────────────────
 
@@ -28,70 +28,70 @@ const _infoStevneQuery = supabase
     kategori:kategoriid(erlagbasert, navn)
   `)
 
-export type InfoStevneRow = QueryData<typeof _infoStevneQuery>[number]
+export type InfoTournamentRow = QueryData<typeof _infoStevneQuery>[number]
 
-export type SisteResultatRow  = Pick<Tables<'stevne'>, 'id' | 'navn' | 'dato'>
-export type LiveStevneRow     = Pick<Tables<'stevne'>, 'id' | 'navn' | 'stevne_fase' | 'erfullfort'>
-export type KommendeStevneRow = Pick<Tables<'stevne'>, 'id' | 'navn' | 'dato' | 'innbydelseurl' | 'stevne_fase' | 'erfullfort'>
+export type LatestResultRow  = Pick<Tables<'stevne'>, 'id' | 'navn' | 'dato'>
+export type LiveTournamentRow     = Pick<Tables<'stevne'>, 'id' | 'navn' | 'stevne_fase' | 'erfullfort'>
+export type UpcomingTournamentRow = Pick<Tables<'stevne'>, 'id' | 'navn' | 'dato' | 'innbydelseurl' | 'stevne_fase' | 'erfullfort'>
 const _pameldingStevneQuery = supabase
   .from('stevne')
   .select('id, navn, dato, tid, sted, erfullfort, klubbid, kategori:kategoriid(navn)')
 
-export type PameldingStevneRow = QueryData<typeof _pameldingStevneQuery>[number]
-export type RelatertStevneRow  = Pick<Tables<'stevne'>, 'id' | 'navn' | 'dato'>
+export type RegistrationTournamentRow = QueryData<typeof _pameldingStevneQuery>[number]
+export type RelatedTournamentRow  = Pick<Tables<'stevne'>, 'id' | 'navn' | 'dato'>
 
-export async function hentSisteResultater(): Promise<{ data: SisteResultatRow[]; error: unknown }> {
-  const dagsdato = new Date().toISOString().slice(0, 10)
+export async function getLatestResults(): Promise<{ data: LatestResultRow[]; error: unknown }> {
+  const today = new Date().toISOString().slice(0, 10)
   const { data, error } = await supabase
     .from('stevne')
     .select('id, navn, dato')
-    .lte('dato', dagsdato)
+    .lte('dato', today)
     .eq('erfullfort', true)
     .order('dato', { ascending: false })
     .limit(5)
-  if (error) logError('hentSisteResultater', error)
+  if (error) logError('getLatestResults', error)
   return { data: data ?? [], error }
 }
 
-export async function hentLiveStevner(): Promise<{ data: LiveStevneRow[]; error: unknown }> {
+export async function getLiveTournaments(): Promise<{ data: LiveTournamentRow[]; error: unknown }> {
   const { data, error } = await supabase
     .from('stevne')
     .select('id, navn, stevne_fase, erfullfort')
     .in('stevne_fase', ['innledende', 'avsluttende'])
     .order('dato', { ascending: true })
-  if (error) logError('hentLiveStevner', error)
+  if (error) logError('getLiveTournaments', error)
   return { data: data ?? [], error }
 }
 
-export async function hentKommendeStevner(): Promise<{ data: KommendeStevneRow[]; error: unknown }> {
-  const dagsdato = new Date().toISOString().slice(0, 10)
+export async function getUpcomingTournaments(): Promise<{ data: UpcomingTournamentRow[]; error: unknown }> {
+  const today = new Date().toISOString().slice(0, 10)
   const { data, error } = await supabase
     .from('stevne')
     .select('id, navn, dato, innbydelseurl, stevne_fase, erfullfort')
-    .gte('dato', dagsdato)
+    .gte('dato', today)
     .or('stevne_fase.is.null,stevne_fase.eq.ikke_startet')
     .order('dato', { ascending: true })
     .limit(5)
-  if (error) logError('hentKommendeStevner', error)
+  if (error) logError('getUpcomingTournaments', error)
   return { data: data ?? [], error }
 }
 
-export async function hentStevneForPamelding(id: number): Promise<{ data: PameldingStevneRow | null; error: unknown }> {
+export async function getTournamentForRegistration(id: number): Promise<{ data: RegistrationTournamentRow | null; error: unknown }> {
   const { data, error } = await supabase
     .from('stevne')
     .select('id, navn, dato, tid, sted, erfullfort, klubbid, kategori:kategoriid(navn)')
     .eq('id', id)
     .maybeSingle()
-  if (error) logError('hentStevneForPamelding', error)
+  if (error) logError('getTournamentForRegistration', error)
   return { data, error }
 }
 
-export async function hentRelaterteStevner(
+export async function getRelatedTournaments(
   klubbId: number,
   fraDato: string,
   tilDato: string,
   unntaId: number,
-): Promise<{ data: RelatertStevneRow[]; error: unknown }> {
+): Promise<{ data: RelatedTournamentRow[]; error: unknown }> {
   const { data, error } = await supabase
     .from('stevne')
     .select('id, navn, dato')
@@ -101,11 +101,11 @@ export async function hentRelaterteStevner(
     .gte('dato', fraDato)
     .lte('dato', tilDato)
     .order('dato')
-  if (error) logError('hentRelaterteStevner', error)
+  if (error) logError('getRelatedTournaments', error)
   return { data: data ?? [], error }
 }
 
-export async function hentInfoStevne(id: number): Promise<{ data: InfoStevneRow | null; error: unknown }> {
+export async function getInfoTournament(id: number): Promise<{ data: InfoTournamentRow | null; error: unknown }> {
   const { data, error } = await supabase
     .from('stevne')
     .select(`
@@ -116,86 +116,86 @@ export async function hentInfoStevne(id: number): Promise<{ data: InfoStevneRow 
     `)
     .eq('id', id)
     .maybeSingle()
-  if (error) logError('hentInfoStevne', error)
+  if (error) logError('getInfoTournament', error)
   return { data, error }
 }
 
-export async function oppdaterStevneFase(id: number, fase: string): Promise<{ error: unknown }> {
+export async function updateTournamentPhase(id: number, fase: string): Promise<{ error: unknown }> {
   const { error } = await supabase.from('stevne').update({ stevne_fase: fase }).eq('id', id)
-  if (error) logError('oppdaterStevneFase', error)
+  if (error) logError('updateTournamentPhase', error)
   return { error }
 }
 
 // ── Oppslag for admin-skjema ──────────────────────────────────────────────────
 
-export async function hentStevnetypar(): Promise<{ data: StevnetypeRow[]; error: unknown }> {
+export async function getTournamentTypes(): Promise<{ data: TournamentTypeRow[]; error: unknown }> {
   const { data, error } = await supabase.from('stevnetype').select('id, navn').eq('eraktiv', true).order('navn')
-  if (error) logError('hentStevnetypar', error)
+  if (error) logError('getTournamentTypes', error)
   return { data: data ?? [], error }
 }
 
-export async function hentInnleiendeKastemetodar(): Promise<{ data: KastemetodeRow[]; error: unknown }> {
+export async function getInitialThrowingMethods(): Promise<{ data: ThrowingMethodRow[]; error: unknown }> {
   const { data, error } = await supabase.from('kastemetode').select('id, navn').eq('er_innledende', true).eq('eraktiv', true).order('navn')
-  if (error) logError('hentInnleiendeKastemetodar', error)
+  if (error) logError('getInitialThrowingMethods', error)
   return { data: data ?? [], error }
 }
 
-export async function hentAvsluttendeKastemetodar(): Promise<{ data: KastemetodeRow[]; error: unknown }> {
+export async function getFinalThrowingMethods(): Promise<{ data: ThrowingMethodRow[]; error: unknown }> {
   const { data, error } = await supabase.from('kastemetode').select('id, navn').eq('er_avsluttende', true).eq('eraktiv', true).order('navn')
-  if (error) logError('hentAvsluttendeKastemetodar', error)
+  if (error) logError('getFinalThrowingMethods', error)
   return { data: data ?? [], error }
 }
 
-export async function hentKategoriar(): Promise<{ data: KategoriRow[]; error: unknown }> {
+export async function getCategories(): Promise<{ data: CategoryRow[]; error: unknown }> {
   const { data, error } = await supabase.from('kategori').select('id, navn').order('navn')
-  if (error) logError('hentKategoriar', error)
+  if (error) logError('getCategories', error)
   return { data: data ?? [], error }
 }
 
 // ── Stevne-admin CRUD ─────────────────────────────────────────────────────────
 
-export async function hentStevneForAdmin(id: number): Promise<{ data: StevneAdminRow | null; error: unknown }> {
+export async function getTournamentForAdmin(id: number): Promise<{ data: TournamentAdminRow | null; error: unknown }> {
   const { data, error } = await supabase
     .from('stevne')
     .select('id, navn, sted, dato, tid, klubbid, stevnetypeid, innledendekastemetodeid, avsluttendekastemetodeid, kategoriid, ernm, ernorgesranking, erfullfort, erekskludertfrarekorder, innbydelseurl, resultaturl')
     .eq('id', id)
     .single()
-  if (error) logError('hentStevneForAdmin', error)
+  if (error) logError('getTournamentForAdmin', error)
   return { data, error }
 }
 
-export async function opprettStevne(
-  payload: StevneAdminPayload,
+export async function createTournament(
+  payload: TournamentAdminPayload,
 ): Promise<{ data: { id: number } | null; error: unknown }> {
   const { data, error } = await supabase.from('stevne').insert(payload).select('id').single()
-  if (error) logError('opprettStevne', error)
+  if (error) logError('createTournament', error)
   return { data, error }
 }
 
-export async function oppdaterStevne(
+export async function updateTournament(
   id: number,
-  payload: StevneAdminPayload,
+  payload: TournamentAdminPayload,
 ): Promise<{ data: { id: number } | null; error: unknown }> {
   const { data, error } = await supabase.from('stevne').update(payload).eq('id', id).select('id').single()
-  if (error) logError('oppdaterStevne', error)
+  if (error) logError('updateTournament', error)
   return { data, error }
 }
 
-export async function slettStevne(id: number): Promise<{ error: unknown }> {
+export async function deleteTournament(id: number): Promise<{ error: unknown }> {
   const { error } = await supabase.from('stevne').delete().eq('id', id)
-  if (error) logError('slettStevne', error)
+  if (error) logError('deleteTournament', error)
   return { error }
 }
 
 // ── Terminliste ───────────────────────────────────────────────────────────────
 
-export type KlubbRow = Pick<Tables<'klubb'>, 'id' | 'navn'>
+export type ClubRow =Pick<Tables<'klubb'>, 'id' | 'navn'>
 
-export interface Filtervalg {
-  stevnetyper: StevnetypeRow[]
-  kastemetoder: KastemetodeRow[]
-  klubber: KlubbRow[]
-  kategorier: KategoriRow[]
+export interface FilterOptions {
+  stevnetyper: TournamentTypeRow[]
+  kastemetoder: ThrowingMethodRow[]
+  klubber: ClubRow[]
+  kategorier: CategoryRow[]
 }
 
 const _terminlisteStevneQuery = supabase
@@ -209,9 +209,9 @@ const _terminlisteStevneQuery = supabase
     kategori:kategoriid(id, navn)
   `)
 
-export type TerminlisteStevneRow = QueryData<typeof _terminlisteStevneQuery>[number]
+export type ScheduleTournamentRow = QueryData<typeof _terminlisteStevneQuery>[number]
 
-export async function hentTerminlisteStevner(ar: number): Promise<{ data: TerminlisteStevneRow[]; error: unknown }> {
+export async function getScheduleTournaments(ar: number): Promise<{ data: ScheduleTournamentRow[]; error: unknown }> {
   const { data, error } = await supabase
     .from('stevne')
     .select(`
@@ -225,11 +225,11 @@ export async function hentTerminlisteStevner(ar: number): Promise<{ data: Termin
     .gte('dato', `${ar}-01-01`)
     .lte('dato', `${ar}-12-31`)
     .order('dato')
-  if (error) logError('hentTerminlisteStevner', error)
+  if (error) logError('getScheduleTournaments', error)
   return { data: data ?? [], error }
 }
 
-export async function hentFiltervalg(): Promise<{ data: Filtervalg; error: unknown }> {
+export async function getFilterOptions(): Promise<{ data: FilterOptions; error: unknown }> {
   const [r1, r2, r3, r4] = await Promise.all([
     supabase.from('stevnetype').select('id, navn').order('navn'),
     supabase.from('kastemetode').select('id, navn').order('navn'),
@@ -237,7 +237,7 @@ export async function hentFiltervalg(): Promise<{ data: Filtervalg; error: unkno
     supabase.from('kategori').select('id, navn').order('navn'),
   ])
   const firstError = r1.error ?? r2.error ?? r3.error ?? r4.error ?? null
-  if (firstError) logError('hentFiltervalg', firstError)
+  if (firstError) logError('getFilterOptions', firstError)
   return {
     data: {
       stevnetyper: r1.data ?? [],
@@ -255,19 +255,19 @@ const _stevneHeaderQuery = supabase
   .from('stevne')
   .select('id, navn, stevne_fase, erfullfort, avsluttendekastemetodeid, kategori:kategoriid(id, navn, erlagbasert)')
 
-export type StevneHeaderRow = QueryData<typeof _stevneHeaderQuery>[number]
+export type TournamentHeaderRow = QueryData<typeof _stevneHeaderQuery>[number]
 
-export async function hentStevneHeader(id: number): Promise<{ data: StevneHeaderRow | null; error: unknown }> {
+export async function getTournamentHeader(id: number): Promise<{ data: TournamentHeaderRow | null; error: unknown }> {
   const { data, error } = await supabase
     .from('stevne')
     .select('id, navn, stevne_fase, erfullfort, avsluttendekastemetodeid, kategori:kategoriid(id, navn, erlagbasert)')
     .eq('id', id)
     .single()
-  if (error) logError('hentStevneHeader', error)
+  if (error) logError('getTournamentHeader', error)
   return { data, error }
 }
 
-export function subscribeToStevneFase(
+export function subscribeToTournamentPhase(
   id: number,
   onUpdate: (fase: string | undefined) => void,
 ): RealtimeChannel {
@@ -286,82 +286,82 @@ const _avslStevneQuery = supabase
   .from('stevne')
   .select('id, navn, stevne_fase, erfullfort, runde1_format, avsluttendemetode:avsluttendekastemetodeid(id, navn), kategori:kategoriid(erlagbasert)')
 
-export type AvslStevneRow = QueryData<typeof _avslStevneQuery>[number]
+export type FinalPhaseTournamentRow = QueryData<typeof _avslStevneQuery>[number]
 
-export async function hentAvsluttendeStevne(stevneid: number): Promise<{ data: AvslStevneRow | null; error: unknown }> {
+export async function getFinalPhaseTournament(stevneid: number): Promise<{ data: FinalPhaseTournamentRow | null; error: unknown }> {
   const { data, error } = await supabase
     .from('stevne')
     .select('id, navn, stevne_fase, erfullfort, runde1_format, avsluttendemetode:avsluttendekastemetodeid(id, navn), kategori:kategoriid(erlagbasert)')
     .eq('id', stevneid)
     .maybeSingle()
-  if (error) logError('hentAvsluttendeStevne', error)
+  if (error) logError('getFinalPhaseTournament', error)
   return { data, error }
 }
 
-export async function setRunde1Format(stevneid: number, format: Runde1FormatTyped | null): Promise<{ error: unknown }> {
-  // Runde1FormatTyped serialises cleanly to JSON; cast is justified at this DB boundary
+export async function setRound1Format(stevneid: number, format: Round1FormatTyped | null): Promise<{ error: unknown }> {
+  // Round1FormatTyped serialises cleanly to JSON; cast is justified at this DB boundary
   const { error } = await supabase
     .from('stevne')
     .update({ runde1_format: format as unknown as Json })
     .eq('id', stevneid)
-  if (error) logError('setRunde1Format', error)
+  if (error) logError('setRound1Format', error)
   return { error }
 }
 
-export async function hentPameldingCount(stevneid: number): Promise<{ count: number; error: unknown }> {
+export async function getTournamentRegistrationCount(stevneid: number): Promise<{ count: number; error: unknown }> {
   const { count, error } = await supabase
     .from('pamelding')
     .select('id', { count: 'exact', head: true })
     .eq('stevneid', stevneid)
-  if (error) logError('hentPameldingCount', error)
+  if (error) logError('getTournamentRegistrationCount', error)
   return { count: count ?? 0, error }
 }
 
 // ── Innstillingar-tab ─────────────────────────────────────────────────────────
 
-export type InnstillingarStevneRow = Pick<Tables<'stevne'>,
+export type TournamentSettingsRow = Pick<Tables<'stevne'>,
   'id' | 'stevne_fase' | 'antall_runder_innl' | 'innledendekastemetodeid' | 'avsluttendekastemetodeid'
 >
-export type AktivKastemetodeRow = Pick<Tables<'kastemetode'>, 'id' | 'navn' | 'er_innledende' | 'er_avsluttende'>
-export type InnstillingarUpdatePayload = Pick<Tables<'stevne'>,
+export type ActiveThrowingMethodRow = Pick<Tables<'kastemetode'>, 'id' | 'navn' | 'er_innledende' | 'er_avsluttende'>
+export type TournamentSettingsUpdatePayload = Pick<Tables<'stevne'>,
   'innledendekastemetodeid' | 'avsluttendekastemetodeid' | 'antall_runder_innl'
 >
 
-export async function hentStevneInnstillingar(id: number): Promise<{ data: InnstillingarStevneRow | null; error: unknown }> {
+export async function getTournamentSettings(id: number): Promise<{ data: TournamentSettingsRow | null; error: unknown }> {
   const { data, error } = await supabase
     .from('stevne')
     .select('id, stevne_fase, antall_runder_innl, innledendekastemetodeid, avsluttendekastemetodeid')
     .eq('id', id)
     .single()
-  if (error) logError('hentStevneInnstillingar', error)
+  if (error) logError('getTournamentSettings', error)
   return { data, error }
 }
 
-export async function hentAktiveKastemetodar(): Promise<{ data: AktivKastemetodeRow[]; error: unknown }> {
+export async function getActiveThrowingMethods(): Promise<{ data: ActiveThrowingMethodRow[]; error: unknown }> {
   const { data, error } = await supabase
     .from('kastemetode')
     .select('id, navn, er_innledende, er_avsluttende')
     .eq('eraktiv', true)
     .order('navn')
-  if (error) logError('hentAktiveKastemetodar', error)
+  if (error) logError('getActiveThrowingMethods', error)
   return { data: data ?? [], error }
 }
 
-export async function oppdaterStevneInnstillingar(
+export async function updateTournamentSettings(
   id: number,
-  payload: InnstillingarUpdatePayload,
+  payload: TournamentSettingsUpdatePayload,
 ): Promise<{ error: unknown }> {
   const { error } = await supabase.from('stevne').update(payload).eq('id', id)
-  if (error) logError('oppdaterStevneInnstillingar', error)
+  if (error) logError('updateTournamentSettings', error)
   return { error }
 }
 
-export async function hentPameldteForBruker(kasterid: number): Promise<Map<number, number>> {
+export async function getRegistrationsForThrower(kasterid: number): Promise<Map<number, number>> {
   const { data, error } = await supabase
     .from('pamelding')
     .select('id, stevneid')
     .eq('kasterid', kasterid)
-  if (error) logError('hentPameldteForBruker', error)
+  if (error) logError('getRegistrationsForThrower', error)
   const map = new Map<number, number>()
   for (const row of data ?? []) {
     if (row.stevneid != null) map.set(row.stevneid, row.id)
@@ -371,25 +371,25 @@ export async function hentPameldteForBruker(kasterid: number): Promise<Map<numbe
 
 // ── Dispatcher-hjelparar ──────────────────────────────────────────────────────
 
-export async function hentInnledendeMetodeNamn(stevneid: number): Promise<{ navn: string; error: unknown }> {
+export async function getInitialMethodName(stevneid: number): Promise<{ navn: string; error: unknown }> {
   const { data, error } = await supabase
     .from('stevne')
     .select('m:kastemetode!stevne_innledendekastemetodeid_fkey(navn)')
     .eq('id', stevneid)
     .single()
-  if (error) logError('hentInnledendeMetodeNamn', error)
+  if (error) logError('getInitialMethodName', error)
   const rel = data?.m
   const navn = (rel && !Array.isArray(rel) ? (rel as { navn: string | null }).navn : null) ?? ''
   return { navn: navn.toLowerCase(), error }
 }
 
-export async function hentAvsluttendeMetodeNamn(stevneid: number): Promise<{ navn: string; error: unknown }> {
+export async function getFinalMethodName(stevneid: number): Promise<{ navn: string; error: unknown }> {
   const { data, error } = await supabase
     .from('stevne')
     .select('m:kastemetode!stevne_avsluttendekastemetodeid_fkey(navn)')
     .eq('id', stevneid)
     .single()
-  if (error) logError('hentAvsluttendeMetodeNamn', error)
+  if (error) logError('getFinalMethodName', error)
   const rel = data?.m
   const navn = (rel && !Array.isArray(rel) ? (rel as { navn: string | null }).navn : null) ?? ''
   return { navn: navn.toLowerCase(), error }
@@ -401,21 +401,21 @@ const _innlStevneQuery = supabase
   .from('stevne')
   .select('id, navn, erfullfort, stevne_fase, antall_runder_innl, avsluttendekastemetodeid, kastemetodeInnl:innledendekastemetodeid(id, navn), kategori:kategoriid(erlagbasert)')
 
-export type InnlStevneRow = QueryData<typeof _innlStevneQuery>[number]
+export type InitialPhaseTournamentRow = QueryData<typeof _innlStevneQuery>[number]
 
-export async function hentInnledendeStevne(stevneid: number): Promise<{ data: InnlStevneRow | null; error: unknown }> {
+export async function getInitialPhaseTournament(stevneid: number): Promise<{ data: InitialPhaseTournamentRow | null; error: unknown }> {
   const { data, error } = await supabase
     .from('stevne')
     .select('id, navn, erfullfort, stevne_fase, antall_runder_innl, avsluttendekastemetodeid, kastemetodeInnl:innledendekastemetodeid(id, navn), kategori:kategoriid(erlagbasert)')
     .eq('id', stevneid)
     .maybeSingle()
-  if (error) logError('hentInnledendeStevne', error)
+  if (error) logError('getInitialPhaseTournament', error)
   return { data, error }
 }
 
-export async function setStevneErfullfort(stevneid: number): Promise<{ error: unknown }> {
+export async function setTournamentCompleted(stevneid: number): Promise<{ error: unknown }> {
   const { error } = await supabase.from('stevne').update({ erfullfort: true }).eq('id', stevneid)
-  if (error) logError('setStevneErfullfort', error)
+  if (error) logError('setTournamentCompleted', error)
   return { error }
 }
 

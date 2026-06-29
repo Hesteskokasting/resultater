@@ -1,7 +1,7 @@
 import { confirmDialog } from '@/components/ConfirmDialog'
 import { showNumberpad } from '@/components/ScoreNumberpad'
 import { showToast } from '@/components/Toast'
-import { slettKampOmgangar } from '@/services/kampService'
+import { deleteMatchRounds } from '@/services/kampService'
 import { logError } from '@/utils/logError'
 
 export interface ScoreEditorOptions {
@@ -40,7 +40,7 @@ export async function showScoreEditor(opts: ScoreEditorOptions): Promise<void> {
   showNumberpad(opts.side1Name, opts.side2Name, opts.currentS1, opts.currentS2, async (s1, s2) => {
     try {
       if (opts.hasOmgangar && opts.spelarIds.length) {
-        const { error } = await slettKampOmgangar(opts.spelarIds)
+        const { error } = await deleteMatchRounds(opts.spelarIds)
         if (error) { showToast('DB-feil ved sletting av omgangar', 'error'); return }
       }
       const result = await opts.onSave(s1, s2)

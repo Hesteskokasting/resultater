@@ -2,7 +2,7 @@
  * Writes 1-based competition placement onto a list already sorted descending
  * by points: ties share a placement, the next distinct value skips ahead.
  */
-export function tildelPlassering<T extends { plassering?: number }>(
+export function assignPlacements<T extends { plassering?: number }>(
   liste: T[],
   getPoeng: (item: T) => number,
 ): void {

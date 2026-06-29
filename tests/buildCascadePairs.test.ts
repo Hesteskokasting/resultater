@@ -39,7 +39,7 @@ describe('buildCascadePairs', () => {
       const totalCourts = 12
       for (const round of buildCascadePairs(N, 12)) {
         for (const match of round) {
-          if (!match.erWalkover) {
+          if (!match.isWalkover) {
             expect(match.p2Pos).not.toBeNull()
             expect(match.p2Pos!).toBeGreaterThan(totalCourts)
             expect(match.p2Pos!).toBeLessThanOrEqual(N)
@@ -55,7 +55,7 @@ describe('buildCascadePairs', () => {
         for (const match of round) {
           expect(seen.has(match.p1Pos)).toBe(false)
           seen.add(match.p1Pos)
-          if (!match.erWalkover) {
+          if (!match.isWalkover) {
             expect(seen.has(match.p2Pos!)).toBe(false)
             seen.add(match.p2Pos!)
           }
@@ -70,7 +70,7 @@ describe('buildCascadePairs', () => {
       const seen = new Set<string>()
       for (const round of buildCascadePairs(24, 12)) {
         for (const match of round) {
-          if (!match.erWalkover) {
+          if (!match.isWalkover) {
             const key = `${match.p1Pos}-${match.p2Pos}`
             expect(seen.has(key)).toBe(false)
             seen.add(key)
@@ -83,7 +83,7 @@ describe('buildCascadePairs', () => {
   describe('walkover behavior', () => {
     it('odd N: exactly one walkover per round with p2Pos=null', () => {
       for (const round of buildCascadePairs(7, 3)) {
-        const walkovers = round.filter(m => m.erWalkover)
+        const walkovers = round.filter(m => m.isWalkover)
         expect(walkovers.length).toBe(1)
         expect(walkovers[0]!.p2Pos).toBeNull()
       }
@@ -91,7 +91,7 @@ describe('buildCascadePairs', () => {
 
     it('even N: no walkovers in any round', () => {
       for (const round of buildCascadePairs(24, 12)) {
-        expect(round.every(m => !m.erWalkover)).toBe(true)
+        expect(round.every(m => !m.isWalkover)).toBe(true)
       }
     })
   })
@@ -100,11 +100,11 @@ describe('buildCascadePairs', () => {
     const rounds = buildCascadePairs(24, 4)
 
     it('round 1, court 1: p1Pos=1, p2Pos=13', () => {
-      expect(rounds[0]![0]).toEqual({ p1Pos: 1, p2Pos: 13, erWalkover: false })
+      expect(rounds[0]![0]).toEqual({ p1Pos: 1, p2Pos: 13, isWalkover: false })
     })
 
     it('round 4, court 10: p1Pos=1, p2Pos=16', () => {
-      expect(rounds[3]![9]).toEqual({ p1Pos: 1, p2Pos: 16, erWalkover: false })
+      expect(rounds[3]![9]).toEqual({ p1Pos: 1, p2Pos: 16, isWalkover: false })
     })
   })
 })

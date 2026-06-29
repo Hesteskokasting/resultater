@@ -1,34 +1,34 @@
 import { escHtml } from '@/utils/escHtml'
-import type { RundeOppsett } from '@/types'
-import { beregnGyldigeGruppeStorrelsar, gyldigeRunde1Oppsett, beregnCupStruktur } from '@/utils/kastemetoder-logikk'
+import type { RoundSetup } from '@/types'
+import { calcValidGroupSizes, validRound1Setups, calcCupStructure } from '@/utils/kastemetoder-logikk'
 
-interface StillingradForGruppe {
+interface StandingRowForGroup {
   startnummer?: number | string | null
   navn?: string | null
   kamp_poeng?: number | null
   score_poeng?: number | null
 }
 
-interface StillingradMedCupPlassering extends StillingradForGruppe {
+interface StandingRowWithCupRank extends StandingRowForGroup {
   cupPlassering: number
 }
 
-interface GruppefordelingOpts {
-  visSpelarliste?: boolean
+interface GroupAssignmentOptions {
+  showPlayerList?: boolean
   initNa?: number | null
-  initFormat?: { A?: RundeOppsett | null; B?: RundeOppsett | null } | null
+  initFormat?: { A?: RoundSetup | null; B?: RoundSetup | null } | null
 }
 
 export function renderGruppefordeling(
-  resultatEllerN: number | StillingradForGruppe[],
-  { visSpelarliste = true, initNa = null, initFormat = null }: GruppefordelingOpts = {},
+  resultatEllerN: number | StandingRowForGroup[],
+  { showPlayerList = true, initNa = null, initFormat = null }: GroupAssignmentOptions = {},
 ): string {
   const n = typeof resultatEllerN === 'number' ? resultatEllerN : resultatEllerN.length
-  const sortert: StillingradMedCupPlassering[] = typeof resultatEllerN === 'number'
+  const sortert: StandingRowWithCupRank[] = typeof resultatEllerN === 'number'
     ? []
     : resultatEllerN.map((r, i) => ({ ...r, cupPlassering: i + 1 }))
 
-  const splits = beregnGyldigeGruppeStorrelsar(n)
+  const splits = calcValidGroupSizes(n)
 
   const resolvedNa = (() => {
     if (initNa === n) return n
@@ -37,9 +37,9 @@ export function renderGruppefordeling(
   })()
   const resolvedNb = n - resolvedNa
 
-  const treSplits = splits.filter(s => gyldigeRunde1Oppsett(s.nA).some(o => o.c3 > 0))
-  const toSplits = splits.filter(s => !gyldigeRunde1Oppsett(s.nA).some(o => o.c3 > 0))
-  const visIngen = gyldigeRunde1Oppsett(n).length > 0
+  const threeSplits = splits.filter(s => validRound1Setups(s.nA).some(o => o.c3 > 0))
+  const twoSplits = splits.filter(s => !validRound1Setups(s.nA).some(o => o.c3 > 0))
+  const showNone = validRound1Setups(n).length > 0
 
   const renderSplitRadios = (arr: { nA: number; nB: number }[], startIdx: number): string =>
     arr.map((s, i) => {
@@ -53,14 +53,14 @@ export function renderGruppefordeling(
     }).join('')
 
   const splitParts: string[] = []
-  if (treSplits.length) {
-    splitParts.push(`<div class="text-muted small fw-semibold mb-1">3 spillere per bane (A)</div>${renderSplitRadios(treSplits, 0)}`)
+  if (threeSplits.length) {
+    splitParts.push(`<div class="text-muted small fw-semibold mb-1">3 spillere per bane (A)</div>${renderSplitRadios(threeSplits, 0)}`)
   }
-  if (toSplits.length) {
+  if (twoSplits.length) {
     if (splitParts.length) splitParts.push('<hr class="my-2">')
-    splitParts.push(`<div class="text-muted small fw-semibold mb-1">2 spillere per bane (A)</div>${renderSplitRadios(toSplits, treSplits.length)}`)
+    splitParts.push(`<div class="text-muted small fw-semibold mb-1">2 spillere per bane (A)</div>${renderSplitRadios(twoSplits, threeSplits.length)}`)
   }
-  if (visIngen) {
+  if (showNone) {
     if (splitParts.length) splitParts.push('<hr class="my-2">')
     splitParts.push(`
       <div class="form-check">
@@ -70,11 +70,11 @@ export function renderGruppefordeling(
   }
   const splitOptions = splitParts.join('')
 
-  const initOppsettA: RundeOppsett | null = initFormat?.A ?? (gyldigeRunde1Oppsett(resolvedNa)[0] ?? null)
-  const initOppsettB: RundeOppsett | null = resolvedNb >= 2 ? (initFormat?.B ?? (gyldigeRunde1Oppsett(resolvedNb)[0] ?? null)) : null
+  const initSetupA: RoundSetup | null = initFormat?.A ?? (validRound1Setups(resolvedNa)[0] ?? null)
+  const initSetupB: RoundSetup | null = resolvedNb >= 2 ? (initFormat?.B ?? (validRound1Setups(resolvedNb)[0] ?? null)) : null
 
-  const gruppePreviewHtml = visSpelarliste
-    ? `<div id="gruppe-preview">${renderGruppePreview(sortert, resolvedNa, initOppsettA?.walkovers ?? 0, initOppsettB?.walkovers ?? 0)}</div>`
+  const groupPreviewHtml = showPlayerList
+    ? `<div id="gruppe-preview">${renderGruppePreview(sortert, resolvedNa, initSetupA?.walkovers ?? 0, initSetupB?.walkovers ?? 0)}</div>`
     : ''
 
   return `
@@ -88,14 +88,14 @@ export function renderGruppefordeling(
         </div>
         <div id="gruppe-paneler" class="d-flex gap-3 flex-wrap">
           <div id="gruppe-panel-a" class="avsl-gruppe-kol">
-            ${renderGruppePanelInnhald('Gruppe A', resolvedNa, 'runde1-format-a', initOppsettA)}
+            ${renderGruppePanelInnhald('Gruppe A', resolvedNa, 'runde1-format-a', initSetupA)}
           </div>
           ${resolvedNb >= 2 ? `<div id="gruppe-panel-b" class="avsl-gruppe-kol">
-            ${renderGruppePanelInnhald('Gruppe B', resolvedNb, 'runde1-format-b', initOppsettB)}
+            ${renderGruppePanelInnhald('Gruppe B', resolvedNb, 'runde1-format-b', initSetupB)}
           </div>` : ''}
         </div>
       </div>
-      ${gruppePreviewHtml}
+      ${groupPreviewHtml}
       <div class="bekreft-banner">
         <button id="bekreft-gruppe-btn" class="btn btn-success btn-lg w-100">Bekreft gruppefordeling</button>
       </div>
@@ -104,15 +104,15 @@ export function renderGruppefordeling(
 }
 
 export function renderGruppePreview(
-  sortert: StillingradMedCupPlassering[],
+  sortert: StandingRowWithCupRank[],
   nA: number,
   woA = 0,
   woB = 0,
 ): string {
-  const gruppeA = sortert.slice(0, nA)
-  const gruppeB = sortert.slice(nA)
+  const groupA = sortert.slice(0, nA)
+  const groupB = sortert.slice(nA)
 
-  function tabellRader(spel: StillingradMedCupPlassering[], woCount = 0): string {
+  function tableRows(spel: StandingRowWithCupRank[], woCount = 0): string {
     return spel.map((r, i) => {
       const erWo = i < woCount
       return `
@@ -125,85 +125,85 @@ export function renderGruppePreview(
     }).join('')
   }
 
-  const tabellHeader = `
+  const tableHeader = `
     <thead class="org-thead"><tr>
       <th class="th-32">#</th><th>NAMN</th>
       <th class="th-44 text-center">KP</th>
       <th class="th-44 text-center">SP</th>
     </tr></thead>`
 
-  const tabellA = `
+  const tableA = `
     <table class="table table-bordered table-sm bg-white mb-0">
-      ${tabellHeader}
-      <tbody>${tabellRader(gruppeA, woA)}</tbody>
+      ${tableHeader}
+      <tbody>${tableRows(groupA, woA)}</tbody>
     </table>`
 
-  const tabellB = gruppeB.length ? `
+  const tableB = groupB.length ? `
     <table class="table table-bordered table-sm bg-white mb-0">
-      ${tabellHeader}
-      <tbody>${tabellRader(gruppeB, woB)}</tbody>
+      ${tableHeader}
+      <tbody>${tableRows(groupB, woB)}</tbody>
     </table>` : ''
 
   return `
     <div class="d-flex gap-3 flex-wrap">
       <div class="avsl-gruppe-kol">
-        <h6 class="fw-bold text-center">GRUPPE A (${gruppeA.length})</h6>
-        ${tabellA}
+        <h6 class="fw-bold text-center">GRUPPE A (${groupA.length})</h6>
+        ${tableA}
       </div>
-      ${gruppeB.length ? `<div class="avsl-gruppe-kol">
-        <h6 class="fw-bold text-center">GRUPPE B (${gruppeB.length})</h6>
-        ${tabellB}
+      ${groupB.length ? `<div class="avsl-gruppe-kol">
+        <h6 class="fw-bold text-center">GRUPPE B (${groupB.length})</h6>
+        ${tableB}
       </div>` : ''}
     </div>`
 }
 
-function oppsettLabel(o: RundeOppsett): string {
+function setupLabel(o: RoundSetup): string {
   const perBane = o.c3 > 0 ? 3 : 2
   return `${o.walkovers} walkover - ${perBane} deltakere per bane`
 }
 
-function renderRunde1FormatVeljar(
-  _gruppeLabel: string,
+function renderRound1FormatSelector(
+  _groupLabel: string,
   n: number,
   radioName: string,
-  initOppsett: RundeOppsett | null = null,
+  initSetup: RoundSetup | null = null,
 ): string {
-  const oppsett = gyldigeRunde1Oppsett(n)
-  if (oppsett.length <= 1) return ''
-  const radios = oppsett.map((o, i) => {
+  const setups = validRound1Setups(n)
+  if (setups.length <= 1) return ''
+  const radios = setups.map((o, i) => {
     const id = `${radioName}-${i}`
     const val = JSON.stringify(o)
-    const checked = initOppsett
-      ? (o.walkovers === initOppsett.walkovers && o.c3 === initOppsett.c3 && o.c2 === initOppsett.c2)
+    const checked = initSetup
+      ? (o.walkovers === initSetup.walkovers && o.c3 === initSetup.c3 && o.c2 === initSetup.c2)
       : i === 0
     const btnClass = o.c3 > 0 ? 'btn-outline-success' : 'btn-outline-warning'
     return `
       <input type="radio" class="btn-check" name="${radioName}" id="${id}"
         value='${val}' data-oppsett='${val}' autocomplete="off" ${checked ? 'checked' : ''}>
-      <label class="btn btn-sm ${btnClass}" for="${id}">${oppsettLabel(o)}</label>`
+      <label class="btn btn-sm ${btnClass}" for="${id}">${setupLabel(o)}</label>`
   }).join('')
   return `<div class="d-flex flex-column align-items-start gap-1 mb-2">${radios}</div>`
 }
 
-export function renderStrukturListeHtml(n: number, oppsett: RundeOppsett | null, suffix: string): string {
-  const runder = n >= 2 ? beregnCupStruktur(n, { runde1: oppsett }) : []
-  const rows = runder.map((r, i) => {
+export function renderStrukturListeHtml(n: number, setup: RoundSetup | null, suffix: string): string {
+  const rounds = n >= 2 ? calcCupStructure(n, { runde1: setup }) : []
+  const rows = rounds.map((r, i) => {
     const wo = r.walkovers ?? 0
-    const aktive = r.spelarar - wo
-    const deltakereCell = wo > 0
-      ? `${aktive} <span class="text-muted">(${wo} w.o.)</span>`
-      : `${aktive}`
-    let perBane: string
-    if (i === 0 && oppsett) {
-      perBane = oppsett.c3 > 0 && oppsett.c2 > 0 ? '2/3' : oppsett.c3 > 0 ? '3' : '2'
+    const active = r.players - wo
+    const participantsCell = wo > 0
+      ? `${active} <span class="text-muted">(${wo} w.o.)</span>`
+      : `${active}`
+    let perLane: string
+    if (i === 0 && setup) {
+      perLane = setup.c3 > 0 && setup.c2 > 0 ? '2/3' : setup.c3 > 0 ? '3' : '2'
     } else {
-      perBane = r.spelarar % r.baner === 0 ? String(r.spelarar / r.baner) : '2/3'
+      perLane = r.players % r.lanes === 0 ? String(r.players / r.lanes) : '2/3'
     }
-    return `<tr${r.treSpelarar ? ' class="fw-bold"' : ''}>
+    return `<tr${r.threePlayers ? ' class="fw-bold"' : ''}>
       <td>${r.runde}</td>
-      <td>${deltakereCell}</td>
-      <td>${r.baner}</td>
-      <td>${perBane}</td>
+      <td>${participantsCell}</td>
+      <td>${r.lanes}</td>
+      <td>${perLane}</td>
     </tr>`
   }).join('')
   return `<div id="struktur-${suffix}">
@@ -220,17 +220,17 @@ export function renderGruppePanelInnhald(
   label: string,
   n: number,
   radioName: string,
-  oppsett: RundeOppsett | null,
+  setup: RoundSetup | null,
 ): string {
   const suffix = radioName.slice(-1)
-  const formatVeljar = renderRunde1FormatVeljar(label, n, radioName, oppsett)
-  const tittel = formatVeljar ? `${label}: Velg format` : `${label} (${n})`
+  const formatSelector = renderRound1FormatSelector(label, n, radioName, setup)
+  const title = formatSelector ? `${label}: Velg format` : `${label} (${n})`
   return `
     <div class="card">
       <div class="card-body">
-        <h6 class="fw-bold mb-2">${tittel}</h6>
-        ${formatVeljar}
-        ${renderStrukturListeHtml(n, oppsett, suffix)}
+        <h6 class="fw-bold mb-2">${title}</h6>
+        ${formatSelector}
+        ${renderStrukturListeHtml(n, setup, suffix)}
       </div>
     </div>`
 }

@@ -3,12 +3,12 @@ import { createErrorBanner } from '@/components/ErrorBanner'
 import { showToast } from '@/components/Toast'
 import { logError } from '@/utils/logError'
 import { errorMessage } from '@/utils/errorMessage'
-import { kasterNavn } from '@/utils/kaster'
-import type { KasterListeRow } from '@/services/kasterService'
+import { throwerName } from '@/utils/kaster'
+import type { ThrowerListRow } from '@/services/kasterService'
 import { createRemoveButton } from '@/components/RemoveButton'
 import { createPlayerTable } from '@/components/PlayerTable'
-import { hentParForStevne, opprettPar, slettPar } from '@/services/pameldingService'
-import type { PameldingPar } from '@/services/pameldingService'
+import { getPairsForTournament, createPair, deletePair } from '@/services/pameldingService'
+import type { RegistrationPair } from '@/services/pameldingService'
 
 // kjonn table ids — client-side UX guard only; the DB trigger is authoritative
 const KJONN_MANN = 1
@@ -20,7 +20,7 @@ export interface ParTabProps {
   /** Mix: side A (posisjon 1) must be a woman, side B (posisjon 2) a man */
   erMix: boolean
   getPameldtIds: () => Set<number>
-  alleSpelarar: KasterListeRow[]
+  alleSpelarar: ThrowerListRow[]
   /** Reports current pair membership after every (re)render, so the parent can keep its guards in sync */
   onPairsChanged?: (pairedIds: Set<number>) => void
 }
@@ -49,7 +49,7 @@ async function renderPar(root: HTMLElement, props: ParTabProps): Promise<void> {
   const { stevneId, isAdmin, erMix, getPameldtIds, alleSpelarar } = props
   const pameldtIds = getPameldtIds()
 
-  const { data: pairs, error } = await hentParForStevne(stevneId)
+  const { data: pairs, error } = await getPairsForTournament(stevneId)
   if (error) {
     logError('createParTab', error)
     root.replaceChildren(createErrorBanner('Kunne ikkje laste par.'))
@@ -60,8 +60,8 @@ async function renderPar(root: HTMLElement, props: ParTabProps): Promise<void> {
   props.onPairsChanged?.(pairedIds)
   const unpaired = alleSpelarar.filter(s => pameldtIds.has(s.id) && !pairedIds.has(s.id))
 
-  let pendingA: KasterListeRow | null = null
-  let pendingB: KasterListeRow | null = null
+  let pendingA: ThrowerListRow | null = null
+  let pendingB: ThrowerListRow | null = null
   let draggedId: number | null = null
 
   const layout = document.createElement('div')
@@ -96,7 +96,7 @@ async function renderPar(root: HTMLElement, props: ParTabProps): Promise<void> {
     const available = unpaired.filter(s => {
       if (s.id === pendingA?.id || s.id === pendingB?.id) return false
       if (!q) return true
-      return kasterNavn(s).toLowerCase().includes(q) || (s.klubb?.navn ?? '').toLowerCase().includes(q)
+      return throwerName(s).toLowerCase().includes(q) || (s.klubb?.navn ?? '').toLowerCase().includes(q)
     })
     unpairedTable.setPlayers(available)
   }
@@ -125,7 +125,7 @@ async function renderPar(root: HTMLElement, props: ParTabProps): Promise<void> {
 
     function refresh(): void {
       const player = side === 'A' ? pendingA : pendingB
-      zone.textContent = player ? kasterNavn(player) : tomLabel
+      zone.textContent = player ? throwerName(player) : tomLabel
       zone.classList.toggle('par-slot--filled', player != null)
     }
 
@@ -183,7 +183,7 @@ async function renderPar(root: HTMLElement, props: ParTabProps): Promise<void> {
   confirmBtn.addEventListener('click', async () => {
     if (!pendingA || !pendingB) return
     confirmBtn.disabled = true
-    const { error: err } = await opprettPar(stevneId, pendingA.id, pendingB.id)
+    const { error: err } = await createPair(stevneId, pendingA.id, pendingB.id)
     confirmBtn.disabled = false
     if (err) {
       showToast('Feil ved oppretting av par: ' + errorMessage(err), 'error')
@@ -193,7 +193,7 @@ async function renderPar(root: HTMLElement, props: ParTabProps): Promise<void> {
     void renderPar(root, props)
   })
 
-  function renderParListe(parList: PameldingPar[]): void {
+  function renderParListe(parList: RegistrationPair[]): void {
     rightTitle.textContent = `Antal par: ${parList.length}`
     parContainer.innerHTML = ''
 
@@ -213,11 +213,11 @@ async function renderPar(root: HTMLElement, props: ParTabProps): Promise<void> {
 
       const sideACell = document.createElement('span')
       sideACell.className = 'par-par-celle border rounded px-2 py-1'
-      sideACell.textContent = kasterNavn(par.sideA.kaster)
+      sideACell.textContent = throwerName(par.sideA.kaster)
 
       const sideBCell = document.createElement('span')
       sideBCell.className = 'par-par-celle border rounded px-2 py-1'
-      sideBCell.textContent = kasterNavn(par.sideB.kaster)
+      sideBCell.textContent = throwerName(par.sideB.kaster)
 
       row.appendChild(sideACell)
       row.appendChild(sideBCell)
@@ -227,7 +227,7 @@ async function renderPar(root: HTMLElement, props: ParTabProps): Promise<void> {
           title: 'Slett par',
           onClick: async () => {
             fjernBtn.disabled = true
-            const { error: err } = await slettPar(stevneId, par.lag_id)
+            const { error: err } = await deletePair(stevneId, par.lag_id)
             if (err) {
               showToast('Feil ved sletting: ' + errorMessage(err), 'error')
               fjernBtn.disabled = false

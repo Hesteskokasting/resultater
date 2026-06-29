@@ -3,14 +3,14 @@ import { render as renderHome } from './pages/home'
 import { getUser, erAdmin, erKlubbadmin, loggUt } from './services/authService'
 import { createErrorBanner } from './components/ErrorBanner'
 import { showReauthModal } from './components/ReauthModal'
-import type { PageRenderFn, Rute } from '@/types'
+import type { PageRenderFn, Route } from '@/types'
 
 if (import.meta.env.VITE_ENV === 'dev') {
   const versjonEl = document.querySelector('.header-versjon')
   if (versjonEl) versjonEl.textContent += ' [DEV]'
 }
 
-type MinRolle = 'bruker' | 'admin' | 'klubbadmin'
+type MinRole = 'bruker' | 'admin' | 'klubbadmin'
 
 function lazy(load: () => Promise<{ render: PageRenderFn }>): PageRenderFn {
   return async (c, p) => {
@@ -21,18 +21,18 @@ function lazy(load: () => Promise<{ render: PageRenderFn }>): PageRenderFn {
 
 const container = document.getElementById('app')!
 
-function authGuard(minRolle: MinRolle, renderFn: PageRenderFn): PageRenderFn {
+function authGuard(minRole: MinRole, renderFn: PageRenderFn): PageRenderFn {
   return async (cont, params) => {
     const auth = await getUser()
     if (!auth) {
       location.hash = '#/logginn'
       return
     }
-    if (minRolle === 'admin' && !(await erAdmin())) {
+    if (minRole === 'admin' && !(await erAdmin())) {
       cont.replaceChildren(createErrorBanner('Ingen tilgang.'))
       return
     }
-    if (minRolle === 'klubbadmin' && !(await erAdmin()) && !(await erKlubbadmin())) {
+    if (minRole === 'klubbadmin' && !(await erAdmin()) && !(await erKlubbadmin())) {
       cont.replaceChildren(createErrorBanner('Ingen tilgang.'))
       return
     }
@@ -40,39 +40,39 @@ function authGuard(minRolle: MinRolle, renderFn: PageRenderFn): PageRenderFn {
   }
 }
 
-const ruter: Rute[] = [
+const routes: Route[] = [
   // Auth-ruter (spesifikke før generiske)
-  { pattern: /^\/logginn$/,                      side: lazy(() => import('./pages/logginn')),                         params: () => ({}) },
-  { pattern: /^\/minside$/,                      side: authGuard('bruker', lazy(() => import('./pages/minside'))),    params: () => ({}) },
-  { pattern: /^\/admin$/,                        side: authGuard('admin',  lazy(() => import('./admin/admin'))),      params: () => ({}) },
-  { pattern: /^\/stevne\/ny$/,                   side: authGuard('klubbadmin', lazy(() => import('./admin/stevneadmin'))), params: () => ({}) },
-  { pattern: /^\/stevne\/(\d+)\/rediger$/,        side: authGuard('klubbadmin', lazy(() => import('./admin/stevneadmin'))), params: m => ({ id: Number(m[1]) }) },
-  { pattern: /^\/kamp\/(\d+)$/,                 side: lazy(() => import('./pages/kamp')),                            params: m => ({ id: Number(m[1]) }) },
-  { pattern: /^\/stevne\/(\d+)\/pamelding$/,    side: lazy(() => import('./pages/pamelding')),                       params: m => ({ id: m[1] }) },
-  { pattern: /^\/stevne\/(\d+)(?:\/([^/]*))?$/, side: lazy(() => import('./pages/stevne')),                         params: m => ({ id: Number(m[1]), tab: m[2] ?? 'info' }) },
-  { pattern: /^\/kaster\/ny$/,                   side: authGuard('klubbadmin', lazy(() => import('./admin/kasteradmin'))), params: () => ({}) },
-  { pattern: /^\/kaster\/(\d+)\/admin$/,         side: authGuard('klubbadmin', lazy(() => import('./admin/kasteradmin'))), params: m => ({ id: m[1] }) },
-  { pattern: /^\/klubber\/(\d+)\/admin$/,        side: authGuard('klubbadmin', lazy(() => import('./admin/klubbadmin'))), params: m => ({ id: m[1] }) },
+  { pattern: /^\/logginn$/,                      page: lazy(() => import('./pages/logginn')),                         params: () => ({}) },
+  { pattern: /^\/minside$/,                      page: authGuard('bruker', lazy(() => import('./pages/minside'))),    params: () => ({}) },
+  { pattern: /^\/admin$/,                        page: authGuard('admin',  lazy(() => import('./admin/admin'))),      params: () => ({}) },
+  { pattern: /^\/stevne\/ny$/,                   page: authGuard('klubbadmin', lazy(() => import('./admin/stevneadmin'))), params: () => ({}) },
+  { pattern: /^\/stevne\/(\d+)\/rediger$/,        page: authGuard('klubbadmin', lazy(() => import('./admin/stevneadmin'))), params: m => ({ id: Number(m[1]) }) },
+  { pattern: /^\/kamp\/(\d+)$/,                 page: lazy(() => import('./pages/kamp')),                            params: m => ({ id: Number(m[1]) }) },
+  { pattern: /^\/stevne\/(\d+)\/pamelding$/,    page: lazy(() => import('./pages/pamelding')),                       params: m => ({ id: m[1] }) },
+  { pattern: /^\/stevne\/(\d+)(?:\/([^/]*))?$/, page: lazy(() => import('./pages/stevne')),                         params: m => ({ id: Number(m[1]), tab: m[2] ?? 'info' }) },
+  { pattern: /^\/kaster\/ny$/,                   page: authGuard('klubbadmin', lazy(() => import('./admin/kasteradmin'))), params: () => ({}) },
+  { pattern: /^\/kaster\/(\d+)\/admin$/,         page: authGuard('klubbadmin', lazy(() => import('./admin/kasteradmin'))), params: m => ({ id: m[1] }) },
+  { pattern: /^\/klubber\/(\d+)\/admin$/,        page: authGuard('klubbadmin', lazy(() => import('./admin/klubbadmin'))), params: m => ({ id: m[1] }) },
   // Eksisterande ruter
-  { pattern: /^\/terminliste$/,                  side: lazy(() => import('./pages/terminliste')),                    params: () => ({}) },
-  { pattern: /^\/norgescupen$/,                  side: lazy(() => import('./pages/norgescupen')),                    params: () => ({}) },
-  { pattern: /^\/norgesranking$/,                side: lazy(() => import('./pages/norgesranking')),                  params: () => ({}) },
-  { pattern: /^\/rekorder$/,                     side: lazy(() => import('./pages/rekorder')),                       params: () => ({}) },
-  { pattern: /^\/nmvinnere$/,                    side: lazy(() => import('./pages/nmvinnere')),                      params: () => ({}) },
-  { pattern: /^\/kastere\/(\d+)(-[^/]*)?$/,     side: lazy(() => import('./pages/kastere')),                        params: m => ({ id: m[1] }) },
-  { pattern: /^\/kastere$/,                      side: lazy(() => import('./pages/kastere')),                        params: () => ({}) },
-  { pattern: /^\/klubber\/(\d+)(-[^/]*)?$/,     side: lazy(() => import('./pages/klubber')),                        params: m => ({ id: m[1] }) },
-  { pattern: /^\/klubber$/,                      side: lazy(() => import('./pages/klubber')),                        params: () => ({}) },
-  { pattern: /^\/?$/,                            side: renderHome,                                                   params: () => ({}) },
+  { pattern: /^\/terminliste$/,                  page: lazy(() => import('./pages/terminliste')),                    params: () => ({}) },
+  { pattern: /^\/norgescupen$/,                  page: lazy(() => import('./pages/norgescupen')),                    params: () => ({}) },
+  { pattern: /^\/norgesranking$/,                page: lazy(() => import('./pages/norgesranking')),                  params: () => ({}) },
+  { pattern: /^\/rekorder$/,                     page: lazy(() => import('./pages/rekorder')),                       params: () => ({}) },
+  { pattern: /^\/nmvinnere$/,                    page: lazy(() => import('./pages/nmvinnere')),                      params: () => ({}) },
+  { pattern: /^\/kastere\/(\d+)(-[^/]*)?$/,     page: lazy(() => import('./pages/kastere')),                        params: m => ({ id: m[1] }) },
+  { pattern: /^\/kastere$/,                      page: lazy(() => import('./pages/kastere')),                        params: () => ({}) },
+  { pattern: /^\/klubber\/(\d+)(-[^/]*)?$/,     page: lazy(() => import('./pages/klubber')),                        params: m => ({ id: m[1] }) },
+  { pattern: /^\/klubber$/,                      page: lazy(() => import('./pages/klubber')),                        params: () => ({}) },
+  { pattern: /^\/?$/,                            page: renderHome,                                                   params: () => ({}) },
 ]
 
-function naviger(): void {
+function navigate(): void {
   const [hash = '/'] = (location.hash.replace(/^#/, '') || '/').split('?')
 
-  for (const rute of ruter) {
-    const treff = hash.match(rute.pattern)
-    if (treff) {
-      rute.side(container, rute.params(treff))
+  for (const route of routes) {
+    const match = hash.match(route.pattern)
+    if (match) {
+      route.page(container, route.params(match))
       return
     }
   }
@@ -80,7 +80,7 @@ function naviger(): void {
   container.replaceChildren(createErrorBanner('Side ikkje funne.'))
 }
 
-async function oppdaterAuthMeny(): Promise<void> {
+async function updateAuthMenu(): Promise<void> {
   const auth = await getUser()
   const logginnItem = document.getElementById('meny-logginn-item')!
   const minsideItem = document.getElementById('meny-minside-item')!
@@ -90,12 +90,12 @@ async function oppdaterAuthMeny(): Promise<void> {
 
   if (auth) {
     logginnItem.classList.add('d-none')
-    const erAdminBrukar = auth.profil?.rolle === 'admin'
-    minsideItem.classList.toggle('d-none', erAdminBrukar)
-    adminItem.classList.toggle('d-none', !erAdminBrukar)
+    const isAdminUser = auth.profil?.role === 'admin'
+    minsideItem.classList.toggle('d-none', isAdminUser)
+    adminItem.classList.toggle('d-none', !isAdminUser)
     loggutItem.classList.remove('d-none')
     headerEmail.textContent = auth.user.email ?? ''
-    ;(headerEmail as HTMLAnchorElement).href = erAdminBrukar ? '#/admin' : '#/minside'
+    ;(headerEmail as HTMLAnchorElement).href = isAdminUser ? '#/admin' : '#/minside'
     headerEmail.classList.remove('d-none')
   } else {
     logginnItem.classList.remove('d-none')
@@ -107,7 +107,7 @@ async function oppdaterAuthMeny(): Promise<void> {
   }
 }
 
-window.addEventListener('hashchange', naviger)
+window.addEventListener('hashchange', navigate)
 
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('menyLoggUtKnapp')!.addEventListener('click', async () => {
@@ -115,14 +115,14 @@ document.addEventListener('DOMContentLoaded', () => {
     location.hash = '#/'
   })
 
-  oppdaterAuthMeny()
-  naviger()
+  updateAuthMenu()
+  navigate()
 })
 
 document.addEventListener('authStateChanged', (e) => {
   const { event, intentional, hadSession } = (e as CustomEvent<{ event: string; intentional: boolean; hadSession: boolean }>).detail
   if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
-    oppdaterAuthMeny()
+    updateAuthMenu()
   }
   // On a genuine authenticated → signed-out transition (not restoring a dead token on
   // load), let the operator re-authenticate in place instead of being bounced to the

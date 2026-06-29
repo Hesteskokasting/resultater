@@ -1,6 +1,6 @@
 import { createLoadingState } from '@/components/LoadingState'
 import { createErrorBanner } from '@/components/ErrorBanner'
-import { hentInnledendeMetodeNamn } from '@/services/stevneService'
+import { getInitialMethodName } from '@/services/stevneService'
 
 export async function render(
   container: HTMLElement,
@@ -9,7 +9,7 @@ export async function render(
 ): Promise<void> {
   container.replaceChildren(createLoadingState())
 
-  const { navn, error } = await hentInnledendeMetodeNamn(id)
+  const { navn, error } = await getInitialMethodName(id)
 
   if (error) {
     container.replaceChildren(createErrorBanner('Stevne ikkje funne.'))

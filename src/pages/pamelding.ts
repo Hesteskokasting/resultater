@@ -1,22 +1,22 @@
 import { getUser } from '@/services/authService'
 import { confirmDialog } from '@/components/ConfirmDialog'
-import { formaterDato, formaterTid } from '@/utils/shared'
+import { formatDate, formatTime } from '@/utils/shared'
 import { createErrorBanner } from '@/components/ErrorBanner'
 import { createLoadingState } from '@/components/LoadingState'
 import { escHtml } from '@/utils/escHtml'
-import { kasterNavn } from '@/utils/kaster'
+import { throwerName } from '@/utils/kaster'
 import { logError } from '@/utils/logError'
-import { hentStevneForPamelding, hentRelaterteStevner } from '@/services/stevneService'
-import { hentKastereListeAktive, hentKastereForKlubbar } from '@/services/kasterService'
+import { getTournamentForRegistration, getRelatedTournaments } from '@/services/stevneService'
+import { getActiveThrowerList, getThrowersForClubs } from '@/services/kasterService'
 import {
-  hentPameldingarForStevne,
-  hentParForStevne,
-  meldPaStevne,
-  fjernPamelding,
+  getRegistrationsForTournament,
+  getPairsForTournament,
+  registerForTournament,
+  removeRegistration,
 } from '@/services/pameldingService'
-import type { PameldingMedKasterRow, PameldingPar } from '@/services/pameldingService'
-import type { KasterListeRow } from '@/services/kasterService'
-import type { RelatertStevneRow } from '@/services/stevneService'
+import type { RegistrationWithThrowerRow, RegistrationPair } from '@/services/pameldingService'
+import type { ThrowerListRow } from '@/services/kasterService'
+import type { RelatedTournamentRow } from '@/services/stevneService'
 import type { AuthUser, Params } from '@/types'
 
 // ── HTML-byggjarar ────────────────────────────────────────────────────────────
@@ -63,8 +63,8 @@ function eigetSkjemaHtml(
 function adminSkjemaHtml(
   erPrivilegert: boolean,
   erfullfort: boolean,
-  pameldingar: PameldingMedKasterRow[],
-  klubbKastere: KasterListeRow[],
+  pameldingar: RegistrationWithThrowerRow[],
+  klubbKastere: ThrowerListRow[],
 ): string {
   if (!erPrivilegert || erfullfort) return ''
   const allereie = new Set(pameldingar.map(p => p.kasterid))
@@ -86,10 +86,10 @@ function adminSkjemaHtml(
     </form>`
 }
 
-function relaterteStevnerHtml(relaterte: RelatertStevneRow[]): string {
+function relaterteStevnerHtml(relaterte: RelatedTournamentRow[]): string {
   if (!relaterte.length) return ''
   const items = relaterte.map(s => {
-    const d = s.dato ? formaterDato(s.dato) : ''
+    const d = s.dato ? formatDate(s.dato) : ''
     return `<li><a href="#/stevne/${s.id}/pamelding">${escHtml(s.navn ?? '')} — ${d}</a></li>`
   }).join('')
   return `
@@ -99,20 +99,20 @@ function relaterteStevnerHtml(relaterte: RelatertStevneRow[]): string {
     </div>`
 }
 
-function parListeHtml(pairs: PameldingPar[]): string {
+function parListeHtml(pairs: RegistrationPair[]): string {
   if (!pairs.length) return '<p class="empty-state">Ingen par registrerte enno.</p>'
   const rader = pairs.map(par => {
     const a = par.sideA.kaster
     const b = par.sideB.kaster
     const cell = (k: typeof a) => k
-      ? `<a href="#/kastere/${k.id}">${escHtml(kasterNavn(k))}</a>${k.klubb?.navn ? `<br><small class="text-muted">${escHtml(k.klubb.navn)}</small>` : ''}`
+      ? `<a href="#/kastere/${k.id}">${escHtml(throwerName(k))}</a>${k.klubb?.navn ? `<br><small class="text-muted">${escHtml(k.klubb.navn)}</small>` : ''}`
       : '—'
     return `<tr><td>${cell(a)}</td><td>${cell(b)}</td></tr>`
   }).join('')
   return `<table class="table table-sm"><tbody>${rader}</tbody></table>`
 }
 
-function pameldingListeHtml(pameldingar: PameldingMedKasterRow[], erPrivilegert: boolean): string {
+function pameldingListeHtml(pameldingar: RegistrationWithThrowerRow[], erPrivilegert: boolean): string {
   if (!pameldingar.length) return '<p class="empty-state">Ingen påmeldingar enno.</p>'
   const sorted = [...pameldingar].sort((a, b) => {
     const klubbA = a.kaster?.klubb?.navn ?? ''
@@ -140,7 +140,7 @@ function pameldingListeHtml(pameldingar: PameldingMedKasterRow[], erPrivilegert:
 function bindEventHandlers(
   container: HTMLElement,
   params: Record<string, string | number | undefined>,
-  pameldingar: PameldingMedKasterRow[],
+  pameldingar: RegistrationWithThrowerRow[],
   kasterid: number | null,
   brukerId: string,
   stevneId: number,
@@ -151,7 +151,7 @@ function bindEventHandlers(
     const feil = container.querySelector<HTMLElement>('#pm-feil')!
     feil.classList.add('d-none')
     if (kasterid == null) return
-    const { error } = await meldPaStevne(stevneId, kasterid, brukerId)
+    const { error } = await registerForTournament(stevneId, kasterid, brukerId)
     if (error) {
       feil.textContent = 'Feil ved påmelding.'
       feil.classList.remove('d-none')
@@ -172,7 +172,7 @@ function bindEventHandlers(
       feil.classList.remove('d-none')
       return
     }
-    const { error } = await meldPaStevne(stevneId, velgtKasterid, brukerId)
+    const { error } = await registerForTournament(stevneId, velgtKasterid, brukerId)
     if (error) {
       feil.textContent = 'Feil ved påmelding.'
       feil.classList.remove('d-none')
@@ -185,7 +185,7 @@ function bindEventHandlers(
     if (kasterid == null) return
     const min = pameldingar.find(p => p.kasterid === kasterid)
     if (!min || !await confirmDialog({ title: 'Avmeld', message: 'Vil du melde deg av?' })) return
-    const { error } = await fjernPamelding(min.id)
+    const { error } = await removeRegistration(min.id)
     if (error) return
     render(container, params)
   })
@@ -195,7 +195,7 @@ function bindEventHandlers(
       if (!await confirmDialog({ title: 'Fjern påmelding', message: 'Fjern påmelding?' })) return
       const id = Number(knapp.dataset.id)
       if (!id) return
-      const { error } = await fjernPamelding(id)
+      const { error } = await removeRegistration(id)
       if (error) return
       render(container, params)
     })
@@ -217,7 +217,7 @@ export async function render(container: HTMLElement, params: Params = {}): Promi
   try {
     const [auth, stevneRes] = await Promise.all([
       getUser(),
-      hentStevneForPamelding(stevneId),
+      getTournamentForRegistration(stevneId),
     ])
 
     if (stevneRes.error || !stevneRes.data) {
@@ -226,8 +226,8 @@ export async function render(container: HTMLElement, params: Params = {}): Promi
     }
     const stevne = stevneRes.data
 
-    const erAdminRolle      = auth?.profil?.rolle === 'admin'
-    const erKlubbadminRolle = auth?.profil?.rolle === 'klubbadmin'
+    const erAdminRolle      = auth?.profil?.role === 'admin'
+    const erKlubbadminRolle = auth?.profil?.role === 'klubbadmin'
     const erPrivilegert     = erAdminRolle || erKlubbadminRolle
     const kategoriNamn      = (stevne.kategori?.navn ?? '').toLowerCase()
     const erParEllerMix     = kategoriNamn.includes('par') || kategoriNamn.includes('mix')
@@ -239,20 +239,20 @@ export async function render(container: HTMLElement, params: Params = {}): Promi
         }
       : null
 
-    const kasterFetch: Promise<{ data: KasterListeRow[]; error: unknown }> = (() => {
+    const kasterFetch: Promise<{ data: ThrowerListRow[]; error: unknown }> = (() => {
       if (!erPrivilegert) return Promise.resolve({ data: [], error: null })
-      if (erAdminRolle) return hentKastereListeAktive()
-      if (auth && auth.klubber.length) return hentKastereForKlubbar(auth.klubber)
+      if (erAdminRolle) return getActiveThrowerList()
+      if (auth && auth.klubber.length) return getThrowersForClubs(auth.klubber)
       return Promise.resolve({ data: [], error: null })
     })()
 
     const [pamRes, relatertRes, kasterRes, parRes] = await Promise.all([
-      hentPameldingarForStevne(stevneId),
+      getRegistrationsForTournament(stevneId),
       stevne.klubbid != null && datoVindu
-        ? hentRelaterteStevner(stevne.klubbid, datoVindu.fraDato, datoVindu.tilDato, stevneId)
-        : Promise.resolve({ data: [] as RelatertStevneRow[], error: null }),
+        ? getRelatedTournaments(stevne.klubbid, datoVindu.fraDato, datoVindu.tilDato, stevneId)
+        : Promise.resolve({ data: [] as RelatedTournamentRow[], error: null }),
       kasterFetch,
-      erParEllerMix ? hentParForStevne(stevneId) : Promise.resolve({ data: [] as PameldingPar[], error: null }),
+      erParEllerMix ? getPairsForTournament(stevneId) : Promise.resolve({ data: [] as RegistrationPair[], error: null }),
     ])
 
     const pameldingar  = pamRes.data
@@ -263,10 +263,10 @@ export async function render(container: HTMLElement, params: Params = {}): Promi
     const kasterid  = auth?.profil?.kasterid ?? null
     const erKobla   = auth?.profil?.kobling_status === 'godkjent'
     const erPameldt = kasterid != null && pameldingar.some(p => p.kasterid === kasterid)
-    const dato      = stevne.dato ? formaterDato(stevne.dato) : ''
+    const dato      = stevne.dato ? formatDate(stevne.dato) : ''
     const metaParts = [
       dato,
-      stevne.tid ? formaterTid(stevne.tid) : '',
+      stevne.tid ? formatTime(stevne.tid) : '',
       stevne.kategori?.navn ? escHtml(stevne.kategori.navn) : '',
       stevne.sted ? escHtml(stevne.sted) : '',
     ].filter(Boolean).join(' · ')

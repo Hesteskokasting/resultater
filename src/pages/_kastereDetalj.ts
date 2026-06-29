@@ -1,20 +1,20 @@
 import type { Chart } from 'chart.js'
-import { kasterNavn } from '@/utils/kaster'
+import { throwerName } from '@/utils/kaster'
 import { prependAdminLinkBar } from '@/components/AdminLinkBar'
-import { formaterDato, formaterProsent } from '@/utils/shared'
+import { formatDate, formatPercent } from '@/utils/shared'
 import { createErrorBanner } from '@/components/ErrorBanner'
 import { createLoadingState } from '@/components/LoadingState'
 import { createEmptyState } from '@/components/EmptyState'
 import { escHtml } from '@/utils/escHtml'
 import { logError } from '@/utils/logError'
-import { hentKasterDetalj } from '@/services/kasterService'
-import type { KasterDetaljRow, ResultatDetaljRow } from '@/services/kasterService'
+import { getThrowerDetail } from '@/services/kasterService'
+import type { ThrowerDetailRow, ResultDetailRow } from '@/services/kasterService'
 import {
-  FOERSTE_RING_AR,
-  hentAr, beregnStatistikk,
-  hentTidlegareKlubbar, byggGrafData,
+  FIRST_RING_YEAR,
+  getYear, calcStatistics,
+  getPreviousClubs, buildChartData,
 } from '@/utils/kasterDetaljLogikk'
-import type { MetodeNamn } from '@/utils/kasterDetaljLogikk'
+import type { MethodName } from '@/utils/kasterDetaljLogikk'
 
 // ── Modul-tilstand ────────────────────────────────────────────────────────────
 
@@ -25,7 +25,7 @@ const filtreDetalj = {
   ar:          'alle',
   stevnetype:  'alle',
   grafMetrikk: 'plassering',
-  grafMetode:  'kongelag' as MetodeNamn,
+  grafMetode:  'kongelag' as MethodName,
   grafFra:     null as string | null,
   grafTil:     null as string | null,
 }
@@ -43,10 +43,10 @@ export function destroyChart(): void {
 
 // ── HTML-byggjarar ────────────────────────────────────────────────────────────
 
-function detaljSkelettHtml(kaster: KasterDetaljRow, resultater: ResultatDetaljRow[]): string {
-  const namn = escHtml(kasterNavn(kaster))
+function detaljSkelettHtml(kaster: ThrowerDetailRow, resultater: ResultDetailRow[]): string {
+  const namn = escHtml(throwerName(kaster))
   const nr   = kaster.medlemsnummer ? ` ${kaster.medlemsnummer}` : ''
-  const ar   = [...new Set(resultater.map(r => hentAr(r.stevne?.dato)).filter((a): a is number => a !== null))].sort((a, b) => b - a)
+  const ar   = [...new Set(resultater.map(r => getYear(r.stevne?.dato)).filter((a): a is number => a !== null))].sort((a, b) => b - a)
   const typar = [...new Map(
     resultater.map(r => r.stevne?.stevnetype).filter((t): t is { id: number; navn: string } => t != null).map(t => [t.id, t.navn])
   ).entries()].sort((a, b) => a[1].localeCompare(b[1]))
@@ -114,16 +114,16 @@ function detaljSkelettHtml(kaster: KasterDetaljRow, resultater: ResultatDetaljRo
     </div>`
 }
 
-function resultatTabellHtml(resultater: ResultatDetaljRow[], arFilter: string, typeFilter: string): string {
+function resultatTabellHtml(resultater: ResultDetailRow[], arFilter: string, typeFilter: string): string {
   let filtrert = resultater
-  if (arFilter !== 'alle') filtrert = filtrert.filter(r => String(hentAr(r.stevne?.dato)) === arFilter)
+  if (arFilter !== 'alle') filtrert = filtrert.filter(r => String(getYear(r.stevne?.dato)) === arFilter)
   if (typeFilter !== 'alle') filtrert = filtrert.filter(r => String(r.stevne?.stevnetype?.id) === typeFilter)
 
   const ant      = filtrert.length
   const infoHtml = `
     <div class="kaster-resultat-info">
       <span>Antal: <strong>${ant}</strong></span>
-      <span class="kaster-resultat-hint">Antal ringar i parentes (frå ${FOERSTE_RING_AR})</span>
+      <span class="kaster-resultat-hint">Antal ringar i parentes (frå ${FIRST_RING_YEAR})</span>
     </div>`
 
   if (!ant) return infoHtml + '<p class="empty-state">Ingen resultat funnet.</p>'
@@ -140,7 +140,7 @@ function resultatTabellHtml(resultater: ResultatDetaljRow[], arFilter: string, t
       : escHtml(s?.navn ?? '–')
     return `
       <tr>
-        <td class="text-nowrap">${formaterDato(s?.dato)}</td>
+        <td class="text-nowrap">${formatDate(s?.dato)}</td>
         <td>${stevneHtml}</td>
         <td>${escHtml(s?.stevnetype?.navn ?? '–')}</td>
         <td>${escHtml(r.klubb?.navn ?? '–')}</td>
@@ -164,16 +164,16 @@ function resultatTabellHtml(resultater: ResultatDetaljRow[], arFilter: string, t
     </div>`
 }
 
-function statistikkHtml(resultater: ResultatDetaljRow[], kaster: KasterDetaljRow): string {
-  const stats     = beregnStatistikk(resultater)
-  const tidlegare = hentTidlegareKlubbar(resultater, kaster.klubb?.id ?? null)
+function statistikkHtml(resultater: ResultDetailRow[], kaster: ThrowerDetailRow): string {
+  const stats     = calcStatistics(resultater)
+  const tidlegare = getPreviousClubs(resultater, kaster.klubb?.id ?? null)
 
   const statsRader = stats.map(({ label, rekord, snittPoeng, snittProsent }) => `
     <tr>
       <td>${label}</td>
       <td class="text-center">${rekord ?? '–'}</td>
       <td class="text-center">${snittPoeng ?? '–'}</td>
-      <td class="text-center">${snittProsent != null ? formaterProsent(snittProsent) : '–'}</td>
+      <td class="text-center">${snittProsent != null ? formatPercent(snittProsent) : '–'}</td>
     </tr>`).join('')
 
   const tidlegareHtml = tidlegare.length
@@ -190,7 +190,7 @@ function statistikkHtml(resultater: ResultatDetaljRow[], kaster: KasterDetaljRow
         <table class="app-tabell">
           <thead class="app-thead">
             <tr>
-              <th></th><th>Rekord</th><th>Snitt Poeng</th><th>% Ring (frå ${FOERSTE_RING_AR})</th>
+              <th></th><th>Rekord</th><th>Snitt Poeng</th><th>% Ring (frå ${FIRST_RING_YEAR})</th>
             </tr>
           </thead>
           <tbody>${statsRader}</tbody>
@@ -202,10 +202,10 @@ function statistikkHtml(resultater: ResultatDetaljRow[], kaster: KasterDetaljRow
 
 // ── Graf-rendering ────────────────────────────────────────────────────────────
 
-async function teiknGraf(canvas: HTMLCanvasElement, resultater: ResultatDetaljRow[]): Promise<void> {
+async function teiknGraf(canvas: HTMLCanvasElement, resultater: ResultDetailRow[]): Promise<void> {
   destroyChart()
 
-  const { labels, stevneNamn, verdiar } = byggGrafData(
+  const { labels, stevneNamn, verdiar } = buildChartData(
     resultater,
     filtreDetalj.grafMetrikk,
     filtreDetalj.grafMetode,
@@ -294,7 +294,7 @@ export async function renderDetalj(container: HTMLElement, id: number): Promise<
   container.replaceChildren(createLoadingState('Laster utøvar...'))
 
   try {
-    const { kaster: kasterNullable, resultater, error } = await hentKasterDetalj(id)
+    const { kaster: kasterNullable, resultater, error } = await getThrowerDetail(id)
     if (error || !kasterNullable) {
       container.replaceChildren(createErrorBanner('Kunne ikkje laste utøvar.'))
       return
@@ -360,7 +360,7 @@ export async function renderDetalj(container: HTMLElement, id: number): Promise<
     })
 
     metodeEl.addEventListener('change', () => {
-      filtreDetalj.grafMetode = metodeEl.value as MetodeNamn
+      filtreDetalj.grafMetode = metodeEl.value as MethodName
       oppdaterGraf()
     })
 
@@ -381,8 +381,8 @@ export async function renderDetalj(container: HTMLElement, id: number): Promise<
       href: `#/kaster/${id}/admin`,
       label: 'Rediger utøvar',
       variant: 'warning',
-      canShow: auth => auth.profil?.rolle === 'admin' ||
-        (auth.profil?.rolle === 'klubbadmin' && auth.klubber.includes(kaster.klubbid ?? -1)),
+      canShow: auth => auth.profil?.role === 'admin' ||
+        (auth.profil?.role === 'klubbadmin' && auth.klubber.includes(kaster.klubbid ?? -1)),
     })
   } catch (err) {
     logError('renderDetalj', err)

@@ -1,7 +1,7 @@
 import type { QueryData, RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '@/supabase'
 import { logError } from '@/utils/logError'
-import { beregnKampPoeng } from '@/utils/kamp'
+import { calcMatchPoints } from '@/utils/kamp'
 
 const _kampSpelarQuery = supabase.from('kamp_spelar').select(`
   id, kasterid,
@@ -15,9 +15,9 @@ const _kampSpelarQuery = supabase.from('kamp_spelar').select(`
   )
 `)
 
-export type KampSpelarRow = QueryData<typeof _kampSpelarQuery>[number]
+export type MatchPlayerRow = QueryData<typeof _kampSpelarQuery>[number]
 
-export async function hentMineKampar(kasterid: number): Promise<{ data: KampSpelarRow[]; error: unknown }> {
+export async function getMyMatches(kasterid: number): Promise<{ data: MatchPlayerRow[]; error: unknown }> {
   const { data, error } = await supabase
     .from('kamp_spelar')
     .select(`
@@ -32,7 +32,7 @@ export async function hentMineKampar(kasterid: number): Promise<{ data: KampSpel
       )
     `)
     .eq('kasterid', kasterid)
-  if (error) logError('hentMineKampar', error)
+  if (error) logError('getMyMatches', error)
   return { data: data ?? [], error }
 }
 
@@ -50,8 +50,8 @@ const _kampScoreboardQuery = supabase
     )
   `)
 
-export type KampRow = QueryData<typeof _kampScoreboardQuery>[number]
-export type KampSpelarIKamp = KampRow['spelarar'][number]
+export type MatchRow = QueryData<typeof _kampScoreboardQuery>[number]
+export type MatchPlayerInMatch = MatchRow['spelarar'][number]
 
 // ── Innleiande fase ───────────────────────────────────────────────────────────
 
@@ -63,10 +63,10 @@ const _innlKamperQuery = supabase.from('kamp').select(`
     omgangar:kamp_omgang(score, antall_ringer)
   )
 `)
-export type InnlKampRow = QueryData<typeof _innlKamperQuery>[number]
-export type InnlKampSpelarRow = InnlKampRow['spelarar'][number]
+export type InitialMatchRow = QueryData<typeof _innlKamperQuery>[number]
+export type InitialMatchPlayerRow = InitialMatchRow['spelarar'][number]
 
-export async function hentInnledendeKamper(stevneid: number): Promise<{ data: InnlKampRow[]; error: unknown }> {
+export async function getInitialRoundMatches(stevneid: number): Promise<{ data: InitialMatchRow[]; error: unknown }> {
   const { data, error } = await supabase
     .from('kamp')
     .select(`
@@ -81,42 +81,42 @@ export async function hentInnledendeKamper(stevneid: number): Promise<{ data: In
     .eq('fase', 'innledende')
     .order('runde_nummer')
     .order('bane_nummer')
-  if (error) logError('hentInnledendeKamper', error)
+  if (error) logError('getInitialRoundMatches', error)
   return { data: data ?? [], error }
 }
 
-export async function harKampOmgangar(spelarIds: number[]): Promise<boolean> {
+export async function hasMatchRounds(spelarIds: number[]): Promise<boolean> {
   if (!spelarIds.length) return false
   const { data, error } = await supabase
     .from('kamp_omgang')
     .select('id')
     .in('kamp_spelar_id', spelarIds)
     .limit(1)
-  if (error) logError('harKampOmgangar', error)
+  if (error) logError('hasMatchRounds', error)
   return (data?.length ?? 0) > 0
 }
 
-export async function slettKampOmgangar(spelarIds: number[]): Promise<{ error: unknown }> {
+export async function deleteMatchRounds(spelarIds: number[]): Promise<{ error: unknown }> {
   if (!spelarIds.length) return { error: null }
   const { error } = await supabase.from('kamp_omgang').delete().in('kamp_spelar_id', spelarIds)
-  if (error) logError('slettKampOmgangar', error)
+  if (error) logError('deleteMatchRounds', error)
   return { error }
 }
 
-export async function oppdaterKampSpelarScoreRask(
+export async function updateMatchPlayerScoreFast(
   id: number,
-  scorePoeng: number,
+  scorePoints: number,
   kampPoeng?: number,
 ): Promise<{ error: unknown }> {
   const update = kampPoeng !== undefined
-    ? { score_poeng: scorePoeng, kamp_poeng: kampPoeng }
-    : { score_poeng: scorePoeng }
-  return _runWithTimeout('oppdaterKampSpelarScoreRask', supabase.from('kamp_spelar').update(update).eq('id', id))
+    ? { score_poeng: scorePoints, kamp_poeng: kampPoeng }
+    : { score_poeng: scorePoints }
+  return _runWithTimeout('updateMatchPlayerScoreFast', supabase.from('kamp_spelar').update(update).eq('id', id))
 }
 
 // ── Scoreboard read ───────────────────────────────────────────────────────────
 
-export async function hentKamp(id: number): Promise<{ data: KampRow | null; error: unknown }> {
+export async function getMatch(id: number): Promise<{ data: MatchRow | null; error: unknown }> {
   const { data, error } = await supabase
     .from('kamp')
     .select(`
@@ -130,38 +130,38 @@ export async function hentKamp(id: number): Promise<{ data: KampRow | null; erro
     `)
     .eq('id', id)
     .maybeSingle()
-  if (error) logError('hentKamp', error)
+  if (error) logError('getMatch', error)
   return { data, error }
 }
 
-export interface KampResultatInfo {
-  startnrMap: Record<number, number>
-  posisjonMap: Record<number, number>
+export interface MatchResultInfo {
+  startNumberMap: Record<number, number>
+  positionMap: Record<number, number>
   hcpMap: Map<number, number>
 }
 
-export async function hentKampResultatInfo(
+export async function getMatchResultInfo(
   stevneId: number,
   kasterids: number[],
-): Promise<KampResultatInfo> {
-  if (!kasterids.length) return { startnrMap: {}, posisjonMap: {}, hcpMap: new Map() }
+): Promise<MatchResultInfo> {
+  if (!kasterids.length) return { startNumberMap: {}, positionMap: {}, hcpMap: new Map() }
   const { data, error } = await supabase
     .from('resultat')
     .select('kasterid, startnummer, posisjon, hcp')
     .eq('stevneid', stevneId)
     .in('kasterid', kasterids)
-  if (error) logError('hentKampResultatInfo', error)
+  if (error) logError('getMatchResultInfo', error)
 
-  const startnrMap: Record<number, number> = {}
-  const posisjonMap: Record<number, number> = {}
+  const startNumberMap: Record<number, number> = {}
+  const positionMap: Record<number, number> = {}
   const hcpMap = new Map<number, number>()
   for (const r of data ?? []) {
     if (r.kasterid == null) continue
-    if (r.startnummer != null) startnrMap[r.kasterid] = r.startnummer
-    if (r.posisjon != null) posisjonMap[r.kasterid] = r.posisjon
+    if (r.startnummer != null) startNumberMap[r.kasterid] = r.startnummer
+    if (r.posisjon != null) positionMap[r.kasterid] = r.posisjon
     hcpMap.set(r.kasterid, r.hcp ?? 0)
   }
-  return { startnrMap, posisjonMap, hcpMap }
+  return { startNumberMap, positionMap, hcpMap }
 }
 
 /**
@@ -170,7 +170,7 @@ export async function hentKampResultatInfo(
  * (same startnummer = same pair) when the stevne context varies per match,
  * e.g. the "Mine kampar" list which spans many stevner.
  */
-export async function hentStartnummerForStevner(
+export async function getStartNumbersForTournaments(
   stevneIds: number[],
 ): Promise<Record<string, number>> {
   if (!stevneIds.length) return {}
@@ -178,7 +178,7 @@ export async function hentStartnummerForStevner(
     .from('resultat')
     .select('stevneid, kasterid, startnummer')
     .in('stevneid', stevneIds)
-  if (error) logError('hentStartnummerForStevner', error)
+  if (error) logError('getStartNumbersForTournaments', error)
   const map: Record<string, number> = {}
   for (const r of data ?? []) {
     if (r.kasterid != null && r.startnummer != null) {
@@ -188,7 +188,7 @@ export async function hentStartnummerForStevner(
   return map
 }
 
-export async function hentNesteKampOrganisator(
+export async function getNextMatchForOrganizer(
   stevneId: number,
   baneNummer: number,
 ): Promise<{ data: { id: number } | null; error: unknown }> {
@@ -202,41 +202,41 @@ export async function hentNesteKampOrganisator(
     .order('runde_nummer')
     .limit(1)
     .maybeSingle()
-  if (error) logError('hentNesteKampOrganisator', error)
+  if (error) logError('getNextMatchForOrganizer', error)
   return { data, error }
 }
 
-export async function hentNesteKampDeltakar(
+export async function getNextMatchForParticipant(
   stevneId: number,
   kasterid: number,
 ): Promise<{ data: { id: number } | null; error: unknown }> {
-  const { data: mine, error: mineErr } = await supabase
+  const { data: myRows, error: mineErr } = await supabase
     .from('kamp_spelar')
     .select('kampid')
     .eq('kasterid', kasterid)
   if (mineErr) {
-    logError('hentNesteKampDeltakar:minekampar', mineErr)
+    logError('getNextMatchForParticipant:minekampar', mineErr)
     return { data: null, error: mineErr }
   }
 
-  const kampIds = (mine ?? []).map(ks => ks.kampid).filter((id): id is number => id != null)
-  if (!kampIds.length) return { data: null, error: null }
+  const matchIds = (myRows ?? []).map(ks => ks.kampid).filter((id): id is number => id != null)
+  if (!matchIds.length) return { data: null, error: null }
 
   const { data, error } = await supabase
     .from('kamp')
     .select('id')
-    .in('id', kampIds)
+    .in('id', matchIds)
     .eq('stevneid', stevneId)
     .eq('er_bekreftet', false)
     .eq('er_walkover', false)
     .order('runde_nummer')
     .limit(1)
     .maybeSingle()
-  if (error) logError('hentNesteKampDeltakar', error)
+  if (error) logError('getNextMatchForParticipant', error)
   return { data, error }
 }
 
-export async function erDeltakarIKamp(kampId: number, kasterid: number): Promise<boolean> {
+export async function isParticipantInMatch(kampId: number, kasterid: number): Promise<boolean> {
   const { data } = await supabase
     .from('kamp_spelar')
     .select('id')
@@ -248,58 +248,58 @@ export async function erDeltakarIKamp(kampId: number, kasterid: number): Promise
 
 // ── Scoreboard write ──────────────────────────────────────────────────────────
 
-export type KampSpelarBekreftData = {
-  spelarId: number    // kamp_spelar.id
+export type MatchPlayerConfirmData = {
+  playerId: number    // kamp_spelar.id
   kasterid: number
-  scorePoeng: number  // fallback if omgang data is missing
+  scorePoints: number  // fallback if omgang data is missing
 }
 
-export type OmgRow = { kamp_spelar_id: number | null; score: number | null; antall_ringer: number | null }
+export type RoundScoreRow = { kamp_spelar_id: number | null; score: number | null; antall_ringer: number | null }
 
-type KampSpelarUpdateValues = { score_poeng: number; kamp_poeng: number; antall_ringer: number }
+type MatchPlayerUpdateValues = { score_poeng: number; kamp_poeng: number; antall_ringer: number }
 
 /** One match side at confirmation: kamp_spelar ids ordered by posisjon (rep first). 1 id for Singel, 2 for Par/Mix. */
-export type SideBekreft = { spelarIds: number[]; baseScore: number }
+export type MatchSideConfirm = { playerIds: number[]; baseScore: number }
 
 /**
  * Computes the kamp_spelar write per player. Each player's score_poeng and
  * antall_ringer come from their OWN omgang rows (pair members alternate
  * omgangar), while kamp_poeng comes from the SIDE totals and is written to
  * every member of the side. Side HCP and walkover/fallback scores land on the
- * representative (spelarIds[0]) so the side sum stays correct.
+ * representative (playerIds[0]) so the side sum stays correct.
  */
-export function buildKampSpelarUpdates(params: {
-  omgData: OmgRow[]
-  side1: SideBekreft | null
-  side2: SideBekreft | null
+export function buildMatchPlayerUpdates(params: {
+  roundData: RoundScoreRow[]
+  side1: MatchSideConfirm | null
+  side2: MatchSideConfirm | null
   hcp1: number
   hcp2: number
   erWalkover: boolean
-}): Map<number, KampSpelarUpdateValues> {
-  const { omgData, side1, side2, hcp1, hcp2, erWalkover } = params
+}): Map<number, MatchPlayerUpdateValues> {
+  const { roundData, side1, side2, hcp1, hcp2, erWalkover } = params
 
-  const updates = new Map<number, KampSpelarUpdateValues>()
+  const updates = new Map<number, MatchPlayerUpdateValues>()
   for (const side of [side1, side2]) {
-    for (const id of side?.spelarIds ?? []) {
+    for (const id of side?.playerIds ?? []) {
       updates.set(id, { score_poeng: 0, kamp_poeng: 0, antall_ringer: 0 })
     }
   }
 
   let t1 = 0, t2 = 0
-  const rep1 = side1?.spelarIds[0]
-  const rep2 = side2?.spelarIds[0]
+  const rep1 = side1?.playerIds[0]
+  const rep2 = side2?.playerIds[0]
 
   if (erWalkover) {
     t1 = 21
     if (rep1 != null) updates.get(rep1)!.score_poeng = 21
-  } else if (omgData.length) {
-    for (const row of omgData) {
+  } else if (roundData.length) {
+    for (const row of roundData) {
       if (row.kamp_spelar_id == null) continue
       const u = updates.get(row.kamp_spelar_id)
       if (!u) continue
       u.score_poeng += row.score ?? 0
       u.antall_ringer += row.antall_ringer ?? 0
-      if (side1?.spelarIds.includes(row.kamp_spelar_id)) t1 += row.score ?? 0
+      if (side1?.playerIds.includes(row.kamp_spelar_id)) t1 += row.score ?? 0
       else t2 += row.score ?? 0
     }
     // HCP applies only to scoreboard-round sums; direct scores are already final.
@@ -320,22 +320,22 @@ export function buildKampSpelarUpdates(params: {
     }
   }
 
-  const [kp1, kp2] = beregnKampPoeng(t1, t2)
-  for (const id of side1?.spelarIds ?? []) updates.get(id)!.kamp_poeng = kp1
-  for (const id of side2?.spelarIds ?? []) updates.get(id)!.kamp_poeng = kp2
+  const [kp1, kp2] = calcMatchPoints(t1, t2)
+  for (const id of side1?.playerIds ?? []) updates.get(id)!.kamp_poeng = kp1
+  for (const id of side2?.playerIds ?? []) updates.get(id)!.kamp_poeng = kp2
 
   return updates
 }
 
 /** Par/Mix: a side's kamp_spelar ids include the rep and (when present) the partner. */
-function _sideSpelarIds(p: { spelarId: number } | null, partnerId: number | null): number[] {
-  return p ? [p.spelarId, ...(partnerId != null ? [partnerId] : [])] : []
+function _sidePlayerIds(p: { playerId: number } | null, partnerId: number | null): number[] {
+  return p ? [p.playerId, ...(partnerId != null ? [partnerId] : [])] : []
 }
 
-export async function bekreftInnledendeKamp(params: {
+export async function confirmInitialMatch(params: {
   kampId: number
-  p1: KampSpelarBekreftData | null
-  p2: KampSpelarBekreftData | null
+  p1: MatchPlayerConfirmData | null
+  p2: MatchPlayerConfirmData | null
   hcp1: number
   hcp2: number
   erWalkover?: boolean
@@ -346,42 +346,42 @@ export async function bekreftInnledendeKamp(params: {
 }): Promise<{ error: unknown }> {
   const { kampId, p1, p2, hcp1, hcp2, erWalkover = false, p1PartnerId = null, p2PartnerId = null } = params
 
-  const side1Ids = _sideSpelarIds(p1, p1PartnerId)
-  const side2Ids = _sideSpelarIds(p2, p2PartnerId)
-  const alleIds = [...side1Ids, ...side2Ids]
+  const side1Ids = _sidePlayerIds(p1, p1PartnerId)
+  const side2Ids = _sidePlayerIds(p2, p2PartnerId)
+  const allIds = [...side1Ids, ...side2Ids]
 
-  let omgData: OmgRow[] = []
-  let p1BaseScore = p1?.scorePoeng ?? 0
-  let p2BaseScore = p2?.scorePoeng ?? 0
+  let roundData: RoundScoreRow[] = []
+  let p1BaseScore = p1?.scorePoints ?? 0
+  let p2BaseScore = p2?.scorePoints ?? 0
 
   if (!erWalkover) {
     const { data: fetched, error: omgErr } = await supabase
       .from('kamp_omgang')
       .select('kamp_spelar_id, score, antall_ringer')
-      .in('kamp_spelar_id', alleIds)
+      .in('kamp_spelar_id', allIds)
     if (omgErr) {
-      logError('bekreftInnledendeKamp:omgangar', omgErr)
+      logError('confirmInitialMatch:omgangar', omgErr)
       return { error: omgErr }
     }
-    omgData = fetched ?? []
+    roundData = fetched ?? []
 
-    if (!omgData.length) {
-      // Re-fetch score_poeng fresh from DB — passed scorePoeng may be stale (captured at render time)
-      const repIds = [p1?.spelarId, p2?.spelarId].filter((id): id is number => id != null)
+    if (!roundData.length) {
+      // Re-fetch score_poeng fresh from DB — passed scorePoints may be stale (captured at render time)
+      const repIds = [p1?.playerId, p2?.playerId].filter((id): id is number => id != null)
       const { data: freshScores } = await supabase
         .from('kamp_spelar')
         .select('id, score_poeng')
         .in('id', repIds)
       const scoreMap = Object.fromEntries((freshScores ?? []).map(s => [s.id, s.score_poeng ?? 0]))
-      p1BaseScore = p1 ? (scoreMap[p1.spelarId] ?? p1.scorePoeng) : 0
-      p2BaseScore = p2 ? (scoreMap[p2.spelarId] ?? p2.scorePoeng) : 0
+      p1BaseScore = p1 ? (scoreMap[p1.playerId] ?? p1.scorePoints) : 0
+      p2BaseScore = p2 ? (scoreMap[p2.playerId] ?? p2.scorePoints) : 0
     }
   }
 
-  const updates = buildKampSpelarUpdates({
-    omgData,
-    side1: p1 ? { spelarIds: side1Ids, baseScore: p1BaseScore } : null,
-    side2: p2 ? { spelarIds: side2Ids, baseScore: p2BaseScore } : null,
+  const updates = buildMatchPlayerUpdates({
+    roundData,
+    side1: p1 ? { playerIds: side1Ids, baseScore: p1BaseScore } : null,
+    side2: p2 ? { playerIds: side2Ids, baseScore: p2BaseScore } : null,
     hcp1, hcp2, erWalkover,
   })
 
@@ -393,34 +393,34 @@ export async function bekreftInnledendeKamp(params: {
     const results = await Promise.all(spelarUpdates)
     const spelarErr = results.find(r => r.error)?.error
     if (spelarErr) {
-      logError('bekreftInnledendeKamp:spelarar', spelarErr)
+      logError('confirmInitialMatch:spelarar', spelarErr)
       return { error: spelarErr }
     }
   }
 
   const { error } = await supabase.from('kamp').update({ er_bekreftet: true }).eq('id', kampId)
-  if (error) logError('bekreftInnledendeKamp:kamp', error)
+  if (error) logError('confirmInitialMatch:kamp', error)
   return { error }
 }
 
 /**
  * Decides which side lost by comparing SIDE totals: each side's omgang rows
  * are summed across all members (pair members alternate omgangar), falling
- * back to the rep's scorePoeng when the side has no rows. Returns the losing
+ * back to the rep's scorePoints when the side has no rows. Returns the losing
  * side's kasterid — any member works, the elimination RPC resolves the full
  * side from resultat.startnummer.
  */
-export function buildEliminertKasterid(params: {
-  omgData: Array<{ kamp_spelar_id: number | null; score: number | null }>
-  p1: { spelarIds: number[]; kasterid: number; scorePoeng: number } | null
-  p2: { spelarIds: number[]; kasterid: number; scorePoeng: number } | null
+export function buildEliminatedThrowerId(params: {
+  roundData: Array<{ kamp_spelar_id: number | null; score: number | null }>
+  p1: { playerIds: number[]; kasterid: number; scorePoints: number } | null
+  p2: { playerIds: number[]; kasterid: number; scorePoints: number } | null
 }): number | null {
-  const { omgData, p1, p2 } = params
+  const { roundData, p1, p2 } = params
 
-  const sideTotal = (side: { spelarIds: number[]; scorePoeng: number } | null): number => {
+  const sideTotal = (side: { playerIds: number[]; scorePoints: number } | null): number => {
     if (!side) return 0
-    const rows = omgData.filter(o => o.kamp_spelar_id != null && side.spelarIds.includes(o.kamp_spelar_id))
-    if (!rows.length) return side.scorePoeng
+    const rows = roundData.filter(o => o.kamp_spelar_id != null && side.playerIds.includes(o.kamp_spelar_id))
+    if (!rows.length) return side.scorePoints
     return rows.reduce((sum, o) => sum + (o.score ?? 0), 0)
   }
 
@@ -429,10 +429,10 @@ export function buildEliminertKasterid(params: {
   return t1 >= t2 ? (p2?.kasterid ?? null) : (p1?.kasterid ?? null)
 }
 
-export async function bekreftAvsluttendeKamp(params: {
+export async function confirmFinalMatch(params: {
   kampId: number
-  p1: KampSpelarBekreftData | null
-  p2: KampSpelarBekreftData | null
+  p1: MatchPlayerConfirmData | null
+  p2: MatchPlayerConfirmData | null
   orderedKasterids: number[] | null  // 3-unit: [1st, 2nd, 3rd] side-rep kasterids
   // Par/Mix: partner kamp_spelar ids so side totals include both members
   p1PartnerId?: number | null
@@ -440,29 +440,29 @@ export async function bekreftAvsluttendeKamp(params: {
 }): Promise<{ error: unknown }> {
   const { kampId, p1, p2, orderedKasterids, p1PartnerId = null, p2PartnerId = null } = params
 
-  let eliminertId: number | null = null
+  let eliminatedId: number | null = null
   if (orderedKasterids?.length === 3) {
-    eliminertId = orderedKasterids[2] ?? null
+    eliminatedId = orderedKasterids[2] ?? null
   } else {
-    const side1Ids = _sideSpelarIds(p1, p1PartnerId)
-    const side2Ids = _sideSpelarIds(p2, p2PartnerId)
-    const { data: omgData } = await supabase
+    const side1Ids = _sidePlayerIds(p1, p1PartnerId)
+    const side2Ids = _sidePlayerIds(p2, p2PartnerId)
+    const { data: roundData } = await supabase
       .from('kamp_omgang')
       .select('kamp_spelar_id, score')
       .in('kamp_spelar_id', [...side1Ids, ...side2Ids])
 
-    eliminertId = buildEliminertKasterid({
-      omgData: omgData ?? [],
-      p1: p1 ? { spelarIds: side1Ids, kasterid: p1.kasterid, scorePoeng: p1.scorePoeng } : null,
-      p2: p2 ? { spelarIds: side2Ids, kasterid: p2.kasterid, scorePoeng: p2.scorePoeng } : null,
+    eliminatedId = buildEliminatedThrowerId({
+      roundData: roundData ?? [],
+      p1: p1 ? { playerIds: side1Ids, kasterid: p1.kasterid, scorePoints: p1.scorePoints } : null,
+      p2: p2 ? { playerIds: side2Ids, kasterid: p2.kasterid, scorePoints: p2.scorePoints } : null,
     })
   }
 
   const { error } = await supabase.rpc('bekreft_avsluttende_kamp_deltakar', {
     p_kamp_id: kampId,
-    p_eliminert_kasterid: eliminertId ?? undefined,
+    p_eliminert_kasterid: eliminatedId ?? undefined,
   })
-  if (error) { logError('bekreftAvsluttendeKamp', error); return { error } }
+  if (error) { logError('confirmFinalMatch', error); return { error } }
 
   return { error: null }
 }
@@ -478,15 +478,15 @@ const _avslKamperQuery = supabase.from('kamp').select(`
     omgangar:kamp_omgang(score, antall_ringer)
   )
 `)
-export type AvslKampRow = QueryData<typeof _avslKamperQuery>[number]
-export type AvslKampSpelarRow = AvslKampRow['spelarar'][number]
+export type FinalMatchRow = QueryData<typeof _avslKamperQuery>[number]
+export type FinalMatchPlayerRow = FinalMatchRow['spelarar'][number]
 
 const _kampSpelarerQuery = supabase.from('kamp_spelar').select(
   'id, kasterid, score_poeng, antall_ringer, omgangar:kamp_omgang(score, antall_ringer)',
 )
-export type KampSpelarScoreRow = QueryData<typeof _kampSpelarerQuery>[number]
+export type MatchPlayerScoreRow = QueryData<typeof _kampSpelarerQuery>[number]
 
-export async function hentAvsluttendeKamper(stevneid: number): Promise<{ data: AvslKampRow[]; error: unknown }> {
+export async function getFinalRoundMatches(stevneid: number): Promise<{ data: FinalMatchRow[]; error: unknown }> {
   const { data, error } = await supabase
     .from('kamp')
     .select(`
@@ -501,31 +501,31 @@ export async function hentAvsluttendeKamper(stevneid: number): Promise<{ data: A
     .eq('stevneid', stevneid)
     .order('runde_nummer')
     .order('bane_nummer')
-  if (error) logError('hentAvsluttendeKamper', error)
+  if (error) logError('getFinalRoundMatches', error)
   return { data: data ?? [], error }
 }
 
-export async function hentKampSpelarar(kampId: number): Promise<{ data: KampSpelarScoreRow[]; error: unknown }> {
+export async function getMatchPlayers(kampId: number): Promise<{ data: MatchPlayerScoreRow[]; error: unknown }> {
   const { data, error } = await supabase
     .from('kamp_spelar')
     .select('id, kasterid, score_poeng, antall_ringer, omgangar:kamp_omgang(score, antall_ringer)')
     .eq('kampid', kampId)
-  if (error) logError('hentKampSpelarar', error)
+  if (error) logError('getMatchPlayers', error)
   return { data: data ?? [], error }
 }
 
-export async function harAlleSemifinalarBekrefta(stevneid: number, gruppeNavn: string): Promise<boolean> {
+export async function areAllSemifinalsConfirmed(stevneid: number, gruppeNavn: string): Promise<boolean> {
   const { data, error } = await supabase
     .from('kamp')
     .select('er_bekreftet')
     .eq('stevneid', stevneid)
     .eq('gruppe_navn', gruppeNavn)
     .eq('runde_navn', 'Semifinale')
-  if (error) logError('harAlleSemifinalarBekrefta', error)
+  if (error) logError('areAllSemifinalsConfirmed', error)
   return !!(data?.length && data.every(s => s.er_bekreftet))
 }
 
-export async function setKampSpelarPlaseringar(
+export async function setMatchPlayerPlacements(
   kampId: number,
   entries: { kasterid: number; plassering: number }[],
 ): Promise<{ error: unknown }> {
@@ -539,123 +539,123 @@ export async function setKampSpelarPlaseringar(
     ),
   )
   const err = results.find(r => r.error)?.error ?? null
-  if (err) logError('setKampSpelarPlaseringar', err)
+  if (err) logError('setMatchPlayerPlacements', err)
   return { error: err }
 }
 
-export async function bekreftCupKamp(params: {
+export async function confirmCupMatch(params: {
   kampId: number
   stevneId: number
-  rundeNummer: number
-  rundeNavn: string | null
-  allKasterids: number[]
+  roundNumber: number
+  roundName: string | null
+  allThrowerIds: number[]
   /** All members of the eliminated side ([] = none). Singel: one kasterid. */
-  eliminertIds: number[]
+  eliminatedIds: number[]
   /** Advancing sides in rank order; every member of a side shares its kamp_plassering. */
-  vidareSider: number[][]
+  advancingSides: number[][]
 }): Promise<{ error: unknown }> {
-  const { kampId, stevneId, rundeNummer, rundeNavn, allKasterids, eliminertIds, vidareSider } = params
+  const { kampId, stevneId, roundNumber, roundName, allThrowerIds, eliminatedIds, advancingSides } = params
 
   const { error: kampErr } = await supabase.from('kamp').update({ er_bekreftet: true }).eq('id', kampId)
-  if (kampErr) { logError('bekreftCupKamp:kamp', kampErr); return { error: kampErr } }
+  if (kampErr) { logError('confirmCupMatch:kamp', kampErr); return { error: kampErr } }
 
-  // Write per-match rank to kamp_spelar for display (vidareSider = 1st, 2nd, …; eliminert = last)
-  const kampPlaseringar = [
-    ...vidareSider.flatMap((side, i) => side.map(kid => ({ kasterid: kid, plassering: i + 1 }))),
-    ...eliminertIds.map(kid => ({ kasterid: kid, plassering: vidareSider.length + 1 })),
+  // Write per-match rank to kamp_spelar for display (advancingSides = 1st, 2nd, …; eliminated = last)
+  const matchPlacements = [
+    ...advancingSides.flatMap((side, i) => side.map(kid => ({ kasterid: kid, plassering: i + 1 }))),
+    ...eliminatedIds.map(kid => ({ kasterid: kid, plassering: advancingSides.length + 1 })),
   ]
-  const { error: kpErr } = await setKampSpelarPlaseringar(kampId, kampPlaseringar)
+  const { error: kpErr } = await setMatchPlayerPlacements(kampId, matchPlacements)
   if (kpErr) return { error: kpErr }
 
   // Semifinale losers are not finally eliminated — they advance to bronsefinale
-  if (rundeNavn === 'Semifinale') return { error: null }
+  if (roundName === 'Semifinale') return { error: null }
 
-  if (!eliminertIds.length) return { error: null }
+  if (!eliminatedIds.length) return { error: null }
 
-  if (rundeNavn !== 'Finale' && rundeNavn !== 'Bronsefinale') {
-    const { error } = await _resetOgMarkerEliminert(stevneId, rundeNummer, allKasterids, eliminertIds, 'bekreftCupKamp')
+  if (roundName !== 'Finale' && roundName !== 'Bronsefinale') {
+    const { error } = await _resetAndMarkEliminated(stevneId, roundNumber, allThrowerIds, eliminatedIds, 'confirmCupMatch')
     if (error) return { error }
   }
 
   // Write final tournament placement for Finale and Bronsefinale
-  const vinnerIds = vidareSider[0] ?? []
-  if (rundeNavn === 'Finale' && vinnerIds.length) {
+  const winnerIds = advancingSides[0] ?? []
+  if (roundName === 'Finale' && winnerIds.length) {
     const { error: vErr } = await supabase.from('resultat')
-      .update({ plassering: 1 }).eq('stevneid', stevneId).in('kasterid', vinnerIds)
-    if (vErr) { logError('bekreftCupKamp:plassering-vinnar', vErr); return { error: vErr } }
+      .update({ plassering: 1 }).eq('stevneid', stevneId).in('kasterid', winnerIds)
+    if (vErr) { logError('confirmCupMatch:plassering-vinnar', vErr); return { error: vErr } }
     const { error: tErr } = await supabase.from('resultat')
-      .update({ plassering: 2 }).eq('stevneid', stevneId).in('kasterid', eliminertIds)
-    if (tErr) { logError('bekreftCupKamp:plassering-tapar', tErr); return { error: tErr } }
-  } else if (rundeNavn === 'Bronsefinale' && vinnerIds.length) {
+      .update({ plassering: 2 }).eq('stevneid', stevneId).in('kasterid', eliminatedIds)
+    if (tErr) { logError('confirmCupMatch:plassering-tapar', tErr); return { error: tErr } }
+  } else if (roundName === 'Bronsefinale' && winnerIds.length) {
     const { error: vErr } = await supabase.from('resultat')
-      .update({ plassering: 3 }).eq('stevneid', stevneId).in('kasterid', vinnerIds)
-    if (vErr) { logError('bekreftCupKamp:plassering-vinnar', vErr); return { error: vErr } }
+      .update({ plassering: 3 }).eq('stevneid', stevneId).in('kasterid', winnerIds)
+    if (vErr) { logError('confirmCupMatch:plassering-vinnar', vErr); return { error: vErr } }
     const { error: tErr } = await supabase.from('resultat')
-      .update({ plassering: 4 }).eq('stevneid', stevneId).in('kasterid', eliminertIds)
-    if (tErr) { logError('bekreftCupKamp:plassering-tapar', tErr); return { error: tErr } }
+      .update({ plassering: 4 }).eq('stevneid', stevneId).in('kasterid', eliminatedIds)
+    if (tErr) { logError('confirmCupMatch:plassering-tapar', tErr); return { error: tErr } }
   }
 
   return { error: null }
 }
 
 /** Regular cup rounds: clear this round's eliminations for the match's players, then mark the losers. */
-async function _resetOgMarkerEliminert(
+async function _resetAndMarkEliminated(
   stevneId: number,
-  rundeNummer: number,
-  allKasterids: number[],
-  eliminertIds: number[],
+  roundNumber: number,
+  allThrowerIds: number[],
+  eliminatedIds: number[],
   logContext: string,
 ): Promise<{ error: unknown }> {
   const { error: resetErr } = await supabase.from('resultat')
     .update({ runde_eliminert: null })
-    .eq('stevneid', stevneId).eq('runde_eliminert', rundeNummer).in('kasterid', allKasterids)
+    .eq('stevneid', stevneId).eq('runde_eliminert', roundNumber).in('kasterid', allThrowerIds)
   if (resetErr) { logError(`${logContext}:reset`, resetErr); return { error: resetErr } }
-  if (eliminertIds.length) {
+  if (eliminatedIds.length) {
     const { error } = await supabase.from('resultat')
-      .update({ runde_eliminert: rundeNummer }).eq('stevneid', stevneId).in('kasterid', eliminertIds)
+      .update({ runde_eliminert: roundNumber }).eq('stevneid', stevneId).in('kasterid', eliminatedIds)
     if (error) { logError(`${logContext}:eliminert`, error); return { error } }
   }
   return { error: null }
 }
 
-export async function oppdaterVinnarTapar(params: {
+export async function updateWinnerLoser(params: {
   stevneId: number
-  rundeNummer: number
-  rundeNavn: string | null
-  allKasterids: number[]
+  roundNumber: number
+  roundName: string | null
+  allThrowerIds: number[]
   /** All members of the winning/losing side. Singel: one kasterid. */
-  nyVinnarIds: number[]
-  nyTaparIds: number[]
+  newWinnerIds: number[]
+  newLoserIds: number[]
 }): Promise<{ error: unknown }> {
-  const { stevneId, rundeNummer, rundeNavn, allKasterids, nyVinnarIds, nyTaparIds } = params
-  const erSemfinale = rundeNavn === 'Semifinale'
-  const erFinale = rundeNavn === 'Finale'
-  const erBronsefinale = rundeNavn === 'Bronsefinale'
+  const { stevneId, roundNumber, roundName, allThrowerIds, newWinnerIds, newLoserIds } = params
+  const isSemifinal = roundName === 'Semifinale'
+  const isFinal = roundName === 'Finale'
+  const isBronzeFinal = roundName === 'Bronsefinale'
 
   // Write per-match rank to kamp_spelar (score correction path — need kampId)
   // kamp_plassering update is handled by the caller (cup.ts score edit handler) when re-confirming
 
-  if (erSemfinale) {
+  if (isSemifinal) {
     // Semifinale losers are not finally eliminated — no runde_eliminert changes
     return { error: null }
   }
 
-  if (erFinale || erBronsefinale) {
+  if (isFinal || isBronzeFinal) {
     // Write final tournament placement
-    const vinnarPlass = erFinale ? 1 : 3
-    const taparPlass = erFinale ? 2 : 4
-    if (nyVinnarIds.length) {
+    const winnerRank = isFinal ? 1 : 3
+    const loserRank = isFinal ? 2 : 4
+    if (newWinnerIds.length) {
       const { error } = await supabase.from('resultat')
-        .update({ plassering: vinnarPlass }).eq('stevneid', stevneId).in('kasterid', nyVinnarIds)
-      if (error) { logError('oppdaterVinnarTapar:plassering-vinnar', error); return { error } }
+        .update({ plassering: winnerRank }).eq('stevneid', stevneId).in('kasterid', newWinnerIds)
+      if (error) { logError('updateWinnerLoser:plassering-vinnar', error); return { error } }
     }
-    if (nyTaparIds.length) {
+    if (newLoserIds.length) {
       const { error } = await supabase.from('resultat')
-        .update({ plassering: taparPlass }).eq('stevneid', stevneId).in('kasterid', nyTaparIds)
-      if (error) { logError('oppdaterVinnarTapar:plassering-tapar', error); return { error } }
+        .update({ plassering: loserRank }).eq('stevneid', stevneId).in('kasterid', newLoserIds)
+      if (error) { logError('updateWinnerLoser:plassering-tapar', error); return { error } }
     }
   } else {
-    const { error } = await _resetOgMarkerEliminert(stevneId, rundeNummer, allKasterids, nyTaparIds, 'oppdaterVinnarTapar')
+    const { error } = await _resetAndMarkEliminated(stevneId, roundNumber, allThrowerIds, newLoserIds, 'updateWinnerLoser')
     if (error) return { error }
   }
 
@@ -667,29 +667,29 @@ export async function oppdaterVinnarTapar(params: {
 const _kampOmgangQuery = supabase
   .from('kamp_omgang')
   .select('id, kamp_spelar_id, omgang, score, antall_ringer')
-export type KampOmgangRow = QueryData<typeof _kampOmgangQuery>[number]
+export type MatchRoundRow = QueryData<typeof _kampOmgangQuery>[number]
 
-export async function hentKampOmgangar(spelarIds: number[]): Promise<{ data: KampOmgangRow[]; error: unknown }> {
+export async function getMatchRounds(spelarIds: number[]): Promise<{ data: MatchRoundRow[]; error: unknown }> {
   if (!spelarIds.length) return { data: [], error: null }
   const { data, error } = await supabase
     .from('kamp_omgang')
     .select('id, kamp_spelar_id, omgang, score, antall_ringer')
     .in('kamp_spelar_id', spelarIds)
     .order('omgang')
-  if (error) logError('hentKampOmgangar', error)
+  if (error) logError('getMatchRounds', error)
   return { data: data ?? [], error }
 }
 
-const LAGRE_TIMEOUT_MS = 10_000
+const SAVE_TIMEOUT_MS = 10_000
 
-/** Races a Supabase write against LAGRE_TIMEOUT_MS so scoreboard saves never hang. */
+/** Races a Supabase write against SAVE_TIMEOUT_MS so scoreboard saves never hang. */
 async function _runWithTimeout(
   logContext: string,
   query: PromiseLike<{ error: unknown }>,
 ): Promise<{ error: unknown }> {
   try {
     const timeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('Request timed out')), LAGRE_TIMEOUT_MS),
+      setTimeout(() => reject(new Error('Request timed out')), SAVE_TIMEOUT_MS),
     )
     const { error } = await Promise.race([query, timeout])
     if (error) logError(logContext, error)
@@ -700,14 +700,14 @@ async function _runWithTimeout(
   }
 }
 
-export async function lagreKampOmgang(
+export async function saveMatchRound(
   inserts: { kamp_spelar_id: number; omgang: number; score: number; antall_ringer: number }[],
 ): Promise<{ error: unknown }> {
   if (!inserts.length) return { error: null }
-  return _runWithTimeout('lagreKampOmgang', supabase.from('kamp_omgang').insert(inserts))
+  return _runWithTimeout('saveMatchRound', supabase.from('kamp_omgang').insert(inserts))
 }
 
-export async function oppdaterKampOmgang(
+export async function updateMatchRound(
   rows: { kamp_spelar_id: number; omgang: number; score: number; antall_ringer: number }[],
 ): Promise<{ error: unknown }> {
   if (!rows.length) return { error: null }
@@ -722,28 +722,28 @@ export async function oppdaterKampOmgang(
       ),
     )
     const err = results.find(r => r.error)?.error ?? null
-    if (err) logError('oppdaterKampOmgang', err)
+    if (err) logError('updateMatchRound', err)
     return { error: err }
   } catch (e) {
-    logError('oppdaterKampOmgang', e)
+    logError('updateMatchRound', e)
     return { error: e }
   }
 }
 
-export async function unbekreftKamp(kampId: number): Promise<{ error: unknown }> {
+export async function unconfirmMatch(kampId: number): Promise<{ error: unknown }> {
   const { error } = await supabase.from('kamp').update({ er_bekreftet: false }).eq('id', kampId)
-  if (error) logError('unbekreftKamp', error)
+  if (error) logError('unconfirmMatch', error)
   return { error }
 }
 
 // ── Realtime ──────────────────────────────────────────────────────────────────
 
-export type NesteKampPayload = { id: number; bane_nummer: number | null; er_walkover: boolean }
+export type NextMatchPayload = { id: number; bane_nummer: number | null; er_walkover: boolean }
 
-export function subscribeToNesteKamp(
+export function subscribeToNextMatch(
   stevneId: number,
   kampId: number,
-  onNewKamp: (kamp: NesteKampPayload) => void,
+  onNewKamp: (kamp: NextMatchPayload) => void,
 ): RealtimeChannel {
   return supabase
     .channel(`neste-kamp-${kampId}`)
@@ -753,12 +753,12 @@ export function subscribeToNesteKamp(
       table: 'kamp',
       filter: `stevneid=eq.${stevneId}`,
     }, (payload) => {
-      onNewKamp(payload.new as NesteKampPayload)
+      onNewKamp(payload.new as NextMatchPayload)
     })
     .subscribe()
 }
 
-export function subscribeToKampEndringar(
+export function subscribeToMatchChanges(
   stevneid: number,
   channelName: string,
   onChange: () => void,
@@ -773,14 +773,14 @@ export function subscribeToKampEndringar(
     .subscribe()
 }
 
-export function subscribeToScoreboardEndringar(
+export function subscribeToScoreboardChanges(
   kampId: number,
   spelarIds: number[],
   onOmgangChange: () => Promise<void>,
   onKampBekreft: () => Promise<void>,
   onResubscribe?: () => Promise<void>,
 ): RealtimeChannel {
-  let omgangDebounce: ReturnType<typeof setTimeout> | null = null
+  let roundDebounce: ReturnType<typeof setTimeout> | null = null
 
   return supabase
     .channel(`scoreboard-kamp-${kampId}`)
@@ -788,11 +788,11 @@ export function subscribeToScoreboardEndringar(
       (payload) => {
         const p = payload.new as Record<string, unknown>
         const o = payload.old as Record<string, unknown>
-        const endraId = p.kamp_spelar_id ?? o.kamp_spelar_id
-        if (!endraId || spelarIds.includes(endraId as number)) {
-          if (omgangDebounce) clearTimeout(omgangDebounce)
-          omgangDebounce = setTimeout(() => {
-            omgangDebounce = null
+        const changedId = p.kamp_spelar_id ?? o.kamp_spelar_id
+        if (!changedId || spelarIds.includes(changedId as number)) {
+          if (roundDebounce) clearTimeout(roundDebounce)
+          roundDebounce = setTimeout(() => {
+            roundDebounce = null
             void onOmgangChange()
           }, 50)
         }

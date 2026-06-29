@@ -29,14 +29,14 @@ export function printStartkort(
   startnrMap: Record<number, number>,
   stilling: PrintStandingsRow[],
 ): void {
-  const sortertRundar = [...rundeMap.keys()].sort((a, b) => a - b)
+  const sortedRounds = [...rundeMap.keys()].sort((a, b) => a - b)
 
-  const spelarar: PrintPlayerData[] = stilling
+  const players: PrintPlayerData[] = stilling
     .map(s => ({
       startnummer: s.startnummer ?? '',
       navn: s.navn ?? null,
       klubb: hentKlubbNamn(s.kasterid, alleKamper),
-      roundInfos: buildRoundInfos(s.kasterid, sortertRundar, rundeMap, startnrMap),
+      roundInfos: buildRoundInfos(s.kasterid, sortedRounds, rundeMap, startnrMap),
     }))
     .sort((a, b) => (Number(a.startnummer) || Infinity) - (Number(b.startnummer) || Infinity))
 
@@ -49,7 +49,7 @@ export function printStartkort(
   styleLink.href = CSS_URL
   printWindow.document.head.appendChild(styleLink)
 
-  spelarar.forEach(sp => {
+  players.forEach(sp => {
     const card = startcardTemplate(sp.startnummer, sp.navn, sp.klubb, stevne.navn, sp.roundInfos)
     printWindow.document.body.appendChild(card)
   })

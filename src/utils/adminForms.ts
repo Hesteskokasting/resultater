@@ -4,11 +4,11 @@ export function errMsg(e: unknown): string {
   return e && typeof e === 'object' && 'message' in e ? String((e as { message: unknown }).message) : 'Ukjend feil'
 }
 
-export function lagFormRadHtml(label: string, inputHtml: string): string {
+export function formRowHtml(label: string, inputHtml: string): string {
   return `<div class="mb-3"><label class="form-label fw-semibold">${escHtml(label)}</label>${inputHtml}</div>`
 }
 
-export function visLagreFeil(container: HTMLElement, melding: string): void {
+export function showSaveError(container: HTMLElement, melding: string): void {
   let el = container.querySelector<HTMLDivElement>('.admin-feil')
   if (!el) {
     el = document.createElement('div')
@@ -20,7 +20,7 @@ export function visLagreFeil(container: HTMLElement, melding: string): void {
   el.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
 }
 
-export function visSuksess(container: HTMLElement, melding: string): void {
+export function showSuccess(container: HTMLElement, melding: string): void {
   let el = container.querySelector<HTMLDivElement>('.admin-suksess')
   if (!el) {
     el = document.createElement('div')

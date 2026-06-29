@@ -1,12 +1,12 @@
-import { lagFormRadHtml, visLagreFeil, visSuksess, errMsg } from '@/utils/adminForms'
+import { formRowHtml, showSaveError, showSuccess, errMsg } from '@/utils/adminForms'
 import { erAdmin, erKlubbadmin } from '@/services/authService'
 import { escHtml } from '@/utils/escHtml'
 import { createErrorBanner } from '@/components/ErrorBanner'
 import { createLoadingState } from '@/components/LoadingState'
 import {
-  hentKlubbForAdmin,
-  oppdaterKlubb,
-  type KlubbAdminRow,
+  getClubForAdmin,
+  updateClub,
+  type ClubAdminRow,
 } from '@/services/klubbService'
 import type { Params } from '@/types'
 
@@ -19,7 +19,7 @@ export async function render(
 
   container.replaceChildren(createLoadingState())
 
-  const { data: klubb, error } = await hentKlubbForAdmin(id)
+  const { data: klubb, error } = await getClubForAdmin(id)
 
   if (error || !klubb) { container.replaceChildren(createErrorBanner('Klubb ikkje funne.')); return }
 
@@ -32,9 +32,9 @@ export async function render(
     <div class="container py-4 admin-skjema-sm">
       <h2 class="mb-4">Rediger klubb: ${escHtml(klubb.navn)}</h2>
       <form id="klubb-skjema">
-        ${lagFormRadHtml('Namn*', `<input type="text" class="form-control" name="navn" value="${escHtml(klubb.navn)}" required>`)}
-        ${lagFormRadHtml('Kortnavn', `<input type="text" class="form-control" name="kortnavn" value="${escHtml(klubb.kortnavn)}">`)}
-        ${lagFormRadHtml('Logo-URL', `<input type="url" class="form-control" name="logourl" value="${escHtml(klubb.logourl)}">`)}
+        ${formRowHtml('Namn*', `<input type="text" class="form-control" name="navn" value="${escHtml(klubb.navn)}" required>`)}
+        ${formRowHtml('Kortnavn', `<input type="text" class="form-control" name="kortnavn" value="${escHtml(klubb.kortnavn)}">`)}
+        ${formRowHtml('Logo-URL', `<input type="url" class="form-control" name="logourl" value="${escHtml(klubb.logourl)}">`)}
         <div class="mb-3 form-check">
           <input class="form-check-input" type="checkbox" name="eraktiv" id="eraktiv"${klubb.eraktiv ? ' checked' : ''}>
           <label class="form-check-label" for="eraktiv">Er aktiv</label>
@@ -46,14 +46,14 @@ export async function render(
   container.querySelector<HTMLFormElement>('#klubb-skjema')!.addEventListener('submit', async e => {
     e.preventDefault()
     const fd = new FormData(e.target as HTMLFormElement)
-    const payload: Omit<KlubbAdminRow, 'id'> = {
+    const payload: Omit<ClubAdminRow, 'id'> = {
       navn:     (fd.get('navn') as string).trim(),
       kortnavn: (fd.get('kortnavn') as string).trim(),
       logourl:  (fd.get('logourl') as string).trim() || null,
       eraktiv:  fd.get('eraktiv') === 'on',
     }
-    const { error: saveError } = await oppdaterKlubb(id, payload)
-    if (saveError) { visLagreFeil(container, errMsg(saveError)); return }
-    visSuksess(container, 'Klubben er lagra.')
+    const { error: saveError } = await updateClub(id, payload)
+    if (saveError) { showSaveError(container, errMsg(saveError)); return }
+    showSuccess(container, 'Klubben er lagra.')
   })
 }

@@ -1,8 +1,8 @@
 import type { AuthUser } from '@/types'
 import { getUser } from '@/services/authService'
-import { hentTerminlisteStevner, hentFiltervalg, hentPameldteForBruker } from '@/services/stevneService'
-import type { TerminlisteStevneRow } from '@/services/stevneService'
-import { formaterDatoLang as formaterDato, arOptions, lastNedExcel as lastNedExcelFil } from '@/utils/shared'
+import { getScheduleTournaments, getFilterOptions, getRegistrationsForThrower } from '@/services/stevneService'
+import type { ScheduleTournamentRow } from '@/services/stevneService'
+import { formatDateLong, yearOptions, downloadExcel } from '@/utils/shared'
 import { buildDropdownOptions } from '@/utils/buildDropdownOptions'
 import { createErrorBanner } from '@/components/ErrorBanner'
 import { createLoadingState } from '@/components/LoadingState'
@@ -10,7 +10,7 @@ import { escHtml } from '@/utils/escHtml'
 import { logError } from '@/utils/logError'
 import { bindPameldingSlots } from '@/components/PameldingKnapp'
 
-type StevneRow = TerminlisteStevneRow
+type StevneRow = ScheduleTournamentRow
 
 // ── Sortering ─────────────────────────────────────────────────────────────────
 
@@ -100,7 +100,7 @@ async function lastNedExcel(filtrert: StevneRow[]): Promise<void> {
     'NM': s.ernm ? 'Ja' : 'Nei',
     'InnbydelseUrl': s.innbydelseurl ?? '',
   }))
-  await lastNedExcelFil(rader, `terminliste-${filtre.ar}.xlsx`, 'Terminliste')
+  await downloadExcel(rader, `terminliste-${filtre.ar}.xlsx`, 'Terminliste')
 }
 
 // ── Tabell (desktop) ──────────────────────────────────────────────────────────
@@ -158,7 +158,7 @@ function byggVisning(filtrert: StevneRow[]): string {
 // ── Kort (mobil) ──────────────────────────────────────────────────────────────
 
 function kortHtml(s: StevneRow): string {
-  const dato = formaterDato(s.dato)
+  const dato = formatDateLong(s.dato)
   const sted = s.sted ? `<p class="tl-detalj">Sted: ${escHtml(s.sted)}</p>` : ''
   const organizer = s.klubb ? `<p class="tl-detalj">Arrangør: ${escHtml(s.klubb.navn ?? '')}</p>` : ''
   const type = s.stevnetype ? `<p class="tl-detalj">Type: ${escHtml(s.stevnetype.navn ?? '')}</p>` : ''
@@ -201,12 +201,12 @@ export async function render(container: HTMLElement): Promise<void> {
 
   try {
     const [{ data, error }, { data: filtervalg }, auth] = await Promise.all([
-      hentTerminlisteStevner(filtre.ar),
-      hentFiltervalg(),
+      getScheduleTournaments(filtre.ar),
+      getFilterOptions(),
       getUser(),
     ])
     _auth = auth
-    _pameldteMap = auth?.profil?.kasterid != null ? await hentPameldteForBruker(auth.profil.kasterid) : new Map()
+    _pameldteMap = auth?.profil?.kasterid != null ? await getRegistrationsForThrower(auth.profil.kasterid) : new Map()
 
     if (error) {
       logError('terminliste.render', error)
@@ -219,7 +219,7 @@ export async function render(container: HTMLElement): Promise<void> {
     // Same select set renders twice: desktop filter row ('') and mobile bottom sheet ('-mobil')
     function filterSelects(suffix: '' | '-mobil'): Record<'ar' | 'stevnetype' | 'kastemetode' | 'arrangor' | 'kategori', string> {
       return {
-        ar:          `<select class="tl-select" id="tl-ar${suffix}">${arOptions(filtre.ar, 1983, new Date().getFullYear() + 1)}</select>`,
+        ar:          `<select class="tl-select" id="tl-ar${suffix}">${yearOptions(filtre.ar, 1983, new Date().getFullYear() + 1)}</select>`,
         stevnetype:  `<select class="tl-select" id="tl-stevnetype${suffix}">${buildDropdownOptions(filtervalg.stevnetyper, filtre.stevnetypeId, 'Alle typer')}</select>`,
         kastemetode: `<select class="tl-select" id="tl-kastemetode${suffix}">${buildDropdownOptions(filtervalg.kastemetoder, filtre.kastemetodeId, 'Alle metoder')}</select>`,
         arrangor:    `<select class="tl-select" id="tl-arrangorklubb${suffix}">${buildDropdownOptions(filtervalg.klubber, filtre.klubbId, 'Alle arrangører')}</select>`,
@@ -298,7 +298,7 @@ export async function render(container: HTMLElement): Promise<void> {
 
     oppdaterListe()
 
-    if (auth?.profil && (auth.profil.rolle === 'admin' || auth.profil.rolle === 'klubbadmin')) {
+    if (auth?.profil && (auth.profil.role === 'admin' || auth.profil.role === 'klubbadmin')) {
       const bar = document.createElement('div')
       bar.className = 'mb-3 px-2 d-flex gap-2'
       bar.innerHTML = '<a href="#/stevne/ny" class="btn btn-sm btn-success">+ Nytt stevne</a>'
@@ -350,7 +350,7 @@ export async function render(container: HTMLElement): Promise<void> {
     async function reloadYear(logContext: string): Promise<boolean> {
       container.querySelector('.tl-tittel')!.textContent = `Terminliste ${filtre.ar}`
       container.querySelector('.tl-liste-container')!.replaceChildren(createLoadingState("Laster..."))
-      const { data: nyData, error: nyFeil } = await hentTerminlisteStevner(filtre.ar)
+      const { data: nyData, error: nyFeil } = await getScheduleTournaments(filtre.ar)
       if (nyFeil) {
         logError(logContext, nyFeil)
         container.querySelector<HTMLElement>('.tl-liste-container')!.replaceChildren(createErrorBanner('Feil ved henting.'))

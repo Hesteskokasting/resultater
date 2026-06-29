@@ -1,19 +1,19 @@
 import {
-  regnUtRingInfo,
-  byggRankingListe,
+  calcRingInfo,
+  buildRankingList,
   MIN_STEVNER,
-  type StevneInfo,
+  type EventInfo,
 } from '@/utils/norgesrankingLogikk'
-import type { RankingResultatRow } from '@/services/norgesrankingService'
+import type { RankingResultRow } from '@/services/norgesrankingService'
 
 // ── Factories ─────────────────────────────────────────────────────────────────
 
-function mkStevneInfo(innledMetode: string | null, avslMetode: string | null = null): StevneInfo {
+function mkEventInfo(innledMetode: string | null, avslMetode: string | null = null): EventInfo {
   return { navn: 'Test', dato: '2025-01-01', typeNamn: 'NR', innledMetode, avslMetode }
 }
 
-function mkRaw(xkast: number | null = null, kongelag: number | null = null): RankingResultatRow {
-  return { antall_ring_xkast: xkast, antall_ring_kongelag: kongelag } as RankingResultatRow
+function mkRaw(xkast: number | null = null, kongelag: number | null = null): RankingResultRow {
+  return { antall_ring_xkast: xkast, antall_ring_kongelag: kongelag } as RankingResultRow
 }
 
 let nextId = 1
@@ -23,7 +23,7 @@ function mkRes(
   stevneid: number,
   xkast: number | null = null,
   kongelag: number | null = null
-): RankingResultatRow {
+): RankingResultRow {
   return {
     id: nextId++,
     kasterid,
@@ -33,15 +33,15 @@ function mkRes(
     antall_ring_kongelag: kongelag,
     kaster: { id: kasterid, fornavn: `F${kasterid}`, etternavn: `E${kasterid}` },
     klubb: { id: 10, navn: 'Klubb A' },
-  } as RankingResultatRow
+  } as RankingResultRow
 }
 
-// ── regnUtRingInfo ────────────────────────────────────────────────────────────
+// ── calcRingInfo ────────────────────────────────────────────────────────────
 
-describe('regnUtRingInfo', () => {
+describe('calcRingInfo', () => {
   describe('Minimatch', () => {
     it('computes prosent as antall_ring_xkast / 60 * 100', () => {
-      const info = regnUtRingInfo(mkRaw(30), mkStevneInfo('Minimatch'))
+      const info = calcRingInfo(mkRaw(30), mkEventInfo('Minimatch'))
       expect(info).toHaveLength(1)
       expect(info[0]!.metodeNamn).toBe('Minimatch')
       expect(info[0]!.prosent).toBeCloseTo(50, 5)
@@ -51,7 +51,7 @@ describe('regnUtRingInfo', () => {
 
   describe('Halvmatch', () => {
     it('uses antall_ring_xkast directly as prosent', () => {
-      const info = regnUtRingInfo(mkRaw(75), mkStevneInfo('Halvmatch'))
+      const info = calcRingInfo(mkRaw(75), mkEventInfo('Halvmatch'))
       expect(info).toHaveLength(1)
       expect(info[0]!.metodeNamn).toBe('Halvmatch')
       expect(info[0]!.prosent).toBe(75)
@@ -60,7 +60,7 @@ describe('regnUtRingInfo', () => {
 
   describe('Heilmatch', () => {
     it('computes prosent as antall_ring_xkast / 200 * 100', () => {
-      const info = regnUtRingInfo(mkRaw(100), mkStevneInfo('Heilmatch'))
+      const info = calcRingInfo(mkRaw(100), mkEventInfo('Heilmatch'))
       expect(info).toHaveLength(1)
       expect(info[0]!.metodeNamn).toBe('Heilmatch')
       expect(info[0]!.prosent).toBeCloseTo(50, 5)
@@ -69,7 +69,7 @@ describe('regnUtRingInfo', () => {
 
   describe('Kongelag', () => {
     it('computes prosent as antall_ring_kongelag / 40 * 100', () => {
-      const info = regnUtRingInfo(mkRaw(null, 20), mkStevneInfo(null))
+      const info = calcRingInfo(mkRaw(null, 20), mkEventInfo(null))
       expect(info).toHaveLength(1)
       expect(info[0]!.metodeNamn).toBe('Kongelag')
       expect(info[0]!.prosent).toBeCloseTo(50, 5)
@@ -78,7 +78,7 @@ describe('regnUtRingInfo', () => {
 
     it('is added regardless of method name (Kongelag is field-based, not method-based)', () => {
       // xkast method is unknown so xkast produces nothing, but kongelag always appears
-      const info = regnUtRingInfo(mkRaw(null, 20), mkStevneInfo('UnknownMethod'))
+      const info = calcRingInfo(mkRaw(null, 20), mkEventInfo('UnknownMethod'))
       expect(info).toHaveLength(1)
       expect(info[0]!.metodeNamn).toBe('Kongelag')
     })
@@ -86,7 +86,7 @@ describe('regnUtRingInfo', () => {
 
   describe('multiple ring sources', () => {
     it('returns both an xkast entry and a Kongelag entry when both fields are set', () => {
-      const info = regnUtRingInfo(mkRaw(60, 40), mkStevneInfo('Minimatch'))
+      const info = calcRingInfo(mkRaw(60, 40), mkEventInfo('Minimatch'))
       expect(info).toHaveLength(2)
       expect(info.map(i => i.metodeNamn).sort()).toEqual(['Kongelag', 'Minimatch'])
     })
@@ -94,7 +94,7 @@ describe('regnUtRingInfo', () => {
 
   describe('method matching on avslMetode', () => {
     it('matches the method on avslMetode when innledMetode does not match', () => {
-      const info = regnUtRingInfo(mkRaw(60), mkStevneInfo('OtherMethod', 'Halvmatch'))
+      const info = calcRingInfo(mkRaw(60), mkEventInfo('OtherMethod', 'Halvmatch'))
       expect(info).toHaveLength(1)
       expect(info[0]!.metodeNamn).toBe('Halvmatch')
     })
@@ -102,26 +102,26 @@ describe('regnUtRingInfo', () => {
 
   describe('no data', () => {
     it('returns empty array when both fields are null', () => {
-      expect(regnUtRingInfo(mkRaw(null, null), mkStevneInfo('Halvmatch'))).toHaveLength(0)
+      expect(calcRingInfo(mkRaw(null, null), mkEventInfo('Halvmatch'))).toHaveLength(0)
     })
 
     it('produces no xkast entry when antall_ring_xkast is null even if method matches', () => {
-      const info = regnUtRingInfo(mkRaw(null, null), mkStevneInfo('Minimatch'))
+      const info = calcRingInfo(mkRaw(null, null), mkEventInfo('Minimatch'))
       expect(info.find(i => i.metodeNamn === 'Minimatch')).toBeUndefined()
     })
 
     it('produces no xkast entry when stevneInfo is undefined', () => {
       // Method cannot be determined → xkast produces nothing; kongelag still appears
-      const withKongelag = regnUtRingInfo(mkRaw(60, 20), undefined)
+      const withKongelag = calcRingInfo(mkRaw(60, 20), undefined)
       expect(withKongelag.find(i => i.metodeNamn !== 'Kongelag')).toBeUndefined()
       expect(withKongelag).toHaveLength(1)
     })
   })
 })
 
-// ── byggRankingListe ──────────────────────────────────────────────────────────
+// ── buildRankingList ──────────────────────────────────────────────────────────
 
-describe('byggRankingListe', () => {
+describe('buildRankingList', () => {
   describe('top-5 selection', () => {
     it('averages only the best 5 results when a player has more than 5', () => {
       // 6 Halvmatch results: prosent = antall_ring_xkast directly
@@ -130,9 +130,9 @@ describe('byggRankingListe', () => {
       const stevneid = 1
       const resultater = [100, 90, 80, 70, 60, 50].map((rings, i) => mkRes(1, stevneid + i, rings))
       const stevnerMap = new Map(
-        [100, 90, 80, 70, 60, 50].map((_, i) => [stevneid + i, mkStevneInfo('Halvmatch')])
+        [100, 90, 80, 70, 60, 50].map((_, i) => [stevneid + i, mkEventInfo('Halvmatch')])
       )
-      const liste = byggRankingListe(resultater, stevnerMap)
+      const liste = buildRankingList(resultater, stevnerMap)
       expect(liste[0]!.snittProsent).toBe(80)
     })
   })
@@ -141,18 +141,18 @@ describe('byggRankingListe', () => {
     it(`marks a player as invalid when they have fewer than ${MIN_STEVNER} ring entries`, () => {
       const resultater = Array.from({ length: MIN_STEVNER - 1 }, (_, i) => mkRes(1, i + 1, 80))
       const stevnerMap = new Map(
-        Array.from({ length: MIN_STEVNER - 1 }, (_, i) => [i + 1, mkStevneInfo('Halvmatch')])
+        Array.from({ length: MIN_STEVNER - 1 }, (_, i) => [i + 1, mkEventInfo('Halvmatch')])
       )
-      const liste = byggRankingListe(resultater, stevnerMap)
+      const liste = buildRankingList(resultater, stevnerMap)
       expect(liste[0]!.erGyldig).toBe(false)
     })
 
     it(`marks a player as valid when they have exactly ${MIN_STEVNER} ring entries`, () => {
       const resultater = Array.from({ length: MIN_STEVNER }, (_, i) => mkRes(1, i + 1, 80))
       const stevnerMap = new Map(
-        Array.from({ length: MIN_STEVNER }, (_, i) => [i + 1, mkStevneInfo('Halvmatch')])
+        Array.from({ length: MIN_STEVNER }, (_, i) => [i + 1, mkEventInfo('Halvmatch')])
       )
-      const liste = byggRankingListe(resultater, stevnerMap)
+      const liste = buildRankingList(resultater, stevnerMap)
       expect(liste[0]!.erGyldig).toBe(true)
     })
   })
@@ -161,11 +161,11 @@ describe('byggRankingListe', () => {
     it('returns valid players sorted by snittProsent descending', () => {
       // Player 1: 5 results at 60 → snitt 60. Player 2: 5 results at 80 → snitt 80.
       const stevnerMap = new Map(
-        Array.from({ length: 10 }, (_, i) => [i + 1, mkStevneInfo('Halvmatch')])
+        Array.from({ length: 10 }, (_, i) => [i + 1, mkEventInfo('Halvmatch')])
       )
       const p1 = Array.from({ length: 5 }, (_, i) => mkRes(1, i + 1, 60))
       const p2 = Array.from({ length: 5 }, (_, i) => mkRes(2, i + 6, 80))
-      const liste = byggRankingListe([...p1, ...p2], stevnerMap)
+      const liste = buildRankingList([...p1, ...p2], stevnerMap)
       expect(liste[0]!.snittProsent).toBeGreaterThan(liste[1]!.snittProsent)
     })
   })
@@ -175,12 +175,12 @@ describe('byggRankingListe', () => {
       // 3 players, each with 5 results at 70 → all tied at 1st
       // 4th player with higher score to push others to plassering 1
       const stevnerMap = new Map(
-        Array.from({ length: 15 }, (_, i) => [i + 1, mkStevneInfo('Halvmatch')])
+        Array.from({ length: 15 }, (_, i) => [i + 1, mkEventInfo('Halvmatch')])
       )
       const p1 = Array.from({ length: 5 }, (_, i) => mkRes(1, i + 1, 70))
       const p2 = Array.from({ length: 5 }, (_, i) => mkRes(2, i + 6, 70))
       const p3 = Array.from({ length: 5 }, (_, i) => mkRes(3, i + 11, 50))
-      const liste = byggRankingListe([...p1, ...p2, ...p3], stevnerMap)
+      const liste = buildRankingList([...p1, ...p2, ...p3], stevnerMap)
       const valid = liste.filter(r => r.erGyldig)
       expect(valid[0]!.plassering).toBe(1)
       expect(valid[1]!.plassering).toBe(1)
@@ -193,11 +193,11 @@ describe('byggRankingListe', () => {
       // Player 1: valid (5 results). Player 2: invalid (3 results, higher snitt).
       // Even though player 2 has higher snitt, player 1 comes first.
       const stevnerMap = new Map(
-        Array.from({ length: 8 }, (_, i) => [i + 1, mkStevneInfo('Halvmatch')])
+        Array.from({ length: 8 }, (_, i) => [i + 1, mkEventInfo('Halvmatch')])
       )
       const validPlayer = Array.from({ length: 5 }, (_, i) => mkRes(1, i + 1, 40))
       const invalidPlayer = Array.from({ length: 3 }, (_, i) => mkRes(2, i + 6, 90))
-      const liste = byggRankingListe([...validPlayer, ...invalidPlayer], stevnerMap)
+      const liste = buildRankingList([...validPlayer, ...invalidPlayer], stevnerMap)
       expect(liste[0]!.erGyldig).toBe(true)
       expect(liste[1]!.erGyldig).toBe(false)
     })

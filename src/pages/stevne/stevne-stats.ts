@@ -1,11 +1,11 @@
-import { kasterNavn } from '@/utils/kaster'
+import { throwerName } from '@/utils/kaster'
 import { escHtml } from '@/utils/escHtml'
 import { logError } from '@/utils/logError'
 import { createLoadingState } from '@/components/LoadingState'
 import { createErrorBanner } from '@/components/ErrorBanner'
 import { createEmptyState } from '@/components/EmptyState'
-import { hentKamperForStats, hentPosisjonForStevne } from '@/services/stevneStatsService'
-import type { StatsKampRow } from '@/services/stevneStatsService'
+import { getMatchesForStats, getPositionForTournament } from '@/services/stevneStatsService'
+import type { StatsMatchRow } from '@/services/stevneStatsService'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -45,7 +45,7 @@ export function sumOpponentScore(
     .reduce((sum, o) => sum + o.score_poeng, 0)
 }
 
-function aggregateStats(kamper: StatsKampRow[], posisjonMap: Map<number, number>): PlayerStats[] {
+function aggregateStats(kamper: StatsMatchRow[], posisjonMap: Map<number, number>): PlayerStats[] {
   const map = new Map<number, PlayerStats>()
 
   for (const kamp of kamper) {
@@ -58,7 +58,7 @@ function aggregateStats(kamper: StatsKampRow[], posisjonMap: Map<number, number>
       if (!map.has(sp.kasterid)) {
         map.set(sp.kasterid, {
           kasterid: sp.kasterid,
-          navn: kasterNavn(sp.kaster),
+          navn: throwerName(sp.kaster),
           matchCount: 0,
           shoesThrown: 0,
           ringers: 0,
@@ -199,8 +199,8 @@ export async function render(
 
   try {
     const [{ data, error }, posisjonMap] = await Promise.all([
-      hentKamperForStats(id),
-      hentPosisjonForStevne(id),
+      getMatchesForStats(id),
+      getPositionForTournament(id),
     ])
 
     if (error) {

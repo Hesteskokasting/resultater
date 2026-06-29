@@ -1,4 +1,4 @@
-import { genererNesteSwissRunde } from '@/services/kampGenereringInnledendeService'
+import { generateNextSwissRound } from '@/services/kampGenereringInnledendeService'
 import { showToast } from '@/components/Toast'
 import { logError } from '@/utils/logError'
 import { createInnledendeRenderer, type InnledendeVariant } from './innledendeBase'
@@ -25,7 +25,7 @@ const variant: InnledendeVariant = {
       if (!erAlleKamperBekreftet) { showToast('Nokre kampar er ikkje bekrefta!', 'error'); return }
       if (nesteRundeBtn) { nesteRundeBtn.disabled = true; nesteRundeBtn.textContent = 'Genererer…' }
       try {
-        await genererNesteSwissRunde(stevneid)
+        await generateNextSwissRound(stevneid)
         await reload()
       } catch (e) {
         logError('nordhordland:nesteRunde', e)

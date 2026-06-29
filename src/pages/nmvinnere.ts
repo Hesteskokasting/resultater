@@ -1,16 +1,16 @@
-import { lagKasterSlug, kasterNavn } from '@/utils/kaster'
+import { buildThrowerSlug, throwerName } from '@/utils/kaster'
 import { createErrorBanner } from '@/components/ErrorBanner'
 import { createLoadingState } from '@/components/LoadingState'
 import { createEmptyState } from '@/components/EmptyState'
 import { createTable } from '@/components/Table'
 import { escHtml } from '@/utils/escHtml'
 import { logError } from '@/utils/logError'
-import { hentNmData } from '@/services/nmvinnereService'
-import type { NmKategoriKonfig, NmKjonn, NmResultatRow } from '@/services/nmvinnereService'
+import { getNMData } from '@/services/nmvinnereService'
+import type { NMCategoryConfig, NMGender, NMResultRow } from '@/services/nmvinnereService'
 
 // ── Konstanter ────────────────────────────────────────────────────────────────
 
-const KATEGORIAR: NmKategoriKonfig[] = [
+const KATEGORIAR: NMCategoryConfig[] = [
   { id: 1,  navn: 'Singel',       kjonnFilter: 'historisk', fraaAr: 1985, aapentFraAr: 2013, merknad: '(åpen klasse fra 2013)' },
   { id: 2,  navn: 'Par',          kjonnFilter: 'historisk', fraaAr: 1987, aapentFraAr: 2009, merknad: '(åpen klasse fra 2009)' },
   { id: 3,  navn: 'Mix',          kjonnFilter: false,       fraaAr: 1986, merknad: '(NM Mix 2011 ble ikke arrangert)' },
@@ -22,18 +22,18 @@ const KATEGORIAR: NmKategoriKonfig[] = [
 
 // ── Typar ─────────────────────────────────────────────────────────────────────
 
-type NmKaster = NonNullable<NmResultatRow['kaster']>
+type NmKaster = NonNullable<NMResultRow['kaster']>
 
 interface VinnareEntry {
   ar: number | null
   stevneId: number | undefined
   kastere: NmKaster[]
-  klubb: NmResultatRow['klubb']
+  klubb: NMResultRow['klubb']
 }
 
 // ── Tilstand ──────────────────────────────────────────────────────────────────
 
-const filtre: { kategoriId: number; kjonn: NmKjonn } = { kategoriId: 1, kjonn: 'open' }
+const filtre: { kategoriId: number; kjonn: NMGender } = { kategoriId: 1, kjonn: 'open' }
 
 // ── Hjelpefunksjonar ──────────────────────────────────────────────────────────
 
@@ -41,11 +41,11 @@ function hentAr(datoStr: string | null | undefined): number | null {
   return datoStr ? parseInt(datoStr.substring(0, 4)) : null
 }
 
-function defaultKjonn(kjonnFilter: NmKategoriKonfig['kjonnFilter']): NmKjonn {
+function defaultKjonn(kjonnFilter: NMCategoryConfig['kjonnFilter']): NMGender {
   return kjonnFilter === 'alltid' ? 'alle' : 'open'
 }
 
-function subtittelTekst(kategorinavn: string, kjonn: NmKjonn): string {
+function subtittelTekst(kategorinavn: string, kjonn: NMGender): string {
   if (kjonn === 'herrer') return `${kategorinavn} Herrer`
   if (kjonn === 'damer')  return `${kategorinavn} Damer`
   return kategorinavn
@@ -53,7 +53,7 @@ function subtittelTekst(kategorinavn: string, kjonn: NmKjonn): string {
 
 // ── Filtrering og gruppering ──────────────────────────────────────────────────
 
-function byggListe(alleData: NmResultatRow[]): VinnareEntry[] {
+function byggListe(alleData: NMResultRow[]): VinnareEntry[] {
   const gruppeMap = new Map<string, VinnareEntry>()
   for (const r of alleData) {
     const key = `${r.stevne?.id}-${r.klasseid}`
@@ -77,9 +77,9 @@ function createNmTabell(liste: VinnareEntry[]): HTMLElement {
 
   function kasterLenkje(k: NmKaster): HTMLAnchorElement {
     const a = document.createElement('a')
-    a.href = `#/kastere/${lagKasterSlug(k)}`
+    a.href = `#/kastere/${buildThrowerSlug(k)}`
     a.className = 'tl-lenkje'
-    a.textContent = kasterNavn(k)
+    a.textContent = throwerName(k)
     return a
   }
 
@@ -122,7 +122,7 @@ function createNmTabell(liste: VinnareEntry[]): HTMLElement {
   return wrapper
 }
 
-function sideSkelettHtml(kategori: NmKategoriKonfig, maxAr: number): string {
+function sideSkelettHtml(kategori: NMCategoryConfig, maxAr: number): string {
   const tittel = `Norgesmestere ${kategori.fraaAr} - ${maxAr}`
 
   const katOptions = KATEGORIAR.map(k =>
@@ -167,7 +167,7 @@ async function renderKategori(container: HTMLElement): Promise<void> {
   const kategori = KATEGORIAR.find(k => k.id === filtre.kategoriId)!
 
   try {
-    const { data, error } = await hentNmData(kategori, filtre.kjonn)
+    const { data, error } = await getNMData(kategori, filtre.kjonn)
     if (error) {
       logError('nmvinnere.renderKategori', error)
       container.replaceChildren(createErrorBanner('Kunne ikkje laste NM-vinnere.'))
@@ -188,7 +188,7 @@ async function renderKategori(container: HTMLElement): Promise<void> {
 
     const kjonnEl = container.querySelector<HTMLSelectElement>('#nm-kjonn')
     kjonnEl?.addEventListener('change', async () => {
-      filtre.kjonn = kjonnEl.value as NmKjonn
+      filtre.kjonn = kjonnEl.value as NMGender
       await renderKategori(container)
     })
   } catch (err) {

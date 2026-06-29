@@ -15,11 +15,11 @@ const _statsQuery = supabase.from('kamp').select(`
   )
 `)
 
-export type StatsKampRow = QueryData<typeof _statsQuery>[number]
+export type StatsMatchRow = QueryData<typeof _statsQuery>[number]
 
-export async function hentKamperForStats(
+export async function getMatchesForStats(
   stevneId: number,
-): Promise<{ data: StatsKampRow[]; error: unknown }> {
+): Promise<{ data: StatsMatchRow[]; error: unknown }> {
   const { data, error } = await supabase
     .from('kamp')
     .select(`
@@ -37,7 +37,7 @@ export async function hentKamperForStats(
     .eq('stevneid', stevneId)
     .eq('er_bekreftet', true)
     .eq('er_walkover', false)
-  if (error) logError('hentKamperForStats', error)
+  if (error) logError('getMatchesForStats', error)
   return { data: data ?? [], error }
 }
 
@@ -46,12 +46,12 @@ export async function hentKamperForStats(
  * Used to compare each player's score against the same-posisjon opponent:
  * in Par/Mix posisjon 1 plays posisjon 1, posisjon 2 plays posisjon 2.
  */
-export async function hentPosisjonForStevne(stevneId: number): Promise<Map<number, number>> {
+export async function getPositionForTournament(stevneId: number): Promise<Map<number, number>> {
   const { data, error } = await supabase
     .from('resultat')
     .select('kasterid, posisjon')
     .eq('stevneid', stevneId)
-  if (error) logError('hentPosisjonForStevne', error)
+  if (error) logError('getPositionForTournament', error)
   const map = new Map<number, number>()
   for (const r of data ?? []) {
     if (r.kasterid != null && r.posisjon != null) map.set(r.kasterid, r.posisjon)

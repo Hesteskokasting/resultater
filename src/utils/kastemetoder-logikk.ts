@@ -1,26 +1,26 @@
 // Cup avsluttende kastemetode — ren logikk (ingen DB-kall)
 
-import type { RundeOppsett, CupRunde, CupParing } from '@/types'
+import type { RoundSetup, CupRound, CupPairing } from '@/types'
 
-interface Spelar {
+interface Player {
   kasterid: number | string
   plassering: number
 }
 
-interface Runde1Param {
-  runde1?: RundeOppsett | null
+interface Round1Param {
+  runde1?: RoundSetup | null
   walkovers1?: number | null
 }
 
-interface ParingParam {
+interface PairingParam {
   medSeeding?: boolean
   isRunde1?: boolean
   walkoverTall?: number | null
-  runde1Oppsett?: RundeOppsett | null
+  runde1Oppsett?: RoundSetup | null
   shuffleFn?: <T>(arr: T[]) => T[]
 }
 
-// --- Interne hjelpar ---
+// --- Internal helpers ---
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr]
@@ -31,21 +31,21 @@ function shuffle<T>(arr: T[]): T[] {
   return a
 }
 
-// Kan m spelarar nå nøyaktig 2 finalistar med reine rundar (berre 3-spelar ELLER berre 2-spelar)?
-// Kjelde: cup-logikk_referanse.js canReachTwo
-function kanNa2(n: number): boolean {
+// Can m players reach exactly 2 finalists with clean rounds (only 3-player OR only 2-player)?
+// Source: cup-logikk_referanse.js canReachTwo
+function canReachTwo(n: number): boolean {
   if (n === 2 || n === 4) return true
   if (n < 2) return false
-  if (n % 3 === 0) return kanNa2(Math.floor(n / 3) * 2)
-  if (n % 2 === 0) return kanNa2(n / 2)
+  if (n % 3 === 0) return canReachTwo(Math.floor(n / 3) * 2)
+  if (n % 2 === 0) return canReachTwo(n / 2)
   return false
 }
 
-// Finn beste splitting av n spelarar: fortrekk reine 3-spelar rundar, så 2-spelar
+// Find best split of n players: prefer pure 3-player rounds, then 2-player
 function bestSplit(n: number): { c3: number; c2: number } {
   if (n % 3 === 0) return { c3: n / 3, c2: 0 }
   if (n % 2 === 0) return { c3: 0, c2: n / 2 }
-  return { c3: 0, c2: 0 } // skal ikkje skje for gyldige gruppestr.
+  return { c3: 0, c2: 0 } // should not happen for valid group sizes
 }
 
 // --- Eksporterte funksjonar ---
@@ -54,115 +54,101 @@ function bestSplit(n: number): { c3: number; c2: number } {
 // - Pure 3-spelar: w = n%3, n%3+3, … (maks 2 gyldige, w ≤ floor(n/2))
 // - Pure 2-spelar: w = n%2, n%2+2, … (maks 2 gyldige, w ≤ floor(n/2))
 // Returnerer [{walkovers, c3, c2}], sortert aukande walkovers, c3 synkande
-export function gyldigeRunde1Oppsett(n: number): RundeOppsett[] {
+export function validRound1Setups(n: number): RoundSetup[] {
   if (n < 2) return []
-  const oppsett: RundeOppsett[] = []
-  const halvN = Math.floor(n / 2)
+  const setups: RoundSetup[] = []
+  const halfN = Math.floor(n / 2)
 
-  // Pure 3-spelar (c2 = 0)
-  for (let w = n % 3; w <= halvN && w <= 3 && oppsett.filter(o => o.c2 === 0).length < 2; w += 3) {
+  // Pure 3-player (c2 = 0)
+  for (let w = n % 3; w <= halfN && w <= 3 && setups.filter(o => o.c2 === 0).length < 2; w += 3) {
     const c3 = (n - w) / 3
     if (c3 < 1) break
     const advance = w + 2 * c3
-    if (kanNa2(advance)) oppsett.push({ walkovers: w, c3, c2: 0 })
+    if (canReachTwo(advance)) setups.push({ walkovers: w, c3, c2: 0 })
   }
 
-  // Pure 2-spelar (c3 = 0)
-  for (let w = n % 2; w <= halvN && w <= 3 && oppsett.filter(o => o.c3 === 0).length < 2; w += 2) {
+  // Pure 2-player (c3 = 0)
+  for (let w = n % 2; w <= halfN && w <= 3 && setups.filter(o => o.c3 === 0).length < 2; w += 2) {
     const c2 = (n - w) / 2
     if (c2 < 1) break
     const advance = w + c2
-    const erDuplikat = oppsett.some(o => o.walkovers === w && o.c3 === 0 && o.c2 === c2)
-    if (!erDuplikat && kanNa2(advance)) oppsett.push({ walkovers: w, c3: 0, c2 })
+    const isDuplicate = setups.some(o => o.walkovers === w && o.c3 === 0 && o.c2 === c2)
+    if (!isDuplicate && canReachTwo(advance)) setups.push({ walkovers: w, c3: 0, c2 })
   }
 
-  // Sorter: aukande walkovers, deretter c3 synkande (3-spelar fremst ved likt walkover-tal)
-  oppsett.sort((a, b) => a.walkovers - b.walkovers || b.c3 - a.c3)
-  return oppsett
+  // Sort: ascending walkovers, then c3 descending (3-player first at same walkover count)
+  setups.sort((a, b) => a.walkovers - b.walkovers || b.c3 - a.c3)
+  return setups
 }
 
-// Er n ein gyldig gruppestr. for Cup? (inkl. 2-spelar-baner i runde 1)
-function erGyldigGruppeStorrelse(n: number): boolean {
-  if (n === 2) return true // finale-match direkte — inga runde 1 nødvendig
-  return gyldigeRunde1Oppsett(n).length > 0
+function isValidGroupSize(n: number): boolean {
+  if (n === 2) return true // direct final match — no round 1 needed
+  return validRound1Setups(n).length > 0
 }
 
-// Returnerer alle gyldige {nA, nB} split for n spelarar
-// nA: 50–80 % av n, nB = n - nA, begge gyldige gruppestr.
-export function beregnGyldigeGruppeStorrelsar(n: number): { nA: number; nB: number }[] {
+export function calcValidGroupSizes(n: number): { nA: number; nB: number }[] {
   const minA = Math.ceil(n * 0.5)
   const maxA = Math.round(n * 0.8)
   const splits: { nA: number; nB: number }[] = []
   for (let nA = maxA; nA >= minA; nA--) {
     const nB = n - nA
-    if (nB >= 2 && erGyldigGruppeStorrelse(nA) && erGyldigGruppeStorrelse(nB)) {
+    if (nB >= 2 && isValidGroupSize(nA) && isValidGroupSize(nB)) {
       splits.push({ nA, nB })
     }
   }
   return splits
 }
 
-// Berekn cup-struktur (for preview av sluttspillstruktur)
-// Returnerer [{runde, spelarar, baner, treSpelarar, walkovers, vidare}]
-// runde1: overstyrer runde 1-oppsett {walkovers, c3, c2} (standard: første gyldige frå gyldigeRunde1Oppsett)
-// walkovers1: bakoverkompatibel — vert konvertert til runde1 internt
-export function beregnCupStruktur(n: number, { runde1 = null, walkovers1 = null }: Runde1Param = {}): CupRunde[] {
-  const rundar: CupRunde[] = []
-  let gjenstaar = n
-  let rundeNr = 1
-  let erRunde1 = true
+export function calcCupStructure(n: number, { runde1 = null, walkovers1 = null }: Round1Param = {}): CupRound[] {
+  const rounds: CupRound[] = []
+  let remaining = n
+  let roundNr = 1
+  let isRound1 = true
 
-  while (gjenstaar > 2) {
+  while (remaining > 2) {
     let c3: number, c2: number, walkovers: number
-    if (erRunde1) {
-      let r1: RundeOppsett | null = runde1
+    if (isRound1) {
+      let r1: RoundSetup | null = runde1
       if (!r1 && walkovers1 !== null) {
-        // Bakoverkompatibilitet: walkovers1 styrer berre walkover-tal med pure 3-spelar
-        r1 = { walkovers: walkovers1, c3: Math.floor((gjenstaar - walkovers1) / 3), c2: 0 }
+        r1 = { walkovers: walkovers1, c3: Math.floor((remaining - walkovers1) / 3), c2: 0 }
       }
       if (!r1) {
-        r1 = gyldigeRunde1Oppsett(gjenstaar)[0] ?? { walkovers: gjenstaar % 3, c3: Math.floor(gjenstaar / 3), c2: 0 }
+        r1 = validRound1Setups(remaining)[0] ?? { walkovers: remaining % 3, c3: Math.floor(remaining / 3), c2: 0 }
       }
       walkovers = r1.walkovers
       c3 = r1.c3
       c2 = r1.c2
-      erRunde1 = false
+      isRound1 = false
     } else {
-      const s = bestSplit(gjenstaar)
+      const s = bestSplit(remaining)
       c3 = s.c3; c2 = s.c2; walkovers = 0
     }
-    const vidare = c3 * 2 + c2 + walkovers
-    rundar.push({ runde: rundeNr, spelarar: gjenstaar, baner: c3 + c2, treSpelarar: c3 > 0, walkovers, vidare })
-    gjenstaar = vidare
-    rundeNr++
+    const advancing = c3 * 2 + c2 + walkovers
+    rounds.push({ runde: roundNr, players: remaining, lanes: c3 + c2, threePlayers: c3 > 0, walkovers, advancing })
+    remaining = advancing
+    roundNr++
   }
-  return rundar
+  return rounds
 }
 
-// Generer paringar for runde 1 (walkover tillate) eller seinare rundar (ingen walkover)
-// spelarar: [{kasterid, plassering}] sortert etter plassering (beste fyrst)
-// medSeeding: fordel spelarar i seed-puljar
-// isRunde1: walkover tillate for topp-rangerte spelarar
-// runde1Oppsett: {walkovers, c3, c2} — overstyrer runde 1-oppsett fullt ut
-// walkoverTall: bakoverkompatibel — overstyrer berre walkover-tal med pure 3-spelar
-export function beregnCupRundeParingar(spelarar: Spelar[], { medSeeding = true, isRunde1 = false, walkoverTall = null, runde1Oppsett = null, shuffleFn }: ParingParam = {}): CupParing[] {
+export function calcCupRoundPairings(players: Player[], { medSeeding = true, isRunde1 = false, walkoverTall = null, runde1Oppsett = null, shuffleFn }: PairingParam = {}): CupPairing[] {
   const doShuffle = shuffleFn ?? shuffle
-  const paringar: CupParing[] = []
-  let aktive = [...spelarar]
+  const pairings: CupPairing[] = []
+  let active = [...players]
 
-  // Walkover: berre i runde 1
+  // Walkover: only in round 1
   if (isRunde1) {
-    const wCount = runde1Oppsett?.walkovers ?? walkoverTall ?? aktive.length % 3
+    const wCount = runde1Oppsett?.walkovers ?? walkoverTall ?? active.length % 3
     if (wCount > 0) {
-      const walkoverSpel = aktive.slice(0, wCount) // beste rangerte
-      aktive = aktive.slice(wCount)
-      for (const sp of walkoverSpel) {
-        paringar.push({ spelarar: [sp.kasterid], erWalkover: true, erTreSpelarar: false })
+      const walkoverPlayers = active.slice(0, wCount) // top-ranked
+      active = active.slice(wCount)
+      for (const sp of walkoverPlayers) {
+        pairings.push({ players: [sp.kasterid], isWalkover: true, isThreePlayers: false })
       }
     }
   }
 
-  const n = aktive.length
+  const n = active.length
   let c3: number, c2: number
   if (runde1Oppsett && isRunde1) {
     c3 = runde1Oppsett.c3
@@ -174,46 +160,46 @@ export function beregnCupRundeParingar(spelarar: Spelar[], { medSeeding = true, 
     const s = bestSplit(n)
     c3 = s.c3; c2 = s.c2
   }
-  const totalBaner = c3 + c2
+  const totalLanes = c3 + c2
 
-  if (medSeeding && totalBaner > 0) {
-    // Pulje 1 (beste totalBaner): 1 spelar til kvar bane
-    // Pulje 2 (neste totalBaner): 1 spelar til kvar bane
-    // Pulje 3 (resterande c3): 1 spelar til kvar 3-spelar bane
-    const p1 = doShuffle(aktive.slice(0, totalBaner))
-    const p2 = doShuffle(aktive.slice(totalBaner, 2 * totalBaner))
-    const p3 = doShuffle(aktive.slice(2 * totalBaner)) // lengd = c3
+  if (medSeeding && totalLanes > 0) {
+    // Pool 1 (top totalLanes): 1 player per lane
+    // Pool 2 (next totalLanes): 1 player per lane
+    // Pool 3 (remaining c3): 1 player per 3-player lane
+    const p1 = doShuffle(active.slice(0, totalLanes))
+    const p2 = doShuffle(active.slice(totalLanes, 2 * totalLanes))
+    const p3 = doShuffle(active.slice(2 * totalLanes)) // length = c3
     let p3idx = 0
-    for (let bane = 0; bane < totalBaner; bane++) {
-      const erTre = bane < c3
-      const baneSpelarar = [p1[bane], p2[bane]].filter((s): s is Spelar => s != null)
-      const tredje = erTre ? p3[p3idx] : undefined
-      if (tredje) { baneSpelarar.push(tredje); p3idx++ }
-      paringar.push({
-        spelarar: baneSpelarar.map(s => s.kasterid),
-        erWalkover: false,
-        erTreSpelarar: erTre,
+    for (let lane = 0; lane < totalLanes; lane++) {
+      const isThree = lane < c3
+      const lanePlayers = [p1[lane], p2[lane]].filter((s): s is Player => s != null)
+      const third = isThree ? p3[p3idx] : undefined
+      if (third) { lanePlayers.push(third); p3idx++ }
+      pairings.push({
+        players: lanePlayers.map(s => s.kasterid),
+        isWalkover: false,
+        isThreePlayers: isThree,
       })
     }
   } else {
-    // Ingen seeding: tilfeldig
-    const shuffled = doShuffle(aktive)
+    // No seeding: random
+    const shuffled = doShuffle(active)
     let idx = 0
     for (let i = 0; i < c3; i++) {
-      paringar.push({
-        spelarar: shuffled.slice(idx, idx + 3).map(s => s.kasterid),
-        erWalkover: false, erTreSpelarar: true,
+      pairings.push({
+        players: shuffled.slice(idx, idx + 3).map(s => s.kasterid),
+        isWalkover: false, isThreePlayers: true,
       })
       idx += 3
     }
     for (let i = 0; i < c2; i++) {
-      paringar.push({
-        spelarar: shuffled.slice(idx, idx + 2).map(s => s.kasterid),
-        erWalkover: false, erTreSpelarar: false,
+      pairings.push({
+        players: shuffled.slice(idx, idx + 2).map(s => s.kasterid),
+        isWalkover: false, isThreePlayers: false,
       })
       idx += 2
     }
   }
 
-  return paringar
+  return pairings
 }

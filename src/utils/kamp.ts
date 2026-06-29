@@ -1,18 +1,18 @@
-export interface SpelarScore {
+export interface PlayerScore {
   score_poeng?: number | null
   omgangar?: { score?: number | null }[] | null
 }
 
-export interface SpelarRinger {
+export interface PlayerRings {
   antall_ringer?: number | null
   omgangar?: { antall_ringer?: number | null }[] | null
 }
 
-export interface SpelarMedKasterid {
+export interface PlayerWithThrowerId {
   kasterid: number
 }
 
-export function beregnKampPoeng(s1: number, s2: number): [number, number] {
+export function calcMatchPoints(s1: number, s2: number): [number, number] {
   if (s1 === s2) return [1.5, 1.5]
   if (s1 > s2) return [2, s2 >= 11 ? 1 : 0]
   return [s1 >= 11 ? 1 : 0, 2]
@@ -31,7 +31,7 @@ export interface MatchSide<T> {
  * players of a pair in Par/Mix). Sides are ordered by startnummer. Most
  * matches have two sides; 3-unit avsluttende matches have three.
  */
-export function getAllMatchSides<T extends SpelarMedKasterid>(
+export function getAllMatchSides<T extends PlayerWithThrowerId>(
   spelarar: T[] | null | undefined,
   startnrMap: Record<number, number>,
   posisjonMap: Record<number, number> = {},
@@ -57,7 +57,7 @@ export function getAllMatchSides<T extends SpelarMedKasterid>(
 }
 
 /** Two-sided convenience wrapper around getAllMatchSides. */
-export function getMatchSides<T extends SpelarMedKasterid>(
+export function getMatchSides<T extends PlayerWithThrowerId>(
   spelarar: T[] | null | undefined,
   startnrMap: Record<number, number>,
   posisjonMap: Record<number, number> = {},
@@ -76,7 +76,7 @@ export function getOmgangThrowerId(sideSpelarIds: number[], omgang: number): num
   return sideSpelarIds[(omgang - 1) % sideSpelarIds.length] ?? null
 }
 
-export interface PairableStillingRad {
+export interface PairableStandingRow {
   kasterid: number
   navn?: string | null
   startnummer?: number | null
@@ -89,7 +89,7 @@ export interface PairableStillingRad {
  * summed (each member carries only the omgangar they threw themselves). Rows
  * with a unique or missing startnummer pass through unchanged.
  */
-export function groupStandingsByPair<T extends PairableStillingRad>(
+export function groupStandingsByPair<T extends PairableStandingRow>(
   rows: T[],
   posisjonMap: Record<number, number> = {},
 ): T[] {
@@ -116,16 +116,16 @@ export function groupStandingsByPair<T extends PairableStillingRad>(
   })
 }
 
-export function scoreForSp(sp: SpelarScore | null | undefined): number {
+export function scoreForPlayer(sp: PlayerScore | null | undefined): number {
   if (sp?.omgangar?.length) return sp.omgangar.reduce((sum, o) => sum + (o.score ?? 0), 0)
   return sp?.score_poeng ?? 0
 }
 
-export function ringerForSp(sp: SpelarRinger | null | undefined): number {
+export function ringsForPlayer(sp: PlayerRings | null | undefined): number {
   if (sp?.omgangar?.length) return sp.omgangar.reduce((sum, o) => sum + (o.antall_ringer ?? 0), 0)
   return sp?.antall_ringer ?? 0
 }
 
-export function calcAntallRinger(score: number): number {
+export function calcRingCount(score: number): number {
   return score === 6 ? 2 : (score === 3 || score === 4) ? 1 : 0
 }

@@ -13,13 +13,13 @@ const _resultaterQuery = supabase
     klasse:klasseid(id, navn)
   `)
 
-export type ResultatMedRelasjonar = QueryData<typeof _resultaterQuery>[number]
+export type ResultWithRelations = QueryData<typeof _resultaterQuery>[number]
 
 const _stevneNcQuery = supabase
   .from('stevne')
   .select('id, navn, dato, stevnetype:stevnetypeid(id, navn)')
 
-export type StevneForNc = QueryData<typeof _stevneNcQuery>[number]
+export type TournamentForNC = QueryData<typeof _stevneNcQuery>[number]
 
 // ── Private ───────────────────────────────────────────────────────────────────
 
@@ -27,17 +27,17 @@ const NC_TYPER = ['NC', 'SNC', 'DNC']
 
 // ── Eksporterte funksjonar ────────────────────────────────────────────────────
 
-export async function hentRegler(ar: number) {
+export async function getRules(ar: number) {
   const { data, error } = await supabase
     .from('antallTellendeNc')
     .select('id, year, max_nc_total, max_snc_total, max_dnc_total, maxtotal, max_snc, max_dnc')
     .eq('year', ar)
     .maybeSingle()
-  if (error) logError('hentRegler', error)
+  if (error) logError('getRules', error)
   return { data, error }
 }
 
-export async function hentStevnerOgResultater(ar: number) {
+export async function getTournamentsAndResults(ar: number) {
   const { data: allStevner, error: e1 } = await supabase
     .from('stevne')
     .select('id, navn, dato, stevnetype:stevnetypeid(id, navn)')
@@ -45,14 +45,14 @@ export async function hentStevnerOgResultater(ar: number) {
     .lte('dato', `${ar}-12-31`)
 
   if (e1) {
-    logError('hentStevnerOgResultater.stevner', e1)
-    return { stevner: [] as StevneForNc[], resultater: [] as ResultatMedRelasjonar[], error: e1 }
+    logError('getTournamentsAndResults.stevner', e1)
+    return { stevner: [] as TournamentForNC[], resultater: [] as ResultWithRelations[], error: e1 }
   }
 
   const ncStevner = (allStevner ?? []).filter(s => NC_TYPER.includes(s.stevnetype?.navn ?? ''))
   const ids = ncStevner.map(s => s.id)
 
-  if (ids.length === 0) return { stevner: ncStevner, resultater: [] as ResultatMedRelasjonar[], error: null }
+  if (ids.length === 0) return { stevner: ncStevner, resultater: [] as ResultWithRelations[], error: null }
 
   const { data: resultater, error: e2 } = await supabase
     .from('resultat')
@@ -66,6 +66,6 @@ export async function hentStevnerOgResultater(ar: number) {
     .not('nc_poeng', 'is', null)
     .gt('nc_poeng', 0)
 
-  if (e2) logError('hentStevnerOgResultater.resultater', e2)
+  if (e2) logError('getTournamentsAndResults.resultater', e2)
   return { stevner: ncStevner, resultater: resultater ?? [], error: e2 }
 }

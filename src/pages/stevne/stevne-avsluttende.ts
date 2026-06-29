@@ -1,6 +1,6 @@
 import { createLoadingState } from '@/components/LoadingState'
 import { createErrorBanner } from '@/components/ErrorBanner'
-import { hentAvsluttendeMetodeNamn } from '@/services/stevneService'
+import { getFinalMethodName } from '@/services/stevneService'
 
 export async function render(
   container: HTMLElement,
@@ -9,7 +9,7 @@ export async function render(
 ): Promise<void> {
   container.replaceChildren(createLoadingState())
 
-  const { navn, error } = await hentAvsluttendeMetodeNamn(id)
+  const { navn, error } = await getFinalMethodName(id)
 
   if (error) {
     container.replaceChildren(createErrorBanner('Stevne ikkje funne.'))

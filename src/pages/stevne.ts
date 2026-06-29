@@ -1,5 +1,5 @@
 import { erAdmin, erKlubbadmin } from '@/services/authService'
-import { hentStevneHeader } from '@/services/stevneService'
+import { getTournamentHeader } from '@/services/stevneService'
 import { createErrorBanner } from '@/components/ErrorBanner'
 import { createLoadingState } from '@/components/LoadingState'
 import { logError } from '@/utils/logError'
@@ -75,7 +75,7 @@ export async function render(
   container.replaceChildren(createLoadingState())
 
   try {
-    const { data: stevne, error } = await hentStevneHeader(id)
+    const { data: stevne, error } = await getTournamentHeader(id)
 
     if (error || !stevne) {
       container.replaceChildren(createErrorBanner('Stevne ikkje funne.'))

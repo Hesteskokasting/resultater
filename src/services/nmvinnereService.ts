@@ -4,7 +4,7 @@ import { logError } from '@/utils/logError'
 
 // ── Typar ─────────────────────────────────────────────────────────────────────
 
-export interface NmKategoriKonfig {
+export interface NMCategoryConfig {
   id: number
   navn: string
   kjonnFilter: 'historisk' | 'alltid' | false
@@ -13,17 +13,17 @@ export interface NmKategoriKonfig {
   merknad?: string
 }
 
-export type NmKjonn = 'open' | 'alle' | 'herrer' | 'damer'
+export type NMGender = 'open' | 'alle' | 'herrer' | 'damer'
 
 const _nmResultatQuery = supabase
   .from('resultat')
   .select('id, klasseid, kaster:kasterid(id, fornavn, etternavn), klubb:klubbid(id, navn), stevne:stevneid(id, dato)')
 
-export type NmResultatRow = QueryData<typeof _nmResultatQuery>[number]
+export type NMResultRow = QueryData<typeof _nmResultatQuery>[number]
 
 // ── Caches ────────────────────────────────────────────────────────────────────
 
-const _dataCache = new Map<string, { data: NmResultatRow[]; error: unknown }>()
+const _dataCache = new Map<string, { data: NMResultRow[]; error: unknown }>()
 let _kjonnCache: { id: number; navn: string }[] | null = null
 
 // ── Private helpers ───────────────────────────────────────────────────────────
@@ -38,17 +38,17 @@ async function hentKjonnIder(): Promise<{ id: number; navn: string }[]> {
   return _kjonnCache
 }
 
-function finnKjonnId(kjonnListe: { id: number; navn: string }[], kjonn: NmKjonn): number | undefined {
+function finnKjonnId(kjonnListe: { id: number; navn: string }[], kjonn: NMGender): number | undefined {
   const needle = kjonn === 'damer' ? 'dame' : 'herre'
   return kjonnListe.find(k => k.navn.toLowerCase().includes(needle))?.id
 }
 
 // ── Eksportert funksjon ───────────────────────────────────────────────────────
 
-export async function hentNmData(
-  kategori: NmKategoriKonfig,
-  kjonn: NmKjonn,
-): Promise<{ data: NmResultatRow[]; error: unknown }> {
+export async function getNMData(
+  kategori: NMCategoryConfig,
+  kjonn: NMGender,
+): Promise<{ data: NMResultRow[]; error: unknown }> {
   const cacheKey = `${kategori.id}-${kjonn}`
   if (_dataCache.has(cacheKey)) return _dataCache.get(cacheKey)!
 
@@ -68,13 +68,13 @@ export async function hentNmData(
 
   const { data: stevner, error: e1 } = await stevneQuery
   if (e1) {
-    logError('hentNmData.stevner', e1)
+    logError('getNMData.stevner', e1)
     return { data: [], error: e1 }
   }
 
   const ids = (stevner ?? []).map(s => s.id)
   if (!ids.length) {
-    const empty = { data: [] as NmResultatRow[], error: null }
+    const empty = { data: [] as NMResultRow[], error: null }
     _dataCache.set(cacheKey, empty)
     return empty
   }
@@ -106,11 +106,11 @@ export async function hentNmData(
 
   const { data: rader, error: e2 } = await resultatQuery
   if (e2) {
-    logError('hentNmData.resultater', e2)
+    logError('getNMData.resultater', e2)
     return { data: [], error: e2 }
   }
 
-  const entry = { data: (rader ?? []) as NmResultatRow[], error: null }
+  const entry = { data: (rader ?? []) as NMResultRow[], error: null }
   _dataCache.set(cacheKey, entry)
   return entry
 }

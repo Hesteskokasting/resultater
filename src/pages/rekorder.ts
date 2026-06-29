@@ -1,12 +1,12 @@
-import { kasterNavn, lagKasterSlug } from '@/utils/kaster'
+import { throwerName, buildThrowerSlug } from '@/utils/kaster'
 import { createErrorBanner } from '@/components/ErrorBanner'
 import { createLoadingState } from '@/components/LoadingState'
 import { createEmptyState } from '@/components/EmptyState'
 import { createTable } from '@/components/Table'
 import { escHtml } from '@/utils/escHtml'
 import { logError } from '@/utils/logError'
-import { hentAlleRekorder } from '@/services/rekorderService'
-import type { RekorderRow } from '@/services/rekorderService'
+import { getAllRecords } from '@/services/rekorderService'
+import type { RecordRow } from '@/services/rekorderService'
 
 // ── Konstanter ────────────────────────────────────────────────────────────────
 
@@ -31,7 +31,7 @@ interface RekorderFiltre {
   sokeTekst: string
 }
 
-type RangetRad = RekorderRow & { plassering: number }
+type RangetRad = RecordRow & { plassering: number }
 
 // ── Tilstand ──────────────────────────────────────────────────────────────────
 
@@ -39,13 +39,13 @@ const filtre: RekorderFiltre = { metode: 'kongelag', kjonn: 'alle', sokeTekst: '
 
 // ── Hjelpefunksjonar ──────────────────────────────────────────────────────────
 
-function erDame(item: RekorderRow): boolean {
+function erDame(item: RecordRow): boolean {
   return (item.kjonn_navn ?? '').toLowerCase().includes('dame')
 }
 
 // ── Filtrering og rangering ───────────────────────────────────────────────────
 
-function byggOgFiltrerListe(alleData: RekorderRow[]): RangetRad[] {
+function byggOgFiltrerListe(alleData: RecordRow[]): RangetRad[] {
   const sok = filtre.sokeTekst.trim().toLowerCase()
 
   const filtrert = alleData.filter(item => {
@@ -53,7 +53,7 @@ function byggOgFiltrerListe(alleData: RekorderRow[]): RangetRad[] {
     if (filtre.kjonn === 'damer' && !erDame(item)) return false
     if (filtre.kjonn === 'herrer' && erDame(item)) return false
     if (sok) {
-      const navn = kasterNavn({ fornavn: item.fornavn ?? '', etternavn: item.etternavn ?? '' }).toLowerCase()
+      const navn = throwerName({ fornavn: item.fornavn ?? '', etternavn: item.etternavn ?? '' }).toLowerCase()
       const klubb = (item.klubb_navn ?? '').toLowerCase()
       if (!navn.includes(sok) && !klubb.includes(sok)) return false
     }
@@ -88,11 +88,11 @@ function createRekordTabell(liste: RangetRad[]): HTMLElement {
       {
         label: 'Navn',
         render: item => {
-          const slug = lagKasterSlug({ id: item.kasterid ?? 0, fornavn: item.fornavn ?? '', etternavn: item.etternavn ?? '' })
+          const slug = buildThrowerSlug({ id: item.kasterid ?? 0, fornavn: item.fornavn ?? '', etternavn: item.etternavn ?? '' })
           const a = document.createElement('a')
           a.href = `#/kastere/${slug}`
           a.className = 'tl-lenkje'
-          a.textContent = kasterNavn({ fornavn: item.fornavn ?? '', etternavn: item.etternavn ?? '' })
+          a.textContent = throwerName({ fornavn: item.fornavn ?? '', etternavn: item.etternavn ?? '' })
           return a
         },
       },
@@ -155,7 +155,7 @@ export async function render(container: HTMLElement): Promise<void> {
   container.replaceChildren(createLoadingState('Laster rekorder…'))
 
   try {
-    const { data, error } = await hentAlleRekorder()
+    const { data, error } = await getAllRecords()
     if (error) {
       container.replaceChildren(createErrorBanner('Kunne ikkje laste rekorder.'))
       return

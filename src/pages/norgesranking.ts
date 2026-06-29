@@ -1,13 +1,13 @@
-import { formaterDato, arOptions, lastNedExcel as lastNedExcelFil, formaterProsent } from '@/utils/shared'
+import { formatDate, yearOptions, downloadExcel, formatPercent } from '@/utils/shared'
 import { createErrorBanner } from '@/components/ErrorBanner'
 import { createLoadingState } from '@/components/LoadingState'
 import { createEmptyState } from '@/components/EmptyState'
 import { createTable } from '@/components/Table'
 import { logError } from '@/utils/logError'
 import { bindExpandableRows } from '@/utils/expandableRows'
-import { hentStevnerOgResultater } from '@/services/norgesrankingService'
-import type { RankingStevneRow, RankingResultatRow } from '@/services/norgesrankingService'
-import { MIN_STEVNER, lagStevnerMap, byggRankingListe } from '@/utils/norgesrankingLogikk'
+import { getTournamentsAndResults } from '@/services/norgesrankingService'
+import type { RankingTournamentRow, RankingResultRow } from '@/services/norgesrankingService'
+import { MIN_STEVNER, buildEventsMap, buildRankingList } from '@/utils/norgesrankingLogikk'
 import type { RingInfo, RankingItem } from '@/utils/norgesrankingLogikk'
 
 const FOERSTE_AR = 2018
@@ -16,8 +16,8 @@ const FOERSTE_AR = 2018
 
 interface Cache {
   ar: number | null
-  stevner: RankingStevneRow[]
-  resultater: RankingResultatRow[]
+  stevner: RankingTournamentRow[]
+  resultater: RankingResultRow[]
 }
 
 const filtre = {
@@ -34,7 +34,7 @@ async function hentOgBufferData(ar: number): Promise<boolean> {
   if (cache.ar === ar) return true
 
   try {
-    const { stevner, resultater, error } = await hentStevnerOgResultater(ar)
+    const { stevner, resultater, error } = await getTournamentsAndResults(ar)
     if (error) return false
 
     cache.ar = ar
@@ -50,8 +50,8 @@ async function hentOgBufferData(ar: number): Promise<boolean> {
 // ── Excel-eksport ─────────────────────────────────────────────────────────────
 
 async function lastNedExcel(): Promise<void> {
-  const stevnerMap = lagStevnerMap(cache.stevner)
-  const liste = byggRankingListe(cache.resultater, stevnerMap)
+  const stevnerMap = buildEventsMap(cache.stevner)
+  const liste = buildRankingList(cache.resultater, stevnerMap)
   const rader = liste.map(k => ({
     'Plass': k.erGyldig ? k.plassering : '–',
     'Kaster': k.navn,
@@ -59,7 +59,7 @@ async function lastNedExcel(): Promise<void> {
     'Snitt %': k.snittProsent,
     'Antal stevner': k.antallStevner,
   }))
-  await lastNedExcelFil(rader, `norgesranking-${filtre.ar}.xlsx`, 'Norgesranking')
+  await downloadExcel(rader, `norgesranking-${filtre.ar}.xlsx`, 'Norgesranking')
 }
 
 // ── HTML-byggjarar ────────────────────────────────────────────────────────────
@@ -98,12 +98,12 @@ function createRankingTabell(liste: RankingItem[], sokeTekst: string): HTMLEleme
       tableClass: 'detalj-tabell',
       theadClass: '',
       columns: [
-        { label: 'Dato',   render: r => formaterDato(r._stevne?.dato) },
+        { label: 'Dato',   render: r => formatDate(r._stevne?.dato) },
         { label: 'Type',   render: r => r._stevne?.typeNamn ?? '–' },
         { label: 'Stevne', render: r => r._stevne?.navn ?? '–' },
         { label: 'Metode', render: r => r.metodeNamn },
         { label: 'Ring',   render: r => String(r.antallRing) },
-        { label: '%Ring',  render: r => formaterProsent(r.prosent) },
+        { label: '%Ring',  render: r => formatPercent(r.prosent) },
       ],
     }),
     columns: [
@@ -134,7 +134,7 @@ function createRankingTabell(liste: RankingItem[], sokeTekst: string): HTMLEleme
         cellAttrs: (_, i) => ({ 'data-idx': String(i) }),
         render: item => {
           const frag = document.createDocumentFragment()
-          frag.appendChild(document.createTextNode(formaterProsent(item.snittProsent)))
+          frag.appendChild(document.createTextNode(formatPercent(item.snittProsent)))
           const chevron = document.createElement('span')
           chevron.className = 'nc-chevron'
           chevron.textContent = ' ▼'
@@ -157,7 +157,7 @@ function sideSkelettHtml(ar: number): string {
       ${infoHtml(false)}
       <hr>
       <div class="nc-filter-rad">
-        <select id="nr-ar" class="tl-select">${arOptions(ar, FOERSTE_AR)}</select>
+        <select id="nr-ar" class="tl-select">${yearOptions(ar, FOERSTE_AR)}</select>
         <input id="nr-sok" type="text" class="tl-select" placeholder="Søk på navn/klubb..." value="">
         <button class="tl-excel-knapp" id="nr-excel">⬇ Excel</button>
       </div>
@@ -188,8 +188,8 @@ export async function render(container: HTMLElement): Promise<void> {
     container.innerHTML = sideSkelettHtml(filtre.ar)
 
     function oppdaterTabell(): void {
-      const stevnerMap = lagStevnerMap(cache.stevner)
-      const liste = byggRankingListe(cache.resultater, stevnerMap)
+      const stevnerMap = buildEventsMap(cache.stevner)
+      const liste = buildRankingList(cache.resultater, stevnerMap)
       const tabellEl = container.querySelector<HTMLElement>('#nr-tabell-container')!
       const inner = document.createElement('div')
       inner.id = 'nr-tabell-inner'

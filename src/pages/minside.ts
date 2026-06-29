@@ -1,20 +1,20 @@
-import { kasterNavn, lagKasterSlug } from '@/utils/kaster'
+import { throwerName, buildThrowerSlug } from '@/utils/kaster'
 import { getUser } from '@/services/authService'
 import { createErrorBanner } from '@/components/ErrorBanner'
 import { createLoadingState } from '@/components/LoadingState'
 import { createEmptyState } from '@/components/EmptyState'
 import { escHtml } from '@/utils/escHtml'
 import { logError } from '@/utils/logError'
-import { formaterDato } from '@/utils/shared'
-import { hentKastereListeAktive, hentKasterForKobling } from '@/services/kasterService'
-import { hentMinePameldingar } from '@/services/pameldingService'
-import { hentMineKampar, hentStartnummerForStevner } from '@/services/kampService'
+import { formatDate } from '@/utils/shared'
+import { getActiveThrowerList, getThrowerForLink } from '@/services/kasterService'
+import { getMyRegistrations } from '@/services/pameldingService'
+import { getMyMatches, getStartNumbersForTournaments } from '@/services/kampService'
 import { sendProfileLinkRequest } from '@/services/brukerProfilService'
 import { createTabs } from '@/components/Tabs'
-import type { Rolle, KoblingStatus } from '@/types'
-import type { PameldingRow } from '@/services/pameldingService'
-import type { KampSpelarRow } from '@/services/kampService'
-import type { KasterListeRow } from '@/services/kasterService'
+import type { Role, LinkStatus } from '@/types'
+import type { RegistrationRow } from '@/services/pameldingService'
+import type { MatchPlayerRow } from '@/services/kampService'
+import type { ThrowerListRow } from '@/services/kasterService'
 
 function makePanel(html: string): HTMLElement {
   const div = document.createElement('div')
@@ -22,7 +22,7 @@ function makePanel(html: string): HTMLElement {
   return div
 }
 
-const rolleLabel: Record<Rolle, string> = {
+const roleLabel: Record<Role, string> = {
   admin: 'Administrator',
   klubbadmin: 'Klubbadministrator',
   bruker: 'Brukar',
@@ -30,7 +30,7 @@ const rolleLabel: Record<Rolle, string> = {
 
 // ── HTML-byggjarar ────────────────────────────────────────────────────────────
 
-function ikkjeKoblaHtml(status: KoblingStatus): string {
+function ikkjeKoblaHtml(status: LinkStatus): string {
   return `
     ${status === 'avvist' ? '<div class="alert alert-warning">Koblingforespørselen din vart avvist. Du kan sende ein ny.</div>' : ''}
     <div class="card mb-4">
@@ -49,29 +49,29 @@ function ventarHtml(): string {
 }
 
 async function koblaKortHtml(kasterid: number): Promise<string> {
-  const { data, error } = await hentKasterForKobling(kasterid)
+  const { data, error } = await getThrowerForLink(kasterid)
   if (error || !data) return ''
   return `
     <div class="card mb-4">
       <div class="card-body">
         <h5 class="card-title">Kobla til utøvarprofil</h5>
-        <p class="mb-1"><strong>${escHtml(kasterNavn(data))}</strong> · ${escHtml(data.klubb?.navn ?? '')}</p>
-        <a href="#/kastere/${lagKasterSlug(data)}" class="btn btn-sm btn-outline-primary mt-1">Sjå profil</a>
+        <p class="mb-1"><strong>${escHtml(throwerName(data))}</strong> · ${escHtml(data.klubb?.navn ?? '')}</p>
+        <a href="#/kastere/${buildThrowerSlug(data)}" class="btn btn-sm btn-outline-primary mt-1">Sjå profil</a>
       </div>
     </div>`
 }
 
 async function pameldingListeHtml(brukerId: string): Promise<string> {
-  const { data, error } = await hentMinePameldingar(brukerId)
+  const { data, error } = await getMyRegistrations(brukerId)
   if (error) return '<p class="text-muted">Kunne ikkje laste påmeldingar.</p>'
   if (!data.length) return '<p class="empty-state">Ingen påmeldingar enno.</p>'
 
-  const sortert = [...data].sort((a: PameldingRow, b: PameldingRow) =>
+  const sortert = [...data].sort((a: RegistrationRow, b: RegistrationRow) =>
     (a.stevne?.dato ?? '').localeCompare(b.stevne?.dato ?? ''),
   )
 
   const rader = sortert.map(p => {
-    const dato = formaterDato(p.stevne?.dato)
+    const dato = formatDate(p.stevne?.dato)
     return `<tr>
       <td><a href="#/stevne/${p.stevne?.id ?? ''}/pamelding">${escHtml(p.stevne?.navn ?? '')}</a></td>
       <td>${escHtml(dato)}</td>
@@ -92,7 +92,7 @@ async function pameldingListeHtml(brukerId: string): Promise<string> {
 }
 
 async function createMineKampar(kasterid: number): Promise<HTMLElement> {
-  const { data, error } = await hentMineKampar(kasterid)
+  const { data, error } = await getMyMatches(kasterid)
   if (error) {
     const p = document.createElement('p')
     p.className = 'text-muted'
@@ -105,7 +105,7 @@ async function createMineKampar(kasterid: number): Promise<HTMLElement> {
   // Side lookup (startnummer per stevne+player) so opponents exclude my own
   // partner in Par/Mix; spans every stevne the matches belong to.
   const stevneIds = [...new Set(alleKampar.map(ks => ks.kamp?.stevneid).filter((s): s is number => s != null))]
-  const snrMap = await hentStartnummerForStevner(stevneIds)
+  const snrMap = await getStartNumbersForTournaments(stevneIds)
 
   const kommande = alleKampar
     .filter(ks => ks.kamp?.stevne?.erfullfort === false && !ks.kamp?.er_bekreftet)
@@ -117,7 +117,7 @@ async function createMineKampar(kasterid: number): Promise<HTMLElement> {
 
   const tabellHoaude = `<thead><tr><th>Runde/Bane</th><th>Motstandar</th><th></th></tr></thead>`
 
-  const lagKampRad = (ks: KampSpelarRow, knapp: string): string => {
+  const lagKampRad = (ks: MatchPlayerRow, knapp: string): string => {
     const kamp = ks.kamp
     const stevneid = kamp?.stevneid
     // My side; opponents are everyone on a different side. Same startnummer =
@@ -130,7 +130,7 @@ async function createMineKampar(kasterid: number): Promise<HTMLElement> {
       return mineSnr == null || oSnr == null || oSnr !== mineSnr
     })
     const motstandarNamn = motstandarar.length
-      ? motstandarar.map(m => escHtml(kasterNavn(m.kaster))).join(' / ')
+      ? motstandarar.map(m => escHtml(throwerName(m.kaster))).join(' / ')
       : '–'
     return `<tr>
       <td>R${kamp?.runde_nummer ?? ''} / B${kamp?.bane_nummer ?? ''}</td>
@@ -140,11 +140,11 @@ async function createMineKampar(kasterid: number): Promise<HTMLElement> {
   }
 
   const grupperPerStevne = (
-    kampar: KampSpelarRow[],
-    lagKnapp: (ks: KampSpelarRow) => string,
+    kampar: MatchPlayerRow[],
+    lagKnapp: (ks: MatchPlayerRow) => string,
   ): string | null => {
     if (!kampar.length) return null
-    const grupper = new Map<number | string, { navn: string; kampar: KampSpelarRow[] }>()
+    const grupper = new Map<number | string, { navn: string; kampar: MatchPlayerRow[] }>()
     for (const ks of kampar) {
       const stevneId = ks.kamp?.stevneid ?? 'ukjent'
       const stevneNamn = ks.kamp?.stevne?.navn ?? ''
@@ -191,7 +191,7 @@ async function createMineKampar(kasterid: number): Promise<HTMLElement> {
 
 function bindKasterSok(container: HTMLElement, brukerId: string): void {
   let timer: number | null = null
-  let kastereCache: KasterListeRow[] | null = null
+  let kastereCache: ThrowerListRow[] | null = null
   const sokInput = container.querySelector<HTMLInputElement>('#kaster-sok')!
   const treffDiv = container.querySelector<HTMLElement>('#kaster-treff')!
   const feilDiv  = container.querySelector<HTMLElement>('#kasting-feil')!
@@ -203,7 +203,7 @@ function bindKasterSok(container: HTMLElement, brukerId: string): void {
 
     timer = setTimeout(async () => {
       if (!kastereCache) {
-        const { data } = await hentKastereListeAktive()
+        const { data } = await getActiveThrowerList()
         kastereCache = data
       }
       const treff = kastereCache
@@ -218,7 +218,7 @@ function bindKasterSok(container: HTMLElement, brukerId: string): void {
       }
       treffDiv.innerHTML = treff.map(k =>
         `<button class="list-group-item list-group-item-action" data-id="${k.id}">
-          ${escHtml(kasterNavn(k))} <span class="text-muted small">· ${escHtml(k.klubb?.navn ?? '')}</span>
+          ${escHtml(throwerName(k))} <span class="text-muted small">· ${escHtml(k.klubb?.navn ?? '')}</span>
         </button>`
       ).join('')
     }, 300)
@@ -249,13 +249,13 @@ export async function render(container: HTMLElement): Promise<void> {
     if (!auth) { location.hash = '#/logginn'; return }
 
     const { profil, user } = auth
-    const status: KoblingStatus = profil?.kobling_status ?? 'ingen'
-    const rolleNamn = profil ? rolleLabel[profil.rolle] : 'Ukjent'
+    const status: LinkStatus = profil?.kobling_status ?? 'ingen'
+    const roleName = profil ? roleLabel[profil.role] : 'Ukjent'
 
     let html = `
       <div class="minside-container">
         <h2 class="mb-1">Min side</h2>
-        <p class="text-muted mb-4">${escHtml(user.email ?? '')} · <span class="badge bg-secondary">${escHtml(rolleNamn)}</span></p>`
+        <p class="text-muted mb-4">${escHtml(user.email ?? '')} · <span class="badge bg-secondary">${escHtml(roleName)}</span></p>`
 
     if (status === 'ingen' || status === 'avvist') {
       html += ikkjeKoblaHtml(status)

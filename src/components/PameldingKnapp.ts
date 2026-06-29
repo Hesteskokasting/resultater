@@ -1,6 +1,6 @@
 import { confirmDialog } from '@/components/ConfirmDialog'
 import { showToast } from '@/components/Toast'
-import { meldPaStevne, fjernPamelding, hentMinPameldingForStevne } from '@/services/pameldingService'
+import { registerForTournament, removeRegistration, getMyRegistrationForTournament } from '@/services/pameldingService'
 
 export interface PameldingKnappProps {
   stevneId: number
@@ -31,7 +31,7 @@ export function createPameldingKnapp(props: PameldingKnappProps): HTMLButtonElem
       if (!ok) { btn.disabled = false; return }
 
       if (pameldingId === undefined) {
-        const { data } = await hentMinPameldingForStevne(props.stevneId, props.kasterid)
+        const { data } = await getMyRegistrationForTournament(props.stevneId, props.kasterid)
         if (!data) {
           showToast('Kunne ikkje finne påmeldinga.', 'error')
           btn.disabled = false
@@ -40,7 +40,7 @@ export function createPameldingKnapp(props: PameldingKnappProps): HTMLButtonElem
         pameldingId = data.id
       }
 
-      const { error } = await fjernPamelding(pameldingId)
+      const { error } = await removeRegistration(pameldingId)
       if (error) {
         showToast('Kunne ikkje melde av. Prøv igjen.', 'error')
         btn.disabled = false
@@ -50,7 +50,7 @@ export function createPameldingKnapp(props: PameldingKnappProps): HTMLButtonElem
       pameldingId = undefined
       showToast('Du er meldt av stevnet.', 'success')
     } else {
-      const { error, id } = await meldPaStevne(props.stevneId, props.kasterid, props.brukerId)
+      const { error, id } = await registerForTournament(props.stevneId, props.kasterid, props.brukerId)
       if (error) {
         showToast('Kunne ikkje melde på. Prøv igjen.', 'error')
         btn.disabled = false

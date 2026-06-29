@@ -1,24 +1,24 @@
-import { kasterNavn, lagKasterSlug as lagSlug } from '@/utils/kaster'
+import { throwerName, buildThrowerSlug as buildSlug } from '@/utils/kaster'
 import { prependAdminLinkBar } from '@/components/AdminLinkBar'
 import { createErrorBanner } from '@/components/ErrorBanner'
 import { createLoadingState } from '@/components/LoadingState'
 import { escHtml } from '@/utils/escHtml'
 import { logError } from '@/utils/logError'
 import {
-  hentKastereListeAktive,
-  hentKastereListeAlle,
+  getActiveThrowerList,
+  getAllThrowerList,
 } from '@/services/kasterService'
-import type { KasterListeRow } from '@/services/kasterService'
+import type { ThrowerListRow } from '@/services/kasterService'
 
 const SIDER_STORLEIK = 24
 const PLACEHOLDER_AVATAR = 'https://placehold.co/200x200/444/888?text=?'
 
 const filtreListe = { visAlle: false, sokeTekst: '', side: 1 }
 
-function kasterKortHtml(k: KasterListeRow): string {
-  const navn = kasterNavn(k)
+function kasterKortHtml(k: ThrowerListRow): string {
+  const navn = throwerName(k)
   return `
-    <a href="#/kastere/${lagSlug(k)}" class="kaster-kort">
+    <a href="#/kastere/${buildSlug(k)}" class="kaster-kort">
       <img src="${escHtml(k.avatarurl || PLACEHOLDER_AVATAR)}" alt="${escHtml(navn)}" loading="lazy">
       <div class="kaster-navn">${escHtml(navn)}</div>
       <div class="kaster-klubb">${escHtml(k.klubb?.navn ?? '–')}</div>
@@ -66,7 +66,7 @@ export async function renderListe(container: HTMLElement): Promise<void> {
   container.replaceChildren(createLoadingState('Laster utøvarar...'))
 
   try {
-    const init = await hentKastereListeAktive()
+    const init = await getActiveThrowerList()
     if (init.error) {
       container.replaceChildren(createErrorBanner('Kunne ikkje laste utøvarar.'))
       return
@@ -86,7 +86,7 @@ export async function renderListe(container: HTMLElement): Promise<void> {
       const sok = filtreListe.sokeTekst.trim().toLowerCase()
       let filtrert = kastereData
       if (sok) filtrert = filtrert.filter(k =>
-        kasterNavn(k).toLowerCase().includes(sok) ||
+        throwerName(k).toLowerCase().includes(sok) ||
         (k.klubb?.navn ?? '').toLowerCase().includes(sok)
       )
 
@@ -116,8 +116,8 @@ export async function renderListe(container: HTMLElement): Promise<void> {
       filtreListe.visAlle = !aktiveCheck.checked
       filtreListe.side = 1
       const { data, error } = filtreListe.visAlle
-        ? await hentKastereListeAlle()
-        : await hentKastereListeAktive()
+        ? await getAllThrowerList()
+        : await getActiveThrowerList()
       if (!error) kastereData = data
       filtrerOgVis()
     })
@@ -134,7 +134,7 @@ export async function renderListe(container: HTMLElement): Promise<void> {
       href: '#/kaster/ny',
       label: '+ Ny utøvar',
       variant: 'success',
-      canShow: auth => auth.profil?.rolle === 'admin' || auth.profil?.rolle === 'klubbadmin',
+      canShow: auth => auth.profil?.role === 'admin' || auth.profil?.role === 'klubbadmin',
     })
   } catch (err) {
     logError('renderListe', err)

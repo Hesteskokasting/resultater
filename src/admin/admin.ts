@@ -2,20 +2,20 @@ import { logError } from '@/utils/logError'
 import { escHtml } from '@/utils/escHtml'
 import { errMsg } from '@/utils/adminForms'
 import {
-  hentVentandeKoblingar,
-  hentBrukarEpost,
-  oppdaterKoblingStatus,
-  hentAlleBrukarar,
-  oppdaterBrukarRolle,
-  hentKlubbadminBrukarar,
-  hentKlubbadminTildelte,
-  leggTilKlubbadminTilgang,
-  fjernKlubbadminTilgang,
+  getPendingLinks,
+  getUserEmails,
+  updateLinkStatus,
+  getAllUsers,
+  updateUserRole,
+  getClubAdminUsers,
+  getClubAdminAssignments,
+  addClubAdminAccess,
+  removeClubAdminAccess,
 } from '@/services/adminService'
-import { hentKlubbar } from '@/services/klubbService'
-import { hentKastereByIds } from '@/services/kasterService'
-import { hentLiveStevner } from '@/services/stevneService'
-import type { LiveStevneRow } from '@/services/stevneService'
+import { getClubs } from '@/services/klubbService'
+import { getThrowersById } from '@/services/kasterService'
+import { getLiveTournaments } from '@/services/stevneService'
+import type { LiveTournamentRow } from '@/services/stevneService'
 import { createLoadingState } from '@/components/LoadingState'
 import { createEmptyState } from '@/components/EmptyState'
 import { livePillHtml } from '@/components/LivePill'
@@ -29,7 +29,7 @@ const FANE_LABEL: Record<Fane, string> = {
   klubbadmin: 'Klubbadmin-tilgang',
 }
 
-function liveKortHtml(s: LiveStevneRow): string {
+function liveKortHtml(s: LiveTournamentRow): string {
   const tab = s.stevne_fase === 'avsluttende' ? 'avsluttende' : 'innledende'
   return `
     <a class="live-kort" href="#/stevne/${s.id}/${tab}">
@@ -70,7 +70,7 @@ export async function render(container: HTMLElement): Promise<void> {
 
   const [, { data: liveStevner }] = await Promise.all([
     visFane('kobling'),
-    hentLiveStevner(),
+    getLiveTournaments(),
   ])
 
   const live = (liveStevner ?? []).filter(s => !s.erfullfort)
@@ -83,7 +83,7 @@ export async function render(container: HTMLElement): Promise<void> {
 // ── Koblingforespørslar ──────────────────────────────────────
 
 async function _visKobling(el: HTMLElement): Promise<void> {
-  const { data, error } = await hentVentandeKoblingar()
+  const { data, error } = await getPendingLinks()
   if (error) { el.innerHTML = `<div class="alert alert-danger">${escHtml(errMsg(error))}</div>`; return }
   if (!data.length) { el.replaceChildren(createEmptyState('Ingen ventande forespørslar.')); return }
 
@@ -91,8 +91,8 @@ async function _visKobling(el: HTMLElement): Promise<void> {
   const kasterIds = data.map(r => r.kobling_kasterid).filter((x): x is number => x !== null)
 
   const [{ data: epostar }, { data: kastere }] = await Promise.all([
-    hentBrukarEpost(brukarIds),
-    hentKastereByIds(kasterIds),
+    getUserEmails(brukarIds),
+    getThrowersById(kasterIds),
   ])
 
   const epostMap  = Object.fromEntries((epostar  ?? []).map(r => [r.id, r.epost]))
@@ -123,7 +123,7 @@ async function _visKobling(el: HTMLElement): Promise<void> {
     knapp.addEventListener('click', async () => {
       const rad      = knapp.closest<HTMLElement>('tr')!
       const kasterid = rad.dataset.kasterid ? Number(rad.dataset.kasterid) : null
-      const { error } = await oppdaterKoblingStatus(rad.dataset.id!, kasterid, 'godkjent')
+      const { error } = await updateLinkStatus(rad.dataset.id!, kasterid, 'godkjent')
       if (error) { el.innerHTML = `<div class="alert alert-danger">${escHtml(errMsg(error))}</div>`; return }
       _visKobling(el)
     })
@@ -131,7 +131,7 @@ async function _visKobling(el: HTMLElement): Promise<void> {
   el.querySelectorAll<HTMLButtonElement>('.avvis-knapp').forEach(knapp => {
     knapp.addEventListener('click', async () => {
       const rad = knapp.closest<HTMLElement>('tr')!
-      const { error } = await oppdaterKoblingStatus(rad.dataset.id!, null, 'avvist')
+      const { error } = await updateLinkStatus(rad.dataset.id!, null, 'avvist')
       if (error) { el.innerHTML = `<div class="alert alert-danger">${escHtml(errMsg(error))}</div>`; return }
       _visKobling(el)
     })
@@ -141,12 +141,12 @@ async function _visKobling(el: HTMLElement): Promise<void> {
 // ── Brukarar ────────────────────────────────────────────────
 
 async function _hentEpostMap(ids: string[]): Promise<Record<string, string>> {
-  const { data: epostar } = await hentBrukarEpost(ids)
+  const { data: epostar } = await getUserEmails(ids)
   return Object.fromEntries((epostar ?? []).map(r => [r.id, r.epost]))
 }
 
 async function _visBrukarar(el: HTMLElement): Promise<void> {
-  const { data, error } = await hentAlleBrukarar()
+  const { data, error } = await getAllUsers()
   if (error) { el.innerHTML = `<div class="alert alert-danger">${escHtml(errMsg(error))}</div>`; return }
   if (!data.length) { el.replaceChildren(createEmptyState('Ingen brukarar.')); return }
 
@@ -184,7 +184,7 @@ async function _visBrukarar(el: HTMLElement): Promise<void> {
       const nyRolle = rad.querySelector<HTMLSelectElement>('.rolle-vel')!.value
       const feil    = el.querySelector<HTMLElement>('#brukar-feil')!
       feil.classList.add('d-none')
-      const { error } = await oppdaterBrukarRolle(rad.dataset.id!, nyRolle)
+      const { error } = await updateUserRole(rad.dataset.id!, nyRolle)
       if (error) {
         feil.textContent = errMsg(error)
         feil.classList.remove('d-none')
@@ -205,9 +205,9 @@ async function _visKlubbadmin(el: HTMLElement): Promise<void> {
 
   try {
     const results = await Promise.all([
-      hentKlubbadminBrukarar(),
-      hentKlubbar(),
-      hentKlubbadminTildelte(),
+      getClubAdminUsers(),
+      getClubs(),
+      getClubAdminAssignments(),
     ])
     brukarar = results[0].data
     klubbar  = results[1].data
@@ -263,7 +263,7 @@ async function _visKlubbadmin(el: HTMLElement): Promise<void> {
       if (!klubbid) return
       const feil = el.querySelector<HTMLElement>('#ka-feil')!
       feil.classList.add('d-none')
-      const { error } = await leggTilKlubbadminTilgang(kort.dataset.bruker!, klubbid)
+      const { error } = await addClubAdminAccess(kort.dataset.bruker!, klubbid)
       if (error) { feil.textContent = errMsg(error); feil.classList.remove('d-none'); return }
       _visKlubbadmin(el)
     })
@@ -276,7 +276,7 @@ async function _visKlubbadmin(el: HTMLElement): Promise<void> {
       const kort  = knapp.closest<HTMLElement>('[data-bruker]')!
       const feil  = el.querySelector<HTMLElement>('#ka-feil')!
       feil.classList.add('d-none')
-      const { error } = await fjernKlubbadminTilgang(kort.dataset.bruker!, Number(badge.dataset.kid))
+      const { error } = await removeClubAdminAccess(kort.dataset.bruker!, Number(badge.dataset.kid))
       if (error) { feil.textContent = errMsg(error); feil.classList.remove('d-none'); return }
       _visKlubbadmin(el)
     })

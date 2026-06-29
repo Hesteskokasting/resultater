@@ -1,26 +1,26 @@
 import { escHtml } from '@/utils/escHtml'
 import {
-  genererCupRunde1,
-  genererNesteCupRundeForGruppe,
+  generateCupRound1,
+  generateNextCupRoundForGroup,
 } from '@/services/kampGenereringCupService'
 import { showToast } from '@/components/Toast'
 import { logError } from '@/utils/logError'
-import type { RundeOppsett, Runde1FormatTyped } from '@/types'
-import type { StillingRad } from '@/organizer/org-shared'
+import type { RoundSetup, Round1FormatTyped } from '@/types'
+import type { StandingRow } from '@/organizer/org-shared'
 
 export function opnGenererRundeDialog(
   stevneid: number,
   gruppeNavn: string,
-  stillingForGruppe: StillingRad[],
+  stillingForGruppe: StandingRow[],
   runde: number,
-  runde1Format: Runde1FormatTyped | null,
+  runde1Format: Round1FormatTyped | null,
   reload: () => Promise<void>,
 ): void {
   const aktive = stillingForGruppe.filter(r => r.runde_eliminert == null)
   const totalCount = stillingForGruppe.length
   const n = aktive.length
 
-  const runde1Oppsett: RundeOppsett | null = runde === 1 ? (runde1Format?.[gruppeNavn as 'A' | 'B'] ?? null) : null
+  const runde1Oppsett: RoundSetup | null = runde === 1 ? (runde1Format?.[gruppeNavn as 'A' | 'B'] ?? null) : null
 
   const wo = runde1Oppsett?.walkovers ?? 0
   const c3 = runde1Oppsett ? runde1Oppsett.c3 : (n % 3 === 0 ? n / 3 : 0)
@@ -64,7 +64,7 @@ export function opnGenererRundeDialog(
     document.removeEventListener('mouseup', onMouseUp)
   }
 
-  function playerHtml(r: StillingRad): string {
+  function playerHtml(r: StandingRow): string {
     return `<div class="d-flex justify-content-between gap-2 py-1">
       <span class="small">${escHtml(r.navn ?? '')}</span>
       <span class="small text-muted text-nowrap">${r.kamp_poeng ?? 0}p (${r.score_poeng ?? 0})</span>
@@ -178,18 +178,18 @@ export function opnGenererRundeDialog(
       try {
         const spelarar = aktive.map((r, i) => ({ kasterid: r.kasterid, plassering: i + 1 }))
         if (runde === 1) {
-          const runde1FormatRecord: Record<string, RundeOppsett | undefined> = {
+          const runde1FormatRecord: Record<string, RoundSetup | undefined> = {
             A: runde1Format?.A ?? undefined,
             B: runde1Format?.B ?? undefined,
           }
-          await genererCupRunde1(
+          await generateCupRound1(
             stevneid,
             [{ gruppeNavn, spelarar, runde1Oppsett }],
             medSeeding,
             runde1Format ? runde1FormatRecord : null,
           )
         } else {
-          await genererNesteCupRundeForGruppe(stevneid, gruppeNavn, medSeeding, spelarar)
+          await generateNextCupRoundForGroup(stevneid, gruppeNavn, medSeeding, spelarar)
         }
         removeListeners()
         modal.remove()

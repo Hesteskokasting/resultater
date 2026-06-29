@@ -5,20 +5,20 @@ import { createLoadingState } from '@/components/LoadingState'
 import { escHtml } from '@/utils/escHtml'
 import { renderScoreboard, type ScoreboardOptions } from '@/components/Scoreboard'
 import {
-  hentKamp,
-  hentKampResultatInfo,
-  hentNesteKampOrganisator,
-  hentNesteKampDeltakar,
-  erDeltakarIKamp,
-  bekreftInnledendeKamp,
-  bekreftAvsluttendeKamp,
-  subscribeToNesteKamp,
+  getMatch,
+  getMatchResultInfo,
+  getNextMatchForOrganizer,
+  getNextMatchForParticipant,
+  isParticipantInMatch,
+  confirmInitialMatch,
+  confirmFinalMatch,
+  subscribeToNextMatch,
 } from '@/services/kampService'
 import { getAllMatchSides, type MatchSide } from '@/utils/kamp'
-import { kasterNavnKort } from '@/utils/kaster'
-import { autoGenererFinaleOgBronsefinale } from '@/services/kampGenereringCupService'
+import { throwerNameShort } from '@/utils/kaster'
+import { autoGenerateFinaleAndBronzeFinal } from '@/services/kampGenereringCupService'
 import { avmeldKanal } from '@/utils/realtime'
-import type { KampRow, KampSpelarIKamp } from '@/services/kampService'
+import type { MatchRow, MatchPlayerInMatch } from '@/services/kampService'
 import type { Params } from '@/types'
 
 const KAMP_POINT_VALUES = [1, 2, 3, 4, 6]
@@ -27,7 +27,7 @@ const KAMP_POINT_VALUES = [1, 2, 3, 4, 6]
 interface KampViewCtx {
   container: HTMLElement
   kampId: number
-  kamp: KampRow
+  kamp: MatchRow
   kasterid: number | null
   erArrangor: boolean
   erDeltakar: boolean
@@ -37,24 +37,24 @@ interface KampViewCtx {
 }
 
 interface SideState {
-  p1Side: MatchSide<KampSpelarIKamp> | null
-  p2Side: MatchSide<KampSpelarIKamp> | null
-  p3Side: MatchSide<KampSpelarIKamp> | null
-  p1ks: KampSpelarIKamp | null
-  p2ks: KampSpelarIKamp | null
-  p3ks: KampSpelarIKamp | null
+  p1Side: MatchSide<MatchPlayerInMatch> | null
+  p2Side: MatchSide<MatchPlayerInMatch> | null
+  p3Side: MatchSide<MatchPlayerInMatch> | null
+  p1ks: MatchPlayerInMatch | null
+  p2ks: MatchPlayerInMatch | null
+  p3ks: MatchPlayerInMatch | null
   hcp1: number
   hcp2: number
 }
 
 /** Sides ordered by startnummer — one member for Singel, two for Par/Mix. */
 function byggSideState(
-  kamp: KampRow,
-  startnrMap: Record<number, number>,
-  posisjonMap: Record<number, number>,
+  kamp: MatchRow,
+  startNumberMap: Record<number, number>,
+  positionMap: Record<number, number>,
   hcpMap: Map<number, number>,
 ): SideState {
-  const sides = getAllMatchSides(kamp.spelarar ?? [], startnrMap, posisjonMap)
+  const sides = getAllMatchSides(kamp.spelarar ?? [], startNumberMap, positionMap)
   const p1Side = sides[0] ?? null
   const p2Side = sides[1] ?? null
   const p3Side = kamp.er_tre_spelarar ? (sides[2] ?? null) : null
@@ -110,9 +110,9 @@ function lagKampWrapper(ctx: KampViewCtx, midten: string, body: string, midtenId
 }
 
 /** Par/Mix: both members' short names; Singel (one member): null so the default name is used. */
-function sideLabel(side: MatchSide<KampSpelarIKamp> | null): string | null {
+function sideLabel(side: MatchSide<MatchPlayerInMatch> | null): string | null {
   if (!side || side.members.length < 2) return null
-  return side.members.map(m => kasterNavnKort(m.kaster)).join(' / ')
+  return side.members.map(m => throwerNameShort(m.kaster)).join(' / ')
 }
 
 function visKampFeil(container: HTMLElement, melding: string): void {
@@ -127,11 +127,11 @@ function visKampFeil(container: HTMLElement, melding: string): void {
 
 async function hentNesteKamp(ctx: KampViewCtx): Promise<{ id: number } | null> {
   if (ctx.erArrangor) {
-    const { data } = await hentNesteKampOrganisator(ctx.kamp.stevneid, ctx.kamp.bane_nummer ?? 0)
+    const { data } = await getNextMatchForOrganizer(ctx.kamp.stevneid, ctx.kamp.bane_nummer ?? 0)
     return data
   }
   if (ctx.kasterid == null) return null
-  const { data } = await hentNesteKampDeltakar(ctx.kamp.stevneid, ctx.kasterid)
+  const { data } = await getNextMatchForParticipant(ctx.kamp.stevneid, ctx.kasterid)
   return data
 }
 
@@ -142,7 +142,7 @@ async function erRelevantKamp(
   if (nyKamp.er_walkover) return false
   if (ctx.erArrangor) return nyKamp.bane_nummer === ctx.kamp.bane_nummer
   if (ctx.kasterid == null) return false
-  return erDeltakarIKamp(nyKamp.id, ctx.kasterid)
+  return isParticipantInMatch(nyKamp.id, ctx.kasterid)
 }
 
 function visVentePaaNesteKamp(ctx: KampViewCtx): void {
@@ -156,7 +156,7 @@ function visVentePaaNesteKamp(ctx: KampViewCtx): void {
     </div>`,
   )
 
-  const kanal = subscribeToNesteKamp(ctx.kamp.stevneid, ctx.kampId, async (nyKamp) => {
+  const kanal = subscribeToNextMatch(ctx.kamp.stevneid, ctx.kampId, async (nyKamp) => {
     if (await erRelevantKamp(ctx, nyKamp)) {
       await avmeldKanal(kanal)
       location.hash = `#/kamp/${nyKamp.id}`
@@ -188,22 +188,22 @@ async function bekreftKamp(ctx: KampViewCtx, sides: SideState, orderedKasterids?
   const p1ks = p1Side?.rep ?? null
   const p2ks = p2Side?.rep ?? null
   const bekreftData = {
-    p1: p1ks ? { spelarId: p1ks.id, kasterid: p1ks.kasterid, scorePoeng: p1ks.score_poeng } : null,
-    p2: p2ks ? { spelarId: p2ks.id, kasterid: p2ks.kasterid, scorePoeng: p2ks.score_poeng } : null,
+    p1: p1ks ? { playerId: p1ks.id, kasterid: p1ks.kasterid, scorePoints: p1ks.score_poeng } : null,
+    p2: p2ks ? { playerId: p2ks.id, kasterid: p2ks.kasterid, scorePoints: p2ks.score_poeng } : null,
     p1PartnerId: p1Side?.members[1]?.id ?? null,
     p2PartnerId: p2Side?.members[1]?.id ?? null,
   }
 
   if (ctx.kamp.fase === 'avsluttende') {
-    const { error } = await bekreftAvsluttendeKamp({
+    const { error } = await confirmFinalMatch({
       kampId: ctx.kampId,
       ...bekreftData,
       orderedKasterids: orderedKasterids ?? null,
     })
     if (error) { visKampFeil(ctx.container, 'Feil ved bekreftelse av kamp.'); return }
-    await autoGenererFinaleOgBronsefinale(ctx.kampId)
+    await autoGenerateFinaleAndBronzeFinal(ctx.kampId)
   } else {
-    const { error } = await bekreftInnledendeKamp({
+    const { error } = await confirmInitialMatch({
       kampId: ctx.kampId,
       ...bekreftData,
       hcp1,
@@ -221,9 +221,9 @@ async function bekreftKamp(ctx: KampViewCtx, sides: SideState, orderedKasterids?
 async function lastKampOgAuth(
   container: HTMLElement,
   kampId: number,
-): Promise<{ kamp: KampRow; auth: Awaited<ReturnType<typeof getUser>> } | null> {
+): Promise<{ kamp: MatchRow; auth: Awaited<ReturnType<typeof getUser>> } | null> {
   try {
-    const [kampResult, authResult] = await Promise.all([hentKamp(kampId), getUser()])
+    const [kampResult, authResult] = await Promise.all([getMatch(kampId), getUser()])
     if (!kampResult.data) {
       container.replaceChildren(createErrorBanner('Kamp ikkje funne.'))
       return null
@@ -261,12 +261,12 @@ export async function render(container: HTMLElement, params: Params): Promise<vo
   const { kamp, auth } = lastet
 
   const kasterids = (kamp.spelarar ?? []).map(s => s.kasterid).filter((id): id is number => id != null)
-  const { startnrMap, posisjonMap, hcpMap } = await hentKampResultatInfo(kamp.stevneid, kasterids)
+  const { startNumberMap, positionMap, hcpMap } = await getMatchResultInfo(kamp.stevneid, kasterids)
 
-  const sider = byggSideState(kamp, startnrMap, posisjonMap, hcpMap)
+  const sider = byggSideState(kamp, startNumberMap, positionMap, hcpMap)
   const kasterid = auth?.profil?.kasterid ?? null
-  const rolle = auth?.profil?.rolle ?? null
-  const erArrangor = rolle === 'admin' || rolle === 'klubbadmin'
+  const role = auth?.profil?.role ?? null
+  const erArrangor = role === 'admin' || role === 'klubbadmin'
   const erDeltakar = kasterid != null && (kamp.spelarar ?? []).some(s => s.kasterid === kasterid)
 
   const ctx: KampViewCtx = {

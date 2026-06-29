@@ -1,9 +1,9 @@
-import { bekreftCupKamp, type AvslKampRow, type AvslKampSpelarRow } from '@/services/kampService'
-import { sideNavnHtml } from '@/organizer/org-shared'
+import { confirmCupMatch, type FinalMatchRow, type FinalMatchPlayerRow } from '@/services/kampService'
+import { sideNameHtml } from '@/organizer/org-shared'
 import type { MatchSide } from '@/utils/kamp'
 import { showToast } from '@/components/Toast'
 
-type AvslSpelarKjent = AvslKampSpelarRow & { kasterid: number }
+type AvslSpelarKjent = FinalMatchPlayerRow & { kasterid: number }
 
 /**
  * Confirm a 3-side cup match: pick the two sides that advance, the remaining
@@ -11,12 +11,12 @@ type AvslSpelarKjent = AvslKampSpelarRow & { kasterid: number }
  * Sides are identified by their rep's kasterid.
  */
 export function opnTreSpelarBekreftDialog(
-  kamp: AvslKampRow,
+  kamp: FinalMatchRow,
   sider: MatchSide<AvslSpelarKjent>[],
   stevneid: number,
   afterConfirm: () => Promise<void>,
 ): void {
-  const navns = sider.map(side => sideNavnHtml(side, false))
+  const navns = sider.map(side => sideNameHtml(side, false))
   const valt: number[] = []  // rep kasterids of advancing sides, in rank order
 
   const modal = document.createElement('div')
@@ -73,14 +73,14 @@ export function opnTreSpelarBekreftDialog(
         .map(s => s.members.map(m => m.kasterid))
       const allKasterids = sider.flatMap(s => s.members.map(m => m.kasterid))
       modal.remove()
-      const { error } = await bekreftCupKamp({
+      const { error } = await confirmCupMatch({
         kampId: kamp.id,
         stevneId: stevneid,
-        rundeNummer: kamp.runde_nummer,
-        rundeNavn: kamp.runde_navn,
-        allKasterids,
-        eliminertIds: eliminertSide?.members.map(m => m.kasterid) ?? [],
-        vidareSider,
+        roundNumber: kamp.runde_nummer,
+        roundName: kamp.runde_navn,
+        allThrowerIds: allKasterids,
+        eliminatedIds: eliminertSide?.members.map(m => m.kasterid) ?? [],
+        advancingSides: vidareSider,
       })
       if (error) { showToast('DB-feil ved bekreft', 'error'); return }
       await afterConfirm()

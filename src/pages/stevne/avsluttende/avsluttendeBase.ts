@@ -1,29 +1,29 @@
 // ── Shared base for avsluttende-phase renderers ───────────────────────────────
 //
-// Usage: call createAvsluttendeRenderer(variant) once at module level in each
+// Usage: call createFinalPhaseRenderer(variant) once at module level in each
 // kastemetode file. The factory returns a render() function that owns its own
 // realtime channel, admin flag, and banner slot.
 //
-// AvsluttendeVariant config fields:
-//   channelName(stevneid)       — realtime channel name, must be unique per variant
-//   renderKamparHtml(ctx)       — HTML for the "Kampar" tab (shown when gruppefordeling exists)
-//   bindKamparEvents(el, ctx)   — bind match interaction handlers
-//   renderSetupHtml(ctx)        — HTML shown before gruppefordeling is set up
-//   bindHeaderEvents(slot, ctx) — bind variant-specific banner button handlers
+// FinalPhaseVariant config fields:
+//   channelName(stevneid)         — realtime channel name, must be unique per variant
+//   renderMatchesHtml(ctx)        — HTML for the "Kampar" tab (shown when group assignment exists)
+//   bindMatchEvents(el, ctx)      — bind match interaction handlers
+//   renderSetupHtml(ctx)          — HTML shown before group assignment is set up
+//   bindHeaderEvents(slot, ctx)   — bind variant-specific banner button handlers
 //
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import {
-  buildAvsluttendeStilling,
-  renderStillingTabell,
-  renderHovudInnhald,
-  renderAvsluttendeKnappar,
-  bindStillingDetaljar,
+  buildFinalStandings,
+  renderStandingTable,
+  renderMainContent,
+  renderFinalButtons,
+  bindStandingDetails,
   bindTabToggle,
   getActiveTab,
   setActiveTab,
-  lagOnEndringHandler,
-  type StillingRad,
-  type OrgKamp,
+  createChangeHandler,
+  type StandingRow,
+  type OrgMatch,
 } from '@/organizer/org-shared'
 import { createLoadingState } from '@/components/LoadingState'
 import { createErrorBanner } from '@/components/ErrorBanner'
@@ -32,80 +32,80 @@ import { confirmDialog } from '@/components/ConfirmDialog'
 import { logError } from '@/utils/logError'
 import { avmeldKanal } from '@/utils/realtime'
 import {
-  hentAvsluttendeKamper,
-  subscribeToKampEndringar,
-  type AvslKampRow,
-  type AvslKampSpelarRow,
+  getFinalRoundMatches,
+  subscribeToMatchChanges,
+  type FinalMatchRow,
+  type FinalMatchPlayerRow,
 } from '@/services/kampService'
 import {
-  hentAvsluttendeStevne,
-  setStevneErfullfort,
-  hentPameldingCount,
-  type AvslStevneRow,
+  getFinalPhaseTournament,
+  setTournamentCompleted,
+  getTournamentRegistrationCount,
+  type FinalPhaseTournamentRow,
 } from '@/services/stevneService'
 import {
-  hentResultatForAvsluttende,
-  hentGrupper,
-  skrivPlaseringar,
-  type AvslResultatRow,
+  getResultsForFinalRound,
+  getGroups,
+  writePlacements,
+  type FinalResultRow,
 } from '@/services/resultatService'
-import { hentParForStevne } from '@/services/pameldingService'
-import type { Runde1FormatTyped, Json } from '@/types'
+import { getPairsForTournament } from '@/services/pameldingService'
+import type { Round1FormatTyped, Json } from '@/types'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type AvslResultatKjent = AvslResultatRow & { kasterid: number }
+type FinalResultKnown = FinalResultRow & { kasterid: number }
 
-export interface AvsluttendeContext {
+export interface FinalPhaseContext {
   container: HTMLElement
   stevneid: number
-  stevne: AvslStevneRow
-  stilling: StillingRad[]
-  startnrMap: Record<number, number>
-  posisjonMap: Record<number, number>
+  stevne: FinalPhaseTournamentRow
+  standings: StandingRow[]
+  startNumberMap: Record<number, number>
+  positionMap: Record<number, number>
   /** Par/Mix stevne — two players share a startnummer */
-  erLag: boolean
-  navnMap: Record<number, string>
-  innlKampar: AvslKampRow[]
-  avslKampar: AvslKampRow[]
-  resultat: AvslResultatKjent[]
+  isTeam: boolean
+  nameMap: Record<number, string>
+  initialMatches: FinalMatchRow[]
+  finalMatches: FinalMatchRow[]
+  results: FinalResultKnown[]
   isAdmin: boolean
-  harGruppefordeling: boolean
-  alleInnlBekrefta: boolean
-  harAvslKampar: boolean
-  runde1Format: Runde1FormatTyped | null
+  hasGroupAssignment: boolean
+  allInitialConfirmed: boolean
+  hasFinalMatches: boolean
+  round1Format: Round1FormatTyped | null
   /** Competing units for setup: complete pairs for lag-based stevner, enrolled players otherwise */
   unitCount: number
-  gruppeNavnMap: Record<string, number>
+  groupNameMap: Record<string, number>
   reload: () => Promise<void>
 }
 
-export interface AvsluttendeVariant {
+export interface FinalPhaseVariant {
   channelName: (stevneid: number) => string
-  renderKamparHtml: (ctx: AvsluttendeContext) => string
-  bindKamparEvents: (container: HTMLElement, ctx: AvsluttendeContext) => void
-  renderSetupHtml: (ctx: AvsluttendeContext) => string
-  bindHeaderEvents: (bannerSlot: HTMLElement | null, ctx: AvsluttendeContext) => void
+  renderMatchesHtml: (ctx: FinalPhaseContext) => string
+  bindMatchEvents: (container: HTMLElement, ctx: FinalPhaseContext) => void
+  renderSetupHtml: (ctx: FinalPhaseContext) => string
+  bindHeaderEvents: (bannerSlot: HTMLElement | null, ctx: FinalPhaseContext) => void
 }
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
 
-function parseRunde1Format(json: Json | null): Runde1FormatTyped | null {
+function parseRound1Format(json: Json | null): Round1FormatTyped | null {
   if (json == null || typeof json !== 'object' || Array.isArray(json)) return null
-  return json as unknown as Runde1FormatTyped
+  return json as unknown as Round1FormatTyped
 }
 
-function toOrgKamp(kampar: AvslKampRow[]): OrgKamp[] {
-  return kampar.map(k => ({
+function toOrgMatch(matches: FinalMatchRow[]): OrgMatch[] {
+  return matches.map(k => ({
     er_bekreftet: k.er_bekreftet,
     er_walkover: k.er_walkover,
     runde_nummer: k.runde_nummer,
     bane_nummer: k.bane_nummer,
-    spelarar: toOrgSp(k.spelarar),
+    spelarar: toOrgPlayer(k.spelarar),
   }))
 }
 
-export function toOrgSp(sp: AvslKampSpelarRow[]) {
+export function toOrgPlayer(sp: FinalMatchPlayerRow[]) {
   return sp.map(s => ({
     kasterid: s.kasterid ?? 0,
     kamp_poeng: s.kamp_poeng ?? 0,
@@ -118,11 +118,11 @@ export function toOrgSp(sp: AvslKampSpelarRow[]) {
 
 // ── Factory ───────────────────────────────────────────────────────────────────
 
-export function createAvsluttendeRenderer(variant: AvsluttendeVariant) {
-  let kanal: RealtimeChannel | null = null
+export function createFinalPhaseRenderer(variant: FinalPhaseVariant) {
+  let channel: RealtimeChannel | null = null
   let bannerSlot: HTMLElement | null = null
   let isAdmin = false
-  const stillingExpandedIds = new Set<string>()
+  const standingExpandedIds = new Set<string>()
 
   async function render(
     container: HTMLElement,
@@ -131,25 +131,25 @@ export function createAvsluttendeRenderer(variant: AvsluttendeVariant) {
   ): Promise<void> {
     bannerSlot = _bannerSlot
     isAdmin = _isAdmin
-    if (kanal) { await avmeldKanal(kanal); kanal = null }
+    if (channel) { await avmeldKanal(channel); channel = null }
     container.replaceChildren(createLoadingState('Laster…'))
-    await lastOgVis(container, id)
+    await loadAndRender(container, id)
   }
 
-  async function lastOgVis(container: HTMLElement, stevneid: number): Promise<void> {
+  async function loadAndRender(container: HTMLElement, stevneid: number): Promise<void> {
     try {
       const [
         { data: stevne },
-        { data: rawKampar },
-        { data: rawResultat },
-        { data: rawGrupper },
-        { count: pameldingCount },
+        { data: rawMatches },
+        { data: rawResults },
+        { data: rawGroups },
+        { count: registrationCount },
       ] = await Promise.all([
-        hentAvsluttendeStevne(stevneid),
-        hentAvsluttendeKamper(stevneid),
-        hentResultatForAvsluttende(stevneid),
-        hentGrupper(['A', 'B']),
-        hentPameldingCount(stevneid),
+        getFinalPhaseTournament(stevneid),
+        getFinalRoundMatches(stevneid),
+        getResultsForFinalRound(stevneid),
+        getGroups(['A', 'B']),
+        getTournamentRegistrationCount(stevneid),
       ])
 
       if (!stevne) {
@@ -157,100 +157,100 @@ export function createAvsluttendeRenderer(variant: AvsluttendeVariant) {
         return
       }
 
-      const typedResultat = rawResultat.filter((r): r is AvslResultatKjent => r.kasterid != null)
-      const innlKampar = rawKampar.filter(k => k.fase === 'innledende')
-      const avslKampar = rawKampar.filter(k => k.fase === 'avsluttende')
+      const typedResults = rawResults.filter((r): r is FinalResultKnown => r.kasterid != null)
+      const initialMatches = rawMatches.filter(k => k.fase === 'innledende')
+      const finalMatches = rawMatches.filter(k => k.fase === 'avsluttende')
 
-      const startnrMap: Record<number, number> = {}
-      const posisjonMap: Record<number, number> = {}
+      const startNumberMap: Record<number, number> = {}
+      const positionMap: Record<number, number> = {}
       const snrCount = new Map<number, number>()
-      for (const r of typedResultat) {
+      for (const r of typedResults) {
         if (r.startnummer != null) {
-          startnrMap[r.kasterid] = r.startnummer
+          startNumberMap[r.kasterid] = r.startnummer
           snrCount.set(r.startnummer, (snrCount.get(r.startnummer) ?? 0) + 1)
         }
-        if (r.posisjon != null) posisjonMap[r.kasterid] = r.posisjon
+        if (r.posisjon != null) positionMap[r.kasterid] = r.posisjon
       }
       // Par/Mix: two players share a startnummer
-      const erLag = [...snrCount.values()].some(c => c > 1)
+      const isTeam = [...snrCount.values()].some(c => c > 1)
 
-      const navnMap: Record<number, string> = {}
-      for (const k of rawKampar) {
+      const nameMap: Record<number, string> = {}
+      for (const k of rawMatches) {
         for (const sp of k.spelarar) {
-          if (sp.kasterid && sp.kaster && !navnMap[sp.kasterid]) {
-            navnMap[sp.kasterid] = `${sp.kaster.fornavn} ${sp.kaster.etternavn}`
+          if (sp.kasterid && sp.kaster && !nameMap[sp.kasterid]) {
+            nameMap[sp.kasterid] = `${sp.kaster.fornavn} ${sp.kaster.etternavn}`
           }
         }
       }
 
-      const innlKamparOrg = toOrgKamp(innlKampar)
-      const stilling = buildAvsluttendeStilling(innlKamparOrg, typedResultat, navnMap, startnrMap, posisjonMap)
+      const initialMatchesOrg = toOrgMatch(initialMatches)
+      const standings = buildFinalStandings(initialMatchesOrg, typedResults, nameMap, startNumberMap, positionMap)
 
-      const alleInnlBekrefta = innlKampar.length > 0 && innlKampar.every(k => k.er_bekreftet)
-      const harAvslKampar = avslKampar.length > 0
-      const harNokonKampar = innlKampar.length > 0 || harAvslKampar
-      const allMatchesConfirmed = harNokonKampar &&
-        innlKampar.every(k => k.er_bekreftet) &&
-        avslKampar.every(k => k.er_bekreftet)
-      const harGruppefordeling = typedResultat.some(r => r.gruppe != null)
-      const gruppeNavnMap: Record<string, number> = Object.fromEntries(rawGrupper.map(g => [g.navn, g.id]))
-      const runde1Format = parseRunde1Format(stevne.runde1_format)
+      const allInitialConfirmed = initialMatches.length > 0 && initialMatches.every(k => k.er_bekreftet)
+      const hasFinalMatches = finalMatches.length > 0
+      const hasAnyMatches = initialMatches.length > 0 || hasFinalMatches
+      const allMatchesConfirmed = hasAnyMatches &&
+        initialMatches.every(k => k.er_bekreftet) &&
+        finalMatches.every(k => k.er_bekreftet)
+      const hasGroupAssignment = typedResults.some(r => r.gruppe != null)
+      const groupNameMap: Record<string, number> = Object.fromEntries(rawGroups.map(g => [g.navn, g.id]))
+      const round1Format = parseRound1Format(stevne.runde1_format)
 
       // Lag-based: the competing unit is a pair, so setup must count
       // complete pairs — not enrolled players
-      let unitCount = pameldingCount ?? 0
+      let unitCount = registrationCount ?? 0
       if (stevne.kategori?.erlagbasert) {
-        const { data: pairs } = await hentParForStevne(stevneid)
+        const { data: pairs } = await getPairsForTournament(stevneid)
         unitCount = pairs.length
       }
 
-      const ctx: AvsluttendeContext = {
+      const ctx: FinalPhaseContext = {
         container,
         stevneid,
         stevne,
-        stilling,
-        startnrMap,
-        posisjonMap,
-        erLag,
-        navnMap,
-        innlKampar,
-        avslKampar,
-        resultat: typedResultat,
+        standings,
+        startNumberMap,
+        positionMap,
+        isTeam,
+        nameMap,
+        initialMatches,
+        finalMatches,
+        results: typedResults,
         isAdmin,
-        harGruppefordeling,
-        alleInnlBekrefta,
-        harAvslKampar,
-        runde1Format,
+        hasGroupAssignment,
+        allInitialConfirmed,
+        hasFinalMatches,
+        round1Format,
         unitCount,
-        gruppeNavnMap,
-        reload: () => lastOgVis(container, stevneid),
+        groupNameMap,
+        reload: () => loadAndRender(container, stevneid),
       }
 
       if (isAdmin && bannerSlot) {
-        bannerSlot.innerHTML = renderAvsluttendeKnappar(stevne, {
+        bannerSlot.innerHTML = renderFinalButtons(stevne, {
           allMatchesConfirmed,
-          harAvslKampar,
-          harGruppefordeling,
-          harPrekonfigurertFormat: runde1Format != null && stevne.stevne_fase !== 'avsluttende',
+          hasFinalMatches,
+          hasGroupAssignment,
+          hasPreconfiguredFormat: round1Format != null && stevne.stevne_fase !== 'avsluttende',
         })
       }
 
       const activeTab = getActiveTab(container)
 
-      if (harGruppefordeling) {
-        const stillingHtml = renderStillingTabell(stilling, innlKamparOrg, startnrMap, {
+      if (hasGroupAssignment) {
+        const standingHtml = renderStandingTable(standings, initialMatchesOrg, startNumberMap, {
           tableId: 'stilling-avsl',
-          harGrupper: true,
-          harEliminasjon: true,
-          posisjonMap,
-          unitLabel: erLag ? 'par' : 'spelarar',
+          hasGroups: true,
+          hasElimination: true,
+          positionMap,
+          unitLabel: isTeam ? 'par' : 'spelarar',
         })
-        container.innerHTML = renderHovudInnhald(variant.renderKamparHtml(ctx), stillingHtml)
-        bindStillingDetaljar(container, 'stilling-avsl', stillingExpandedIds)
+        container.innerHTML = renderMainContent(variant.renderMatchesHtml(ctx), standingHtml)
+        bindStandingDetails(container, 'stilling-avsl', standingExpandedIds)
         bindTabToggle(container)
         if (activeTab === 'stilling') setActiveTab(container, 'stilling')
-        variant.bindKamparEvents(container, ctx)
-        abonnerPaaEndringar(container, stevneid)
+        variant.bindMatchEvents(container, ctx)
+        subscribeToChanges(container, stevneid)
       } else {
         container.innerHTML = variant.renderSetupHtml(ctx)
       }
@@ -258,32 +258,32 @@ export function createAvsluttendeRenderer(variant: AvsluttendeVariant) {
       bannerSlot?.querySelector('#fullfør-turnering-btn')?.addEventListener('click', async () => {
         if (!await confirmDialog({ title: 'Fullfør turnering', message: 'Vil du fullføre turneringa? Dette kan ikkje angrast.', danger: true })) return
         // Sort by gruppe so A gets 1..nA, B gets nA+1..nA+nB.
-        // sorterStilling mixes groups together; filtering preserves correct within-group order.
-        const stillingByGruppe = [
-          ...stilling.filter(r => r.gruppe?.navn === 'A'),
-          ...stilling.filter(r => r.gruppe?.navn === 'B'),
-          ...stilling.filter(r => r.gruppe?.navn !== 'A' && r.gruppe?.navn !== 'B'),
+        // sortStandings mixes groups together; filtering preserves correct within-group order.
+        const standingsByGroup = [
+          ...standings.filter(r => r.gruppe?.navn === 'A'),
+          ...standings.filter(r => r.gruppe?.navn === 'B'),
+          ...standings.filter(r => r.gruppe?.navn !== 'A' && r.gruppe?.navn !== 'B'),
         ]
-        const { error: plErr } = await skrivPlaseringar(stevneid, stillingByGruppe)
+        const { error: plErr } = await writePlacements(stevneid, standingsByGroup)
         if (plErr) { showToast('Feil ved lagring av plasseringar', 'error'); return }
-        const { error } = await setStevneErfullfort(stevneid)
+        const { error } = await setTournamentCompleted(stevneid)
         if (error) { showToast('Feil ved fullføring av turnering', 'error'); return }
-        await lastOgVis(container, stevneid)
+        await loadAndRender(container, stevneid)
       })
 
       variant.bindHeaderEvents(bannerSlot, ctx)
     } catch (err) {
-      logError('avsluttendeBase.lastOgVis', err)
+      logError('avsluttendeBase.loadAndRender', err)
       container.replaceChildren(createErrorBanner('Kunne ikkje laste avsluttande fase.'))
     }
   }
 
-  function abonnerPaaEndringar(container: HTMLElement, stevneid: number): void {
-    if (kanal) return
-    const onEndring = lagOnEndringHandler(stevneid, ['avsluttende'], container, lastOgVis, () => {
-      if (kanal) { void avmeldKanal(kanal); kanal = null }
+  function subscribeToChanges(container: HTMLElement, stevneid: number): void {
+    if (channel) return
+    const onChange = createChangeHandler(stevneid, ['avsluttende'], container, loadAndRender, () => {
+      if (channel) { void avmeldKanal(channel); channel = null }
     })
-    kanal = subscribeToKampEndringar(stevneid, variant.channelName(stevneid), onEndring)
+    channel = subscribeToMatchChanges(stevneid, variant.channelName(stevneid), onChange)
   }
 
   return render

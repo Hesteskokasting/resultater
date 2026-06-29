@@ -1,10 +1,10 @@
-import { kasterNavn } from '@/utils/kaster'
+import { throwerName } from '@/utils/kaster'
 import { showToast } from '@/components/Toast'
 import { errorMessage } from '@/utils/errorMessage'
-import { hentInnledendeKamper } from '@/services/kampService'
-import { hentResultatForInnledende } from '@/services/resultatService'
-import { hentParForStevne } from '@/services/pameldingService'
-import type { PameldingPar } from '@/services/pameldingService'
+import { getInitialRoundMatches } from '@/services/kampService'
+import { getResultsForInitialRound } from '@/services/resultatService'
+import { getPairsForTournament } from '@/services/pameldingService'
+import type { RegistrationPair } from '@/services/pameldingService'
 import { buildRoundInfos, hentKlubbNamn } from '@/utils/startcard/roundInfoBuilder'
 import type { PrintMatch } from '@/utils/startcard/roundInfoBuilder'
 import { formatStartkortReceipt } from '@/utils/receipt/receiptFormat'
@@ -17,14 +17,14 @@ import {
   forget as forgetPrinter,
   printBytes,
 } from '@/services/receiptPrinterService'
-import type { KasterListeRow } from '@/services/kasterService'
+import type { ThrowerListRow } from '@/services/kasterService'
 
 interface InnlData {
   alleKamperPrint: PrintMatch[]
   rundeMap: Map<number, PrintMatch[]>
   startnrMap: Record<number, number>
   sortertRundar: number[]
-  pairs: PameldingPar[]
+  pairs: RegistrationPair[]
 }
 
 interface Props {
@@ -37,7 +37,7 @@ interface Props {
 export interface PrinterBanner {
   element: HTMLElement
   /** null = show empty print column (printer disconnected); handler = show print button */
-  getPrintHandler: () => ((spelar: KasterListeRow) => void) | null
+  getPrintHandler: () => ((spelar: ThrowerListRow) => void) | null
   /** Call when enrollment changes so cached match data is discarded */
   invalidateMatchData: () => void
 }
@@ -57,9 +57,9 @@ export function createPrinterBanner(props: Props): PrinterBanner {
   async function ensureInnlData(): Promise<InnlData | null> {
     if (innlData) return innlData
     const [kamperRes, resultatRes, parRes] = await Promise.all([
-      hentInnledendeKamper(stevneId),
-      hentResultatForInnledende(stevneId),
-      erLag ? hentParForStevne(stevneId) : Promise.resolve({ data: [] as PameldingPar[], error: null }),
+      getInitialRoundMatches(stevneId),
+      getResultsForInitialRound(stevneId),
+      erLag ? getPairsForTournament(stevneId) : Promise.resolve({ data: [] as RegistrationPair[], error: null }),
     ])
     if (kamperRes.error) { showToast('Feil ved lasting av kampdata', 'error'); return null }
     if (resultatRes.error) { showToast('Feil ved lasting av resultatdata', 'error'); return null }
@@ -93,9 +93,9 @@ export function createPrinterBanner(props: Props): PrinterBanner {
     return innlData
   }
 
-  function getPrintHandler(): ((spelar: KasterListeRow) => void) | null {
+  function getPrintHandler(): ((spelar: ThrowerListRow) => void) | null {
     if (!isPrinterConnected()) return null
-    return async (spelar: KasterListeRow) => {
+    return async (spelar: ThrowerListRow) => {
       const data = await ensureInnlData()
       if (!data) return
       const pair = data.pairs.find(p => p.sideA.kasterid === spelar.id || p.sideB.kasterid === spelar.id)
@@ -104,9 +104,9 @@ export function createPrinterBanner(props: Props): PrinterBanner {
         const partnerMember = pair.sideA.kasterid === spelar.id ? pair.sideB : pair.sideA
         const pk = partnerMember.kaster
         const partnerNavn = pk ? `${pk.fornavn ?? ''} ${pk.etternavn ?? ''}`.trim() : ''
-        namn = `${kasterNavn(spelar)} / ${partnerNavn}`
+        namn = `${throwerName(spelar)} / ${partnerNavn}`
       } else {
-        namn = kasterNavn(spelar)
+        namn = throwerName(spelar)
       }
       const startnummer = data.startnrMap[spelar.id] ?? ''
       const roundInfos = buildRoundInfos(spelar.id, data.sortertRundar, data.rundeMap, data.startnrMap)

@@ -1,5 +1,5 @@
 import { getUser } from '@/services/authService'
-import { formaterDatoNumeric, formaterTid } from '@/utils/shared'
+import { formatDateNumeric, formatTime } from '@/utils/shared'
 import { createErrorBanner } from '@/components/ErrorBanner'
 import { createLoadingState } from '@/components/LoadingState'
 import { escHtml } from '@/utils/escHtml'
@@ -7,11 +7,11 @@ import { logError } from '@/utils/logError'
 import { errorMessage } from '@/utils/errorMessage'
 import { showToast } from '@/components/Toast'
 import { confirmDialog } from '@/components/ConfirmDialog'
-import { hentInfoStevne, oppdaterStevneFase } from '@/services/stevneService'
+import { getInfoTournament, updateTournamentPhase } from '@/services/stevneService'
 import { livePillHtml } from '@/components/LivePill'
-import { hentAntallPameldingar, hentAntallPar, hentAntallUbekrefta, hentMinPameldingForStevne } from '@/services/pameldingService'
+import { getRegistrationCount, getPairCount, getUnconfirmedCount, getMyRegistrationForTournament } from '@/services/pameldingService'
 import { createPameldingKnapp } from '@/components/PameldingKnapp'
-import { genererInnledendeKamper } from '@/services/kampGenereringInnledendeService'
+import { generateInitialRoundMatches } from '@/services/kampGenereringInnledendeService'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -33,9 +33,9 @@ export async function render(
 
   try {
     const [stevneRes, antall, antallPar, auth] = await Promise.all([
-      hentInfoStevne(id),
-      hentAntallPameldingar(id),
-      hentAntallPar(id),
+      getInfoTournament(id),
+      getRegistrationCount(id),
+      getPairCount(id),
       getUser(),
     ])
 
@@ -76,7 +76,7 @@ export async function render(
           showToast('Du må setje antal rundar for innleiande fase. Gå til Innstillingar for å endre.', 'error')
           return
         }
-        const ubekrefta = await hentAntallUbekrefta(id)
+        const ubekrefta = await getUnconfirmedCount(id)
         if (ubekrefta > 0) {
           const ok = await confirmDialog({ title: 'Ubekrefta spelarar', message: `${ubekrefta} spelar(ar) er ikkje bekrefta. Vil du starte stevnet likevel?` })
           if (!ok) return
@@ -84,14 +84,14 @@ export async function render(
         startBtn.disabled = true
         startBtn.textContent = 'Starter…'
         try {
-          await genererInnledendeKamper(id, metodeNavn, stevne.antall_runder_innl ?? 1, erLag)
+          await generateInitialRoundMatches(id, metodeNavn, stevne.antall_runder_innl ?? 1, erLag)
         } catch (err) {
           showToast('Feil ved kampgenerering: ' + errorMessage(err), 'error')
           startBtn.disabled = false
           startBtn.textContent = 'Start stevne'
           return
         }
-        const { error: faseErr } = await oppdaterStevneFase(id, 'innledende')
+        const { error: faseErr } = await updateTournamentPhase(id, 'innledende')
         if (faseErr) {
           showToast('Feil ved oppdatering av fase.', 'error')
           startBtn.disabled = false
@@ -111,8 +111,8 @@ export async function render(
             <tbody>
               <tr><th>Status</th><td>${statusBadge(stevne.stevne_fase, stevne.erfullfort)}</td></tr>
               <tr><th>Stad</th><td>${escHtml(stevne.sted ?? '—')}</td></tr>
-              <tr><th>Dato</th><td>${stevne.dato ? formaterDatoNumeric(stevne.dato) : '—'}</td></tr>
-              <tr><th>Tid</th><td>${stevne.tid ? formaterTid(stevne.tid) : '—'}</td></tr>
+              <tr><th>Dato</th><td>${stevne.dato ? formatDateNumeric(stevne.dato) : '—'}</td></tr>
+              <tr><th>Tid</th><td>${stevne.tid ? formatTime(stevne.tid) : '—'}</td></tr>
               <tr><th>Kategori</th><td>${escHtml(stevne.kategori?.navn ?? '—')}</td></tr>
               <tr><th>Kastemetode innleiande</th><td>${escHtml(metodeNavn)}</td></tr>
               <tr><th>Kastemetode avsluttande</th><td>${escHtml(stevne.kastemetodeAvsl?.navn ?? '—')}</td></tr>
@@ -131,7 +131,7 @@ export async function render(
       const kasterid = auth.profil.kasterid
       if (kasterid === null) return
 
-      const minPamelding = (await hentMinPameldingForStevne(id, kasterid)).data
+      const minPamelding = (await getMyRegistrationForTournament(id, kasterid)).data
 
       knapper.appendChild(createPameldingKnapp({
         stevneId: id,

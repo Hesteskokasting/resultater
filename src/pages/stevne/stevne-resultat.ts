@@ -1,17 +1,17 @@
-import { kasterNavn, lagKasterSlug } from '@/utils/kaster'
+import { throwerName, buildThrowerSlug } from '@/utils/kaster'
 import { createErrorBanner } from '@/components/ErrorBanner'
 import { createLoadingState } from '@/components/LoadingState'
 import { createEmptyState } from '@/components/EmptyState'
 import { escHtml } from '@/utils/escHtml'
 import { logError } from '@/utils/logError'
-import { hentStevneMedDetaljer, hentResultaterForStevne } from '@/services/resultatService'
-import type { ResultatRad } from '@/services/resultatService'
+import { getTournamentWithDetails, getResultsForTournament } from '@/services/resultatService'
+import type { ResultRow } from '@/services/resultatService'
 
 // ── Typar ─────────────────────────────────────────────────────────────────────
 
 interface GruppeEntry {
   label: string
-  rader: ResultatRad[]
+  rader: ResultRow[]
 }
 
 interface ColFlags {
@@ -26,7 +26,7 @@ const KP_SP_INNLEDENDE = new Set(['Gloppen', 'Nordhordlandsmetoden'])
 // ── Hjelpefunksjonar ──────────────────────────────────────────────────────────
 
 /** Club display for a pair — "Klubb A / Klubb B" if different, "Klubb A" if same. */
-function parKlubbDisplay(par: ResultatRad[]): string {
+function parKlubbDisplay(par: ResultRow[]): string {
   const seen = new Set<string>()
   const names: string[] = []
   for (const r of par) {
@@ -37,8 +37,8 @@ function parKlubbDisplay(par: ResultatRad[]): string {
 }
 
 /** Groups rows within a gruppe by startnummer for Par/Mix display. */
-function grupperParVis(rader: ResultatRad[]): ResultatRad[][] {
-  const map = new Map<number | string, ResultatRad[]>()
+function grupperParVis(rader: ResultRow[]): ResultRow[][] {
+  const map = new Map<number | string, ResultRow[]>()
   let fallbackIdx = 0
   for (const r of rader) {
     const key = r.startnummer != null ? r.startnummer : `_${fallbackIdx++}`
@@ -49,7 +49,7 @@ function grupperParVis(rader: ResultatRad[]): ResultatRad[][] {
   return [...map.values()]
 }
 
-function grupperResultater(resultater: ResultatRad[], erFoer2026: boolean): GruppeEntry[] {
+function grupperResultater(resultater: ResultRow[], erFoer2026: boolean): GruppeEntry[] {
   const grupper = new Map<string, GruppeEntry>()
 
   for (const r of resultater) {
@@ -67,7 +67,7 @@ function grupperResultater(resultater: ResultatRad[], erFoer2026: boolean): Grup
 
 // ── HTML-byggjarar ────────────────────────────────────────────────────────────
 
-function mobilMetaHtml(rep: ResultatRad, cols: ColFlags): string {
+function mobilMetaHtml(rep: ResultRow, cols: ColFlags): string {
   const parts: string[] = []
   if (cols.showKpSp) parts.push(`KP ${rep.kamp_poeng_innl ?? '–'}`, `SP ${rep.score_poeng_innl ?? '–'}`)
   if (cols.showNc)   parts.push(`NC ${rep.nc_poeng ?? '–'}`)
@@ -78,7 +78,7 @@ function mobilGruppeHtml(gruppe: GruppeEntry, cols: ColFlags): string {
   const rader = cols.isParMix
     ? grupperParVis(gruppe.rader).map(par => {
         const rep = par[0]!
-        const navneHtml = par.map(r => escHtml(kasterNavn(r.kaster) || '–')).join(' og ')
+        const navneHtml = par.map(r => escHtml(throwerName(r.kaster) || '–')).join(' og ')
         return `
           <div class="res-rad">
             <span class="res-pl">${rep.plassering ?? '–'}.</span>
@@ -93,7 +93,7 @@ function mobilGruppeHtml(gruppe: GruppeEntry, cols: ColFlags): string {
         <div class="res-rad">
           <span class="res-pl">${r.plassering ?? '–'}.</span>
           <div class="res-info">
-            <span class="res-navn">${escHtml(kasterNavn(r.kaster) || '–')}</span>
+            <span class="res-navn">${escHtml(throwerName(r.kaster) || '–')}</span>
             <span class="res-klubb">${escHtml(r.klubb?.navn ?? '–')}</span>
             ${mobilMetaHtml(r, cols)}
           </div>
@@ -110,7 +110,7 @@ function desktopRadHtml(
   plassering: number | null,
   navneHtml: string,
   klubbHtml: string,
-  rep: ResultatRad,
+  rep: ResultRow,
   cols: ColFlags,
 ): string {
   return `
@@ -130,7 +130,7 @@ function desktopGruppeHtml(gruppe: GruppeEntry, cols: ColFlags): string {
         const navneHtml = par.map(r => {
           const k = r.kaster
           return k
-            ? `<a href="#/kastere/${lagKasterSlug(k)}" class="res-kaster-lenke">${escHtml(kasterNavn(k))}</a>`
+            ? `<a href="#/kastere/${buildThrowerSlug(k)}" class="res-kaster-lenke">${escHtml(throwerName(k))}</a>`
             : '–'
         }).join(' og ')
         return desktopRadHtml(rep.plassering, navneHtml, parKlubbDisplay(par), rep, cols)
@@ -138,7 +138,7 @@ function desktopGruppeHtml(gruppe: GruppeEntry, cols: ColFlags): string {
     : gruppe.rader.map(r => {
         const k = r.kaster
         const navneHtml = k
-          ? `<a href="#/kastere/${lagKasterSlug(k)}" class="res-kaster-lenke">${escHtml(kasterNavn(k))}</a>`
+          ? `<a href="#/kastere/${buildThrowerSlug(k)}" class="res-kaster-lenke">${escHtml(throwerName(k))}</a>`
           : '–'
         return desktopRadHtml(r.plassering, navneHtml, escHtml(r.klubb?.navn ?? '–'), r, cols)
       }).join('')
@@ -175,8 +175,8 @@ export async function render(
 
   try {
     const [stevneRes, resultatRes] = await Promise.all([
-      hentStevneMedDetaljer(id),
-      hentResultaterForStevne(id),
+      getTournamentWithDetails(id),
+      getResultsForTournament(id),
     ])
 
     if (stevneRes.error || !stevneRes.data) {

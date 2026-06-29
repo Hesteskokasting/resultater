@@ -1,46 +1,46 @@
 import type { Tables, Kaster, Klubb } from '@/types'
-import { kasterNavn } from './kaster'
-import { tildelPlassering } from './tildelPlassering'
-import type { ResultatMedRelasjonar, StevneForNc } from '@/services/norgescupService'
+import { throwerName } from './kaster'
+import { assignPlacements } from './tildelPlassering'
+import type { ResultWithRelations, TournamentForNC } from '@/services/norgescupService'
 
-export type { ResultatMedRelasjonar, StevneForNc }
+export type { ResultWithRelations, TournamentForNC }
 
-// ── Private typar ─────────────────────────────────────────────────────────────
+// ── Private types ─────────────────────────────────────────────────────────────
 
 type Regler = Tables<'antallTellendeNc'>
 
-interface StevneMetadata {
+interface EventMetadata {
   navn: string
   dato: string | null
   typeNavn: string
 }
 
-type StevnerMap = Map<number, StevneMetadata>
+type EventsMap = Map<number, EventMetadata>
 
-// ── Eksporterte typar ─────────────────────────────────────────────────────────
+// ── Exported types ────────────────────────────────────────────────────────────
 
-export interface SingelListeRad {
+export interface SingleListRow {
   navn: string
   klubb: string
   totalPoeng: number
-  detaljRader: (ResultatMedRelasjonar & { _stevne?: StevneMetadata })[]
+  detaljRader: (ResultWithRelations & { _stevne?: EventMetadata })[]
   plassering: number
 }
 
-export interface LagListeRad {
+export interface TeamListRow {
   klubb: Klubb
   lagTotal: number
   plassering: number
   bidragsytere: { kaster: Kaster; klubbId: number; sum: number }[]
 }
 
-type BeregnFn = (
-  rader: ResultatMedRelasjonar[],
+type CalcFn = (
+  rader: ResultWithRelations[],
   regler: Regler,
-  stevnerMap: StevnerMap
-) => ResultatMedRelasjonar[]
+  eventsMap: EventsMap
+) => ResultWithRelations[]
 
-// ── Eksporterte hjelpefunksjonar ──────────────────────────────────────────────
+// ── Exported helpers ──────────────────────────────────────────────────────────
 
 export function formaterPoeng(p: number | null | undefined): string {
   if (p == null) return '–'
@@ -48,24 +48,24 @@ export function formaterPoeng(p: number | null | undefined): string {
   return Number.isInteger(n) ? String(n) : n.toFixed(1)
 }
 
-// ── Private hjelpefunksjonar ──────────────────────────────────────────────────
+// ── Private helpers ───────────────────────────────────────────────────────────
 
-function lagStevnerMap(stevner: StevneForNc[]): StevnerMap {
-  const m: StevnerMap = new Map()
+function buildEventsMap(stevner: TournamentForNC[]): EventsMap {
+  const m: EventsMap = new Map()
   for (const s of stevner) {
     m.set(s.id, { navn: s.navn, dato: s.dato, typeNavn: s.stevnetype?.navn ?? '' })
   }
   return m
 }
 
-function sorterDesc(arr: ResultatMedRelasjonar[]): ResultatMedRelasjonar[] {
+function sorterDesc(arr: ResultWithRelations[]): ResultWithRelations[] {
   return [...arr].sort((a, b) => (b.nc_poeng ?? 0) - (a.nc_poeng ?? 0))
 }
 
-function beregnNcPoeng(rader: ResultatMedRelasjonar[], regler: Regler, stevnerMap: StevnerMap): ResultatMedRelasjonar[] {
-  const nc: ResultatMedRelasjonar[] = [], snc: ResultatMedRelasjonar[] = [], dnc: ResultatMedRelasjonar[] = []
+function beregnNcPoeng(rader: ResultWithRelations[], regler: Regler, eventsMap: EventsMap): ResultWithRelations[] {
+  const nc: ResultWithRelations[] = [], snc: ResultWithRelations[] = [], dnc: ResultWithRelations[] = []
   for (const r of rader) {
-    const t = stevnerMap.get(r.stevneid ?? -1)?.typeNavn ?? ''
+    const t = eventsMap.get(r.stevneid ?? -1)?.typeNavn ?? ''
     if (t === 'NC') nc.push(r)
     else if (t === 'SNC') snc.push(r)
     else if (t === 'DNC') dnc.push(r)
@@ -77,25 +77,25 @@ function beregnNcPoeng(rader: ResultatMedRelasjonar[], regler: Regler, stevnerMa
   return sorterDesc([...tellNc, ...tellSnc, ...tellDnc]).slice(0, regler.maxtotal)
 }
 
-function beregnSncPoeng(rader: ResultatMedRelasjonar[], regler: Regler, stevnerMap: StevnerMap): ResultatMedRelasjonar[] {
-  const snc = rader.filter(r => stevnerMap.get(r.stevneid ?? -1)?.typeNavn === 'SNC')
+function beregnSncPoeng(rader: ResultWithRelations[], regler: Regler, eventsMap: EventsMap): ResultWithRelations[] {
+  const snc = rader.filter(r => eventsMap.get(r.stevneid ?? -1)?.typeNavn === 'SNC')
   return sorterDesc(snc).slice(0, regler.max_snc)
 }
 
-function beregnDncPoeng(rader: ResultatMedRelasjonar[], regler: Regler, stevnerMap: StevnerMap): ResultatMedRelasjonar[] {
-  const dnc = rader.filter(r => stevnerMap.get(r.stevneid ?? -1)?.typeNavn === 'DNC')
+function beregnDncPoeng(rader: ResultWithRelations[], regler: Regler, eventsMap: EventsMap): ResultWithRelations[] {
+  const dnc = rader.filter(r => eventsMap.get(r.stevneid ?? -1)?.typeNavn === 'DNC')
   return sorterDesc(dnc).slice(0, regler.max_dnc)
 }
 
-function velgBeregnFunksjon(cupType: string): BeregnFn {
+function velgBeregnFunksjon(cupType: string): CalcFn {
   if (cupType === 'SNC') return beregnSncPoeng
   if (cupType === 'DNC') return beregnDncPoeng
   return beregnNcPoeng
 }
 
 /** Groups result rows per kaster, dropping rows without a known kaster. */
-function grupperPerKaster(rader: ResultatMedRelasjonar[]): Map<number, { kaster: Kaster; rader: ResultatMedRelasjonar[] }> {
-  const kasterMap = new Map<number, { kaster: Kaster; rader: ResultatMedRelasjonar[] }>()
+function groupByThrower(rader: ResultWithRelations[]): Map<number, { kaster: Kaster; rader: ResultWithRelations[] }> {
+  const kasterMap = new Map<number, { kaster: Kaster; rader: ResultWithRelations[] }>()
   for (const r of rader) {
     if (r.kasterid == null || r.kaster == null) continue
     if (!kasterMap.has(r.kasterid)) kasterMap.set(r.kasterid, { kaster: r.kaster, rader: [] })
@@ -104,50 +104,50 @@ function grupperPerKaster(rader: ResultatMedRelasjonar[]): Map<number, { kaster:
   return kasterMap
 }
 
-// ── Eksporterte listebyggarar ─────────────────────────────────────────────────
+// ── Exported list builders ────────────────────────────────────────────────────
 
-export function byggSingelListe(
-  resultater: ResultatMedRelasjonar[],
-  stevner: StevneForNc[],
+export function buildSingleList(
+  resultater: ResultWithRelations[],
+  stevner: TournamentForNC[],
   regler: Regler,
   cupType: string,
   klasse: number
-): SingelListeRad[] {
-  const stevnerMap = lagStevnerMap(stevner)
+): SingleListRow[] {
+  const eventsMap = buildEventsMap(stevner)
   const beregn = velgBeregnFunksjon(cupType)
   const klasseNavn = klasse === 1 ? 'Klasse 1' : 'Klasse 2'
 
-  const kasterMap = grupperPerKaster(resultater.filter(r => r.klasse?.navn === klasseNavn))
+  const kasterMap = groupByThrower(resultater.filter(r => r.klasse?.navn === klasseNavn))
 
-  const liste: SingelListeRad[] = []
+  const liste: SingleListRow[] = []
   for (const [, entry] of kasterMap) {
-    const tellendeRader = beregn(entry.rader, regler, stevnerMap)
+    const tellendeRader = beregn(entry.rader, regler, eventsMap)
     const totalPoeng = tellendeRader.reduce((s, r) => s + (r.nc_poeng ?? 0), 0)
     const klubber = [...new Set(tellendeRader.map(r => r.klubb?.navn).filter((n): n is string => n != null))]
     const detaljRader = tellendeRader
-      .map(r => ({ ...r, _stevne: stevnerMap.get(r.stevneid ?? -1) }))
+      .map(r => ({ ...r, _stevne: eventsMap.get(r.stevneid ?? -1) }))
       .sort((a, b) => (a._stevne?.dato ?? '').localeCompare(b._stevne?.dato ?? ''))
-    liste.push({ navn: kasterNavn(entry.kaster), klubb: klubber.join(' / '), totalPoeng, detaljRader, plassering: 0 })
+    liste.push({ navn: throwerName(entry.kaster), klubb: klubber.join(' / '), totalPoeng, detaljRader, plassering: 0 })
   }
 
   liste.sort((a, b) => b.totalPoeng - a.totalPoeng || a.navn.localeCompare(b.navn))
-  tildelPlassering(liste, r => r.totalPoeng)
+  assignPlacements(liste, r => r.totalPoeng)
   return liste
 }
 
-export function byggLagListe(
-  resultater: ResultatMedRelasjonar[],
-  stevner: StevneForNc[],
+export function buildTeamList(
+  resultater: ResultWithRelations[],
+  stevner: TournamentForNC[],
   regler: Regler
-): LagListeRad[] {
-  const stevnerMap = lagStevnerMap(stevner)
-  const kasterMap = grupperPerKaster(resultater.filter(r => r.klasse?.navn === 'Klasse 1'))
+): TeamListRow[] {
+  const eventsMap = buildEventsMap(stevner)
+  const kasterMap = groupByThrower(resultater.filter(r => r.klasse?.navn === 'Klasse 1'))
 
   const bidragMap = new Map<string, { kaster: Kaster; klubbId: number; sum: number }>()
   const klubbInfoMap = new Map<number, Klubb>()
 
   for (const [, entry] of kasterMap) {
-    const tellendeRader = beregnNcPoeng(entry.rader, regler, stevnerMap)
+    const tellendeRader = beregnNcPoeng(entry.rader, regler, eventsMap)
     const perKlubb = new Map<number, number>()
     for (const r of tellendeRader) {
       const klubb = r.klubb
@@ -165,14 +165,14 @@ export function byggLagListe(
     klubbMap.get(b.klubbId)!.bidragsytere.push(b)
   }
 
-  const lagListe: LagListeRad[] = []
+  const teamList: TeamListRow[] = []
   for (const [, entry] of klubbMap) {
     entry.bidragsytere.sort((a, b) => b.sum - a.sum)
     const topp4 = entry.bidragsytere.slice(0, 4)
-    lagListe.push({ klubb: entry.klubb, lagTotal: topp4.reduce((s, b) => s + b.sum, 0), bidragsytere: topp4, plassering: 0 })
+    teamList.push({ klubb: entry.klubb, lagTotal: topp4.reduce((s, b) => s + b.sum, 0), bidragsytere: topp4, plassering: 0 })
   }
 
-  lagListe.sort((a, b) => b.lagTotal - a.lagTotal)
-  tildelPlassering(lagListe, r => r.lagTotal)
-  return lagListe
+  teamList.sort((a, b) => b.lagTotal - a.lagTotal)
+  assignPlacements(teamList, r => r.lagTotal)
+  return teamList
 }
