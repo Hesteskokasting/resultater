@@ -3,7 +3,7 @@ import { logError } from '@/utils/logError'
 import type { Tables } from '@/types'
 
 type PendingLinkRow = Pick<Tables<'bruker_profil'>, 'id' | 'kobling_kasterid'>
-type UserListRow     = Pick<Tables<'bruker_profil'>, 'id' | 'rolle' | 'kobling_status'>
+type UserListRow     = Pick<Tables<'bruker_profil'>, 'id' | 'rolle' | 'kobling_status' | 'kobling_kasterid'>
 type ClubAdminAccess  = Pick<Tables<'klubbadmin_klubber'>, 'bruker_id' | 'klubbid'>
 
 export type EmailRow = { id: string; epost: string }
@@ -39,7 +39,7 @@ export async function updateLinkStatus(
 export async function getAllUsers(): Promise<{ data: UserListRow[]; error: unknown }> {
   const { data, error } = await supabase
     .from('bruker_profil')
-    .select('id, rolle, kobling_status')
+    .select('id, rolle, kobling_status, kobling_kasterid')
     .order('opprettet_at', { ascending: false })
   if (error) logError('getAllUsers', error)
   return { data: data ?? [], error }

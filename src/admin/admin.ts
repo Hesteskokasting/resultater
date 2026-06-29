@@ -14,6 +14,7 @@ import {
 } from '@/services/adminService'
 import { getClubs } from '@/services/klubbService'
 import { getThrowersById } from '@/services/kasterService'
+import { throwerName } from '@/utils/kaster'
 import { getLiveTournaments } from '@/services/stevneService'
 import type { LiveTournamentRow } from '@/services/stevneService'
 import { createLoadingState } from '@/components/LoadingState'
@@ -84,6 +85,12 @@ export async function render(container: HTMLElement): Promise<void> {
 
 async function _visKobling(el: HTMLElement): Promise<void> {
   const { data, error } = await getPendingLinks()
+
+  const tabBtn = el.closest('.content-page')?.querySelector<HTMLElement>('[data-fane="kobling"]')
+  if (tabBtn) tabBtn.textContent = error || !data.length
+    ? FANE_LABEL.kobling
+    : `${FANE_LABEL.kobling} (${data.length})`
+
   if (error) { el.innerHTML = `<div class="alert alert-danger">${escHtml(errMsg(error))}</div>`; return }
   if (!data.length) { el.replaceChildren(createEmptyState('Ingen ventande forespørslar.')); return }
 
@@ -150,7 +157,13 @@ async function _visBrukarar(el: HTMLElement): Promise<void> {
   if (error) { el.innerHTML = `<div class="alert alert-danger">${escHtml(errMsg(error))}</div>`; return }
   if (!data.length) { el.replaceChildren(createEmptyState('Ingen brukarar.')); return }
 
-  const epostMap = await _hentEpostMap(data.map(r => r.id))
+  const kasterIds = data.map(r => r.kobling_kasterid).filter((x): x is number => x !== null)
+
+  const [epostMap, { data: kastere }] = await Promise.all([
+    _hentEpostMap(data.map(r => r.id)),
+    getThrowersById(kasterIds),
+  ])
+  const kasterMap = new Map((kastere ?? []).map(k => [k.id, k] as const))
 
   const rolleOptions = ['bruker', 'klubbadmin', 'admin']
     .map(r => `<option value="${r}">${r}</option>`).join('')
@@ -160,8 +173,11 @@ async function _visBrukarar(el: HTMLElement): Promise<void> {
     <table class="table table-hover">
       <thead><tr><th>E-post</th><th>Rolle</th><th>Kobling</th><th></th></tr></thead>
       <tbody>
-        ${data.map(r => `<tr data-id="${r.id}">
-          <td>${escHtml(epostMap[r.id] ?? r.id)}</td>
+        ${data.map(r => {
+          const kaster = r.kobling_kasterid ? kasterMap.get(r.kobling_kasterid) : null
+          const nameCell = kaster ? ` <span class="text-muted small">(${escHtml(throwerName(kaster))})</span>` : ''
+          return `<tr data-id="${r.id}">
+          <td>${escHtml(epostMap[r.id] ?? r.id)}${nameCell}</td>
           <td>
             <select class="form-select form-select-sm rolle-vel sel-auto">
               ${rolleOptions}
@@ -169,7 +185,8 @@ async function _visBrukarar(el: HTMLElement): Promise<void> {
           </td>
           <td><span class="badge bg-secondary">${escHtml(r.kobling_status)}</span></td>
           <td><button class="btn btn-sm btn-primary lagre-rolle">Lagre</button></td>
-        </tr>`).join('')}
+        </tr>`
+        }).join('')}
       </tbody>
     </table>`
 
