@@ -161,7 +161,7 @@ async function createMineKampar(kasterid: number): Promise<HTMLElement> {
 
   const kommandeInnhald = grupperPerStevne(
     kommande,
-    ks => `<a href="#/kamp/${ks.kamp?.id ?? ''}" class="btn btn-sm btn-primary">Scoreboard</a>`,
+    ks => `<a href="#/kamp/${ks.kamp?.id ?? ''}" class="btn btn-sm btn-primary" target="_blank" rel="noopener">Scoreboard</a>`,
   )
   const ferdigeInnhald = grupperPerStevne(
     ferdige,

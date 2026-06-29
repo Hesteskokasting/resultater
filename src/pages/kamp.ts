@@ -159,7 +159,7 @@ function visVentePaaNesteKamp(ctx: KampViewCtx): void {
   const kanal = subscribeToNextMatch(ctx.kamp.stevneid, ctx.kampId, async (nyKamp) => {
     if (await erRelevantKamp(ctx, nyKamp)) {
       await avmeldKanal(kanal)
-      location.hash = `#/kamp/${nyKamp.id}`
+      location.replace(`#/kamp/${nyKamp.id}`)
     }
   })
 
@@ -172,7 +172,7 @@ function visVentePaaNesteKamp(ctx: KampViewCtx): void {
 async function navigerTilNesteKamp(ctx: KampViewCtx): Promise<void> {
   const neste = await hentNesteKamp(ctx)
   if (neste) {
-    location.hash = `#/kamp/${neste.id}`
+    location.replace(`#/kamp/${neste.id}`)
     return
   }
   ctx.cleanupRef.current?.()
