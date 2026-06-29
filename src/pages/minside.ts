@@ -107,12 +107,17 @@ async function createMineKampar(kasterid: number): Promise<HTMLElement> {
   const stevneIds = [...new Set(alleKampar.map(ks => ks.kamp?.stevneid).filter((s): s is number => s != null))]
   const snrMap = await getStartNumbersForTournaments(stevneIds)
 
-  const kommande = alleKampar
-    .filter(ks => ks.kamp?.stevne?.erfullfort === false && !ks.kamp?.er_bekreftet)
-    .sort((a, b) => (a.kamp?.runde_nummer ?? 0) - (b.kamp?.runde_nummer ?? 0))
+  const active = alleKampar
+    .filter(ks => ks.kamp?.stevne?.erfullfort === false)
+    .sort((a, b) => {
+      const aBekreftet = a.kamp?.er_bekreftet ? 1 : 0
+      const bBekreftet = b.kamp?.er_bekreftet ? 1 : 0
+      if (aBekreftet !== bBekreftet) return aBekreftet - bBekreftet
+      return (a.kamp?.runde_nummer ?? 0) - (b.kamp?.runde_nummer ?? 0)
+    })
 
   const ferdige = alleKampar
-    .filter(ks => ks.kamp?.er_bekreftet)
+    .filter(ks => ks.kamp?.stevne?.erfullfort === true)
     .sort((a, b) => (a.kamp?.runde_nummer ?? 0) - (b.kamp?.runde_nummer ?? 0))
 
   const tabellHoaude = `<thead><tr><th>Runde/Bane</th><th>Motstandar</th><th></th></tr></thead>`
@@ -159,9 +164,23 @@ async function createMineKampar(kasterid: number): Promise<HTMLElement> {
     ).join('')
   }
 
-  const kommandeInnhald = grupperPerStevne(
-    kommande,
-    ks => `<a href="#/kamp/${ks.kamp?.id ?? ''}" class="btn btn-sm btn-primary" target="_blank" rel="noopener">Scoreboard</a>`,
+  const activeContent = grupperPerStevne(
+    active,
+    ks => {
+      if (!ks.kamp?.er_bekreftet) {
+        return `<a href="#/kamp/${ks.kamp?.id ?? ''}" class="btn btn-sm btn-primary" target="_blank" rel="noopener">Scoreboard</a>`
+      }
+      const stevneid = ks.kamp.stevneid
+      const mineSnr = stevneid != null ? snrMap[`${stevneid}:${kasterid}`] : undefined
+      const myScore = ks.kamp.spelarar?.find(s => s.kasterid === kasterid)?.score_poeng
+      const oppScore = ks.kamp.spelarar?.find(s => {
+        if (s.kasterid == null || s.kasterid === kasterid) return false
+        const oSnr = stevneid != null ? snrMap[`${stevneid}:${s.kasterid}`] : undefined
+        return mineSnr == null || oSnr == null || oSnr !== mineSnr
+      })?.score_poeng
+      if (myScore == null || oppScore == null) return '–'
+      return `<span class="fw-semibold">${myScore} – ${oppScore}</span>`
+    },
   )
   const ferdigeInnhald = grupperPerStevne(
     ferdige,
@@ -179,8 +198,8 @@ async function createMineKampar(kasterid: number): Promise<HTMLElement> {
   cardBody.appendChild(title)
   cardBody.appendChild(createTabs({
     tabs: [
-      { id: 'kommande', label: `Kommande (${kommande.length})`, panel: makePanel(kommandeInnhald ?? '<p class="text-muted">Ingen kommande kampar.</p>') },
-      { id: 'ferdige',  label: `Ferdige (${ferdige.length})`,  panel: makePanel(ferdigeInnhald  ?? '<p class="text-muted">Ingen ferdige kampar enno.</p>') },
+      { id: 'active',  label: `Aktive (${active.length})`,   panel: makePanel(activeContent  ?? '<p class="text-muted">Ingen active kampar.</p>') },
+      { id: 'ferdige', label: `Ferdige (${ferdige.length})`, panel: makePanel(ferdigeInnhald ?? '<p class="text-muted">Ingen ferdige kampar enno.</p>') },
     ],
   }))
   card.appendChild(cardBody)
