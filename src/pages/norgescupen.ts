@@ -12,91 +12,91 @@ import type { Tables } from '@/types'
 import type { ResultWithRelations, TournamentForNC } from '@/services/norgescupService'
 import type { SingleListRow, TeamListRow } from '@/utils/norgescup'
 
-const FOERSTE_AR = 2007
-const FOERSTE_AR_MULTI_CUP = 2024
+const FIRST_YEAR = 2007
+const FIRST_MULTI_CUP_YEAR = 2024
 
-interface Filtre {
-  ar: number
+interface Filter {
+  year: number
   cupType: string
-  klasse: number
-  visning: 'singel' | 'lag'
+  classNum: number
+  view: 'singel' | 'lag'
 }
 
-interface NcCache {
-  ar: number | null
-  regler: Tables<'antallTellendeNc'> | null
-  stevner: TournamentForNC[]
-  resultater: ResultWithRelations[]
+interface NCCache {
+  year: number | null
+  rules: Tables<'antallTellendeNc'> | null
+  tournaments: TournamentForNC[]
+  results: ResultWithRelations[]
 }
 
-const filtre: Filtre = {
-  ar: new Date().getFullYear(),
+const filter: Filter = {
+  year: new Date().getFullYear(),
   cupType: 'NC',
-  klasse: 1,
-  visning: 'singel',
+  classNum: 1,
+  view: 'singel',
 }
 
-let cache: NcCache = {
-  ar: null,
-  regler: null,
-  stevner: [],
-  resultater: [],
+let cache: NCCache = {
+  year: null,
+  rules: null,
+  tournaments: [],
+  results: [],
 }
 
-// ── Data-henting ──────────────────────────────────────────────────────────────
+// ── Data fetching ─────────────────────────────────────────────────────────────
 
-async function hentOgBufferData(ar: number): Promise<boolean> {
-  if (cache.ar === ar) return true
+async function fetchAndBufferData(year: number): Promise<boolean> {
+  if (cache.year === year) return true
 
   try {
-    const [{ data: regler, error: e1 }, { stevner, resultater, error: e2 }] = await Promise.all([
-      getRules(ar),
-      getTournamentsAndResults(ar),
+    const [{ data: rules, error: e1 }, { stevner, resultater, error: e2 }] = await Promise.all([
+      getRules(year),
+      getTournamentsAndResults(year),
     ])
 
     if (e1 || e2) return false
 
-    cache.ar = ar
-    cache.regler = regler
-    cache.stevner = stevner
-    cache.resultater = resultater
+    cache.year = year
+    cache.rules = rules
+    cache.tournaments = stevner
+    cache.results = resultater
     return true
   } catch (err) {
-    logError('hentOgBufferData', err)
+    logError('fetchAndBufferData', err)
     return false
   }
 }
 
-// ── HTML-byggjarar ────────────────────────────────────────────────────────────
+// ── HTML builders ─────────────────────────────────────────────────────────────
 
-function beskrivelsesTekst(regler: Tables<'antallTellendeNc'>, cupType: string): string {
-  if (cupType === 'SNC') return `Dei ${regler.max_snc} beste SNC-stevna er teljande`
-  if (cupType === 'DNC') return `Dei ${regler.max_dnc} beste DNC-stevna er teljande`
-  return `Dei ${regler.maxtotal} beste stevna, herav maks ${regler.max_nc_total} NC-stevner og ${regler.max_snc_total} SNC-stevner er teljande`
+function descriptionText(rules: Tables<'antallTellendeNc'>, cupType: string): string {
+  if (cupType === 'SNC') return `Dei ${rules.max_snc} beste SNC-stevna er teljande`
+  if (cupType === 'DNC') return `Dei ${rules.max_dnc} beste DNC-stevna er teljande`
+  return `Dei ${rules.maxtotal} beste stevna, herav maks ${rules.max_nc_total} NC-stevner og ${rules.max_snc_total} SNC-stevner er teljande`
 }
 
-function visningTabsHtml(valgtVisning: string): string {
+function viewTabsHtml(selectedView: string): string {
   return `
-    <div class="nc-klasse-tabs nc-visning-tabs">
-      <button class="nc-klasse-tab${valgtVisning === 'singel' ? ' aktiv' : ''}" data-visning="singel">Singel</button>
-      <button class="nc-klasse-tab${valgtVisning === 'lag' ? ' aktiv' : ''}" data-visning="lag">Lag</button>
+    <div class="nc-class-tabs nc-view-tabs">
+      <button class="nc-class-tab${selectedView === 'singel' ? ' active' : ''}" data-view="singel">Singel</button>
+      <button class="nc-class-tab${selectedView === 'lag' ? ' active' : ''}" data-view="lag">Lag</button>
     </div>`
 }
 
-function klasseTabsHtml(valgtKlasse: number, ar: number): string {
+function classTabsHtml(selectedClass: number, year: number): string {
   return `
-    <div class="nc-klasse-tabs-wrapper">
-      <div class="nc-klasse-tabs">
-        <button class="nc-klasse-tab${valgtKlasse === 1 ? ' aktiv' : ''}" data-klasse="1">Klasse 1</button>
-        ${ar <= 2025 ? `<button class="nc-klasse-tab${valgtKlasse === 2 ? ' aktiv' : ''}" data-klasse="2">Klasse 2</button>` : ''}
+    <div class="nc-class-tabs-wrapper">
+      <div class="nc-class-tabs">
+        <button class="nc-class-tab${selectedClass === 1 ? ' active' : ''}" data-class="1">Klasse 1</button>
+        ${year <= 2025 ? `<button class="nc-class-tab${selectedClass === 2 ? ' active' : ''}" data-class="2">Klasse 2</button>` : ''}
       </div>
-      <span class="nc-klikk-hint">Klikk poengsum for å vise detaljer</span>
+      <span class="nc-click-hint">Klikk poengsum for å vise detaljer</span>
     </div>`
 }
 
-function lagPoengCelleInnhald(poeng: number): DocumentFragment {
+function teamPointsCellContent(points: number): DocumentFragment {
   const frag = document.createDocumentFragment()
-  frag.appendChild(document.createTextNode(formaterPoeng(poeng)))
+  frag.appendChild(document.createTextNode(formaterPoeng(points)))
   const chevron = document.createElement('span')
   chevron.className = 'nc-chevron'
   chevron.textContent = ' ▼'
@@ -104,14 +104,14 @@ function lagPoengCelleInnhald(poeng: number): DocumentFragment {
   return frag
 }
 
-function createSingelTabell(liste: SingleListRow[]): HTMLElement {
-  if (liste.length === 0) return createEmptyState('Ingen resultater funnet.')
+function createSingleTable(list: SingleListRow[]): HTMLElement {
+  if (list.length === 0) return createEmptyState('Ingen resultater funnet.')
 
   return createTable<SingleListRow>({
-    rows: liste,
-    rowClass: 'nc-singel-rad',
+    rows: list,
+    rowClass: 'nc-single-row',
     rowAttrs: (_, i) => ({ 'data-idx': String(i) }),
-    detailRowClass: 'nc-detalj-rad d-none',
+    detailRowClass: 'nc-detail-row d-none',
     detailRow: item => createTable({
       rows: item.detaljRader,
       tableClass: 'detalj-tabell',
@@ -135,30 +135,30 @@ function createSingelTabell(liste: SingleListRow[]): HTMLElement {
       { label: 'Klubb', render: item => item.klubb },
       {
         label: 'Poeng',
-        thClass: 'nc-td-poeng',
-        cellClass: 'nc-td-poeng nc-poeng-celle',
+        thClass: 'nc-td-points',
+        cellClass: 'nc-td-points nc-points-cell',
         cellAttrs: (_, i) => ({ 'data-idx': String(i) }),
-        render: item => lagPoengCelleInnhald(item.totalPoeng),
+        render: item => teamPointsCellContent(item.totalPoeng),
       },
     ],
   })
 }
 
-function createLagTabell(lagListe: TeamListRow[]): HTMLElement {
-  if (lagListe.length === 0) return createEmptyState('Ingen lag funnet.')
+function createTeamTable(teamList: TeamListRow[]): HTMLElement {
+  if (teamList.length === 0) return createEmptyState('Ingen lag funnet.')
 
   return createTable<TeamListRow>({
-    rows: lagListe,
-    rowClass: 'nc-lag-rad',
-    rowAttrs: (_, i) => ({ 'data-lag-idx': String(i) }),
-    detailRowClass: 'nc-lag-detalj-rad d-none',
+    rows: teamList,
+    rowClass: 'nc-team-row',
+    rowAttrs: (_, i) => ({ 'data-team-idx': String(i) }),
+    detailRowClass: 'nc-team-detail-row d-none',
     detailRow: item => createTable({
       rows: item.bidragsytere,
       tableClass: 'detalj-tabell',
       showHeader: false,
       columns: [
         { label: '', render: b => throwerName(b.kaster) },
-        { label: '', cellClass: 'nc-td-poeng', render: b => formaterPoeng(b.sum) },
+        { label: '', cellClass: 'nc-td-points', render: b => formaterPoeng(b.sum) },
       ],
     }),
     columns: [
@@ -171,136 +171,136 @@ function createLagTabell(lagListe: TeamListRow[]): HTMLElement {
       { label: 'Klubb', render: item => item.klubb?.navn ?? '–' },
       {
         label: 'Poeng',
-        thClass: 'nc-td-poeng',
-        cellClass: 'nc-td-poeng nc-lag-poeng-celle',
-        cellAttrs: (_, i) => ({ 'data-lag-idx': String(i) }),
-        render: item => lagPoengCelleInnhald(item.lagTotal),
+        thClass: 'nc-td-points',
+        cellClass: 'nc-td-points nc-team-points-cell',
+        cellAttrs: (_, i) => ({ 'data-team-idx': String(i) }),
+        render: item => teamPointsCellContent(item.lagTotal),
       },
     ],
   })
 }
 
-function sideSkelettHtml(ar: number, cupType: string): string {
+function pageSkeletonHtml(year: number, cupType: string): string {
   return `
     <div class="content-page">
-      <h1 class="nc-hovudtittel">Norgescupen ${ar}</h1>
+      <h1 class="nc-main-title">Norgescupen ${year}</h1>
       <div class="nc-filter-rad">
-        <select id="nc-ar" class="tl-select">${yearOptions(ar, FOERSTE_AR)}</select>
-        <select id="nc-cuptype" class="tl-select${ar < FOERSTE_AR_MULTI_CUP ? ' d-none' : ''}">
+        <select id="nc-year" class="tl-select">${yearOptions(year, FIRST_YEAR)}</select>
+        <select id="nc-cuptype" class="tl-select${year < FIRST_MULTI_CUP_YEAR ? ' d-none' : ''}">
           <option value="NC"${cupType === 'NC' ? ' selected' : ''}>NC</option>
           <option value="SNC"${cupType === 'SNC' ? ' selected' : ''}>SNC</option>
           <option value="DNC"${cupType === 'DNC' ? ' selected' : ''}>DNC (Uoffisiell)</option>
         </select>
       </div>
-      <div id="nc-visning-tabs-container"></div>
+      <div id="nc-view-tabs-container"></div>
       <div id="nc-content"></div>
     </div>`
 }
 
-// ── Hovudfunksjon ─────────────────────────────────────────────────────────────
+// ── Main function ─────────────────────────────────────────────────────────────
 
 export async function render(container: HTMLElement): Promise<void> {
-  filtre.ar = new Date().getFullYear()
-  filtre.cupType = 'NC'
-  filtre.klasse = 1
-  filtre.visning = 'singel'
-  cache = { ar: null, regler: null, stevner: [], resultater: [] }
+  filter.year = new Date().getFullYear()
+  filter.cupType = 'NC'
+  filter.classNum = 1
+  filter.view = 'singel'
+  cache = { year: null, rules: null, tournaments: [], results: [] }
 
   container.replaceChildren(createLoadingState('Laster Norgescupen...'))
 
-  const ok = await hentOgBufferData(filtre.ar)
+  const ok = await fetchAndBufferData(filter.year)
   if (!ok) {
     container.replaceChildren(createErrorBanner('Kunne ikkje laste data for Norgescupen.'))
     return
   }
 
-  container.innerHTML = sideSkelettHtml(filtre.ar, filtre.cupType)
+  container.innerHTML = pageSkeletonHtml(filter.year, filter.cupType)
 
-  function oppdaterVisning(): void {
-    const { ar, cupType, klasse, visning } = filtre
-    const { regler } = cache
+  function updateView(): void {
+    const { year, cupType, classNum, view } = filter
+    const { rules } = cache
     const content = container.querySelector<HTMLElement>('#nc-content')!
 
-    ;(container.querySelector('.nc-hovudtittel') as HTMLElement).textContent = `Norgescupen ${ar}`
-    container.querySelector('#nc-cuptype')!.classList.toggle('d-none', ar < FOERSTE_AR_MULTI_CUP)
+    ;(container.querySelector('.nc-main-title') as HTMLElement).textContent = `Norgescupen ${year}`
+    container.querySelector('#nc-cuptype')!.classList.toggle('d-none', year < FIRST_MULTI_CUP_YEAR)
 
-    container.querySelector('#nc-visning-tabs-container')!.innerHTML =
-      cupType === 'NC' ? visningTabsHtml(visning) : ''
+    container.querySelector('#nc-view-tabs-container')!.innerHTML =
+      cupType === 'NC' ? viewTabsHtml(view) : ''
 
-    if (visning === 'lag' && cupType === 'NC') {
+    if (view === 'lag' && cupType === 'NC') {
       content.innerHTML = `
         <section>
-          <h2 class="nc-seksjon-tittel">NC Lag ${ar} (Kun klasse 1)</h2>
-          <p class="nc-beskriving">Dei 4 beste poengsummene frå kvar klubb.</p>
-          <div class="nc-klikk-hint nc-klikk-hint-rad">Klikk poengsum for å vise detaljar</div>
-          <div id="nc-lag-tabell-container"></div>
+          <h2 class="nc-section-title">NC Lag ${year} (Kun klasse 1)</h2>
+          <p class="nc-description">Dei 4 beste poengsummene frå kvar klubb.</p>
+          <div class="nc-click-hint nc-click-hint-row">Klikk poengsum for å vise detaljar</div>
+          <div id="nc-team-table-container"></div>
         </section>`
 
-      const lagContainer = content.querySelector<HTMLElement>('#nc-lag-tabell-container')!
-      if (!regler) {
-        lagContainer.replaceChildren(createEmptyState('Ingen data.'))
+      const teamContainer = content.querySelector<HTMLElement>('#nc-team-table-container')!
+      if (!rules) {
+        teamContainer.replaceChildren(createEmptyState('Ingen data.'))
       } else {
-        const lagListe = buildTeamList(cache.resultater, cache.stevner, regler)
-        lagContainer.replaceChildren(createLagTabell(lagListe))
-        bindExpandableRows(lagContainer, { triggerSel: '.nc-lag-poeng-celle', idAttr: 'lag-idx', detailSel: '.nc-lag-detalj-rad', lookupRoot: content })
+        const teamList = buildTeamList(cache.results, cache.tournaments, rules)
+        teamContainer.replaceChildren(createTeamTable(teamList))
+        bindExpandableRows(teamContainer, { triggerSel: '.nc-team-points-cell', idAttr: 'team-idx', detailSel: '.nc-team-detail-row', lookupRoot: content })
       }
     } else {
       content.innerHTML = `
-        <section id="nc-singel-seksjon">
-          <h2 class="nc-seksjon-tittel">${cupType} Singel ${ar} - Klasse ${klasse}</h2>
-          <p class="nc-beskriving">${regler ? beskrivelsesTekst(regler, cupType) : `Ingen telleregel funnet for ${ar}`}</p>
-          <div id="nc-klasse-tabs-container">${klasseTabsHtml(klasse, ar)}</div>
-          <div id="nc-singel-tabell-container"></div>
+        <section id="nc-single-section">
+          <h2 class="nc-section-title">${cupType} Singel ${year} - Klasse ${classNum}</h2>
+          <p class="nc-description">${rules ? descriptionText(rules, cupType) : `Ingen telleregel funnet for ${year}`}</p>
+          <div id="nc-class-tabs-container">${classTabsHtml(classNum, year)}</div>
+          <div id="nc-single-table-container"></div>
         </section>`
 
-      const singelContainer = content.querySelector<HTMLElement>('#nc-singel-tabell-container')!
-      if (!regler) {
-        singelContainer.replaceChildren(createEmptyState('Ingen data.'))
+      const singleContainer = content.querySelector<HTMLElement>('#nc-single-table-container')!
+      if (!rules) {
+        singleContainer.replaceChildren(createEmptyState('Ingen data.'))
       } else {
-        const singelListe = buildSingleList(cache.resultater, cache.stevner, regler, cupType, klasse)
-        singelContainer.replaceChildren(createSingelTabell(singelListe))
-        bindExpandableRows(singelContainer, { triggerSel: '.nc-poeng-celle', idAttr: 'idx', detailSel: '.nc-detalj-rad', lookupRoot: content })
+        const singleList = buildSingleList(cache.results, cache.tournaments, rules, cupType, classNum)
+        singleContainer.replaceChildren(createSingleTable(singleList))
+        bindExpandableRows(singleContainer, { triggerSel: '.nc-points-cell', idAttr: 'idx', detailSel: '.nc-detail-row', lookupRoot: content })
       }
 
-      content.querySelector('#nc-singel-seksjon')!.addEventListener('click', e => {
-        const tab = (e.target as Element).closest<HTMLElement>('[data-klasse]')
+      content.querySelector('#nc-single-section')!.addEventListener('click', e => {
+        const tab = (e.target as Element).closest<HTMLElement>('[data-class]')
         if (!tab) return
-        filtre.klasse = Number(tab.dataset.klasse)
-        oppdaterVisning()
+        filter.classNum = Number(tab.dataset.class)
+        updateView()
       })
     }
   }
 
-  oppdaterVisning()
+  updateView()
 
-  container.querySelector<HTMLSelectElement>('#nc-ar')!.addEventListener('change', async e => {
-    filtre.ar = Number((e.target as HTMLSelectElement).value)
-    filtre.klasse = 1
-    if (filtre.ar < FOERSTE_AR_MULTI_CUP) {
-      filtre.cupType = 'NC'
-      filtre.visning = 'singel'
+  container.querySelector<HTMLSelectElement>('#nc-year')!.addEventListener('change', async e => {
+    filter.year = Number((e.target as HTMLSelectElement).value)
+    filter.classNum = 1
+    if (filter.year < FIRST_MULTI_CUP_YEAR) {
+      filter.cupType = 'NC'
+      filter.view = 'singel'
       container.querySelector<HTMLSelectElement>('#nc-cuptype')!.value = 'NC'
     }
     container.querySelector<HTMLElement>('#nc-content')!.replaceChildren(createLoadingState())
-    const ok = await hentOgBufferData(filtre.ar)
+    const ok = await fetchAndBufferData(filter.year)
     if (!ok) {
       container.querySelector<HTMLElement>('#nc-content')!.replaceChildren(createErrorBanner('Feil ved henting av data.'))
       return
     }
-    oppdaterVisning()
+    updateView()
   })
 
   container.querySelector<HTMLSelectElement>('#nc-cuptype')!.addEventListener('change', e => {
-    filtre.cupType = (e.target as HTMLSelectElement).value
-    filtre.klasse = 1
-    if (filtre.cupType !== 'NC') filtre.visning = 'singel'
-    oppdaterVisning()
+    filter.cupType = (e.target as HTMLSelectElement).value
+    filter.classNum = 1
+    if (filter.cupType !== 'NC') filter.view = 'singel'
+    updateView()
   })
 
-  container.querySelector('#nc-visning-tabs-container')!.addEventListener('click', e => {
-    const tab = (e.target as Element).closest<HTMLElement>('[data-visning]')
+  container.querySelector('#nc-view-tabs-container')!.addEventListener('click', e => {
+    const tab = (e.target as Element).closest<HTMLElement>('[data-view]')
     if (!tab) return
-    filtre.visning = tab.dataset.visning as 'singel' | 'lag'
-    oppdaterVisning()
+    filter.view = tab.dataset.view as 'singel' | 'lag'
+    updateView()
   })
 }

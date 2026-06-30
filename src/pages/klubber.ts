@@ -14,65 +14,65 @@ import type { MemberRow } from '@/services/kasterService'
 
 const PLACEHOLDER_LOGO = 'https://placehold.co/200x200/444/888?text=?'
 
-const filtreListe = { sokeTekst: '' }
-const filtreDetalj = { sokeTekst: '' }
+const filterList   = { searchText: '' }
+const filterDetail = { searchText: '' }
 
-// ── HTML-byggjarar: Liste ─────────────────────────────────────────────────────
+// ── HTML builders: List ───────────────────────────────────────────────────────
 
-function klubbKortHtml(k: ClubListRow): string {
+function clubCardHtml(k: ClubListRow): string {
   return `
-    <a href="#/klubber/${buildClubSlug(k)}" class="kaster-kort">
+    <a href="#/klubber/${buildClubSlug(k)}" class="thrower-card">
       <img src="${escHtml(k.logourl || PLACEHOLDER_LOGO)}" alt="${escHtml(k.navn)}" loading="lazy">
-      <div class="kaster-navn">${escHtml(k.navn)}</div>
+      <div class="thrower-name">${escHtml(k.navn)}</div>
     </a>`
 }
 
-function listeSkelettHtml(): string {
+function listSkeletonHtml(): string {
   return `
     <div class="content-page">
-      <div class="kaster-liste-kontroller">
+      <div class="thrower-list-controls">
         <div class="nc-filter-rad">
-          <input id="klubb-sok" type="text" class="tl-select" placeholder="Søk på klubbnavn eller utøvar" value="">
-          <button id="klubb-sok-knapp" class="btn btn-secondary btn-sm">Søk</button>
+          <input id="club-search" type="text" class="tl-select" placeholder="Søk på klubbnavn eller utøvar" value="">
+          <button id="club-search-button" class="btn btn-secondary btn-sm">Søk</button>
         </div>
       </div>
-      <div id="klubb-grid" class="kaster-grid"></div>
+      <div id="club-grid" class="thrower-grid"></div>
     </div>`
 }
 
-// ── HTML-byggjarar: Detalj ────────────────────────────────────────────────────
+// ── HTML builders: Detail ─────────────────────────────────────────────────────
 
-function detaljSkelettHtml(klubb: ClubListRow, antall: number): string {
+function detailSkeletonHtml(club: ClubListRow, count: number): string {
   return `
     <div class="content-page">
       <div class="mb-3">
         <a href="#/klubber" class="btn btn-sm btn-outline-secondary">← Tilbake</a>
       </div>
-      <div class="klubb-detalj-header">
-        <img src="${escHtml(klubb.logourl || PLACEHOLDER_LOGO)}" alt="${escHtml(klubb.navn)}" class="klubb-logo-stor">
-        <h1 class="klubb-detalj-tittel">${escHtml(klubb.navn)}</h1>
+      <div class="club-detail-header">
+        <img src="${escHtml(club.logourl || PLACEHOLDER_LOGO)}" alt="${escHtml(club.navn)}" class="club-logo-large">
+        <h1 class="club-detail-title">${escHtml(club.navn)}</h1>
       </div>
-      <h3 class="mb-2">Aktive utøvarar (${antall})</h3>
+      <h3 class="mb-2">Aktive utøvarar (${count})</h3>
       <div class="nc-filter-rad mb-3">
-        <input id="klubb-detalj-sok" type="text" class="tl-select" placeholder="Søk på utøvar" value="">
-        <button id="klubb-detalj-sok-knapp" class="btn btn-secondary btn-sm">Søk</button>
+        <input id="club-detail-search" type="text" class="tl-select" placeholder="Søk på utøvar" value="">
+        <button id="club-detail-search-button" class="btn btn-secondary btn-sm">Søk</button>
       </div>
-      <div id="klubb-detalj-liste"></div>
+      <div id="club-detail-list"></div>
     </div>`
 }
 
-function createMedlemTabell(medlemmar: MemberRow[], sokeTekst: string): HTMLElement {
-  const sok = sokeTekst.trim().toLowerCase()
-  const filtrert = sok
-    ? medlemmar.filter(k => throwerName(k).toLowerCase().includes(sok))
-    : medlemmar
+function createMemberTable(members: MemberRow[], searchText: string): HTMLElement {
+  const search   = searchText.trim().toLowerCase()
+  const filtered = search
+    ? members.filter(k => throwerName(k).toLowerCase().includes(search))
+    : members
 
-  if (!filtrert.length) return createEmptyState('Ingen aktive utøvarar funnet.')
+  if (!filtered.length) return createEmptyState('Ingen aktive utøvarar funnet.')
 
   const wrapper = document.createElement('div')
   wrapper.className = 'table-responsive'
   wrapper.appendChild(createTable<MemberRow>({
-    rows: filtrert,
+    rows: filtered,
     columns: [
       {
         label: '#',
@@ -83,7 +83,7 @@ function createMedlemTabell(medlemmar: MemberRow[], sokeTekst: string): HTMLElem
         render: item => {
           const a = document.createElement('a')
           a.href = `#/kastere/${buildThrowerSlug(item)}`
-          a.className = 'tl-lenkje'
+          a.className = 'tl-link'
           a.textContent = throwerName(item)
           return a
         },
@@ -101,13 +101,13 @@ function createMedlemTabell(medlemmar: MemberRow[], sokeTekst: string): HTMLElem
   return wrapper
 }
 
-// ── Render: Liste ─────────────────────────────────────────────────────────────
+// ── Render: List ──────────────────────────────────────────────────────────────
 
-async function renderListe(container: HTMLElement): Promise<void> {
+async function renderList(container: HTMLElement): Promise<void> {
   container.replaceChildren(createLoadingState('Laster klubbar...'))
 
   try {
-    const [{ data: alleKlubbar, error }, { data: alleKastere }] = await Promise.all([
+    const [{ data: allClubs, error }, { data: allThrowers }] = await Promise.all([
       getClubs(),
       getActiveThrowerList(),
     ])
@@ -117,43 +117,43 @@ async function renderListe(container: HTMLElement): Promise<void> {
       return
     }
 
-    const kasterPerKlubb = new Map<number, string[]>()
-    for (const k of alleKastere) {
+    const throwersPerClub = new Map<number, string[]>()
+    for (const k of allThrowers) {
       if (!k.klubb?.id) continue
-      if (!kasterPerKlubb.has(k.klubb.id)) kasterPerKlubb.set(k.klubb.id, [])
-      kasterPerKlubb.get(k.klubb.id)!.push(throwerName(k).toLowerCase())
+      if (!throwersPerClub.has(k.klubb.id)) throwersPerClub.set(k.klubb.id, [])
+      throwersPerClub.get(k.klubb.id)!.push(throwerName(k).toLowerCase())
     }
 
-    container.innerHTML = listeSkelettHtml()
+    container.innerHTML = listSkeletonHtml()
 
-    const grid = container.querySelector<HTMLElement>('#klubb-grid')!
-    const sokInput = container.querySelector<HTMLInputElement>('#klubb-sok')!
+    const grid        = container.querySelector<HTMLElement>('#club-grid')!
+    const searchInput = container.querySelector<HTMLInputElement>('#club-search')!
 
-    function filtrerOgVis(): void {
-      const sok = filtreListe.sokeTekst.trim().toLowerCase()
-      const filtrert = sok
-        ? alleKlubbar.filter(k =>
-            k.navn.toLowerCase().includes(sok) ||
-            (kasterPerKlubb.get(k.id) ?? []).some(n => n.includes(sok))
+    function filterAndRender(): void {
+      const search   = filterList.searchText.trim().toLowerCase()
+      const filtered = search
+        ? allClubs.filter(k =>
+            k.navn.toLowerCase().includes(search) ||
+            (throwersPerClub.get(k.id) ?? []).some(n => n.includes(search))
           )
-        : alleKlubbar
-      grid.innerHTML = filtrert.length
-        ? filtrert.map(klubbKortHtml).join('')
+        : allClubs
+      grid.innerHTML = filtered.length
+        ? filtered.map(clubCardHtml).join('')
         : '<p class="empty-state">Ingen klubbar funnet.</p>'
     }
 
-    filtrerOgVis()
+    filterAndRender()
 
-    sokInput.addEventListener('keydown', e => {
+    searchInput.addEventListener('keydown', e => {
       if (e.key === 'Enter') {
-        filtreListe.sokeTekst = sokInput.value
-        filtrerOgVis()
+        filterList.searchText = searchInput.value
+        filterAndRender()
       }
     })
 
-    container.querySelector('#klubb-sok-knapp')!.addEventListener('click', () => {
-      filtreListe.sokeTekst = sokInput.value
-      filtrerOgVis()
+    container.querySelector('#club-search-button')!.addEventListener('click', () => {
+      filterList.searchText = searchInput.value
+      filterAndRender()
     })
 
     prependAdminLinkBar(container, {
@@ -163,51 +163,51 @@ async function renderListe(container: HTMLElement): Promise<void> {
       canShow: auth => auth.profil?.role === 'admin',
     })
   } catch (err) {
-    logError('renderListe', err)
+    logError('renderList', err)
     container.replaceChildren(createErrorBanner('Kunne ikkje laste klubbar.'))
   }
 }
 
-// ── Render: Detalj ────────────────────────────────────────────────────────────
+// ── Render: Detail ────────────────────────────────────────────────────────────
 
-async function renderDetalj(container: HTMLElement, id: number): Promise<void> {
-  filtreDetalj.sokeTekst = ''
+async function renderDetail(container: HTMLElement, id: number): Promise<void> {
+  filterDetail.searchText = ''
   container.replaceChildren(createLoadingState('Laster klubb...'))
 
   try {
-    const [klubbRes, { data: medlemmar }] = await Promise.all([
+    const [clubRes, { data: members }] = await Promise.all([
       getClubById(id),
       getClubMembers(id),
     ])
 
-    if (klubbRes.error || !klubbRes.data) {
+    if (clubRes.error || !clubRes.data) {
       container.replaceChildren(createErrorBanner('Kunne ikkje laste klubb.'))
       return
     }
 
-    const klubb = klubbRes.data
+    const club = clubRes.data
 
-    container.innerHTML = detaljSkelettHtml(klubb, medlemmar.length)
+    container.innerHTML = detailSkeletonHtml(club, members.length)
 
-    const listeContainer = container.querySelector<HTMLElement>('#klubb-detalj-liste')!
-    const sokInput = container.querySelector<HTMLInputElement>('#klubb-detalj-sok')!
+    const listContainer = container.querySelector<HTMLElement>('#club-detail-list')!
+    const searchInput   = container.querySelector<HTMLInputElement>('#club-detail-search')!
 
-    function oppdaterListe(): void {
-      listeContainer.replaceChildren(createMedlemTabell(medlemmar, filtreDetalj.sokeTekst))
+    function updateList(): void {
+      listContainer.replaceChildren(createMemberTable(members, filterDetail.searchText))
     }
 
-    oppdaterListe()
+    updateList()
 
-    sokInput.addEventListener('keydown', e => {
+    searchInput.addEventListener('keydown', e => {
       if (e.key === 'Enter') {
-        filtreDetalj.sokeTekst = sokInput.value
-        oppdaterListe()
+        filterDetail.searchText = searchInput.value
+        updateList()
       }
     })
 
-    container.querySelector('#klubb-detalj-sok-knapp')!.addEventListener('click', () => {
-      filtreDetalj.sokeTekst = sokInput.value
-      oppdaterListe()
+    container.querySelector('#club-detail-search-button')!.addEventListener('click', () => {
+      filterDetail.searchText = searchInput.value
+      updateList()
     })
 
     prependAdminLinkBar(container, {
@@ -218,17 +218,17 @@ async function renderDetalj(container: HTMLElement, id: number): Promise<void> {
         (auth.profil?.role === 'klubbadmin' && auth.klubber.includes(id)),
     })
   } catch (err) {
-    logError('renderDetalj', err)
+    logError('renderDetail', err)
     container.replaceChildren(createErrorBanner('Kunne ikkje laste klubb.'))
   }
 }
 
-// ── Hovudfunksjon ─────────────────────────────────────────────────────────────
+// ── Main function ─────────────────────────────────────────────────────────────
 
 export const render: PageRenderFn = async (container, params) => {
   if (params.id) {
-    await renderDetalj(container, Number(params.id))
+    await renderDetail(container, Number(params.id))
   } else {
-    await renderListe(container)
+    await renderList(container)
   }
 }

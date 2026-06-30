@@ -10,89 +10,89 @@ import type { RankingTournamentRow, RankingResultRow } from '@/services/norgesra
 import { MIN_STEVNER, buildEventsMap, buildRankingList } from '@/utils/norgesrankingLogikk'
 import type { RingInfo, RankingItem } from '@/utils/norgesrankingLogikk'
 
-const FOERSTE_AR = 2018
+const FIRST_YEAR = 2018
 
-// ── Tilstand ──────────────────────────────────────────────────────────────────
+// ── State ─────────────────────────────────────────────────────────────────────
 
 interface Cache {
-  ar: number | null
-  stevner: RankingTournamentRow[]
-  resultater: RankingResultRow[]
+  year: number | null
+  tournaments: RankingTournamentRow[]
+  results: RankingResultRow[]
 }
 
-const filtre = {
-  ar: new Date().getFullYear(),
-  sokeTekst: '',
-  infoSynleg: false,
+const filter = {
+  year: new Date().getFullYear(),
+  searchText: '',
+  infoVisible: false,
 }
 
-let cache: Cache = { ar: null, stevner: [], resultater: [] }
+let cache: Cache = { year: null, tournaments: [], results: [] }
 
-// ── Data-buffer ───────────────────────────────────────────────────────────────
+// ── Data buffer ───────────────────────────────────────────────────────────────
 
-async function hentOgBufferData(ar: number): Promise<boolean> {
-  if (cache.ar === ar) return true
+async function fetchAndBufferData(year: number): Promise<boolean> {
+  if (cache.year === year) return true
 
   try {
-    const { stevner, resultater, error } = await getTournamentsAndResults(ar)
+    const { stevner, resultater, error } = await getTournamentsAndResults(year)
     if (error) return false
 
-    cache.ar = ar
-    cache.stevner = stevner
-    cache.resultater = resultater
+    cache.year = year
+    cache.tournaments = stevner
+    cache.results = resultater
     return true
   } catch (err) {
-    logError('hentOgBufferData', err)
+    logError('fetchAndBufferData', err)
     return false
   }
 }
 
-// ── Excel-eksport ─────────────────────────────────────────────────────────────
+// ── Excel export ──────────────────────────────────────────────────────────────
 
-async function lastNedExcel(): Promise<void> {
-  const stevnerMap = buildEventsMap(cache.stevner)
-  const liste = buildRankingList(cache.resultater, stevnerMap)
-  const rader = liste.map(k => ({
+async function exportExcel(): Promise<void> {
+  const tournamentsMap = buildEventsMap(cache.tournaments)
+  const list = buildRankingList(cache.results, tournamentsMap)
+  const rows = list.map(k => ({
     'Plass': k.erGyldig ? k.plassering : '–',
     'Kaster': k.navn,
     'Klubb': k.klubb,
     'Snitt %': k.snittProsent,
     'Antal stevner': k.antallStevner,
   }))
-  await downloadExcel(rader, `norgesranking-${filtre.ar}.xlsx`, 'Norgesranking')
+  await downloadExcel(rows, `norgesranking-${filter.year}.xlsx`, 'Norgesranking')
 }
 
-// ── HTML-byggjarar ────────────────────────────────────────────────────────────
+// ── HTML builders ─────────────────────────────────────────────────────────────
 
-function infoHtml(synleg: boolean): string {
+function infoHtml(visible: boolean): string {
   return `
-    <div id="nr-info-seksjon"${synleg ? '' : ' class="d-none"'}>
-      <p class="nc-info-tekst">
+    <div id="nr-info-section"${visible ? '' : ' class="d-none"'}>
+      <p class="nc-info-text">
         Norgesranking er ein konkurranse som pågår innanfor eit kalenderår, dvs. 1. januar – 31. desember.
         <strong>Dei ${MIN_STEVNER} beste prosentane er teljande.</strong>
       </p>
-      <p class="nc-info-tekst">
+      <p class="nc-info-text">
         For å få eit gyldig årsresultat skal kasteren minst ha vore gjennom ${MIN_STEVNER} rankingrunder.
       </p>
-      <p class="nc-info-tekst nc-info-tekst--advarsel">
+      <p class="nc-info-text nc-info-text--warning">
         Resultater merket med rødt er ikkje gyldig (mindre enn ${MIN_STEVNER} runder).
       </p>
     </div>`
 }
 
-function createRankingTabell(liste: RankingItem[], sokeTekst: string): HTMLElement {
-  const sok = sokeTekst.trim().toLowerCase()
-  const filtrert = sok
-    ? liste.filter(k => k.navn.toLowerCase().includes(sok) || k.klubb.toLowerCase().includes(sok))
-    : liste
+function createRankingTable(list: RankingItem[], searchText: string): HTMLElement {
+  const search = searchText.trim().toLowerCase()
+  const filtered = search
+    ? list.filter(k => k.navn.toLowerCase().includes(search) || k.klubb.toLowerCase().includes(search))
+    : list
 
-  if (filtrert.length === 0) return createEmptyState('Ingen resultater funnet.')
+  if (filtered.length === 0) return createEmptyState('Ingen resultater funnet.')
 
   return createTable<RankingItem>({
-    rows: filtrert,
-    rowClass: item => item.erGyldig ? 'nc-singel-rad' : 'nc-singel-rad nc-rad--ugyldig',
+    rows: filtered,
+    rowClass: item => item.erGyldig ? 'nc-single-row' : 'nc-single-row nc-row--invalid',
     rowAttrs: (_, i) => ({ 'data-idx': String(i) }),
-    detailRowClass: 'nc-detalj-rad d-none',
+    detailRowClass: 'nc-detail-row d-none',
     detailRow: item => createTable<RingInfo>({
       rows: item.detaljRader,
       tableClass: 'detalj-tabell',
@@ -123,14 +123,14 @@ function createRankingTabell(liste: RankingItem[], sokeTekst: string): HTMLEleme
       },
       {
         label: 'Stevner',
-        thClass: 'nc-td-sentrum',
-        cellClass: 'nc-td-sentrum',
+        thClass: 'nc-td-center',
+        cellClass: 'nc-td-center',
         render: item => String(item.antallStevner),
       },
       {
         label: '%Snitt',
-        thClass: 'nc-td-poeng',
-        cellClass: 'nc-td-poeng nc-poeng-celle',
+        thClass: 'nc-td-points',
+        cellClass: 'nc-td-points nc-points-cell',
         cellAttrs: (_, i) => ({ 'data-idx': String(i) }),
         render: item => {
           const frag = document.createDocumentFragment()
@@ -146,95 +146,95 @@ function createRankingTabell(liste: RankingItem[], sokeTekst: string): HTMLEleme
   })
 }
 
-function sideSkelettHtml(ar: number): string {
+function pageSkeletonHtml(year: number): string {
   return `
     <div class="content-page">
-      <h1 class="nc-hovudtittel">Norgesranking ${ar}</h1>
-      <div class="nc-info-knapp-rad">
-        <button id="nr-info-knapp" class="btn btn-sm btn-outline-secondary">Vis info</button>
+      <h1 class="nc-main-title">Norgesranking ${year}</h1>
+      <div class="nc-info-button-row">
+        <button id="nr-info-button" class="btn btn-sm btn-outline-secondary">Vis info</button>
       </div>
       <hr>
       ${infoHtml(false)}
       <hr>
       <div class="nc-filter-rad">
-        <select id="nr-ar" class="tl-select">${yearOptions(ar, FOERSTE_AR)}</select>
-        <input id="nr-sok" type="text" class="tl-select" placeholder="Søk på navn/klubb..." value="">
-        <button class="tl-excel-knapp" id="nr-excel">⬇ Excel</button>
+        <select id="nr-year" class="tl-select">${yearOptions(year, FIRST_YEAR)}</select>
+        <input id="nr-search" type="text" class="tl-select" placeholder="Søk på navn/klubb..." value="">
+        <button class="tl-excel-button" id="nr-excel">⬇ Excel</button>
       </div>
-      <div class="nc-klikk-hint-rad">
-        <span class="nc-klikk-hint">Klikk prosent for å vise detaljer</span>
+      <div class="nc-click-hint-row">
+        <span class="nc-click-hint">Klikk prosent for å vise detaljer</span>
       </div>
-      <div id="nr-tabell-container"></div>
+      <div id="nr-table-container"></div>
     </div>`
 }
 
-// ── Hovudfunksjon ─────────────────────────────────────────────────────────────
+// ── Main function ─────────────────────────────────────────────────────────────
 
 export async function render(container: HTMLElement): Promise<void> {
-  filtre.ar = new Date().getFullYear()
-  filtre.sokeTekst = ''
-  filtre.infoSynleg = false
-  cache = { ar: null, stevner: [], resultater: [] }
+  filter.year = new Date().getFullYear()
+  filter.searchText = ''
+  filter.infoVisible = false
+  cache = { year: null, tournaments: [], results: [] }
 
   container.replaceChildren(createLoadingState('Laster Norgesranking…'))
 
   try {
-    const ok = await hentOgBufferData(filtre.ar)
+    const ok = await fetchAndBufferData(filter.year)
     if (!ok) {
       container.replaceChildren(createErrorBanner('Kunne ikkje laste data for Norgesranking.'))
       return
     }
 
-    container.innerHTML = sideSkelettHtml(filtre.ar)
+    container.innerHTML = pageSkeletonHtml(filter.year)
 
-    function oppdaterTabell(): void {
-      const stevnerMap = buildEventsMap(cache.stevner)
-      const liste = buildRankingList(cache.resultater, stevnerMap)
-      const tabellEl = container.querySelector<HTMLElement>('#nr-tabell-container')!
+    function updateTable(): void {
+      const tournamentsMap = buildEventsMap(cache.tournaments)
+      const list = buildRankingList(cache.results, tournamentsMap)
+      const tableEl = container.querySelector<HTMLElement>('#nr-table-container')!
       const inner = document.createElement('div')
-      inner.id = 'nr-tabell-inner'
-      inner.appendChild(createRankingTabell(liste, filtre.sokeTekst))
-      tabellEl.replaceChildren(inner)
-      bindExpandableRows(inner, { triggerSel: '.nc-poeng-celle', idAttr: 'idx', detailSel: '.nc-detalj-rad' })
+      inner.id = 'nr-table-inner'
+      inner.appendChild(createRankingTable(list, filter.searchText))
+      tableEl.replaceChildren(inner)
+      bindExpandableRows(inner, { triggerSel: '.nc-points-cell', idAttr: 'idx', detailSel: '.nc-detail-row' })
     }
 
-    oppdaterTabell()
+    updateTable()
 
-    const arSelect = container.querySelector<HTMLSelectElement>('#nr-ar')!
-    const sokInput = container.querySelector<HTMLInputElement>('#nr-sok')!
-    const excelBtn = container.querySelector<HTMLButtonElement>('#nr-excel')!
-    const infoKnapp = container.querySelector<HTMLButtonElement>('#nr-info-knapp')!
+    const yearSelect  = container.querySelector<HTMLSelectElement>('#nr-year')!
+    const searchInput = container.querySelector<HTMLInputElement>('#nr-search')!
+    const excelButton = container.querySelector<HTMLButtonElement>('#nr-excel')!
+    const infoButton  = container.querySelector<HTMLButtonElement>('#nr-info-button')!
 
-    arSelect.addEventListener('change', async () => {
-      filtre.ar = Number(arSelect.value)
-      filtre.sokeTekst = ''
-      sokInput.value = ''
-      container.querySelector('.nc-hovudtittel')!.textContent = `Norgesranking ${filtre.ar}`
-      container.querySelector('#nr-tabell-container')!.replaceChildren(createLoadingState("Laster..."))
+    yearSelect.addEventListener('change', async () => {
+      filter.year = Number(yearSelect.value)
+      filter.searchText = ''
+      searchInput.value = ''
+      container.querySelector('.nc-main-title')!.textContent = `Norgesranking ${filter.year}`
+      container.querySelector('#nr-table-container')!.replaceChildren(createLoadingState('Laster...'))
       try {
-        const ok = await hentOgBufferData(filtre.ar)
+        const ok = await fetchAndBufferData(filter.year)
         if (!ok) {
-          container.querySelector('#nr-tabell-container')!.replaceChildren(createErrorBanner('Feil ved henting av data.'))
+          container.querySelector('#nr-table-container')!.replaceChildren(createErrorBanner('Feil ved henting av data.'))
           return
         }
-        oppdaterTabell()
+        updateTable()
       } catch (err) {
-        logError('norgesranking.arChange', err)
-        container.querySelector('#nr-tabell-container')!.replaceChildren(createErrorBanner('Feil ved henting av data.'))
+        logError('norgesranking.yearChange', err)
+        container.querySelector('#nr-table-container')!.replaceChildren(createErrorBanner('Feil ved henting av data.'))
       }
     })
 
-    sokInput.addEventListener('input', () => {
-      filtre.sokeTekst = sokInput.value
-      oppdaterTabell()
+    searchInput.addEventListener('input', () => {
+      filter.searchText = searchInput.value
+      updateTable()
     })
 
-    excelBtn.addEventListener('click', lastNedExcel)
+    excelButton.addEventListener('click', exportExcel)
 
-    infoKnapp.addEventListener('click', () => {
-      filtre.infoSynleg = !filtre.infoSynleg
-      container.querySelector('#nr-info-seksjon')!.classList.toggle('d-none', !filtre.infoSynleg)
-      infoKnapp.textContent = filtre.infoSynleg ? 'Skjul info' : 'Vis info'
+    infoButton.addEventListener('click', () => {
+      filter.infoVisible = !filter.infoVisible
+      container.querySelector('#nr-info-section')!.classList.toggle('d-none', !filter.infoVisible)
+      infoButton.textContent = filter.infoVisible ? 'Skjul info' : 'Vis info'
     })
   } catch (err) {
     logError('norgesranking.render', err)

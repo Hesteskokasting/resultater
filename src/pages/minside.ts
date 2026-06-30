@@ -37,9 +37,9 @@ function unlinkedHtml(status: LinkStatus): string {
       <div class="card-body">
         <h5 class="card-title">Koble til utøvarprofil</h5>
         <p class="card-text text-muted">Søk etter deg sjølv i registeret og send ein forespørsel. Etter godkjenning kan du melde deg på stevner.</p>
-        <input type="search" id="kaster-sok" class="form-control mb-2" placeholder="Søk på navn…">
-        <div id="kaster-treff" class="list-group mb-2"></div>
-        <div id="kasting-feil" class="alert alert-danger d-none"></div>
+        <input type="search" id="thrower-search" class="form-control mb-2" placeholder="Søk på navn…">
+        <div id="thrower-matches" class="list-group mb-2"></div>
+        <div id="thrower-error" class="alert alert-danger d-none"></div>
       </div>
     </div>`
 }
@@ -48,8 +48,8 @@ function pendingHtml(): string {
   return '<div class="alert alert-info mb-4">Koblingforespørselen din ventar på godkjenning frå ein administrator.</div>'
 }
 
-async function linkedCardHtml(kasterid: number): Promise<string> {
-  const { data, error } = await getThrowerForLink(kasterid)
+async function linkedCardHtml(throwerId: number): Promise<string> {
+  const { data, error } = await getThrowerForLink(throwerId)
   if (error || !data) return ''
   return `
     <div class="card mb-4">
@@ -71,10 +71,10 @@ async function registrationListHtml(userId: string): Promise<string> {
   )
 
   const rows = sorted.map(p => {
-    const dato = formatDate(p.stevne?.dato)
+    const date = formatDate(p.stevne?.dato)
     return `<tr>
       <td><a href="#/stevne/${p.stevne?.id ?? ''}/pamelding">${escHtml(p.stevne?.navn ?? '')}</a></td>
-      <td>${escHtml(dato)}</td>
+      <td>${escHtml(date)}</td>
       <td><a href="#/stevne/${p.stevne?.id ?? ''}/pamelding" class="btn btn-sm btn-outline-danger">Meld av</a></td>
     </tr>`
   }).join('')
@@ -91,8 +91,8 @@ async function registrationListHtml(userId: string): Promise<string> {
     </div>`
 }
 
-async function createMyMatches(kasterid: number): Promise<HTMLElement> {
-  const { data, error } = await getMyMatches(kasterid)
+async function createMyMatches(throwerId: number): Promise<HTMLElement> {
+  const { data, error } = await getMyMatches(throwerId)
   if (error) {
     const p = document.createElement('p')
     p.className = 'text-muted'
@@ -102,8 +102,6 @@ async function createMyMatches(kasterid: number): Promise<HTMLElement> {
 
   const allMatches = data.filter(ks => !ks.kamp?.er_walkover)
 
-  // Side lookup (startnummer per stevne+player) so opponents exclude my own
-  // partner in Par/Mix; spans every stevne the matches belong to.
   const tournamentIds = [...new Set(allMatches.map(ks => ks.kamp?.stevneid).filter((s): s is number => s != null))]
   const startNrMap = await getStartNumbersForTournaments(tournamentIds)
 
@@ -118,22 +116,19 @@ async function createMyMatches(kasterid: number): Promise<HTMLElement> {
   const tableHeader = `<thead><tr><th>Runde/Bane</th><th>Motstandar</th><th></th></tr></thead>`
 
   const makeMatchRow = (ks: MatchPlayerRow, button: string): string => {
-    const kamp = ks.kamp
-    const stevneid = kamp?.stevneid
-    // My side; opponents are everyone on a different side. Same startnummer =
-    // my partner (excluded). Singel: each player has a unique startnummer, so
-    // every other player is an opponent (covers 3-player matches too).
-    const myStartNr = stevneid != null ? startNrMap[`${stevneid}:${kasterid}`] : undefined
-    const opponents = (kamp?.spelarar ?? []).filter(s => {
-      if (s.kasterid == null || s.kasterid === kasterid) return false
-      const oSnr = stevneid != null ? startNrMap[`${stevneid}:${s.kasterid}`] : undefined
-      return myStartNr == null || oSnr == null || oSnr !== myStartNr
+    const match = ks.kamp
+    const tournamentId = match?.stevneid
+    const myStartNr = tournamentId != null ? startNrMap[`${tournamentId}:${throwerId}`] : undefined
+    const opponents = (match?.spelarar ?? []).filter(s => {
+      if (s.kasterid == null || s.kasterid === throwerId) return false
+      const opponentStartNr = tournamentId != null ? startNrMap[`${tournamentId}:${s.kasterid}`] : undefined
+      return myStartNr == null || opponentStartNr == null || opponentStartNr !== myStartNr
     })
     const opponentNames = opponents.length
       ? opponents.map(m => escHtml(throwerName(m.kaster))).join(' / ')
       : '–'
     return `<tr>
-      <td>R${kamp?.runde_nummer ?? ''} / B${kamp?.bane_nummer ?? ''}</td>
+      <td>R${match?.runde_nummer ?? ''} / B${match?.bane_nummer ?? ''}</td>
       <td>${opponentNames}</td>
       <td>${button}</td>
     </tr>`
@@ -146,7 +141,7 @@ async function createMyMatches(kasterid: number): Promise<HTMLElement> {
     if (!matches.length) return null
     const groups = new Map<number | string, { name: string; matches: MatchPlayerRow[] }>()
     for (const ks of matches) {
-      const tournamentId = ks.kamp?.stevneid ?? 'ukjent'
+      const tournamentId = ks.kamp?.stevneid ?? 'unknown'
       const tournamentName = ks.kamp?.stevne?.navn ?? ''
       if (!groups.has(tournamentId)) groups.set(tournamentId, { name: tournamentName, matches: [] })
       groups.get(tournamentId)!.matches.push(ks)
@@ -165,13 +160,13 @@ async function createMyMatches(kasterid: number): Promise<HTMLElement> {
       if (!ks.kamp?.er_bekreftet) {
         return `<a href="#/kamp/${ks.kamp?.id ?? ''}" class="btn btn-sm btn-primary" target="_blank" rel="noopener">Scoreboard</a>`
       }
-      const stevneid = ks.kamp.stevneid
-      const myStartNr = stevneid != null ? startNrMap[`${stevneid}:${kasterid}`] : undefined
-      const myScore = ks.kamp.spelarar?.find(s => s.kasterid === kasterid)?.score_poeng
+      const tournamentId = ks.kamp.stevneid
+      const myStartNr = tournamentId != null ? startNrMap[`${tournamentId}:${throwerId}`] : undefined
+      const myScore = ks.kamp.spelarar?.find(s => s.kasterid === throwerId)?.score_poeng
       const oppScore = ks.kamp.spelarar?.find(s => {
-        if (s.kasterid == null || s.kasterid === kasterid) return false
-        const oSnr = stevneid != null ? startNrMap[`${stevneid}:${s.kasterid}`] : undefined
-        return myStartNr == null || oSnr == null || oSnr !== myStartNr
+        if (s.kasterid == null || s.kasterid === throwerId) return false
+        const opponentStartNr = tournamentId != null ? startNrMap[`${tournamentId}:${s.kasterid}`] : undefined
+        return myStartNr == null || opponentStartNr == null || opponentStartNr !== myStartNr
       })?.score_poeng
       if (myScore == null || oppScore == null) return '–'
       return `<span class="fw-semibold">${myScore} – ${oppScore}</span>`
@@ -206,9 +201,9 @@ async function createMyMatches(kasterid: number): Promise<HTMLElement> {
 function bindThrowerSearch(container: HTMLElement, userId: string): void {
   let timer: number | null = null
   let throwersCache: ThrowerListRow[] | null = null
-  const searchInput = container.querySelector<HTMLInputElement>('#kaster-sok')!
-  const resultsDiv  = container.querySelector<HTMLElement>('#kaster-treff')!
-  const errorDiv    = container.querySelector<HTMLElement>('#kasting-feil')!
+  const searchInput = container.querySelector<HTMLInputElement>('#thrower-search')!
+  const resultsDiv  = container.querySelector<HTMLElement>('#thrower-matches')!
+  const errorDiv    = container.querySelector<HTMLElement>('#thrower-error')!
 
   searchInput.addEventListener('input', () => {
     if (timer !== null) clearTimeout(timer)
@@ -267,7 +262,7 @@ export async function render(container: HTMLElement): Promise<void> {
     const roleName = profil ? roleLabel[profil.role] : 'Ukjent'
 
     let html = `
-      <div class="minside-container">
+      <div class="mypage-container">
         <h2 class="mb-1">Min side</h2>
         <p class="text-muted mb-4">${escHtml(user.email ?? '')} · <span class="badge bg-secondary">${escHtml(roleName)}</span></p>`
 
@@ -276,16 +271,16 @@ export async function render(container: HTMLElement): Promise<void> {
     } else if (status === 'venter') {
       html += pendingHtml()
     } else if (status === 'godkjent' && profil?.kasterid) {
-      const kasterid = profil.kasterid
+      const throwerId = profil.kasterid
       const [throwerCardHtml, regListHtml, myMatchesEl] = await Promise.all([
-        linkedCardHtml(kasterid),
+        linkedCardHtml(throwerId),
         registrationListHtml(user.id),
-        createMyMatches(kasterid),
+        createMyMatches(throwerId),
       ])
       html += throwerCardHtml + regListHtml
       html += '</div>'
       container.innerHTML = html
-      container.querySelector('.minside-container')!.appendChild(myMatchesEl)
+      container.querySelector('.mypage-container')!.appendChild(myMatchesEl)
       return
     }
 

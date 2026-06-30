@@ -8,82 +8,82 @@ import { logError } from '@/utils/logError'
 import { getAllRecords } from '@/services/rekorderService'
 import type { RecordRow } from '@/services/rekorderService'
 
-// ── Konstanter ────────────────────────────────────────────────────────────────
+// ── Constants ─────────────────────────────────────────────────────────────────
 
-interface MetodeKonfig {
-  verdi: string
+interface MethodConfig {
+  value: string
   label: string
-  maxPoeng: number
+  maxPoints: number
 }
 
-const METODAR: MetodeKonfig[] = [
-  { verdi: 'kongelag',  label: 'Kongelag',  maxPoeng: 200 },
-  { verdi: 'minimatch', label: 'Minimatch', maxPoeng: 300 },
-  { verdi: 'halvmatch', label: 'Halvmatch', maxPoeng: 500 },
-  { verdi: 'heilmatch', label: 'Heilmatch', maxPoeng: 1000 },
+const METHODS: MethodConfig[] = [
+  { value: 'kongelag',  label: 'Kongelag',  maxPoints: 200 },
+  { value: 'minimatch', label: 'Minimatch', maxPoints: 300 },
+  { value: 'halvmatch', label: 'Halvmatch', maxPoints: 500 },
+  { value: 'heilmatch', label: 'Heilmatch', maxPoints: 1000 },
 ]
 
-// ── Typar ─────────────────────────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────────
 
-interface RekorderFiltre {
-  metode: string
-  kjonn: 'alle' | 'herrer' | 'damer'
-  sokeTekst: string
+interface RecordsFilter {
+  method: string
+  gender: 'alle' | 'herrer' | 'damer'
+  searchText: string
 }
 
-type RangetRad = RecordRow & { plassering: number }
+type RankedRow = RecordRow & { placement: number }
 
-// ── Tilstand ──────────────────────────────────────────────────────────────────
+// ── State ─────────────────────────────────────────────────────────────────────
 
-const filtre: RekorderFiltre = { metode: 'kongelag', kjonn: 'alle', sokeTekst: '' }
+const filter: RecordsFilter = { method: 'kongelag', gender: 'alle', searchText: '' }
 
-// ── Hjelpefunksjonar ──────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
-function erDame(item: RecordRow): boolean {
+function isFemale(item: RecordRow): boolean {
   return (item.kjonn_navn ?? '').toLowerCase().includes('dame')
 }
 
-// ── Filtrering og rangering ───────────────────────────────────────────────────
+// ── Filtering and ranking ─────────────────────────────────────────────────────
 
-function byggOgFiltrerListe(alleData: RecordRow[]): RangetRad[] {
-  const sok = filtre.sokeTekst.trim().toLowerCase()
+function buildAndFilterList(allData: RecordRow[]): RankedRow[] {
+  const search = filter.searchText.trim().toLowerCase()
 
-  const filtrert = alleData.filter(item => {
-    if (item.metode !== filtre.metode) return false
-    if (filtre.kjonn === 'damer' && !erDame(item)) return false
-    if (filtre.kjonn === 'herrer' && erDame(item)) return false
-    if (sok) {
-      const navn = throwerName({ fornavn: item.fornavn ?? '', etternavn: item.etternavn ?? '' }).toLowerCase()
-      const klubb = (item.klubb_navn ?? '').toLowerCase()
-      if (!navn.includes(sok) && !klubb.includes(sok)) return false
+  const filtered = allData.filter(item => {
+    if (item.metode !== filter.method) return false
+    if (filter.gender === 'damer' && !isFemale(item)) return false
+    if (filter.gender === 'herrer' && isFemale(item)) return false
+    if (search) {
+      const name = throwerName({ fornavn: item.fornavn ?? '', etternavn: item.etternavn ?? '' }).toLowerCase()
+      const club = (item.klubb_navn ?? '').toLowerCase()
+      if (!name.includes(search) && !club.includes(search)) return false
     }
     return true
   })
 
-  filtrert.sort((a, b) => (b.poeng ?? 0) - (a.poeng ?? 0))
+  filtered.sort((a, b) => (b.poeng ?? 0) - (a.poeng ?? 0))
 
   let pl = 1
-  return filtrert.map((item, i) => {
-    if (i > 0 && (item.poeng ?? 0) < (filtrert[i - 1]?.poeng ?? 0)) pl = i + 1
-    return { ...item, plassering: pl }
+  return filtered.map((item, i) => {
+    if (i > 0 && (item.poeng ?? 0) < (filtered[i - 1]?.poeng ?? 0)) pl = i + 1
+    return { ...item, placement: pl }
   })
 }
 
-// ── HTML-byggjarar ────────────────────────────────────────────────────────────
+// ── HTML builders ─────────────────────────────────────────────────────────────
 
-function createRekordTabell(liste: RangetRad[]): HTMLElement {
-  if (!liste.length) return createEmptyState('Ingen rekorder funnet.')
+function createRecordTable(list: RankedRow[]): HTMLElement {
+  if (!list.length) return createEmptyState('Ingen rekorder funnet.')
 
   const wrapper = document.createElement('div')
-  wrapper.className = 'rek-tabell-wrapper'
-  wrapper.appendChild(createTable<RangetRad>({
-    rows: liste,
-    rowClass: item => erDame(item) ? 'rek-dame-rad' : undefined,
+  wrapper.className = 'record-table-wrapper'
+  wrapper.appendChild(createTable<RankedRow>({
+    rows: list,
+    rowClass: item => isFemale(item) ? 'record-female-row' : undefined,
     columns: [
       {
         label: 'Pl.',
-        thClass: 'rek-th-pl',
-        render: item => String(item.plassering),
+        thClass: 'record-th-placement',
+        render: item => String(item.placement),
       },
       {
         label: 'Navn',
@@ -91,7 +91,7 @@ function createRekordTabell(liste: RangetRad[]): HTMLElement {
           const slug = buildThrowerSlug({ id: item.kasterid ?? 0, fornavn: item.fornavn ?? '', etternavn: item.etternavn ?? '' })
           const a = document.createElement('a')
           a.href = `#/kastere/${slug}`
-          a.className = 'tl-lenkje'
+          a.className = 'tl-link'
           a.textContent = throwerName({ fornavn: item.fornavn ?? '', etternavn: item.etternavn ?? '' })
           return a
         },
@@ -102,20 +102,20 @@ function createRekordTabell(liste: RangetRad[]): HTMLElement {
       },
       {
         label: 'Poeng',
-        thClass: 'rek-th-poeng',
+        thClass: 'record-th-points',
         render: item => {
           if (!item.stevne_id) return String(item.poeng ?? '–')
           const span = document.createElement('span')
-          span.className = 'rek-poeng-celle'
+          span.className = 'record-points-cell'
           span.title = item.stevne_navn ?? ''
-          span.dataset.stevneid = String(item.stevne_id)
+          span.dataset.tournamentId = String(item.stevne_id)
           span.textContent = String(item.poeng ?? '–')
           return span
         },
       },
       {
         label: 'År',
-        thClass: 'rek-th-ar',
+        thClass: 'record-th-year',
         render: item => String(item.ar ?? '–'),
       },
     ],
@@ -123,34 +123,34 @@ function createRekordTabell(liste: RangetRad[]): HTMLElement {
   return wrapper
 }
 
-function sideSkelettHtml(): string {
-  const metodeOptions = METODAR.map(m =>
-    `<option value="${m.verdi}"${m.verdi === filtre.metode ? ' selected' : ''}>${escHtml(m.label)}</option>`
+function pageSkeletonHtml(): string {
+  const methodOptions = METHODS.map(m =>
+    `<option value="${m.value}"${m.value === filter.method ? ' selected' : ''}>${escHtml(m.label)}</option>`
   ).join('')
 
   return `
     <div class="content-page">
-      <h1 class="rek-tittel">Rekorder</h1>
-      <p id="rek-maks-tekst" class="rek-maks-tekst"></p>
+      <h1 class="record-title">Rekorder</h1>
+      <p id="record-max-text" class="record-max-text"></p>
       <div class="nc-filter-rad">
-        <select id="rek-metode" class="tl-select">${metodeOptions}</select>
-        <select id="rek-kjonn" class="tl-select">
+        <select id="record-method" class="tl-select">${methodOptions}</select>
+        <select id="record-gender" class="tl-select">
           <option value="alle">Alle</option>
           <option value="herrer">Herrer</option>
           <option value="damer">Damer</option>
         </select>
-        <input id="rek-sok" type="text" class="tl-select" placeholder="Søk på etternavn/klubb" value="">
+        <input id="record-search" type="text" class="tl-select" placeholder="Søk på etternavn/klubb" value="">
       </div>
-      <div id="rek-tabell-container"></div>
+      <div id="record-table-container"></div>
     </div>`
 }
 
-// ── Hovudfunksjon ─────────────────────────────────────────────────────────────
+// ── Main function ─────────────────────────────────────────────────────────────
 
 export async function render(container: HTMLElement): Promise<void> {
-  filtre.metode = 'kongelag'
-  filtre.kjonn = 'alle'
-  filtre.sokeTekst = ''
+  filter.method = 'kongelag'
+  filter.gender = 'alle'
+  filter.searchText = ''
 
   container.replaceChildren(createLoadingState('Laster rekorder…'))
 
@@ -161,40 +161,40 @@ export async function render(container: HTMLElement): Promise<void> {
       return
     }
 
-    container.innerHTML = sideSkelettHtml()
+    container.innerHTML = pageSkeletonHtml()
 
-    function oppdaterMaksTekst(): void {
-      const metode = METODAR.find(m => m.verdi === filtre.metode)!
-      container.querySelector<HTMLElement>('#rek-maks-tekst')!.textContent = `(Maks poengsum: ${metode.maxPoeng})`
+    function updateMaxText(): void {
+      const method = METHODS.find(m => m.value === filter.method)!
+      container.querySelector<HTMLElement>('#record-max-text')!.textContent = `(Maks poengsum: ${method.maxPoints})`
     }
 
-    function oppdaterTabell(): void {
-      container.querySelector<HTMLElement>('#rek-tabell-container')!.replaceChildren(createRekordTabell(byggOgFiltrerListe(data)))
+    function updateTable(): void {
+      container.querySelector<HTMLElement>('#record-table-container')!.replaceChildren(createRecordTable(buildAndFilterList(data)))
     }
 
-    oppdaterMaksTekst()
-    oppdaterTabell()
+    updateMaxText()
+    updateTable()
 
-    container.querySelector<HTMLSelectElement>('#rek-metode')!.addEventListener('change', e => {
-      filtre.metode = (e.target as HTMLSelectElement).value
-      oppdaterMaksTekst()
-      oppdaterTabell()
+    container.querySelector<HTMLSelectElement>('#record-method')!.addEventListener('change', e => {
+      filter.method = (e.target as HTMLSelectElement).value
+      updateMaxText()
+      updateTable()
     })
 
-    container.querySelector<HTMLSelectElement>('#rek-kjonn')!.addEventListener('change', e => {
-      filtre.kjonn = (e.target as HTMLSelectElement).value as RekorderFiltre['kjonn']
-      oppdaterTabell()
+    container.querySelector<HTMLSelectElement>('#record-gender')!.addEventListener('change', e => {
+      filter.gender = (e.target as HTMLSelectElement).value as RecordsFilter['gender']
+      updateTable()
     })
 
-    container.querySelector<HTMLInputElement>('#rek-sok')!.addEventListener('input', e => {
-      filtre.sokeTekst = (e.target as HTMLInputElement).value
-      oppdaterTabell()
+    container.querySelector<HTMLInputElement>('#record-search')!.addEventListener('input', e => {
+      filter.searchText = (e.target as HTMLInputElement).value
+      updateTable()
     })
 
     container.addEventListener('click', e => {
-      const celle = (e.target as Element).closest<HTMLElement>('.rek-poeng-celle')
-      if (celle?.dataset.stevneid) {
-        location.hash = `#/stevne/${celle.dataset.stevneid}/resultat`
+      const cell = (e.target as Element).closest<HTMLElement>('.record-points-cell')
+      if (cell?.dataset.tournamentId) {
+        location.hash = `#/stevne/${cell.dataset.tournamentId}/resultat`
       }
     })
   } catch (err) {

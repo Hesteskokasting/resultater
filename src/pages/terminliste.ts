@@ -10,85 +10,85 @@ import { escHtml } from '@/utils/escHtml'
 import { logError } from '@/utils/logError'
 import { bindRegistrationSlots } from '@/components/PameldingKnapp'
 
-type StevneRow = ScheduleTournamentRow
+type TournamentRow = ScheduleTournamentRow
 
-// ── Sortering ─────────────────────────────────────────────────────────────────
+// ── Sorting ───────────────────────────────────────────────────────────────────
 
-const sortering: { kolonne: string; retning: 'asc' | 'desc' } = { kolonne: 'dato', retning: 'asc' }
+const sort: { column: string; direction: 'asc' | 'desc' } = { column: 'dato', direction: 'asc' }
 
-function sorterVerdi(s: StevneRow, kolonne: string): string {
-  switch (kolonne) {
-    case 'navn': return s.navn ?? ''
-    case 'dato': return s.dato ?? ''
-    case 'sted': return s.sted ?? ''
-    case 'metode': return [s.innledende?.navn, s.avsluttende?.navn].filter((v): v is string => Boolean(v)).join(' ')
-    case 'organizer': return s.klubb?.navn ?? ''
-    case 'type': return s.stevnetype?.navn ?? ''
+function sortValue(s: TournamentRow, column: string): string {
+  switch (column) {
+    case 'navn':          return s.navn ?? ''
+    case 'dato':          return s.dato ?? ''
+    case 'sted':          return s.sted ?? ''
+    case 'metode':        return [s.innledende?.navn, s.avsluttende?.navn].filter((v): v is string => Boolean(v)).join(' ')
+    case 'organizer':     return s.klubb?.navn ?? ''
+    case 'type':          return s.stevnetype?.navn ?? ''
     case 'klassifisering': return s.kategori?.navn ?? ''
-    default: return ''
+    default:              return ''
   }
 }
 
-function sorterData(data: StevneRow[]): StevneRow[] {
+function sortData(data: TournamentRow[]): TournamentRow[] {
   return [...data].sort((a, b) => {
-    const va = sorterVerdi(a, sortering.kolonne)
-    const vb = sorterVerdi(b, sortering.kolonne)
+    const va = sortValue(a, sort.column)
+    const vb = sortValue(b, sort.column)
     const cmp = va.localeCompare(vb, 'nb')
-    return sortering.retning === 'asc' ? cmp : -cmp
+    return sort.direction === 'asc' ? cmp : -cmp
   })
 }
 
-// ── Filterobjekt ──────────────────────────────────────────────────────────────
+// ── Filter state ──────────────────────────────────────────────────────────────
 
-const filtre = {
-  ar: new Date().getFullYear(),
-  tekst: '',
-  stevnetypeId: '',
-  kastemetodeId: '',
-  klubbId: '',
-  kategoriId: '',
+const filter = {
+  year:             new Date().getFullYear(),
+  text:             '',
+  tournamentTypeId: '',
+  throwingMethodId: '',
+  clubId:           '',
+  categoryId:       '',
 }
 
-let allData: StevneRow[] = []
+let allData: TournamentRow[] = []
 let _auth: AuthUser | null = null
-let _pameldteMap: Map<number, number> = new Map()
+let _registeredMap: Map<number, number> = new Map()
 
-// ── Klient-side filtrering ────────────────────────────────────────────────────
+// ── Client-side filtering ─────────────────────────────────────────────────────
 
-function filtrerData(data: StevneRow[]): StevneRow[] {
+function filterData(data: TournamentRow[]): TournamentRow[] {
   return data.filter(s => {
-    if (filtre.tekst) {
-      const soketekst = filtre.tekst.toLowerCase()
-      const treffer = [
+    if (filter.text) {
+      const search = filter.text.toLowerCase()
+      const matched = [
         s.navn, s.sted,
         s.klubb?.navn,
         s.stevnetype?.navn,
         s.kategori?.navn,
         s.innledende?.navn,
         s.avsluttende?.navn,
-      ].some(felt => felt?.toLowerCase().includes(soketekst))
-      if (!treffer) return false
+      ].some(field => field?.toLowerCase().includes(search))
+      if (!matched) return false
     }
 
-    if (filtre.stevnetypeId && String(s.stevnetype?.id) !== filtre.stevnetypeId) return false
+    if (filter.tournamentTypeId && String(s.stevnetype?.id) !== filter.tournamentTypeId) return false
 
-    if (filtre.kastemetodeId) {
-      const id = filtre.kastemetodeId
-      const treff = String(s.innledende?.id) === id || String(s.avsluttende?.id) === id
-      if (!treff) return false
+    if (filter.throwingMethodId) {
+      const id = filter.throwingMethodId
+      const matched = String(s.innledende?.id) === id || String(s.avsluttende?.id) === id
+      if (!matched) return false
     }
 
-    if (filtre.klubbId && String(s.klubb?.id) !== filtre.klubbId) return false
-    if (filtre.kategoriId && String(s.kategori?.id) !== filtre.kategoriId) return false
+    if (filter.clubId     && String(s.klubb?.id)    !== filter.clubId)     return false
+    if (filter.categoryId && String(s.kategori?.id) !== filter.categoryId) return false
 
     return true
   })
 }
 
-// ── Excel-eksport ─────────────────────────────────────────────────────────────
+// ── Excel export ──────────────────────────────────────────────────────────────
 
-async function lastNedExcel(filtrert: StevneRow[]): Promise<void> {
-  const rader = filtrert.map(s => ({
+async function exportToExcel(filtered: TournamentRow[]): Promise<void> {
+  const rows = filtered.map(s => ({
     'Dato': s.dato ? new Date(s.dato).toLocaleDateString('nb-NO') : '',
     'Navn': s.navn ?? '',
     'Sted': s.sted ?? '',
@@ -100,98 +100,98 @@ async function lastNedExcel(filtrert: StevneRow[]): Promise<void> {
     'NM': s.ernm ? 'Ja' : 'Nei',
     'InnbydelseUrl': s.innbydelseurl ?? '',
   }))
-  await downloadExcel(rader, `terminliste-${filtre.ar}.xlsx`, 'Terminliste')
+  await downloadExcel(rows, `terminliste-${filter.year}.xlsx`, 'Terminliste')
 }
 
-// ── Tabell (desktop) ──────────────────────────────────────────────────────────
+// ── Table (desktop) ───────────────────────────────────────────────────────────
 
-const tabellKolonner = [
-  { id: 'navn', label: 'Stevne' },
-  { id: 'dato', label: 'Dato' },
-  { id: 'sted', label: 'Sted' },
-  { id: 'metode', label: 'Metode' },
-  { id: 'organizer', label: 'Arrangør' },
-  { id: 'type', label: 'Type' },
+const tableColumns = [
+  { id: 'navn',          label: 'Stevne' },
+  { id: 'dato',          label: 'Dato' },
+  { id: 'sted',          label: 'Sted' },
+  { id: 'metode',        label: 'Metode' },
+  { id: 'organizer',     label: 'Arrangør' },
+  { id: 'type',          label: 'Type' },
   { id: 'klassifisering', label: 'Klassifisering' },
 ]
 
-function sortikonHtml(kolonne: string): string {
-  if (sortering.kolonne !== kolonne) return '<span class="tl-sort-ikon">↕</span>'
-  return sortering.retning === 'asc'
-    ? '<span class="tl-sort-ikon aktiv">↑</span>'
-    : '<span class="tl-sort-ikon aktiv">↓</span>'
+function sortIconHtml(column: string): string {
+  if (sort.column !== column) return '<span class="tl-sort-icon">↕</span>'
+  return sort.direction === 'asc'
+    ? '<span class="tl-sort-icon active">↑</span>'
+    : '<span class="tl-sort-icon active">↓</span>'
 }
 
-function tabellRadHtml(s: StevneRow): string {
-  const dato = s.dato ? new Date(s.dato + 'T12:00:00').toLocaleDateString('nb-NO') : ''
-  const metode = [s.innledende?.navn, s.avsluttende?.navn].filter((v): v is string => Boolean(v)).join(' \\ ')
-  const nm = s.ernm ? '<span class="tl-nm-merke">NM</span> ' : ''
-  const innbydelse = s.innbydelseurl
-    ? `<a href="${escHtml(s.innbydelseurl)}" target="_blank" rel="noopener" class="tl-innbydelse-ikon" title="Innbydelse">📄</a>`
+function tableRowHtml(s: TournamentRow): string {
+  const date     = s.dato ? new Date(s.dato + 'T12:00:00').toLocaleDateString('nb-NO') : ''
+  const method   = [s.innledende?.navn, s.avsluttende?.navn].filter((v): v is string => Boolean(v)).join(' \\ ')
+  const nm       = s.ernm ? '<span class="tl-nm-merke">NM</span> ' : ''
+  const invitation = s.innbydelseurl
+    ? `<a href="${escHtml(s.innbydelseurl)}" target="_blank" rel="noopener" class="tl-invitation-icon" title="Innbydelse">📄</a>`
     : ''
   return `<tr class="tl-tr">
-    <td><a class="tl-lenkje" href="#/stevne/${s.id}/resultat">${nm}${escHtml(s.navn ?? '')}</a></td>
-    <td>${dato}</td>
+    <td><a class="tl-link" href="#/stevne/${s.id}/resultat">${nm}${escHtml(s.navn ?? '')}</a></td>
+    <td>${date}</td>
     <td>${escHtml(s.sted ?? '')}</td>
-    <td>${escHtml(metode)}</td>
+    <td>${escHtml(method)}</td>
     <td>${escHtml(s.klubb?.navn ?? '')}</td>
     <td>${escHtml(s.stevnetype?.navn ?? '')}</td>
     <td>${escHtml(s.kategori?.navn ?? '')}</td>
-    <td>${innbydelse}</td>
+    <td>${invitation}</td>
   </tr>`
 }
 
-function tabellHtml(filtrert: StevneRow[]): string {
-  if (filtrert.length === 0) return '<p class="empty-state">Ingen stevner funnet med valgte filtre.</p>'
+function tableHtml(filtered: TournamentRow[]): string {
+  if (filtered.length === 0) return '<p class="empty-state">Ingen stevner funnet med valgte filtre.</p>'
   const thead = `<thead><tr>
-    ${tabellKolonner.map(k => `<th class="tl-th" data-kolonne="${k.id}">${k.label}${sortikonHtml(k.id)}</th>`).join('')}
+    ${tableColumns.map(k => `<th class="tl-th" data-column="${k.id}">${k.label}${sortIconHtml(k.id)}</th>`).join('')}
     <th class="tl-th">Innbydelse</th>
   </tr></thead>`
-  const tbody = `<tbody>${sorterData(filtrert).map(tabellRadHtml).join('')}</tbody>`
-  return `<table class="tl-tabell">${thead}${tbody}</table>`
+  const tbody = `<tbody>${sortData(filtered).map(tableRowHtml).join('')}</tbody>`
+  return `<table class="tl-table">${thead}${tbody}</table>`
 }
 
-function byggVisning(filtrert: StevneRow[]): string {
-  return window.innerWidth > 600 ? tabellHtml(filtrert) : byggListe(filtrert)
+function buildView(filtered: TournamentRow[]): string {
+  return window.innerWidth > 600 ? tableHtml(filtered) : buildList(filtered)
 }
 
-// ── Kort (mobil) ──────────────────────────────────────────────────────────────
+// ── Card (mobile) ─────────────────────────────────────────────────────────────
 
-function kortHtml(s: StevneRow): string {
-  const dato = formatDateLong(s.dato)
-  const sted = s.sted ? `<p class="tl-detalj">Sted: ${escHtml(s.sted)}</p>` : ''
-  const organizer = s.klubb ? `<p class="tl-detalj">Arrangør: ${escHtml(s.klubb.navn ?? '')}</p>` : ''
-  const type = s.stevnetype ? `<p class="tl-detalj">Type: ${escHtml(s.stevnetype.navn ?? '')}</p>` : ''
-  const nm = s.ernm ? '<span class="tl-nm-merke">NM</span>' : ''
-  const innbydelse = s.innbydelseurl
-    ? `<a class="tl-innbydelse-lenke" href="${escHtml(s.innbydelseurl)}" target="_blank" rel="noopener">Innbydelse 📄</a>`
+function cardHtml(s: TournamentRow): string {
+  const date     = formatDateLong(s.dato)
+  const place    = s.sted ? `<p class="tl-detail">Sted: ${escHtml(s.sted)}</p>` : ''
+  const organizer = s.klubb ? `<p class="tl-detail">Arrangør: ${escHtml(s.klubb.navn ?? '')}</p>` : ''
+  const type     = s.stevnetype ? `<p class="tl-detail">Type: ${escHtml(s.stevnetype.navn ?? '')}</p>` : ''
+  const nm       = s.ernm ? '<span class="tl-nm-merke">NM</span>' : ''
+  const invitation = s.innbydelseurl
+    ? `<a class="tl-invitation-link" href="${escHtml(s.innbydelseurl)}" target="_blank" rel="noopener">Innbydelse 📄</a>`
     : ''
-  const resultat = s.resultaturl
-    ? `<a class="stevne-lenke" href="#/stevne/${s.id}/resultat">Vis resultat</a>`
+  const result   = s.resultaturl
+    ? `<a class="tournament-link" href="#/stevne/${s.id}/resultat">Vis resultat</a>`
     : ''
 
-  const erKomande = s.dato && new Date(s.dato + 'T12:00:00') > new Date()
-  const ikkjeStarta = s.stevne_fase === null || s.stevne_fase === 'ikke_startet'
-  const harTilgang = _auth?.profil?.kobling_status === 'godkjent'
-  const pameldingSlot = harTilgang && erKomande && ikkjeStarta && !s.erfullfort
+  const isUpcoming   = s.dato && new Date(s.dato + 'T12:00:00') > new Date()
+  const notStarted   = s.stevne_fase === null || s.stevne_fase === 'ikke_startet'
+  const hasAccess    = _auth?.profil?.kobling_status === 'godkjent'
+  const registrationSlot = hasAccess && isUpcoming && notStarted && !s.erfullfort
     ? `<span data-registration-slot="${s.id}"></span>`
     : ''
 
   return `
-    <div class="stevne-kort tl-kort">
-      <a class="tl-navn tl-navn-lenke" href="#/stevne/${s.id}/resultat">${nm}${escHtml(s.navn ?? '')}</a>
-      <p class="stevne-dato">${dato}</p>
-      ${sted}${organizer}${type}
-      ${innbydelse}${resultat}${pameldingSlot}
+    <div class="tournament-card tl-kort">
+      <a class="tl-name tl-name-link" href="#/stevne/${s.id}/resultat">${nm}${escHtml(s.navn ?? '')}</a>
+      <p class="tournament-date">${date}</p>
+      ${place}${organizer}${type}
+      ${invitation}${result}${registrationSlot}
     </div>
   `
 }
 
-function byggListe(filtrert: StevneRow[]): string {
-  if (filtrert.length === 0) {
+function buildList(filtered: TournamentRow[]): string {
+  if (filtered.length === 0) {
     return '<p class="empty-state">Ingen stevner funnet med valgte filtre.</p>'
   }
-  return `<div class="stevne-liste">${filtrert.map(kortHtml).join('')}</div>`
+  return `<div class="tournament-list">${filtered.map(cardHtml).join('')}</div>`
 }
 
 // ── Render ────────────────────────────────────────────────────────────────────
@@ -200,13 +200,15 @@ export async function render(container: HTMLElement): Promise<void> {
   container.replaceChildren(createLoadingState('Laster terminliste…'))
 
   try {
-    const [{ data, error }, { data: filtervalg }, auth] = await Promise.all([
-      getScheduleTournaments(filtre.ar),
+    const [{ data, error }, { data: filterOptions }, auth] = await Promise.all([
+      getScheduleTournaments(filter.year),
       getFilterOptions(),
       getUser(),
     ])
     _auth = auth
-    _pameldteMap = auth?.profil?.kasterid != null ? await getRegistrationsForThrower(auth.profil.kasterid) : new Map()
+    _registeredMap = auth?.profil?.kasterid != null
+      ? await getRegistrationsForThrower(auth.profil.kasterid)
+      : new Map()
 
     if (error) {
       logError('terminliste.render', error)
@@ -217,86 +219,86 @@ export async function render(container: HTMLElement): Promise<void> {
     allData = data ?? []
 
     // Same select set renders twice: desktop filter row ('') and mobile bottom sheet ('-mobil')
-    function filterSelects(suffix: '' | '-mobil'): Record<'ar' | 'stevnetype' | 'kastemetode' | 'arrangor' | 'kategori', string> {
+    function filterSelects(suffix: '' | '-mobil'): Record<'year' | 'tournamentType' | 'throwingMethod' | 'organizer' | 'category', string> {
       return {
-        ar:          `<select class="tl-select" id="tl-ar${suffix}">${yearOptions(filtre.ar, 1983, new Date().getFullYear() + 1)}</select>`,
-        stevnetype:  `<select class="tl-select" id="tl-stevnetype${suffix}">${buildDropdownOptions(filtervalg.stevnetyper, filtre.stevnetypeId, 'Alle typer')}</select>`,
-        kastemetode: `<select class="tl-select" id="tl-kastemetode${suffix}">${buildDropdownOptions(filtervalg.kastemetoder, filtre.kastemetodeId, 'Alle metoder')}</select>`,
-        arrangor:    `<select class="tl-select" id="tl-arrangorklubb${suffix}">${buildDropdownOptions(filtervalg.klubber, filtre.klubbId, 'Alle arrangører')}</select>`,
-        kategori:    `<select class="tl-select" id="tl-kategori${suffix}">${buildDropdownOptions(filtervalg.kategorier, filtre.kategoriId, 'Alle kategorier')}</select>`,
+        year:           `<select class="tl-select" id="tl-year${suffix}">${yearOptions(filter.year, 1983, new Date().getFullYear() + 1)}</select>`,
+        tournamentType: `<select class="tl-select" id="tl-tournamenttype${suffix}">${buildDropdownOptions(filterOptions.stevnetyper, filter.tournamentTypeId, 'Alle typer')}</select>`,
+        throwingMethod: `<select class="tl-select" id="tl-throwingmethod${suffix}">${buildDropdownOptions(filterOptions.kastemetoder, filter.throwingMethodId, 'Alle metoder')}</select>`,
+        organizer:      `<select class="tl-select" id="tl-organizer${suffix}">${buildDropdownOptions(filterOptions.klubber, filter.clubId, 'Alle arrangører')}</select>`,
+        category:       `<select class="tl-select" id="tl-category${suffix}">${buildDropdownOptions(filterOptions.kategorier, filter.categoryId, 'Alle kategorier')}</select>`,
       }
     }
     const desktopSel = filterSelects('')
-    const mobilSel = filterSelects('-mobil')
+    const mobileSel  = filterSelects('-mobil')
 
     container.innerHTML = `
       <div class="terminliste">
-        <h1 class="tl-tittel">Terminliste ${filtre.ar}</h1>
+        <h1 class="tl-title">Terminliste ${filter.year}</h1>
 
-        <!-- Desktop-filterrad -->
-        <div class="tl-filter-rad">
-          ${desktopSel.ar}
-          <input class="tl-input" id="tl-tekst" type="search" placeholder="Søk..." value="${escHtml(filtre.tekst)}">
-          ${desktopSel.stevnetype}
-          ${desktopSel.kastemetode}
-          ${desktopSel.arrangor}
-          ${desktopSel.kategori}
-          <button class="tl-excel-knapp" id="tl-excel-desktop">⬇ Excel</button>
+        <!-- Desktop filter row -->
+        <div class="tl-filter-row">
+          ${desktopSel.year}
+          <input class="tl-input" id="tl-text" type="search" placeholder="Søk..." value="${escHtml(filter.text)}">
+          ${desktopSel.tournamentType}
+          ${desktopSel.throwingMethod}
+          ${desktopSel.organizer}
+          ${desktopSel.category}
+          <button class="tl-excel-button" id="tl-excel-desktop">⬇ Excel</button>
         </div>
 
-        <!-- Mobil-rad -->
-        <div class="tl-mobil-rad">
-          <input class="tl-input" id="tl-tekst-mobil" type="search" placeholder="Søk..." value="${escHtml(filtre.tekst)}">
-          <button class="tl-filter-knapp" id="tl-filter-aapne">Filter ≡</button>
-          <button class="tl-excel-knapp" id="tl-excel-mobil">⬇ Excel</button>
+        <!-- Mobile row -->
+        <div class="tl-mobile-row">
+          <input class="tl-input" id="tl-text-mobile" type="search" placeholder="Søk..." value="${escHtml(filter.text)}">
+          <button class="tl-filter-button" id="tl-filter-open">Filter ≡</button>
+          <button class="tl-excel-button" id="tl-excel-mobile">⬇ Excel</button>
         </div>
 
-        <p class="tl-antall"></p>
+        <p class="tl-count"></p>
 
-        <div class="tl-liste-container"></div>
+        <div class="tl-list-container"></div>
       </div>
 
-      <!-- Bunnark for mobilfiltre -->
-      <div class="tl-bunnark-bakgrunn" id="tl-bakgrunn"></div>
-      <div class="tl-bunnark" id="tl-bunnark">
-        <div class="tl-bunnark-innhold">
-          <h2 class="tl-bunnark-tittel">Filtre</h2>
+      <!-- Bottom sheet for mobile filters -->
+      <div class="tl-sheet-backdrop" id="tl-backdrop"></div>
+      <div class="tl-sheet" id="tl-sheet">
+        <div class="tl-sheet-content">
+          <h2 class="tl-sheet-title">Filtre</h2>
           <label class="tl-label">År
-            ${mobilSel.ar}
+            ${mobileSel.year}
           </label>
           <label class="tl-label">Stevnetype
-            ${mobilSel.stevnetype}
+            ${mobileSel.tournamentType}
           </label>
           <label class="tl-label">Kastemetode
-            ${mobilSel.kastemetode}
+            ${mobileSel.throwingMethod}
           </label>
           <label class="tl-label">Arrangør
-            ${mobilSel.arrangor}
+            ${mobileSel.organizer}
           </label>
           <label class="tl-label">Kategori
-            ${mobilSel.kategori}
+            ${mobileSel.category}
           </label>
-          <div class="tl-bunnark-knapper">
-            <button class="tl-tilbakestill-knapp" id="tl-tilbakestill">Tilbakestill</button>
-            <button class="tl-bruk-knapp" id="tl-bruk">Bruk filter</button>
+          <div class="tl-sheet-buttons">
+            <button class="tl-reset-button" id="tl-reset">Tilbakestill</button>
+            <button class="tl-apply-button" id="tl-apply">Bruk filter</button>
           </div>
         </div>
       </div>
     `
 
-    function oppdaterListe(): StevneRow[] {
-      const filtrert = filtrerData(allData)
-      const listeEl = container.querySelector<HTMLElement>('.tl-liste-container')!
-      listeEl.innerHTML = byggVisning(filtrert)
-      const antall = container.querySelector('.tl-antall')
-      if (antall) antall.textContent = `${filtrert.length} stevner`
-      const kasterid = _auth?.profil?.kasterid
-      const brukerId = _auth?.user.id
-      if (kasterid != null && brukerId) bindRegistrationSlots(listeEl, kasterid, brukerId, _pameldteMap)
-      return filtrert
+    function updateList(): TournamentRow[] {
+      const filtered    = filterData(allData)
+      const listEl      = container.querySelector<HTMLElement>('.tl-list-container')!
+      listEl.innerHTML  = buildView(filtered)
+      const countEl     = container.querySelector('.tl-count')
+      if (countEl) countEl.textContent = `${filtered.length} stevner`
+      const throwerId = _auth?.profil?.kasterid
+      const userId    = _auth?.user.id
+      if (throwerId != null && userId) bindRegistrationSlots(listEl, throwerId, userId, _registeredMap)
+      return filtered
     }
 
-    oppdaterListe()
+    updateList()
 
     if (auth?.profil && (auth.profil.role === 'admin' || auth.profil.role === 'klubbadmin')) {
       const bar = document.createElement('div')
@@ -305,119 +307,119 @@ export async function render(container: HTMLElement): Promise<void> {
       container.querySelector('.terminliste')?.prepend(bar)
     }
 
-    // ── Event-lyttarar ──
+    // ── Event listeners ──
 
-    const listeContainer = container.querySelector<HTMLElement>('.tl-liste-container')!
-    const arSelect = container.querySelector<HTMLSelectElement>('#tl-ar')!
-    const tekstInput = container.querySelector<HTMLInputElement>('#tl-tekst')!
-    const tekstMobilInput = container.querySelector<HTMLInputElement>('#tl-tekst-mobil')!
-    const stevnetypeSelect = container.querySelector<HTMLSelectElement>('#tl-stevnetype')!
-    const kastemetodeSelect = container.querySelector<HTMLSelectElement>('#tl-kastemetode')!
-    const arrangorklubbSelect = container.querySelector<HTMLSelectElement>('#tl-arrangorklubb')!
-    const kategoriSelect = container.querySelector<HTMLSelectElement>('#tl-kategori')!
-    const excelDesktopBtn = container.querySelector<HTMLButtonElement>('#tl-excel-desktop')!
-    const excelMobilBtn = container.querySelector<HTMLButtonElement>('#tl-excel-mobil')!
-    const filterAapneBtn = container.querySelector<HTMLButtonElement>('#tl-filter-aapne')!
-    const bunnark = container.querySelector<HTMLElement>('#tl-bunnark')!
-    const bakgrunn = container.querySelector<HTMLElement>('#tl-bakgrunn')!
-    const tilbakestillBtn = container.querySelector<HTMLButtonElement>('#tl-tilbakestill')!
-    const brukBtn = container.querySelector<HTMLButtonElement>('#tl-bruk')!
-    const arMobilSelect = container.querySelector<HTMLSelectElement>('#tl-ar-mobil')!
-    const stevnetypeMobilSelect = container.querySelector<HTMLSelectElement>('#tl-stevnetype-mobil')!
-    const kastemetodeMobilSelect = container.querySelector<HTMLSelectElement>('#tl-kastemetode-mobil')!
-    const arrangorklubbMobilSelect = container.querySelector<HTMLSelectElement>('#tl-arrangorklubb-mobil')!
-    const kategoriMobilSelect = container.querySelector<HTMLSelectElement>('#tl-kategori-mobil')!
+    const listContainer           = container.querySelector<HTMLElement>('.tl-list-container')!
+    const yearSelect              = container.querySelector<HTMLSelectElement>('#tl-year')!
+    const textInput               = container.querySelector<HTMLInputElement>('#tl-text')!
+    const textMobileInput         = container.querySelector<HTMLInputElement>('#tl-text-mobile')!
+    const tournamentTypeSelect    = container.querySelector<HTMLSelectElement>('#tl-tournamenttype')!
+    const throwingMethodSelect    = container.querySelector<HTMLSelectElement>('#tl-throwingmethod')!
+    const organizerSelect         = container.querySelector<HTMLSelectElement>('#tl-organizer')!
+    const categorySelect          = container.querySelector<HTMLSelectElement>('#tl-category')!
+    const excelDesktopBtn         = container.querySelector<HTMLButtonElement>('#tl-excel-desktop')!
+    const excelMobileBtn          = container.querySelector<HTMLButtonElement>('#tl-excel-mobile')!
+    const filterOpenBtn           = container.querySelector<HTMLButtonElement>('#tl-filter-open')!
+    const sheet                   = container.querySelector<HTMLElement>('#tl-sheet')!
+    const backdrop                = container.querySelector<HTMLElement>('#tl-backdrop')!
+    const resetBtn                = container.querySelector<HTMLButtonElement>('#tl-reset')!
+    const applyBtn                = container.querySelector<HTMLButtonElement>('#tl-apply')!
+    const yearMobileSelect        = container.querySelector<HTMLSelectElement>('#tl-year-mobil')!
+    const tournamentTypeMobSelect = container.querySelector<HTMLSelectElement>('#tl-tournamenttype-mobil')!
+    const throwingMethodMobSelect = container.querySelector<HTMLSelectElement>('#tl-throwingmethod-mobil')!
+    const organizerMobSelect      = container.querySelector<HTMLSelectElement>('#tl-organizer-mobil')!
+    const categoryMobSelect       = container.querySelector<HTMLSelectElement>('#tl-category-mobil')!
 
-    listeContainer.addEventListener('click', e => {
-      const th = (e.target as Element).closest<HTMLElement>('[data-kolonne]')
+    listContainer.addEventListener('click', e => {
+      const th = (e.target as Element).closest<HTMLElement>('[data-column]')
       if (!th) return
-      const kolonne = th.dataset.kolonne!
-      if (sortering.kolonne === kolonne) {
-        sortering.retning = sortering.retning === 'asc' ? 'desc' : 'asc'
+      const column = th.dataset.column!
+      if (sort.column === column) {
+        sort.direction = sort.direction === 'asc' ? 'desc' : 'asc'
       } else {
-        sortering.kolonne = kolonne
-        sortering.retning = 'asc'
+        sort.column    = column
+        sort.direction = 'asc'
       }
-      oppdaterListe()
+      updateList()
     })
 
     let resizeTimer: number | null = null
     window.addEventListener('resize', () => {
       if (resizeTimer !== null) clearTimeout(resizeTimer)
-      resizeTimer = setTimeout(oppdaterListe, 200)
+      resizeTimer = setTimeout(updateList, 200)
     })
 
     async function reloadYear(logContext: string): Promise<boolean> {
-      container.querySelector('.tl-tittel')!.textContent = `Terminliste ${filtre.ar}`
-      container.querySelector('.tl-liste-container')!.replaceChildren(createLoadingState("Laster..."))
-      const { data: nyData, error: nyFeil } = await getScheduleTournaments(filtre.ar)
-      if (nyFeil) {
-        logError(logContext, nyFeil)
-        container.querySelector<HTMLElement>('.tl-liste-container')!.replaceChildren(createErrorBanner('Feil ved henting.'))
+      container.querySelector('.tl-title')!.textContent = `Terminliste ${filter.year}`
+      container.querySelector('.tl-list-container')!.replaceChildren(createLoadingState('Laster...'))
+      const { data: newData, error: newError } = await getScheduleTournaments(filter.year)
+      if (newError) {
+        logError(logContext, newError)
+        container.querySelector<HTMLElement>('.tl-list-container')!.replaceChildren(createErrorBanner('Feil ved henting.'))
         return false
       }
-      allData = nyData ?? []
+      allData = newData ?? []
       return true
     }
 
-    arSelect.addEventListener('change', async () => {
-      filtre.ar = Number(arSelect.value)
-      if (await reloadYear('terminliste.arChange')) oppdaterListe()
+    yearSelect.addEventListener('change', async () => {
+      filter.year = Number(yearSelect.value)
+      if (await reloadYear('terminliste.yearChange')) updateList()
     })
 
-    tekstInput.addEventListener('input', () => {
-      filtre.tekst = tekstInput.value
-      oppdaterListe()
+    textInput.addEventListener('input', () => {
+      filter.text = textInput.value
+      updateList()
     })
 
-    tekstMobilInput.addEventListener('input', () => {
-      filtre.tekst = tekstMobilInput.value
-      tekstInput.value = tekstMobilInput.value
-      oppdaterListe()
+    textMobileInput.addEventListener('input', () => {
+      filter.text    = textMobileInput.value
+      textInput.value = textMobileInput.value
+      updateList()
     })
 
-    stevnetypeSelect.addEventListener('change', () => { filtre.stevnetypeId = stevnetypeSelect.value; oppdaterListe() })
-    kastemetodeSelect.addEventListener('change', () => { filtre.kastemetodeId = kastemetodeSelect.value; oppdaterListe() })
-    arrangorklubbSelect.addEventListener('change', () => { filtre.klubbId = arrangorklubbSelect.value; oppdaterListe() })
-    kategoriSelect.addEventListener('change', () => { filtre.kategoriId = kategoriSelect.value; oppdaterListe() })
+    tournamentTypeSelect.addEventListener('change', () => { filter.tournamentTypeId = tournamentTypeSelect.value; updateList() })
+    throwingMethodSelect.addEventListener('change', () => { filter.throwingMethodId = throwingMethodSelect.value; updateList() })
+    organizerSelect.addEventListener('change',      () => { filter.clubId           = organizerSelect.value;     updateList() })
+    categorySelect.addEventListener('change',       () => { filter.categoryId       = categorySelect.value;      updateList() })
 
-    const excelHandler = () => lastNedExcel(filtrerData(allData))
+    const excelHandler = () => exportToExcel(filterData(allData))
     excelDesktopBtn.addEventListener('click', excelHandler)
-    excelMobilBtn.addEventListener('click', excelHandler)
+    excelMobileBtn.addEventListener('click',  excelHandler)
 
-    function apneBunnark() { bunnark.classList.add('aktiv'); bakgrunn.classList.add('aktiv') }
-    function lukkBunnark() { bunnark.classList.remove('aktiv'); bakgrunn.classList.remove('aktiv') }
+    function openSheet() { sheet.classList.add('active'); backdrop.classList.add('active') }
+    function closeSheet() { sheet.classList.remove('active'); backdrop.classList.remove('active') }
 
-    filterAapneBtn.addEventListener('click', apneBunnark)
-    bakgrunn.addEventListener('click', lukkBunnark)
+    filterOpenBtn.addEventListener('click', openSheet)
+    backdrop.addEventListener('click', closeSheet)
 
-    tilbakestillBtn.addEventListener('click', () => {
-      filtre.tekst = ''
-      filtre.stevnetypeId = ''
-      filtre.kastemetodeId = ''
-      filtre.klubbId = ''
-      filtre.kategoriId = ''
-      stevnetypeMobilSelect.value = ''
-      kastemetodeMobilSelect.value = ''
-      arrangorklubbMobilSelect.value = ''
-      kategoriMobilSelect.value = ''
-      tekstMobilInput.value = ''
-      tekstInput.value = ''
-      oppdaterListe()
+    resetBtn.addEventListener('click', () => {
+      filter.text             = ''
+      filter.tournamentTypeId = ''
+      filter.throwingMethodId = ''
+      filter.clubId           = ''
+      filter.categoryId       = ''
+      tournamentTypeMobSelect.value = ''
+      throwingMethodMobSelect.value = ''
+      organizerMobSelect.value      = ''
+      categoryMobSelect.value       = ''
+      textMobileInput.value = ''
+      textInput.value       = ''
+      updateList()
     })
 
-    brukBtn.addEventListener('click', async () => {
-      const nyttAr = Number(arMobilSelect.value)
-      const arEndret = nyttAr !== filtre.ar
-      filtre.ar = nyttAr
-      filtre.stevnetypeId = stevnetypeMobilSelect.value
-      filtre.kastemetodeId = kastemetodeMobilSelect.value
-      filtre.klubbId = arrangorklubbMobilSelect.value
-      filtre.kategoriId = kategoriMobilSelect.value
-      lukkBunnark()
+    applyBtn.addEventListener('click', async () => {
+      const newYear    = Number(yearMobileSelect.value)
+      const yearChanged = newYear !== filter.year
+      filter.year             = newYear
+      filter.tournamentTypeId = tournamentTypeMobSelect.value
+      filter.throwingMethodId = throwingMethodMobSelect.value
+      filter.clubId           = organizerMobSelect.value
+      filter.categoryId       = categoryMobSelect.value
+      closeSheet()
 
-      if (arEndret && !await reloadYear('terminliste.brukFilter')) return
-      oppdaterListe()
+      if (yearChanged && !await reloadYear('terminliste.applyFilter')) return
+      updateList()
     })
   } catch (err) {
     logError('terminliste.render', err)

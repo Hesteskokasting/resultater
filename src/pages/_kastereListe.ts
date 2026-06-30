@@ -10,59 +10,59 @@ import {
 } from '@/services/kasterService'
 import type { ThrowerListRow } from '@/services/kasterService'
 
-const SIDER_STORLEIK = 24
+const PAGE_SIZE = 24
 const PLACEHOLDER_AVATAR = 'https://placehold.co/200x200/444/888?text=?'
 
-const filtreListe = { visAlle: false, sokeTekst: '', side: 1 }
+const filterList = { showAll: false, searchText: '', page: 1 }
 
-function kasterKortHtml(k: ThrowerListRow): string {
-  const navn = throwerName(k)
+function throwerCardHtml(k: ThrowerListRow): string {
+  const name = throwerName(k)
   return `
-    <a href="#/kastere/${buildSlug(k)}" class="kaster-kort">
-      <img src="${escHtml(k.avatarurl || PLACEHOLDER_AVATAR)}" alt="${escHtml(navn)}" loading="lazy">
-      <div class="kaster-navn">${escHtml(navn)}</div>
-      <div class="kaster-klubb">${escHtml(k.klubb?.navn ?? '–')}</div>
+    <a href="#/kastere/${buildSlug(k)}" class="thrower-card">
+      <img src="${escHtml(k.avatarurl || PLACEHOLDER_AVATAR)}" alt="${escHtml(name)}" loading="lazy">
+      <div class="thrower-name">${escHtml(name)}</div>
+      <div class="thrower-club">${escHtml(k.klubb?.navn ?? '–')}</div>
     </a>`
 }
 
-function listeSkelettHtml(): string {
+function listSkeletonHtml(): string {
   return `
     <div class="content-page">
-      <div class="kaster-liste-kontroller">
+      <div class="thrower-list-controls">
         <div class="nc-filter-rad">
-          <input id="kaster-sok" type="search" class="tl-select" placeholder="Søk på navn/klubb" value="">
+          <input id="thrower-search" type="search" class="tl-select" placeholder="Søk på navn/klubb" value="">
         </div>
         <div class="mt-2">
-          <label class="kaster-checkbox-label">
-            <input type="checkbox" id="kaster-berre-aktive" checked>
+          <label class="thrower-checkbox-label">
+            <input type="checkbox" id="thrower-active-only" checked>
             Vis berre aktive utøvarar
           </label>
         </div>
       </div>
-      <div id="kaster-sideinfo" class="my-2"></div>
-      <div id="kaster-paginering-topp"></div>
-      <div id="kaster-grid" class="kaster-grid"></div>
-      <div id="kaster-paginering-botn"></div>
+      <div id="thrower-page-info" class="my-2"></div>
+      <div id="thrower-pagination-top"></div>
+      <div id="thrower-grid" class="thrower-grid"></div>
+      <div id="thrower-pagination-bottom"></div>
     </div>`
 }
 
-function pagineringHtml(side: number, totaltSider: number): string {
-  if (totaltSider <= 1) return ''
-  const knapp = (tekst: string, s: number, deaktivert: boolean) =>
-    `<button class="btn btn-sm ${s === side ? 'btn-primary' : 'btn-outline-secondary'} pag-knapp"
-      data-side="${s}" ${deaktivert ? 'disabled' : ''}>${tekst}</button>`
+function paginationHtml(page: number, totalPages: number): string {
+  if (totalPages <= 1) return ''
+  const button = (text: string, p: number, disabled: boolean) =>
+    `<button class="btn btn-sm ${p === page ? 'btn-primary' : 'btn-outline-secondary'} pag-button"
+      data-page="${p}" ${disabled ? 'disabled' : ''}>${text}</button>`
   return `
-    <div class="kaster-paginering">
-      ${knapp('«', 1, side === 1)}
-      ${knapp('‹', side - 1, side === 1)}
-      <span class="pag-info">side ${side} av ${totaltSider}</span>
-      ${knapp('›', side + 1, side === totaltSider)}
-      ${knapp('»', totaltSider, side === totaltSider)}
+    <div class="thrower-pagination">
+      ${button('«', 1, page === 1)}
+      ${button('‹', page - 1, page === 1)}
+      <span class="pag-info">side ${page} av ${totalPages}</span>
+      ${button('›', page + 1, page === totalPages)}
+      ${button('»', totalPages, page === totalPages)}
     </div>`
 }
 
-export async function renderListe(container: HTMLElement): Promise<void> {
-  filtreListe.side = 1
+export async function renderList(container: HTMLElement): Promise<void> {
+  filterList.page = 1
   container.replaceChildren(createLoadingState('Laster utøvarar...'))
 
   try {
@@ -72,61 +72,61 @@ export async function renderListe(container: HTMLElement): Promise<void> {
       return
     }
 
-    let kastereData = init.data
-    container.innerHTML = listeSkelettHtml()
+    let throwerData = init.data
+    container.innerHTML = listSkeletonHtml()
 
-    const grid        = container.querySelector<HTMLElement>('#kaster-grid')!
-    const sideinfoEl  = container.querySelector<HTMLElement>('#kaster-sideinfo')!
-    const pagTopp     = container.querySelector<HTMLElement>('#kaster-paginering-topp')!
-    const pagBotn     = container.querySelector<HTMLElement>('#kaster-paginering-botn')!
-    const sokInput    = container.querySelector<HTMLInputElement>('#kaster-sok')!
-    const aktiveCheck = container.querySelector<HTMLInputElement>('#kaster-berre-aktive')!
+    const grid         = container.querySelector<HTMLElement>('#thrower-grid')!
+    const pageInfoEl   = container.querySelector<HTMLElement>('#thrower-page-info')!
+    const pagTop       = container.querySelector<HTMLElement>('#thrower-pagination-top')!
+    const pagBottom    = container.querySelector<HTMLElement>('#thrower-pagination-bottom')!
+    const searchInput  = container.querySelector<HTMLInputElement>('#thrower-search')!
+    const activeCheck  = container.querySelector<HTMLInputElement>('#thrower-active-only')!
 
-    function filtrerOgVis(): void {
-      const sok = filtreListe.sokeTekst.trim().toLowerCase()
-      let filtrert = kastereData
-      if (sok) filtrert = filtrert.filter(k =>
-        throwerName(k).toLowerCase().includes(sok) ||
-        (k.klubb?.navn ?? '').toLowerCase().includes(sok)
+    function filterAndRender(): void {
+      const search = filterList.searchText.trim().toLowerCase()
+      let filtered = throwerData
+      if (search) filtered = filtered.filter(k =>
+        throwerName(k).toLowerCase().includes(search) ||
+        (k.klubb?.navn ?? '').toLowerCase().includes(search)
       )
 
-      const totalt      = filtrert.length
-      const totaltSider = Math.max(1, Math.ceil(totalt / SIDER_STORLEIK))
-      if (filtreListe.side > totaltSider) filtreListe.side = 1
+      const total      = filtered.length
+      const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
+      if (filterList.page > totalPages) filterList.page = 1
 
-      const start   = (filtreListe.side - 1) * SIDER_STORLEIK
-      const sideDel = filtrert.slice(start, start + SIDER_STORLEIK)
+      const start     = (filterList.page - 1) * PAGE_SIZE
+      const pageSlice = filtered.slice(start, start + PAGE_SIZE)
 
-      sideinfoEl.innerHTML = `side ${filtreListe.side} av ${totaltSider}`
-      const pagHtml = pagineringHtml(filtreListe.side, totaltSider)
-      pagTopp.innerHTML = pagHtml
-      pagBotn.innerHTML = pagHtml
-      grid.innerHTML    = sideDel.map(kasterKortHtml).join('')
+      pageInfoEl.innerHTML = `side ${filterList.page} av ${totalPages}`
+      const pagHtml = paginationHtml(filterList.page, totalPages)
+      pagTop.innerHTML    = pagHtml
+      pagBottom.innerHTML = pagHtml
+      grid.innerHTML      = pageSlice.map(throwerCardHtml).join('')
     }
 
-    filtrerOgVis()
+    filterAndRender()
 
-    sokInput.addEventListener('input', () => {
-      filtreListe.sokeTekst = sokInput.value
-      filtreListe.side = 1
-      filtrerOgVis()
+    searchInput.addEventListener('input', () => {
+      filterList.searchText = searchInput.value
+      filterList.page = 1
+      filterAndRender()
     })
 
-    aktiveCheck.addEventListener('change', async () => {
-      filtreListe.visAlle = !aktiveCheck.checked
-      filtreListe.side = 1
-      const { data, error } = filtreListe.visAlle
+    activeCheck.addEventListener('change', async () => {
+      filterList.showAll = !activeCheck.checked
+      filterList.page = 1
+      const { data, error } = filterList.showAll
         ? await getAllThrowerList()
         : await getActiveThrowerList()
-      if (!error) kastereData = data
-      filtrerOgVis()
+      if (!error) throwerData = data
+      filterAndRender()
     })
 
     container.addEventListener('click', e => {
-      const knapp = (e.target as Element).closest<HTMLButtonElement>('.pag-knapp')
-      if (!knapp || knapp.disabled) return
-      filtreListe.side = Number(knapp.dataset.side)
-      filtrerOgVis()
+      const button = (e.target as Element).closest<HTMLButtonElement>('.pag-button')
+      if (!button || button.disabled) return
+      filterList.page = Number(button.dataset.page)
+      filterAndRender()
       container.querySelector('.content-page')?.scrollIntoView({ behavior: 'smooth' })
     })
 
@@ -137,7 +137,7 @@ export async function renderListe(container: HTMLElement): Promise<void> {
       canShow: auth => auth.profil?.role === 'admin' || auth.profil?.role === 'klubbadmin',
     })
   } catch (err) {
-    logError('renderListe', err)
+    logError('renderList', err)
     container.replaceChildren(createErrorBanner('Kunne ikkje laste utøvarar.'))
   }
 }
