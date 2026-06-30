@@ -1,6 +1,6 @@
 import { formRowHtml, showSaveError, showSuccess, errMsg } from '@/utils/adminForms'
 import { confirmDialog } from '@/components/ConfirmDialog'
-import { erAdmin, erKlubbadmin } from '@/services/authService'
+import { isAdmin, isClubAdmin } from '@/services/authService'
 import { escHtml } from '@/utils/escHtml'
 import { buildDropdownOptions } from '@/utils/buildDropdownOptions'
 import { formNum } from '@/utils/formNum'
@@ -51,7 +51,7 @@ export async function render(
     if (error || !data) { container.replaceChildren(createErrorBanner('Utøvar ikkje funne.')); return }
     thrower = data
 
-    if (!(await erAdmin()) && !(await erKlubbadmin(thrower.klubbid ?? undefined))) {
+    if (!(await isAdmin()) && !(await isClubAdmin(thrower.klubbid ?? undefined))) {
       container.replaceChildren(createErrorBanner('Ingen tilgang til denne utøvaren.'))
       return
     }

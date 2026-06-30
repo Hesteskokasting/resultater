@@ -19,22 +19,22 @@ import type { ThrowerListRow } from '@/services/kasterService'
 import type { RelatedTournamentRow } from '@/services/stevneService'
 import type { AuthUser, Params } from '@/types'
 
-// ── HTML-byggjarar ────────────────────────────────────────────────────────────
+// ── HTML builders ─────────────────────────────────────────────────────────────
 
-function eigetSkjemaHtml(
+function selfRegistrationHtml(
   auth: AuthUser | null,
-  erPrivilegert: boolean,
-  erKobla: boolean,
-  erPameldt: boolean,
+  isPrivileged: boolean,
+  isLinked: boolean,
+  isRegistered: boolean,
   erfullfort: boolean,
-  stevneId: number,
+  tournamentId: number,
 ): string {
   if (!auth) {
     return `<div class="alert alert-info">
-      <a href="#/logginn?redirect=/stevne/${stevneId}/pamelding">Logg inn</a> for å melde deg på.
+      <a href="#/logginn?redirect=/stevne/${tournamentId}/pamelding">Logg inn</a> for å melde deg på.
     </div>`
   }
-  if (!erKobla && !erPrivilegert) {
+  if (!isLinked && !isPrivileged) {
     return `<div class="alert alert-warning">
       Du må <a href="#/minside">koble kontoen din til ein utøvarprofil</a> for å melde deg på.
     </div>`
@@ -42,53 +42,53 @@ function eigetSkjemaHtml(
   if (erfullfort) {
     return `<div class="alert alert-secondary">Dette stevnet er fullført. Påmelding er stengt.</div>`
   }
-  if (erKobla && erPameldt) {
+  if (isLinked && isRegistered) {
     return `
       <div class="alert alert-success d-flex justify-content-between align-items-center">
         <span>Du er påmeldt</span>
-        <button id="avmeld-knapp" class="btn btn-sm btn-outline-danger">Meld av</button>
+        <button id="unregister-button" class="btn btn-sm btn-outline-danger">Meld av</button>
       </div>`
   }
-  if (erKobla) {
+  if (isLinked) {
     return `
-      <form id="pamelding-skjema" class="card p-3 mb-3">
+      <form id="registration-form" class="card p-3 mb-3">
         <h5 class="mb-3">Meld deg på</h5>
-        <div id="pm-feil" class="alert alert-danger d-none"></div>
+        <div id="registration-error" class="alert alert-danger d-none"></div>
         <button type="submit" class="btn btn-primary">Meld på</button>
       </form>`
   }
   return ''
 }
 
-function adminSkjemaHtml(
-  erPrivilegert: boolean,
+function adminRegistrationHtml(
+  isPrivileged: boolean,
   erfullfort: boolean,
-  pameldingar: RegistrationWithThrowerRow[],
-  klubbKastere: ThrowerListRow[],
+  registrations: RegistrationWithThrowerRow[],
+  clubThrowers: ThrowerListRow[],
 ): string {
-  if (!erPrivilegert || erfullfort) return ''
-  const allereie = new Set(pameldingar.map(p => p.kasterid))
-  const tilgjengelige = klubbKastere.filter(k => !allereie.has(k.id))
-  const kasterOpt = tilgjengelige.map(k =>
+  if (!isPrivileged || erfullfort) return ''
+  const alreadyRegistered = new Set(registrations.map(p => p.kasterid))
+  const available = clubThrowers.filter(k => !alreadyRegistered.has(k.id))
+  const throwerOptions = available.map(k =>
     `<option value="${k.id}">${escHtml(k.etternavn)}, ${escHtml(k.fornavn)} — ${escHtml(k.klubb?.navn ?? '')}</option>`
   ).join('')
   return `
-    <form id="admin-pamelding-skjema" class="card p-3 mb-3 border-warning">
+    <form id="admin-registration-form" class="card p-3 mb-3 border-warning">
       <h5 class="mb-3">Meld på klubbmedlem</h5>
       <div class="mb-3">
         <label class="form-label">Utøvar</label>
         <select class="form-select" name="admin_kasterid" required>
-          <option value="">— vel utøvar —</option>${kasterOpt}
+          <option value="">— vel utøvar —</option>${throwerOptions}
         </select>
       </div>
-      <div id="admin-pm-feil" class="alert alert-danger d-none"></div>
+      <div id="admin-registration-error" class="alert alert-danger d-none"></div>
       <button type="submit" class="btn btn-warning">Meld på</button>
     </form>`
 }
 
-function relaterteStevnerHtml(relaterte: RelatedTournamentRow[]): string {
-  if (!relaterte.length) return ''
-  const items = relaterte.map(s => {
+function relatedTournamentsHtml(relatedTournaments: RelatedTournamentRow[]): string {
+  if (!relatedTournaments.length) return ''
+  const items = relatedTournaments.map(s => {
     const d = s.dato ? formatDate(s.dato) : ''
     return `<li><a href="#/stevne/${s.id}/pamelding">${escHtml(s.navn ?? '')} — ${d}</a></li>`
   }).join('')
@@ -99,39 +99,39 @@ function relaterteStevnerHtml(relaterte: RelatedTournamentRow[]): string {
     </div>`
 }
 
-function parListeHtml(pairs: RegistrationPair[]): string {
+function pairsListHtml(pairs: RegistrationPair[]): string {
   if (!pairs.length) return '<p class="empty-state">Ingen par registrerte enno.</p>'
-  const rader = pairs.map(par => {
-    const a = par.sideA.kaster
-    const b = par.sideB.kaster
+  const rows = pairs.map(pair => {
+    const a = pair.sideA.kaster
+    const b = pair.sideB.kaster
     const cell = (k: typeof a) => k
       ? `<a href="#/kastere/${k.id}">${escHtml(throwerName(k))}</a>${k.klubb?.navn ? `<br><small class="text-muted">${escHtml(k.klubb.navn)}</small>` : ''}`
       : '—'
     return `<tr><td>${cell(a)}</td><td>${cell(b)}</td></tr>`
   }).join('')
-  return `<table class="table table-sm"><tbody>${rader}</tbody></table>`
+  return `<table class="table table-sm"><tbody>${rows}</tbody></table>`
 }
 
-function pameldingListeHtml(pameldingar: RegistrationWithThrowerRow[], erPrivilegert: boolean): string {
-  if (!pameldingar.length) return '<p class="empty-state">Ingen påmeldingar enno.</p>'
-  const sorted = [...pameldingar].sort((a, b) => {
-    const klubbA = a.kaster?.klubb?.navn ?? ''
-    const klubbB = b.kaster?.klubb?.navn ?? ''
-    const klubbCmp = klubbA.localeCompare(klubbB, 'nb')
-    if (klubbCmp !== 0) return klubbCmp
+function registrationListHtml(registrations: RegistrationWithThrowerRow[], isPrivileged: boolean): string {
+  if (!registrations.length) return '<p class="empty-state">Ingen påmeldingar enno.</p>'
+  const sorted = [...registrations].sort((a, b) => {
+    const clubA = a.kaster?.klubb?.navn ?? ''
+    const clubB = b.kaster?.klubb?.navn ?? ''
+    const clubCmp = clubA.localeCompare(clubB, 'nb')
+    if (clubCmp !== 0) return clubCmp
     return (a.kaster?.etternavn ?? '').localeCompare(b.kaster?.etternavn ?? '', 'nb')
   })
-  const rader = sorted.map(p => `<tr>
+  const rows = sorted.map(p => `<tr>
     <td>${p.kaster
       ? `<a href="#/kastere/${p.kaster.id}">${escHtml(p.kaster.fornavn)} ${escHtml(p.kaster.etternavn)}</a>`
       : '—'
     }</td>
     <td>${escHtml(p.kaster?.klubb?.navn ?? '')}</td>
-    ${erPrivilegert ? `<td><button class="btn btn-sm btn-outline-danger fjern-pm" data-id="${p.id}">Fjern</button></td>` : ''}
+    ${isPrivileged ? `<td><button class="btn btn-sm btn-outline-danger remove-registration" data-id="${p.id}">Fjern</button></td>` : ''}
   </tr>`).join('')
   return `<table class="table table-sm">
-    <thead><tr><th>Namn</th><th>Klubb</th>${erPrivilegert ? '<th></th>' : ''}</tr></thead>
-    <tbody>${rader}</tbody>
+    <thead><tr><th>Namn</th><th>Klubb</th>${isPrivileged ? '<th></th>' : ''}</tr></thead>
+    <tbody>${rows}</tbody>
   </table>`
 }
 
@@ -140,60 +140,60 @@ function pameldingListeHtml(pameldingar: RegistrationWithThrowerRow[], erPrivile
 function bindEventHandlers(
   container: HTMLElement,
   params: Record<string, string | number | undefined>,
-  pameldingar: RegistrationWithThrowerRow[],
+  registrations: RegistrationWithThrowerRow[],
   kasterid: number | null,
-  brukerId: string,
-  stevneId: number,
+  userId: string,
+  tournamentId: number,
 ): void {
-  const pmSkjema = container.querySelector<HTMLFormElement>('#pamelding-skjema')
-  pmSkjema?.addEventListener('submit', async (e) => {
+  const registrationForm = container.querySelector<HTMLFormElement>('#registration-form')
+  registrationForm?.addEventListener('submit', async (e) => {
     e.preventDefault()
-    const feil = container.querySelector<HTMLElement>('#pm-feil')!
-    feil.classList.add('d-none')
+    const errorEl = container.querySelector<HTMLElement>('#registration-error')!
+    errorEl.classList.add('d-none')
     if (kasterid == null) return
-    const { error } = await registerForTournament(stevneId, kasterid, brukerId)
+    const { error } = await registerForTournament(tournamentId, kasterid, userId)
     if (error) {
-      feil.textContent = 'Feil ved påmelding.'
-      feil.classList.remove('d-none')
+      errorEl.textContent = 'Feil ved påmelding.'
+      errorEl.classList.remove('d-none')
       return
     }
     render(container, params)
   })
 
-  const adminSkjema = container.querySelector<HTMLFormElement>('#admin-pamelding-skjema')
-  adminSkjema?.addEventListener('submit', async (e) => {
+  const adminRegistrationForm = container.querySelector<HTMLFormElement>('#admin-registration-form')
+  adminRegistrationForm?.addEventListener('submit', async (e) => {
     e.preventDefault()
-    const feil = container.querySelector<HTMLElement>('#admin-pm-feil')!
-    feil.classList.add('d-none')
-    const fd = new FormData(adminSkjema)
-    const velgtKasterid = Number(fd.get('admin_kasterid'))
-    if (!velgtKasterid) {
-      feil.textContent = 'Vel ein utøvar.'
-      feil.classList.remove('d-none')
+    const errorEl = container.querySelector<HTMLElement>('#admin-registration-error')!
+    errorEl.classList.add('d-none')
+    const fd = new FormData(adminRegistrationForm)
+    const selectedThrowerId = Number(fd.get('admin_kasterid'))
+    if (!selectedThrowerId) {
+      errorEl.textContent = 'Vel ein utøvar.'
+      errorEl.classList.remove('d-none')
       return
     }
-    const { error } = await registerForTournament(stevneId, velgtKasterid, brukerId)
+    const { error } = await registerForTournament(tournamentId, selectedThrowerId, userId)
     if (error) {
-      feil.textContent = 'Feil ved påmelding.'
-      feil.classList.remove('d-none')
+      errorEl.textContent = 'Feil ved påmelding.'
+      errorEl.classList.remove('d-none')
       return
     }
     render(container, params)
   })
 
-  container.querySelector<HTMLButtonElement>('#avmeld-knapp')?.addEventListener('click', async () => {
+  container.querySelector<HTMLButtonElement>('#unregister-button')?.addEventListener('click', async () => {
     if (kasterid == null) return
-    const min = pameldingar.find(p => p.kasterid === kasterid)
-    if (!min || !await confirmDialog({ title: 'Avmeld', message: 'Vil du melde deg av?' })) return
-    const { error } = await removeRegistration(min.id)
+    const ownReg = registrations.find(p => p.kasterid === kasterid)
+    if (!ownReg || !await confirmDialog({ title: 'Avmeld', message: 'Vil du melde deg av?' })) return
+    const { error } = await removeRegistration(ownReg.id)
     if (error) return
     render(container, params)
   })
 
-  container.querySelectorAll<HTMLButtonElement>('.fjern-pm').forEach(knapp => {
-    knapp.addEventListener('click', async () => {
+  container.querySelectorAll<HTMLButtonElement>('.remove-registration').forEach(button => {
+    button.addEventListener('click', async () => {
       if (!await confirmDialog({ title: 'Fjern påmelding', message: 'Fjern påmelding?' })) return
-      const id = Number(knapp.dataset.id)
+      const id = Number(button.dataset.id)
       if (!id) return
       const { error } = await removeRegistration(id)
       if (error) return
@@ -202,7 +202,7 @@ function bindEventHandlers(
   })
 }
 
-// ── Hovudfunksjon ─────────────────────────────────────────────────────────────
+// ── Main function ─────────────────────────────────────────────────────────────
 
 export async function render(container: HTMLElement, params: Params = {}): Promise<void> {
   const rawId = params.id
@@ -210,80 +210,80 @@ export async function render(container: HTMLElement, params: Params = {}): Promi
     container.replaceChildren(createErrorBanner('Manglande stevne-ID.'))
     return
   }
-  const stevneId = Number(rawId)
+  const tournamentId = Number(rawId)
 
   container.replaceChildren(createLoadingState('Laster påmelding…'))
 
   try {
-    const [auth, stevneRes] = await Promise.all([
+    const [auth, tournamentResult] = await Promise.all([
       getUser(),
-      getTournamentForRegistration(stevneId),
+      getTournamentForRegistration(tournamentId),
     ])
 
-    if (stevneRes.error || !stevneRes.data) {
+    if (tournamentResult.error || !tournamentResult.data) {
       container.replaceChildren(createErrorBanner('Stevnet finst ikkje.'))
       return
     }
-    const stevne = stevneRes.data
+    const tournament = tournamentResult.data
 
-    const erAdminRolle      = auth?.profil?.role === 'admin'
-    const erKlubbadminRolle = auth?.profil?.role === 'klubbadmin'
-    const erPrivilegert     = erAdminRolle || erKlubbadminRolle
-    const kategoriNamn      = (stevne.kategori?.navn ?? '').toLowerCase()
-    const erParEllerMix     = kategoriNamn.includes('par') || kategoriNamn.includes('mix')
+    const isAdminRole     = auth?.profil?.role === 'admin'
+    const isClubAdminRole = auth?.profil?.role === 'klubbadmin'
+    const isPrivileged    = isAdminRole || isClubAdminRole
+    const categoryName    = (tournament.kategori?.navn ?? '').toLowerCase()
+    const isPairOrMix     = categoryName.includes('par') || categoryName.includes('mix')
 
-    const datoVindu = stevne.dato
+    const dateWindow = tournament.dato
       ? {
-          fraDato: new Date(new Date(stevne.dato + 'T12:00:00').getTime() - 2 * 864e5).toISOString().slice(0, 10),
-          tilDato: new Date(new Date(stevne.dato + 'T12:00:00').getTime() + 2 * 864e5).toISOString().slice(0, 10),
+          fromDate: new Date(new Date(tournament.dato + 'T12:00:00').getTime() - 2 * 864e5).toISOString().slice(0, 10),
+          toDate:   new Date(new Date(tournament.dato + 'T12:00:00').getTime() + 2 * 864e5).toISOString().slice(0, 10),
         }
       : null
 
-    const kasterFetch: Promise<{ data: ThrowerListRow[]; error: unknown }> = (() => {
-      if (!erPrivilegert) return Promise.resolve({ data: [], error: null })
-      if (erAdminRolle) return getActiveThrowerList()
+    const throwersFetch: Promise<{ data: ThrowerListRow[]; error: unknown }> = (() => {
+      if (!isPrivileged) return Promise.resolve({ data: [], error: null })
+      if (isAdminRole) return getActiveThrowerList()
       if (auth && auth.klubber.length) return getThrowersForClubs(auth.klubber)
       return Promise.resolve({ data: [], error: null })
     })()
 
-    const [pamRes, relatertRes, kasterRes, parRes] = await Promise.all([
-      getRegistrationsForTournament(stevneId),
-      stevne.klubbid != null && datoVindu
-        ? getRelatedTournaments(stevne.klubbid, datoVindu.fraDato, datoVindu.tilDato, stevneId)
+    const [regResult, relatedResult, throwersResult, pairsResult] = await Promise.all([
+      getRegistrationsForTournament(tournamentId),
+      tournament.klubbid != null && dateWindow
+        ? getRelatedTournaments(tournament.klubbid, dateWindow.fromDate, dateWindow.toDate, tournamentId)
         : Promise.resolve({ data: [] as RelatedTournamentRow[], error: null }),
-      kasterFetch,
-      erParEllerMix ? getPairsForTournament(stevneId) : Promise.resolve({ data: [] as RegistrationPair[], error: null }),
+      throwersFetch,
+      isPairOrMix ? getPairsForTournament(tournamentId) : Promise.resolve({ data: [] as RegistrationPair[], error: null }),
     ])
 
-    const pameldingar  = pamRes.data
-    const relaterte    = relatertRes.data
-    const klubbKastere = kasterRes.data
-    const pairs        = parRes.data
+    const registrations      = regResult.data
+    const relatedTournaments = relatedResult.data
+    const clubThrowers       = throwersResult.data
+    const pairs              = pairsResult.data
 
-    const kasterid  = auth?.profil?.kasterid ?? null
-    const erKobla   = auth?.profil?.kobling_status === 'godkjent'
-    const erPameldt = kasterid != null && pameldingar.some(p => p.kasterid === kasterid)
-    const dato      = stevne.dato ? formatDate(stevne.dato) : ''
-    const metaParts = [
-      dato,
-      stevne.tid ? formatTime(stevne.tid) : '',
-      stevne.kategori?.navn ? escHtml(stevne.kategori.navn) : '',
-      stevne.sted ? escHtml(stevne.sted) : '',
+    const kasterid   = auth?.profil?.kasterid ?? null
+    const isLinked   = auth?.profil?.kobling_status === 'godkjent'
+    const isRegistered = kasterid != null && registrations.some(p => p.kasterid === kasterid)
+    const dateStr    = tournament.dato ? formatDate(tournament.dato) : ''
+    const metaParts  = [
+      dateStr,
+      tournament.tid ? formatTime(tournament.tid) : '',
+      tournament.kategori?.navn ? escHtml(tournament.kategori.navn) : '',
+      tournament.sted ? escHtml(tournament.sted) : '',
     ].filter(Boolean).join(' · ')
 
     container.innerHTML = `
       <div class="container py-4 pm-side">
-        <h2 class="mb-1">${escHtml(stevne.navn ?? '')}</h2>
+        <h2 class="mb-1">${escHtml(tournament.navn ?? '')}</h2>
         <p class="text-muted mb-4">${metaParts}</p>
-        ${eigetSkjemaHtml(auth, erPrivilegert, erKobla, erPameldt, stevne.erfullfort ?? false, stevneId)}
-        ${adminSkjemaHtml(erPrivilegert, stevne.erfullfort ?? false, pameldingar, klubbKastere)}
-        ${relaterteStevnerHtml(relaterte)}
-        <h5 class="mt-4 mb-2">${erParEllerMix ? `Par (${pairs.length})` : `Påmeldingar (${pameldingar.length})`}</h5>
-        ${erParEllerMix ? parListeHtml(pairs) : pameldingListeHtml(pameldingar, erPrivilegert)}
+        ${selfRegistrationHtml(auth, isPrivileged, isLinked, isRegistered, tournament.erfullfort ?? false, tournamentId)}
+        ${adminRegistrationHtml(isPrivileged, tournament.erfullfort ?? false, registrations, clubThrowers)}
+        ${relatedTournamentsHtml(relatedTournaments)}
+        <h5 class="mt-4 mb-2">${isPairOrMix ? `Par (${pairs.length})` : `Påmeldingar (${registrations.length})`}</h5>
+        ${isPairOrMix ? pairsListHtml(pairs) : registrationListHtml(registrations, isPrivileged)}
       </div>`
 
     if (auth) {
-      bindEventHandlers(container, params, pameldingar, kasterid, auth.user.id, stevneId)
+      bindEventHandlers(container, params, registrations, kasterid, auth.user.id, tournamentId)
     }
   } catch (err) {
     logError('pamelding.render', err)

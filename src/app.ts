@@ -1,6 +1,6 @@
 import 'bootstrap'
 import { render as renderHome } from './pages/home'
-import { getUser, erAdmin, erKlubbadmin, loggUt } from './services/authService'
+import { getUser, isAdmin, isClubAdmin, loggUt } from './services/authService'
 import { createErrorBanner } from './components/ErrorBanner'
 import { showReauthModal } from './components/ReauthModal'
 import type { PageRenderFn, Route } from '@/types'
@@ -28,11 +28,11 @@ function authGuard(minRole: MinRole, renderFn: PageRenderFn): PageRenderFn {
       location.hash = '#/logginn'
       return
     }
-    if (minRole === 'admin' && !(await erAdmin())) {
+    if (minRole === 'admin' && !(await isAdmin())) {
       cont.replaceChildren(createErrorBanner('Ingen tilgang.'))
       return
     }
-    if (minRole === 'klubbadmin' && !(await erAdmin()) && !(await erKlubbadmin())) {
+    if (minRole === 'klubbadmin' && !(await isAdmin()) && !(await isClubAdmin())) {
       cont.replaceChildren(createErrorBanner('Ingen tilgang.'))
       return
     }

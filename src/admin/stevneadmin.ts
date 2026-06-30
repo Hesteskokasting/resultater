@@ -1,6 +1,6 @@
 import { formRowHtml, showSaveError, showSuccess, errMsg } from '@/utils/adminForms'
 import { confirmDialog } from '@/components/ConfirmDialog'
-import { erAdmin, erKlubbadmin } from '@/services/authService'
+import { isAdmin, isClubAdmin } from '@/services/authService'
 import { escHtml } from '@/utils/escHtml'
 import { buildDropdownOptions } from '@/utils/buildDropdownOptions'
 import { formNum } from '@/utils/formNum'
@@ -59,7 +59,7 @@ export async function render(
     if (error || !data) { container.replaceChildren(createErrorBanner('Stevne ikkje funne.')); return }
     tournament = data
 
-    if (!(await erAdmin()) && !(await erKlubbadmin(tournament.klubbid ?? undefined))) {
+    if (!(await isAdmin()) && !(await isClubAdmin(tournament.klubbid ?? undefined))) {
       container.replaceChildren(createErrorBanner('Ingen tilgang til dette stevnet.'))
       return
     }

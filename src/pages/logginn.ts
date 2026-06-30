@@ -1,4 +1,4 @@
-import { getUser, erAdmin, signIn, signUp } from '@/services/authService'
+import { getUser, isAdmin, signIn, signUp } from '@/services/authService'
 import { escHtml } from '@/utils/escHtml'
 import { createTabs } from '@/components/Tabs'
 
@@ -95,7 +95,7 @@ export async function render(container: HTMLElement): Promise<void> {
     if (redirect) {
       location.hash = `#${redirect}`
     } else {
-      location.hash = (await erAdmin()) ? '#/admin' : '#/minside'
+      location.hash = (await isAdmin()) ? '#/admin' : '#/minside'
     }
   })
 

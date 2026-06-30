@@ -68,11 +68,11 @@ async function getRole(): Promise<Role | null> {
   return auth?.profil?.role ?? null
 }
 
-export async function erAdmin(): Promise<boolean> {
+export async function isAdmin(): Promise<boolean> {
   return (await getRole()) === 'admin'
 }
 
-export async function erKlubbadmin(klubbId: number | string | null = null): Promise<boolean> {
+export async function isClubAdmin(klubbId: number | string | null = null): Promise<boolean> {
   const auth = await _fetchCache()
   if (!auth || auth.profil?.role !== 'klubbadmin') return false
   if (klubbId === null) return true

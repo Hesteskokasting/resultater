@@ -1,5 +1,5 @@
 import { formRowHtml, showSaveError, showSuccess, errMsg } from '@/utils/adminForms'
-import { erAdmin, erKlubbadmin } from '@/services/authService'
+import { isAdmin, isClubAdmin } from '@/services/authService'
 import { escHtml } from '@/utils/escHtml'
 import { createErrorBanner } from '@/components/ErrorBanner'
 import { createLoadingState } from '@/components/LoadingState'
@@ -23,7 +23,7 @@ export async function render(
 
   if (error || !club) { container.replaceChildren(createErrorBanner('Klubb ikkje funne.')); return }
 
-  if (!(await erAdmin()) && !(await erKlubbadmin(id))) {
+  if (!(await isAdmin()) && !(await isClubAdmin(id))) {
     container.replaceChildren(createErrorBanner('Ingen tilgang til denne klubben.'))
     return
   }

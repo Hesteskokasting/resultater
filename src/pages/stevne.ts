@@ -1,4 +1,4 @@
-import { erAdmin, erKlubbadmin } from '@/services/authService'
+import { isAdmin, isClubAdmin } from '@/services/authService'
 import { getTournamentHeader } from '@/services/stevneService'
 import { createErrorBanner } from '@/components/ErrorBanner'
 import { createLoadingState } from '@/components/LoadingState'
@@ -82,16 +82,16 @@ export async function render(
       return
     }
 
-    const isAdmin = (await erAdmin()) || (await erKlubbadmin())
+    const userIsAdmin = (await isAdmin()) || (await isClubAdmin())
     const harAvsluttande = stevne.avsluttendekastemetodeid != null
     const isCompleted = stevne.erfullfort === true
-    const aktiv = ((!isAdmin && ADMIN_FANER.has(tab)) || (!isCompleted && COMPLETED_FANER.has(tab)))
+    const aktiv = ((!userIsAdmin && ADMIN_FANER.has(tab)) || (!isCompleted && COMPLETED_FANER.has(tab)))
       ? 'info'
       : tab as TabKey
 
     container.innerHTML = `
       <div class="org-shell pb-3 pt-1">
-        ${renderNav(id, aktiv, isAdmin, harAvsluttande, isCompleted)}
+        ${renderNav(id, aktiv, userIsAdmin, harAvsluttande, isCompleted)}
         <div class="org-fase-header d-flex align-items-center gap-2 mb-3">
           <h5 class="mb-0">${escHtml(stevne.navn)}</h5>
           <div id="org-banner-knappar"></div>
@@ -103,7 +103,7 @@ export async function render(
     const subside    = container.querySelector<HTMLElement>('#org-subside')!
     const renderFn   = TAB_RENDER[aktiv] ?? renderInfo
 
-    await renderFn(subside, { id, isAdmin }, bannerSlot)
+    await renderFn(subside, { id, isAdmin: userIsAdmin }, bannerSlot)
   } catch (err) {
     logError('stevne.render', err)
     container.replaceChildren(createErrorBanner('Kunne ikkje laste stevnet.'))
