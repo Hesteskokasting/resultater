@@ -266,7 +266,7 @@
   margin-bottom: 24px;
 }
 
-.live-kort {
+.live-card {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -279,7 +279,7 @@
   font-weight: 600;
 }
 
-.live-kort:hover { background: var(--primaer-hover); }
+.live-card:hover { background: var(--primaer-hover); }
 
 .live-prikk {
   position: relative;
