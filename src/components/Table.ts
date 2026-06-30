@@ -35,11 +35,11 @@ export function createTable<T>(opts: TableOptions<T>): HTMLTableElement {
     rowClass,
     rowAttrs,
     detailRow,
-    detailRowClass = 'detalj-rad d-none',
+    detailRowClass = 'detail-row d-none',
     detailRowAttrs,
     detailCellClass,
     sectionHeader,
-    tableClass = 'app-tabell',
+    tableClass = 'app-table',
     theadClass = 'app-thead',
     showHeader = true,
   } = opts

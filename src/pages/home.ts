@@ -10,7 +10,7 @@ import { logError } from '@/utils/logError'
 import type { SingleListRow } from '@/utils/norgescup'
 import { getUser } from '@/services/authService'
 import { getRegistrationsForThrower } from '@/services/stevneService'
-import { bindPameldingSlots } from '@/components/PameldingKnapp'
+import { bindRegistrationSlots } from '@/components/PameldingKnapp'
 
 // ── HTML-byggjarar ────────────────────────────────────────────────────────────
 
@@ -24,7 +24,7 @@ function ncTopp20Html(liste: SingleListRow[]): string {
       <td class="nc-td-poeng">${formaterPoeng(k.totalPoeng)}</td>
     </tr>`).join('')
   return `
-    <table class="app-tabell">
+    <table class="app-table">
       <thead class="app-thead">
         <tr>
           <th class="nc-td-pl">Pl.</th>
@@ -61,7 +61,7 @@ function kommendeKortHtml(s: UpcomingTournamentRow, showSlot: boolean): string {
   const innbydelse = s.innbydelseurl
     ? `<a class="stevne-lenke" href="${escHtml(s.innbydelseurl)}" target="_blank" rel="noopener">Innbydelse &#128196;</a>`
     : canRegister
-      ? `<span data-pm-slot="${s.id}"></span>`
+      ? `<span data-registration-slot="${s.id}"></span>`
       : `<span class="stevne-lenke-inaktiv">Innbydelse er ikkje klar</span>`
   return `
     <div class="stevne-kort">
@@ -143,7 +143,7 @@ export async function render(container: HTMLElement): Promise<void> {
 
     if (kasterid !== null && auth?.user.id) {
       const pameldteMap = await getRegistrationsForThrower(kasterid)
-      bindPameldingSlots(kommendeSection, kasterid, auth.user.id, pameldteMap)
+      bindRegistrationSlots(kommendeSection, kasterid, auth.user.id, pameldteMap)
     }
 
   } catch (err) {

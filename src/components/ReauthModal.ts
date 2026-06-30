@@ -19,22 +19,22 @@ function getEl(): HTMLElement {
         <div class="modal-header border-0 pb-0">
           <h5 class="modal-title" id="reauth-title">Sesjonen din er utløpt</h5>
         </div>
-        <form id="reauth-skjema">
+        <form id="reauth-form">
           <div class="modal-body pt-2">
             <p class="mb-3" id="reauth-message">Logg inn igjen for å halde fram. Arbeidet ditt på sida er teke vare på.</p>
             <div class="mb-3">
-              <label class="form-label" for="reauth-epost">E-post</label>
-              <input type="email" class="form-control" id="reauth-epost" required autocomplete="email">
+              <label class="form-label" for="reauth-email">E-post</label>
+              <input type="email" class="form-control" id="reauth-email" required autocomplete="email">
             </div>
             <div class="mb-3">
-              <label class="form-label" for="reauth-passord">Passord</label>
-              <input type="password" class="form-control" id="reauth-passord" required autocomplete="current-password">
+              <label class="form-label" for="reauth-password">Passord</label>
+              <input type="password" class="form-control" id="reauth-password" required autocomplete="current-password">
             </div>
-            <div id="reauth-feil" class="alert alert-danger d-none" role="alert"></div>
+            <div id="reauth-error" class="alert alert-danger d-none" role="alert"></div>
           </div>
           <div class="modal-footer border-0 pt-0">
-            <button type="button" class="btn btn-secondary" id="reauth-avbryt">Hald fram utan innlogging</button>
-            <button type="submit" class="btn btn-primary" id="reauth-logginn">Logg inn</button>
+            <button type="button" class="btn btn-secondary" id="reauth-cancel">Hald fram utan innlogging</button>
+            <button type="submit" class="btn btn-primary" id="reauth-submit">Logg inn</button>
           </div>
         </form>
       </div>
@@ -42,8 +42,8 @@ function getEl(): HTMLElement {
   `,
   })
 
-  _el.querySelector('#reauth-avbryt')!.addEventListener('click', () => { dismiss() })
-  _el.querySelector('#reauth-skjema')!.addEventListener('submit', (e) => {
+  _el.querySelector('#reauth-cancel')!.addEventListener('click', () => { dismiss() })
+  _el.querySelector('#reauth-form')!.addEventListener('submit', (e) => {
     e.preventDefault()
     void handleSubmit()
   })
@@ -52,26 +52,26 @@ function getEl(): HTMLElement {
 
 async function handleSubmit(): Promise<void> {
   if (!_el) return
-  const feil = _el.querySelector<HTMLElement>('#reauth-feil')!
-  const knapp = _el.querySelector<HTMLButtonElement>('#reauth-logginn')!
-  const epost = _el.querySelector<HTMLInputElement>('#reauth-epost')!.value.trim()
-  const passord = _el.querySelector<HTMLInputElement>('#reauth-passord')!.value
+  const errorEl  = _el.querySelector<HTMLElement>('#reauth-error')!
+  const submitBtn = _el.querySelector<HTMLButtonElement>('#reauth-submit')!
+  const email    = _el.querySelector<HTMLInputElement>('#reauth-email')!.value.trim()
+  const password = _el.querySelector<HTMLInputElement>('#reauth-password')!.value
 
-  feil.classList.add('d-none')
-  knapp.disabled = true
+  errorEl.classList.add('d-none')
+  submitBtn.disabled = true
 
-  const { error } = await signIn(epost, passord)
+  const { error } = await signIn(email, password)
 
   if (error) {
-    feil.textContent = error.message === 'Invalid login credentials'
+    errorEl.textContent = error.message === 'Invalid login credentials'
       ? 'Feil e-post eller passord.'
       : error.message
-    feil.classList.remove('d-none')
-    knapp.disabled = false
+    errorEl.classList.remove('d-none')
+    submitBtn.disabled = false
     return
   }
 
-  knapp.disabled = false
+  submitBtn.disabled = false
   close()
   showToast('Du er logga inn igjen.', 'success')
 }
@@ -84,8 +84,8 @@ function dismiss(): void {
 function close(): void {
   if (!_el || !_isOpen) return
   _isOpen = false
-  _el.querySelector<HTMLInputElement>('#reauth-passord')!.value = ''
-  _el.querySelector<HTMLElement>('#reauth-feil')!.classList.add('d-none')
+  _el.querySelector<HTMLInputElement>('#reauth-password')!.value = ''
+  _el.querySelector<HTMLElement>('#reauth-error')!.classList.add('d-none')
   _modal.close(_el)
 }
 
@@ -93,7 +93,7 @@ function close(): void {
 export function showReauthModal(): void {
   if (_isOpen) return
   const el = getEl()
-  el.querySelector<HTMLInputElement>('#reauth-epost')!.value = getLastKnownEmail() ?? ''
+  el.querySelector<HTMLInputElement>('#reauth-email')!.value = getLastKnownEmail() ?? ''
   _isOpen = true
-  _modal.open(el, { focus: '#reauth-passord', onEscape: () => { dismiss() } })
+  _modal.open(el, { focus: '#reauth-password', onEscape: () => { dismiss() } })
 }

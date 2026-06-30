@@ -152,7 +152,7 @@ function resultatTabellHtml(resultater: ResultDetailRow[], arFilter: string, typ
 
   return infoHtml + `
     <div class="table-responsive">
-      <table class="app-tabell">
+      <table class="app-table">
         <thead class="app-thead">
           <tr>
             <th>Dato</th><th>Stevne</th><th>Type</th><th>Klubb</th>
@@ -187,7 +187,7 @@ function statistikkHtml(resultater: ResultDetailRow[], kaster: ThrowerDetailRow)
     <div class="kaster-stat-grid">
       <div>
         <h4>Statistikk</h4>
-        <table class="app-tabell">
+        <table class="app-table">
           <thead class="app-thead">
             <tr>
               <th></th><th>Rekord</th><th>Snitt Poeng</th><th>% Ring (frå ${FIRST_RING_YEAR})</th>

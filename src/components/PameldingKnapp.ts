@@ -2,19 +2,19 @@ import { confirmDialog } from '@/components/ConfirmDialog'
 import { showToast } from '@/components/Toast'
 import { registerForTournament, removeRegistration, getMyRegistrationForTournament } from '@/services/pameldingService'
 
-export interface PameldingKnappProps {
-  stevneId: number
-  kasterid: number
-  brukerId: string
+export interface RegistrationButtonProps {
+  tournamentId: number
+  throwerId: number
+  userId: string
   isRegistered: boolean
-  pameldingId: number | undefined
-  onAction?: (isNowRegistered: boolean, pameldingId: number | undefined) => void
+  registrationId: number | undefined
+  onAction?: (isNowRegistered: boolean, registrationId: number | undefined) => void
 }
 
-export function createPameldingKnapp(props: PameldingKnappProps): HTMLButtonElement {
+export function createRegistrationButton(props: RegistrationButtonProps): HTMLButtonElement {
   const btn = document.createElement('button')
   let isRegistered = props.isRegistered
-  let pameldingId = props.pameldingId
+  let registrationId = props.registrationId
 
   function update() {
     btn.className = isRegistered ? 'btn btn-sm btn-outline-danger' : 'btn btn-sm btn-primary'
@@ -30,38 +30,38 @@ export function createPameldingKnapp(props: PameldingKnappProps): HTMLButtonElem
       const ok = await confirmDialog({ title: 'Meld av', message: 'Er du sikker på at du vil melde deg av stevnet?' })
       if (!ok) { btn.disabled = false; return }
 
-      if (pameldingId === undefined) {
-        const { data } = await getMyRegistrationForTournament(props.stevneId, props.kasterid)
+      if (registrationId === undefined) {
+        const { data } = await getMyRegistrationForTournament(props.tournamentId, props.throwerId)
         if (!data) {
           showToast('Kunne ikkje finne påmeldinga.', 'error')
           btn.disabled = false
           return
         }
-        pameldingId = data.id
+        registrationId = data.id
       }
 
-      const { error } = await removeRegistration(pameldingId)
+      const { error } = await removeRegistration(registrationId)
       if (error) {
         showToast('Kunne ikkje melde av. Prøv igjen.', 'error')
         btn.disabled = false
         return
       }
       isRegistered = false
-      pameldingId = undefined
+      registrationId = undefined
       showToast('Du er meldt av stevnet.', 'success')
     } else {
-      const { error, id } = await registerForTournament(props.stevneId, props.kasterid, props.brukerId)
+      const { error, id } = await registerForTournament(props.tournamentId, props.throwerId, props.userId)
       if (error) {
         showToast('Kunne ikkje melde på. Prøv igjen.', 'error')
         btn.disabled = false
         return
       }
       isRegistered = true
-      pameldingId = id ?? undefined
+      registrationId = id ?? undefined
       showToast('Du er meldt på stevnet.', 'success')
     }
 
-    props.onAction?.(isRegistered, pameldingId)
+    props.onAction?.(isRegistered, registrationId)
     update()
     btn.disabled = false
   })
@@ -69,26 +69,26 @@ export function createPameldingKnapp(props: PameldingKnappProps): HTMLButtonElem
   return btn
 }
 
-export function bindPameldingSlots(
+export function bindRegistrationSlots(
   container: HTMLElement,
-  kasterid: number,
-  brukerId: string,
-  pameldteMap: Map<number, number>,
+  throwerId: number,
+  userId: string,
+  registrationsMap: Map<number, number>,
 ): void {
-  container.querySelectorAll<HTMLElement>('[data-pm-slot]').forEach(slot => {
-    const stevneId = Number(slot.dataset.pmSlot)
-    const pameldingId = pameldteMap.get(stevneId)
-    const knapp = createPameldingKnapp({
-      stevneId,
-      kasterid,
-      brukerId,
-      isRegistered: pameldingId !== undefined,
-      pameldingId,
+  container.querySelectorAll<HTMLElement>('[data-registration-slot]').forEach(slot => {
+    const tournamentId = Number(slot.dataset.registrationSlot)
+    const registrationId = registrationsMap.get(tournamentId)
+    const button = createRegistrationButton({
+      tournamentId,
+      throwerId,
+      userId,
+      isRegistered: registrationId !== undefined,
+      registrationId,
       onAction: (isNow, newId) => {
-        if (isNow && newId !== undefined) pameldteMap.set(stevneId, newId)
-        else pameldteMap.delete(stevneId)
+        if (isNow && newId !== undefined) registrationsMap.set(tournamentId, newId)
+        else registrationsMap.delete(tournamentId)
       },
     })
-    slot.replaceWith(knapp)
+    slot.replaceWith(button)
   })
 }

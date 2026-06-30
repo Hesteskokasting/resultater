@@ -10,7 +10,7 @@ import { confirmDialog } from '@/components/ConfirmDialog'
 import { getInfoTournament, updateTournamentPhase } from '@/services/stevneService'
 import { livePillHtml } from '@/components/LivePill'
 import { getRegistrationCount, getPairCount, getUnconfirmedCount, getMyRegistrationForTournament } from '@/services/pameldingService'
-import { createPameldingKnapp } from '@/components/PameldingKnapp'
+import { createRegistrationButton } from '@/components/PameldingKnapp'
 import { generateInitialRoundMatches } from '@/services/kampGenereringInnledendeService'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -133,12 +133,12 @@ export async function render(
 
       const minPamelding = (await getMyRegistrationForTournament(id, kasterid)).data
 
-      knapper.appendChild(createPameldingKnapp({
-        stevneId: id,
-        kasterid,
-        brukerId: auth.user.id,
+      knapper.appendChild(createRegistrationButton({
+        tournamentId: id,
+        throwerId: kasterid,
+        userId: auth.user.id,
         isRegistered: minPamelding !== null,
-        pameldingId: minPamelding?.id,
+        registrationId: minPamelding?.id,
         onAction: () => { void render(container, { id, isAdmin }, bannerSlot) },
       }))
     }

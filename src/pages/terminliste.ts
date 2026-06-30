@@ -8,7 +8,7 @@ import { createErrorBanner } from '@/components/ErrorBanner'
 import { createLoadingState } from '@/components/LoadingState'
 import { escHtml } from '@/utils/escHtml'
 import { logError } from '@/utils/logError'
-import { bindPameldingSlots } from '@/components/PameldingKnapp'
+import { bindRegistrationSlots } from '@/components/PameldingKnapp'
 
 type StevneRow = ScheduleTournamentRow
 
@@ -174,7 +174,7 @@ function kortHtml(s: StevneRow): string {
   const ikkjeStarta = s.stevne_fase === null || s.stevne_fase === 'ikke_startet'
   const harTilgang = _auth?.profil?.kobling_status === 'godkjent'
   const pameldingSlot = harTilgang && erKomande && ikkjeStarta && !s.erfullfort
-    ? `<span data-pm-slot="${s.id}"></span>`
+    ? `<span data-registration-slot="${s.id}"></span>`
     : ''
 
   return `
@@ -292,7 +292,7 @@ export async function render(container: HTMLElement): Promise<void> {
       if (antall) antall.textContent = `${filtrert.length} stevner`
       const kasterid = _auth?.profil?.kasterid
       const brukerId = _auth?.user.id
-      if (kasterid != null && brukerId) bindPameldingSlots(listeEl, kasterid, brukerId, _pameldteMap)
+      if (kasterid != null && brukerId) bindRegistrationSlots(listeEl, kasterid, brukerId, _pameldteMap)
       return filtrert
     }
 

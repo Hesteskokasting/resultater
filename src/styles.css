@@ -729,7 +729,7 @@ a.stevne-navn {
 .res-tabell-seksjon { margin-bottom: 20px; }
 
 .res-tabell,
-.app-tabell {
+.app-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.85rem;
@@ -789,15 +789,15 @@ a.stevne-navn {
   .res-desktop-blokk { display: block; }
 }
 
-/* ── Laster / feil ── */
+/* ── Loading / error ── */
 
-.laster {
+.loading {
   text-align: center;
   color: var(--tekst-3);
   margin-top: 40px;
 }
 
-.feil {
+.error-banner {
   text-align: center;
   color: var(--feil);
   margin-top: 40px;
@@ -1214,10 +1214,10 @@ th.stilling-sp-th  { background: var(--stilling-sp-th) !important; color: #fff !
   margin-top: 20px;
 }
 
-.app-tabell tbody tr { background: var(--flate); }
-.app-tabell tbody tr:nth-child(4n+3) { background: var(--flate-2); }
+.app-table tbody tr { background: var(--flate); }
+.app-table tbody tr:nth-child(4n+3) { background: var(--flate-2); }
 
-.app-tabell td {
+.app-table td {
   padding: 5px 10px;
   color: var(--tekst);
   border-bottom: 1px solid var(--kant);
