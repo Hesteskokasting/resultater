@@ -3,14 +3,12 @@ import { render as renderHome } from './pages/home'
 import { getUser, isAdmin, isClubAdmin, loggUt } from './services/authService'
 import { createErrorBanner } from './components/ErrorBanner'
 import { showReauthModal } from './components/ReauthModal'
-import type { PageRenderFn, Route } from '@/types'
+import type { PageRenderFn, Role, Route } from '@/types'
 
 if (import.meta.env.VITE_ENV === 'dev') {
   const versjonEl = document.querySelector('.header-versjon')
   if (versjonEl) versjonEl.textContent += ' [DEV]'
 }
-
-type RequiredRole = 'bruker' | 'admin' | 'klubbadmin'
 
 function lazy(load: () => Promise<{ render: PageRenderFn }>): PageRenderFn {
   return async (c, p) => {
@@ -21,7 +19,7 @@ function lazy(load: () => Promise<{ render: PageRenderFn }>): PageRenderFn {
 
 const container = document.getElementById('app')!
 
-function authGuard(requiredRole: RequiredRole, renderFn: PageRenderFn): PageRenderFn {
+function authGuard(requiredRole: Role, renderFn: PageRenderFn): PageRenderFn {
   return async (cont, params) => {
     const auth = await getUser()
     if (!auth) {
