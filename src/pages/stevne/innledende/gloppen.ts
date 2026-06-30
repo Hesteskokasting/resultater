@@ -1,4 +1,4 @@
-import { printStartkort } from '@/organizer/startkort-print'
+import { printStartCard } from '@/organizer/startkort-print'
 import { createInnledendeRenderer, type InnledendeVariant } from './innledendeBase'
 
 const variant: InnledendeVariant = {
@@ -9,7 +9,7 @@ const variant: InnledendeVariant = {
     isAdmin ? `<button class="btn btn-sm btn-outline-info" id="startkort-btn">Startkort</button>` : '',
   bindBannerExtra: (slot, { stevne, alleKamper, rundeMap, startnrMap, stilling }) => {
     slot.querySelector('#startkort-btn')?.addEventListener('click', () => {
-      printStartkort(stevne as never, alleKamper as never, rundeMap as never, startnrMap, stilling)
+      printStartCard(stevne as never, alleKamper as never, rundeMap as never, startnrMap, stilling)
     })
   },
 }

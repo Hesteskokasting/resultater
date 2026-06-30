@@ -1,9 +1,9 @@
 import { validRound1Setups } from '@/utils/kastemetoder-logikk'
 import {
-  renderGruppefordeling,
-  renderGruppePreview,
-  renderGruppePanelInnhald,
-  renderStrukturListeHtml,
+  renderGroupAssignment,
+  renderGroupPreview,
+  renderGroupPanelContent,
+  renderStructureListHtml,
 } from '@/organizer/gruppefordelingUi'
 import { generateFinaleAndBronzeFinal } from '@/services/kampGenereringCupService'
 import { opnGenererRundeDialog } from './_avslCupGenererRundeDialog'
@@ -97,7 +97,7 @@ const cupVariant: FinalPhaseVariant = {
 
     if (stevne.stevne_fase === 'avsluttende') {
       if (!isAdmin) return '<p class="text-muted fst-italic">Gruppefordeling er ikkje klar enno.</p>'
-      return renderGruppefordeling(standings, { showPlayerList: true, initNa, initFormat: round1Format })
+      return renderGroupAssignment(standings, { showPlayerList: true, initNa, initFormat: round1Format })
     }
 
     if (!isAdmin) return ''
@@ -110,7 +110,7 @@ const cupVariant: FinalPhaseVariant = {
     }
 
     const hasPlayers = standings.length > 0
-    return renderGruppefordeling(
+    return renderGroupAssignment(
       hasPlayers ? standings : unitCount,
       { showPlayerList: hasPlayers, initNa, initFormat: round1Format },
     )
@@ -137,46 +137,46 @@ const cupVariant: FinalPhaseVariant = {
     })
 
     if (!hasGroupAssignment) {
-      const n = parseInt(container.querySelector<HTMLElement>('#gruppe-val-wrapper')?.dataset.n ?? '0') || standings.length
+      const n = parseInt(container.querySelector<HTMLElement>('#group-assignment-wrapper')?.dataset.n ?? '0') || standings.length
 
-      function lesValtOppsett(radioName: string, nGruppe: number): RoundSetup | null {
-        const valtRadio = container.querySelector<HTMLInputElement>(`input[name="${radioName}"]:checked`)
-        if (valtRadio?.dataset.oppsett) {
-          try { return JSON.parse(valtRadio.dataset.oppsett) as RoundSetup } catch { /* fall through */ }
+      function readSelectedSetup(radioName: string, nGruppe: number): RoundSetup | null {
+        const selectedRadio = container.querySelector<HTMLInputElement>(`input[name="${radioName}"]:checked`)
+        if (selectedRadio?.dataset.oppsett) {
+          try { return JSON.parse(selectedRadio.dataset.oppsett) as RoundSetup } catch { /* fall through */ }
         }
         return validRound1Setups(nGruppe)[0] ?? null
       }
 
-      function oppdaterGruppePreview(nA: number, oppsettA: RoundSetup | null, oppsettB: RoundSetup | null): void {
-        const prevEl = container.querySelector('#gruppe-preview')
+      function updateGroupPreview(nA: number, oppsettA: RoundSetup | null, oppsettB: RoundSetup | null): void {
+        const prevEl = container.querySelector('#group-preview')
         if (!prevEl) return
-        prevEl.innerHTML = renderGruppePreview(
+        prevEl.innerHTML = renderGroupPreview(
           standings.map((r, i) => ({ ...r, cupPlassering: i + 1 })),
           nA, oppsettA?.walkovers ?? 0, oppsettB?.walkovers ?? 0,
         )
       }
 
-      const panelerEl = container.querySelector<HTMLElement>('#gruppe-paneler')
+      const panelerEl = container.querySelector<HTMLElement>('#group-panels')
       if (panelerEl) {
         panelerEl.addEventListener('change', (e) => {
           const target = e.target as HTMLInputElement
-          if (!target.matches('input[name^="runde1-format"]')) return
-          const nA = parseInt(container.querySelector<HTMLInputElement>('input[name="gruppe-split"]:checked')?.value ?? String(n))
+          if (!target.matches('input[name^="round1-format"]')) return
+          const nA = parseInt(container.querySelector<HTMLInputElement>('input[name="group-split"]:checked')?.value ?? String(n))
           const nB = n - nA
-          const oppsettA = lesValtOppsett('runde1-format-a', nA)
-          const oppsettB = lesValtOppsett('runde1-format-b', nB)
-          if (target.name === 'runde1-format-a') {
-            const strEl = container.querySelector('#struktur-a')
-            if (strEl) strEl.outerHTML = renderStrukturListeHtml(nA, oppsettA, 'a')
+          const oppsettA = readSelectedSetup('round1-format-a', nA)
+          const oppsettB = readSelectedSetup('round1-format-b', nB)
+          if (target.name === 'round1-format-a') {
+            const strEl = container.querySelector('#structure-a')
+            if (strEl) strEl.outerHTML = renderStructureListHtml(nA, oppsettA, 'a')
           } else {
-            const strEl = container.querySelector('#struktur-b')
-            if (strEl) strEl.outerHTML = renderStrukturListeHtml(nB, oppsettB, 'b')
+            const strEl = container.querySelector('#structure-b')
+            if (strEl) strEl.outerHTML = renderStructureListHtml(nB, oppsettB, 'b')
           }
-          oppdaterGruppePreview(nA, oppsettA, oppsettB)
+          updateGroupPreview(nA, oppsettA, oppsettB)
         })
       }
 
-      container.querySelectorAll<HTMLInputElement>('input[name="gruppe-split"]').forEach(radio => {
+      container.querySelectorAll<HTMLInputElement>('input[name="group-split"]').forEach(radio => {
         radio.addEventListener('change', () => {
           const nA = parseInt(radio.value)
           const nB = n - nA
@@ -184,24 +184,24 @@ const cupVariant: FinalPhaseVariant = {
           const oppsettB = nB >= 2 ? (validRound1Setups(nB)[0] ?? null) : null
           if (panelerEl) {
             panelerEl.innerHTML =
-              `<div id="gruppe-panel-a" class="avsl-gruppe-kol">
-                ${renderGruppePanelInnhald('Gruppe A', nA, 'runde1-format-a', oppsettA)}
+              `<div id="group-panel-a" class="final-group-col">
+                ${renderGroupPanelContent('Gruppe A', nA, 'round1-format-a', oppsettA)}
               </div>` +
-              (nB >= 2 ? `<div id="gruppe-panel-b" class="avsl-gruppe-kol">
-                ${renderGruppePanelInnhald('Gruppe B', nB, 'runde1-format-b', oppsettB)}
+              (nB >= 2 ? `<div id="group-panel-b" class="final-group-col">
+                ${renderGroupPanelContent('Gruppe B', nB, 'round1-format-b', oppsettB)}
               </div>` : '')
           }
-          oppdaterGruppePreview(nA, oppsettA, oppsettB)
+          updateGroupPreview(nA, oppsettA, oppsettB)
         })
       })
 
-      container.querySelector('#bekreft-gruppe-btn')?.addEventListener('click', async () => {
-        const valt = container.querySelector<HTMLInputElement>('input[name="gruppe-split"]:checked')
+      container.querySelector('#confirm-group-btn')?.addEventListener('click', async () => {
+        const valt = container.querySelector<HTMLInputElement>('input[name="group-split"]:checked')
         if (!valt) return
         const nA = parseInt(valt.value)
         const nB = n - nA
-        const oppsettA = lesValtOppsett('runde1-format-a', nA)
-        const oppsettB = nB >= 2 ? lesValtOppsett('runde1-format-b', nB) : null
+        const oppsettA = readSelectedSetup('round1-format-a', nA)
+        const oppsettB = nB >= 2 ? readSelectedSetup('round1-format-b', nB) : null
         const { error: fmtErr } = await setRound1Format(stevneid, { A: oppsettA, B: oppsettB, nA })
         if (fmtErr) { showToast('Feil ved lagring av format', 'error'); return }
 
@@ -301,7 +301,7 @@ function renderGruppeKolonne(
     : ''
 
   return `
-    <div class="avsl-gruppe-kol">
+    <div class="final-group-col">
       <h6 class="text-center fw-bold mb-2">Gruppe ${escHtml(gruppeNavn)} (${totalCount} ${escHtml(unitLabel)})</h6>
       ${genererKnapp}
       ${rundarHtml}
@@ -326,7 +326,7 @@ function sideRadHtml(
   const kampPlassering = side.rep.kamp_plassering
   const erEliminert = kamp.er_bekreftet && kampPlassering != null && kampPlassering >= nSider
   const erVidare = kamp.er_bekreftet && kampPlassering != null && kampPlassering < nSider
-  const radKlass = erEliminert ? 'kamp-eliminert' : (erVidare ? 'kamp-vidare' : '')
+  const radKlass = erEliminert ? 'match-eliminated' : (erVidare ? 'match-advancing' : '')
   const scoreCls = `text-center fw-semibold avsl-score-cel${flags.kanEndreScore ? ' score-redigerbar' : ''}`
   const scoreExtra = flags.kanEndreScore ? ` data-endre-score="${kamp.id}"` : ''
   return `<tr${radKlass ? ` class="${radKlass}"` : ''}>
@@ -371,7 +371,7 @@ function bekreftKnappState(
     klass: bekrefta ? 'btn-secondary' : (kanBekrefte ? 'btn-success' : 'btn-outline-secondary'),
     tekst: bekrefta ? 'Bekreftet' : 'Bekreft',
     disabled: bekrefta || !kanBekrefte,
-    ekstraKlass: ' btn-bekreft',
+    ekstraKlass: ' btn-confirm',
   }
 }
 
@@ -470,8 +470,8 @@ function bindKampEvents(
         side2Name: p2Namn,
         currentS1: sideSum(side1),
         currentS2: sideSum(side2),
-        spelarIds,
-        hasOmgangar: kamp.spelarar.some(s => (s.omgangar?.length ?? 0) > 0),
+        playerIds: spelarIds,
+        hasRounds: kamp.spelarar.some(s => (s.omgangar?.length ?? 0) > 0),
         logPrefix: 'cup',
         onSave: skrivSideScore,
         onSaved: reload,

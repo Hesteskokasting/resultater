@@ -816,25 +816,25 @@ a.stevne-navn {
   padding: 0.5rem 1rem;
 }
 [data-theme="light"] .org-fase-header {
-  background: var(--stilling-kp-th);
+  background: var(--standing-kp-th);
 }
 
 .org-max-480 { max-width: 480px; }
-.org-tab-knappar  { display: none; }
-.org-stilling-kol { width: 100%; max-width: 500px; flex-shrink: 0; }
+.org-tab-buttons  { display: none; }
+.org-standing-col { width: 100%; max-width: 500px; flex-shrink: 0; }
 
 @media (min-width: 1200px) {
-  .org-stilling-kol {
+  .org-standing-col {
     position: sticky;
     top: 0;
     max-height: 100vh;
     overflow-y: auto;
     scrollbar-width: none;
   }
-  .org-stilling-kol::-webkit-scrollbar { display: none; }
+  .org-standing-col::-webkit-scrollbar { display: none; }
 }
-.org-kampar-panel { min-width: 0; }
-.btn-bekreft      { min-width: 5rem; }
+.org-matches-panel { min-width: 0; }
+.btn-confirm      { min-width: 5rem; }
 
 .stevne-nav                   { font-size: 0.875rem; }
 .stevne-nav .nav-link         { color: var(--tekst-2); }
@@ -843,46 +843,46 @@ a.stevne-navn {
 .stevne-nav .nav-link.active  { color: var(--lenke); }
 
 @media (max-width: 1199px) {
-  .org-tab-knappar  { display: flex; margin-bottom: 0.75rem; }
+  .org-tab-buttons  { display: flex; margin-bottom: 0.75rem; }
   .org-tab-btn      { flex: 1; }
-  .org-stilling-kol { width: 100%; }
-  .org-hovud-innhald .org-stilling-kol                    { display: none; }
-  .org-hovud-innhald.org-vis-stilling .org-kampar-panel   { display: none !important; }
-  .org-hovud-innhald.org-vis-stilling .org-stilling-kol   { display: block; }
+  .org-standing-col { width: 100%; }
+  .org-main-content .org-standing-col                    { display: none; }
+  .org-main-content.org-show-standing .org-matches-panel   { display: none !important; }
+  .org-main-content.org-show-standing .org-standing-col   { display: block; }
 }
 
-.kamp-vidare td    { background: var(--kamp-vidare-bg) !important; }
-.kamp-eliminert td { background: var(--kamp-eliminert-bg) !important; }
+.match-advancing td    { background: var(--match-advancing-bg) !important; }
+.match-eliminated td { background: var(--match-eliminated-bg) !important; }
 
-.stilling-spelar-rad { cursor: pointer; }
-.stilling-spelar-rad:hover td { background-color: var(--primaer-aktiv) !important; }
-.stilling-aktiv td { background-color: var(--primaer-selektert) !important; }
-.stilling-detalj-tabell { font-size: 0.85em; }
-.stilling-detalj > td { border-top: 2px solid var(--primaer) !important; border-bottom: 2px solid var(--primaer) !important; }
+.standing-player-row { cursor: pointer; }
+.standing-player-row:hover td { background-color: var(--primaer-aktiv) !important; }
+.standing-active td { background-color: var(--primaer-selektert) !important; }
+.standing-detail-table { font-size: 0.85em; }
+.standing-detail > td { border-top: 2px solid var(--primaer) !important; border-bottom: 2px solid var(--primaer) !important; }
 
 /* ── Kampliste - felles ─────────────────────────────────────────────────────── */
 
 /* Responsive show/hide */
 @media (max-width: 699px) {
-  .kamp-tabell--desktop { display: none !important; }
+  .match-table--desktop { display: none !important; }
 }
 @media (min-width: 700px) {
   .kamp-liste-mobil { display: none !important; }
 }
 
 /* Table shared styles (match table + stilling table) */
-.kamp-tabell {
+.match-table {
   border-collapse: collapse;
   width: 100%;
   background: var(--flate);
 }
-.kamp-tabell td,
-.kamp-tabell th {
+.match-table td,
+.match-table th {
   border: none;
   border-bottom: 0.5px solid var(--kant);
   background: var(--flate);
 }
-.kamp-tabell tbody tr:last-child td { border-bottom: none; }
+.match-table tbody tr:last-child td { border-bottom: none; }
 
 .org-thead th {
   background: var(--flate-2) !important;
@@ -964,14 +964,14 @@ a.stevne-navn {
   62.5%   { background-color: rgba(76, 175, 80, 0.35); }
   100%    { background-color: transparent; }
 }
-@keyframes stilling-confirm-flash {
+@keyframes standing-confirm-flash {
   0%      { box-shadow: inset 0 0 0 100vw rgba(76, 175, 80, 0.35); }
   62.5%   { box-shadow: inset 0 0 0 100vw rgba(76, 175, 80, 0.35); }
   100%    { box-shadow: inset 0 0 0 100vw rgba(76, 175, 80, 0); }
 }
 .kamp-ny-bekreftet td { animation: confirm-flash 8s linear forwards; }
 .kamp-rad-mobil.kamp-ny-bekreftet { animation: confirm-flash 8s linear forwards; }
-.stilling-ny-bekreftet { animation: stilling-confirm-flash 8s linear forwards; }
+.standing-new-confirmed { animation: standing-confirm-flash 8s linear forwards; }
 
 /* ── Kampliste - mobil ── */
 
@@ -1092,23 +1092,23 @@ a.stevne-navn {
 }
 
 /* Stilling table — tabular numbers */
-.stilling-tal {
+.standing-number {
   text-align: center;
   font-variant-numeric: tabular-nums;
 }
 
 /* Stilling table — KP/SP visual hierarchy */
 /* th prefix needed to match .org-thead th specificity (0,1,1) and win by source order */
-th.stilling-kp-th  { background: var(--stilling-kp-th) !important; color: #fff !important; }
-th.stilling-sp-th  { background: var(--stilling-sp-th) !important; color: #fff !important; }
-.stilling-kp-cel { background: var(--stilling-kp-bg) !important; font-weight: 600; }
-.stilling-sp-cel { background: var(--stilling-sp-bg) !important; font-weight: 600; }
+th.standing-kp-th  { background: var(--standing-kp-th) !important; color: #fff !important; }
+th.standing-sp-th  { background: var(--standing-sp-th) !important; color: #fff !important; }
+.standing-kp-cell { background: var(--standing-kp-bg) !important; font-weight: 600; }
+.standing-sp-cell { background: var(--standing-sp-bg) !important; font-weight: 600; }
 
-/* Stilling table — deemphasise position and match-count columns */
-.stilling-dim-cel { font-size: 0.82em; color: var(--tekst-3); text-align: center; }
+/* Standing table — deemphasise position and match-count columns */
+.standing-dim-cell { font-size: 0.82em; color: var(--tekst-3); text-align: center; }
 
 @media (max-width: 480px) {
-  .stilling-tabell-wrap table { font-size: 0.88em; }
+  .standing-table-wrap table { font-size: 0.88em; }
 }
 
 /* ── Deltakere-side ── */
@@ -1477,17 +1477,17 @@ th.stilling-sp-th  { background: var(--stilling-sp-th) !important; color: #fff !
 
 /* Innledende — merged SCORE column */
 th.innl-score-th {
-  background: var(--stilling-kp-th) !important;
+  background: var(--standing-kp-th) !important;
   color: #fff !important;
-  border-left: 2px solid var(--stilling-kp-th) !important;
-  border-right: 2px solid var(--stilling-kp-th) !important;
+  border-left: 2px solid var(--standing-kp-th) !important;
+  border-right: 2px solid var(--standing-kp-th) !important;
 }
 .innl-score-cel {
   font-weight: 600;
   font-size: 1.05em;
   background: var(--avsl-score-bg) !important;
-  border-left: 2px solid var(--stilling-kp-th) !important;
-  border-right: 2px solid var(--stilling-kp-th) !important;
+  border-left: 2px solid var(--standing-kp-th) !important;
+  border-right: 2px solid var(--standing-kp-th) !important;
   vertical-align: middle !important;
 }
 .innl-score-inner {
@@ -2072,10 +2072,10 @@ th.innl-score-th {
 
 /* ── Avsluttande fase ── */
 
-.avsl-gruppe-kol  { flex: 1 1 0; min-width: 0; }
-.avsl-gruppe-kol + .avsl-gruppe-kol { border-left: 1px solid var(--kant); padding-left: 1rem; }
+.final-group-col  { flex: 1 1 0; min-width: 0; }
+.final-group-col + .final-group-col { border-left: 1px solid var(--kant); padding-left: 1rem; }
 
-.bekreft-banner {
+.confirm-banner {
   position: sticky;
   bottom: 0;
   padding: 12px 0;
@@ -2084,31 +2084,31 @@ th.innl-score-th {
   z-index: 10;
 }
 
-.gruppe-layout { flex-direction: column; }
+.group-layout { flex-direction: column; }
 @media (min-width: 800px) {
-  .gruppe-layout { flex-direction: row; }
+  .group-layout { flex-direction: row; }
 }
-#gruppe-paneler .avsl-gruppe-kol { min-width: 400px; max-width: 400px; flex: 1 1 0; }
-#gruppe-paneler .avsl-gruppe-kol + .avsl-gruppe-kol {
+#group-panels .final-group-col { min-width: 400px; max-width: 400px; flex: 1 1 0; }
+#group-panels .final-group-col + .final-group-col {
   border-left: 1px solid var(--kant);
   border-top: none;
   padding-left: 1rem;
   padding-top: 0;
 }
 
-#gruppe-val-wrapper .form-check {
+#group-assignment-wrapper .form-check {
   min-height: 32px;
   display: flex;
   align-items: center;
   gap: 0.5rem;
   padding-left: 0;
 }
-#gruppe-val-wrapper .form-check .form-check-input {
+#group-assignment-wrapper .form-check .form-check-input {
   float: none;
   margin: 0;
   flex-shrink: 0;
 }
-#gruppe-val-wrapper .btn-check:checked + .btn::before { content: '✓ '; }
+#group-assignment-wrapper .btn-check:checked + .btn::before { content: '✓ '; }
 .avsl-kamp-block  { width: calc(50% - 0.5rem); min-width: 220px; }
 .avsl-kamp-header {
   display: flex;
@@ -2136,8 +2136,8 @@ th.innl-score-th {
   padding: 2px 8px;
 }
 @media (max-width: 1199px) {
-  .avsl-gruppe-kol { flex: 0 0 100%; }
-  .avsl-gruppe-kol + .avsl-gruppe-kol {
+  .final-group-col { flex: 0 0 100%; }
+  .final-group-col + .final-group-col {
     border-left: none;
     padding-left: 0;
     border-top: 1px solid var(--kant);
@@ -2151,8 +2151,8 @@ th.innl-score-th {
 .avsl-stilling-einzel { max-width: 500px; }
 .avsl-maks-600 { max-width: 600px; margin-inline: auto; }
 
-.avsl-elim-plass {
-  background: var(--kamp-eliminert-bg) !important;
+.final-elim-position {
+  background: var(--match-eliminated-bg) !important;
 }
 
 .avsl-dialog-overlay {

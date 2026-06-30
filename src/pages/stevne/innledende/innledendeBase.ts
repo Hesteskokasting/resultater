@@ -138,7 +138,7 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
         .map(([nr, rKamper]) => renderRunde(nr, rKamper, startnrMap, kanEndreKampar, hcpMap, posisjonMap))
         .join('') + renderKampLegend()
       const stillingHtml = renderStandingTable(stilling, alleKamper, startnrMap, {
-        tableId: 'stilling-innl',
+        tableId: 'standing-initial',
         hasMatchCount: true,
         positionMap: posisjonMap,
         unitLabel: erLag ? 'par' : 'spelarar',
@@ -147,8 +147,8 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
       const activeTab = getActiveTab(container)
       container.innerHTML = renderMainContent(kamperHtml, stillingHtml)
       bindTabToggle(container)
-      if (activeTab === 'stilling') setActiveTab(container, 'stilling')
-      bindStandingDetails(container, 'stilling-innl', stillingExpandedIds)
+      if (activeTab === 'standing') setActiveTab(container, 'standing')
+      bindStandingDetails(container, 'standing-initial', stillingExpandedIds)
 
       applyFlashClasses(container, idsToFlash, alleKamper)
 
@@ -218,8 +218,8 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
         side2Name: sideNavn(side2, false),
         currentS1: sideScore(side1, kamp.er_bekreftet),
         currentS2: sideScore(side2, kamp.er_bekreftet),
-        spelarIds,
-        hasOmgangar,
+        playerIds: spelarIds,
+        hasRounds: hasOmgangar,
         logPrefix: variant.logPrefix,
         onSave: async (nyS1, nyS2) => {
           await Promise.all([
@@ -418,7 +418,7 @@ function applyFlashClasses(container: HTMLElement, idsToFlash: Set<number>, alle
     const kamp = alleKamper.find(k => k.id === kampId)
     if (!kamp) continue
     for (const sp of kamp.spelarar) {
-      container.querySelectorAll(`#stilling-innl tr.stilling-spelar-rad[data-kasterid="${sp.kasterid}"] td`).forEach(el => el.classList.add('stilling-ny-bekreftet'))
+      container.querySelectorAll(`#standing-initial tr.standing-player-row[data-kasterid="${sp.kasterid}"] td`).forEach(el => el.classList.add('standing-new-confirmed'))
     }
   }
 }
@@ -469,7 +469,7 @@ function renderRunde(
   return `
     <div class="mb-3">
       <h6 class="text-center fw-bold mb-1">Runde ${nr}</h6>
-      <table class="table table-sm kamp-tabell mb-0 kamp-tabell--desktop">
+      <table class="table table-sm match-table mb-0 match-table--desktop">
         <thead class="org-thead">
           <tr>
             <th class="th-36 text-center">B</th>

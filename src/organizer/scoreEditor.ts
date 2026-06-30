@@ -14,9 +14,9 @@ export interface ScoreEditorOptions {
   /** Score prefilled for side 2. */
   currentS2: number
   /** kamp_spelar ids whose omgangar are cleared before a direct score is written. */
-  spelarIds: number[]
+  playerIds: number[]
   /** True when a side has live omgangar — gates the delete-warning dialog. */
-  hasOmgangar: boolean
+  hasRounds: boolean
   /** Persists the entered side scores. Return a non-null error to abort. */
   onSave: (s1: number, s2: number) => Promise<{ error: unknown } | null>
   /** Re-renders after a successful save. */
@@ -32,15 +32,15 @@ export interface ScoreEditorOptions {
  * deleted on save rather than left to silently contradict the new total.
  */
 export async function showScoreEditor(opts: ScoreEditorOptions): Promise<void> {
-  if (opts.hasOmgangar && !await confirmDialog({
+  if (opts.hasRounds && !await confirmDialog({
     title: 'Slett detaljar',
     message: 'Dette sletter detaljar for denne kampen. Er du sikker?',
   })) return
 
   showNumberpad(opts.side1Name, opts.side2Name, opts.currentS1, opts.currentS2, async (s1, s2) => {
     try {
-      if (opts.hasOmgangar && opts.spelarIds.length) {
-        const { error } = await deleteMatchRounds(opts.spelarIds)
+      if (opts.hasRounds && opts.playerIds.length) {
+        const { error } = await deleteMatchRounds(opts.playerIds)
         if (error) { showToast('DB-feil ved sletting av omgangar', 'error'); return }
       }
       const result = await opts.onSave(s1, s2)

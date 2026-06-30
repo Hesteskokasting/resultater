@@ -57,7 +57,7 @@ interface StandingOptions {
  */
 export function sideNameHtml<T extends { kaster?: { fornavn: string; etternavn: string } | null }>(
   side: MatchSide<T> | null,
-  kort: boolean,
+  short: boolean,
 ): string {
   if (!side) return '—'
   if (side.members.length > 1) {
@@ -65,16 +65,16 @@ export function sideNameHtml<T extends { kaster?: { fornavn: string; etternavn: 
   }
   const k = side.rep.kaster
   if (!k) return '—'
-  return kort ? escHtml(throwerNameShort(k)) : `${escHtml(k.fornavn)} ${escHtml(k.etternavn)}`
+  return short ? escHtml(throwerNameShort(k)) : `${escHtml(k.fornavn)} ${escHtml(k.etternavn)}`
 }
 
 function renderPlayerMatchDetails(
   kasterid: number,
-  kamper: OrgMatch[] | null | undefined,
+  matches: OrgMatch[] | null | undefined,
   startNumberMap: Record<number, number>,
   positionMap: Record<number, number> = {},
 ): string {
-  const playerMatches = (kamper ?? [])
+  const playerMatches = (matches ?? [])
     .filter(k => k.spelarar?.some(sp => sp.kasterid === kasterid))
     .sort((a, b) => a.runde_nummer - b.runde_nummer)
 
@@ -82,11 +82,11 @@ function renderPlayerMatchDetails(
     return '<tr><td colspan="4" class="text-muted small fst-italic text-center">Ingen kampar</td></tr>'
   }
 
-  return playerMatches.map(kamp => {
-    const sides = getMatchSides(kamp.spelarar, startNumberMap, positionMap)
+  return playerMatches.map(match => {
+    const sides = getMatchSides(match.spelarar, startNumberMap, positionMap)
     const mySide  = sides.find(s => s?.members.some(m => m.kasterid === kasterid)) ?? null
     const oppSide = sides.find(s => s != null && s !== mySide) ?? null
-    const isWalkoverWin = kamp.er_walkover && (!oppSide || !oppSide.rep.kaster)
+    const isWalkoverWin = match.er_walkover && (!oppSide || !oppSide.rep.kaster)
 
     const opponentName = isWalkoverWin
       ? 'Walkover'
@@ -103,13 +103,13 @@ function renderPlayerMatchDetails(
       side ? side.members.reduce((sum, m) => sum + scoreForPlayer(m), 0) : 0
     const myScore  = isWalkoverWin ? 21 : sideSum(mySide)
     const oppScore = isWalkoverWin ? 0  : sideSum(oppSide)
-    const resultat = `${myScore} - ${oppScore}`
+    const scoreDisplay = `${myScore} - ${oppScore}`
 
     return `<tr>
-      <td class="text-center">${kamp.runde_nummer}</td>
-      <td class="text-center">${kamp.bane_nummer ?? ''}</td>
+      <td class="text-center">${match.runde_nummer}</td>
+      <td class="text-center">${match.bane_nummer ?? ''}</td>
       <td>${opponentDisplay}</td>
-      <td class="text-center">${resultat}</td>
+      <td class="text-center">${scoreDisplay}</td>
     </tr>`
   }).join('')
 }
@@ -117,12 +117,12 @@ function renderPlayerMatchDetails(
 export function canConfirmMatch(
   kamp: OrgMatch,
   sp: OrgMatchPlayer[],
-  harOmgangar: boolean,
+  hasRounds: boolean,
   hcpMap: Record<number, number> = {},
 ): boolean {
   if (kamp.er_bekreftet) return false
   if (kamp.er_walkover) return true
-  if (harOmgangar) return false
+  if (hasRounds) return false
   const kasterid1 = sp[0]?.kasterid
   const kasterid2 = sp[1]?.kasterid
   const hcp1 = (kasterid1 != null ? hcpMap[kasterid1] : undefined) ?? 0
@@ -132,30 +132,30 @@ export function canConfirmMatch(
   return s1 + hcp1 >= 21 || s2 + hcp2 >= 21
 }
 
-export function renderMainContent(kamperHtml: string, stillingHtml: string): string {
+export function renderMainContent(matchesHtml: string, standingHtml: string): string {
   return `
-    <div class="org-hovud-innhald">
-      <div class="org-tab-knappar btn-group w-100 mb-2">
-        <button class="btn btn-primary org-tab-btn" data-tab="kamper">Kampar</button>
-        <button class="btn btn-outline-primary org-tab-btn" data-tab="stilling">Stilling</button>
+    <div class="org-main-content">
+      <div class="org-tab-buttons btn-group w-100 mb-2">
+        <button class="btn btn-primary org-tab-btn" data-tab="matches">Kampar</button>
+        <button class="btn btn-outline-primary org-tab-btn" data-tab="standing">Stilling</button>
       </div>
-      <div class="d-flex gap-3 align-items-start org-innhald-rad">
-        <div class="flex-grow-1 org-kampar-panel">${kamperHtml}</div>
-        <div class="org-stilling-kol">${stillingHtml}</div>
+      <div class="d-flex gap-3 align-items-start org-content-row">
+        <div class="flex-grow-1 org-matches-panel">${matchesHtml}</div>
+        <div class="org-standing-col">${standingHtml}</div>
       </div>
     </div>`
 }
 
-export function getActiveTab(container: HTMLElement): 'kampar' | 'stilling' {
-  return container.querySelector('.org-hovud-innhald')?.classList.contains('org-vis-stilling')
-    ? 'stilling'
-    : 'kampar'
+export function getActiveTab(container: HTMLElement): 'matches' | 'standing' {
+  return container.querySelector('.org-main-content')?.classList.contains('org-show-standing')
+    ? 'standing'
+    : 'matches'
 }
 
-export function setActiveTab(container: HTMLElement, tab: 'kampar' | 'stilling'): void {
-  const wrapper = container.querySelector<HTMLElement>('.org-hovud-innhald')
+export function setActiveTab(container: HTMLElement, tab: 'matches' | 'standing'): void {
+  const wrapper = container.querySelector<HTMLElement>('.org-main-content')
   if (!wrapper) return
-  wrapper.classList.toggle('org-vis-stilling', tab === 'stilling')
+  wrapper.classList.toggle('org-show-standing', tab === 'standing')
   container.querySelectorAll<HTMLButtonElement>('.org-tab-btn').forEach(btn => {
     const isActive = btn.dataset.tab === tab
     btn.classList.toggle('btn-primary', isActive)
@@ -164,12 +164,12 @@ export function setActiveTab(container: HTMLElement, tab: 'kampar' | 'stilling')
 }
 
 export function bindTabToggle(container: HTMLElement): void {
-  const wrapper = container.querySelector<HTMLElement>('.org-hovud-innhald')
+  const wrapper = container.querySelector<HTMLElement>('.org-main-content')
   if (!wrapper) return
   container.querySelectorAll<HTMLButtonElement>('.org-tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      const isStilling = btn.dataset.tab === 'stilling'
-      wrapper.classList.toggle('org-vis-stilling', isStilling)
+      const isStanding = btn.dataset.tab === 'standing'
+      wrapper.classList.toggle('org-show-standing', isStanding)
       container.querySelectorAll<HTMLButtonElement>('.org-tab-btn').forEach(b => {
         b.classList.toggle('btn-primary', b.dataset.tab === btn.dataset.tab)
         b.classList.toggle('btn-outline-primary', b.dataset.tab !== btn.dataset.tab)
@@ -181,13 +181,13 @@ export function bindTabToggle(container: HTMLElement): void {
 type FlatStandingRow = StandingRow & { posInGroup: number }
 
 export function renderStandingTable(
-  stilling: StandingRow[],
-  kamper: OrgMatch[],
+  standings: StandingRow[],
+  matches: OrgMatch[],
   startNumberMap: Record<number, number>,
   opts: StandingOptions = {},
 ): string {
   const {
-    tableId        = 'stilling-tabell',
+    tableId        = 'standing-table',
     hasGroups      = false,
     hasElimination = false,
     hasMatchCount  = false,
@@ -198,13 +198,13 @@ export function renderStandingTable(
   const thW = hasMatchCount ? 'th-32' : 'th-28'
 
   const groupMap = new Map<string, StandingRow[]>()
-  for (const r of stilling) {
+  for (const r of standings) {
     const g = hasGroups ? (r.gruppe?.navn ?? '_') : '_'
     if (!groupMap.has(g)) groupMap.set(g, [])
     groupMap.get(g)!.push(r)
   }
   const hasMultipleGroups = groupMap.size > 1 || !groupMap.has('_')
-  const title = hasMatchCount ? `${stilling.length} ${unitLabel}` : 'Stilling'
+  const title = hasMatchCount ? `${standings.length} ${unitLabel}` : 'Stilling'
 
   const flatList: FlatStandingRow[] = [...groupMap.entries()]
     .sort(([a], [b]) => a === '_' ? 1 : b === '_' ? -1 : a.localeCompare(b))
@@ -214,15 +214,15 @@ export function renderStandingTable(
     {
       label: '#', thClass: thW,
       cellClass: (r) => {
-        const base = 'stilling-dim-cel'
-        return hasElimination && r.runde_eliminert != null ? `avsl-elim-plass ${base}` : base
+        const base = 'standing-dim-cell'
+        return hasElimination && r.runde_eliminert != null ? `final-elim-position ${base}` : base
       },
       render: (r) => String(r.posInGroup),
     },
     { label: 'NAMN', render: (r) => escHtml(r.navn ?? `Spelar ${r.kasterid}`) },
-    ...(hasMatchCount ? [{ label: 'K', thClass: 'th-50 stilling-tal', cellClass: 'stilling-tal stilling-dim-cel' as const, render: (r: FlatStandingRow) => String(r.antall_kamper ?? 0) }] : []),
-    { label: 'KP', thClass: 'th-44 stilling-tal stilling-kp-th', cellClass: 'stilling-tal stilling-kp-cel', render: (r) => String(r.kamp_poeng ?? 0) },
-    { label: 'SP', thClass: 'th-44 stilling-tal stilling-sp-th', cellClass: 'stilling-tal stilling-sp-cel', render: (r) => String(r.score_poeng ?? 0) },
+    ...(hasMatchCount ? [{ label: 'K', thClass: 'th-50 standing-number', cellClass: 'standing-number standing-dim-cell' as const, render: (r: FlatStandingRow) => String(r.antall_kamper ?? 0) }] : []),
+    { label: 'KP', thClass: 'th-44 standing-number standing-kp-th', cellClass: 'standing-number standing-kp-cell', render: (r) => String(r.kamp_poeng ?? 0) },
+    { label: 'SP', thClass: 'th-44 standing-number standing-sp-th', cellClass: 'standing-number standing-sp-cell', render: (r) => String(r.score_poeng ?? 0) },
   ]
 
   const colspan = columns.length
@@ -243,7 +243,7 @@ export function renderStandingTable(
 
   const buildDetailElement = (item: FlatStandingRow): HTMLElement => {
     const innerTable = document.createElement('table')
-    innerTable.className = 'stilling-detalj-tabell table table-sm table-bordered mb-0'
+    innerTable.className = 'standing-detail-table table table-sm table-bordered mb-0'
     const thead = innerTable.createTHead()
     const hr = thead.insertRow()
     ;[['Runde', true], ['Bane', true], ['Motstandar', false], ['Resultat', true]].forEach(([label, centered]) => {
@@ -252,19 +252,19 @@ export function renderStandingTable(
       if (centered) th.className = 'text-center'
       hr.appendChild(th)
     })
-    innerTable.createTBody().innerHTML = renderPlayerMatchDetails(item.kasterid, kamper, startNumberMap, positionMap)
+    innerTable.createTBody().innerHTML = renderPlayerMatchDetails(item.kasterid, matches, startNumberMap, positionMap)
     return innerTable
   }
 
   const table = createTable<FlatStandingRow>({
     columns,
     rows: flatList,
-    tableClass: 'table table-sm kamp-tabell mb-0',
+    tableClass: 'table table-sm match-table mb-0',
     theadClass: 'org-thead',
-    rowClass: 'stilling-spelar-rad',
+    rowClass: 'standing-player-row',
     rowAttrs: (r) => ({ 'data-kasterid': String(r.kasterid) }),
     sectionHeader: sectionHeaderFn,
-    detailRowClass: 'stilling-detalj',
+    detailRowClass: 'standing-detail',
     detailRowAttrs: () => ({ hidden: '' }),
     detailCellClass: 'p-0',
     detailRow: buildDetailElement,
@@ -272,7 +272,7 @@ export function renderStandingTable(
   table.id = tableId
 
   const wrapper = document.createElement('div')
-  wrapper.className = 'stilling-tabell-wrap'
+  wrapper.className = 'standing-table-wrap'
   const h6 = document.createElement('h6')
   h6.className = 'text-center fw-bold mb-1'
   h6.textContent = title
@@ -287,64 +287,64 @@ export function bindStandingDetails(
   tableId: string,
   expandedIds: Set<string> = new Set(),
 ): void {
-  const tabell = container.querySelector<HTMLElement>(`#${tableId}`)
-  if (!tabell) return
+  const tableEl = container.querySelector<HTMLElement>(`#${tableId}`)
+  if (!tableEl) return
 
   // Restore rows that were open before the last re-render
   expandedIds.forEach(kid => {
-    const detaljRad = tabell.querySelector<HTMLElement>(`tr.stilling-detalj[data-kasterid="${kid}"]`)
-    const playerRow = tabell.querySelector<HTMLElement>(`tr.stilling-spelar-rad[data-kasterid="${kid}"]`)
-    if (detaljRad) detaljRad.removeAttribute('hidden')
+    const detailRow = tableEl.querySelector<HTMLElement>(`tr.standing-detail[data-kasterid="${kid}"]`)
+    const playerRow = tableEl.querySelector<HTMLElement>(`tr.standing-player-row[data-kasterid="${kid}"]`)
+    if (detailRow) detailRow.removeAttribute('hidden')
     if (playerRow) {
-      playerRow.classList.add('stilling-aktiv')
+      playerRow.classList.add('standing-active')
       playerRow.setAttribute('aria-expanded', 'true')
     }
   })
 
-  tabell.querySelectorAll<HTMLElement>('tr.stilling-spelar-rad').forEach(rad => {
-    rad.setAttribute('tabindex', '0')
-    if (!rad.hasAttribute('aria-expanded')) rad.setAttribute('aria-expanded', 'false')
+  tableEl.querySelectorAll<HTMLElement>('tr.standing-player-row').forEach(row => {
+    row.setAttribute('tabindex', '0')
+    if (!row.hasAttribute('aria-expanded')) row.setAttribute('aria-expanded', 'false')
   })
 
-  function toggle(rad: HTMLElement): void {
-    const kid = rad.dataset.kasterid
+  function toggle(row: HTMLElement): void {
+    const kid = row.dataset.kasterid
     if (!kid) return
-    const detaljRad = tabell!.querySelector<HTMLElement>(`tr.stilling-detalj[data-kasterid="${kid}"]`)
-    if (!detaljRad) return
-    const wasHidden = !!detaljRad.hidden
-    detaljRad.hidden = !wasHidden
-    rad.classList.toggle('stilling-aktiv', wasHidden)
-    rad.setAttribute('aria-expanded', String(wasHidden))
+    const detailRow = tableEl!.querySelector<HTMLElement>(`tr.standing-detail[data-kasterid="${kid}"]`)
+    if (!detailRow) return
+    const wasHidden = !!detailRow.hidden
+    detailRow.hidden = !wasHidden
+    row.classList.toggle('standing-active', wasHidden)
+    row.setAttribute('aria-expanded', String(wasHidden))
     if (wasHidden) expandedIds.add(kid)
     else expandedIds.delete(kid)
   }
 
-  tabell.addEventListener('click', e => {
-    const rad = (e.target as HTMLElement).closest<HTMLElement>('tr.stilling-spelar-rad')
-    if (rad) toggle(rad)
+  tableEl.addEventListener('click', e => {
+    const row = (e.target as HTMLElement).closest<HTMLElement>('tr.standing-player-row')
+    if (row) toggle(row)
   })
 
-  tabell.addEventListener('keydown', e => {
+  tableEl.addEventListener('keydown', e => {
     if (e.key !== 'Enter' && e.key !== ' ') return
-    const rad = (e.target as HTMLElement).closest<HTMLElement>('tr.stilling-spelar-rad')
-    if (!rad) return
+    const row = (e.target as HTMLElement).closest<HTMLElement>('tr.standing-player-row')
+    if (!row) return
     e.preventDefault()
-    toggle(rad)
+    toggle(row)
   })
 }
 
 export function createChangeHandler(
-  stevneid: number,
-  faner: string[],
+  tournamentId: number,
+  tabs: string[],
   container: HTMLElement,
-  lastOgVisFn: (container: HTMLElement, stevneid: number) => void,
+  fetchAndRenderFn: (container: HTMLElement, tournamentId: number) => void,
   stopFn: () => void,
 ): () => void {
-  return function onEndring() {
+  return function onChange() {
     const hash = location.hash
-    const erPaaSide = faner.some(f => hash === `#/stevne/${stevneid}/${f}`)
-    if (erPaaSide) {
-      lastOgVisFn(container, stevneid)
+    const isOnPage = tabs.some(f => hash === `#/stevne/${tournamentId}/${f}`)
+    if (isOnPage) {
+      fetchAndRenderFn(container, tournamentId)
     } else {
       stopFn()
     }
@@ -352,13 +352,13 @@ export function createChangeHandler(
 }
 
 export function renderInitialButtons(
-  stevne: Pick<Tables<'stevne'>, 'erfullfort' | 'avsluttendekastemetodeid'>,
+  tournament: Pick<Tables<'stevne'>, 'erfullfort' | 'avsluttendekastemetodeid'>,
   erSwiss: boolean,
 ): string {
-  const harAvsluttande = stevne.avsluttendekastemetodeid != null
+  const hasFinalPhase = tournament.avsluttendekastemetodeid != null
   return `
     ${erSwiss ? `<button id="neste-runde-btn" class="btn btn-sm btn-warning">Generer neste runde</button>` : ''}
-    ${!harAvsluttande ? `<button id="fullfør-turnering-btn" class="btn btn-sm btn-success"${stevne.erfullfort ? ' disabled' : ''}>Fullfør turnering</button>` : ''}
+    ${!hasFinalPhase ? `<button id="fullfør-turnering-btn" class="btn btn-sm btn-success"${tournament.erfullfort ? ' disabled' : ''}>Fullfør turnering</button>` : ''}
     ${import.meta.env.VITE_ENV === 'dev' ? `<button id="test-autofullfør-btn" class="btn btn-sm btn-outline-warning">TEST: Autofullfør</button>` : ''}
   `
 }
@@ -371,15 +371,15 @@ interface FinalPhaseState {
 }
 
 export function renderFinalButtons(
-  stevne: Pick<Tables<'stevne'>, 'erfullfort' | 'stevne_fase'>,
+  tournament: Pick<Tables<'stevne'>, 'erfullfort' | 'stevne_fase'>,
   state: FinalPhaseState,
 ): string {
   const { allMatchesConfirmed, hasFinalMatches, hasGroupAssignment, hasPreconfiguredFormat = false } = state
-  const fase = stevne.stevne_fase
+  const phase = tournament.stevne_fase
 
   let actionsHtml = ''
 
-  if (fase !== 'avsluttende') {
+  if (phase !== 'avsluttende') {
     if (allMatchesConfirmed) {
       actionsHtml = `
         <button id="start-avsl-btn" class="btn btn-sm btn-success">Start avsluttande fase</button>
@@ -391,7 +391,7 @@ export function renderFinalButtons(
 
   return `
     ${actionsHtml}
-    ${allMatchesConfirmed ? `<button id="fullfør-turnering-btn" class="btn btn-sm btn-success"${stevne.erfullfort ? ' disabled' : ''}>Fullfør turnering</button>` : ''}
+    ${allMatchesConfirmed ? `<button id="fullfør-turnering-btn" class="btn btn-sm btn-success"${tournament.erfullfort ? ' disabled' : ''}>Fullfør turnering</button>` : ''}
   `
 }
 
@@ -405,19 +405,19 @@ export interface PlayerMapRow {
 }
 
 export function buildInitialPlayerMap(
-  alleKamper: OrgMatch[],
+  allMatches: OrgMatch[],
   startNumberMap: Record<number, number>,
 ): { playerMap: Record<number, PlayerMapRow>; realThrowerIds: Set<number> } {
   const playerMap: Record<number, PlayerMapRow> = {}
   const realThrowerIds = new Set<number>()
 
-  for (const kamp of alleKamper) {
+  for (const match of allMatches) {
     // In a walkover only the bye side counts — exclude any phantom opposing side
     // (side-based: the bye pair's own partner shares the startnummer and stays in).
-    const [, byeSide2] = kamp.er_walkover ? getMatchSides(kamp.spelarar, startNumberMap) : [null, null]
-    for (const sp of kamp.spelarar ?? []) {
+    const [, byeSide2] = match.er_walkover ? getMatchSides(match.spelarar, startNumberMap) : [null, null]
+    for (const sp of match.spelarar ?? []) {
       if (!sp.kasterid || !sp.kaster) continue
-      if (kamp.er_walkover && byeSide2?.members.some(m => m.kasterid === sp.kasterid)) continue
+      if (match.er_walkover && byeSide2?.members.some(m => m.kasterid === sp.kasterid)) continue
       realThrowerIds.add(sp.kasterid)
       const playerRow = (playerMap[sp.kasterid] ??= {
         kasterid:      sp.kasterid,
@@ -427,7 +427,7 @@ export function buildInitialPlayerMap(
         score_poeng:   0,
         antall_kamper: 0,
       })
-      if (kamp.er_bekreftet) {
+      if (match.er_bekreftet) {
         playerRow.kamp_poeng    += sp.kamp_poeng
         playerRow.score_poeng   += sp.score_poeng
         playerRow.antall_kamper += 1
@@ -439,7 +439,7 @@ export function buildInitialPlayerMap(
 }
 
 export function buildFinalStandings(
-  innlKampar: OrgMatch[],
+  initialRoundMatches: OrgMatch[],
   resultat: Array<{
     kasterid: number
     startnummer: number | null
@@ -447,14 +447,14 @@ export function buildFinalStandings(
     runde_eliminert: number | null
     gruppe: { navn: string } | null
   }>,
-  navnMap: Record<number, string>,
+  nameMap: Record<number, string>,
   startNumberMap: Record<number, number>,
   positionMap: Record<number, number> = {},
 ): StandingRow[] {
-  const { playerMap } = buildInitialPlayerMap(innlKampar, startNumberMap)
-  const rader = resultat.map(r => ({
+  const { playerMap } = buildInitialPlayerMap(initialRoundMatches, startNumberMap)
+  const rows = resultat.map(r => ({
     kasterid: r.kasterid,
-    navn: navnMap[r.kasterid] ?? `Spelar ${r.kasterid}`,
+    navn: nameMap[r.kasterid] ?? `Spelar ${r.kasterid}`,
     startnummer: r.startnummer,
     plassering: r.plassering,
     runde_eliminert: r.runde_eliminert,
@@ -463,13 +463,13 @@ export function buildFinalStandings(
     gruppe: r.gruppe,
   }))
   // Par/Mix: one row per pair (no-op for Singel — every startnummer is unique)
-  return sortStandings(groupStandingsByPair(rader, positionMap), innlKampar)
+  return sortStandings(groupStandingsByPair(rows, positionMap), initialRoundMatches)
 }
 
-export function sortStandings(stilling: StandingRow[], kamper: MatchForSorting[]): StandingRow[] {
-  const confirmed = kamper.filter(k => k.er_bekreftet)
+export function sortStandings(standings: StandingRow[], matches: MatchForSorting[]): StandingRow[] {
+  const confirmed = matches.filter(k => k.er_bekreftet)
 
-  return [...stilling].sort((a, b) => {
+  return [...standings].sort((a, b) => {
     // Players with a final plassering (1–4) always rank above non-plassered players.
     if (a.plassering != null && b.plassering != null) return a.plassering - b.plassering
     if (a.plassering != null) return -1
@@ -482,8 +482,8 @@ export function sortStandings(stilling: StandingRow[], kamper: MatchForSorting[]
 
     // For eliminated: later round = better placement
     if (!aActive) {
-      const rundeDiff = (b.runde_eliminert ?? 0) - (a.runde_eliminert ?? 0)
-      if (rundeDiff !== 0) return rundeDiff
+      const roundDiff = (b.runde_eliminert ?? 0) - (a.runde_eliminert ?? 0)
+      if (roundDiff !== 0) return roundDiff
     }
 
     // plassering tiebreaker applies to both active and eliminated players

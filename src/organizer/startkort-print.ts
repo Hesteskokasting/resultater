@@ -22,9 +22,9 @@ interface PrintPlayerData {
 
 const CSS_URL = new URL('../utils/startcard/startcard.css', import.meta.url).href
 
-export function printStartkort(
+export function printStartCard(
   stevne: PrintTournament,
-  alleKamper: PrintMatch[],
+  allMatches: PrintMatch[],
   rundeMap: Map<number, PrintMatch[]>,
   startnrMap: Record<number, number>,
   stilling: PrintStandingsRow[],
@@ -35,13 +35,13 @@ export function printStartkort(
     .map(s => ({
       startnummer: s.startnummer ?? '',
       navn: s.navn ?? null,
-      klubb: hentKlubbNamn(s.kasterid, alleKamper),
+      klubb: hentKlubbNamn(s.kasterid, allMatches),
       roundInfos: buildRoundInfos(s.kasterid, sortedRounds, rundeMap, startnrMap),
     }))
     .sort((a, b) => (Number(a.startnummer) || Infinity) - (Number(b.startnummer) || Infinity))
 
   const printWindow = window.open('', '_blank')
-  if (!printWindow) { logError('printStartkort', 'Popup blocked — could not open print window'); return }
+  if (!printWindow) { logError('printStartCard', 'Popup blocked — could not open print window'); return }
 
   printWindow.document.title = `Startkort – ${stevne.navn}`
   const styleLink = printWindow.document.createElement('link')

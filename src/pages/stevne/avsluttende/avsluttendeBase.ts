@@ -239,16 +239,16 @@ export function createFinalPhaseRenderer(variant: FinalPhaseVariant) {
 
       if (hasGroupAssignment) {
         const standingHtml = renderStandingTable(standings, initialMatchesOrg, startNumberMap, {
-          tableId: 'stilling-avsl',
+          tableId: 'standing-final',
           hasGroups: true,
           hasElimination: true,
           positionMap,
           unitLabel: isTeam ? 'par' : 'spelarar',
         })
         container.innerHTML = renderMainContent(variant.renderMatchesHtml(ctx), standingHtml)
-        bindStandingDetails(container, 'stilling-avsl', standingExpandedIds)
+        bindStandingDetails(container, 'standing-final', standingExpandedIds)
         bindTabToggle(container)
-        if (activeTab === 'stilling') setActiveTab(container, 'stilling')
+        if (activeTab === 'standing') setActiveTab(container, 'standing')
         variant.bindMatchEvents(container, ctx)
         subscribeToChanges(container, stevneid)
       } else {

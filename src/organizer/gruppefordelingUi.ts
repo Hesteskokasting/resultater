@@ -19,14 +19,14 @@ interface GroupAssignmentOptions {
   initFormat?: { A?: RoundSetup | null; B?: RoundSetup | null } | null
 }
 
-export function renderGruppefordeling(
-  resultatEllerN: number | StandingRowForGroup[],
+export function renderGroupAssignment(
+  resultsOrN: number | StandingRowForGroup[],
   { showPlayerList = true, initNa = null, initFormat = null }: GroupAssignmentOptions = {},
 ): string {
-  const n = typeof resultatEllerN === 'number' ? resultatEllerN : resultatEllerN.length
-  const sortert: StandingRowWithCupRank[] = typeof resultatEllerN === 'number'
+  const n = typeof resultsOrN === 'number' ? resultsOrN : resultsOrN.length
+  const sorted: StandingRowWithCupRank[] = typeof resultsOrN === 'number'
     ? []
-    : resultatEllerN.map((r, i) => ({ ...r, cupPlassering: i + 1 }))
+    : resultsOrN.map((r, i) => ({ ...r, cupPlassering: i + 1 }))
 
   const splits = calcValidGroupSizes(n)
 
@@ -47,7 +47,7 @@ export function renderGruppefordeling(
       const idx = startIdx + i
       return `
       <div class="form-check">
-        <input class="form-check-input" type="radio" name="gruppe-split" id="split-${idx}" value="${s.nA}" ${checked ? 'checked' : ''}>
+        <input class="form-check-input" type="radio" name="group-split" id="split-${idx}" value="${s.nA}" ${checked ? 'checked' : ''}>
         <label class="form-check-label" for="split-${idx}">A:${s.nA} — B:${s.nB}</label>
       </div>`
     }).join('')
@@ -64,7 +64,7 @@ export function renderGruppefordeling(
     if (splitParts.length) splitParts.push('<hr class="my-2">')
     splitParts.push(`
       <div class="form-check">
-        <input class="form-check-input" type="radio" name="gruppe-split" id="split-ingen" value="${n}" ${initNa === n ? 'checked' : ''}>
+        <input class="form-check-input" type="radio" name="group-split" id="split-none" value="${n}" ${initNa === n ? 'checked' : ''}>
         <label class="form-check-label" for="split-ingen">Alle i A</label>
       </div>`)
   }
@@ -74,51 +74,51 @@ export function renderGruppefordeling(
   const initSetupB: RoundSetup | null = resolvedNb >= 2 ? (initFormat?.B ?? (validRound1Setups(resolvedNb)[0] ?? null)) : null
 
   const groupPreviewHtml = showPlayerList
-    ? `<div id="gruppe-preview">${renderGruppePreview(sortert, resolvedNa, initSetupA?.walkovers ?? 0, initSetupB?.walkovers ?? 0)}</div>`
+    ? `<div id="group-preview">${renderGroupPreview(sorted, resolvedNa, initSetupA?.walkovers ?? 0, initSetupB?.walkovers ?? 0)}</div>`
     : ''
 
   return `
-    <div id="gruppe-val-wrapper" data-n="${n}">
+    <div id="group-assignment-wrapper" data-n="${n}">
       <h5 class="mb-3">Velg gruppefordeling for cup</h5>
-      <div class="d-flex gruppe-layout gap-3 align-items-start mb-3">
+      <div class="d-flex group-layout gap-3 align-items-start mb-3">
         <div class="card">
           <div class="card-body">
             ${splitOptions}
           </div>
         </div>
-        <div id="gruppe-paneler" class="d-flex gap-3 flex-wrap">
-          <div id="gruppe-panel-a" class="avsl-gruppe-kol">
-            ${renderGruppePanelInnhald('Gruppe A', resolvedNa, 'runde1-format-a', initSetupA)}
+        <div id="group-panels" class="d-flex gap-3 flex-wrap">
+          <div id="group-panel-a" class="final-group-col">
+            ${renderGroupPanelContent('Gruppe A', resolvedNa, 'round1-format-a', initSetupA)}
           </div>
-          ${resolvedNb >= 2 ? `<div id="gruppe-panel-b" class="avsl-gruppe-kol">
-            ${renderGruppePanelInnhald('Gruppe B', resolvedNb, 'runde1-format-b', initSetupB)}
+          ${resolvedNb >= 2 ? `<div id="group-panel-b" class="final-group-col">
+            ${renderGroupPanelContent('Gruppe B', resolvedNb, 'round1-format-b', initSetupB)}
           </div>` : ''}
         </div>
       </div>
       ${groupPreviewHtml}
-      <div class="bekreft-banner">
-        <button id="bekreft-gruppe-btn" class="btn btn-success btn-lg w-100">Bekreft gruppefordeling</button>
+      <div class="confirm-banner">
+        <button id="confirm-group-btn" class="btn btn-success btn-lg w-100">Bekreft gruppefordeling</button>
       </div>
     </div>
   `
 }
 
-export function renderGruppePreview(
-  sortert: StandingRowWithCupRank[],
+export function renderGroupPreview(
+  sorted: StandingRowWithCupRank[],
   nA: number,
   woA = 0,
   woB = 0,
 ): string {
-  const groupA = sortert.slice(0, nA)
-  const groupB = sortert.slice(nA)
+  const groupA = sorted.slice(0, nA)
+  const groupB = sorted.slice(nA)
 
   function tableRows(spel: StandingRowWithCupRank[], woCount = 0): string {
     return spel.map((r, i) => {
-      const erWo = i < woCount
+      const isWalkover = i < woCount
       return `
       <tr>
         <td>${r.cupPlassering}</td>
-        <td>${escHtml(r.navn ?? '')}${erWo ? ' <span class="badge bg-info text-dark">Walkover</span>' : ''}</td>
+        <td>${escHtml(r.navn ?? '')}${isWalkover ? ' <span class="badge bg-info text-dark">Walkover</span>' : ''}</td>
         <td class="text-center">${r.kamp_poeng ?? 0}</td>
         <td class="text-center">${r.score_poeng ?? 0}</td>
       </tr>`
@@ -185,7 +185,7 @@ function renderRound1FormatSelector(
   return `<div class="d-flex flex-column align-items-start gap-1 mb-2">${radios}</div>`
 }
 
-export function renderStrukturListeHtml(n: number, setup: RoundSetup | null, suffix: string): string {
+export function renderStructureListHtml(n: number, setup: RoundSetup | null, suffix: string): string {
   const rounds = n >= 2 ? calcCupStructure(n, { runde1: setup }) : []
   const rows = rounds.map((r, i) => {
     const wo = r.walkovers ?? 0
@@ -206,7 +206,7 @@ export function renderStrukturListeHtml(n: number, setup: RoundSetup | null, suf
       <td>${perLane}</td>
     </tr>`
   }).join('')
-  return `<div id="struktur-${suffix}">
+  return `<div id="structure-${suffix}">
     <table class="table table-sm table-bordered mb-0">
       <thead><tr>
         <th>Runde</th><th>Deltakere</th><th>Baner</th><th>Per bane</th>
@@ -216,7 +216,7 @@ export function renderStrukturListeHtml(n: number, setup: RoundSetup | null, suf
   </div>`
 }
 
-export function renderGruppePanelInnhald(
+export function renderGroupPanelContent(
   label: string,
   n: number,
   radioName: string,
@@ -230,7 +230,7 @@ export function renderGruppePanelInnhald(
       <div class="card-body">
         <h6 class="fw-bold mb-2">${title}</h6>
         ${formatSelector}
-        ${renderStrukturListeHtml(n, setup, suffix)}
+        ${renderStructureListHtml(n, setup, suffix)}
       </div>
     </div>`
 }
