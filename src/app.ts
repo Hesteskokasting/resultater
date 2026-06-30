@@ -10,7 +10,7 @@ if (import.meta.env.VITE_ENV === 'dev') {
   if (versjonEl) versjonEl.textContent += ' [DEV]'
 }
 
-type MinRole = 'bruker' | 'admin' | 'klubbadmin'
+type RequiredRole = 'bruker' | 'admin' | 'klubbadmin'
 
 function lazy(load: () => Promise<{ render: PageRenderFn }>): PageRenderFn {
   return async (c, p) => {
@@ -21,18 +21,18 @@ function lazy(load: () => Promise<{ render: PageRenderFn }>): PageRenderFn {
 
 const container = document.getElementById('app')!
 
-function authGuard(minRole: MinRole, renderFn: PageRenderFn): PageRenderFn {
+function authGuard(requiredRole: RequiredRole, renderFn: PageRenderFn): PageRenderFn {
   return async (cont, params) => {
     const auth = await getUser()
     if (!auth) {
       location.hash = '#/logginn'
       return
     }
-    if (minRole === 'admin' && !(await isAdmin())) {
+    if (requiredRole === 'admin' && !(await isAdmin())) {
       cont.replaceChildren(createErrorBanner('Ingen tilgang.'))
       return
     }
-    if (minRole === 'klubbadmin' && !(await isAdmin()) && !(await isClubAdmin())) {
+    if (requiredRole === 'klubbadmin' && !(await isAdmin()) && !(await isClubAdmin())) {
       cont.replaceChildren(createErrorBanner('Ingen tilgang.'))
       return
     }
