@@ -20,28 +20,28 @@ import { createPlayerTable } from '@/components/PlayerTable'
 import type { PlayerTableHandle } from '@/components/PlayerTable'
 import { createLoadingState } from '@/components/LoadingState'
 import { createTabs } from '@/components/Tabs'
-import { createParTab } from '@/pages/stevne/parTab'
+import { createPairTab } from '@/pages/stevne/parTab'
 
-// ── Hjelpefunksjonar ──────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
-function sorterKastere(kastere: ThrowerListRow[]): ThrowerListRow[] {
-  return [...kastere].sort((a, b) => {
-    const klubbCmp = (a.klubb?.navn ?? '').localeCompare(b.klubb?.navn ?? '', 'nb')
-    if (klubbCmp !== 0) return klubbCmp
-    const etternavnCmp = (a.etternavn ?? '').localeCompare(b.etternavn ?? '', 'nb')
-    if (etternavnCmp !== 0) return etternavnCmp
+function sortThrowers(throwers: ThrowerListRow[]): ThrowerListRow[] {
+  return [...throwers].sort((a, b) => {
+    const clubCmp = (a.klubb?.navn ?? '').localeCompare(b.klubb?.navn ?? '', 'nb')
+    if (clubCmp !== 0) return clubCmp
+    const lastNameCmp = (a.etternavn ?? '').localeCompare(b.etternavn ?? '', 'nb')
+    if (lastNameCmp !== 0) return lastNameCmp
     return (a.fornavn ?? '').localeCompare(b.fornavn ?? '', 'nb')
   })
 }
 
-function filtrerTilgjengelege(
-  kastere: ThrowerListRow[],
+function filterAvailable(
+  throwers: ThrowerListRow[],
   search: string,
-  registrerte: Map<number, boolean>,
+  registeredMap: Map<number, boolean>,
 ): ThrowerListRow[] {
   const q = search.toLowerCase()
-  return kastere.filter(p => {
-    if (registrerte.has(p.id)) return false
+  return throwers.filter(p => {
+    if (registeredMap.has(p.id)) return false
     return !q || throwerName(p).toLowerCase().includes(q) || (p.klubb?.navn ?? '').toLowerCase().includes(q)
   })
 }
@@ -58,7 +58,7 @@ export async function render(
   setOnDisconnect(null)
 
   try {
-    const [stevneRes, kastereRes, pameldingRes, metodeRes] = await Promise.all([
+    const [stevneRes, throwersRes, registrationRes, methodRes] = await Promise.all([
       getTournamentHeader(id),
       getActiveThrowerList(),
       getRegistrationStatusForTournament(id),
@@ -69,30 +69,30 @@ export async function render(
       container.replaceChildren(createErrorBanner('Stevne ikkje funne.'))
       return
     }
-    if (kastereRes.error) {
+    if (throwersRes.error) {
       container.replaceChildren(createErrorBanner('Kunne ikkje laste kasterliste.'))
       return
     }
 
-    const fase       = stevneRes.data.stevne_fase ?? null
-    const kanEndrast = isAdmin && (fase === null || fase === 'ikke_startet')
-    const isStarted  = fase !== null && fase !== 'ikke_startet'
-    const erLag      = stevneRes.data.kategori?.erlagbasert ?? false
-    const isGloppen  = !metodeRes.error && metodeRes.navn.includes('gloppen')
-    const alleSpelarar = kastereRes.data
+    const phase       = stevneRes.data.stevne_fase ?? null
+    const canEdit     = isAdmin && (phase === null || phase === 'ikke_startet')
+    const isStarted   = phase !== null && phase !== 'ikke_startet'
+    const isTeam      = stevneRes.data.kategori?.erlagbasert ?? false
+    const isGloppen   = !methodRes.error && methodRes.navn.includes('gloppen')
+    const allThrowers = throwersRes.data
 
-    const pameldtMap = new Map<number, boolean>()
+    const registeredMap = new Map<number, boolean>()
     const pairedIds = new Set<number>()
-    for (const p of pameldingRes.data) {
+    for (const p of registrationRes.data) {
       if (p.kasterid != null) {
-        pameldtMap.set(p.kasterid, p.er_bekreftet ?? false)
+        registeredMap.set(p.kasterid, p.er_bekreftet ?? false)
         if (p.lag_id != null) pairedIds.add(p.kasterid)
       }
     }
 
-    // Par tab renders lazily on first activation; true again whenever
+    // Pair tab renders lazily on first activation; true again whenever
     // enrollment changes so the next activation re-fetches
-    let parTabDirty = true
+    let pairTabDirty = true
 
     const wrapper = document.createElement('div')
 
@@ -101,10 +101,10 @@ export async function render(
     let printerBanner: PrinterBanner | undefined
     if (isAdmin && isGloppen && isStarted) {
       printerBanner = createPrinterBanner({
-        stevneId: id,
-        stevneNavn: stevneRes.data.navn,
-        erLag,
-        onStateChange: () => renderPameldtListe(),
+        tournamentId: id,
+        tournamentName: stevneRes.data.navn,
+        isTeam,
+        onStateChange: () => renderRegisteredList(),
       })
       wrapper.appendChild(printerBanner.element)
     }
@@ -112,50 +112,50 @@ export async function render(
     const layout = document.createElement('div')
     layout.className = 'row g-3'
 
-    // ── Venstre kolonne: tilgjengelege spelarar (berre når stevnet ikkje er starta) ──
+    // ── Left column: available throwers (only when tournament not started) ──
 
     let searchInput: HTMLInputElement | null = null
-    let tilgjengeliTable: PlayerTableHandle | null = null
+    let availableTable: PlayerTableHandle | null = null
 
     if (!isStarted) {
       const leftWrapper = document.createElement('div')
-      leftWrapper.className = 'col-md-6 d-flex flex-column deltaker-kolonne'
+      leftWrapper.className = 'col-md-6 d-flex flex-column participant-column'
 
       searchInput = document.createElement('input')
       searchInput.type = 'text'
       searchInput.placeholder = 'Søk etter navn eller klubb…'
       searchInput.className = 'form-control mb-2'
 
-      tilgjengeliTable = createPlayerTable({
+      availableTable = createPlayerTable({
         formatTitle: () => 'Tilgjengelege spelarar',
         emptyText: 'Ingen spelarar funne',
         clubFallback: 'Ingen klubb',
-        onRowClick: kanEndrast
+        onRowClick: canEdit
           ? async s => {
               const { error } = await addRegistrationAdmin(id, s.id)
               if (error) { showToast('Feil ved innmelding: ' + errorMessage(error), 'error'); return }
-              pameldtMap.set(s.id, false)
-              parTabDirty = true
+              registeredMap.set(s.id, false)
+              pairTabDirty = true
               printerBanner?.invalidateMatchData()
-              renderPameldtListe()
-              renderTilgjengeliListe()
+              renderRegisteredList()
+              renderAvailableList()
             }
           : undefined,
       })
       leftWrapper.appendChild(searchInput)
-      leftWrapper.appendChild(tilgjengeliTable.element)
+      leftWrapper.appendChild(availableTable.element)
       layout.appendChild(leftWrapper)
     }
 
-    // ── Høgre kolonne: påmelde spelarar ──────────────────────────────────────
+    // ── Right column: registered throwers ────────────────────────────────────
 
     const rightWrapper = document.createElement('div')
-    rightWrapper.className = `${isStarted ? 'col-12' : 'col-md-6'} d-flex flex-column deltaker-kolonne`
+    rightWrapper.className = `${isStarted ? 'col-12' : 'col-md-6'} d-flex flex-column participant-column`
 
     if (!isStarted) {
       const searchSpacer = document.createElement('input')
       searchSpacer.type = 'text'
-      searchSpacer.className = 'form-control mb-2 deltaker-search-spacer'
+      searchSpacer.className = 'form-control mb-2 participant-search-spacer'
       searchSpacer.tabIndex = -1
       searchSpacer.disabled = true
       rightWrapper.appendChild(searchSpacer)
@@ -169,78 +169,78 @@ export async function render(
           if (!handler) return null
           const printBtn = document.createElement('button')
           printBtn.textContent = '🖨'
-          printBtn.className = 'btn btn-outline-secondary btn-sm p-0 lh-1 deltaker-print-btn'
+          printBtn.className = 'btn btn-outline-secondary btn-sm p-0 lh-1 participant-print-btn'
           printBtn.title = 'Skriv ut startkort'
           printBtn.addEventListener('click', e => { e.stopPropagation(); handler(sp) })
           return printBtn
         }
       : null
 
-    const pameldtTable = createPlayerTable({
+    const registeredTable = createPlayerTable({
       formatTitle: n => `Påmelde spelarar: ${n}`,
       emptyText: 'Ingen spelarar påmelde',
       renderLeading: sp => {
-        if (pameldtMap.get(sp.id) ?? false) {
-          const hake = document.createElement('span')
-          hake.className = 'text-success fw-bold'
-          hake.textContent = '✓'
-          return hake
+        if (registeredMap.get(sp.id) ?? false) {
+          const checkmark = document.createElement('span')
+          checkmark.className = 'text-success fw-bold'
+          checkmark.textContent = '✓'
+          return checkmark
         }
-        if (!kanEndrast) return null
-        const bekreftBtn = document.createElement('button')
-        bekreftBtn.textContent = '✓'
-        bekreftBtn.className = 'btn btn-outline-danger btn-sm rounded-circle p-0 lh-1 deltaker-bekreft-btn'
-        bekreftBtn.title = 'Bekreft spelar'
-        bekreftBtn.addEventListener('click', async e => {
+        if (!canEdit) return null
+        const confirmBtn = document.createElement('button')
+        confirmBtn.textContent = '✓'
+        confirmBtn.className = 'btn btn-outline-danger btn-sm rounded-circle p-0 lh-1 participant-confirm-btn'
+        confirmBtn.title = 'Bekreft spelar'
+        confirmBtn.addEventListener('click', async e => {
           e.stopPropagation()
           const { error } = await confirmRegistrationForThrower(id, sp.id)
           if (error) { showToast('Feil ved bekreftelse: ' + errorMessage(error), 'error'); return }
-          pameldtMap.set(sp.id, true)
-          renderPameldtListe()
+          registeredMap.set(sp.id, true)
+          renderRegisteredList()
         })
-        return bekreftBtn
+        return confirmBtn
       },
       renderTrailing: [
-        sp => kanEndrast
+        sp => canEdit
           ? createRemoveButton({
               title: 'Fjern spelar',
               onClick: async () => {
                 if (pairedIds.has(sp.id)) { showToast('Kan ikkje fjerne spelar som er i eit par. Slett paret fyrst.', 'error'); return }
                 const { error } = await removeRegistrationForThrower(id, sp.id)
                 if (error) { showToast('Feil ved fjerning: ' + errorMessage(error), 'error'); return }
-                pameldtMap.delete(sp.id)
-                parTabDirty = true
+                registeredMap.delete(sp.id)
+                pairTabDirty = true
                 printerBanner?.invalidateMatchData()
-                renderPameldtListe()
-                renderTilgjengeliListe()
+                renderRegisteredList()
+                renderAvailableList()
               },
             })
           : null,
         ...(renderPrintCell ? [renderPrintCell] : []),
       ],
     })
-    rightWrapper.appendChild(pameldtTable.element)
+    rightWrapper.appendChild(registeredTable.element)
 
-    // ── Renderfunksjonar ──────────────────────────────────────────────────────
+    // ── Render helpers ────────────────────────────────────────────────────────
 
-    function renderPameldtListe(): void {
-      pameldtTable.setPlayers(sorterKastere(alleSpelarar.filter(p => pameldtMap.has(p.id))))
+    function renderRegisteredList(): void {
+      registeredTable.setPlayers(sortThrowers(allThrowers.filter(p => registeredMap.has(p.id))))
     }
 
-    function renderTilgjengeliListe(): void {
-      if (!searchInput || !tilgjengeliTable) return
-      tilgjengeliTable.setPlayers(sorterKastere(filtrerTilgjengelege(alleSpelarar, searchInput.value, pameldtMap)))
+    function renderAvailableList(): void {
+      if (!searchInput || !availableTable) return
+      availableTable.setPlayers(sortThrowers(filterAvailable(allThrowers, searchInput.value, registeredMap)))
     }
 
     layout.appendChild(rightWrapper)
 
-    if (erLag) {
-      const parTab = createParTab({
-        stevneId: id,
-        isAdmin: kanEndrast,
-        erMix: (stevneRes.data.kategori?.navn ?? '').toLowerCase().includes('mix'),
-        getPameldtIds: () => new Set(pameldtMap.keys()),
-        alleSpelarar,
+    if (isTeam) {
+      const pairTab = createPairTab({
+        tournamentId: id,
+        isAdmin: canEdit,
+        isMix: (stevneRes.data.kategori?.navn ?? '').toLowerCase().includes('mix'),
+        getRegisteredIds: () => new Set(registeredMap.keys()),
+        allThrowers,
         onPairsChanged: ids => {
           pairedIds.clear()
           for (const kid of ids) pairedIds.add(kid)
@@ -248,13 +248,13 @@ export async function render(
       })
       wrapper.appendChild(createTabs({
         tabs: [
-          { id: 'spelarar', label: 'Spelarar', panel: layout },
-          { id: 'pairs', label: 'Administrer par', panel: parTab.element },
+          { id: 'players', label: 'Spelarar', panel: layout },
+          { id: 'pairs', label: 'Administrer par', panel: pairTab.element },
         ],
         onChange: tabId => {
-          if (tabId === 'pairs' && parTabDirty) {
-            parTabDirty = false
-            parTab.refresh()
+          if (tabId === 'pairs' && pairTabDirty) {
+            pairTabDirty = false
+            pairTab.refresh()
           }
         },
       }))
@@ -264,9 +264,9 @@ export async function render(
 
     container.replaceChildren(wrapper)
 
-    if (searchInput) searchInput.addEventListener('input', renderTilgjengeliListe)
-    renderPameldtListe()
-    renderTilgjengeliListe()
+    if (searchInput) searchInput.addEventListener('input', renderAvailableList)
+    renderRegisteredList()
+    renderAvailableList()
   } catch (err) {
     logError('stevne-deltakere.render', err)
     container.replaceChildren(createErrorBanner('Kunne ikkje laste deltakarliste.'))

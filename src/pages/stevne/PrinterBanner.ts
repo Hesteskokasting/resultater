@@ -19,99 +19,99 @@ import {
 } from '@/services/receiptPrinterService'
 import type { ThrowerListRow } from '@/services/kasterService'
 
-interface InnlData {
-  alleKamperPrint: PrintMatch[]
-  rundeMap: Map<number, PrintMatch[]>
-  startnrMap: Record<number, number>
-  sortertRundar: number[]
+interface InitialRoundData {
+  allMatchesPrint: PrintMatch[]
+  roundMap: Map<number, PrintMatch[]>
+  startNumberMap: Record<number, number>
+  sortedRounds: number[]
   pairs: RegistrationPair[]
 }
 
 interface Props {
-  stevneId: number
-  stevneNavn: string
-  erLag: boolean
+  tournamentId: number
+  tournamentName: string
+  isTeam: boolean
   onStateChange: () => void
 }
 
 export interface PrinterBanner {
   element: HTMLElement
   /** null = show empty print column (printer disconnected); handler = show print button */
-  getPrintHandler: () => ((spelar: ThrowerListRow) => void) | null
+  getPrintHandler: () => ((thrower: ThrowerListRow) => void) | null
   /** Call when enrollment changes so cached match data is discarded */
   invalidateMatchData: () => void
 }
 
 export function createPrinterBanner(props: Props): PrinterBanner {
-  const { stevneId, stevneNavn, erLag, onStateChange } = props
+  const { tournamentId, tournamentName, isTeam, onStateChange } = props
 
   const element = document.createElement('div')
   element.className = 'd-flex align-items-center gap-2 mb-2'
 
-  let innlData: InnlData | null = null
+  let initialRoundData: InitialRoundData | null = null
 
   function invalidateMatchData(): void {
-    innlData = null
+    initialRoundData = null
   }
 
-  async function ensureInnlData(): Promise<InnlData | null> {
-    if (innlData) return innlData
-    const [kamperRes, resultatRes, parRes] = await Promise.all([
-      getInitialRoundMatches(stevneId),
-      getResultsForInitialRound(stevneId),
-      erLag ? getPairsForTournament(stevneId) : Promise.resolve({ data: [] as RegistrationPair[], error: null }),
+  async function ensureInitialRoundData(): Promise<InitialRoundData | null> {
+    if (initialRoundData) return initialRoundData
+    const [matchesRes, resultRes, pairsRes] = await Promise.all([
+      getInitialRoundMatches(tournamentId),
+      getResultsForInitialRound(tournamentId),
+      isTeam ? getPairsForTournament(tournamentId) : Promise.resolve({ data: [] as RegistrationPair[], error: null }),
     ])
-    if (kamperRes.error) { showToast('Feil ved lasting av kampdata', 'error'); return null }
-    if (resultatRes.error) { showToast('Feil ved lasting av resultatdata', 'error'); return null }
+    if (matchesRes.error) { showToast('Feil ved lasting av kampdata', 'error'); return null }
+    if (resultRes.error) { showToast('Feil ved lasting av resultatdata', 'error'); return null }
 
-    const startnrMap: Record<number, number> = {}
-    for (const r of resultatRes.data) {
-      if (r.kasterid != null) startnrMap[r.kasterid] = r.startnummer ?? 0
+    const startNumberMap: Record<number, number> = {}
+    for (const r of resultRes.data) {
+      if (r.kasterid != null) startNumberMap[r.kasterid] = r.startnummer ?? 0
     }
 
-    const alleKamperPrint: PrintMatch[] = []
-    const rundeMap = new Map<number, PrintMatch[]>()
-    for (const kamp of kamperRes.data) {
+    const allMatchesPrint: PrintMatch[] = []
+    const roundMap = new Map<number, PrintMatch[]>()
+    for (const kamp of matchesRes.data) {
       const pm: PrintMatch = {
         spelarar: kamp.spelarar,
         er_walkover: kamp.er_walkover,
         bane_nummer: kamp.bane_nummer,
       }
-      alleKamperPrint.push(pm)
-      const list = rundeMap.get(kamp.runde_nummer) ?? []
+      allMatchesPrint.push(pm)
+      const list = roundMap.get(kamp.runde_nummer) ?? []
       list.push(pm)
-      rundeMap.set(kamp.runde_nummer, list)
+      roundMap.set(kamp.runde_nummer, list)
     }
 
-    innlData = {
-      alleKamperPrint,
-      rundeMap,
-      startnrMap,
-      sortertRundar: [...rundeMap.keys()].sort((a, b) => a - b),
-      pairs: parRes.data,
+    initialRoundData = {
+      allMatchesPrint,
+      roundMap,
+      startNumberMap,
+      sortedRounds: [...roundMap.keys()].sort((a, b) => a - b),
+      pairs: pairsRes.data,
     }
-    return innlData
+    return initialRoundData
   }
 
-  function getPrintHandler(): ((spelar: ThrowerListRow) => void) | null {
+  function getPrintHandler(): ((thrower: ThrowerListRow) => void) | null {
     if (!isPrinterConnected()) return null
-    return async (spelar: ThrowerListRow) => {
-      const data = await ensureInnlData()
+    return async (thrower: ThrowerListRow) => {
+      const data = await ensureInitialRoundData()
       if (!data) return
-      const pair = data.pairs.find(p => p.sideA.kasterid === spelar.id || p.sideB.kasterid === spelar.id)
-      let namn: string
+      const pair = data.pairs.find(p => p.sideA.kasterid === thrower.id || p.sideB.kasterid === thrower.id)
+      let name: string
       if (pair) {
-        const partnerMember = pair.sideA.kasterid === spelar.id ? pair.sideB : pair.sideA
+        const partnerMember = pair.sideA.kasterid === thrower.id ? pair.sideB : pair.sideA
         const pk = partnerMember.kaster
-        const partnerNavn = pk ? `${pk.fornavn ?? ''} ${pk.etternavn ?? ''}`.trim() : ''
-        namn = `${throwerName(spelar)} / ${partnerNavn}`
+        const partnerName = pk ? `${pk.fornavn ?? ''} ${pk.etternavn ?? ''}`.trim() : ''
+        name = `${throwerName(thrower)} / ${partnerName}`
       } else {
-        namn = throwerName(spelar)
+        name = throwerName(thrower)
       }
-      const startnummer = data.startnrMap[spelar.id] ?? ''
-      const roundInfos = buildRoundInfos(spelar.id, data.sortertRundar, data.rundeMap, data.startnrMap)
-      const klubb = hentKlubbNamn(spelar.id, data.alleKamperPrint)
-      const bytes = formatStartkortReceipt({ startnummer, namn, klubb, roundInfos, stevneNavn })
+      const startNumber = data.startNumberMap[thrower.id] ?? ''
+      const roundInfos = buildRoundInfos(thrower.id, data.sortedRounds, data.roundMap, data.startNumberMap)
+      const club = hentKlubbNamn(thrower.id, data.allMatchesPrint)
+      const bytes = formatStartkortReceipt({ startnummer: startNumber, namn: name, klubb: club, roundInfos, stevneNavn: tournamentName })
       try {
         await printBytes(bytes)
       } catch (err) {

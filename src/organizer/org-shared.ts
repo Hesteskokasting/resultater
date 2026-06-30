@@ -358,8 +358,8 @@ export function renderInitialButtons(
   const hasFinalPhase = tournament.avsluttendekastemetodeid != null
   return `
     ${erSwiss ? `<button id="neste-runde-btn" class="btn btn-sm btn-warning">Generer neste runde</button>` : ''}
-    ${!hasFinalPhase ? `<button id="fullfør-turnering-btn" class="btn btn-sm btn-success"${tournament.erfullfort ? ' disabled' : ''}>Fullfør turnering</button>` : ''}
-    ${import.meta.env.VITE_ENV === 'dev' ? `<button id="test-autofullfør-btn" class="btn btn-sm btn-outline-warning">TEST: Autofullfør</button>` : ''}
+    ${!hasFinalPhase ? `<button id="complete-tournament-btn" class="btn btn-sm btn-success"${tournament.erfullfort ? ' disabled' : ''}>Fullfør turnering</button>` : ''}
+    ${import.meta.env.VITE_ENV === 'dev' ? `<button id="test-auto-complete-btn" class="btn btn-sm btn-outline-warning">TEST: Autofullfør</button>` : ''}
   `
 }
 
@@ -382,16 +382,16 @@ export function renderFinalButtons(
   if (phase !== 'avsluttende') {
     if (allMatchesConfirmed) {
       actionsHtml = `
-        <button id="start-avsl-btn" class="btn btn-sm btn-success">Start avsluttande fase</button>
-        ${hasPreconfiguredFormat ? `<button id="endre-gruppeinndeling-btn" class="btn btn-sm btn-outline-secondary">Endre gruppefordeling</button>` : ''}`
+        <button id="start-final-btn" class="btn btn-sm btn-success">Start avsluttande fase</button>
+        ${hasPreconfiguredFormat ? `<button id="edit-group-assignment-btn" class="btn btn-sm btn-outline-secondary">Endre gruppefordeling</button>` : ''}`
     }
   } else if (hasGroupAssignment && !hasFinalMatches) {
-    actionsHtml = `<button id="endre-gruppeinndeling-btn" class="btn btn-sm btn-outline-secondary">Endre gruppeinndeling</button>`
+    actionsHtml = `<button id="edit-group-assignment-btn" class="btn btn-sm btn-outline-secondary">Endre gruppeinndeling</button>`
   }
 
   return `
     ${actionsHtml}
-    ${allMatchesConfirmed ? `<button id="fullfør-turnering-btn" class="btn btn-sm btn-success"${tournament.erfullfort ? ' disabled' : ''}>Fullfør turnering</button>` : ''}
+    ${allMatchesConfirmed ? `<button id="complete-tournament-btn" class="btn btn-sm btn-success"${tournament.erfullfort ? ' disabled' : ''}>Fullfør turnering</button>` : ''}
   `
 }
 

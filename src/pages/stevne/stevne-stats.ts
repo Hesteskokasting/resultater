@@ -45,15 +45,15 @@ export function sumOpponentScore(
     .reduce((sum, o) => sum + o.score_poeng, 0)
 }
 
-function aggregateStats(kamper: StatsMatchRow[], posisjonMap: Map<number, number>): PlayerStats[] {
+function aggregateStats(matches: StatsMatchRow[], posisjonMap: Map<number, number>): PlayerStats[] {
   const map = new Map<number, PlayerStats>()
 
-  for (const kamp of kamper) {
-    if (kamp.er_walkover) continue
-    const spelarar = kamp.spelarar
+  for (const match of matches) {
+    if (match.er_walkover) continue
+    const players = match.spelarar
 
-    for (const sp of spelarar) {
-      const opponentScore = sumOpponentScore(sp, spelarar, posisjonMap)
+    for (const sp of players) {
+      const opponentScore = sumOpponentScore(sp, players, posisjonMap)
 
       if (!map.has(sp.kasterid)) {
         map.set(sp.kasterid, {
@@ -105,10 +105,10 @@ function fmtDiff(n: number): string {
   return n > 0 ? `+${n}` : String(n)
 }
 
-function statsTabellHtml(spelarar: PlayerStats[]): string {
-  const rows = spelarar.map(s => `
+function statsTableHtml(players: PlayerStats[]): string {
+  const rows = players.map(s => `
     <tr>
-      <td class="stats-td-namn">${escHtml(s.navn)}</td>
+      <td class="stats-td-name">${escHtml(s.navn)}</td>
       <td class="stats-td-num">${s.matchCount}</td>
       <td class="stats-td-num">${s.shoesThrown}</td>
       <td class="stats-td-num stats-td-ringer">${s.ringers}</td>
@@ -123,11 +123,11 @@ function statsTabellHtml(spelarar: PlayerStats[]): string {
     </tr>`).join('')
 
   return `
-    <div class="stats-tabell-wrap">
-      <table class="stats-tabell">
+    <div class="stats-table-wrap">
+      <table class="stats-table">
         <thead>
           <tr>
-            <th class="stats-th-namn">Namn</th>
+            <th class="stats-th-name">Namn</th>
             <th class="stats-th-num">K</th>
             <th class="stats-th-num">Sko</th>
             <th class="stats-th-num stats-th-ringer">R</th>
@@ -208,19 +208,19 @@ export async function render(
       return
     }
 
-    const spelarar = aggregateStats(data, posisjonMap)
+    const players = aggregateStats(data, posisjonMap)
 
-    if (!spelarar.length) {
+    if (!players.length) {
       container.replaceChildren(createEmptyState('Ingen bekrefte kampar enno.'))
       return
     }
 
-    container.innerHTML = `<div class="stats-side">${statsTabellHtml(spelarar)}</div>`
+    container.innerHTML = `<div class="stats-side">${statsTableHtml(players)}</div>`
 
-    const wrap = container.querySelector<HTMLElement>('.stats-tabell-wrap')
-    const table = container.querySelector<HTMLTableElement>('.stats-tabell')
+    const wrap  = container.querySelector<HTMLElement>('.stats-table-wrap')
+    const table = container.querySelector<HTMLTableElement>('.stats-table')
     if (wrap) bindDragScroll(wrap)
-    if (table) bindStickyColumns(table, 1) // NAMN only
+    if (table) bindStickyColumns(table, 1) // name column only
   } catch (err) {
     logError('stevne-stats.render', err)
     container.replaceChildren(createErrorBanner('Kunne ikkje laste statistikk.'))

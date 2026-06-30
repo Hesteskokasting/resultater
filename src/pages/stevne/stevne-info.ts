@@ -32,7 +32,7 @@ export async function render(
   container.replaceChildren(createLoadingState())
 
   try {
-    const [stevneRes, antall, antallPar, auth] = await Promise.all([
+    const [stevneRes, count, pairCount, auth] = await Promise.all([
       getInfoTournament(id),
       getRegistrationCount(id),
       getPairCount(id),
@@ -44,18 +44,18 @@ export async function render(
       return
     }
 
-    const stevne   = stevneRes.data
-    const fase     = stevne.stevne_fase ?? null
-    const ikkjeStarta = fase === null || fase === 'ikke_startet'
-    const metodeNavn  = stevne.kastemetodeInnl?.navn ?? '—'
-    const erCascade   = metodeNavn.toLowerCase().includes('gloppen')
-    const erLag       = stevne.kategori?.erlagbasert ?? false
-    const kategoriNamn = (stevne.kategori?.navn ?? '').toLowerCase()
-    const erParEllerMix = kategoriNamn.includes('par') || kategoriNamn.includes('mix')
+    const stevne         = stevneRes.data
+    const phase          = stevne.stevne_fase ?? null
+    const isNotStarted   = phase === null || phase === 'ikke_startet'
+    const methodName     = stevne.kastemetodeInnl?.navn ?? '—'
+    const isCascade      = methodName.toLowerCase().includes('gloppen')
+    const isTeam         = stevne.kategori?.erlagbasert ?? false
+    const categoryName   = (stevne.kategori?.navn ?? '').toLowerCase()
+    const isTeamOrMix    = categoryName.includes('par') || categoryName.includes('mix')
 
-    // ── Start-stevne-knapp (admin, ikkje starta) ──────────────────────────────
+    // ── Start-tournament button (admin, not started) ──────────────────────────
 
-    if (bannerSlot && ikkjeStarta && isAdmin) {
+    if (bannerSlot && isNotStarted && isAdmin) {
       bannerSlot.innerHTML = `<button id="start-stevne-btn" class="btn btn-sm btn-success">Start stevne</button>`
       const startBtn = bannerSlot.querySelector<HTMLButtonElement>('#start-stevne-btn')!
       startBtn.addEventListener('click', async () => {
@@ -63,36 +63,36 @@ export async function render(
           showToast('Du må velje kastemetode for innleiande fase. Gå til Innstillingar for å endre.', 'error')
           return
         }
-        if (erLag ? antall < 4 : antall < 2) {
+        if (isTeam ? count < 4 : count < 2) {
           showToast(
-            erLag
+            isTeam
               ? 'Stevnet treng minst 2 par (4 spelarar) for å startast.'
               : 'Stevnet må ha minst 2 spelarar for å startast.',
             'error',
           )
           return
         }
-        if (erCascade && !stevne.antall_runder_innl) {
+        if (isCascade && !stevne.antall_runder_innl) {
           showToast('Du må setje antal rundar for innleiande fase. Gå til Innstillingar for å endre.', 'error')
           return
         }
-        const ubekrefta = await getUnconfirmedCount(id)
-        if (ubekrefta > 0) {
-          const ok = await confirmDialog({ title: 'Ubekrefta spelarar', message: `${ubekrefta} spelar(ar) er ikkje bekrefta. Vil du starte stevnet likevel?` })
+        const unconfirmedCount = await getUnconfirmedCount(id)
+        if (unconfirmedCount > 0) {
+          const ok = await confirmDialog({ title: 'Ubekrefta spelarar', message: `${unconfirmedCount} spelar(ar) er ikkje bekrefta. Vil du starte stevnet likevel?` })
           if (!ok) return
         }
         startBtn.disabled = true
         startBtn.textContent = 'Starter…'
         try {
-          await generateInitialRoundMatches(id, metodeNavn, stevne.antall_runder_innl ?? 1, erLag)
+          await generateInitialRoundMatches(id, methodName, stevne.antall_runder_innl ?? 1, isTeam)
         } catch (err) {
           showToast('Feil ved kampgenerering: ' + errorMessage(err), 'error')
           startBtn.disabled = false
           startBtn.textContent = 'Start stevne'
           return
         }
-        const { error: faseErr } = await updateTournamentPhase(id, 'innledende')
-        if (faseErr) {
+        const { error: phaseError } = await updateTournamentPhase(id, 'innledende')
+        if (phaseError) {
           showToast('Feil ved oppdatering av fase.', 'error')
           startBtn.disabled = false
           startBtn.textContent = 'Start stevne'
@@ -102,7 +102,7 @@ export async function render(
       })
     }
 
-    // ── Infokortet ────────────────────────────────────────────────────────────
+    // ── Info card ─────────────────────────────────────────────────────────────
 
     container.innerHTML = `
       <div class="card mb-3 org-max-480">
@@ -114,40 +114,40 @@ export async function render(
               <tr><th>Dato</th><td>${stevne.dato ? formatDateNumeric(stevne.dato) : '—'}</td></tr>
               <tr><th>Tid</th><td>${stevne.tid ? formatTime(stevne.tid) : '—'}</td></tr>
               <tr><th>Kategori</th><td>${escHtml(stevne.kategori?.navn ?? '—')}</td></tr>
-              <tr><th>Kastemetode innleiande</th><td>${escHtml(metodeNavn)}</td></tr>
+              <tr><th>Kastemetode innleiande</th><td>${escHtml(methodName)}</td></tr>
               <tr><th>Kastemetode avsluttande</th><td>${escHtml(stevne.kastemetodeAvsl?.navn ?? '—')}</td></tr>
               <tr><th>Antal rundar innleiande</th><td>${stevne.antall_runder_innl ?? '—'}</td></tr>
-              <tr><th>Påmelde ${erParEllerMix ? 'par' : 'spelarar'}</th><td>${erParEllerMix ? antallPar : antall}</td></tr>
+              <tr><th>Påmelde ${isTeamOrMix ? 'par' : 'spelarar'}</th><td>${isTeamOrMix ? pairCount : count}</td></tr>
             </tbody>
           </table>
         </div>
       </div>
       <div id="info-handling-knapper" class="mb-3 d-flex gap-2 flex-wrap"></div>`
 
-    // ── Handlingsknapper ──────────────────────────────────────────────────────
+    // ── Action buttons ────────────────────────────────────────────────────────
 
-    const knapper = container.querySelector<HTMLElement>('#info-handling-knapper')!
-    if (auth?.profil?.kobling_status === 'godkjent' && ikkjeStarta) {
+    const actionButtons = container.querySelector<HTMLElement>('#info-handling-knapper')!
+    if (auth?.profil?.kobling_status === 'godkjent' && isNotStarted) {
       const kasterid = auth.profil.kasterid
       if (kasterid === null) return
 
-      const minPamelding = (await getMyRegistrationForTournament(id, kasterid)).data
+      const myRegistration = (await getMyRegistrationForTournament(id, kasterid)).data
 
-      knapper.appendChild(createRegistrationButton({
+      actionButtons.appendChild(createRegistrationButton({
         tournamentId: id,
         throwerId: kasterid,
         userId: auth.user.id,
-        isRegistered: minPamelding !== null,
-        registrationId: minPamelding?.id,
+        isRegistered: myRegistration !== null,
+        registrationId: myRegistration?.id,
         onAction: () => { void render(container, { id, isAdmin }, bannerSlot) },
       }))
     }
 
-    const sjaaLenke = document.createElement('a')
-    sjaaLenke.href = `#/stevne/${id}/pamelding`
-    sjaaLenke.className = 'btn btn-sm btn-outline-secondary'
-    sjaaLenke.textContent = 'Sjå påmeldingar'
-    knapper.appendChild(sjaaLenke)
+    const viewLink = document.createElement('a')
+    viewLink.href = `#/stevne/${id}/pamelding`
+    viewLink.className = 'btn btn-sm btn-outline-secondary'
+    viewLink.textContent = 'Sjå påmeldingar'
+    actionButtons.appendChild(viewLink)
   } catch (err) {
     logError('stevne-info.render', err)
     container.replaceChildren(createErrorBanner('Kunne ikkje laste info.'))

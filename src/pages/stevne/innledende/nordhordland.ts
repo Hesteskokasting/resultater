@@ -3,41 +3,41 @@ import { showToast } from '@/components/Toast'
 import { logError } from '@/utils/logError'
 import { createInnledendeRenderer, type InnledendeVariant } from './innledendeBase'
 
-let visAlleRundar = false
+let showAllRounds = false
 
 const variant: InnledendeVariant = {
   channelName: (id) => `stevne-innl-nhm-${id}`,
   logPrefix: 'nordhordland',
-  erSwiss: true,
-  onReset: () => { visAlleRundar = false },
-  getBannerExtra: ({ rundeMap }) => {
-    if (rundeMap.size <= 1) return ''
-    const label = visAlleRundar ? 'Skjul tidlegare rundar' : `Vis alle rundar (${rundeMap.size})`
+  isSwiss: true,
+  onReset: () => { showAllRounds = false },
+  getBannerExtra: ({ roundMap }) => {
+    if (roundMap.size <= 1) return ''
+    const label = showAllRounds ? 'Skjul tidlegare rundar' : `Vis alle rundar (${roundMap.size})`
     return `<button class="btn btn-sm btn-outline-secondary" id="toggle-rundar-btn">${label}</button>`
   },
-  bindBannerExtra: (slot, { stevneid, erAlleKamperBekreftet, reload }) => {
+  bindBannerExtra: (slot, { stevneid, allMatchesConfirmed, reload }) => {
     slot.querySelector('#toggle-rundar-btn')?.addEventListener('click', () => {
-      visAlleRundar = !visAlleRundar
+      showAllRounds = !showAllRounds
       void reload()
     })
-    const nesteRundeBtn = slot.querySelector<HTMLButtonElement>('#neste-runde-btn')
-    nesteRundeBtn?.addEventListener('click', async () => {
-      if (!erAlleKamperBekreftet) { showToast('Nokre kampar er ikkje bekrefta!', 'error'); return }
-      if (nesteRundeBtn) { nesteRundeBtn.disabled = true; nesteRundeBtn.textContent = 'Genererer…' }
+    const nextRoundBtn = slot.querySelector<HTMLButtonElement>('#neste-runde-btn')
+    nextRoundBtn?.addEventListener('click', async () => {
+      if (!allMatchesConfirmed) { showToast('Nokre kampar er ikkje bekrefta!', 'error'); return }
+      if (nextRoundBtn) { nextRoundBtn.disabled = true; nextRoundBtn.textContent = 'Genererer…' }
       try {
         await generateNextSwissRound(stevneid)
         await reload()
       } catch (e) {
         logError('nordhordland:nesteRunde', e)
         showToast('Feil ved generering av neste runde', 'error')
-        if (nesteRundeBtn) { nesteRundeBtn.disabled = false; nesteRundeBtn.textContent = 'Generer neste runde' }
+        if (nextRoundBtn) { nextRoundBtn.disabled = false; nextRoundBtn.textContent = 'Generer neste runde' }
       }
     })
   },
-  filterRundar: (rundeMap) => {
-    if (rundeMap.size <= 1 || visAlleRundar) return rundeMap
-    const sisteRunde = Math.max(...rundeMap.keys())
-    return new Map([[sisteRunde, rundeMap.get(sisteRunde) ?? []]])
+  filterRounds: (roundMap) => {
+    if (roundMap.size <= 1 || showAllRounds) return roundMap
+    const lastRound = Math.max(...roundMap.keys())
+    return new Map([[lastRound, roundMap.get(lastRound) ?? []]])
   },
 }
 

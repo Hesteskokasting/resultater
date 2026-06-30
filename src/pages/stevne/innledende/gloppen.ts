@@ -4,12 +4,12 @@ import { createInnledendeRenderer, type InnledendeVariant } from './innledendeBa
 const variant: InnledendeVariant = {
   channelName: (id) => `stevne-innl-gloppen-${id}`,
   logPrefix: 'gloppen',
-  erSwiss: false,
+  isSwiss: false,
   getBannerExtra: ({ isAdmin }) =>
     isAdmin ? `<button class="btn btn-sm btn-outline-info" id="startkort-btn">Startkort</button>` : '',
-  bindBannerExtra: (slot, { stevne, alleKamper, rundeMap, startnrMap, stilling }) => {
+  bindBannerExtra: (slot, { stevne, allMatches, roundMap, startNumberMap, standing }) => {
     slot.querySelector('#startkort-btn')?.addEventListener('click', () => {
-      printStartCard(stevne as never, alleKamper as never, rundeMap as never, startnrMap, stilling)
+      printStartCard(stevne as never, allMatches as never, roundMap as never, startNumberMap, standing)
     })
   },
 }

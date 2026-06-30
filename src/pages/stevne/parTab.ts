@@ -10,24 +10,24 @@ import { createPlayerTable } from '@/components/PlayerTable'
 import { getPairsForTournament, createPair, deletePair } from '@/services/pameldingService'
 import type { RegistrationPair } from '@/services/pameldingService'
 
-// kjonn table ids — client-side UX guard only; the DB trigger is authoritative
-const KJONN_MANN = 1
-const KJONN_KVINNE = 2
+// gender table ids — client-side UX guard only; the DB trigger is authoritative
+const GENDER_MALE = 1
+const GENDER_FEMALE = 2
 
-export interface ParTabProps {
-  stevneId: number
+export interface PairTabProps {
+  tournamentId: number
   isAdmin: boolean
   /** Mix: side A (posisjon 1) must be a woman, side B (posisjon 2) a man */
-  erMix: boolean
-  getPameldtIds: () => Set<number>
-  alleSpelarar: ThrowerListRow[]
+  isMix: boolean
+  getRegisteredIds: () => Set<number>
+  allThrowers: ThrowerListRow[]
   /** Reports current pair membership after every (re)render, so the parent can keep its guards in sync */
   onPairsChanged?: (pairedIds: Set<number>) => void
 }
 
-export interface ParTabHandle {
+export interface PairTabHandle {
   element: HTMLElement
-  /** Re-fetches pairs and re-renders with fresh pameldtIds */
+  /** Re-fetches pairs and re-renders with fresh registeredIds */
   refresh: () => void
 }
 
@@ -36,29 +36,29 @@ export interface ParTabHandle {
  * Renders nothing until the first refresh() — the parent calls it on tab
  * activation, so pairs are only fetched when (and if) the tab is opened.
  */
-export function createParTab(props: ParTabProps): ParTabHandle {
+export function createPairTab(props: PairTabProps): PairTabHandle {
   const root = document.createElement('div')
   root.appendChild(createLoadingState())
   return {
     element: root,
-    refresh: () => { void renderPar(root, props) },
+    refresh: () => { void renderPairs(root, props) },
   }
 }
 
-async function renderPar(root: HTMLElement, props: ParTabProps): Promise<void> {
-  const { stevneId, isAdmin, erMix, getPameldtIds, alleSpelarar } = props
-  const pameldtIds = getPameldtIds()
+async function renderPairs(root: HTMLElement, props: PairTabProps): Promise<void> {
+  const { tournamentId, isAdmin, isMix, getRegisteredIds, allThrowers } = props
+  const registeredIds = getRegisteredIds()
 
-  const { data: pairs, error } = await getPairsForTournament(stevneId)
+  const { data: pairs, error } = await getPairsForTournament(tournamentId)
   if (error) {
-    logError('createParTab', error)
+    logError('createPairTab', error)
     root.replaceChildren(createErrorBanner('Kunne ikkje laste par.'))
     return
   }
 
   const pairedIds = new Set(pairs.flatMap(p => [p.sideA.kasterid, p.sideB.kasterid]))
   props.onPairsChanged?.(pairedIds)
-  const unpaired = alleSpelarar.filter(s => pameldtIds.has(s.id) && !pairedIds.has(s.id))
+  const unpaired = allThrowers.filter(s => registeredIds.has(s.id) && !pairedIds.has(s.id))
 
   let pendingA: ThrowerListRow | null = null
   let pendingB: ThrowerListRow | null = null
@@ -70,7 +70,7 @@ async function renderPar(root: HTMLElement, props: ParTabProps): Promise<void> {
   // ── Left: unpaired players ─────────────────────────────────────────────────
 
   const leftCol = document.createElement('div')
-  leftCol.className = 'col-md-6 d-flex flex-column deltaker-kolonne'
+  leftCol.className = 'col-md-6 d-flex flex-column participant-column'
 
   const searchInput = document.createElement('input')
   searchInput.type = 'text'
@@ -109,36 +109,36 @@ async function renderPar(root: HTMLElement, props: ParTabProps): Promise<void> {
   // ── Right: pair creator + existing pairs ───────────────────────────────────
 
   const rightCol = document.createElement('div')
-  rightCol.className = 'col-md-6 d-flex flex-column deltaker-kolonne'
+  rightCol.className = 'col-md-6 d-flex flex-column participant-column'
 
   const rightTitle = document.createElement('h6')
   rightTitle.className = 'fw-bold mb-1'
 
-  const parContainer = document.createElement('div')
-  parContainer.className = 'flex-grow-1'
+  const pairContainer = document.createElement('div')
+  pairContainer.className = 'flex-grow-1'
 
   function makeDropZone(side: 'A' | 'B'): HTMLElement {
     const zone = document.createElement('div')
-    zone.className = 'par-slot border rounded px-2 py-2 text-center'
-    const tomLabel = erMix ? (side === 'A' ? 'Side A (kvinne)' : 'Side B (mann)') : `Side ${side}`
-    zone.setAttribute('aria-label', tomLabel)
+    zone.className = 'pair-slot border rounded px-2 py-2 text-center'
+    const emptyLabel = isMix ? (side === 'A' ? 'Side A (kvinne)' : 'Side B (mann)') : `Side ${side}`
+    zone.setAttribute('aria-label', emptyLabel)
 
     function refresh(): void {
       const player = side === 'A' ? pendingA : pendingB
-      zone.textContent = player ? throwerName(player) : tomLabel
-      zone.classList.toggle('par-slot--filled', player != null)
+      zone.textContent = player ? throwerName(player) : emptyLabel
+      zone.classList.toggle('pair-slot--filled', player != null)
     }
 
     refresh()
 
     zone.addEventListener('dragover', e => {
       e.preventDefault()
-      zone.classList.add('par-slot--hover')
+      zone.classList.add('pair-slot--hover')
     })
-    zone.addEventListener('dragleave', () => zone.classList.remove('par-slot--hover'))
+    zone.addEventListener('dragleave', () => zone.classList.remove('pair-slot--hover'))
     zone.addEventListener('drop', e => {
       e.preventDefault()
-      zone.classList.remove('par-slot--hover')
+      zone.classList.remove('pair-slot--hover')
       const id = draggedId ?? Number(e.dataTransfer?.getData('text/plain'))
       if (!id) return
 
@@ -146,15 +146,15 @@ async function renderPar(root: HTMLElement, props: ParTabProps): Promise<void> {
       if (side === 'A' && pendingB?.id === id) return
       if (side === 'B' && pendingA?.id === id) return
 
-      const sp = alleSpelarar.find(s => s.id === id)
+      const sp = allThrowers.find(s => s.id === id)
       if (!sp) return
 
-      if (erMix) {
-        if (side === 'A' && sp.kjonnid !== KJONN_KVINNE) {
+      if (isMix) {
+        if (side === 'A' && sp.kjonnid !== GENDER_FEMALE) {
           showToast('Mix: Side A må vere ei kvinne', 'error')
           return
         }
-        if (side === 'B' && sp.kjonnid !== KJONN_MANN) {
+        if (side === 'B' && sp.kjonnid !== GENDER_MALE) {
           showToast('Mix: Side B må vere ein mann', 'error')
           return
         }
@@ -183,64 +183,64 @@ async function renderPar(root: HTMLElement, props: ParTabProps): Promise<void> {
   confirmBtn.addEventListener('click', async () => {
     if (!pendingA || !pendingB) return
     confirmBtn.disabled = true
-    const { error: err } = await createPair(stevneId, pendingA.id, pendingB.id)
+    const { error: err } = await createPair(tournamentId, pendingA.id, pendingB.id)
     confirmBtn.disabled = false
     if (err) {
       showToast('Feil ved oppretting av par: ' + errorMessage(err), 'error')
       return
     }
     root.replaceChildren(createLoadingState())
-    void renderPar(root, props)
+    void renderPairs(root, props)
   })
 
-  function renderParListe(parList: RegistrationPair[]): void {
-    rightTitle.textContent = `Antal par: ${parList.length}`
-    parContainer.innerHTML = ''
+  function renderPairList(pairList: RegistrationPair[]): void {
+    rightTitle.textContent = `Antal par: ${pairList.length}`
+    pairContainer.innerHTML = ''
 
-    if (!parList.length) {
+    if (!pairList.length) {
       const empty = document.createElement('p')
       empty.className = 'text-muted fst-italic py-2 mb-0'
       empty.textContent = 'Ingen par oppretta enno'
-      parContainer.appendChild(empty)
+      pairContainer.appendChild(empty)
       return
     }
 
-    for (const par of parList) {
+    for (const pair of pairList) {
       // Same grid as the slots row, so each cell lines up exactly under its
       // drop zone (cell A, cell B, then the 22px remove-button track)
       const row = document.createElement('div')
-      row.className = 'par-rad par-grid-row mb-1'
+      row.className = 'pair-row pair-grid-row mb-1'
 
       const sideACell = document.createElement('span')
-      sideACell.className = 'par-par-celle border rounded px-2 py-1'
-      sideACell.textContent = throwerName(par.sideA.kaster)
+      sideACell.className = 'pair-cell border rounded px-2 py-1'
+      sideACell.textContent = throwerName(pair.sideA.kaster)
 
       const sideBCell = document.createElement('span')
-      sideBCell.className = 'par-par-celle border rounded px-2 py-1'
-      sideBCell.textContent = throwerName(par.sideB.kaster)
+      sideBCell.className = 'pair-cell border rounded px-2 py-1'
+      sideBCell.textContent = throwerName(pair.sideB.kaster)
 
       row.appendChild(sideACell)
       row.appendChild(sideBCell)
 
       if (isAdmin) {
-        const fjernBtn = createRemoveButton({
+        const removeBtn = createRemoveButton({
           title: 'Slett par',
           onClick: async () => {
-            fjernBtn.disabled = true
-            const { error: err } = await deletePair(stevneId, par.lag_id)
+            removeBtn.disabled = true
+            const { error: err } = await deletePair(tournamentId, pair.lag_id)
             if (err) {
               showToast('Feil ved sletting: ' + errorMessage(err), 'error')
-              fjernBtn.disabled = false
+              removeBtn.disabled = false
               return
             }
             root.replaceChildren(createLoadingState())
-            void renderPar(root, props)
+            void renderPairs(root, props)
           },
         })
-        row.appendChild(fjernBtn)
+        row.appendChild(removeBtn)
       }
 
-      parContainer.appendChild(row)
+      pairContainer.appendChild(row)
     }
   }
 
@@ -250,24 +250,24 @@ async function renderPar(root: HTMLElement, props: ParTabProps): Promise<void> {
     // Same grid as the pair rows; the empty third (22px) track reserves space
     // for the remove button that pair rows have, keeping columns aligned.
     const slotsRow = document.createElement('div')
-    slotsRow.className = 'par-grid-row mb-2'
+    slotsRow.className = 'pair-grid-row mb-2'
     slotsRow.appendChild(makeDropZone('A'))
     slotsRow.appendChild(makeDropZone('B'))
     rightCol.appendChild(slotsRow)
     rightCol.appendChild(confirmBtn)
   } else {
     const spacer = document.createElement('div')
-    spacer.className = 'form-control mb-2 deltaker-search-spacer'
+    spacer.className = 'form-control mb-2 participant-search-spacer'
     rightCol.appendChild(spacer)
   }
 
   rightCol.appendChild(rightTitle)
-  rightCol.appendChild(parContainer)
+  rightCol.appendChild(pairContainer)
 
   layout.appendChild(leftCol)
   layout.appendChild(rightCol)
   root.replaceChildren(layout)
 
   renderUnpaired()
-  renderParListe(pairs)
+  renderPairList(pairs)
 }

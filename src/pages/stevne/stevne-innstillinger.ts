@@ -22,24 +22,24 @@ export async function render(
   container.replaceChildren(createLoadingState())
 
   try {
-    const [stevneRes, metodarRes] = await Promise.all([
+    const [tournamentRes, methodsRes] = await Promise.all([
       getTournamentSettings(id),
       getActiveThrowingMethods(),
     ])
 
-    if (stevneRes.error || !stevneRes.data) {
+    if (tournamentRes.error || !tournamentRes.data) {
       container.replaceChildren(createErrorBanner('Stevne ikkje funne.'))
       return
     }
 
-    const stevne      = stevneRes.data
-    const metodar     = metodarRes.data
-    const innlMetodar = metodar.filter(m => m.er_innledende)
-    const avslMetodar = metodar.filter(m => m.er_avsluttende)
+    const stevne         = tournamentRes.data
+    const methods        = methodsRes.data
+    const initialMethods = methods.filter(m => m.er_innledende)
+    const finalMethods   = methods.filter(m => m.er_avsluttende)
 
-    function optionsHtml(liste: ActiveThrowingMethodRow[], valdId: number | null): string {
-      return liste.map(m =>
-        `<option value="${m.id}"${m.id === valdId ? ' selected' : ''}>${escHtml(m.navn)}</option>`
+    function optionsHtml(list: ActiveThrowingMethodRow[], selectedId: number | null): string {
+      return list.map(m =>
+        `<option value="${m.id}"${m.id === selectedId ? ' selected' : ''}>${escHtml(m.navn)}</option>`
       ).join('')
     }
 
@@ -54,14 +54,14 @@ export async function render(
             <label class="form-label fw-semibold">Kastemetode innleiande</label>
             <select id="innl-metode" class="form-select">
               <option value="">— Ikkje vald —</option>
-              ${optionsHtml(innlMetodar, stevne.innledendekastemetodeid)}
+              ${optionsHtml(initialMethods, stevne.innledendekastemetodeid)}
             </select>
           </div>
           <div class="mb-3">
             <label class="form-label fw-semibold">Kastemetode avsluttande</label>
             <select id="avsl-metode" class="form-select">
               <option value="">— Ikkje vald —</option>
-              ${optionsHtml(avslMetodar, stevne.avsluttendekastemetodeid)}
+              ${optionsHtml(finalMethods, stevne.avsluttendekastemetodeid)}
             </select>
           </div>
           <div class="mb-4">
@@ -83,14 +83,14 @@ export async function render(
     container.querySelector<HTMLFormElement>('#innstillingar-form')!.addEventListener('submit', async e => {
       e.preventDefault()
 
-      const innlId = container.querySelector<HTMLSelectElement>('#innl-metode')!.value || null
-      const avslId = container.querySelector<HTMLSelectElement>('#avsl-metode')!.value || null
-      const rundar = container.querySelector<HTMLInputElement>('#antall-rundar')!.value
+      const initialId = container.querySelector<HTMLSelectElement>('#innl-metode')!.value || null
+      const finalId   = container.querySelector<HTMLSelectElement>('#avsl-metode')!.value || null
+      const rounds    = container.querySelector<HTMLInputElement>('#antall-rundar')!.value
 
       const { error } = await updateTournamentSettings(id, {
-        innledendekastemetodeid:  innlId ? Number(innlId) : null,
-        avsluttendekastemetodeid: avslId ? Number(avslId) : null,
-        antall_runder_innl:       rundar ? Number(rundar) : null,
+        innledendekastemetodeid:  initialId ? Number(initialId) : null,
+        avsluttendekastemetodeid: finalId ? Number(finalId) : null,
+        antall_runder_innl:       rounds ? Number(rounds) : null,
       })
 
       if (error) {

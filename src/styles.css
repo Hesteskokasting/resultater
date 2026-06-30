@@ -645,16 +645,16 @@ a.stevne-navn {
 
 .res-felles { margin: 12px 0; }
 
-/* Gruppe (mobil) */
+/* Group (mobile) */
 
-.res-gruppe {
+.res-group {
   border: 1px solid var(--kant);
   border-radius: 6px;
   margin-bottom: 16px;
   overflow: hidden;
 }
 
-.res-gruppe-tittel {
+.res-group-title {
   text-align: center;
   font-size: 0.95rem;
   font-weight: bold;
@@ -664,7 +664,9 @@ a.stevne-navn {
   border-bottom: 1px solid var(--kant);
 }
 
-.res-rad {
+.res-group-rows { overflow: hidden; }
+
+.res-row {
   display: flex;
   align-items: center;
   padding: 10px 14px;
@@ -673,7 +675,7 @@ a.stevne-navn {
   gap: 12px;
 }
 
-.res-rad:last-child { border-bottom: none; }
+.res-row:last-child { border-bottom: none; }
 
 .res-pl {
   font-size: 1rem;
@@ -724,18 +726,18 @@ a.stevne-navn {
   color: var(--tekst-2);
 }
 
-/* Desktop-resultattabell */
+/* Desktop result table */
 
-.res-tabell-seksjon { margin-bottom: 20px; }
+.res-table-section { margin-bottom: 20px; }
 
-.res-tabell,
+.res-table,
 .app-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.85rem;
 }
 
-.res-thead-gruppe td {
+.res-thead-group td {
   background: var(--primaer);
   color: var(--primaer-text);
   font-weight: bold;
@@ -743,7 +745,7 @@ a.stevne-navn {
   padding: 6px 10px;
 }
 
-.res-thead-kolonner th,
+.res-thead-columns th,
 .app-thead th {
   background: var(--primaer);
   color: var(--primaer-text);
@@ -753,14 +755,14 @@ a.stevne-navn {
   letter-spacing: 0.03em;
 }
 
-.res-tabell tbody tr {
+.res-table tbody tr {
   border-bottom: 1px solid var(--kant);
   background: var(--flate);
 }
 
-.res-tabell tbody tr:nth-child(even) { background: var(--flate-2); }
+.res-table tbody tr:nth-child(even) { background: var(--flate-2); }
 
-.res-tabell td {
+.res-table td {
   padding: 5px 10px;
   color: var(--tekst);
 }
@@ -867,7 +869,7 @@ a.stevne-navn {
   .match-table--desktop { display: none !important; }
 }
 @media (min-width: 700px) {
-  .kamp-liste-mobil { display: none !important; }
+  .match-list-mobile { display: none !important; }
 }
 
 /* Table shared styles (match table + stilling table) */
@@ -895,16 +897,16 @@ a.stevne-navn {
 }
 
 /* Status stripe on desktop table rows */
-.kamp-rad-desktop > td:first-child {
+.match-row-desktop > td:first-child {
   border-left: 3px solid var(--kamp-stripe-ikke);
   padding-left: 9px;
 }
-.kamp-rad-desktop[data-status="pagaar"] > td:first-child   { border-left-color: var(--kamp-stripe-pagaar); }
-.kamp-rad-desktop[data-status="ferdig"] > td:first-child   { border-left-color: var(--kamp-stripe-ferdig); }
-.kamp-rad-desktop > td:nth-child(2)    { text-align: right; }
+.match-row-desktop[data-status="in-progress"] > td:first-child { border-left-color: var(--kamp-stripe-pagaar); }
+.match-row-desktop[data-status="done"] > td:first-child        { border-left-color: var(--kamp-stripe-ferdig); }
+.match-row-desktop > td:nth-child(2) { text-align: right; }
 
 /* Status legend */
-.kamp-legend {
+.match-legend {
   display: flex;
   gap: 14px;
   font-size: 11px;
@@ -912,24 +914,24 @@ a.stevne-navn {
   margin-top: 8px;
   padding-left: 2px;
 }
-.kamp-legend__item {
+.match-legend__item {
   display: flex;
   align-items: center;
   gap: 5px;
 }
-.kamp-legend__stripe {
+.match-legend__stripe {
   width: 12px;
   height: 3px;
   border-radius: 1px;
   flex-shrink: 0;
 }
-.kamp-legend__stripe--ikke   { background: var(--kamp-stripe-ikke); }
-.kamp-legend__stripe--pagaar { background: var(--kamp-stripe-pagaar); }
-.kamp-legend__stripe--ferdig { background: var(--kamp-stripe-ferdig); }
+.match-legend__stripe--not-started { background: var(--kamp-stripe-ikke); }
+.match-legend__stripe--in-progress { background: var(--kamp-stripe-pagaar); }
+.match-legend__stripe--done        { background: var(--kamp-stripe-ferdig); }
 
 /* ── Desktop buttons ── */
 
-.kamp-knapp {
+.match-button {
   background: transparent;
   border: 0.5px solid var(--kant-2);
   padding: 4px 8px;
@@ -940,19 +942,19 @@ a.stevne-navn {
   white-space: nowrap;
   line-height: 1.4;
 }
-.kamp-knapp + .kamp-knapp { margin-left: 4px; }
-.kamp-knapp:disabled { opacity: 0.4; cursor: not-allowed; }
-.kamp-knapp-primaer {
+.match-button + .match-button { margin-left: 4px; }
+.match-button:disabled { opacity: 0.4; cursor: not-allowed; }
+.match-button-primary {
   background: var(--primaer);
   color: var(--primaer-text);
   border-color: transparent;
 }
-.kamp-knapp-suksess {
+.match-button-success {
   background: #4caf50;
   color: #fff;
   border-color: transparent;
 }
-.kamp-bekreftet-indikator {
+.match-confirmed-indicator {
   color: var(--kamp-stripe-ferdig);
   font-size: 0.75rem;
   font-weight: 500;
@@ -969,13 +971,13 @@ a.stevne-navn {
   62.5%   { box-shadow: inset 0 0 0 100vw rgba(76, 175, 80, 0.35); }
   100%    { box-shadow: inset 0 0 0 100vw rgba(76, 175, 80, 0); }
 }
-.kamp-ny-bekreftet td { animation: confirm-flash 8s linear forwards; }
-.kamp-rad-mobil.kamp-ny-bekreftet { animation: confirm-flash 8s linear forwards; }
+.match-newly-confirmed td { animation: confirm-flash 8s linear forwards; }
+.match-row-mobile.match-newly-confirmed { animation: confirm-flash 8s linear forwards; }
 .standing-new-confirmed { animation: standing-confirm-flash 8s linear forwards; }
 
-/* ── Kampliste - mobil ── */
+/* ── Match list — mobile ── */
 
-.kamp-liste-mobil {
+.match-list-mobile {
   list-style: none;
   padding: 0;
   margin: 0 auto;
@@ -984,14 +986,14 @@ a.stevne-navn {
   border-radius: 6px;
   overflow: hidden;
 }
-.kamp-rad-mobil {
+.match-row-mobile {
   position: relative;
   border-bottom: 0.5px solid var(--kant);
 }
-.kamp-rad-mobil:last-child { border-bottom: none; }
+.match-row-mobile:last-child { border-bottom: none; }
 
 /* Status stripe via pseudo-element */
-.kamp-rad-mobil::before {
+.match-row-mobile::before {
   content: '';
   position: absolute;
   left: 0;
@@ -1000,10 +1002,10 @@ a.stevne-navn {
   width: 3px;
   background: var(--kamp-stripe-ikke);
 }
-.kamp-rad-mobil[data-status="pagaar"]::before { background: var(--kamp-stripe-pagaar); }
-.kamp-rad-mobil[data-status="ferdig"]::before { background: var(--kamp-stripe-ferdig); }
+.match-row-mobile[data-status="in-progress"]::before { background: var(--kamp-stripe-pagaar); }
+.match-row-mobile[data-status="done"]::before        { background: var(--kamp-stripe-ferdig); }
 
-.kamp-rad-mobil__hoved {
+.match-row-mobile__header {
   display: grid;
   grid-template-columns: 24px 1fr auto auto;
   gap: 10px;
@@ -1013,42 +1015,42 @@ a.stevne-navn {
   user-select: none;
   -webkit-tap-highlight-color: transparent;
 }
-.kamp-mobil-pill-slot {
+.match-mobile-pill-slot {
   display: flex;
   align-items: center;
 }
-.kamp-rad-mobil--viewer .kamp-rad-mobil__hoved { cursor: pointer; }
+.match-row-mobile--viewer .match-row-mobile__header { cursor: pointer; }
 
-.kamp-mobil-bane {
+.match-mobile-lane {
   font-size: 13px;
   color: var(--tekst-3);
   text-align: center;
 }
-.kamp-mobil-namn {
+.match-mobile-name {
   min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 1px;
 }
-.kamp-mobil-namn__p1 {
+.match-mobile-name__p1 {
   font-size: 13px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--tekst);
 }
-.kamp-mobil-namn__p2 {
+.match-mobile-name__p2 {
   font-size: 13px;
   color: var(--tekst);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.kamp-mobil-vs {
+.match-mobile-vs {
   color: var(--tekst-3);
   font-size: 0.85em;
 }
-.kamp-mobil-resultat {
+.match-mobile-result {
   font-size: 19px;
   font-weight: 600;
   color: var(--tekst);
@@ -1057,16 +1059,16 @@ a.stevne-navn {
 }
 
 /* Admin expandable buttons */
-.kamp-mobil-knapper {
+.match-mobile-buttons {
   display: none;
   grid-template-columns: 1fr 1fr 1fr;
   gap: 6px;
   padding: 8px 12px 12px;
   border-top: 0.5px solid var(--kant);
 }
-.kamp-rad-mobil[data-expanded="true"] .kamp-mobil-knapper { display: grid; }
+.match-row-mobile[data-expanded="true"] .match-mobile-buttons { display: grid; }
 
-.kamp-knapp-mobil {
+.match-button-mobile {
   background: transparent;
   border: 0.5px solid var(--kant-2);
   padding: 8px 4px;
@@ -1077,12 +1079,12 @@ a.stevne-navn {
   text-align: center;
   white-space: nowrap;
 }
-.kamp-knapp-mobil:disabled { opacity: 0.4; cursor: not-allowed; }
-.kamp-knapp-bekreft-mobil {
+.match-button-mobile:disabled { opacity: 0.4; cursor: not-allowed; }
+.match-button-confirm-mobile {
   border-color: var(--kamp-stripe-ferdig);
   color: var(--kamp-stripe-ferdig);
 }
-.kamp-bekreftet-mobil {
+.match-confirmed-mobile {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1111,17 +1113,17 @@ th.standing-sp-th  { background: var(--standing-sp-th) !important; color: #fff !
   .standing-table-wrap table { font-size: 0.88em; }
 }
 
-/* ── Deltakere-side ── */
+/* ── Participants page ── */
 
-.deltaker-tabell-wrapper { height: 500px; overflow: auto; }
-.deltaker-tabell-wrapper .table { --bs-table-bg: transparent; }
-.deltaker-søk-spacer { visibility: hidden; pointer-events: none; }
-.deltaker-rad { cursor: pointer; }
-.deltaker-kolonne { max-width: 450px; }
+.participant-table-wrapper { height: 500px; overflow: auto; }
+.participant-table-wrapper .table { --bs-table-bg: transparent; }
+.participant-search-spacer { visibility: hidden; pointer-events: none; }
+.participant-row { cursor: pointer; }
+.participant-column { max-width: 450px; }
 
-/* Draggable rows (par tab) — inside a Bootstrap .table, so grab cursor is set on the row */
-.deltaker-tabell-wrapper tr[draggable="true"] { cursor: grab; user-select: none; }
-.deltaker-tabell-wrapper tr[draggable="true"]:active { cursor: grabbing; }
+/* Draggable rows (pair tab) — inside a Bootstrap .table, so grab cursor is set on the row */
+.participant-table-wrapper tr[draggable="true"] { cursor: grab; user-select: none; }
+.participant-table-wrapper tr[draggable="true"]:active { cursor: grabbing; }
 
 /* Remove button — colors set as real properties (not Bootstrap's --bs-btn-* vars)
    so the Bootstrap .table cell cascade can't bleed into it inside a <td> */
@@ -1139,17 +1141,17 @@ th.standing-sp-th  { background: var(--standing-sp-th) !important; color: #fff !
   color: #fff;
 }
 
-/* ── Par/Mix tab ── */
+/* ── Pair/Mix tab ── */
 
-.par-slot { min-height: 40px; background: var(--bg-2); cursor: default; transition: background 0.1s; }
-.par-par-celle { background: var(--bg-2); font-size: 0.9rem; min-width: 0; }
+.pair-slot { min-height: 40px; background: var(--bg-2); cursor: default; transition: background 0.1s; }
+.pair-cell { background: var(--bg-2); font-size: 0.9rem; min-width: 0; }
 /* Grid (not flex) so the two cells are content-independent equal tracks; the
    22px track lines up the remove button with the slot above it. Shared by the
    slots row and every pair row, guaranteeing column alignment between them. */
-.par-grid-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 22px; gap: 8px; align-items: center; }
-.par-slot--filled { background: var(--bg-3); font-weight: 500; }
-.par-slot--hover { background: var(--bs-primary-bg-subtle); border-color: var(--bs-primary) !important; }
-.par-rad { background: var(--bg-2); }
+.pair-grid-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 22px; gap: 8px; align-items: center; }
+.pair-slot--filled { background: var(--bg-3); font-weight: 500; }
+.pair-slot--hover { background: var(--bs-primary-bg-subtle); border-color: var(--bs-primary) !important; }
+.pair-row { background: var(--bg-2); }
 
 /* ── Norgescupen ── */
 
@@ -1471,18 +1473,18 @@ th.standing-sp-th  { background: var(--standing-sp-th) !important; color: #fff !
 .rek-dame-rad { background-color: rgba(220, 80, 100, 0.12) !important; }
 
 
-.score-redigerbar {
+.score-editable {
   cursor: pointer;
 }
 
-/* Innledende — merged SCORE column */
-th.innl-score-th {
+/* Initial round — merged SCORE column */
+th.initial-score-th {
   background: var(--standing-kp-th) !important;
   color: #fff !important;
   border-left: 2px solid var(--standing-kp-th) !important;
   border-right: 2px solid var(--standing-kp-th) !important;
 }
-.innl-score-cel {
+.initial-score-cell {
   font-weight: 600;
   font-size: 1.05em;
   background: var(--avsl-score-bg) !important;
@@ -1490,14 +1492,14 @@ th.innl-score-th {
   border-right: 2px solid var(--standing-kp-th) !important;
   vertical-align: middle !important;
 }
-.innl-score-inner {
+.initial-score-inner {
   display: inline-grid !important;
   grid-template-columns: 36px 20px 36px !important;
   align-items: center;
 }
-.innl-s1  { font-variant-numeric: tabular-nums; }
-.innl-sep { text-align: center; font-weight: 400; color: var(--tekst-2); }
-.innl-s2  { font-variant-numeric: tabular-nums; }
+.initial-s1  { font-variant-numeric: tabular-nums; }
+.initial-sep { text-align: center; font-weight: 400; color: var(--tekst-2); }
+.initial-s2  { font-variant-numeric: tabular-nums; }
 
 /* ── Nummerpad ── */
 
@@ -2109,15 +2111,15 @@ th.innl-score-th {
   flex-shrink: 0;
 }
 #group-assignment-wrapper .btn-check:checked + .btn::before { content: '✓ '; }
-.avsl-kamp-block  { width: calc(50% - 0.5rem); min-width: 220px; }
-.avsl-kamp-header {
+.final-match-block  { width: calc(50% - 0.5rem); min-width: 220px; }
+.final-match-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   height: 1.5rem;
   margin-bottom: 0.25rem;
 }
-.avsl-kamp-bane {
+.final-match-lane {
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--lenke);
@@ -2145,9 +2147,9 @@ th.innl-score-th {
   }
 }
 @media (max-width: 499px) {
-  .avsl-kamp-block { width: 100%; }
+  .final-match-block { width: 100%; }
 }
-.avsl-score-cel { font-variant-numeric: tabular-nums; background: var(--avsl-score-bg) !important; }
+.final-score-cell { font-variant-numeric: tabular-nums; background: var(--avsl-score-bg) !important; }
 .avsl-stilling-einzel { max-width: 500px; }
 .avsl-maks-600 { max-width: 600px; margin-inline: auto; }
 
@@ -2155,7 +2157,7 @@ th.innl-score-th {
   background: var(--match-eliminated-bg) !important;
 }
 
-.avsl-dialog-overlay {
+.final-dialog-overlay {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.5);
@@ -2165,13 +2167,13 @@ th.innl-score-th {
   justify-content: center;
 }
 
-.avsl-dialog-card {
+.final-dialog-card {
   min-width: 300px;
   max-width: 420px;
   width: 90vw;
 }
 
-.avsl-dialog-card-wide {
+.final-dialog-card-wide {
   min-width: 400px;
   max-width: min(1100px, 90vw);
   width: 90vw;
@@ -2181,7 +2183,7 @@ th.innl-score-th {
   overflow: hidden;
 }
 
-.avsl-dialog-drag-handle {
+.final-dialog-drag-handle {
   background: var(--flate);
   padding: 1rem 1.5rem;
   border-radius: 0.375rem 0.375rem 0 0;
@@ -2190,28 +2192,28 @@ th.innl-score-th {
   flex-shrink: 0;
 }
 
-.avsl-dialog-drag-handle:active {
+.final-dialog-drag-handle:active {
   cursor: grabbing;
 }
 
-.avsl-dialog-body {
+.final-dialog-body {
   overflow-y: auto;
   flex: 1 1 auto;
   padding: 1rem 1.5rem;
 }
 
-.avsl-dialog-footer {
+.final-dialog-footer {
   flex-shrink: 0;
   padding: 0.75rem 1.5rem;
   border-top: 1px solid var(--border);
 }
 
-.avsl-player-columns {
+.final-player-columns {
   columns: 3;
   column-gap: 1.5rem;
 }
 
-.avsl-player-columns > div {
+.final-player-columns > div {
   break-inside: avoid;
 }
 
@@ -2275,7 +2277,7 @@ th.innl-score-th {
 
 .stats-side { padding-bottom: 40px; }
 
-.stats-tabell-wrap {
+.stats-table-wrap {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   cursor: grab;
@@ -2283,14 +2285,14 @@ th.innl-score-th {
   max-width: 650px;
 }
 
-.stats-tabell-wrap.is-grabbing { cursor: grabbing; }
+.stats-table-wrap.is-grabbing { cursor: grabbing; }
 
 @media (min-width: 650px) {
-  .stats-tabell-wrap,
-  .stats-tabell-wrap.is-grabbing { cursor: default; }
+  .stats-table-wrap,
+  .stats-table-wrap.is-grabbing { cursor: default; }
 }
 
-.stats-tabell {
+.stats-table {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
@@ -2298,12 +2300,12 @@ th.innl-score-th {
   white-space: nowrap;
 }
 
-.stats-tabell thead tr {
+.stats-table thead tr {
   background: var(--primaer);
   color: var(--primaer-text);
 }
 
-.stats-tabell th {
+.stats-table th {
   padding: 6px 10px;
   font-weight: 600;
   font-size: 0.78rem;
@@ -2312,18 +2314,18 @@ th.innl-score-th {
   border-bottom: 2px solid var(--kant);
 }
 
-.stats-tabell tbody tr { background: var(--flate); }
+.stats-table tbody tr { background: var(--flate); }
 
-.stats-tabell tbody tr:nth-child(even) { background: var(--flate-2); }
+.stats-table tbody tr:nth-child(even) { background: var(--flate-2); }
 
-.stats-tabell td {
+.stats-table td {
   padding: 5px 10px;
   color: var(--tekst);
   border-bottom: 1px solid var(--kant);
 }
 
-.stats-th-namn,
-.stats-td-namn { text-align: left; min-width: 120px; }
+.stats-th-name,
+.stats-td-name { text-align: left; min-width: 120px; }
 
 .stats-th-num,
 .stats-td-num { text-align: right; }
@@ -2340,13 +2342,13 @@ th.innl-score-th {
   z-index: 1;
 }
 
-.stats-tabell thead .stats-col-sticky {
+.stats-table thead .stats-col-sticky {
   background: var(--primaer);
   z-index: 2;
 }
 
-.stats-tabell tbody tr:nth-child(odd) .stats-col-sticky  { background: var(--flate); }
-.stats-tabell tbody tr:nth-child(even) .stats-col-sticky { background: var(--flate-2); }
+.stats-table tbody tr:nth-child(odd) .stats-col-sticky  { background: var(--flate); }
+.stats-table tbody tr:nth-child(even) .stats-col-sticky { background: var(--flate-2); }
 
 .stats-col-sticky-last {
   border-right: 2px solid var(--kant-2);

@@ -8,30 +8,30 @@ import { logError } from '@/utils/logError'
 import type { RoundSetup, Round1FormatTyped } from '@/types'
 import type { StandingRow } from '@/organizer/org-shared'
 
-export function opnGenererRundeDialog(
+export function openGenerateRoundDialog(
   stevneid: number,
-  gruppeNavn: string,
-  stillingForGruppe: StandingRow[],
-  runde: number,
+  groupName: string,
+  groupStanding: StandingRow[],
+  round: number,
   runde1Format: Round1FormatTyped | null,
   reload: () => Promise<void>,
 ): void {
-  const aktive = stillingForGruppe.filter(r => r.runde_eliminert == null)
-  const totalCount = stillingForGruppe.length
-  const n = aktive.length
+  const active = groupStanding.filter(r => r.runde_eliminert == null)
+  const totalCount = groupStanding.length
+  const n = active.length
 
-  const runde1Oppsett: RoundSetup | null = runde === 1 ? (runde1Format?.[gruppeNavn as 'A' | 'B'] ?? null) : null
+  const round1Setup: RoundSetup | null = round === 1 ? (runde1Format?.[groupName as 'A' | 'B'] ?? null) : null
 
-  const wo = runde1Oppsett?.walkovers ?? 0
-  const c3 = runde1Oppsett ? runde1Oppsett.c3 : (n % 3 === 0 ? n / 3 : 0)
-  const c2 = runde1Oppsett ? runde1Oppsett.c2 : (n % 3 === 0 ? 0 : n / 2)
+  const wo = round1Setup?.walkovers ?? 0
+  const c3 = round1Setup ? round1Setup.c3 : (n % 3 === 0 ? n / 3 : 0)
+  const c2 = round1Setup ? round1Setup.c2 : (n % 3 === 0 ? 0 : n / 2)
   const totalBaner = c3 + c2
-  const pool1 = aktive.slice(wo, wo + totalBaner)
-  const pool2 = aktive.slice(wo + totalBaner, wo + 2 * totalBaner)
-  const pool3 = aktive.slice(wo + 2 * totalBaner)
+  const pool1 = active.slice(wo, wo + totalBaner)
+  const pool2 = active.slice(wo + totalBaner, wo + 2 * totalBaner)
+  const pool3 = active.slice(wo + 2 * totalBaner)
 
   const modal = document.createElement('div')
-  modal.className = 'avsl-dialog-overlay'
+  modal.className = 'final-dialog-overlay'
   document.body.appendChild(modal)
 
   let dragPos: { left: number; top: number } | null = null
@@ -41,7 +41,7 @@ export function opnGenererRundeDialog(
 
   function onMouseMove(e: MouseEvent): void {
     if (!isDragging) return
-    const card = modal.querySelector<HTMLElement>('.avsl-dialog-card-wide')
+    const card = modal.querySelector<HTMLElement>('.final-dialog-card-wide')
     if (!card) return
     const left = e.clientX - dragOffsetX
     const top = e.clientY - dragOffsetY
@@ -71,8 +71,8 @@ export function opnGenererRundeDialog(
     </div>`
   }
 
-  function renderModal(medSeeding: boolean | null): void {
-    const walkoverPlayers = aktive.slice(0, wo)
+  function renderModal(withSeeding: boolean | null): void {
+    const walkoverPlayers = active.slice(0, wo)
 
     const walkoversHtml = walkoverPlayers.length > 0
       ? `<div class="mb-3">
@@ -81,13 +81,13 @@ export function opnGenererRundeDialog(
         </div>`
       : ''
 
-    const seedingInfoHtml = medSeeding === true && totalBaner > 0
+    const seedingInfoHtml = withSeeding === true && totalBaner > 0
       ? `<div class="alert alert-info small mb-3 py-2">
           Dette er seedinggrupper, ikkje kampar. Spelarar i same gruppe kan ikkje trekkast mot kvarandre. Kampane blir oppretta når du klikkar «Bekreft og opprett kampar».
         </div>`
       : ''
 
-    const poolsSection = medSeeding === true && totalBaner > 0
+    const poolsSection = withSeeding === true && totalBaner > 0
       ? `<div class="d-flex gap-3 flex-wrap mb-3">
           ${[
             { label: 'Seeding 1', pool: pool1 },
@@ -101,8 +101,8 @@ export function opnGenererRundeDialog(
               </div>
             </div>`).join('')}
         </div>`
-      : `<div class="avsl-player-columns mb-3">
-          ${aktive.slice(wo).map((r, i) => `
+      : `<div class="final-player-columns mb-3">
+          ${active.slice(wo).map((r, i) => `
             <div class="small d-flex justify-content-between gap-2">
               <span>${wo + i + 1}. ${escHtml(r.navn ?? '')}</span>
               <span class="text-muted text-nowrap">${r.kamp_poeng ?? 0}p (${r.score_poeng ?? 0})</span>
@@ -110,21 +110,21 @@ export function opnGenererRundeDialog(
         </div>`
 
     modal.innerHTML = `
-      <div class="card avsl-dialog-card-wide">
-        <div class="avsl-dialog-drag-handle">
+      <div class="card final-dialog-card-wide">
+        <div class="final-dialog-drag-handle">
           <p class="text-muted small text-uppercase fw-semibold mb-1">Trekning</p>
-          <h5 class="mb-1">Gruppe ${escHtml(gruppeNavn)} — Runde ${runde}</h5>
+          <h5 class="mb-1">Gruppe ${escHtml(groupName)} — Runde ${round}</h5>
           <p class="text-muted small mb-0">${n} av ${totalCount} spelarar igjen</p>
         </div>
-        <div class="avsl-dialog-body">
+        <div class="final-dialog-body">
           <div class="mb-3">
             <span class="form-label fw-semibold d-block mb-1">Bruk seeding</span>
             <div class="form-check form-check-inline">
-              <input class="form-check-input" type="radio" name="seeding-dlg" id="seeding-ja" value="ja" ${medSeeding === true ? 'checked' : ''}>
+              <input class="form-check-input" type="radio" name="seeding-dlg" id="seeding-ja" value="ja" ${withSeeding === true ? 'checked' : ''}>
               <label class="form-check-label" for="seeding-ja">Ja</label>
             </div>
             <div class="form-check form-check-inline">
-              <input class="form-check-input" type="radio" name="seeding-dlg" id="seeding-nei" value="nei" ${medSeeding === false ? 'checked' : ''}>
+              <input class="form-check-input" type="radio" name="seeding-dlg" id="seeding-nei" value="nei" ${withSeeding === false ? 'checked' : ''}>
               <label class="form-check-label" for="seeding-nei">Nei</label>
             </div>
           </div>
@@ -132,15 +132,15 @@ export function opnGenererRundeDialog(
           ${walkoversHtml}
           ${poolsSection}
         </div>
-        <div class="avsl-dialog-footer">
+        <div class="final-dialog-footer">
           <div class="d-flex gap-2">
-            <button id="bekreft-gen-btn" class="btn btn-primary" ${medSeeding === null ? 'disabled' : ''}>Bekreft og opprett kampar</button>
+            <button id="bekreft-gen-btn" class="btn btn-primary" ${withSeeding === null ? 'disabled' : ''}>Bekreft og opprett kampar</button>
             <button id="avbryt-gen-btn" class="btn btn-secondary">Avbryt</button>
           </div>
         </div>
       </div>`
 
-    const card = modal.querySelector<HTMLElement>('.avsl-dialog-card-wide')!
+    const card = modal.querySelector<HTMLElement>('.final-dialog-card-wide')!
 
     if (dragPos) {
       card.style.position = 'fixed'
@@ -150,7 +150,7 @@ export function opnGenererRundeDialog(
       card.style.zIndex = '10000'
     }
 
-    card.querySelector<HTMLElement>('.avsl-dialog-drag-handle')!.addEventListener('mousedown', (e: MouseEvent) => {
+    card.querySelector<HTMLElement>('.final-dialog-drag-handle')!.addEventListener('mousedown', (e: MouseEvent) => {
       const rect = card.getBoundingClientRect()
       card.style.position = 'fixed'
       card.style.left = `${rect.left}px`
@@ -171,25 +171,25 @@ export function opnGenererRundeDialog(
       modal.remove()
     })
     modal.querySelector('#bekreft-gen-btn')!.addEventListener('click', async () => {
-      if (medSeeding === null) return
+      if (withSeeding === null) return
       const btn = modal.querySelector<HTMLButtonElement>('#bekreft-gen-btn')!
       btn.disabled = true
       btn.textContent = 'Lagrer…'
       try {
-        const spelarar = aktive.map((r, i) => ({ kasterid: r.kasterid, plassering: i + 1 }))
-        if (runde === 1) {
-          const runde1FormatRecord: Record<string, RoundSetup | undefined> = {
+        const players = active.map((r, i) => ({ kasterid: r.kasterid, plassering: i + 1 }))
+        if (round === 1) {
+          const round1FormatRecord: Record<string, RoundSetup | undefined> = {
             A: runde1Format?.A ?? undefined,
             B: runde1Format?.B ?? undefined,
           }
           await generateCupRound1(
             stevneid,
-            [{ gruppeNavn, spelarar, runde1Oppsett }],
-            medSeeding,
-            runde1Format ? runde1FormatRecord : null,
+            [{ gruppeNavn: groupName, spelarar: players, runde1Oppsett: round1Setup }],
+            withSeeding,
+            runde1Format ? round1FormatRecord : null,
           )
         } else {
-          await generateNextCupRoundForGroup(stevneid, gruppeNavn, medSeeding, spelarar)
+          await generateNextCupRoundForGroup(stevneid, groupName, withSeeding, players)
         }
         removeListeners()
         modal.remove()

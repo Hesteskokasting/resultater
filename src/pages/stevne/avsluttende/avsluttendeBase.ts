@@ -255,7 +255,7 @@ export function createFinalPhaseRenderer(variant: FinalPhaseVariant) {
         container.innerHTML = variant.renderSetupHtml(ctx)
       }
 
-      bannerSlot?.querySelector('#fullfør-turnering-btn')?.addEventListener('click', async () => {
+      bannerSlot?.querySelector('#complete-tournament-btn')?.addEventListener('click', async () => {
         if (!await confirmDialog({ title: 'Fullfør turnering', message: 'Vil du fullføre turneringa? Dette kan ikkje angrast.', danger: true })) return
         // Sort by gruppe so A gets 1..nA, B gets nA+1..nA+nB.
         // sortStandings mixes groups together; filtering preserves correct within-group order.
