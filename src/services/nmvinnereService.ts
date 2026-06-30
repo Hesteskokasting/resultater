@@ -2,18 +2,18 @@ import type { QueryData } from '@supabase/supabase-js'
 import { supabase } from '@/supabase'
 import { logError } from '@/utils/logError'
 
-// ── Typar ─────────────────────────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface NMCategoryConfig {
   id: number
-  navn: string
-  kjonnFilter: 'historisk' | 'alltid' | false
-  fraaAr: number
-  aapentFraAr?: number
-  merknad?: string
+  name: string
+  genderFilter: 'historical' | 'always' | false
+  fromYear: number
+  openFromYear?: number
+  note?: string
 }
 
-export type NMGender = 'open' | 'alle' | 'herrer' | 'damer'
+export type NMGender = 'open' | 'all' | 'men' | 'women'
 
 const _nmResultatQuery = supabase
   .from('resultat')
@@ -24,45 +24,45 @@ export type NMResultRow = QueryData<typeof _nmResultatQuery>[number]
 // ── Caches ────────────────────────────────────────────────────────────────────
 
 const _dataCache = new Map<string, { data: NMResultRow[]; error: unknown }>()
-let _kjonnCache: { id: number; navn: string }[] | null = null
+let _genderCache: { id: number; navn: string }[] | null = null
 
 // ── Private helpers ───────────────────────────────────────────────────────────
 
-const ALLE_GYLDIGE_KLASSAR = [1, 3, 4, 13, 16, 21, 23, 24, 27, 29, 32]
+const ALL_VALID_CLASSES = [1, 3, 4, 13, 16, 21, 23, 24, 27, 29, 32]
 
-async function hentKjonnIder(): Promise<{ id: number; navn: string }[]> {
-  if (_kjonnCache) return _kjonnCache
+async function getGenderIds(): Promise<{ id: number; navn: string }[]> {
+  if (_genderCache) return _genderCache
   const { data, error } = await supabase.from('kjonn').select('id, navn')
-  if (error) logError('hentKjonnIder', error)
-  _kjonnCache = data ?? []
-  return _kjonnCache
+  if (error) logError('getGenderIds', error)
+  _genderCache = data ?? []
+  return _genderCache
 }
 
-function finnKjonnId(kjonnListe: { id: number; navn: string }[], kjonn: NMGender): number | undefined {
-  const needle = kjonn === 'damer' ? 'dame' : 'herre'
-  return kjonnListe.find(k => k.navn.toLowerCase().includes(needle))?.id
+function findGenderId(genderList: { id: number; navn: string }[], gender: NMGender): number | undefined {
+  const needle = gender === 'women' ? 'dame' : 'herre'
+  return genderList.find(k => k.navn.toLowerCase().includes(needle))?.id
 }
 
-// ── Eksportert funksjon ───────────────────────────────────────────────────────
+// ── Exported function ─────────────────────────────────────────────────────────
 
 export async function getNMData(
-  kategori: NMCategoryConfig,
-  kjonn: NMGender,
+  category: NMCategoryConfig,
+  gender: NMGender,
 ): Promise<{ data: NMResultRow[]; error: unknown }> {
-  const cacheKey = `${kategori.id}-${kjonn}`
+  const cacheKey = `${category.id}-${gender}`
   if (_dataCache.has(cacheKey)) return _dataCache.get(cacheKey)!
 
   let stevneQuery = supabase
     .from('stevne')
     .select('id, dato')
     .eq('ernm', true)
-    .eq('kategoriid', kategori.id)
+    .eq('kategoriid', category.id)
 
-  if (kategori.kjonnFilter === 'historisk' && kategori.aapentFraAr != null) {
-    if (kjonn === 'open') {
-      stevneQuery = stevneQuery.gte('dato', `${kategori.aapentFraAr}-01-01`)
+  if (category.genderFilter === 'historical' && category.openFromYear != null) {
+    if (gender === 'open') {
+      stevneQuery = stevneQuery.gte('dato', `${category.openFromYear}-01-01`)
     } else {
-      stevneQuery = stevneQuery.lt('dato', `${kategori.aapentFraAr}-01-01`)
+      stevneQuery = stevneQuery.lt('dato', `${category.openFromYear}-01-01`)
     }
   }
 
@@ -79,10 +79,10 @@ export async function getNMData(
     return empty
   }
 
-  const filtrertPaaKjonn = (kategori.kjonnFilter === 'historisk' && kjonn !== 'open') ||
-                           (kategori.kjonnFilter === 'alltid' && kjonn !== 'alle')
+  const filterByGender = (category.genderFilter === 'historical' && gender !== 'open') ||
+                         (category.genderFilter === 'always' && gender !== 'all')
 
-  const kasterJoin = filtrertPaaKjonn
+  const kasterJoin = filterByGender
     ? 'kaster:kasterid!inner(id, fornavn, etternavn)'
     : 'kaster:kasterid(id, fornavn, etternavn)'
 
@@ -91,16 +91,16 @@ export async function getNMData(
     .select(`id, klasseid, ${kasterJoin}, klubb:klubbid(id, navn), stevne:stevneid(id, dato)`)
     .eq('plassering', 1)
     .in('stevneid', ids)
-    .in('klasseid', ALLE_GYLDIGE_KLASSAR)
+    .in('klasseid', ALL_VALID_CLASSES)
     .or('gruppeid.is.null,gruppeid.neq.2')
 
-  if (filtrertPaaKjonn) {
-    const kjonnListe = await hentKjonnIder()
-    const kjonnId = finnKjonnId(kjonnListe, kjonn)
-    if (kjonnId) resultatQuery = resultatQuery.eq('kaster.kjonnid', kjonnId)
+  if (filterByGender) {
+    const genderList = await getGenderIds()
+    const genderId = findGenderId(genderList, gender)
+    if (genderId) resultatQuery = resultatQuery.eq('kaster.kjonnid', genderId)
   }
 
-  if (kategori.kjonnFilter === 'historisk' && kjonn === 'open') {
+  if (category.genderFilter === 'historical' && gender === 'open') {
     resultatQuery = resultatQuery.eq('klasseid', 1)
   }
 

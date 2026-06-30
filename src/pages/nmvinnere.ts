@@ -11,13 +11,13 @@ import type { NMCategoryConfig, NMGender, NMResultRow } from '@/services/nmvinne
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const CATEGORIES: NMCategoryConfig[] = [
-  { id: 1,  navn: 'Singel',       kjonnFilter: 'historisk', fraaAr: 1985, aapentFraAr: 2013, merknad: '(åpen klasse fra 2013)' },
-  { id: 2,  navn: 'Par',          kjonnFilter: 'historisk', fraaAr: 1987, aapentFraAr: 2009, merknad: '(åpen klasse fra 2009)' },
-  { id: 3,  navn: 'Mix',          kjonnFilter: false,       fraaAr: 1986, merknad: '(NM Mix 2011 ble ikke arrangert)' },
-  { id: 4,  navn: 'Lag',          kjonnFilter: false,       fraaAr: 2016 },
-  { id: 7,  navn: 'X-kast',       kjonnFilter: 'historisk', fraaAr: 2009, aapentFraAr: 2013, merknad: '(åpen klasse fra 2013)' },
-  { id: 9,  navn: 'Hesteskogolf', kjonnFilter: 'alltid',    fraaAr: 2006 },
-  { id: 10, navn: 'Kongelag',     kjonnFilter: false,       fraaAr: 2023 },
+  { id: 1,  name: 'Singel',       genderFilter: 'historical', fromYear: 1985, openFromYear: 2013, note: '(åpen klasse fra 2013)' },
+  { id: 2,  name: 'Par',          genderFilter: 'historical', fromYear: 1987, openFromYear: 2009, note: '(åpen klasse fra 2009)' },
+  { id: 3,  name: 'Mix',          genderFilter: false,        fromYear: 1986, note: '(NM Mix 2011 ble ikke arrangert)' },
+  { id: 4,  name: 'Lag',          genderFilter: false,        fromYear: 2016 },
+  { id: 7,  name: 'X-kast',       genderFilter: 'historical', fromYear: 2009, openFromYear: 2013, note: '(åpen klasse fra 2013)' },
+  { id: 9,  name: 'Hesteskogolf', genderFilter: 'always',     fromYear: 2006 },
+  { id: 10, name: 'Kongelag',     genderFilter: false,        fromYear: 2023 },
 ]
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -41,13 +41,13 @@ function extractYear(dateStr: string | null | undefined): number | null {
   return dateStr ? parseInt(dateStr.substring(0, 4)) : null
 }
 
-function defaultGender(kjonnFilter: NMCategoryConfig['kjonnFilter']): NMGender {
-  return kjonnFilter === 'alltid' ? 'alle' : 'open'
+function defaultGender(genderFilter: NMCategoryConfig['genderFilter']): NMGender {
+  return genderFilter === 'always' ? 'all' : 'open'
 }
 
 function subtitleText(categoryName: string, gender: NMGender): string {
-  if (gender === 'herrer') return `${categoryName} Herrer`
-  if (gender === 'damer')  return `${categoryName} Damer`
+  if (gender === 'men')   return `${categoryName} Herrer`
+  if (gender === 'women') return `${categoryName} Damer`
   return categoryName
 }
 
@@ -123,26 +123,26 @@ function createNMTable(list: WinnersEntry[]): HTMLElement {
 }
 
 function pageSkeletonHtml(category: NMCategoryConfig, maxYear: number): string {
-  const title = `Norgesmestere ${category.fraaAr} - ${maxYear}`
+  const title = `Norgesmestere ${category.fromYear} - ${maxYear}`
 
   const categoryOptions = CATEGORIES.map(k =>
-    `<option value="${k.id}"${k.id === filter.categoryId ? ' selected' : ''}>${escHtml(k.navn)}</option>`
+    `<option value="${k.id}"${k.id === filter.categoryId ? ' selected' : ''}>${escHtml(k.name)}</option>`
   ).join('')
 
   let genderHtml = ''
-  if (category.kjonnFilter === 'historisk') {
+  if (category.genderFilter === 'historical') {
     genderHtml = `
       <select id="nm-gender" class="tl-select">
         <option value="open"${filter.gender === 'open' ? ' selected' : ''}>Åpen klasse</option>
-        <option value="herrer"${filter.gender === 'herrer' ? ' selected' : ''}>Herrer</option>
-        <option value="damer"${filter.gender === 'damer' ? ' selected' : ''}>Damer</option>
+        <option value="men"${filter.gender === 'men' ? ' selected' : ''}>Herrer</option>
+        <option value="women"${filter.gender === 'women' ? ' selected' : ''}>Damer</option>
       </select>`
-  } else if (category.kjonnFilter === 'alltid') {
+  } else if (category.genderFilter === 'always') {
     genderHtml = `
       <select id="nm-gender" class="tl-select">
-        <option value="alle"${filter.gender === 'alle' ? ' selected' : ''}>Alle</option>
-        <option value="herrer"${filter.gender === 'herrer' ? ' selected' : ''}>Herrer</option>
-        <option value="damer"${filter.gender === 'damer' ? ' selected' : ''}>Damer</option>
+        <option value="all"${filter.gender === 'all' ? ' selected' : ''}>Alle</option>
+        <option value="men"${filter.gender === 'men' ? ' selected' : ''}>Herrer</option>
+        <option value="women"${filter.gender === 'women' ? ' selected' : ''}>Damer</option>
       </select>`
   }
 
@@ -153,8 +153,8 @@ function pageSkeletonHtml(category: NMCategoryConfig, maxYear: number): string {
         ${genderHtml}
       </div>
       <h1 class="nm-title">${escHtml(title)}</h1>
-      <h2 id="nm-subtitle" class="nm-subtitle">${escHtml(subtitleText(category.navn, filter.gender))}</h2>
-      <p class="nm-note">${category.merknad ? escHtml(category.merknad) : ''}</p>
+      <h2 id="nm-subtitle" class="nm-subtitle">${escHtml(subtitleText(category.name, filter.gender))}</h2>
+      <p class="nm-note">${category.note ? escHtml(category.note) : ''}</p>
       <div id="nm-table-container"></div>
     </div>`
 }
@@ -182,7 +182,7 @@ async function renderCategory(container: HTMLElement): Promise<void> {
     categoryEl.addEventListener('change', async () => {
       filter.categoryId = Number(categoryEl.value)
       const newCategory = CATEGORIES.find(k => k.id === filter.categoryId)!
-      filter.gender = defaultGender(newCategory.kjonnFilter)
+      filter.gender = defaultGender(newCategory.genderFilter)
       await renderCategory(container)
     })
 
@@ -199,6 +199,6 @@ async function renderCategory(container: HTMLElement): Promise<void> {
 
 export async function render(container: HTMLElement): Promise<void> {
   filter.categoryId = 1
-  filter.gender = defaultGender(CATEGORIES[0]!.kjonnFilter)
+  filter.gender = defaultGender(CATEGORIES[0]!.genderFilter)
   await renderCategory(container)
 }

@@ -4,6 +4,12 @@
 
 ---
 
+## Critical Thinking
+
+Don't blindly accept proposals. Challenge ideas when there's a flaw, simpler alternative, or rule violation — *before* writing code. Suggest alternatives as: "You proposed X. Y trades off A for B. I'd recommend Y because…" Flag technical debt you notice. Disagree directly and without apology.
+
+---
+
 ## TypeScript
 
 - **ALWAYS use TypeScript.** Never write `.js` files.
@@ -16,9 +22,24 @@
 
 ---
 
-## Path Aliases
+## Use english identifiers
 
-Always use `@/` for imports: `import { foo } from '@/services/fooService'`. Never use relative `../../` paths.
+- **ALL identifiers must be in English.** Variables, functions, types, interfaces, parameters, CSS class names, object keys. Norwegian is only acceptable in user-facing strings (UI text, HTML, error messages). Replace existing norwegian identifiers with english when appropriate.
+
+"Database column/table names (kasterid, stevneid, omgang, etc.) may keep their Norwegian schema names only when directly referencing that column/table. Never let this influence naming of new variables, functions, or non-schema concepts — those are always English."
+
+"Common near-miss: bruker/brukerId is NOT a schema-derived exception (unlike kasterid/stevneid). Always use user/userId."
+
+---
+
+## Naming Conventions
+
+- Variables and functions: `camelCase`
+- Types and interfaces: `PascalCase`
+- Constants: `UPPER_SNAKE_CASE`
+- Files exporting a component factory: `PascalCase.ts`
+- Files exporting utilities/services: `camelCase.ts`
+- Booleans: prefix with `is`, `has`, `should`
 
 ---
 
@@ -165,18 +186,6 @@ src/
 
 ---
 
-## Naming Conventions
-
-- **ALL identifiers must be in English.** Variables, functions, types, interfaces, parameters, CSS class names, object keys. Norwegian is only acceptable in user-facing strings (UI text, HTML, error messages). Replace existing norwegian identifiers with english when appropriate.
-- Variables and functions: `camelCase`
-- Types and interfaces: `PascalCase`
-- Constants: `UPPER_SNAKE_CASE`
-- Files exporting a component factory: `PascalCase.ts`
-- Files exporting utilities/services: `camelCase.ts`
-- Booleans: prefix with `is`, `has`, `should`
-
----
-
 ## Comments
 
 - Explain **why**, not **what**.
@@ -216,12 +225,6 @@ src/
 
 ---
 
-## Critical Thinking
-
-Don't blindly accept proposals. Challenge ideas when there's a flaw, simpler alternative, or rule violation — *before* writing code. Suggest alternatives as: "You proposed X. Y trades off A for B. I'd recommend Y because…" Flag technical debt you notice. Disagree directly and without apology.
-
----
-
 ## Ask First When Unclear
 
 Ask before coding when: requirements are ambiguous, there are multiple valid interpretations, the request conflicts with these rules, or the decision is hard to reverse (schema change, new dependency, architectural pattern).
@@ -229,3 +232,11 @@ Ask before coding when: requirements are ambiguous, there are multiple valid int
 Don't ask for trivial choices or when you're stalling. One focused question beats a list.
 
 Ask before: large structural changes, adding dependencies, deleting files.
+
+---
+
+## Path Aliases
+
+Always use `@/` for imports: `import { foo } from '@/services/fooService'`. Never use relative `../../` paths.
+
+---

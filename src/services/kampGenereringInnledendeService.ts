@@ -63,11 +63,11 @@ async function _fetchParEntries(stevneid: number): Promise<Entry[]> {
 
 export async function generateInitialRoundMatches(
   stevneid: number,
-  kastemetodeNavn: string,
-  antallRunder: number,
-  erLag = false,
+  throwingMethodName: string,
+  roundCount: number,
+  isTeam = false,
 ): Promise<number> {
-  const entries = erLag ? await _fetchParEntries(stevneid) : await _fetchSingelEntries(stevneid)
+  const entries = isTeam ? await _fetchParEntries(stevneid) : await _fetchSingelEntries(stevneid)
 
   for (let i = entries.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -87,7 +87,7 @@ export async function generateInitialRoundMatches(
         kasterid: member.kasterid,
         klubbid: member.klubbid,
         startnummer,
-        posisjon: erLag ? mi + 1 : null,
+        posisjon: isTeam ? mi + 1 : null,
       })
     })
   })
@@ -96,21 +96,21 @@ export async function generateInitialRoundMatches(
   const { error: resErr } = await supabase.from('resultat').insert(resultatRows)
   if (resErr) throw new Error('Feil ved lagring av startnummer: ' + resErr.message)
 
-  const erCascade = kastemetodeNavn.toLowerCase().includes('gloppen')
+  const isCascade = throwingMethodName.toLowerCase().includes('gloppen')
 
-  if (erCascade) {
-    return _insertCascadeMatches(stevneid, posToKasterids, N, antallRunder)
+  if (isCascade) {
+    return _insertCascadeMatches(stevneid, posToKasterids, N, roundCount)
   } else {
     return _insertSwissRound1(stevneid, posToKasterids, N)
   }
 }
 
-export function buildCascadePairs(N: number, antallRunder: number): MatchPair[][] {
+export function buildCascadePairs(N: number, roundCount: number): MatchPair[][] {
   const paddedN = N % 2 === 0 ? N : N + 1
   const totalCourts = paddedN / 2
   const rounds: MatchPair[][] = []
 
-  for (let r = 1; r <= antallRunder; r++) {
+  for (let r = 1; r <= roundCount; r++) {
     const matches: MatchPair[] = []
     for (let c = 1; c <= totalCourts; c++) {
       const p1Pos = ((c - 1 + r - 1) % totalCourts) + 1
@@ -175,9 +175,9 @@ async function _insertCascadeMatches(
   stevneid: number,
   posToKasterids: Record<number, number[]>,
   N: number,
-  antallRunder: number,
+  roundCount: number,
 ): Promise<number> {
-  const allRounds = buildCascadePairs(N, antallRunder)
+  const allRounds = buildCascadePairs(N, roundCount)
   let totalMatches = 0
 
   for (const [ri, roundPairs] of allRounds.entries()) {
@@ -206,7 +206,7 @@ async function _insertSwissRound1(
 }
 
 export function buildSwissPairs(
-  rankedKasterids: number[],
+  ranked: number[],
   unplayedMatches: Record<number, number[]>,
   byeCount: Record<number, number>,
 ): SwissPair[] | null {
@@ -250,7 +250,7 @@ export function buildSwissPairs(
     return null
   }
 
-  const pairs = tryPairing(rankedKasterids, [])
+  const pairs = tryPairing(ranked, [])
   if (!pairs) return null
 
   pairs.sort((a, b) => (a.isWalkover ? 1 : 0) - (b.isWalkover ? 1 : 0))

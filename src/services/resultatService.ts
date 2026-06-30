@@ -82,8 +82,8 @@ export async function getResultsForFinalRound(stevneid: number): Promise<{ data:
   return { data: data ?? [], error }
 }
 
-export async function getGroups(gruppeNamn: string[]): Promise<{ data: { id: number; navn: string }[]; error: unknown }> {
-  const { data, error } = await supabase.from('gruppe').select('id, navn').in('navn', gruppeNamn)
+export async function getGroups(groupNames: string[]): Promise<{ data: { id: number; navn: string }[]; error: unknown }> {
+  const { data, error } = await supabase.from('gruppe').select('id, navn').in('navn', groupNames)
   if (error) logError('getGroups', error)
   return { data: data ?? [], error }
 }
@@ -105,11 +105,11 @@ export async function setGroupAssignment(
 
 export async function writePlacements(
   stevneid: number,
-  stilling: { kasterid: number }[],
+  placements: { kasterid: number }[],
 ): Promise<{ error: unknown }> {
-  if (!stilling.length) return { error: null }
+  if (!placements.length) return { error: null }
   const results = await Promise.all(
-    stilling.map((r, i) =>
+    placements.map((r, i) =>
       supabase.from('resultat').update({ plassering: i + 1 }).eq('stevneid', stevneid).eq('kasterid', r.kasterid),
     ),
   )

@@ -215,7 +215,7 @@ async function renderDetail(container: HTMLElement, id: number): Promise<void> {
       label: 'Rediger klubb',
       variant: 'warning',
       canShow: auth => auth.profil?.role === 'admin' ||
-        (auth.profil?.role === 'klubbadmin' && auth.klubber.includes(id)),
+        (auth.profil?.role === 'klubbadmin' && auth.clubs.includes(id)),
     })
   } catch (err) {
     logError('renderDetail', err)

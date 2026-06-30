@@ -24,14 +24,14 @@ export async function getUserEmails(ids: string[]): Promise<{ data: EmailRow[]; 
 }
 
 export async function updateLinkStatus(
-  brukerId: string,
+  userId: string,
   kasterid: number | null,
   status: string,
 ): Promise<{ error: unknown }> {
   const { error } = await supabase
     .from('bruker_profil')
     .update({ kobling_status: status, kasterid })
-    .eq('id', brukerId)
+    .eq('id', userId)
   if (error) logError('updateLinkStatus', error)
   return { error }
 }
@@ -46,13 +46,13 @@ export async function getAllUsers(): Promise<{ data: UserListRow[]; error: unkno
 }
 
 export async function updateUserRole(
-  brukerId: string,
-  rolle: string,
+  userId: string,
+  role: string,
 ): Promise<{ error: unknown }> {
   const { error } = await supabase
     .from('bruker_profil')
-    .update({ rolle })
-    .eq('id', brukerId)
+    .update({ rolle: role })
+    .eq('id', userId)
   if (error) logError('updateUserRole', error)
   return { error }
 }
@@ -75,34 +75,34 @@ export async function getClubAdminAssignments(): Promise<{ data: ClubAdminAccess
 }
 
 export async function addClubAdminAccess(
-  brukerId: string,
-  klubbid: number,
+  userId: string,
+  clubId: number,
 ): Promise<{ error: unknown }> {
   const { error } = await supabase
     .from('klubbadmin_klubber')
-    .insert({ bruker_id: brukerId, klubbid })
+    .insert({ bruker_id: userId, klubbid: clubId })
   if (error) logError('addClubAdminAccess', error)
   return { error }
 }
 
-export async function getClubAdminClubsForUser(brukerId: string): Promise<{ data: number[]; error: unknown }> {
+export async function getClubAdminClubsForUser(userId: string): Promise<{ data: number[]; error: unknown }> {
   const { data, error } = await supabase
     .from('klubbadmin_klubber')
     .select('klubbid')
-    .eq('bruker_id', brukerId)
+    .eq('bruker_id', userId)
   if (error) logError('getClubAdminClubsForUser', error)
   return { data: (data ?? []).map(r => r.klubbid).filter((id): id is number => id != null), error }
 }
 
 export async function removeClubAdminAccess(
-  brukerId: string,
-  klubbid: number,
+  userId: string,
+  clubId: number,
 ): Promise<{ error: unknown }> {
   const { error } = await supabase
     .from('klubbadmin_klubber')
     .delete()
-    .eq('bruker_id', brukerId)
-    .eq('klubbid', klubbid)
+    .eq('bruker_id', userId)
+    .eq('klubbid', clubId)
   if (error) logError('removeClubAdminAccess', error)
   return { error }
 }

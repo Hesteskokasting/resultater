@@ -88,18 +88,18 @@ export async function getTournamentForRegistration(id: number): Promise<{ data: 
 
 export async function getRelatedTournaments(
   klubbId: number,
-  fraDato: string,
-  tilDato: string,
-  unntaId: number,
+  fromDate: string,
+  toDate: string,
+  excludeId: number,
 ): Promise<{ data: RelatedTournamentRow[]; error: unknown }> {
   const { data, error } = await supabase
     .from('stevne')
     .select('id, navn, dato')
     .eq('klubbid', klubbId)
     .eq('erfullfort', false)
-    .neq('id', unntaId)
-    .gte('dato', fraDato)
-    .lte('dato', tilDato)
+    .neq('id', excludeId)
+    .gte('dato', fromDate)
+    .lte('dato', toDate)
     .order('dato')
   if (error) logError('getRelatedTournaments', error)
   return { data: data ?? [], error }
@@ -120,8 +120,8 @@ export async function getInfoTournament(id: number): Promise<{ data: InfoTournam
   return { data, error }
 }
 
-export async function updateTournamentPhase(id: number, fase: string): Promise<{ error: unknown }> {
-  const { error } = await supabase.from('stevne').update({ stevne_fase: fase }).eq('id', id)
+export async function updateTournamentPhase(id: number, phase: string): Promise<{ error: unknown }> {
+  const { error } = await supabase.from('stevne').update({ stevne_fase: phase }).eq('id', id)
   if (error) logError('updateTournamentPhase', error)
   return { error }
 }
@@ -269,13 +269,13 @@ export async function getTournamentHeader(id: number): Promise<{ data: Tournamen
 
 export function subscribeToTournamentPhase(
   id: number,
-  onUpdate: (fase: string | undefined) => void,
+  onUpdate: (phase: string | undefined) => void,
 ): RealtimeChannel {
   return supabase
     .channel(`stevne-fase-${id}`)
     .on('postgres_changes',
       { event: 'UPDATE', schema: 'public', table: 'stevne', filter: `id=eq.${id}` },
-      payload => onUpdate((payload.new as { stevne_fase?: string }).stevne_fase),
+      payload => onUpdate((payload.new as { stevne_fase?: string | undefined }).stevne_fase),
     )
     .subscribe()
 }

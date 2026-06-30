@@ -37,11 +37,11 @@ export interface RegistrationPair {
   sideB: RegistrationPairMember  // posisjon 2
 }
 
-export async function getMyRegistrations(brukerId: string): Promise<{ data: RegistrationRow[]; error: unknown }> {
+export async function getMyRegistrations(userId: string): Promise<{ data: RegistrationRow[]; error: unknown }> {
   const { data, error } = await supabase
     .from('pamelding')
     .select('id, stevne:stevneid(id, navn, dato)')
-    .eq('bruker_id', brukerId)
+    .eq('bruker_id', userId)
     .limit(50)
   if (error) logError('getMyRegistrations', error)
   return { data: data ?? [], error }
@@ -74,11 +74,11 @@ export async function getMyRegistrationForTournament(
 export async function registerForTournament(
   stevneId: number,
   kasterid: number,
-  brukerId: string,
+  userId: string,
 ): Promise<{ error: unknown; id: number | null }> {
   const { data, error } = await supabase
     .from('pamelding')
-    .insert({ stevneid: stevneId, kasterid, bruker_id: brukerId })
+    .insert({ stevneid: stevneId, kasterid, bruker_id: userId })
     .select('id')
     .single()
   if (error) logError('registerForTournament', error)
@@ -248,12 +248,12 @@ export async function createPair(
   return { error: null }
 }
 
-export async function deletePair(stevneId: number, lagId: number): Promise<{ error: unknown }> {
+export async function deletePair(stevneId: number, teamId: number): Promise<{ error: unknown }> {
   const { error } = await supabase
     .from('pamelding')
     .update({ lag_id: null, posisjon: null })
     .eq('stevneid', stevneId)
-    .eq('lag_id', lagId)
+    .eq('lag_id', teamId)
   if (error) logError('deletePair', error)
   return { error }
 }

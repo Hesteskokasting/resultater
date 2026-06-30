@@ -184,7 +184,7 @@ export function openGenerateRoundDialog(
           }
           await generateCupRound1(
             stevneid,
-            [{ gruppeNavn: groupName, spelarar: players, runde1Oppsett: round1Setup }],
+            [{ groupName: groupName, spelarar: players, runde1Oppsett: round1Setup }],
             withSeeding,
             runde1Format ? round1FormatRecord : null,
           )

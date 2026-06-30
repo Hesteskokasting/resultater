@@ -12,13 +12,13 @@ interface MatchWithMatchId { id: number; match_id: string }
 interface MatchPlayerInsert { kampid: number; kasterid: number; score_poeng: number; kamp_poeng: number; antall_ringer: number }
 
 interface GroupForCup {
-  gruppeNavn: string | null
+  groupName: string | null
   spelarar: { kasterid: number; plassering: number }[]
   runde1Oppsett?: RoundSetup | null
 }
 
 interface Round1Format {
-  [gruppeNavn: string]: RoundSetup | undefined
+  [groupName: string]: RoundSetup | undefined
 }
 
 // ── Private helpers ───────────────────────────────────────────────────────────
@@ -66,11 +66,11 @@ function _sideMembers(sideInfo: SideInfo, kasterid: number): number[] {
 async function _insertCupPairings(
   stevneid: number,
   pairings: ReturnType<typeof calcCupRoundPairings>,
-  rundeNummer: number,
-  gruppeNavn: string | null,
+  roundNumber: number,
+  groupName: string | null,
   sideInfo: SideInfo,
   laneStart = 0,
-  rundeNavn: string | null = null,
+  roundName: string | null = null,
 ): Promise<number> {
   const matchIds = pairings.map(() => genMatchId())
   let laneNr = laneStart
@@ -78,13 +78,13 @@ async function _insertCupPairings(
     match_id: matchIds[i]!,
     stevneid,
     fase: 'avsluttende',
-    runde_nummer: rundeNummer,
-    gruppe_navn: gruppeNavn ?? null,
+    runde_nummer: roundNumber,
+    gruppe_navn: groupName ?? null,
     bane_nummer: p.isWalkover ? null : ++laneNr,
     er_bekreftet: p.isWalkover,
     er_walkover: p.isWalkover,
     er_tre_spelarar: p.isThreePlayers,
-    runde_navn: rundeNavn,
+    runde_navn: roundName,
   }))
 
   const { data: insertedMatches, error: matchErr } = await supabase
@@ -117,7 +117,7 @@ async function _insertCupPairings(
 export async function generateCupRound1(
   stevneid: number,
   groups: GroupForCup[],
-  medSeeding: boolean,
+  withSeeding: boolean,
   round1Format: Round1Format | null = null,
 ): Promise<number> {
   const groupOrder = ['A', 'B', 'C']
@@ -125,7 +125,7 @@ export async function generateCupRound1(
   const sideInfo = await _fetchSideInfo(stevneid)
 
   for (const gr of groups) {
-    const pairings = calcCupRoundPairings(gr.spelarar, { medSeeding, isRunde1: true, runde1Oppsett: gr.runde1Oppsett ?? null })
+    const pairings = calcCupRoundPairings(gr.spelarar, { medSeeding: withSeeding, isRunde1: true, runde1Oppsett: gr.runde1Oppsett ?? null })
     const { data: maxLane } = await supabase.from('kamp')
       .select('bane_nummer').eq('stevneid', stevneid).eq('fase', 'avsluttende')
       .eq('runde_nummer', 1).not('bane_nummer', 'is', null)
@@ -133,8 +133,8 @@ export async function generateCupRound1(
     const dbMaxLane = (maxLane as MatchWithLane[] | null)?.[0]?.bane_nummer ?? 0
 
     let formatLaneOffset = 0
-    if (round1Format && gr.gruppeNavn) {
-      const myIdx = groupOrder.indexOf(gr.gruppeNavn)
+    if (round1Format && gr.groupName) {
+      const myIdx = groupOrder.indexOf(gr.groupName)
       for (const group of groupOrder.slice(0, myIdx)) {
         const prev = round1Format[group]
         if (prev) formatLaneOffset += (prev.c3 ?? 0) + (prev.c2 ?? 0)
@@ -143,75 +143,75 @@ export async function generateCupRound1(
 
     const laneStart = Math.max(dbMaxLane, formatLaneOffset)
     const isSemifinal = gr.spelarar.length === 4
-    totalMatches += await _insertCupPairings(stevneid, pairings, 1, gr.gruppeNavn, sideInfo, laneStart, isSemifinal ? 'Semifinale' : null)
+    totalMatches += await _insertCupPairings(stevneid, pairings, 1, gr.groupName, sideInfo, laneStart, isSemifinal ? 'Semifinale' : null)
   }
   return totalMatches
 }
 
 /** Highest assigned lane number for the round, so new matches continue after it. */
-async function _fetchLaneStart(stevneid: number, rundeNummer: number): Promise<number> {
+async function _fetchLaneStart(stevneid: number, roundNumber: number): Promise<number> {
   const { data: maxLane } = await supabase.from('kamp')
     .select('bane_nummer').eq('stevneid', stevneid).eq('fase', 'avsluttende')
-    .eq('runde_nummer', rundeNummer).not('bane_nummer', 'is', null)
+    .eq('runde_nummer', roundNumber).not('bane_nummer', 'is', null)
     .order('bane_nummer', { ascending: false }).limit(1)
   return (maxLane as MatchWithLane[] | null)?.[0]?.bane_nummer ?? 0
 }
 
 export async function generateNextCupRoundForGroup(
   stevneid: number,
-  gruppeNavn: string,
-  medSeeding: boolean,
+  groupName: string,
+  withSeeding: boolean,
   sortedPlayers: { kasterid: number; plassering: number }[],
-): Promise<{ rundeNummer: number; antallKampar: number }> {
+): Promise<{ roundNumber: number; matchCount: number }> {
   const { data: matches } = await supabase.from('kamp')
     .select('runde_nummer')
-    .eq('stevneid', stevneid).eq('fase', 'avsluttende').eq('gruppe_navn', gruppeNavn)
+    .eq('stevneid', stevneid).eq('fase', 'avsluttende').eq('gruppe_navn', groupName)
     .order('runde_nummer', { ascending: false }).limit(1)
-  const rundeNummer = ((matches as { runde_nummer: number }[] | null)?.[0]?.runde_nummer ?? 0) + 1
+  const roundNumber = ((matches as { runde_nummer: number }[] | null)?.[0]?.runde_nummer ?? 0) + 1
 
   const isSemifinal = sortedPlayers.length === 4
-  const pairings = calcCupRoundPairings(sortedPlayers, { medSeeding, isRunde1: false })
+  const pairings = calcCupRoundPairings(sortedPlayers, { medSeeding: withSeeding, isRunde1: false })
 
-  const laneStart = await _fetchLaneStart(stevneid, rundeNummer)
+  const laneStart = await _fetchLaneStart(stevneid, roundNumber)
 
   const sideInfo = await _fetchSideInfo(stevneid)
-  const antallKampar = await _insertCupPairings(
-    stevneid, pairings, rundeNummer, gruppeNavn, sideInfo, laneStart,
+  const matchCount = await _insertCupPairings(
+    stevneid, pairings, roundNumber, groupName, sideInfo, laneStart,
     isSemifinal ? 'Semifinale' : null,
   )
-  return { rundeNummer, antallKampar }
+  return { roundNumber, matchCount }
 }
 
 export async function generateFinaleAndBronzeFinal(
   stevneid: number,
-  gruppeNavn: string,
+  groupName: string,
 ): Promise<void> {
-  interface SemiSpelar {
+  interface SemiPlayer {
     id: number
     kasterid: number | null
     score_poeng: number
     omgangar: { score: number | null }[] | null
   }
-  interface SemiKamp {
+  interface SemiMatch {
     id: number
     runde_nummer: number
-    spelarar: SemiSpelar[] | null
+    spelarar: SemiPlayer[] | null
   }
 
-  const { data: semikampar } = await supabase
+  const { data: semiMatches } = await supabase
     .from('kamp')
     .select('id, runde_nummer, spelarar:kamp_spelar(id, kasterid, score_poeng, omgangar:kamp_omgang(score))')
     .eq('stevneid', stevneid)
     .eq('fase', 'avsluttende')
-    .eq('gruppe_navn', gruppeNavn)
+    .eq('gruppe_navn', groupName)
     .eq('runde_navn', 'Semifinale')
     .eq('er_bekreftet', true)
 
-  if (!semikampar?.length) throw new Error('Semifinalane er ikkje bekrefta.')
+  if (!semiMatches?.length) throw new Error('Semifinalane er ikkje bekrefta.')
 
   const sideInfo = await _fetchSideInfo(stevneid)
-  const typedSemi = semikampar as SemiKamp[]
-  const rundeNummer = typedSemi[0]!.runde_nummer + 1
+  const typedSemi = semiMatches as SemiMatch[]
+  const roundNumber = typedSemi[0]!.runde_nummer + 1
   // One entry per side: all member kasterids of the winning/losing unit
   const winners: number[][] = []
   const losers: number[][] = []
@@ -235,16 +235,16 @@ export async function generateFinaleAndBronzeFinal(
     if (sorted[1]) losers.push(sorted[1].kasterids)
   }
 
-  const laneStart = await _fetchLaneStart(stevneid, rundeNummer)
+  const laneStart = await _fetchLaneStart(stevneid, roundNumber)
 
   const finale = {
-    match_id: genMatchId(), stevneid, fase: 'avsluttende', runde_nummer: rundeNummer,
-    gruppe_navn: gruppeNavn, bane_nummer: laneStart + 1, runde_navn: 'Finale',
+    match_id: genMatchId(), stevneid, fase: 'avsluttende', runde_nummer: roundNumber,
+    gruppe_navn: groupName, bane_nummer: laneStart + 1, runde_navn: 'Finale',
     er_bekreftet: false, er_walkover: false, er_tre_spelarar: false,
   }
   const bronsefinale = {
-    match_id: genMatchId(), stevneid, fase: 'avsluttende', runde_nummer: rundeNummer,
-    gruppe_navn: gruppeNavn, bane_nummer: laneStart + 2, runde_navn: 'Bronsefinale',
+    match_id: genMatchId(), stevneid, fase: 'avsluttende', runde_nummer: roundNumber,
+    gruppe_navn: groupName, bane_nummer: laneStart + 2, runde_navn: 'Bronsefinale',
     er_bekreftet: false, er_walkover: false, er_tre_spelarar: false,
   }
 

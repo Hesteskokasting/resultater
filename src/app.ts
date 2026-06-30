@@ -1,6 +1,6 @@
 import 'bootstrap'
 import { render as renderHome } from './pages/home'
-import { getUser, isAdmin, isClubAdmin, loggUt } from './services/authService'
+import { getUser, isAdmin, isClubAdmin, signOut } from './services/authService'
 import { createErrorBanner } from './components/ErrorBanner'
 import { showReauthModal } from './components/ReauthModal'
 import type { PageRenderFn, Role, Route } from '@/types'
@@ -109,7 +109,7 @@ window.addEventListener('hashchange', navigate)
 
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('menyLoggUtKnapp')!.addEventListener('click', async () => {
-    await loggUt()
+    await signOut()
     location.hash = '#/'
   })
 

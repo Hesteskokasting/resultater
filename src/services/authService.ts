@@ -1,6 +1,6 @@
 import { supabase } from '@/supabase'
 import type { AuthUser, Profile, Role } from '@/types'
-import { hentProfilForBruker } from '@/services/brukerProfilService'
+import { getProfileForUser } from '@/services/brukerProfilService'
 import { getClubAdminClubsForUser } from '@/services/adminService'
 
 const ROLES = ['admin', 'klubbadmin', 'bruker'] as const
@@ -35,16 +35,16 @@ async function _fetchUser(): Promise<AuthUser | null> {
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) return null
 
-  const { data: profilRow } = await hentProfilForBruker(session.user.id)
+  const { data: profilRow } = await getProfileForUser(session.user.id)
 
-  let klubber: number[] = []
+  let clubs: number[] = []
   if (profilRow?.rolle === 'klubbadmin') {
-    const { data: klubbIds } = await getClubAdminClubsForUser(session.user.id)
-    klubber = klubbIds
+    const { data: clubIds } = await getClubAdminClubsForUser(session.user.id)
+    clubs = clubIds
   }
 
   _lastKnownEmail = session.user.email ?? _lastKnownEmail
-  _cache = { user: session.user, profil: mapToProfile(profilRow), klubber }
+  _cache = { user: session.user, profil: mapToProfile(profilRow), clubs }
   return _cache
 }
 
@@ -72,14 +72,14 @@ export async function isAdmin(): Promise<boolean> {
   return (await getRole()) === 'admin'
 }
 
-export async function isClubAdmin(klubbId: number | string | null = null): Promise<boolean> {
+export async function isClubAdmin(clubId: number | string | null = null): Promise<boolean> {
   const auth = await _fetchCache()
   if (!auth || auth.profil?.role !== 'klubbadmin') return false
-  if (klubbId === null) return true
-  return auth.klubber.includes(Number(klubbId))
+  if (clubId === null) return true
+  return auth.clubs.includes(Number(clubId))
 }
 
-export async function loggUt(): Promise<void> {
+export async function signOut(): Promise<void> {
   _intentionalSignOut = true
   _cache = null
   await supabase.auth.signOut()
@@ -98,7 +98,7 @@ supabase.auth.onAuthStateChange((event, session) => {
   if (event === 'SIGNED_OUT') {
     _cache = null
     _inflight = null
-    // SIGNED_IN: no cache clear needed — before real login _cache is already null (cleared by loggUt());
+    // SIGNED_IN: no cache clear needed — before real login _cache is already null (cleared by signOut());
     // for session restore on page load, the cache is valid and clearing it causes a redundant DB fetch.
   }
   if (session && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION' || event === 'USER_UPDATED')) {

@@ -29,7 +29,9 @@
       "PowerShell($r = Get-Content fallow-dupes.json -Raw | ConvertFrom-Json; $i = 0; $r.clone_groups | ForEach-Object { $g = $_; \"[$i] $\\($g.line_count\\)L $\\($g.token_count\\)T:\"; $g.instances | ForEach-Object { \"    $\\($_.file\\):$\\($_.start_line\\)-$\\($_.end_line\\)\" }; $i++ })",
       "PowerShell($r = Get-Content fallow-dupes.json -Raw | ConvertFrom-Json; $i = 0; $r.clone_groups | Where-Object { $_.instances[0].file -notmatch 'database.types|^tests/' } | ForEach-Object { $g = $_; Write-Output \"===== [$i] $\\($g.line_count\\)L $\\($g.token_count\\)T\"; $g.instances | ForEach-Object { Write-Output \"  @ $\\($_.file\\):$\\($_.start_line\\)\" }; Write-Output $g.instances[0].fragment; $i++ } | Out-File -Encoding utf8 fallow-fragments.txt; \\(Get-Content fallow-fragments.txt | Measure-Object -Line\\).Lines)",
       "PowerShell($files = @\\('d:\\\\repos\\\\NY-resultat-app\\\\src\\\\components\\\\ScoreNumberpad.ts', 'd:\\\\repos\\\\NY-resultat-app\\\\src\\\\components\\\\Scoreboard.ts'\\); foreach \\($f in $files\\) { \\(Get-Content $f -Raw\\) -replace 'lagEl\\\\\\(', 'createEl\\(' | Set-Content $f -Encoding utf8 -NoNewline }; \"done\")",
-      "PowerShell(npm run typecheck)"
+      "PowerShell(npm run typecheck)",
+      "Bash(Get-ChildItem -Path \"d:\\\\repos\\\\NY-resultat-app\\\\src\\\\components\\\\\" -Filter \"*.ts\" -Recurse | Select-Object -ExpandProperty FullName)",
+      "Bash(Get-ChildItem -Path \"d:\\\\repos\\\\NY-resultat-app\\\\src\\\\services\\\\\" -File -Recurse | Select-Object -ExpandProperty FullName)"
     ]
   }
 }

@@ -382,7 +382,7 @@ export async function renderDetail(container: HTMLElement, id: number): Promise<
       label: 'Rediger utøvar',
       variant: 'warning',
       canShow: auth => auth.profil?.role === 'admin' ||
-        (auth.profil?.role === 'klubbadmin' && auth.klubber.includes(thrower.klubbid ?? -1)),
+        (auth.profil?.role === 'klubbadmin' && auth.clubs.includes(thrower.klubbid ?? -1)),
     })
   } catch (err) {
     logError('renderDetail', err)

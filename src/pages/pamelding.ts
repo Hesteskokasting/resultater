@@ -242,7 +242,7 @@ export async function render(container: HTMLElement, params: Params = {}): Promi
     const throwersFetch: Promise<{ data: ThrowerListRow[]; error: unknown }> = (() => {
       if (!isPrivileged) return Promise.resolve({ data: [], error: null })
       if (isAdminRole) return getActiveThrowerList()
-      if (auth && auth.klubber.length) return getThrowersForClubs(auth.klubber)
+      if (auth && auth.clubs.length) return getThrowersForClubs(auth.clubs)
       return Promise.resolve({ data: [], error: null })
     })()
 
