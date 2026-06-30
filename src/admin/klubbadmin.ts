@@ -19,9 +19,9 @@ export async function render(
 
   container.replaceChildren(createLoadingState())
 
-  const { data: klubb, error } = await getClubForAdmin(id)
+  const { data: club, error } = await getClubForAdmin(id)
 
-  if (error || !klubb) { container.replaceChildren(createErrorBanner('Klubb ikkje funne.')); return }
+  if (error || !club) { container.replaceChildren(createErrorBanner('Klubb ikkje funne.')); return }
 
   if (!(await erAdmin()) && !(await erKlubbadmin(id))) {
     container.replaceChildren(createErrorBanner('Ingen tilgang til denne klubben.'))
@@ -29,21 +29,21 @@ export async function render(
   }
 
   container.innerHTML = `
-    <div class="container py-4 admin-skjema-sm">
-      <h2 class="mb-4">Rediger klubb: ${escHtml(klubb.navn)}</h2>
-      <form id="klubb-skjema">
-        ${formRowHtml('Namn*', `<input type="text" class="form-control" name="navn" value="${escHtml(klubb.navn)}" required>`)}
-        ${formRowHtml('Kortnavn', `<input type="text" class="form-control" name="kortnavn" value="${escHtml(klubb.kortnavn)}">`)}
-        ${formRowHtml('Logo-URL', `<input type="url" class="form-control" name="logourl" value="${escHtml(klubb.logourl)}">`)}
+    <div class="container py-4 admin-form-sm">
+      <h2 class="mb-4">Rediger klubb: ${escHtml(club.navn)}</h2>
+      <form id="club-form">
+        ${formRowHtml('Namn*', `<input type="text" class="form-control" name="navn" value="${escHtml(club.navn)}" required>`)}
+        ${formRowHtml('Kortnavn', `<input type="text" class="form-control" name="kortnavn" value="${escHtml(club.kortnavn)}">`)}
+        ${formRowHtml('Logo-URL', `<input type="url" class="form-control" name="logourl" value="${escHtml(club.logourl)}">`)}
         <div class="mb-3 form-check">
-          <input class="form-check-input" type="checkbox" name="eraktiv" id="eraktiv"${klubb.eraktiv ? ' checked' : ''}>
+          <input class="form-check-input" type="checkbox" name="eraktiv" id="eraktiv"${club.eraktiv ? ' checked' : ''}>
           <label class="form-check-label" for="eraktiv">Er aktiv</label>
         </div>
         <button type="submit" class="btn btn-primary mt-2">Lagre</button>
       </form>
     </div>`
 
-  container.querySelector<HTMLFormElement>('#klubb-skjema')!.addEventListener('submit', async e => {
+  container.querySelector<HTMLFormElement>('#club-form')!.addEventListener('submit', async e => {
     e.preventDefault()
     const fd = new FormData(e.target as HTMLFormElement)
     const payload: Omit<ClubAdminRow, 'id'> = {

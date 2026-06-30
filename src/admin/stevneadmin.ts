@@ -53,20 +53,20 @@ export async function render(
     return
   }
 
-  let stevne: TournamentAdminRow | null = null
+  let tournament: TournamentAdminRow | null = null
   if (id) {
     const { data, error } = await getTournamentForAdmin(id)
     if (error || !data) { container.replaceChildren(createErrorBanner('Stevne ikkje funne.')); return }
-    stevne = data
+    tournament = data
 
-    if (!(await erAdmin()) && !(await erKlubbadmin(stevne.klubbid ?? undefined))) {
+    if (!(await erAdmin()) && !(await erKlubbadmin(tournament.klubbid ?? undefined))) {
       container.replaceChildren(createErrorBanner('Ingen tilgang til dette stevnet.'))
       return
     }
   }
 
-  const title = id ? `Rediger stevne: ${escHtml(stevne?.navn ?? '')}` : 'Nytt stevne'
-  const v     = stevne ?? ({} as Partial<TournamentAdminRow>)
+  const title = id ? `Rediger stevne: ${escHtml(tournament?.navn ?? '')}` : 'Nytt stevne'
+  const v     = tournament ?? ({} as Partial<TournamentAdminRow>)
   const dateValue       = v.dato ?? ''
   const timeValue       = v.tid ? v.tid.slice(0, 5) : (id ? '' : '11:00')
   const defaultCategory = v.kategoriid ?? categories.find(k => k.navn === 'Singel')?.id
@@ -78,9 +78,9 @@ export async function render(
   const categoryOpt    = buildDropdownOptions(categories,      defaultCategory)
 
   container.innerHTML = `
-    <div class="container py-4 admin-skjema-lg">
+    <div class="container py-4 admin-form-lg">
       <h2 class="mb-4">${title}</h2>
-      <form id="stevne-skjema">
+      <form id="tournament-form">
         ${formRowHtml('Namn*', `<input type="text" class="form-control" name="navn" value="${escHtml(v.navn)}" required>`)}
         ${formRowHtml('Stad', `<input type="text" class="form-control" name="sted" value="${escHtml(v.sted)}">`)}
         ${formRowHtml('Dato', `<input type="date" class="form-control" name="dato" value="${dateValue}" required>`)}
@@ -100,12 +100,12 @@ export async function render(
         ${formRowHtml('Resultat-URL', `<input type="url" class="form-control" name="resultaturl" value="${escHtml(v.resultaturl)}">`)}
         <div class="d-flex gap-2 mt-4">
           <button type="submit" class="btn btn-primary">Lagre</button>
-          ${id ? `<button type="button" id="slett-knapp" class="btn btn-outline-danger ms-auto">Slett stevne</button>` : ''}
+          ${id ? `<button type="button" id="delete-button" class="btn btn-outline-danger ms-auto">Slett stevne</button>` : ''}
         </div>
       </form>
     </div>`
 
-  container.querySelector<HTMLFormElement>('#stevne-skjema')!.addEventListener('submit', async e => {
+  container.querySelector<HTMLFormElement>('#tournament-form')!.addEventListener('submit', async e => {
     e.preventDefault()
     const fd = new FormData(e.target as HTMLFormElement)
     const payload = {
@@ -135,8 +135,8 @@ export async function render(
     if (!id) setTimeout(() => { location.hash = `#/stevne/${saved!.id}/rediger` }, 1500)
   })
 
-  container.querySelector<HTMLButtonElement>('#slett-knapp')?.addEventListener('click', async () => {
-    if (!await confirmDialog({ title: 'Slett stevne', message: `Slett «${stevne?.navn}»? Dette kan ikkje angrast.`, danger: true })) return
+  container.querySelector<HTMLButtonElement>('#delete-button')?.addEventListener('click', async () => {
+    if (!await confirmDialog({ title: 'Slett stevne', message: `Slett «${tournament?.navn}»? Dette kan ikkje angrast.`, danger: true })) return
     const { error } = await deleteTournament(id!)
     if (error) { showSaveError(container, errMsg(error)); return }
     location.hash = '#/terminliste'

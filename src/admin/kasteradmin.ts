@@ -63,9 +63,9 @@ export async function render(
   const v = thrower ?? ({} as Partial<ThrowerAdminRow>)
 
   container.innerHTML = `
-    <div class="container py-4 admin-skjema-md">
+    <div class="container py-4 admin-form-md">
       <h2 class="mb-4">${title}</h2>
-      <form id="kaster-skjema">
+      <form id="thrower-form">
         ${formRowHtml('Fornavn*', `<input type="text" class="form-control" name="fornavn" value="${escHtml(v.fornavn)}" required>`)}
         ${formRowHtml('Etternavn*', `<input type="text" class="form-control" name="etternavn" value="${escHtml(v.etternavn)}" required>`)}
         ${formRowHtml('Kjønn*', `<select class="form-select" name="kjonnid">${buildDropdownOptions(genders, v.kjonnid)}</select>`)}
@@ -80,12 +80,12 @@ export async function render(
         </div>
         <div class="d-flex gap-2 mt-4">
           <button type="submit" class="btn btn-primary">Lagre</button>
-          ${id ? `<button type="button" id="slett-knapp" class="btn btn-outline-danger ms-auto">Slett utøvar</button>` : ''}
+          ${id ? `<button type="button" id="delete-button" class="btn btn-outline-danger ms-auto">Slett utøvar</button>` : ''}
         </div>
       </form>
     </div>`
 
-  container.querySelector<HTMLFormElement>('#kaster-skjema')!.addEventListener('submit', async e => {
+  container.querySelector<HTMLFormElement>('#thrower-form')!.addEventListener('submit', async e => {
     e.preventDefault()
     const fd = new FormData(e.target as HTMLFormElement)
     const payload = {
@@ -109,7 +109,7 @@ export async function render(
     if (!id) setTimeout(() => { location.hash = `#/kaster/${saved!.id}/admin` }, 1500)
   })
 
-  container.querySelector<HTMLButtonElement>('#slett-knapp')?.addEventListener('click', async () => {
+  container.querySelector<HTMLButtonElement>('#delete-button')?.addEventListener('click', async () => {
     if (!await confirmDialog({ title: 'Slett utøvar', message: `Slett «${thrower?.fornavn} ${thrower?.etternavn}»? Dette kan ikkje angrast.`, danger: true })) return
     const { error } = await deleteThrower(id!)
     if (error) { showSaveError(container, errMsg(error)); return }
