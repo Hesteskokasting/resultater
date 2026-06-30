@@ -28,9 +28,9 @@ const roleLabel: Record<Role, string> = {
   bruker: 'Brukar',
 }
 
-// ── HTML-byggjarar ────────────────────────────────────────────────────────────
+// ── HTML builders ─────────────────────────────────────────────────────────────
 
-function ikkjeKoblaHtml(status: LinkStatus): string {
+function unlinkedHtml(status: LinkStatus): string {
   return `
     ${status === 'avvist' ? '<div class="alert alert-warning">Koblingforespørselen din vart avvist. Du kan sende ein ny.</div>' : ''}
     <div class="card mb-4">
@@ -44,11 +44,11 @@ function ikkjeKoblaHtml(status: LinkStatus): string {
     </div>`
 }
 
-function ventarHtml(): string {
+function pendingHtml(): string {
   return '<div class="alert alert-info mb-4">Koblingforespørselen din ventar på godkjenning frå ein administrator.</div>'
 }
 
-async function koblaKortHtml(kasterid: number): Promise<string> {
+async function linkedCardHtml(kasterid: number): Promise<string> {
   const { data, error } = await getThrowerForLink(kasterid)
   if (error || !data) return ''
   return `
@@ -61,16 +61,16 @@ async function koblaKortHtml(kasterid: number): Promise<string> {
     </div>`
 }
 
-async function pameldingListeHtml(brukerId: string): Promise<string> {
+async function registrationListHtml(brukerId: string): Promise<string> {
   const { data, error } = await getMyRegistrations(brukerId)
   if (error) return '<p class="text-muted">Kunne ikkje laste påmeldingar.</p>'
   if (!data.length) return '<p class="empty-state">Ingen påmeldingar enno.</p>'
 
-  const sortert = [...data].sort((a: RegistrationRow, b: RegistrationRow) =>
+  const sorted = [...data].sort((a: RegistrationRow, b: RegistrationRow) =>
     (a.stevne?.dato ?? '').localeCompare(b.stevne?.dato ?? ''),
   )
 
-  const rader = sortert.map(p => {
+  const rows = sorted.map(p => {
     const dato = formatDate(p.stevne?.dato)
     return `<tr>
       <td><a href="#/stevne/${p.stevne?.id ?? ''}/pamelding">${escHtml(p.stevne?.navn ?? '')}</a></td>
@@ -85,13 +85,13 @@ async function pameldingListeHtml(brukerId: string): Promise<string> {
         <h5 class="card-title">Påmeldingar</h5>
         <table class="table table-sm">
           <thead><tr><th>Stevne</th><th>Dato</th><th></th></tr></thead>
-          <tbody>${rader}</tbody>
+          <tbody>${rows}</tbody>
         </table>
       </div>
     </div>`
 }
 
-async function createMineKampar(kasterid: number): Promise<HTMLElement> {
+async function createMyMatches(kasterid: number): Promise<HTMLElement> {
   const { data, error } = await getMyMatches(kasterid)
   if (error) {
     const p = document.createElement('p')
@@ -100,91 +100,91 @@ async function createMineKampar(kasterid: number): Promise<HTMLElement> {
     return p
   }
 
-  const alleKampar = data.filter(ks => !ks.kamp?.er_walkover)
+  const allMatches = data.filter(ks => !ks.kamp?.er_walkover)
 
   // Side lookup (startnummer per stevne+player) so opponents exclude my own
   // partner in Par/Mix; spans every stevne the matches belong to.
-  const stevneIds = [...new Set(alleKampar.map(ks => ks.kamp?.stevneid).filter((s): s is number => s != null))]
-  const snrMap = await getStartNumbersForTournaments(stevneIds)
+  const tournamentIds = [...new Set(allMatches.map(ks => ks.kamp?.stevneid).filter((s): s is number => s != null))]
+  const startNrMap = await getStartNumbersForTournaments(tournamentIds)
 
-  const active = alleKampar
+  const active = allMatches
     .filter(ks => ks.kamp?.stevne?.erfullfort === false)
     .sort((a, b) => (a.kamp?.runde_nummer ?? 0) - (b.kamp?.runde_nummer ?? 0))
 
-  const ferdige = alleKampar
+  const completed = allMatches
     .filter(ks => ks.kamp?.stevne?.erfullfort === true)
     .sort((a, b) => (a.kamp?.runde_nummer ?? 0) - (b.kamp?.runde_nummer ?? 0))
 
-  const tabellHoaude = `<thead><tr><th>Runde/Bane</th><th>Motstandar</th><th></th></tr></thead>`
+  const tableHeader = `<thead><tr><th>Runde/Bane</th><th>Motstandar</th><th></th></tr></thead>`
 
-  const lagKampRad = (ks: MatchPlayerRow, knapp: string): string => {
+  const makeMatchRow = (ks: MatchPlayerRow, button: string): string => {
     const kamp = ks.kamp
     const stevneid = kamp?.stevneid
     // My side; opponents are everyone on a different side. Same startnummer =
     // my partner (excluded). Singel: each player has a unique startnummer, so
     // every other player is an opponent (covers 3-player matches too).
-    const mineSnr = stevneid != null ? snrMap[`${stevneid}:${kasterid}`] : undefined
-    const motstandarar = (kamp?.spelarar ?? []).filter(s => {
+    const myStartNr = stevneid != null ? startNrMap[`${stevneid}:${kasterid}`] : undefined
+    const opponents = (kamp?.spelarar ?? []).filter(s => {
       if (s.kasterid == null || s.kasterid === kasterid) return false
-      const oSnr = stevneid != null ? snrMap[`${stevneid}:${s.kasterid}`] : undefined
-      return mineSnr == null || oSnr == null || oSnr !== mineSnr
+      const oSnr = stevneid != null ? startNrMap[`${stevneid}:${s.kasterid}`] : undefined
+      return myStartNr == null || oSnr == null || oSnr !== myStartNr
     })
-    const motstandarNamn = motstandarar.length
-      ? motstandarar.map(m => escHtml(throwerName(m.kaster))).join(' / ')
+    const opponentNames = opponents.length
+      ? opponents.map(m => escHtml(throwerName(m.kaster))).join(' / ')
       : '–'
     return `<tr>
       <td>R${kamp?.runde_nummer ?? ''} / B${kamp?.bane_nummer ?? ''}</td>
-      <td>${motstandarNamn}</td>
-      <td>${knapp}</td>
+      <td>${opponentNames}</td>
+      <td>${button}</td>
     </tr>`
   }
 
-  const grupperPerStevne = (
-    kampar: MatchPlayerRow[],
-    lagKnapp: (ks: MatchPlayerRow) => string,
+  const groupMatchesByTournament = (
+    matches: MatchPlayerRow[],
+    makeButton: (ks: MatchPlayerRow) => string,
   ): string | null => {
-    if (!kampar.length) return null
-    const grupper = new Map<number | string, { navn: string; kampar: MatchPlayerRow[] }>()
-    for (const ks of kampar) {
-      const stevneId = ks.kamp?.stevneid ?? 'ukjent'
-      const stevneNamn = ks.kamp?.stevne?.navn ?? ''
-      if (!grupper.has(stevneId)) grupper.set(stevneId, { navn: stevneNamn, kampar: [] })
-      grupper.get(stevneId)!.kampar.push(ks)
+    if (!matches.length) return null
+    const groups = new Map<number | string, { name: string; matches: MatchPlayerRow[] }>()
+    for (const ks of matches) {
+      const tournamentId = ks.kamp?.stevneid ?? 'ukjent'
+      const tournamentName = ks.kamp?.stevne?.navn ?? ''
+      if (!groups.has(tournamentId)) groups.set(tournamentId, { name: tournamentName, matches: [] })
+      groups.get(tournamentId)!.matches.push(ks)
     }
-    return [...grupper.values()].map(({ navn, kampar: grp }) => `
-      <p class="fw-semibold mb-1 mt-2">${escHtml(navn)}</p>
-      <table class="table table-sm mb-3">${tabellHoaude}<tbody>
-        ${grp.map(ks => lagKampRad(ks, lagKnapp(ks))).join('')}
+    return [...groups.values()].map(({ name, matches: group }) => `
+      <p class="fw-semibold mb-1 mt-2">${escHtml(name)}</p>
+      <table class="table table-sm mb-3">${tableHeader}<tbody>
+        ${group.map(ks => makeMatchRow(ks, makeButton(ks))).join('')}
       </tbody></table>`
     ).join('')
   }
 
-  const activeContent = grupperPerStevne(
+  const activeContent = groupMatchesByTournament(
     active,
     ks => {
       if (!ks.kamp?.er_bekreftet) {
         return `<a href="#/kamp/${ks.kamp?.id ?? ''}" class="btn btn-sm btn-primary" target="_blank" rel="noopener">Scoreboard</a>`
       }
       const stevneid = ks.kamp.stevneid
-      const mineSnr = stevneid != null ? snrMap[`${stevneid}:${kasterid}`] : undefined
+      const myStartNr = stevneid != null ? startNrMap[`${stevneid}:${kasterid}`] : undefined
       const myScore = ks.kamp.spelarar?.find(s => s.kasterid === kasterid)?.score_poeng
       const oppScore = ks.kamp.spelarar?.find(s => {
         if (s.kasterid == null || s.kasterid === kasterid) return false
-        const oSnr = stevneid != null ? snrMap[`${stevneid}:${s.kasterid}`] : undefined
-        return mineSnr == null || oSnr == null || oSnr !== mineSnr
+        const oSnr = stevneid != null ? startNrMap[`${stevneid}:${s.kasterid}`] : undefined
+        return myStartNr == null || oSnr == null || oSnr !== myStartNr
       })?.score_poeng
       if (myScore == null || oppScore == null) return '–'
       return `<span class="fw-semibold">${myScore} – ${oppScore}</span>`
     },
   )
-  const ferdigeInnhald = grupperPerStevne(
-    ferdige,
+  const completedContent = groupMatchesByTournament(
+    completed,
     ks => `<a href="#/kamp/${ks.kamp?.id ?? ''}" class="btn btn-sm btn-outline-secondary">Sjå kamp</a>`,
   )
 
   const card = document.createElement('div')
   card.className = 'card mb-4'
-  card.id = 'mine-kampar-seksjon'
+  card.id = 'my-matches-section'
   const cardBody = document.createElement('div')
   cardBody.className = 'card-body'
   const title = document.createElement('h5')
@@ -193,8 +193,8 @@ async function createMineKampar(kasterid: number): Promise<HTMLElement> {
   cardBody.appendChild(title)
   cardBody.appendChild(createTabs({
     tabs: [
-      { id: 'active',  label: `Aktive (${active.length})`,   panel: makePanel(activeContent  ?? '<p class="text-muted">Ingen active kampar.</p>') },
-      { id: 'ferdige', label: `Ferdige (${ferdige.length})`, panel: makePanel(ferdigeInnhald ?? '<p class="text-muted">Ingen ferdige kampar enno.</p>') },
+      { id: 'active',    label: `Aktive (${active.length})`,       panel: makePanel(activeContent    ?? '<p class="text-muted">Ingen aktive kampar.</p>') },
+      { id: 'completed', label: `Ferdige (${completed.length})`,   panel: makePanel(completedContent ?? '<p class="text-muted">Ingen ferdige kampar enno.</p>') },
     ],
   }))
   card.appendChild(cardBody)
@@ -203,34 +203,34 @@ async function createMineKampar(kasterid: number): Promise<HTMLElement> {
 
 // ── Event binding ─────────────────────────────────────────────────────────────
 
-function bindKasterSok(container: HTMLElement, brukerId: string): void {
+function bindThrowerSearch(container: HTMLElement, brukerId: string): void {
   let timer: number | null = null
-  let kastereCache: ThrowerListRow[] | null = null
-  const sokInput = container.querySelector<HTMLInputElement>('#kaster-sok')!
-  const treffDiv = container.querySelector<HTMLElement>('#kaster-treff')!
-  const feilDiv  = container.querySelector<HTMLElement>('#kasting-feil')!
+  let throwersCache: ThrowerListRow[] | null = null
+  const searchInput = container.querySelector<HTMLInputElement>('#kaster-sok')!
+  const resultsDiv  = container.querySelector<HTMLElement>('#kaster-treff')!
+  const errorDiv    = container.querySelector<HTMLElement>('#kasting-feil')!
 
-  sokInput.addEventListener('input', () => {
+  searchInput.addEventListener('input', () => {
     if (timer !== null) clearTimeout(timer)
-    const q = sokInput.value.trim().toLowerCase()
-    if (q.length < 2) { treffDiv.innerHTML = ''; return }
+    const q = searchInput.value.trim().toLowerCase()
+    if (q.length < 2) { resultsDiv.innerHTML = ''; return }
 
     timer = setTimeout(async () => {
-      if (!kastereCache) {
+      if (!throwersCache) {
         const { data } = await getActiveThrowerList()
-        kastereCache = data
+        throwersCache = data
       }
-      const treff = kastereCache
+      const results = throwersCache
         .filter(k => k.fornavn.toLowerCase().includes(q) || k.etternavn.toLowerCase().includes(q))
         .slice(0, 8)
 
-      if (!treff.length) {
+      if (!results.length) {
         const el = createEmptyState('Ingen treff.')
         el.classList.add('small')
-        treffDiv.replaceChildren(el)
+        resultsDiv.replaceChildren(el)
         return
       }
-      treffDiv.innerHTML = treff.map(k =>
+      resultsDiv.innerHTML = results.map(k =>
         `<button class="list-group-item list-group-item-action" data-id="${k.id}">
           ${escHtml(throwerName(k))} <span class="text-muted small">· ${escHtml(k.klubb?.navn ?? '')}</span>
         </button>`
@@ -238,22 +238,22 @@ function bindKasterSok(container: HTMLElement, brukerId: string): void {
     }, 300)
   })
 
-  treffDiv.addEventListener('click', async e => {
-    const knapp = (e.target as Element).closest<HTMLElement>('[data-id]')
-    if (!knapp) return
-    feilDiv.classList.add('d-none')
+  resultsDiv.addEventListener('click', async e => {
+    const button = (e.target as Element).closest<HTMLElement>('[data-id]')
+    if (!button) return
+    errorDiv.classList.add('d-none')
 
-    const { error } = await sendProfileLinkRequest(brukerId, Number(knapp.dataset.id))
+    const { error } = await sendProfileLinkRequest(brukerId, Number(button.dataset.id))
     if (error) {
-      feilDiv.textContent = 'Kunne ikkje sende forespørsel.'
-      feilDiv.classList.remove('d-none')
+      errorDiv.textContent = 'Kunne ikkje sende forespørsel.'
+      errorDiv.classList.remove('d-none')
       return
     }
     location.reload()
   })
 }
 
-// ── Hovudfunksjon ─────────────────────────────────────────────────────────────
+// ── Main function ─────────────────────────────────────────────────────────────
 
 export async function render(container: HTMLElement): Promise<void> {
   container.replaceChildren(createLoadingState('Laster min side…'))
@@ -272,20 +272,20 @@ export async function render(container: HTMLElement): Promise<void> {
         <p class="text-muted mb-4">${escHtml(user.email ?? '')} · <span class="badge bg-secondary">${escHtml(roleName)}</span></p>`
 
     if (status === 'ingen' || status === 'avvist') {
-      html += ikkjeKoblaHtml(status)
+      html += unlinkedHtml(status)
     } else if (status === 'venter') {
-      html += ventarHtml()
+      html += pendingHtml()
     } else if (status === 'godkjent' && profil?.kasterid) {
       const kasterid = profil.kasterid
-      const [kasterHtml, pamHtml, mineKamparEl] = await Promise.all([
-        koblaKortHtml(kasterid),
-        pameldingListeHtml(user.id),
-        createMineKampar(kasterid),
+      const [throwerCardHtml, regListHtml, myMatchesEl] = await Promise.all([
+        linkedCardHtml(kasterid),
+        registrationListHtml(user.id),
+        createMyMatches(kasterid),
       ])
-      html += kasterHtml + pamHtml
+      html += throwerCardHtml + regListHtml
       html += '</div>'
       container.innerHTML = html
-      container.querySelector('.minside-container')!.appendChild(mineKamparEl)
+      container.querySelector('.minside-container')!.appendChild(myMatchesEl)
       return
     }
 
@@ -293,7 +293,7 @@ export async function render(container: HTMLElement): Promise<void> {
     container.innerHTML = html
 
     if (status === 'ingen' || status === 'avvist') {
-      bindKasterSok(container, user.id)
+      bindThrowerSearch(container, user.id)
     }
   } catch (err) {
     logError('minside.render', err)
