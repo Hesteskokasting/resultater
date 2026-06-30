@@ -61,8 +61,8 @@ async function linkedCardHtml(kasterid: number): Promise<string> {
     </div>`
 }
 
-async function registrationListHtml(brukerId: string): Promise<string> {
-  const { data, error } = await getMyRegistrations(brukerId)
+async function registrationListHtml(userId: string): Promise<string> {
+  const { data, error } = await getMyRegistrations(userId)
   if (error) return '<p class="text-muted">Kunne ikkje laste påmeldingar.</p>'
   if (!data.length) return '<p class="empty-state">Ingen påmeldingar enno.</p>'
 
@@ -203,7 +203,7 @@ async function createMyMatches(kasterid: number): Promise<HTMLElement> {
 
 // ── Event binding ─────────────────────────────────────────────────────────────
 
-function bindThrowerSearch(container: HTMLElement, brukerId: string): void {
+function bindThrowerSearch(container: HTMLElement, userId: string): void {
   let timer: number | null = null
   let throwersCache: ThrowerListRow[] | null = null
   const searchInput = container.querySelector<HTMLInputElement>('#kaster-sok')!
@@ -243,7 +243,7 @@ function bindThrowerSearch(container: HTMLElement, brukerId: string): void {
     if (!button) return
     errorDiv.classList.add('d-none')
 
-    const { error } = await sendProfileLinkRequest(brukerId, Number(button.dataset.id))
+    const { error } = await sendProfileLinkRequest(userId, Number(button.dataset.id))
     if (error) {
       errorDiv.textContent = 'Kunne ikkje sende forespørsel.'
       errorDiv.classList.remove('d-none')
