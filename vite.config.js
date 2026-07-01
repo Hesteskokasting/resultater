@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import { resolve } from 'path'
+import pkg from './package.json'
 
 export default defineConfig({
   test: {
@@ -9,6 +10,14 @@ export default defineConfig({
   },
   root: 'src',
   envDir: '..',
+  plugins: [
+    {
+      name: 'inject-app-version',
+      transformIndexHtml(html) {
+        return html.replace('%APP_VERSION%', pkg.version)
+      },
+    },
+  ],
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
