@@ -1,4 +1,4 @@
-import type { QueryData, RealtimeChannel } from '@supabase/supabase-js'
+import type { QueryData } from '@supabase/supabase-js'
 import { supabase } from '@/supabase'
 import { logError } from '@/utils/logError'
 import type { Tables, Json, Round1FormatTyped } from '@/types'
@@ -265,19 +265,6 @@ export async function getTournamentHeader(id: number): Promise<{ data: Tournamen
     .single()
   if (error) logError('getTournamentHeader', error)
   return { data, error }
-}
-
-export function subscribeToTournamentPhase(
-  id: number,
-  onUpdate: (phase: string | undefined) => void,
-): RealtimeChannel {
-  return supabase
-    .channel(`stevne-fase-${id}`)
-    .on('postgres_changes',
-      { event: 'UPDATE', schema: 'public', table: 'stevne', filter: `id=eq.${id}` },
-      payload => onUpdate((payload.new as { stevne_fase?: string | undefined }).stevne_fase),
-    )
-    .subscribe()
 }
 
 // ── Avsluttande fase ──────────────────────────────────────────────────────────

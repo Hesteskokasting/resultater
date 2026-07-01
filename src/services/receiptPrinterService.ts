@@ -75,7 +75,7 @@ export async function connectUsb(): Promise<void> {
 }
 
 /** Close the current connection. Port stays in getPorts() so auto-reconnect works on next load. */
-export async function disconnect(): Promise<void> {
+async function disconnect(): Promise<void> {
   if (!port) return
   if (activeDisconnectHandler) {
     navigator.serial.removeEventListener('disconnect', activeDisconnectHandler)

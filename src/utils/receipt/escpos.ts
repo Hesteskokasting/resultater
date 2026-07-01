@@ -67,11 +67,6 @@ export function separator(): Uint8Array {
   return textLine('-'.repeat(RECEIPT_COLS))
 }
 
-/** ESC d n — feed n lines */
-export function feed(lines = 3): Uint8Array {
-  return bytes(ESC, 0x64, lines)
-}
-
 /** GS V A (0x41) — full paper cut */
 export function cut(): Uint8Array {
   return bytes(GS, 0x56, 0x41, NUL)
