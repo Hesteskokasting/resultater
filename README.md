@@ -189,6 +189,46 @@ Når du koplar inn Supabase-migrering i CI, trengst òg:
 
 ---
 
+## Android (Capacitor)
+
+Appen er pakka med [Capacitor](https://capacitorjs.com) for å køyre nativt på Android. Dette er i tillegg til vanleg web-oppsett ovanfor.
+
+### Krav på ny maskin
+
+- [Android Studio](https://developer.android.com/studio) (siste versjon) — JDK/`keytool` følgjer med (`<Android Studio>/jbr/bin/`), ingen separat Java-installasjon nødvendig
+- Sett miljøvariabelen `ANDROID_HOME` til Android SDK-mappa (typisk `%LOCALAPPDATA%\Android\Sdk` på Windows), og legg `%ANDROID_HOME%\platform-tools` til PATH
+
+### Bygg og synk
+
+```bash
+npm run build
+npx cap sync android
+npx cap open android
+```
+
+Dette opnar Android Studio. Køyr frå ei tilkopla enhet (USB-debugging på) eller emulator med ▶ i verktøylinja.
+
+`android/` er committa til git (ikkje i `.gitignore`) sidan mappa inneheld manuell native-konfig (plugins, ikon, signeringsreferansar). **Rediger aldri** genererte filer i `android/app/src/main/assets/public/` direkte — dei blir overskrivne av `cap sync`.
+
+### Release-signering
+
+`android/app/keystore.properties` og `android/app/keystore/hesteskokasting-release.keystore` er **med vilje ikkje i git** (sikkerheitsrisiko). Dei er sikkerheitskopiert separat: keystore-fila i privat Google Drive, passordet i passordhandterar.
+
+Utan desse filene fell release-bygget automatisk tilbake til debug-signering (fint for lokal ytelsestesting, men **kan ikkje lastas opp til Google Play**). For å gjere eit ordentleg signert release-bygg på ei ny maskin:
+
+1. Kopier `hesteskokasting-release.keystore` inn i `android/app/keystore/`
+2. Lag `android/app/keystore.properties` med:
+   ```
+   storeFile=keystore/hesteskokasting-release.keystore
+   storePassword=<passord frå passordhandterar>
+   keyAlias=hesteskokasting
+   keyPassword=<samme passord>
+   ```
+
+Sjå `plans/phase4-android-play-store.md` for status på Google Play-forberedelsar.
+
+---
+
 ## Prosjektstruktur
 
 ```
@@ -220,4 +260,7 @@ supabase/
 └── migrations/             # SQL-migreringsfiler
 
 tests/                      # Vitest-testar for rein logikk (utils og service-funksjonar utan Supabase-kall)
+
+android/                    # Nativt Android-prosjekt (Capacitor) — sjå eigen seksjon ovanfor
+capacitor.config.ts         # Capacitor-konfig (app-id, webDir)
 ```
