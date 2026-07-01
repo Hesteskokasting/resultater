@@ -179,7 +179,7 @@ async function _renderUsers(el: HTMLElement): Promise<void> {
           return `<tr data-id="${r.id}">
           <td>${escHtml(emailMap[r.id] ?? r.id)}${nameCell}</td>
           <td>
-            <select class="form-select form-select-sm role-select sel-auto">
+            <select id="role-select-${r.id}" class="form-select form-select-sm role-select sel-auto">
               ${roleOptions}
             </select>
           </td>
@@ -264,7 +264,7 @@ async function _renderClubAdmin(el: HTMLElement): Promise<void> {
           <h6 class="card-title mb-2">${escHtml(emailMap[u.id] ?? u.id)}</h6>
           <div class="club-admin-clubs mb-2">${assignedBadges || '<span class="text-muted small">Ingen klubbar tildelt</span>'}</div>
           <div class="d-flex gap-2">
-            <select class="form-select form-select-sm add-club-select sel-auto">
+            <select id="add-club-select-${u.id}" class="form-select form-select-sm add-club-select sel-auto">
               <option value="">Legg til klubb…</option>
               ${clubOptions}
             </select>
