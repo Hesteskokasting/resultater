@@ -31,7 +31,8 @@
       "PowerShell($files = @\\('d:\\\\repos\\\\NY-resultat-app\\\\src\\\\components\\\\ScoreNumberpad.ts', 'd:\\\\repos\\\\NY-resultat-app\\\\src\\\\components\\\\Scoreboard.ts'\\); foreach \\($f in $files\\) { \\(Get-Content $f -Raw\\) -replace 'lagEl\\\\\\(', 'createEl\\(' | Set-Content $f -Encoding utf8 -NoNewline }; \"done\")",
       "PowerShell(npm run typecheck)",
       "Bash(Get-ChildItem -Path \"d:\\\\repos\\\\NY-resultat-app\\\\src\\\\components\\\\\" -Filter \"*.ts\" -Recurse | Select-Object -ExpandProperty FullName)",
-      "Bash(Get-ChildItem -Path \"d:\\\\repos\\\\NY-resultat-app\\\\src\\\\services\\\\\" -File -Recurse | Select-Object -ExpandProperty FullName)"
+      "Bash(Get-ChildItem -Path \"d:\\\\repos\\\\NY-resultat-app\\\\src\\\\services\\\\\" -File -Recurse | Select-Object -ExpandProperty FullName)",
+      "Bash(npx fallow *)"
     ]
   }
 }

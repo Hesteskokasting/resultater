@@ -91,6 +91,23 @@ async function registrationListHtml(userId: string): Promise<string> {
     </div>`
 }
 
+type MatchPlayerInMatch = NonNullable<MatchPlayerRow['kamp']>['spelarar'][number]
+
+/** Players in a match other than the given thrower, excluding anyone sharing the same start number (teammates). */
+function findOpponents(
+  players: MatchPlayerInMatch[],
+  throwerId: number,
+  tournamentId: number | null | undefined,
+  startNrMap: Record<string, number>,
+): MatchPlayerInMatch[] {
+  const myStartNr = tournamentId != null ? startNrMap[`${tournamentId}:${throwerId}`] : undefined
+  return players.filter(s => {
+    if (s.kasterid == null || s.kasterid === throwerId) return false
+    const opponentStartNr = tournamentId != null ? startNrMap[`${tournamentId}:${s.kasterid}`] : undefined
+    return myStartNr == null || opponentStartNr == null || opponentStartNr !== myStartNr
+  })
+}
+
 async function createMyMatches(throwerId: number): Promise<HTMLElement> {
   const { data, error } = await getMyMatches(throwerId)
   if (error) {
@@ -118,12 +135,7 @@ async function createMyMatches(throwerId: number): Promise<HTMLElement> {
   const makeMatchRow = (ks: MatchPlayerRow, button: string): string => {
     const match = ks.kamp
     const tournamentId = match?.stevneid
-    const myStartNr = tournamentId != null ? startNrMap[`${tournamentId}:${throwerId}`] : undefined
-    const opponents = (match?.spelarar ?? []).filter(s => {
-      if (s.kasterid == null || s.kasterid === throwerId) return false
-      const opponentStartNr = tournamentId != null ? startNrMap[`${tournamentId}:${s.kasterid}`] : undefined
-      return myStartNr == null || opponentStartNr == null || opponentStartNr !== myStartNr
-    })
+    const opponents = findOpponents(match?.spelarar ?? [], throwerId, tournamentId, startNrMap)
     const opponentNames = opponents.length
       ? opponents.map(m => escHtml(throwerName(m.kaster))).join(' / ')
       : '–'
@@ -161,13 +173,8 @@ async function createMyMatches(throwerId: number): Promise<HTMLElement> {
         return `<a href="#/kamp/${ks.kamp?.id ?? ''}" class="btn btn-sm btn-primary" target="_blank" rel="noopener">Scoreboard</a>`
       }
       const tournamentId = ks.kamp.stevneid
-      const myStartNr = tournamentId != null ? startNrMap[`${tournamentId}:${throwerId}`] : undefined
       const myScore = ks.kamp.spelarar?.find(s => s.kasterid === throwerId)?.score_poeng
-      const oppScore = ks.kamp.spelarar?.find(s => {
-        if (s.kasterid == null || s.kasterid === throwerId) return false
-        const opponentStartNr = tournamentId != null ? startNrMap[`${tournamentId}:${s.kasterid}`] : undefined
-        return myStartNr == null || opponentStartNr == null || opponentStartNr !== myStartNr
-      })?.score_poeng
+      const oppScore = findOpponents(ks.kamp.spelarar ?? [], throwerId, tournamentId, startNrMap)[0]?.score_poeng
       if (myScore == null || oppScore == null) return '–'
       return `<span class="fw-semibold">${myScore} – ${oppScore}</span>`
     },

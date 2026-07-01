@@ -75,35 +75,47 @@ function mobileMetaHtml(rep: ResultRow, cols: ColFlags): string {
 }
 
 function mobileGroupHtml(group: GroupEntry, cols: ColFlags): string {
-  const rows = cols.isParMix
-    ? groupPairsByStart(group.rows).map(pair => {
-        const rep = pair[0]!
-        const namesHtml = pair.map(r => escHtml(throwerName(r.kaster) || '–')).join(' og ')
-        return `
-          <div class="res-row">
-            <span class="res-pl">${rep.plassering ?? '–'}.</span>
-            <div class="res-info">
-              <span class="res-navn">${namesHtml}</span>
-              <span class="res-klubb">${pairClubDisplay(pair)}</span>
-              ${mobileMetaHtml(rep, cols)}
-            </div>
-          </div>`
-      }).join('')
-    : group.rows.map(r => `
+  const rows = rowsForGroup(group, cols,
+    (pair, rep) => {
+      const namesHtml = pair.map(r => escHtml(throwerName(r.kaster) || '–')).join(' og ')
+      return `
         <div class="res-row">
-          <span class="res-pl">${r.plassering ?? '–'}.</span>
+          <span class="res-pl">${rep.plassering ?? '–'}.</span>
           <div class="res-info">
-            <span class="res-navn">${escHtml(throwerName(r.kaster) || '–')}</span>
-            <span class="res-klubb">${escHtml(r.klubb?.navn ?? '–')}</span>
-            ${mobileMetaHtml(r, cols)}
+            <span class="res-navn">${namesHtml}</span>
+            <span class="res-klubb">${pairClubDisplay(pair)}</span>
+            ${mobileMetaHtml(rep, cols)}
           </div>
-        </div>`).join('')
+        </div>`
+    },
+    r => `
+      <div class="res-row">
+        <span class="res-pl">${r.plassering ?? '–'}.</span>
+        <div class="res-info">
+          <span class="res-navn">${escHtml(throwerName(r.kaster) || '–')}</span>
+          <span class="res-klubb">${escHtml(r.klubb?.navn ?? '–')}</span>
+          ${mobileMetaHtml(r, cols)}
+        </div>
+      </div>`,
+  ).join('')
 
   return `
     <div class="res-group">
       <h2 class="res-group-title">${escHtml(group.label)}</h2>
       <div class="res-group-rows">${rows}</div>
     </div>`
+}
+
+/** Maps a group's rows to `T`, grouping into pairs first when the category is Par/Mix. */
+function rowsForGroup<T>(
+  group: GroupEntry,
+  cols: ColFlags,
+  renderPair: (pair: ResultRow[], rep: ResultRow) => T,
+  renderSingle: (r: ResultRow) => T,
+): T[] {
+  return cols.isParMix
+    ? groupPairsByStart(group.rows).map(pair => renderPair(pair, pair[0]!))
+    : group.rows.map(renderSingle)
 }
 
 function desktopRowHtml(
@@ -124,24 +136,17 @@ function desktopRowHtml(
 }
 
 function desktopGroupHtml(group: GroupEntry, cols: ColFlags): string {
-  const rows = cols.isParMix
-    ? groupPairsByStart(group.rows).map(pair => {
-        const rep = pair[0]!
-        const namesHtml = pair.map(r => {
-          const k = r.kaster
-          return k
-            ? `<a href="#/kastere/${buildThrowerSlug(k)}" class="res-kaster-lenke">${escHtml(throwerName(k))}</a>`
-            : '–'
-        }).join(' og ')
-        return desktopRowHtml(rep.plassering, namesHtml, pairClubDisplay(pair), rep, cols)
-      }).join('')
-    : group.rows.map(r => {
-        const k = r.kaster
-        const namesHtml = k
-          ? `<a href="#/kastere/${buildThrowerSlug(k)}" class="res-kaster-lenke">${escHtml(throwerName(k))}</a>`
-          : '–'
-        return desktopRowHtml(r.plassering, namesHtml, escHtml(r.klubb?.navn ?? '–'), r, cols)
-      }).join('')
+  const throwerLinkHtml = (r: ResultRow): string => {
+    const k = r.kaster
+    return k
+      ? `<a href="#/kastere/${buildThrowerSlug(k)}" class="res-kaster-lenke">${escHtml(throwerName(k))}</a>`
+      : '–'
+  }
+
+  const rows = rowsForGroup(group, cols,
+    (pair, rep) => desktopRowHtml(rep.plassering, pair.map(throwerLinkHtml).join(' og '), pairClubDisplay(pair), rep, cols),
+    r => desktopRowHtml(r.plassering, throwerLinkHtml(r), escHtml(r.klubb?.navn ?? '–'), r, cols),
+  ).join('')
 
   const colspan = 3 + (cols.showKpSp ? 2 : 0) + (cols.showNc ? 1 : 0)
 

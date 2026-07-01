@@ -93,15 +93,6 @@
   --standing-sp-th:  #16a34a;
   --avsl-score-bg:   #d0e4f7;
 
-  /* Nummerpad — same blue as other themes */
-  --np-bg: #1e4976;
-  --np-tekst: #ffffff;
-  --np-knapp-bg: #ffffff;
-  --np-knapp-tekst: #1e4976;
-  --np-pad-bg: rgba(255, 255, 255, 0.1);
-  --np-reset-bg: rgba(255, 255, 255, 0.25);
-  --np-nav-bg: rgba(255, 255, 255, 0.15);
-
   /* Scoreboard — white bg + pure black for outdoor sun readability */
   --sb-bg:              #ffffff;
   --sb-topbar-bg:       #eeeeee;
