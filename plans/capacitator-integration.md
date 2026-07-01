@@ -81,6 +81,17 @@ Limitation: apps installed this way expire after 7 days and need reinstalling (f
 - [ ] Battery status plugin returns real values (see Phase 3 — test this on physical hardware, emulators often fake battery data)
 - [ ] Basic navigation and core flows work as expected in the native wrapper
 
+Chrome remote debugging — plug the phone in, open chrome://inspect/#devices in desktop Chrome, click "inspect" on your app. Since Capacitor just wraps a WebView, this gives you full DevTools: Console (JS errors), Network tab (see actual Supabase request timing/CORS issues over the real network), and Elements. This is far more useful than Android Studio's own tools for a Capacitor app — most real bugs will show up here first.
+
+DONE
+
+Logcat in Android Studio — filter by your package name (no.hesteskokasting.app) to catch native-level crashes or warnings that wouldn't show in the WebView console (e.g. WebView process crashes, permission denials).
+
+Test a release build, not debug — Build → Generate Signed Bundle/APK or just switch build variant to release. Debug builds are noticeably slower and larger; if you're checking performance, a debug-build impression will be misleadingly bad. Same principle as the project's "never benchmark on npm run dev" rule, just for native.
+
+Android Studio Profiler (View → Tool Windows → Profiler) — CPU/Memory/Network graphs while you use the app. Only worth it if something feels janky; for a WebView-wrapped SPA, most performance issues will actually be front-end (same Lighthouse/bundle concerns as the web app) rather than native.
+
+
 ---
 
 ## Phase 3: Battery status plugin
