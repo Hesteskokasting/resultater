@@ -1,26 +1,21 @@
 import { throwerName } from '@/utils/kaster'
 import { createErrorBanner } from '@/components/ErrorBanner'
-import { showToast } from '@/components/Toast'
 import { logError } from '@/utils/logError'
-import { errorMessage } from '@/utils/errorMessage'
 import { getActiveThrowerList } from '@/services/kasterService'
 import type { ThrowerListRow } from '@/services/kasterService'
-import {
-  getRegistrationStatusForTournament,
-  addRegistrationAdmin,
-  confirmRegistrationForThrower,
-  removeRegistrationForThrower,
-} from '@/services/pameldingService'
+import { getRegistrationStatusForTournament } from '@/services/pameldingService'
+import type { RegistrationStatusRow } from '@/services/pameldingService'
 import { getTournamentHeader, getInitialMethodName } from '@/services/stevneService'
+import type { TournamentHeaderRow } from '@/services/stevneService'
 import { setOnDisconnect } from '@/services/receiptPrinterService'
 import { createPrinterBanner } from '@/pages/stevne/PrinterBanner'
 import type { PrinterBanner } from '@/pages/stevne/PrinterBanner'
-import { createRemoveButton } from '@/components/RemoveButton'
-import { createPlayerTable } from '@/components/PlayerTable'
-import type { PlayerTableHandle } from '@/components/PlayerTable'
+import { createAvailableColumn, createRegisteredColumn } from '@/pages/stevne/_deltakereColumns'
+import type { AvailableColumnHandle } from '@/pages/stevne/_deltakereColumns'
 import { createLoadingState } from '@/components/LoadingState'
 import { createTabs } from '@/components/Tabs'
 import { createPairTab } from '@/pages/stevne/parTab'
+import { buildRegistrationLookup } from '@/utils/registrationLookup'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -46,6 +41,39 @@ function filterAvailable(
   })
 }
 
+// ── Data loading ──────────────────────────────────────────────────────────────
+
+interface DeltakereData {
+  stevne: TournamentHeaderRow
+  throwers: ThrowerListRow[]
+  registration: RegistrationStatusRow[]
+  isGloppen: boolean
+}
+
+async function loadDeltakereData(id: number): Promise<
+  { ok: true; data: DeltakereData } | { ok: false; error: string }
+> {
+  const [stevneRes, throwersRes, registrationRes, methodRes] = await Promise.all([
+    getTournamentHeader(id),
+    getActiveThrowerList(),
+    getRegistrationStatusForTournament(id),
+    getInitialMethodName(id),
+  ])
+
+  if (stevneRes.error || !stevneRes.data) return { ok: false, error: 'Stevne ikkje funne.' }
+  if (throwersRes.error) return { ok: false, error: 'Kunne ikkje laste kasterliste.' }
+
+  return {
+    ok: true,
+    data: {
+      stevne: stevneRes.data,
+      throwers: throwersRes.data,
+      registration: registrationRes.data,
+      isGloppen: !methodRes.error && methodRes.navn.includes('gloppen'),
+    },
+  }
+}
+
 // ── Render ────────────────────────────────────────────────────────────────────
 
 export async function render(
@@ -58,37 +86,19 @@ export async function render(
   setOnDisconnect(null)
 
   try {
-    const [stevneRes, throwersRes, registrationRes, methodRes] = await Promise.all([
-      getTournamentHeader(id),
-      getActiveThrowerList(),
-      getRegistrationStatusForTournament(id),
-      getInitialMethodName(id),
-    ])
-
-    if (stevneRes.error || !stevneRes.data) {
-      container.replaceChildren(createErrorBanner('Stevne ikkje funne.'))
+    const result = await loadDeltakereData(id)
+    if (!result.ok) {
+      container.replaceChildren(createErrorBanner(result.error))
       return
     }
-    if (throwersRes.error) {
-      container.replaceChildren(createErrorBanner('Kunne ikkje laste kasterliste.'))
-      return
-    }
+    const { stevne, throwers: allThrowers, registration, isGloppen } = result.data
 
-    const phase       = stevneRes.data.stevne_fase ?? null
-    const canEdit     = isAdmin && (phase === null || phase === 'ikke_startet')
-    const isStarted   = phase !== null && phase !== 'ikke_startet'
-    const isTeam      = stevneRes.data.kategori?.erlagbasert ?? false
-    const isGloppen   = !methodRes.error && methodRes.navn.includes('gloppen')
-    const allThrowers = throwersRes.data
+    const phase     = stevne.stevne_fase ?? null
+    const canEdit   = isAdmin && (phase === null || phase === 'ikke_startet')
+    const isStarted = phase !== null && phase !== 'ikke_startet'
+    const isTeam    = stevne.kategori?.erlagbasert ?? false
 
-    const registeredMap = new Map<number, boolean>()
-    const pairedIds = new Set<number>()
-    for (const p of registrationRes.data) {
-      if (p.kasterid != null) {
-        registeredMap.set(p.kasterid, p.er_bekreftet ?? false)
-        if (p.lag_id != null) pairedIds.add(p.kasterid)
-      }
-    }
+    const { registeredMap, pairedIds } = buildRegistrationLookup(registration)
 
     // Pair tab renders lazily on first activation; true again whenever
     // enrollment changes so the next activation re-fetches
@@ -102,7 +112,7 @@ export async function render(
     if (isAdmin && isGloppen && isStarted) {
       printerBanner = createPrinterBanner({
         tournamentId: id,
-        tournamentName: stevneRes.data.navn,
+        tournamentName: stevne.navn,
         isTeam,
         onStateChange: () => renderRegisteredList(),
       })
@@ -114,131 +124,52 @@ export async function render(
 
     // ── Left column: available throwers (only when tournament not started) ──
 
-    let searchInput: HTMLInputElement | null = null
-    let availableTable: PlayerTableHandle | null = null
-
+    let leftColumn: AvailableColumnHandle | null = null
     if (!isStarted) {
-      const leftWrapper = document.createElement('div')
-      leftWrapper.className = 'col-md-6 d-flex flex-column participant-column'
-
-      searchInput = document.createElement('input')
-      searchInput.type = 'text'
-      searchInput.placeholder = 'Søk etter navn eller klubb…'
-      searchInput.className = 'form-control mb-2'
-
-      availableTable = createPlayerTable({
-        formatTitle: () => 'Tilgjengelege spelarar',
-        emptyText: 'Ingen spelarar funne',
-        clubFallback: 'Ingen klubb',
-        onRowClick: canEdit
-          ? async s => {
-              const { error } = await addRegistrationAdmin(id, s.id)
-              if (error) { showToast('Feil ved innmelding: ' + errorMessage(error), 'error'); return }
-              registeredMap.set(s.id, false)
-              pairTabDirty = true
-              printerBanner?.invalidateMatchData()
-              renderRegisteredList()
-              renderAvailableList()
-            }
-          : undefined,
+      leftColumn = createAvailableColumn({
+        canEdit,
+        tournamentId: id,
+        onRegistered: kasterid => {
+          registeredMap.set(kasterid, false)
+          pairTabDirty = true
+          printerBanner?.invalidateMatchData()
+        },
+        refreshLists: () => { renderRegisteredList(); renderAvailableList() },
       })
-      leftWrapper.appendChild(searchInput)
-      leftWrapper.appendChild(availableTable.element)
-      layout.appendChild(leftWrapper)
+      layout.appendChild(leftColumn.element)
     }
 
     // ── Right column: registered throwers ────────────────────────────────────
 
-    const rightWrapper = document.createElement('div')
-    rightWrapper.className = `${isStarted ? 'col-12' : 'col-md-6'} d-flex flex-column participant-column`
-
-    if (!isStarted) {
-      const searchSpacer = document.createElement('input')
-      searchSpacer.type = 'text'
-      searchSpacer.className = 'form-control mb-2 participant-search-spacer'
-      searchSpacer.tabIndex = -1
-      searchSpacer.disabled = true
-      rightWrapper.appendChild(searchSpacer)
-    }
-
-    // Print column exists whenever the banner does; the per-row button is
-    // re-evaluated on every render so it tracks the live printer connection.
-    const renderPrintCell = printerBanner
-      ? (sp: ThrowerListRow): HTMLElement | null => {
-          const handler = printerBanner.getPrintHandler()
-          if (!handler) return null
-          const printBtn = document.createElement('button')
-          printBtn.textContent = '🖨'
-          printBtn.className = 'btn btn-outline-secondary btn-sm p-0 lh-1 participant-print-btn'
-          printBtn.title = 'Skriv ut startkort'
-          printBtn.addEventListener('click', e => { e.stopPropagation(); handler(sp) })
-          return printBtn
-        }
-      : null
-
-    const registeredTable = createPlayerTable({
-      formatTitle: n => `Påmelde spelarar: ${n}`,
-      emptyText: 'Ingen spelarar påmelde',
-      renderLeading: sp => {
-        if (registeredMap.get(sp.id) ?? false) {
-          const checkmark = document.createElement('span')
-          checkmark.className = 'text-success fw-bold'
-          checkmark.textContent = '✓'
-          return checkmark
-        }
-        if (!canEdit) return null
-        const confirmBtn = document.createElement('button')
-        confirmBtn.textContent = '✓'
-        confirmBtn.className = 'btn btn-outline-danger btn-sm rounded-circle p-0 lh-1 participant-confirm-btn'
-        confirmBtn.title = 'Bekreft spelar'
-        confirmBtn.addEventListener('click', async e => {
-          e.stopPropagation()
-          const { error } = await confirmRegistrationForThrower(id, sp.id)
-          if (error) { showToast('Feil ved bekreftelse: ' + errorMessage(error), 'error'); return }
-          registeredMap.set(sp.id, true)
-          renderRegisteredList()
-        })
-        return confirmBtn
+    const registeredColumn = createRegisteredColumn({
+      isStarted, canEdit, tournamentId: id, registeredMap, pairedIds, printerBanner,
+      onConfirmed: kasterid => registeredMap.set(kasterid, true),
+      onRemoved: kasterid => {
+        registeredMap.delete(kasterid)
+        pairTabDirty = true
+        printerBanner?.invalidateMatchData()
       },
-      renderTrailing: [
-        sp => canEdit
-          ? createRemoveButton({
-              title: 'Fjern spelar',
-              onClick: async () => {
-                if (pairedIds.has(sp.id)) { showToast('Kan ikkje fjerne spelar som er i eit par. Slett paret fyrst.', 'error'); return }
-                const { error } = await removeRegistrationForThrower(id, sp.id)
-                if (error) { showToast('Feil ved fjerning: ' + errorMessage(error), 'error'); return }
-                registeredMap.delete(sp.id)
-                pairTabDirty = true
-                printerBanner?.invalidateMatchData()
-                renderRegisteredList()
-                renderAvailableList()
-              },
-            })
-          : null,
-        ...(renderPrintCell ? [renderPrintCell] : []),
-      ],
+      refreshRegisteredList: () => renderRegisteredList(),
+      refreshBothLists: () => { renderRegisteredList(); renderAvailableList() },
     })
-    rightWrapper.appendChild(registeredTable.element)
+    layout.appendChild(registeredColumn.element)
 
     // ── Render helpers ────────────────────────────────────────────────────────
 
     function renderRegisteredList(): void {
-      registeredTable.setPlayers(sortThrowers(allThrowers.filter(p => registeredMap.has(p.id))))
+      registeredColumn.table.setPlayers(sortThrowers(allThrowers.filter(p => registeredMap.has(p.id))))
     }
 
     function renderAvailableList(): void {
-      if (!searchInput || !availableTable) return
-      availableTable.setPlayers(sortThrowers(filterAvailable(allThrowers, searchInput.value, registeredMap)))
+      if (!leftColumn) return
+      leftColumn.table.setPlayers(sortThrowers(filterAvailable(allThrowers, leftColumn.searchInput.value, registeredMap)))
     }
-
-    layout.appendChild(rightWrapper)
 
     if (isTeam) {
       const pairTab = createPairTab({
         tournamentId: id,
         isAdmin: canEdit,
-        isMix: (stevneRes.data.kategori?.navn ?? '').toLowerCase().includes('mix'),
+        isMix: (stevne.kategori?.navn ?? '').toLowerCase().includes('mix'),
         getRegisteredIds: () => new Set(registeredMap.keys()),
         allThrowers,
         onPairsChanged: ids => {
@@ -264,7 +195,7 @@ export async function render(
 
     container.replaceChildren(wrapper)
 
-    if (searchInput) searchInput.addEventListener('input', renderAvailableList)
+    leftColumn?.searchInput.addEventListener('input', renderAvailableList)
     renderRegisteredList()
     renderAvailableList()
   } catch (err) {
