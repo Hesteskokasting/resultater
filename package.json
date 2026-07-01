@@ -1,6 +1,7 @@
 {
   "name": "resultater",
   "version": "0.8.7",
+  "buildNumber": 1,
   "description": "",
   "repository": {
     "type": "git",

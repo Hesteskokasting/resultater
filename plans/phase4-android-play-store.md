@@ -10,7 +10,7 @@ This replaces the generic "Phase 4" section in `plans/capacitator-integration.md
 
 1. ~~**No app icon source exists anywhere in the repo.**~~ **RESOLVED 2026-07-01.** A 1024×1024 upscaled PNG + SVG source was added at `src/assets/NHF_logo_original_oppskalert_1024x1024.png`. Copied to `resources/icon.png` (the convention `@capacitor/assets` expects) and ran `npx capacitor-assets generate --android` — regenerated all `mipmap-*` icon densities (legacy + adaptive foreground/background + round) and all splash screen densities (light + dark/night, portrait + landscape) in `android/app/src/main/res/`. Synced with `npx cap sync android`. Verified visually: icon and splash render correctly, no cropping on the "NHF" text.
    Note: the source is an *upscaled* image (original was 141×153px), not a true high-res original — acceptable per your call, but worth swapping for a true vector/high-res original later if one ever surfaces (e.g. from the club's print materials).
-2. **The release build currently signs with `signingConfigs.debug`.** That was a deliberate, temporary stand-in so you could run a release *build variant* locally for performance testing (per Phase 2). It is **not acceptable for a Play Store upload** — anyone with the (checked-into-git) debug keystore could re-sign as your app. This must be replaced with a real release keystore before step 5.
+2. ~~**The release build currently signs with `signingConfigs.debug`.**~~ **RESOLVED 2026-07-01.** Real release keystore generated (`android/app/keystore/hesteskokasting-release.keystore`, alias `hesteskokasting`), backed up outside git (Google Drive for the keystore file, password manager for the password). `build.gradle` now reads `android/app/keystore.properties` (gitignored) and falls back to debug signing only when that file is absent, e.g. on a machine without the secret.
 3. **Privacy policy required.** The app stores personal data (thrower names, results, possibly user accounts/emails via Supabase auth). Play Console's Data Safety form and app listing both require a hosted, publicly reachable privacy policy URL. Needs a page somewhere (could be a static page on hesteskokasting.no) — content and hosting decision is yours, not something to draft silently into the codebase.
 
 ---
@@ -21,11 +21,8 @@ This replaces the generic "Phase 4" section in `plans/capacitator-integration.md
 - Pay the one-time $25 registration fee, complete identity verification (can take a few days for new accounts — plan around this, don't leave it to the last minute).
 - **Note (2026 Play policy):** new personal developer accounts must run a **closed testing track with ≥12 testers for 14 continuous days** before they're allowed to publish to production. Budget ~2+ weeks of lead time for this, not just the review turnaround.
 
-### 2. Generate the release keystore
-- `keytool -genkey -v -keystore hesteskokasting-release.keystore -alias hesteskokasting -keyalg RSA -keysize 2048 -validity 10000`
-- Store the `.keystore` file and its passwords **outside git** (password manager + a backed-up copy off this machine). Losing it means you can never update the app again under the same listing.
-- Reference it from `android/app/build.gradle` via `gradle.properties` (or environment variables), never hardcoded in a committed file. I'll set this up so the keystore path/passwords are read from a local, gitignored properties file.
-- Remove `signingConfig signingConfigs.debug` from the `release` buildType once the real signing config is wired in.
+### 2. Generate the release keystore — DONE
+- See blocker #2 above. Restore steps for a new machine are documented in `README.md` under "Android (Capacitor) → Release-signering".
 
 ### 3. App icon & splash assets — DONE
 - Generated via `@capacitor/assets` from `resources/icon.png`. See blocker #1 above for details.
@@ -38,13 +35,16 @@ This replaces the generic "Phase 4" section in `plans/capacitator-integration.md
 - Content rating questionnaire (Play Console's own form).
 - Data Safety form — declare what's collected (auth email, thrower personal data) and whether it's shared with third parties (Supabase as processor).
 
-### 5. Versioning
-- `versionCode` (Android, integer, must increase every upload) and `versionName` in `android/app/build.gradle` — currently `1` / `"1.0"`, hardcoded, disconnected from `package.json`'s `"1.0.0"`. Decide: keep them independent, or wire `versionName` to `package.json`'s version. Your call — flagging so it's a decision, not an oversight.
+### 5. Versioning — DONE
+- `package.json` is the single source of truth for versioning across web + Android:
+  - `"version"` (e.g. `"0.8.7"`) → injected into `src/index.html`'s header badge at build/dev time via a `transformIndexHtml` Vite plugin, and read as Android's `versionName` in `build.gradle`.
+  - `"buildNumber"` (currently `1`) → read as Android's `versionCode` in `build.gradle`.
+- **Still manual, by design:** bump `"buildNumber"` by 1 in `package.json` before every single Play Console upload (internal, closed, or production track — Play rejects any upload that doesn't strictly increase this). Bump `"version"` when you make a meaningful release. These are independent actions — not everything that changes `buildNumber` needs a `version` bump.
 
 ### 6. Build & upload
-- `Build → Generate Signed Bundle/APK`, choose **Android App Bundle (.aab)** — Play requires AAB for new apps, not APK.
-- Enroll in **Play App Signing** when prompted (Google re-signs your upload key with a Google-managed app signing key — recommended, and required for some newer Play features).
-- Upload to the **closed/internal testing track first**, not production.
+- ~~`Build → Generate Signed Bundle/APK`, choose **Android App Bundle (.aab)**~~ — **DONE 2026-07-02.** Signed release AAB built locally with the real keystore, verified working. Sitting ready for upload once the Play Console account clears verification.
+- Still open: enroll in **Play App Signing** when prompted on first upload (Google re-signs your upload key with a Google-managed app signing key — recommended, required for some newer Play features).
+- Still open: upload to the **closed/internal testing track first**, not production.
 
 ### 7. Testing track rollout
 - Internal testing (fast, no review) → invite yourself/a few club admins.
