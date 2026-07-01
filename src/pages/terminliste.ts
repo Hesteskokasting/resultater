@@ -287,9 +287,10 @@ export async function render(container: HTMLElement): Promise<void> {
     `
 
     function updateList(): TournamentRow[] {
-      const filtered    = filterData(allData)
-      const listEl      = container.querySelector<HTMLElement>('.tl-list-container')!
-      listEl.innerHTML  = buildView(filtered)
+      const filtered = filterData(allData)
+      const listEl   = container.querySelector<HTMLElement>('.tl-list-container')
+      if (!listEl) return filtered
+      listEl.innerHTML = buildView(filtered)
       const countEl     = container.querySelector('.tl-count')
       if (countEl) countEl.textContent = `${filtered.length} stevner`
       const throwerId = _auth?.profil?.kasterid
@@ -344,10 +345,15 @@ export async function render(container: HTMLElement): Promise<void> {
     })
 
     let resizeTimer: number | null = null
-    window.addEventListener('resize', () => {
+    function handleResize(): void {
+      if (!container.querySelector('.tl-list-container')) {
+        window.removeEventListener('resize', handleResize)
+        return
+      }
       if (resizeTimer !== null) clearTimeout(resizeTimer)
       resizeTimer = setTimeout(updateList, 200)
-    })
+    }
+    window.addEventListener('resize', handleResize)
 
     async function reloadYear(logContext: string): Promise<boolean> {
       container.querySelector('.tl-title')!.textContent = `Terminliste ${filter.year}`
