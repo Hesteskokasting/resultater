@@ -124,9 +124,15 @@ export function buildCascadePairs(N: number, roundCount: number): MatchPair[][] 
   return rounds
 }
 
-function _pushPlayerRows(playerRows: MatchPlayerInsert[], kampid: number, kasterids: number[]): void {
+function _pushPlayerRows(
+  playerRows: MatchPlayerInsert[],
+  kampid: number,
+  kasterids: number[],
+  scorePoeng = 0,
+  kampPoeng = 0,
+): void {
   for (const kasterid of kasterids) {
-    playerRows.push({ kampid, kasterid, score_poeng: 0, kamp_poeng: 0, antall_ringer: 0 })
+    playerRows.push({ kampid, kasterid, score_poeng: scorePoeng, kamp_poeng: kampPoeng, antall_ringer: 0 })
   }
 }
 
@@ -144,7 +150,7 @@ async function _insertRoundMatches(
     fase: 'innledende',
     runde_nummer: roundNumber,
     bane_nummer: ci + 1,
-    er_bekreftet: pair.isWalkover,
+    er_bekreftet: false,
     er_walkover: pair.isWalkover,
   }))
 
@@ -161,7 +167,7 @@ async function _insertRoundMatches(
 
   for (const [ci, pair] of roundPairs.entries()) {
     const kampid = laneToMatchId[ci + 1]!
-    _pushPlayerRows(playerRows, kampid, posToKasterids[pair.p1Pos] ?? [])
+    _pushPlayerRows(playerRows, kampid, posToKasterids[pair.p1Pos] ?? [], pair.isWalkover ? 21 : 0, pair.isWalkover ? 2 : 0)
     if (pair.p2Pos != null) _pushPlayerRows(playerRows, kampid, posToKasterids[pair.p2Pos] ?? [])
   }
 
@@ -359,7 +365,7 @@ export async function generateNextSwissRound(
     fase: 'innledende',
     runde_nummer: roundNumber,
     bane_nummer: i + 1,
-    er_bekreftet: pair.isWalkover,
+    er_bekreftet: false,
     er_walkover: pair.isWalkover,
   }))
 
@@ -376,7 +382,7 @@ export async function generateNextSwissRound(
 
   for (const [i, pair] of pairs.entries()) {
     const kampid = laneToMatchId[i + 1]!
-    _pushPlayerRows(playerRows, kampid, snrToKasterids[pair.p1] ?? [])
+    _pushPlayerRows(playerRows, kampid, snrToKasterids[pair.p1] ?? [], pair.isWalkover ? 21 : 0, pair.isWalkover ? 2 : 0)
     if (pair.p2 != null) _pushPlayerRows(playerRows, kampid, snrToKasterids[pair.p2] ?? [])
   }
 
