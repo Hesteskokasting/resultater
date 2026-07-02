@@ -1,4 +1,4 @@
-import { getUser, isAdmin, signIn, signInWithGoogle, signUp } from '@/services/authService'
+import { GOOGLE_SIGN_IN_PENDING_KEY, getUser, isAdmin, signIn, signInWithGoogle, signUp } from '@/services/authService'
 import { escHtml } from '@/utils/escHtml'
 import { createTabs } from '@/components/Tabs'
 import { showToast } from '@/components/Toast'
@@ -27,8 +27,10 @@ export async function render(container: HTMLElement): Promise<void> {
   const auth = await getUser()
   if (auth) {
     const redirect = getRedirectParam()
-    if (redirect) {
-      location.hash = `#${redirect}`
+    const returningFromGoogle = sessionStorage.getItem(GOOGLE_SIGN_IN_PENDING_KEY) === '1'
+    if (returningFromGoogle) sessionStorage.removeItem(GOOGLE_SIGN_IN_PENDING_KEY)
+    if (redirect || returningFromGoogle) {
+      location.hash = redirect ? `#${redirect}` : ((await isAdmin()) ? '#/admin' : '#/minside')
       return
     }
     container.innerHTML = `

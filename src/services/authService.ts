@@ -89,8 +89,11 @@ export async function signIn(email: string, password: string) {
   return supabase.auth.signInWithPassword({ email, password })
 }
 
+export const GOOGLE_SIGN_IN_PENDING_KEY = 'googleSignInPending'
+
 export async function signInWithGoogle(redirect?: string) {
   const target = `${window.location.origin}${window.location.pathname}#/logginn${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ''}`
+  sessionStorage.setItem(GOOGLE_SIGN_IN_PENDING_KEY, '1')
   return supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: target } })
 }
 
