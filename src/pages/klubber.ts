@@ -6,6 +6,7 @@ import { createEmptyState } from '@/components/EmptyState'
 import { createTable } from '@/components/Table'
 import { escHtml } from '@/utils/escHtml'
 import { logError } from '@/utils/logError'
+import { setPageTitle } from '@/utils/pageTitle'
 import { getClubs, getClubById } from '@/services/klubbService'
 import { getActiveThrowerList, getClubMembers } from '@/services/kasterService'
 import type { PageRenderFn } from '@/types'
@@ -186,6 +187,8 @@ async function renderDetail(container: HTMLElement, id: number): Promise<void> {
     }
 
     const club = clubRes.data
+
+    setPageTitle(club.navn)
 
     container.innerHTML = detailSkeletonHtml(club, members.length)
 

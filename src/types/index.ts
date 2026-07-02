@@ -66,4 +66,5 @@ export interface Route {
   pattern: RegExp
   page: PageRenderFn
   params: (match: RegExpMatchArray) => Params
+  title?: string
 }

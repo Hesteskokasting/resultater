@@ -7,6 +7,7 @@ import { createLoadingState } from '@/components/LoadingState'
 import { createEmptyState } from '@/components/EmptyState'
 import { escHtml } from '@/utils/escHtml'
 import { logError } from '@/utils/logError'
+import { setPageTitle } from '@/utils/pageTitle'
 import { getThrowerDetail } from '@/services/kasterService'
 import type { ThrowerDetailRow, ResultDetailRow } from '@/services/kasterService'
 import {
@@ -301,6 +302,8 @@ export async function renderDetail(container: HTMLElement, id: number): Promise<
     }
     // Re-assign to const so TypeScript narrows the type into closures below
     const thrower = throwerNullable
+
+    setPageTitle(throwerName(thrower))
 
     container.innerHTML = detailSkeletonHtml(thrower, results)
 

@@ -18,6 +18,7 @@ import { getAllMatchSides, type MatchSide } from '@/utils/kamp'
 import { throwerNameShort } from '@/utils/kaster'
 import { autoGenerateFinaleAndBronzeFinal } from '@/services/kampGenereringCupService'
 import { avmeldKanal } from '@/utils/realtime'
+import { setPageTitle } from '@/utils/pageTitle'
 import type { MatchRow, MatchPlayerInMatch } from '@/services/kampService'
 import type { Params } from '@/types'
 
@@ -263,6 +264,8 @@ export async function render(container: HTMLElement, params: Params): Promise<vo
   const loaded = await fetchMatchAndAuth(container, matchId)
   if (!loaded) return
   const { match, auth } = loaded
+
+  setPageTitle(match.stevne?.navn)
 
   const throwerId = auth?.profil?.kasterid ?? null
   const role = auth?.profil?.role ?? null

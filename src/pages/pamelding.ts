@@ -6,6 +6,7 @@ import { createLoadingState } from '@/components/LoadingState'
 import { escHtml } from '@/utils/escHtml'
 import { throwerName } from '@/utils/kaster'
 import { logError } from '@/utils/logError'
+import { setPageTitle } from '@/utils/pageTitle'
 import { getTournamentForRegistration, getRelatedTournaments } from '@/services/stevneService'
 import { getActiveThrowerList, getThrowersForClubs } from '@/services/kasterService'
 import {
@@ -225,6 +226,8 @@ export async function render(container: HTMLElement, params: Params = {}): Promi
       return
     }
     const tournament = tournamentResult.data
+
+    setPageTitle(`Påmelding – ${tournament.navn}`)
 
     const isAdminRole     = auth?.profil?.role === 'admin'
     const isClubAdminRole = auth?.profil?.role === 'klubbadmin'

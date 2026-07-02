@@ -3,6 +3,7 @@ import { render as renderHome } from './pages/home'
 import { getUser, isAdmin, isClubAdmin, signOut } from './services/authService'
 import { createErrorBanner } from './components/ErrorBanner'
 import { showReauthModal } from './components/ReauthModal'
+import { setPageTitle } from '@/utils/pageTitle'
 import type { PageRenderFn, Role, Route } from '@/types'
 
 if (import.meta.env.VITE_ENV === 'dev') {
@@ -40,27 +41,27 @@ function authGuard(requiredRole: Role, renderFn: PageRenderFn): PageRenderFn {
 
 const routes: Route[] = [
   // Auth-ruter (spesifikke før generiske)
-  { pattern: /^\/logginn$/,                      page: lazy(() => import('./pages/logginn')),                         params: () => ({}) },
-  { pattern: /^\/minside$/,                      page: authGuard('bruker', lazy(() => import('./pages/minside'))),    params: () => ({}) },
-  { pattern: /^\/admin$/,                        page: authGuard('admin',  lazy(() => import('./admin/admin'))),      params: () => ({}) },
-  { pattern: /^\/stevne\/ny$/,                   page: authGuard('klubbadmin', lazy(() => import('./admin/stevneadmin'))), params: () => ({}) },
-  { pattern: /^\/stevne\/(\d+)\/rediger$/,        page: authGuard('klubbadmin', lazy(() => import('./admin/stevneadmin'))), params: m => ({ id: Number(m[1]) }) },
+  { pattern: /^\/logginn$/,                      page: lazy(() => import('./pages/logginn')),                         params: () => ({}), title: 'Logg inn' },
+  { pattern: /^\/minside$/,                      page: authGuard('bruker', lazy(() => import('./pages/minside'))),    params: () => ({}), title: 'Min side' },
+  { pattern: /^\/admin$/,                        page: authGuard('admin',  lazy(() => import('./admin/admin'))),      params: () => ({}), title: 'Admin' },
+  { pattern: /^\/stevne\/ny$/,                   page: authGuard('klubbadmin', lazy(() => import('./admin/stevneadmin'))), params: () => ({}), title: 'Nytt stevne' },
+  { pattern: /^\/stevne\/(\d+)\/rediger$/,        page: authGuard('klubbadmin', lazy(() => import('./admin/stevneadmin'))), params: m => ({ id: Number(m[1]) }), title: 'Rediger stevne' },
   { pattern: /^\/kamp\/(\d+)$/,                 page: lazy(() => import('./pages/kamp')),                            params: m => ({ id: Number(m[1]) }) },
   { pattern: /^\/stevne\/(\d+)\/pamelding$/,    page: lazy(() => import('./pages/pamelding')),                       params: m => ({ id: m[1] }) },
   { pattern: /^\/stevne\/(\d+)(?:\/([^/]*))?$/, page: lazy(() => import('./pages/stevne')),                         params: m => ({ id: Number(m[1]), tab: m[2] ?? 'info' }) },
-  { pattern: /^\/kaster\/ny$/,                   page: authGuard('klubbadmin', lazy(() => import('./admin/kasteradmin'))), params: () => ({}) },
-  { pattern: /^\/kaster\/(\d+)\/admin$/,         page: authGuard('klubbadmin', lazy(() => import('./admin/kasteradmin'))), params: m => ({ id: m[1] }) },
-  { pattern: /^\/klubber\/(\d+)\/admin$/,        page: authGuard('klubbadmin', lazy(() => import('./admin/klubbadmin'))), params: m => ({ id: m[1] }) },
+  { pattern: /^\/kaster\/ny$/,                   page: authGuard('klubbadmin', lazy(() => import('./admin/kasteradmin'))), params: () => ({}), title: 'Ny utøvar' },
+  { pattern: /^\/kaster\/(\d+)\/admin$/,         page: authGuard('klubbadmin', lazy(() => import('./admin/kasteradmin'))), params: m => ({ id: m[1] }), title: 'Rediger utøvar' },
+  { pattern: /^\/klubber\/(\d+)\/admin$/,        page: authGuard('klubbadmin', lazy(() => import('./admin/klubbadmin'))), params: m => ({ id: m[1] }), title: 'Rediger klubb' },
   // Eksisterande ruter
-  { pattern: /^\/terminliste$/,                  page: lazy(() => import('./pages/terminliste')),                    params: () => ({}) },
-  { pattern: /^\/norgescupen$/,                  page: lazy(() => import('./pages/norgescupen')),                    params: () => ({}) },
-  { pattern: /^\/norgesranking$/,                page: lazy(() => import('./pages/norgesranking')),                  params: () => ({}) },
-  { pattern: /^\/rekorder$/,                     page: lazy(() => import('./pages/rekorder')),                       params: () => ({}) },
-  { pattern: /^\/nmvinnere$/,                    page: lazy(() => import('./pages/nmvinnere')),                      params: () => ({}) },
+  { pattern: /^\/terminliste$/,                  page: lazy(() => import('./pages/terminliste')),                    params: () => ({}), title: 'Terminliste' },
+  { pattern: /^\/norgescupen$/,                  page: lazy(() => import('./pages/norgescupen')),                    params: () => ({}), title: 'Norgescupen' },
+  { pattern: /^\/norgesranking$/,                page: lazy(() => import('./pages/norgesranking')),                  params: () => ({}), title: 'Norgesranking' },
+  { pattern: /^\/rekorder$/,                     page: lazy(() => import('./pages/rekorder')),                       params: () => ({}), title: 'Rekorder' },
+  { pattern: /^\/nmvinnere$/,                    page: lazy(() => import('./pages/nmvinnere')),                      params: () => ({}), title: 'NM-vinnere' },
   { pattern: /^\/kastere\/(\d+)(-[^/]*)?$/,     page: lazy(() => import('./pages/kastere')),                        params: m => ({ id: m[1] }) },
-  { pattern: /^\/kastere$/,                      page: lazy(() => import('./pages/kastere')),                        params: () => ({}) },
+  { pattern: /^\/kastere$/,                      page: lazy(() => import('./pages/kastere')),                        params: () => ({}), title: 'Utøvere' },
   { pattern: /^\/klubber\/(\d+)(-[^/]*)?$/,     page: lazy(() => import('./pages/klubber')),                        params: m => ({ id: m[1] }) },
-  { pattern: /^\/klubber$/,                      page: lazy(() => import('./pages/klubber')),                        params: () => ({}) },
+  { pattern: /^\/klubber$/,                      page: lazy(() => import('./pages/klubber')),                        params: () => ({}), title: 'Klubber' },
   { pattern: /^\/?$/,                            page: renderHome,                                                   params: () => ({}) },
 ]
 
@@ -70,6 +71,7 @@ function navigate(): void {
   for (const route of routes) {
     const match = hash.match(route.pattern)
     if (match) {
+      setPageTitle(route.title)
       route.page(container, route.params(match))
       return
     }

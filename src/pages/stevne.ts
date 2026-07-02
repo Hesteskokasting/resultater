@@ -4,6 +4,7 @@ import { createErrorBanner } from '@/components/ErrorBanner'
 import { createLoadingState } from '@/components/LoadingState'
 import { logError } from '@/utils/logError'
 import { escHtml } from '@/utils/escHtml'
+import { setPageTitle } from '@/utils/pageTitle'
 import { render as renderInfo }         from './stevne/stevne-info'
 import { render as renderParticipants } from './stevne/stevne-deltakere'
 import { render as renderPreliminary }  from './stevne/stevne-innledende'
@@ -81,6 +82,8 @@ export async function render(
       container.replaceChildren(createErrorBanner('Stevne ikkje funne.'))
       return
     }
+
+    setPageTitle(tournament.navn)
 
     const userIsAdmin = (await isAdmin()) || (await isClubAdmin())
     const hasFinal = tournament.avsluttendekastemetodeid != null
