@@ -1,6 +1,8 @@
-import { getUser, isAdmin, signIn, signUp } from '@/services/authService'
+import { getUser, isAdmin, signIn, signInWithGoogle, signUp } from '@/services/authService'
 import { escHtml } from '@/utils/escHtml'
 import { createTabs } from '@/components/Tabs'
+import { showToast } from '@/components/Toast'
+import { logError } from '@/utils/logError'
 
 function makePanel(html: string): HTMLElement {
   const div = document.createElement('div')
@@ -8,9 +10,27 @@ function makePanel(html: string): HTMLElement {
   return div
 }
 
+function getRedirectParam(): string | null {
+  return new URLSearchParams(location.hash.split('?')[1] ?? '').get('redirect')
+}
+
 export async function render(container: HTMLElement): Promise<void> {
+  const oauthParams = new URLSearchParams(window.location.search)
+  const oauthError = oauthParams.get('error_description') ?? oauthParams.get('error')
+  if (oauthError) {
+    showToast(oauthError, 'error')
+    const url = new URL(window.location.href)
+    url.search = ''
+    window.history.replaceState(null, '', url.toString())
+  }
+
   const auth = await getUser()
   if (auth) {
+    const redirect = getRedirectParam()
+    if (redirect) {
+      location.hash = `#${redirect}`
+      return
+    }
     container.innerHTML = `
       <div class="container py-4 account-container">
         <p>Du er allereie innlogga som <strong>${escHtml(auth.user.email)}</strong>.</p>
@@ -60,6 +80,18 @@ export async function render(container: HTMLElement): Promise<void> {
   heading.className = 'mb-4'
   heading.textContent = 'Konto'
   outer.appendChild(heading)
+
+  const googleButton = document.createElement('button')
+  googleButton.type = 'button'
+  googleButton.className = 'btn btn-google w-100'
+  googleButton.textContent = 'Logg inn med Google'
+  outer.appendChild(googleButton)
+
+  const divider = document.createElement('div')
+  divider.className = 'account-divider'
+  divider.textContent = 'eller'
+  outer.appendChild(divider)
+
   outer.appendChild(createTabs({
     tabs: [
       { id: 'login',    label: 'Logg inn',           panel: loginPanel },
@@ -67,6 +99,16 @@ export async function render(container: HTMLElement): Promise<void> {
     ],
   }))
   container.replaceChildren(outer)
+
+  googleButton.addEventListener('click', async () => {
+    googleButton.disabled = true
+    const { error } = await signInWithGoogle(getRedirectParam() ?? undefined)
+    if (error) {
+      logError('logginn.signInWithGoogle', error)
+      showToast(error.message, 'error')
+      googleButton.disabled = false
+    }
+  })
 
   container.querySelector('#login-form')!.addEventListener('submit', async e => {
     e.preventDefault()
@@ -90,7 +132,7 @@ export async function render(container: HTMLElement): Promise<void> {
       return
     }
 
-    const redirect = new URLSearchParams(location.hash.split('?')[1] ?? '').get('redirect')
+    const redirect = getRedirectParam()
     if (redirect) {
       location.hash = `#${redirect}`
     } else {

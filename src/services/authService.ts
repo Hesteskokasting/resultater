@@ -89,6 +89,11 @@ export async function signIn(email: string, password: string) {
   return supabase.auth.signInWithPassword({ email, password })
 }
 
+export async function signInWithGoogle(redirect?: string) {
+  const target = `${window.location.origin}${window.location.pathname}#/logginn${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ''}`
+  return supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: target } })
+}
+
 export async function signUp(email: string, password: string) {
   return supabase.auth.signUp({ email, password })
 }
