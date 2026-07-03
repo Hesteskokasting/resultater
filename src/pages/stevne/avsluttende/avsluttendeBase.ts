@@ -30,7 +30,7 @@ import { createErrorBanner } from '@/components/ErrorBanner'
 import { showToast } from '@/components/Toast'
 import { confirmDialog } from '@/components/ConfirmDialog'
 import { logError } from '@/utils/logError'
-import { avmeldKanal } from '@/utils/realtime'
+import { unsubscribeChannel } from '@/utils/realtime'
 import {
   getFinalRoundMatches,
   subscribeToMatchChanges,
@@ -131,7 +131,7 @@ export function createFinalPhaseRenderer(variant: FinalPhaseVariant) {
   ): Promise<void> {
     bannerSlot = _bannerSlot
     isAdmin = _isAdmin
-    if (channel) { await avmeldKanal(channel); channel = null }
+    if (channel) { await unsubscribeChannel(channel); channel = null }
     container.replaceChildren(createLoadingState('Laster…'))
     await loadAndRender(container, id)
   }
@@ -281,7 +281,7 @@ export function createFinalPhaseRenderer(variant: FinalPhaseVariant) {
   function subscribeToChanges(container: HTMLElement, stevneid: number): void {
     if (channel) return
     const onChange = createChangeHandler(stevneid, ['avsluttende'], container, loadAndRender, () => {
-      if (channel) { void avmeldKanal(channel); channel = null }
+      if (channel) { void unsubscribeChannel(channel); channel = null }
     })
     channel = subscribeToMatchChanges(stevneid, variant.channelName(stevneid), onChange)
   }

@@ -42,7 +42,7 @@ import {
   getInitialPhaseTournament, setTournamentCompleted,
   type InitialPhaseTournamentRow,
 } from '@/services/stevneService'
-import { avmeldKanal } from '@/utils/realtime'
+import { unsubscribeChannel } from '@/utils/realtime'
 import { livePillHtml } from '@/components/LivePill'
 import {
   getResultsForInitialRound, writePlacements,
@@ -92,7 +92,7 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
     bannerSlot = _bannerSlot
     isAdmin = _isAdmin
     variant.onReset?.()
-    if (channel) { await avmeldKanal(channel); channel = null }
+    if (channel) { await unsubscribeChannel(channel); channel = null }
     container.replaceChildren(createLoadingState('Laster…'))
     await loadAndRender(container, id)
   }
@@ -319,7 +319,7 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
   function subscribeToChanges(container: HTMLElement, stevneid: number): void {
     if (channel) return
     const onChange = createChangeHandler(stevneid, ['innledende'], container, loadAndRender, () => {
-      if (channel) { void avmeldKanal(channel); channel = null }
+      if (channel) { void unsubscribeChannel(channel); channel = null }
     })
     channel = subscribeToMatchChanges(stevneid, variant.channelName(stevneid), onChange)
   }

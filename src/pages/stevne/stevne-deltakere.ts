@@ -16,7 +16,7 @@ import { createLoadingState } from '@/components/LoadingState'
 import { createTabs } from '@/components/Tabs'
 import { createPairTab } from '@/pages/stevne/parTab'
 import { buildRegistrationLookup } from '@/utils/registrationLookup'
-import { avmeldKanal } from '@/utils/realtime'
+import { unsubscribeChannel } from '@/utils/realtime'
 import { onNavigateAway } from '@/utils/navigation'
 import { registerRefetch } from '@/utils/refetchRegistry'
 
@@ -219,7 +219,7 @@ export async function render(
     }
 
     const registrationChannel = subscribeToRegistrationChanges(id, () => { void reloadRegistrations() })
-    onNavigateAway(() => { void avmeldKanal(registrationChannel) })
+    onNavigateAway(() => { void unsubscribeChannel(registrationChannel) })
     // Fallback for events missed while the socket was disconnected (e.g. app backgrounded).
     registerRefetch(() => { void reloadRegistrations() })
   } catch (err) {

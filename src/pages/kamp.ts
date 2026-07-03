@@ -17,7 +17,7 @@ import {
 import { getAllMatchSides, type MatchSide } from '@/utils/kamp'
 import { throwerNameShort } from '@/utils/kaster'
 import { autoGenerateFinaleAndBronzeFinal } from '@/services/kampGenereringCupService'
-import { avmeldKanal } from '@/utils/realtime'
+import { unsubscribeChannel } from '@/utils/realtime'
 import { setPageTitle } from '@/utils/pageTitle'
 import { onNavigateAway } from '@/utils/navigation'
 import type { MatchRow, MatchPlayerInMatch } from '@/services/kampService'
@@ -164,14 +164,14 @@ function showWaitingForNextMatch(ctx: MatchViewCtx): void {
 
   const channel = subscribeToNextMatch(ctx.match.stevneid, ctx.matchId, async (nextMatch) => {
     if (await isRelevantMatch(ctx, nextMatch)) {
-      await avmeldKanal(channel)
+      await unsubscribeChannel(channel)
       location.replace(`#/kamp/${nextMatch.id}`)
     }
   })
 
   onNavigateAway(() => {
     sessionStorage.removeItem(`ventar-neste-${ctx.matchId}`)
-    void avmeldKanal(channel)
+    void unsubscribeChannel(channel)
   })
 }
 

@@ -12,7 +12,7 @@ import {
   updateMatchRound,
   subscribeToScoreboardChanges,
 } from '@/services/kampService'
-import { avmeldKanal } from '@/utils/realtime'
+import { unsubscribeChannel } from '@/utils/realtime'
 import { showToast } from './Toast'
 
 export interface ScoreboardOptions {
@@ -399,7 +399,7 @@ function setupScoreboardRealtime(
   reloadAndDraw: () => Promise<void>,
   onKampBekreft?: () => Promise<void>,
 ): () => void {
-  const kanal = subscribeToScoreboardChanges(
+  const channel = subscribeToScoreboardChanges(
     kamp.id,
     spelarIds,
     reloadAndDraw,
@@ -412,7 +412,7 @@ function setupScoreboardRealtime(
   }
   document.addEventListener('visibilitychange', onVisible)
   return () => {
-    void avmeldKanal(kanal)
+    void unsubscribeChannel(channel)
     document.removeEventListener('visibilitychange', onVisible)
   }
 }
