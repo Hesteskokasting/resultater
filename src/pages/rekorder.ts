@@ -5,6 +5,7 @@ import { createEmptyState } from '@/components/EmptyState'
 import { createTable } from '@/components/Table'
 import { escHtml } from '@/utils/escHtml'
 import { logError } from '@/utils/logError'
+import { registerRefetch } from '@/utils/refetchRegistry'
 import { getAllRecords } from '@/services/rekorderService'
 import type { RecordRow } from '@/services/rekorderService'
 
@@ -148,6 +149,7 @@ function pageSkeletonHtml(): string {
 // ── Main function ─────────────────────────────────────────────────────────────
 
 export async function render(container: HTMLElement): Promise<void> {
+  registerRefetch(() => render(container))
   filter.method = 'kongelag'
   filter.gender = 'alle'
   filter.searchText = ''

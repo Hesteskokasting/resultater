@@ -1,9 +1,11 @@
 import 'bootstrap'
+import { App } from '@capacitor/app'
 import { render as renderHome } from './pages/home'
 import { getUser, isAdmin, isClubAdmin, signOut } from './services/authService'
 import { createErrorBanner } from './components/ErrorBanner'
 import { showReauthModal } from './components/ReauthModal'
 import { setPageTitle } from '@/utils/pageTitle'
+import { registerRefetch, runRefetch } from '@/utils/refetchRegistry'
 import type { PageRenderFn, Role, Route } from '@/types'
 
 if (import.meta.env.VITE_ENV === 'dev') {
@@ -72,6 +74,9 @@ function navigate(): void {
     const match = hash.match(route.pattern)
     if (match) {
       setPageTitle(route.title)
+      // Cleared by default so a stale page's refetch can't fire against a page that
+      // hasn't opted in — pages that support resume-refetch re-register it themselves.
+      registerRefetch(null)
       route.page(container, route.params(match))
       return
     }
@@ -108,6 +113,8 @@ async function updateAuthMenu(): Promise<void> {
 }
 
 window.addEventListener('hashchange', navigate)
+
+App.addListener('resume', runRefetch)
 
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('menyLoggUtKnapp')!.addEventListener('click', async () => {

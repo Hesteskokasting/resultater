@@ -5,6 +5,7 @@ import { createLoadingState } from '@/components/LoadingState'
 import { createEmptyState } from '@/components/EmptyState'
 import { escHtml } from '@/utils/escHtml'
 import { logError } from '@/utils/logError'
+import { registerRefetch } from '@/utils/refetchRegistry'
 import { formatDate } from '@/utils/shared'
 import { getActiveThrowerList, getThrowerForLink } from '@/services/kasterService'
 import { getMyRegistrations } from '@/services/pameldingService'
@@ -258,6 +259,7 @@ function bindThrowerSearch(container: HTMLElement, userId: string): void {
 // ── Main function ─────────────────────────────────────────────────────────────
 
 export async function render(container: HTMLElement): Promise<void> {
+  registerRefetch(() => render(container))
   container.replaceChildren(createLoadingState('Laster min side…'))
 
   try {

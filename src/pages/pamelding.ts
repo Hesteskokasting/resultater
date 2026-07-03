@@ -7,6 +7,7 @@ import { escHtml } from '@/utils/escHtml'
 import { throwerName } from '@/utils/kaster'
 import { logError } from '@/utils/logError'
 import { setPageTitle } from '@/utils/pageTitle'
+import { registerRefetch } from '@/utils/refetchRegistry'
 import { getTournamentForRegistration, getRelatedTournaments } from '@/services/stevneService'
 import { getActiveThrowerList, getThrowersForClubs } from '@/services/kasterService'
 import {
@@ -213,6 +214,7 @@ export async function render(container: HTMLElement, params: Params = {}): Promi
   }
   const tournamentId = Number(rawId)
 
+  registerRefetch(() => render(container, params))
   container.replaceChildren(createLoadingState('Laster påmelding…'))
 
   try {

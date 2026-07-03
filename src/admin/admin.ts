@@ -1,6 +1,7 @@
 import { logError } from '@/utils/logError'
 import { escHtml } from '@/utils/escHtml'
 import { errMsg } from '@/utils/adminForms'
+import { registerRefetch } from '@/utils/refetchRegistry'
 import {
   getPendingLinks,
   getUserEmails,
@@ -54,7 +55,10 @@ export async function render(container: HTMLElement): Promise<void> {
 
   const content = container.querySelector<HTMLElement>('#admin-content')!
 
+  let activeTab: Tab = 'links'
+
   async function showTab(tab: Tab): Promise<void> {
+    activeTab = tab
     container.querySelectorAll<HTMLElement>('[data-tab]').forEach(el => {
       el.classList.toggle('active', el.dataset.tab === tab)
     })
@@ -63,6 +67,8 @@ export async function render(container: HTMLElement): Promise<void> {
     if (tab === 'users')      await _renderUsers(content)
     if (tab === 'club-admin') await _renderClubAdmin(content)
   }
+
+  registerRefetch(() => showTab(activeTab))
 
   container.querySelector('#admin-tabs')!.addEventListener('click', e => {
     const button = (e.target as HTMLElement).closest<HTMLElement>('[data-tab]')

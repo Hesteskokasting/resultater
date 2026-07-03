@@ -8,6 +8,7 @@ import { createErrorBanner } from '@/components/ErrorBanner'
 import { createLoadingState } from '@/components/LoadingState'
 import { escHtml } from '@/utils/escHtml'
 import { logError } from '@/utils/logError'
+import { registerRefetch } from '@/utils/refetchRegistry'
 import { bindRegistrationSlots } from '@/components/PameldingKnapp'
 
 type TournamentRow = ScheduleTournamentRow
@@ -197,6 +198,7 @@ function buildList(filtered: TournamentRow[]): string {
 // ── Render ────────────────────────────────────────────────────────────────────
 
 export async function render(container: HTMLElement): Promise<void> {
+  registerRefetch(() => render(container))
   container.replaceChildren(createLoadingState('Laster terminliste…'))
 
   try {
