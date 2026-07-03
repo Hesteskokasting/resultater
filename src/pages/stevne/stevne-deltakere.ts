@@ -3,7 +3,7 @@ import { createErrorBanner } from '@/components/ErrorBanner'
 import { logError } from '@/utils/logError'
 import { getActiveThrowerList } from '@/services/kasterService'
 import type { ThrowerListRow } from '@/services/kasterService'
-import { getRegistrationStatusForTournament } from '@/services/pameldingService'
+import { getRegistrationStatusForTournament, subscribeToRegistrationChanges } from '@/services/pameldingService'
 import type { RegistrationStatusRow } from '@/services/pameldingService'
 import { getTournamentHeader, getInitialMethodName } from '@/services/stevneService'
 import type { TournamentHeaderRow } from '@/services/stevneService'
@@ -16,6 +16,9 @@ import { createLoadingState } from '@/components/LoadingState'
 import { createTabs } from '@/components/Tabs'
 import { createPairTab } from '@/pages/stevne/parTab'
 import { buildRegistrationLookup } from '@/utils/registrationLookup'
+import { avmeldKanal } from '@/utils/realtime'
+import { onNavigateAway } from '@/utils/navigation'
+import { registerRefetch } from '@/utils/refetchRegistry'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -198,6 +201,27 @@ export async function render(
     leftColumn?.searchInput.addEventListener('input', renderAvailableList)
     renderRegisteredList()
     renderAvailableList()
+
+    // ── Realtime: other devices registering/removing throwers concurrently ───
+
+    async function reloadRegistrations(): Promise<void> {
+      const { data: freshRows, error } = await getRegistrationStatusForTournament(id)
+      if (error) return
+      const { registeredMap: freshMap, pairedIds: freshPaired } = buildRegistrationLookup(freshRows)
+      registeredMap.clear()
+      freshMap.forEach((confirmed, kasterid) => registeredMap.set(kasterid, confirmed))
+      pairedIds.clear()
+      freshPaired.forEach(kasterid => pairedIds.add(kasterid))
+      pairTabDirty = true
+      printerBanner?.invalidateMatchData()
+      renderRegisteredList()
+      renderAvailableList()
+    }
+
+    const registrationChannel = subscribeToRegistrationChanges(id, () => { void reloadRegistrations() })
+    onNavigateAway(() => { void avmeldKanal(registrationChannel) })
+    // Fallback for events missed while the socket was disconnected (e.g. app backgrounded).
+    registerRefetch(() => { void reloadRegistrations() })
   } catch (err) {
     logError('stevne-deltakere.render', err)
     container.replaceChildren(createErrorBanner('Kunne ikkje laste deltakarliste.'))

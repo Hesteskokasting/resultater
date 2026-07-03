@@ -12,6 +12,7 @@ import { livePillHtml } from '@/components/LivePill'
 import { getRegistrationCount, getPairCount, getUnconfirmedCount, getMyRegistrationForTournament } from '@/services/pameldingService'
 import { createRegistrationButton } from '@/components/PameldingKnapp'
 import { generateInitialRoundMatches } from '@/services/kampGenereringInnledendeService'
+import { registerRefetch } from '@/utils/refetchRegistry'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -29,6 +30,7 @@ export async function render(
   { id, isAdmin = false }: { id: number; isAdmin?: boolean },
   bannerSlot: HTMLElement | null = null,
 ): Promise<void> {
+  registerRefetch(() => render(container, { id, isAdmin }, bannerSlot))
   container.replaceChildren(createLoadingState())
 
   try {
@@ -148,6 +150,13 @@ export async function render(
     viewLink.className = 'btn btn-sm btn-outline-secondary'
     viewLink.textContent = 'Sjå påmeldingar'
     actionButtons.appendChild(viewLink)
+
+    const refreshButton = document.createElement('button')
+    refreshButton.type = 'button'
+    refreshButton.className = 'btn btn-sm btn-outline-secondary'
+    refreshButton.textContent = 'Oppdater'
+    refreshButton.addEventListener('click', () => { void render(container, { id, isAdmin }, bannerSlot) })
+    actionButtons.appendChild(refreshButton)
   } catch (err) {
     logError('stevne-info.render', err)
     container.replaceChildren(createErrorBanner('Kunne ikkje laste info.'))

@@ -19,6 +19,7 @@ import { throwerNameShort } from '@/utils/kaster'
 import { autoGenerateFinaleAndBronzeFinal } from '@/services/kampGenereringCupService'
 import { avmeldKanal } from '@/utils/realtime'
 import { setPageTitle } from '@/utils/pageTitle'
+import { onNavigateAway } from '@/utils/navigation'
 import type { MatchRow, MatchPlayerInMatch } from '@/services/kampService'
 import type { Params } from '@/types'
 
@@ -168,10 +169,10 @@ function showWaitingForNextMatch(ctx: MatchViewCtx): void {
     }
   })
 
-  window.addEventListener('hashchange', () => {
+  onNavigateAway(() => {
     sessionStorage.removeItem(`ventar-neste-${ctx.matchId}`)
     void avmeldKanal(channel)
-  }, { once: true })
+  })
 }
 
 async function navigateToNextMatch(ctx: MatchViewCtx): Promise<void> {
@@ -252,12 +253,12 @@ export async function render(container: HTMLElement, params: Params): Promise<vo
 
   const cleanupRef: MatchViewCtx['cleanupRef'] = { current: null }
 
-  window.addEventListener('hashchange', () => {
+  onNavigateAway(() => {
     if (mainHeader) mainHeader.classList.remove('hidden')
     container.classList.remove('sb-fullskjerm-modus')
     cleanupRef.current?.()
     cleanupRef.current = null
-  }, { once: true })
+  })
 
   container.replaceChildren(createLoadingState('Laster…'))
 

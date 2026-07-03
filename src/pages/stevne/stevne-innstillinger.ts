@@ -12,6 +12,7 @@ import {
 } from '@/services/stevneService'
 import type { ActiveThrowingMethodRow } from '@/services/stevneService'
 import { resetTournament } from '@/services/testDataService'
+import { registerRefetch } from '@/utils/refetchRegistry'
 
 // ── Render ────────────────────────────────────────────────────────────────────
 
@@ -19,6 +20,7 @@ export async function render(
   container: HTMLElement,
   { id }: { id: number; isAdmin?: boolean },
 ): Promise<void> {
+  registerRefetch(() => render(container, { id }))
   container.replaceChildren(createLoadingState())
 
   try {

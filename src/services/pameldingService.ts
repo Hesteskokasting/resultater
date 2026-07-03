@@ -1,4 +1,4 @@
-import type { QueryData } from '@supabase/supabase-js'
+import type { QueryData, RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '@/supabase'
 import { logError } from '@/utils/logError'
 import { getUser } from './authService'
@@ -256,4 +256,13 @@ export async function deletePair(stevneId: number, teamId: number): Promise<{ er
     .eq('lag_id', teamId)
   if (error) logError('deletePair', error)
   return { error }
+}
+
+// ── Realtime ──────────────────────────────────────────────────────────────────
+
+export function subscribeToRegistrationChanges(stevneId: number, onChange: () => void): RealtimeChannel {
+  return supabase
+    .channel(`pamelding-stevne-${stevneId}`)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'pamelding', filter: `stevneid=eq.${stevneId}` }, onChange)
+    .subscribe()
 }
