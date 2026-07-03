@@ -1,1 +1,0 @@
-import{n as e}from"./logError-DhxY2JQv.js";function t(e,t,n){let r=document.createElement(e);return t!=null&&(r.textContent=t),n&&(r.className=n),r}async function n(t){await e.removeChannel(t)}export{t as n,n as t};
