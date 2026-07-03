@@ -41,7 +41,7 @@ export function createPlayerTable(props: PlayerTableProps): PlayerTableHandle {
   titleEl.className = 'fw-bold mb-1'
 
   const wrapper = document.createElement('div')
-  wrapper.className = 'deltaker-tabell-wrapper border rounded flex-grow-1 overflow-auto'
+  wrapper.className = 'participant-table-wrapper border rounded overflow-auto'
 
   const table = document.createElement('table')
   table.className = 'table table-sm table-hover mb-0'
@@ -75,7 +75,7 @@ export function createPlayerTable(props: PlayerTableProps): PlayerTableHandle {
     for (const render of trailing) row.appendChild(actionCell(render(player)))
 
     if (onRowClick) {
-      row.classList.add('deltaker-rad')
+      row.classList.add('participant-row')
       row.addEventListener('click', () => onRowClick(player))
     }
 
