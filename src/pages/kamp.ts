@@ -16,7 +16,6 @@ import {
 } from '@/services/kampService'
 import { getAllMatchSides, type MatchSide } from '@/utils/kamp'
 import { throwerNameShort } from '@/utils/kaster'
-import { autoGenerateFinaleAndBronzeFinal } from '@/services/kampGenereringCupService'
 import { unsubscribeChannel } from '@/utils/realtime'
 import { setPageTitle } from '@/utils/pageTitle'
 import { onNavigateAway } from '@/utils/navigation'
@@ -207,7 +206,6 @@ async function confirmMatch(ctx: MatchViewCtx, sides: SideState, orderedKasterid
       orderedKasterids: orderedKasterids ?? null,
     })
     if (error) { showMatchError(ctx.container, 'Feil ved bekreftelse av kamp.'); return }
-    await autoGenerateFinaleAndBronzeFinal(ctx.matchId)
   } else {
     const { error } = await confirmInitialMatch({
       kampId: ctx.matchId,

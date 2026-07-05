@@ -514,17 +514,6 @@ export async function getMatchPlayers(kampId: number): Promise<{ data: MatchPlay
   return { data: data ?? [], error }
 }
 
-export async function areAllSemifinalsConfirmed(stevneid: number, gruppeNavn: string): Promise<boolean> {
-  const { data, error } = await supabase
-    .from('kamp')
-    .select('er_bekreftet')
-    .eq('stevneid', stevneid)
-    .eq('gruppe_navn', gruppeNavn)
-    .eq('runde_navn', 'Semifinale')
-  if (error) logError('areAllSemifinalsConfirmed', error)
-  return !!(data?.length && data.every(s => s.er_bekreftet))
-}
-
 export async function setMatchPlayerPlacements(
   kampId: number,
   entries: { kasterid: number; plassering: number }[],

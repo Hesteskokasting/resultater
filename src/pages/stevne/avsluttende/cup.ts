@@ -19,7 +19,6 @@ import { showToast } from '@/components/Toast'
 import { confirmDialog } from '@/components/ConfirmDialog'
 import type { RoundSetup } from '@/types'
 import {
-  areAllSemifinalsConfirmed,
   confirmCupMatch,
   updateWinnerLoser,
   updateMatchPlayerScoreFast,
@@ -80,7 +79,10 @@ const cupVariant: FinalPhaseVariant = {
       const lastRoundCompleted = lastRound.length > 0 && lastRound.every(k => k.er_bekreftet || k.er_walkover)
       const hasSemifinalInGroup = matches.some(k => k.runde_navn === 'Semifinale')
       const showGenerate = isAdmin && (matches.length === 0 || lastRoundCompleted) && activeCount > 1 && !hasSemifinalInGroup
-      return renderGroupColumn(g, matches, activeCount, totalCount, lastRoundNr, showGenerate, startNumberMap, positionMap, isTeam ? 'par' : 'spelarar', isAdmin)
+      const lastRoundIsSemifinal = lastRound.length > 0 && lastRound.every(k => k.runde_navn === 'Semifinale')
+      const hasFinaleInGroup = matches.some(k => k.runde_navn === 'Finale')
+      const showGenerateFinale = isAdmin && lastRoundIsSemifinal && lastRoundCompleted && !hasFinaleInGroup
+      return renderGroupColumn(g, matches, activeCount, totalCount, lastRoundNr, showGenerate, showGenerateFinale, startNumberMap, positionMap, isTeam ? 'par' : 'spelarar', isAdmin)
     }).join('')
 
     return `<div class="d-flex gap-3 flex-wrap">${groupColumns}</div>`
@@ -236,6 +238,23 @@ const cupVariant: FinalPhaseVariant = {
           openGenerateRoundDialog(stevneid, groupName, groupStanding, round, round1Format, reload)
         })
       })
+
+      container.querySelectorAll<HTMLButtonElement>('[data-generate-finale-group]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const groupName = btn.dataset.generateFinaleGroup ?? ''
+          btn.disabled = true
+          btn.textContent = 'Genererer…'
+          try {
+            await generateFinaleAndBronzeFinal(stevneid, groupName)
+            await reload()
+          } catch (e) {
+            logError('cup:genererFinale', e)
+            showToast('Feil ved generering av finale', 'error')
+            btn.disabled = false
+            btn.textContent = 'Generer finale'
+          }
+        })
+      })
     }
   },
 }
@@ -270,6 +289,7 @@ function renderGroupColumn(
   totalCount: number,
   lastRoundNr: number,
   showGenerate: boolean,
+  showGenerateFinale: boolean,
   startNumberMap: Record<number, number>,
   positionMap: Record<number, number>,
   unitLabel: string,
@@ -299,11 +319,17 @@ function renderGroupColumn(
          Generer runde ${nextRound}
        </button>`
     : ''
+  const generateFinaleButton = showGenerateFinale
+    ? `<button class="btn btn-success w-100 mt-2" data-generate-finale-group="${escHtml(groupName)}">
+         Generer finale
+       </button>`
+    : ''
 
   return `
     <div class="final-group-col">
       <h6 class="text-center fw-bold mb-2">Gruppe ${escHtml(groupName)} (${totalCount} ${escHtml(unitLabel)})</h6>
       ${generateButton}
+      ${generateFinaleButton}
       ${roundsHtml}
     </div>`
 }
@@ -484,7 +510,7 @@ function bindMatchEventsLocal(
 
     container.querySelector(`#bekrft-${kamp.id}`)?.addEventListener('click', async (e) => {
       if (kamp.er_tre_spelarar) {
-        openThreeSideConfirmDialog(kamp, sides, stevneid, async () => { await autoGenerateFinaleIfReady(stevneid, kamp); await reload() })
+        openThreeSideConfirmDialog(kamp, sides, stevneid, reload)
       } else {
         const btn = e.currentTarget as HTMLButtonElement
         btn.disabled = true
@@ -574,16 +600,6 @@ async function confirmCupMatch2Sides(
   })
   if (error) { showToast('DB-feil ved bekreft', 'error'); return false }
 
-  await autoGenerateFinaleIfReady(stevneid, kamp)
   await reload()
   return true
-}
-
-// ── Auto-generate finale when all semis in group are confirmed ────────────────
-
-async function autoGenerateFinaleIfReady(stevneid: number, kamp: FinalMatchRow): Promise<void> {
-  if (kamp.runde_navn !== 'Semifinale' || !kamp.gruppe_navn) return
-  if (await areAllSemifinalsConfirmed(stevneid, kamp.gruppe_navn)) {
-    await generateFinaleAndBronzeFinal(stevneid, kamp.gruppe_navn)
-  }
 }

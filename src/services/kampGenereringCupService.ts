@@ -1,6 +1,5 @@
 import { supabase } from '@/supabase'
 import { calcCupRoundPairings } from '@/utils/kastemetoder-logikk'
-import { areAllSemifinalsConfirmed } from '@/services/kampService'
 import type { RoundSetup } from '@/types'
 
 function genMatchId(): string {
@@ -262,19 +261,4 @@ export async function generateFinaleAndBronzeFinal(
   ]
   const { error: playerErr } = await supabase.from('kamp_spelar').insert(playerRows)
   if (playerErr) throw new Error('Feil: ' + playerErr.message)
-}
-
-export async function autoGenerateFinaleAndBronzeFinal(kampId: number): Promise<void> {
-  const { data: kamp } = await supabase
-    .from('kamp')
-    .select('stevneid, runde_navn, gruppe_navn')
-    .eq('id', kampId)
-    .single()
-
-  if (!kamp || kamp.runde_navn !== 'Semifinale' || !kamp.gruppe_navn) return
-
-  const allConfirmed = await areAllSemifinalsConfirmed(kamp.stevneid, kamp.gruppe_navn)
-  if (!allConfirmed) return
-
-  await generateFinaleAndBronzeFinal(kamp.stevneid, kamp.gruppe_navn)
 }
