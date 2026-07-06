@@ -211,9 +211,11 @@ npx cap open android
 For å teste mot dev-miljøet eller ein lokal Vite-dev-server i staden:
 
 ```bash
-npm run android:sync:dev                                                  # res.hesteskokasting.no/dev
-$env:CAPACITOR_SERVER_URL = "http://10.0.2.2:5173"; npx cap sync android  # lokal Vite-server (Android-emulator)
+npm run android:sync:dev      # res.hesteskokasting.no/dev
+npm run android:sync:local    # lokal Vite-server (npm run dev) via 10.0.2.2 — berre Android-emulator
 ```
+
+`android:sync:local` peikar på `10.0.2.2`, Android-emulatorens alias for verts-maskina sin `localhost` — det fungerer ikkje på ei fysisk USB-tilkopla eining. For fysisk eining, køyr `adb reverse tcp:5173 tcp:5173` og bruk deretter `$env:CAPACITOR_SERVER_URL = "http://localhost:5173"; npx cap sync android` i staden.
 
 `CAPACITOR_SERVER_URL` fell alltid attende til produksjons-URL-en viss han ikkje er sett — dette hindrar at ein gløymd lokal override hamnar i eit Play Store-opplasta bygg. `npx cap open android` opnar Android Studio. Køyr frå ei tilkopla enhet (USB-debugging på) eller emulator med ▶ i verktøylinja.
 
