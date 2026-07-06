@@ -1,5 +1,6 @@
 package no.hesteskokasting.app;
 
+import android.net.Uri;
 import android.os.Bundle;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
@@ -20,7 +21,8 @@ public class MainActivity extends BridgeActivity {
             public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
                 super.onReceivedError(view, request, error);
                 if (request.isForMainFrame()) {
-                    view.loadUrl("file:///android_asset/error.html");
+                    String failedUrl = Uri.encode(request.getUrl().toString());
+                    view.loadUrl("file:///android_asset/error.html?url=" + failedUrl);
                 }
             }
         });

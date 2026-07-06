@@ -215,11 +215,24 @@ npm run android:sync:dev      # res.hesteskokasting.no/dev
 npm run android:sync:local    # lokal Vite-server (npm run dev) via 10.0.2.2 — berre Android-emulator
 ```
 
-`android:sync:local` peikar på `10.0.2.2`, Android-emulatorens alias for verts-maskina sin `localhost` — det fungerer ikkje på ei fysisk USB-tilkopla eining. For fysisk eining, køyr `adb reverse tcp:5173 tcp:5173` og bruk deretter `$env:CAPACITOR_SERVER_URL = "http://localhost:5173"; npx cap sync android` i staden.
+`android:sync:local` peikar på `10.0.2.2`, Android-emulatorens alias for verts-maskina sin `localhost` — det fungerer ikkje på ei fysisk USB-tilkopla eining. For fysisk eining:
+
+```bash
+npm run dev -- --host 127.0.0.1               # Vite bind seg elles berre til IPv6 (::1)
+```
+
+```powershell
+adb reverse tcp:5173 tcp:5173                                       # gjer om i ny terminal ved kvar USB-tilkopling
+$env:CAPACITOR_SERVER_URL = "http://localhost:5173"; npx cap sync android
+```
+
+`adb reverse` videresender til verts-maskina sin `127.0.0.1` (IPv4) — viss Vite berre lyttar på `[::1]` (standard ved reint `npm run dev`), får du ei tilkoplingsfeil sjølv om tunnelen er sett opp riktig. Tunnelen forsvinn når eininga koplar frå/til på nytt.
 
 `CAPACITOR_SERVER_URL` fell alltid attende til produksjons-URL-en viss han ikkje er sett — dette hindrar at ein gløymd lokal override hamnar i eit Play Store-opplasta bygg. `npx cap open android` opnar Android Studio. Køyr frå ei tilkopla enhet (USB-debugging på) eller emulator med ▶ i verktøylinja.
 
 Har WebView-en ikkje nettverkstilkopling ved oppstart, viser appen ein enkel innebygd feilskjerm (`android/app/src/main/assets/error.html`, handtert i `MainActivity.java`) i staden for ein blank eller øydelagd skjerm.
+
+`android:sync:local`/`android:sync:dev`/manuell `http://`-override krev cleartext (vanleg HTTP), som Android blokkerer som standard frå `targetSdkVersion` 28+. `android/app/src/main/res/xml/network_security_config.xml` blokkerer cleartext for alle byggvariantar; `android/app/src/debug/res/xml/network_security_config.xml` overstyrer dette **berre for debug-bygget** og tillèt cleartext for `localhost`/`10.0.2.2`. Release-bygget (Play Store) får aldri cleartext, uansett `CAPACITOR_SERVER_URL`.
 
 `android/` er committa til git (ikkje i `.gitignore`) sidan mappa inneheld manuell native-konfig (plugins, ikon, signeringsreferansar). **Rediger aldri** genererte filer i `android/app/src/main/assets/public/` direkte — dei blir overskrivne av `cap sync`.
 
