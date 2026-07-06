@@ -1,3 +1,4 @@
+import { Capacitor } from '@capacitor/core'
 import { GOOGLE_SIGN_IN_PENDING_KEY, getUser, isAdmin, signIn, signInWithGoogle, signUp } from '@/services/authService'
 import { escHtml } from '@/utils/escHtml'
 import { createTabs } from '@/components/Tabs'
@@ -12,6 +13,10 @@ function makePanel(html: string): HTMLElement {
 
 function getRedirectParam(): string | null {
   return new URLSearchParams(location.hash.split('?')[1] ?? '').get('redirect')
+}
+
+async function resolvePostLoginDestination(redirect: string | null): Promise<string> {
+  return redirect ? `#${redirect}` : ((await isAdmin()) ? '#/admin' : '#/minside')
 }
 
 export async function render(container: HTMLElement): Promise<void> {
@@ -30,7 +35,7 @@ export async function render(container: HTMLElement): Promise<void> {
     const returningFromGoogle = sessionStorage.getItem(GOOGLE_SIGN_IN_PENDING_KEY) === '1'
     if (returningFromGoogle) sessionStorage.removeItem(GOOGLE_SIGN_IN_PENDING_KEY)
     if (redirect || returningFromGoogle) {
-      location.hash = redirect ? `#${redirect}` : ((await isAdmin()) ? '#/admin' : '#/minside')
+      location.hash = await resolvePostLoginDestination(redirect)
       return
     }
     container.innerHTML = `
@@ -109,6 +114,13 @@ export async function render(container: HTMLElement): Promise<void> {
       logError('logginn.signInWithGoogle', error)
       showToast(error.message, 'error')
       googleButton.disabled = false
+      return
+    }
+    // Web: signInWithOAuth already navigated the browser away, so this line never
+    // runs there. Native: signInWithGoogle resolved a session directly with no
+    // redirect to hang navigation off, so this handler must navigate itself.
+    if (Capacitor.isNativePlatform()) {
+      location.hash = await resolvePostLoginDestination(getRedirectParam())
     }
   })
 
@@ -134,12 +146,7 @@ export async function render(container: HTMLElement): Promise<void> {
       return
     }
 
-    const redirect = getRedirectParam()
-    if (redirect) {
-      location.hash = `#${redirect}`
-    } else {
-      location.hash = (await isAdmin()) ? '#/admin' : '#/minside'
-    }
+    location.hash = await resolvePostLoginDestination(getRedirectParam())
   })
 
   container.querySelector('#register-form')!.addEventListener('submit', async e => {

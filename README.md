@@ -178,10 +178,12 @@ Følgjande secrets må vere satt opp under **Settings → Environments**:
 **Environment: `github-pages` (prod)**
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
+- `VITE_GOOGLE_WEB_CLIENT_ID` — sjå [Android (Capacitor) → Google-innlogging i den native appen](#google-innlogging-i-den-native-appen). Trengst her sjølv om det berre brukast av Android-appen, sidan appen lastar denne same produksjonsbygningen.
 
 **Environment: `dev`**
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
+- `VITE_GOOGLE_WEB_CLIENT_ID` (same verdi som over, eller ein eigen dev-klient viss du vil skilje dei)
 
 Når du koplar inn Supabase-migrering i CI, trengst òg:
 - `SUPABASE_PROJECT_REF`
@@ -235,6 +237,21 @@ Har WebView-en ikkje nettverkstilkopling ved oppstart, viser appen ein enkel inn
 `android:sync:local`/`android:sync:dev`/manuell `http://`-override krev cleartext (vanleg HTTP), som Android blokkerer som standard frå `targetSdkVersion` 28+. `android/app/src/main/res/xml/network_security_config.xml` blokkerer cleartext for alle byggvariantar; `android/app/src/debug/res/xml/network_security_config.xml` overstyrer dette **berre for debug-bygget** og tillèt cleartext for `localhost`/`10.0.2.2`. Release-bygget (Play Store) får aldri cleartext, uansett `CAPACITOR_SERVER_URL`.
 
 `android/` er committa til git (ikkje i `.gitignore`) sidan mappa inneheld manuell native-konfig (plugins, ikon, signeringsreferansar). **Rediger aldri** genererte filer i `android/app/src/main/assets/public/` direkte — dei blir overskrivne av `cap sync`.
+
+### Google-innlogging i den native appen
+
+Google blokkerer OAuth-innlogging inne i ein WebView (`disallowed_useragent`), så Google-innlogging i Android-appen brukar **ikkje** same nettlesar-omdirigering som nettsida. Han går i staden via Android sin native kontovel­jar (Credential Manager, via `@capgo/capacitor-social-login`) og `supabase.auth.signInWithIdToken()` — ingen WebView eller omdirigering involvert. Nettsida (vanlege nettlesarar) er heilt upåverka og brukar framleis den vanlege omdirigeringsflyten.
+
+**Eingongsoppsett (Google Cloud Console + Supabase):**
+
+1. Hent SHA-1-fingeravtrykk for begge nøkkellagera:
+   ```bash
+   cd android && ./gradlew signInReport
+   ```
+   (køyr éin gong for debug-nøkkelen, éin gong med release-`keystore.properties` på plass for release-nøkkelen)
+2. I [Google Cloud Console](https://console.cloud.google.com/apis/credentials): lag éin **Web**-OAuth-klient-ID, og éin **Android**-OAuth-klient-ID (pakkenamn `no.hesteskokasting.app`) — registrer **begge** SHA-1-fingeravtrykka under den eine Android-klienten (treng ikkje to separate Android-klientar).
+3. I Supabase Dashboard → Authentication → Providers → Google: legg inn Web-klient-ID-en og Android-klient-ID-en. La Client Secret og Callback URL stå tomme — denne ID-token-flyten brukar dei ikkje.
+4. Legg Web-klient-ID-en inn som `VITE_GOOGLE_WEB_CLIENT_ID` i `.env.local` lokalt, og i GitHub Environments (`github-pages` og `dev`) — sjå [GitHub-konfigurasjon](#github-konfigurasjon). Appen lastar no same produksjonsbygg som nettsida, så variabelen må vere sett der bygget skjer, ikkje berre lokalt.
 
 ### Release-signering
 

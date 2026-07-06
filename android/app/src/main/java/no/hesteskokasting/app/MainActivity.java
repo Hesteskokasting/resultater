@@ -8,8 +8,14 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.BridgeWebViewClient;
+import ee.forgr.capacitor.social.login.ModifiedMainActivityForSocialLoginPlugin;
 
-public class MainActivity extends BridgeActivity {
+// The social-login plugin refuses to pass custom scopes (which the Google sign-in
+// call does) unless the host activity implements this marker interface.
+public class MainActivity extends BridgeActivity implements ModifiedMainActivityForSocialLoginPlugin {
+    @Override
+    public void IHaveModifiedTheMainActivityForTheUseWithSocialLoginPlugin() {}
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

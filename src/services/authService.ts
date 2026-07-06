@@ -1,7 +1,9 @@
+import { Capacitor } from '@capacitor/core'
 import { supabase } from '@/supabase'
 import type { AuthUser, Profile, Role } from '@/types'
 import { getProfileForUser } from '@/services/brukerProfilService'
 import { getClubAdminClubsForUser } from '@/services/adminService'
+import { generateNonce } from '@/utils/nonce'
 
 const ROLES = ['admin', 'klubbadmin', 'bruker'] as const
 
@@ -91,7 +93,43 @@ export async function signIn(email: string, password: string) {
 
 export const GOOGLE_SIGN_IN_PENDING_KEY = 'googleSignInPending'
 
+// Google blocks its OAuth consent screen from loading inside a WebView (error
+// "disallowed_useragent"), so the Capacitor app can't use the browser-redirect
+// flow below. It signs in via the OS account picker (Credential Manager) instead,
+// which resolves synchronously with a session — no redirect, so callers must
+// navigate themselves on success rather than relying on GOOGLE_SIGN_IN_PENDING_KEY.
+async function signInWithGoogleNative(): Promise<{ error: { message: string } | null }> {
+  const { SocialLogin } = await import('@capgo/capacitor-social-login')
+  const { rawNonce, nonceDigest } = await generateNonce()
+
+  await SocialLogin.initialize({
+    google: { webClientId: import.meta.env.VITE_GOOGLE_WEB_CLIENT_ID, mode: 'online' },
+  })
+
+  try {
+    const response = await SocialLogin.login({
+      provider: 'google',
+      options: { scopes: ['email', 'profile'], nonce: nonceDigest },
+    })
+
+    if (response.result.responseType !== 'online' || !response.result.idToken) {
+      return { error: { message: 'Fekk ikkje innloggingstoken frå Google.' } }
+    }
+
+    return supabase.auth.signInWithIdToken({
+      provider: 'google',
+      token: response.result.idToken,
+      nonce: rawNonce,
+    })
+  } catch (err) {
+    if (err instanceof Error && 'code' in err && err.code === 'USER_CANCELLED') return { error: null }
+    return { error: { message: err instanceof Error ? err.message : 'Google-innlogging feila.' } }
+  }
+}
+
 export async function signInWithGoogle(redirect?: string) {
+  if (Capacitor.isNativePlatform()) return signInWithGoogleNative()
+
   const target = `${window.location.origin}${window.location.pathname}#/logginn${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ''}`
   sessionStorage.setItem(GOOGLE_SIGN_IN_PENDING_KEY, '1')
   return supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: target } })

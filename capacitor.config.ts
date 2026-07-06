@@ -22,6 +22,13 @@ const config: CapacitorConfig = {
     url: serverUrl,
     cleartext: isLocalHttp,
     allowNavigation: ['accounts.google.com', '*.supabase.co']
+  },
+  plugins: {
+    // Only Google sign-in is used — keeps the unused Facebook/Apple/Twitter SDKs
+    // (and their permissions) out of the built APK.
+    SocialLogin: {
+      providers: { google: true, facebook: false, apple: false, twitter: false }
+    }
   }
 };
 
