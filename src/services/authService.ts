@@ -4,6 +4,7 @@ import type { AuthUser, Profile, Role } from '@/types'
 import { getProfileForUser } from '@/services/brukerProfilService'
 import { getClubAdminClubsForUser } from '@/services/adminService'
 import { generateNonce } from '@/utils/nonce'
+import { syncPushLogin, syncPushLogout } from '@/services/pushNotificationService'
 
 const ROLES = ['admin', 'klubbadmin', 'bruker'] as const
 
@@ -146,11 +147,11 @@ supabase.auth.onAuthStateChange((event, session) => {
     _inflight = null
     // SIGNED_IN: no cache clear needed — before real login _cache is already null (cleared by signOut());
     // for session restore on page load, the cache is valid and clearing it causes a redundant DB fetch.
-    import('@/services/pushNotificationService').then((m) => m.syncPushLogout())
+    syncPushLogout()
   }
   if (session && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION' || event === 'USER_UPDATED')) {
     _hasActiveSession = true
-    import('@/services/pushNotificationService').then((m) => m.syncPushLogin(session.user.id))
+    syncPushLogin(session.user.id)
   }
   const intentional = _intentionalSignOut
   // Captured before reset: true only when an authenticated session was actually live.
