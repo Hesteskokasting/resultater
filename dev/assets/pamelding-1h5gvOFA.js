@@ -1,4 +1,4 @@
-import{t as e}from"./logError-DFCPgUum.js";import{r as t}from"./authService-3qblRciR.js";import{$ as n,C as r,Q as i,R as a,V as o,at as s,g as c,ht as l,n as u,p as d,r as f,tt as p,v as m,y as h}from"./index-CpxSVsbW.js";import{f as g,r as _}from"./kasterService-VZ0s6Z5J.js";import{t as v}from"./LoadingState-Ps7fTB_T.js";function y(e,t,n,r,i,a){return e?!n&&!t?`<div class="alert alert-warning">
+import{t as e}from"./logError-DFCPgUum.js";import{r as t}from"./authService-BZ3tHKr-.js";import{$ as n,C as r,Q as i,R as a,V as o,at as s,g as c,ht as l,n as u,p as d,r as f,tt as p,v as m,y as h}from"./index-DUX4qgVd.js";import{f as g,r as _}from"./kasterService-VZ0s6Z5J.js";import{t as v}from"./LoadingState-Ps7fTB_T.js";function y(e,t,n,r,i,a){return e?!n&&!t?`<div class="alert alert-warning">
       Du må <a href="#/minside">koble kontoen din til ein utøvarprofil</a> for å melde deg på.
     </div>`:i?`<div class="alert alert-secondary">Dette stevnet er fullført. Påmelding er stengt.</div>`:n&&r?`
       <div class="alert alert-success d-flex justify-content-between align-items-center">
