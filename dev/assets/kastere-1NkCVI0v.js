@@ -1,5 +1,5 @@
 const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/charts-x-p8rsxv.js","assets/rolldown-runtime-lhHHWwHU.js"])))=>i.map(i=>d[i]);
-import{t as e}from"./preload-helper-Bk-a5Oec.js";import{t}from"./logError-Cjb5zwtM.js";import{Q as n,Z as r,et as i,mt as a,n as o,pt as s,rt as c}from"./index-CBSadyAf.js";import{c as l,i as u,r as d}from"./kasterService-B_2UvLGF.js";import{t as f}from"./LoadingState-BCLCa55U.js";import{t as p}from"./EmptyState-CCOt8lnf.js";import{t as m}from"./AdminLinkBar-DF04C5NF.js";var h=24,g=`https://placehold.co/200x200/444/888?text=?`,_={showAll:!1,searchText:``,page:1};function v(e){let t=a(e);return`
+import{t as e}from"./preload-helper-Bk-a5Oec.js";import{t}from"./logError-Cjb5zwtM.js";import{Q as n,Z as r,et as i,mt as a,n as o,pt as s,rt as c}from"./index-VrrqWszT.js";import{c as l,i as u,r as d}from"./kasterService-B_2UvLGF.js";import{t as f}from"./LoadingState-BCLCa55U.js";import{t as p}from"./EmptyState-CCOt8lnf.js";import{t as m}from"./AdminLinkBar-CfQieevE.js";var h=24,g=`https://placehold.co/200x200/444/888?text=?`,_={showAll:!1,searchText:``,page:1};function v(e){let t=a(e);return`
     <a href="#/kastere/${s(e)}" class="thrower-card">
       <img src="${r(e.avatarurl||g)}" alt="${r(t)}" loading="lazy">
       <div class="thrower-name">${r(t)}</div>
