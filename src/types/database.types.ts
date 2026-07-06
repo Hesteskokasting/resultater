@@ -55,6 +55,8 @@ export type Database = {
           kobling_status: string
           opprettet_at: string
           rolle: string
+          varsle_kamp_opprettet: boolean
+          varsle_stevne_start: boolean
         }
         Insert: {
           id: string
@@ -63,6 +65,8 @@ export type Database = {
           kobling_status?: string
           opprettet_at?: string
           rolle?: string
+          varsle_kamp_opprettet?: boolean
+          varsle_stevne_start?: boolean
         }
         Update: {
           id?: string
@@ -71,6 +75,8 @@ export type Database = {
           kobling_status?: string
           opprettet_at?: string
           rolle?: string
+          varsle_kamp_opprettet?: boolean
+          varsle_stevne_start?: boolean
         }
         Relationships: [
           {
@@ -474,6 +480,48 @@ export type Database = {
           plassering?: number
           poengdnc?: number
           poengnc?: number
+        }
+        Relationships: []
+      }
+      notification_queue: {
+        Row: {
+          body: string
+          created_at: string
+          deep_link: string
+          entity_id: number
+          error: string | null
+          id: number
+          notification_type: string
+          sent_at: string | null
+          status: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          deep_link: string
+          entity_id: number
+          error?: string | null
+          id?: never
+          notification_type: string
+          sent_at?: string | null
+          status?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          deep_link?: string
+          entity_id?: number
+          error?: string | null
+          id?: never
+          notification_type?: string
+          sent_at?: string | null
+          status?: string
+          title?: string
+          user_id?: string
         }
         Relationships: []
       }

@@ -1,8 +1,10 @@
+import { Capacitor } from '@capacitor/core'
 import { throwerName, buildThrowerSlug } from '@/utils/kaster'
 import { getUser } from '@/services/authService'
 import { createErrorBanner } from '@/components/ErrorBanner'
 import { createLoadingState } from '@/components/LoadingState'
 import { createEmptyState } from '@/components/EmptyState'
+import { showToast } from '@/components/Toast'
 import { escHtml } from '@/utils/escHtml'
 import { logError } from '@/utils/logError'
 import { registerRefetch } from '@/utils/refetchRegistry'
@@ -11,11 +13,14 @@ import { getActiveThrowerList, getThrowerForLink } from '@/services/kasterServic
 import { getMyRegistrations } from '@/services/pameldingService'
 import { getMyMatches, getStartNumbersForTournaments } from '@/services/kampService'
 import { sendProfileLinkRequest } from '@/services/brukerProfilService'
+import { getNotificationPreferences, updateNotificationPreference } from '@/services/notificationPreferencesService'
+import { ensurePushPermission } from '@/services/pushNotificationService'
 import { createTabs } from '@/components/Tabs'
 import type { Role, LinkStatus } from '@/types'
 import type { RegistrationRow } from '@/services/pameldingService'
 import type { MatchPlayerRow } from '@/services/kampService'
 import type { ThrowerListRow } from '@/services/kasterService'
+import type { NotificationPreferencesRow } from '@/services/notificationPreferencesService'
 
 function makePanel(html: string): HTMLElement {
   const div = document.createElement('div')
@@ -30,6 +35,23 @@ const roleLabel: Record<Role, string> = {
 }
 
 // ── HTML builders ─────────────────────────────────────────────────────────────
+
+function notificationSettingsHtml(prefs: NotificationPreferencesRow): string {
+  return `
+    <div class="card mb-4">
+      <div class="card-body">
+        <h5 class="card-title">Varslingar</h5>
+        <div class="form-check form-switch mb-2">
+          <input class="form-check-input" type="checkbox" role="switch" id="varsle-stevne-start"${prefs.varsle_stevne_start ? ' checked' : ''}>
+          <label class="form-check-label" for="varsle-stevne-start">Varsle når eit stevne startar</label>
+        </div>
+        <div class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" role="switch" id="varsle-kamp-opprettet"${prefs.varsle_kamp_opprettet ? ' checked' : ''}>
+          <label class="form-check-label" for="varsle-kamp-opprettet">Varsle når kampar for meg blir oppretta</label>
+        </div>
+      </div>
+    </div>`
+}
 
 function unlinkedHtml(status: LinkStatus): string {
   return `
@@ -256,6 +278,28 @@ function bindThrowerSearch(container: HTMLElement, userId: string): void {
   })
 }
 
+function bindNotificationToggles(container: HTMLElement, userId: string): void {
+  const toggles: [string, keyof NotificationPreferencesRow][] = [
+    ['varsle-stevne-start', 'varsle_stevne_start'],
+    ['varsle-kamp-opprettet', 'varsle_kamp_opprettet'],
+  ]
+  for (const [elementId, field] of toggles) {
+    const input = container.querySelector<HTMLInputElement>(`#${elementId}`)
+    if (!input) continue
+    input.addEventListener('change', async () => {
+      const value = input.checked
+      input.disabled = true
+      if (value) await ensurePushPermission()
+      const { error } = await updateNotificationPreference(userId, field, value)
+      input.disabled = false
+      if (error) {
+        input.checked = !value
+        showToast('Kunne ikkje lagre varslingsinnstilling.', 'error')
+      }
+    })
+  }
+}
+
 // ── Main function ─────────────────────────────────────────────────────────────
 
 export async function render(container: HTMLElement): Promise<void> {
@@ -270,10 +314,17 @@ export async function render(container: HTMLElement): Promise<void> {
     const status: LinkStatus = profil?.kobling_status ?? 'ingen'
     const roleName = profil ? roleLabel[profil.role] : 'Ukjent'
 
+    // Push only works through the native OneSignal subscription — this page's bundle
+    // is also served on the public website, where these toggles would do nothing.
+    const showPushSettings = Capacitor.isNativePlatform()
+    const notificationPrefs = showPushSettings ? (await getNotificationPreferences(user.id)).data : null
+
     let html = `
       <div class="mypage-container">
         <h2 class="mb-1">Min side</h2>
         <p class="text-muted mb-4">${escHtml(user.email ?? '')} · <span class="badge bg-secondary">${escHtml(roleName)}</span></p>`
+
+    if (notificationPrefs) html += notificationSettingsHtml(notificationPrefs)
 
     if (status === 'ingen' || status === 'avvist') {
       html += unlinkedHtml(status)
@@ -290,6 +341,7 @@ export async function render(container: HTMLElement): Promise<void> {
       html += '</div>'
       container.innerHTML = html
       container.querySelector('.mypage-container')!.appendChild(myMatchesEl)
+      if (notificationPrefs) bindNotificationToggles(container, user.id)
       return
     }
 
@@ -299,6 +351,7 @@ export async function render(container: HTMLElement): Promise<void> {
     if (status === 'ingen' || status === 'avvist') {
       bindThrowerSearch(container, user.id)
     }
+    if (notificationPrefs) bindNotificationToggles(container, user.id)
   } catch (err) {
     logError('minside.render', err)
     container.replaceChildren(createErrorBanner('Kunne ikkje laste min side.'))

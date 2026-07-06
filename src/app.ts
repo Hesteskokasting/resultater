@@ -6,6 +6,7 @@ import { createErrorBanner } from './components/ErrorBanner'
 import { showReauthModal } from './components/ReauthModal'
 import { setPageTitle } from '@/utils/pageTitle'
 import { registerRefetch, runRefetch } from '@/utils/refetchRegistry'
+import { initPushNotifications } from '@/services/pushNotificationService'
 import type { PageRenderFn, Role, Route } from '@/types'
 
 if (import.meta.env.VITE_ENV === 'dev') {
@@ -124,6 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   updateAuthMenu()
   navigate()
+  initPushNotifications()
 })
 
 document.addEventListener('authStateChanged', (e) => {
