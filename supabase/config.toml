@@ -378,6 +378,13 @@ deno_version = 2
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 
+# Invoked by a pg_net trigger (notification_queue insert), which sends no
+# Authorization header — only the custom x-webhook-secret header the
+# function itself checks. Without this, Supabase's gateway would reject
+# the call with 401 before the function code ever runs.
+[functions.send-push-notification]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327

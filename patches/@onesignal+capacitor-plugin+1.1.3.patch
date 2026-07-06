@@ -1,0 +1,29 @@
+diff --git a/node_modules/@onesignal/capacitor-plugin/android/build.gradle.kts b/node_modules/@onesignal/capacitor-plugin/android/build.gradle.kts
+index c27d0fc..4600d2e 100644
+--- a/node_modules/@onesignal/capacitor-plugin/android/build.gradle.kts
++++ b/node_modules/@onesignal/capacitor-plugin/android/build.gradle.kts
+@@ -106,14 +106,21 @@ configure<com.android.build.gradle.LibraryExtension> {
+     compileSdk = intPropertyOrCatalog("compileSdkVersion", "compileSdk")
+     defaultConfig {
+         minSdk = intPropertyOrCatalog("minSdkVersion", "minSdk")
+-        @Suppress("DEPRECATION")
+-        targetSdk = intPropertyOrCatalog("targetSdkVersion", "targetSdk")
++        // targetSdk removed: AGP 9.x dropped LibraryDefaultConfig.setTargetSdk() entirely
++        // (it never had meaning for a library module — only the consuming app's
++        // targetSdk matters at runtime), so this line crashes the build with
++        // "Unable to find method LibraryDefaultConfig.setTargetSdk(Integer)" on
++        // this project's AGP version. Patched via patch-package.
+         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+     }
+     buildTypes {
+         getByName("release") {
+             isMinifyEnabled = false
+-            proguardFiles(getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro")
++            // "proguard-android.txt" (includes -dontoptimize) is no longer accepted by
++            // this project's AGP version; the R8-optimize-friendly variant is required
++            // even though isMinifyEnabled = false means neither is actually applied here.
++            // Patched via patch-package.
++            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+         }
+     }
+     compileOptions {

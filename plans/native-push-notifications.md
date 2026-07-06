@@ -206,7 +206,68 @@ Secrets (`supabase secrets set ...`, never committed): `ONESIGNAL_APP_ID`, `ONES
 
 ## Verification
 
-- `npm run typecheck && npm run typecheck:test && npm run test:run` after each phase.
-- Phase A: apply migrations locally (`supabase db reset` or equivalent), manually update a test `stevne` row's `stevne_fase` and insert a test `kamp_spelar` row, confirm `notification_queue` rows appear with expected `deep_link`/dedup behavior (re-running the same update/insert should not create duplicate queue rows).
-- Phase B: invoke the deployed Edge Function directly with a synthetic payload (`curl`/Postman) against a real `ONESIGNAL_APP_ID`/test device to confirm an actual push arrives and `notification_queue.status` flips to `sent`.
-- Phase C+D: `npm run build && npm run android:sync:local`, run on an emulator or device, flip both toggles on in "Min side," confirm the Android permission prompt appears, then trigger a test notification (via the Edge Function or OneSignal's dashboard test-send) and confirm tapping it navigates to the right in-app route both while the app is open and after a cold start (force-stop then tap).
+`npm run typecheck && npm run typecheck:test && npm run test:run` after each phase. Beyond that, testing this feature for real needs an actual device/emulator and a live OneSignal app, so it's a manual end-to-end pass rather than something the automated suite covers. Path below goes from cheapest/no-device checks up to the full native flow.
+
+### 1. Sanity-check the pipeline without touching the app
+
+Confirms secrets and the trigger → Edge Function → OneSignal call all work, before involving a device:
+
+```sql
+insert into notification_queue (user_id, notification_type, entity_id, title, body, deep_link)
+values ('<a real auth.users.id from your project>', 'stevne_start', 1, 'Test', 'Testvarsel', '/minside');
+```
+
+Then a few seconds later:
+```sql
+select status, error from notification_queue order by id desc limit 1;
+```
+`status = 'sent'` means the whole chain (pg_net → Edge Function → OneSignal API) worked. If it's `failed`, check `error`; if it's stuck on `pending`, tail live logs:
+```
+npx supabase functions logs send-push-notification
+```
+Note: this only proves OneSignal *accepted* the request — with no device subscribed to that `user_id` yet, nothing lands on a phone. That's expected at this stage.
+
+### 2. Get a real device subscribed
+
+Build and run on an emulator or physical device against the local dev server (fastest iteration, no deploy needed):
+```
+npm run build
+npm run android:sync:local   # emulator; see README for the adb reverse variant on a physical device
+npx cap open android
+```
+Run it from Android Studio (▶). **Use an emulator image with Google Play Services**, not bare AOSP — push relies on FCM under the hood and won't work on a Play-Services-less image.
+
+Then:
+1. Log in with a real test account.
+2. Go to **Min side** — confirm the "Varslingar" card appears (proves `Capacitor.isNativePlatform()` + the UI wiring works).
+3. Toggle both switches on. Accept the Android notification permission prompt when it appears.
+4. In the OneSignal dashboard: **Audience → Subscriptions** — find the device, confirm it shows the test user's Supabase `auth.users.id` as its External ID and is subscribed. If it's missing, `syncPushLogin` didn't fire — check `authService.ts`'s `onAuthStateChange` wiring and device logs (Android Studio Logcat filtered on "OneSignal").
+
+### 3. Trigger both notification types for real
+
+Fastest way — skip the full organizer UI flow and fire the triggers directly via SQL:
+
+**Stevne start:**
+```sql
+update stevne set stevne_fase = 'innledende' where id = <a test stevne id> and stevne_fase = 'ikke_startet';
+```
+
+**Kamp created for me** — needs a `kamp_spelar` row whose `kasterid` matches the test user's linked kaster (`bruker_profil.kasterid` for that user, with `kobling_status = 'godkjent'`):
+```sql
+insert into kamp_spelar (kampid, kasterid) values (<an existing kamp id>, <the linked kasterid>);
+```
+
+Check `notification_queue` again for a new row and `status = 'sent'`.
+
+### 4. Confirm the phone actually gets it
+
+- Background the app (don't force-close yet) and re-run one of the triggers above — the notification should appear in the system tray within a few seconds.
+- Tap it — the app should come to foreground and navigate to the deep link (`/stevne/<id>` or `/kamp/<id>`).
+- **Cold-start test**: force-stop the app entirely (Android Settings → Apps → your app → Force stop), trigger another notification, tap it from the tray, and confirm it launches the app *and* still navigates correctly — this exercises the `retainUntilConsumed` buffering the OneSignal plugin relies on for cold starts.
+
+### 5. Edge cases worth checking while you're at it
+
+- Toggle a preference **off**, re-trigger — confirm no new notification arrives (the trigger's join on `bp.varsle_* = true` should exclude them).
+- Re-run the *same* stevne update or kamp_spelar insert twice — confirm no duplicate row in `notification_queue` (the `UNIQUE (user_id, notification_type, entity_id)` + `ON CONFLICT DO NOTHING` dedup).
+
+If anything gets stuck, `npx supabase functions logs send-push-notification --follow` while triggering is the quickest way to see exactly where it's failing.

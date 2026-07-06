@@ -19,12 +19,14 @@
     "test:db": "supabase test db",
     "android:sync": "cap sync android",
     "android:sync:dev": "cross-env CAPACITOR_SERVER_URL=https://res.hesteskokasting.no/dev cap sync android",
-    "android:sync:local": "cross-env CAPACITOR_SERVER_URL=http://10.0.2.2:5173 cap sync android"
+    "android:sync:local": "cross-env CAPACITOR_SERVER_URL=http://10.0.2.2:5173 cap sync android",
+    "postinstall": "patch-package"
   },
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",
     "cross-env": "^10.1.0",
     "happy-dom": "^20.10.1",
+    "patch-package": "^8.0.1",
     "supabase": "^2.93.0",
     "typescript": "^6.0.3",
     "vite": "^8.0.12",
