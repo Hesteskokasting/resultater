@@ -1,1 +1,0 @@
-import{n as e}from"./logError-Cjb5zwtM.js";async function t(t){await e.removeChannel(t)}function n(e){window.addEventListener(`hashchange`,e,{once:!0})}export{t as n,n as t};

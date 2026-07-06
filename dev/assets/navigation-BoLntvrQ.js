@@ -1,0 +1,1 @@
+import{t as e}from"./supabase-DFblIP9B.js";async function t(t){await e.removeChannel(t)}function n(e){window.addEventListener(`hashchange`,e,{once:!0})}export{t as n,n as t};

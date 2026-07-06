@@ -1,0 +1,1 @@
+function e(e,t){console.error(`[${e}]`,t)}export{e as t};
