@@ -16,10 +16,13 @@
     "test": "vitest",
     "test:run": "vitest run",
     "preview": "vite preview --host",
-    "test:db": "supabase test db"
+    "test:db": "supabase test db",
+    "android:sync": "cap sync android",
+    "android:sync:dev": "cross-env CAPACITOR_SERVER_URL=https://res.hesteskokasting.no/dev cap sync android"
   },
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",
+    "cross-env": "^10.1.0",
     "happy-dom": "^20.10.1",
     "supabase": "^2.93.0",
     "typescript": "^6.0.3",

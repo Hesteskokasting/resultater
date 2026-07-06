@@ -200,13 +200,24 @@ Appen er pakka med [Capacitor](https://capacitorjs.com) for å køyre nativt på
 
 ### Bygg og synk
 
+Appen lastar sida live via `server.url` i staden for å pakke `dist/` inn i appen. Vanlege web-endringar treng difor **ikkje** ny native-bygg — dei blir tilgjengelege med det same via GitHub Pages-deployen. `npm run build` trengst framleis lokalt sidan Capacitor-CLI-en krev at `webDir` finst når han synkroniserer, sjølv om innhaldet ikkje blir brukt ved køyretid.
+
 ```bash
 npm run build
-npx cap sync android
+npm run android:sync      # synkroniserer mot produksjon (res.hesteskokasting.no)
 npx cap open android
 ```
 
-Dette opnar Android Studio. Køyr frå ei tilkopla enhet (USB-debugging på) eller emulator med ▶ i verktøylinja.
+For å teste mot dev-miljøet eller ein lokal Vite-dev-server i staden:
+
+```bash
+npm run android:sync:dev                                                  # res.hesteskokasting.no/dev
+$env:CAPACITOR_SERVER_URL = "http://10.0.2.2:5173"; npx cap sync android  # lokal Vite-server (Android-emulator)
+```
+
+`CAPACITOR_SERVER_URL` fell alltid attende til produksjons-URL-en viss han ikkje er sett — dette hindrar at ein gløymd lokal override hamnar i eit Play Store-opplasta bygg. `npx cap open android` opnar Android Studio. Køyr frå ei tilkopla enhet (USB-debugging på) eller emulator med ▶ i verktøylinja.
+
+Har WebView-en ikkje nettverkstilkopling ved oppstart, viser appen ein enkel innebygd feilskjerm (`android/app/src/main/assets/error.html`, handtert i `MainActivity.java`) i staden for ein blank eller øydelagd skjerm.
 
 `android/` er committa til git (ikkje i `.gitignore`) sidan mappa inneheld manuell native-konfig (plugins, ikon, signeringsreferansar). **Rediger aldri** genererte filer i `android/app/src/main/assets/public/` direkte — dei blir overskrivne av `cap sync`.
 
@@ -262,5 +273,5 @@ supabase/
 tests/                      # Vitest-testar for rein logikk (utils og service-funksjonar utan Supabase-kall)
 
 android/                    # Nativt Android-prosjekt (Capacitor) — sjå eigen seksjon ovanfor
-capacitor.config.ts         # Capacitor-konfig (app-id, webDir)
+capacitor.config.ts         # Capacitor-konfig (app-id, webDir, server.url)
 ```
