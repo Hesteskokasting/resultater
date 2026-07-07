@@ -5,8 +5,9 @@ import { getUser, isAdmin, isClubAdmin, signOut } from './services/authService'
 import { createErrorBanner } from './components/ErrorBanner'
 import { showReauthModal } from './components/ReauthModal'
 import { setPageTitle } from '@/utils/pageTitle'
-import { registerRefetch, runRefetch } from '@/utils/refetchRegistry'
+import { hasRefetch, registerRefetch, runRefetch } from '@/utils/refetchRegistry'
 import { initPushNotifications } from '@/services/pushNotificationService'
+import { initPullToRefresh } from '@/components/PullToRefresh'
 import type { PageRenderFn, Role, Route } from '@/types'
 
 if (import.meta.env.VITE_ENV === 'dev') {
@@ -68,7 +69,7 @@ const routes: Route[] = [
   { pattern: /^\/?$/,                            page: renderHome,                                                   params: () => ({}) },
 ]
 
-function navigate(): void {
+function navigate(): void | Promise<void> {
   const [hash = '/'] = (location.hash.replace(/^#/, '') || '/').split('?')
 
   for (const route of routes) {
@@ -78,12 +79,17 @@ function navigate(): void {
       // Cleared by default so a stale page's refetch can't fire against a page that
       // hasn't opted in — pages that support resume-refetch re-register it themselves.
       registerRefetch(null)
-      route.page(container, route.params(match))
-      return
+      return route.page(container, route.params(match))
     }
   }
 
   container.replaceChildren(createErrorBanner('Side ikkje funne.'))
+}
+
+// Pages that opt in via registerRefetch() get their lighter, state-preserving refetch;
+// everything else falls back to a full re-render of the current route.
+function refreshCurrent(): void | Promise<void> {
+  return hasRefetch() ? runRefetch() : navigate()
 }
 
 async function updateAuthMenu(): Promise<void> {
@@ -116,6 +122,8 @@ async function updateAuthMenu(): Promise<void> {
 window.addEventListener('hashchange', navigate)
 
 App.addListener('resume', runRefetch)
+
+initPullToRefresh(refreshCurrent)
 
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('menyLoggUtKnapp')!.addEventListener('click', async () => {
