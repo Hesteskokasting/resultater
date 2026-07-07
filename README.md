@@ -265,7 +265,17 @@ npm run android:sync:dev      # res.hesteskokasting.no/dev
 npm run android:sync:local    # lokal Vite-server (npm run dev) via 10.0.2.2 — berre Android-emulator
 ```
 
-`android:sync:local` peikar på `10.0.2.2`, Android-emulatorens alias for verts-maskina sin `localhost` — det fungerer ikkje på ei fysisk USB-tilkopla eining. For fysisk eining:
+`android:sync:local` peikar på `10.0.2.2`, Android-emulatorens alias for verts-maskina sin `localhost` — det fungerer ikkje på ei fysisk USB-tilkopla eining. For fysisk eining, bruk anten det automatiserte scriptet eller dei manuelle stega:
+
+#### Automatisert (anbefalt)
+
+```bash
+npm run android:dev
+```
+
+Set opp heile flyten i eitt steg: startar Vite bunde til `127.0.0.1`, set opp `adb reverse tcp:5173 tcp:5173`, synkroniserer Capacitor mot `http://localhost:5173` og opnar Android Studio. Held seg køyrande og set opp `adb reverse` på nytt automatisk viss eininga koplar frå/til USB — vanlege kodeendringar treng då ingen ny sync/bygg, Vite HMR pushar dei direkte til WebView-en. Trykk Ctrl+C for å avslutte (stoppar Vite). Sjå [`scripts/android-dev.ps1`](scripts/android-dev.ps1).
+
+#### Manuelt
 
 ```bash
 npm run dev -- --host 127.0.0.1               # Vite bind seg elles berre til IPv6 (::1)
