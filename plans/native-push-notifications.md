@@ -142,11 +142,12 @@ New: `supabase/functions/send-push-notification/index.ts` (Deno, first Edge Func
 
 - Verifies `x-webhook-secret` header against `PUSH_WEBHOOK_SECRET`.
 - Reads the `notification_queue` row from the webhook payload.
-- Calls OneSignal's Create Notification REST API (`POST https://api.onesignal.com/notifications`), targeting `include_aliases: { external_id: [row.user_id] }`, with `url`/`data.route` set to `row.deep_link` so the client can route on tap. **The `data` key must be named `route`** — it has to match the key the Phase C click handler reads (`event.notification.additionalData.route`) exactly, or tapping a notification silently goes nowhere.
+- Calls OneSignal's Create Notification REST API (`POST https://api.onesignal.com/notifications`), targeting `include_aliases: { external_id: [row.user_id] }`, with `data.route` set to `row.deep_link` so the client can route on tap. **The `data` key must be named `route`** — it has to match the key the Phase C click handler reads (`event.notification.additionalData.route`) exactly, or tapping a notification silently goes nowhere.
+- **Deliberately does not set a `url` field.** Tested and confirmed: setting `url` makes OneSignal's Android SDK default to opening it via a system browser intent on tap, which overrides the app's own `click` listener entirely (notification opened in the browser instead of navigating in-app, and pointed at whatever fixed URL was baked into the Edge Function regardless of which environment — dev/prod — was actually being tested). Since the client already handles navigation itself via `data.route`, no `url` is needed, and this also removes any need for a `SITE_URL` secret.
 - Updates the queue row to `status = 'sent'` or `'failed'` (+ `error`) afterward.
 - **Flag before shipping literally:** OneSignal's alias-targeting request shape (`include_aliases`/`target_channel` vs the older `include_external_user_ids`) has moved across API versions — re-check `https://documentation.onesignal.com` for the current exact shape at implementation time.
 
-Secrets (`supabase secrets set ...`, never committed): `ONESIGNAL_APP_ID`, `ONESIGNAL_REST_API_KEY`, `PUSH_WEBHOOK_SECRET`, `SITE_URL`. `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` are auto-injected — don't set manually. Deploy with `supabase functions deploy send-push-notification`.
+Secrets (`supabase secrets set ...`, never committed): `ONESIGNAL_APP_ID`, `ONESIGNAL_REST_API_KEY`, `PUSH_WEBHOOK_SECRET`. `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` are auto-injected — don't set manually. Deploy with `supabase functions deploy send-push-notification`.
 
 ---
 

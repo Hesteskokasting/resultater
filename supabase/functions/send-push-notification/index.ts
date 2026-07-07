@@ -3,7 +3,6 @@ import { createClient } from 'jsr:@supabase/supabase-js@2'
 const ONESIGNAL_APP_ID = Deno.env.get('ONESIGNAL_APP_ID')!
 const ONESIGNAL_REST_API_KEY = Deno.env.get('ONESIGNAL_REST_API_KEY')!
 const PUSH_WEBHOOK_SECRET = Deno.env.get('PUSH_WEBHOOK_SECRET')!
-const SITE_URL = Deno.env.get('SITE_URL')!
 
 interface NotificationQueueRow {
   id: number
@@ -47,7 +46,10 @@ Deno.serve(async (req) => {
       target_channel: 'push',
       headings: { en: row.title },
       contents: { en: row.body },
-      url: `${SITE_URL}/#${row.deep_link}`,
+      // No `url` field: setting one makes OneSignal's Android SDK default to
+      // opening it via a system browser intent on tap, overriding the app's
+      // own click listener (which reads data.route and navigates in-app via
+      // location.hash instead).
       data: { notificationType: row.notification_type, route: row.deep_link },
     }),
   })
