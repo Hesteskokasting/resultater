@@ -171,6 +171,54 @@ npx supabase db push
 
 ---
 
+## Supabase Edge Functions
+
+Edge Functions ligg i `supabase/functions/` og deployerast separat frå database-migreringar. Krev at prosjektet er linka (`npx supabase link`, sjå [Koble til eit prosjekt](#koble-til-eit-prosjekt)).
+
+### Deploy
+
+```bash
+npx supabase functions deploy <namn>
+```
+
+### Sjå deployerte funksjonar
+
+```bash
+npx supabase functions list
+```
+
+### Loggar
+
+```bash
+npx supabase functions logs <namn>
+npx supabase functions logs <namn> --follow   # streamer nye loggar live — nyttig medan du testar
+```
+
+### Secrets
+
+Secrets til Edge Functions (API-nøklar o.l.) er separate frå GitHub-secrets og frå `.env.local` — dei set du direkte på Supabase-prosjektet, og dei er berre tilgjengelege server-side (aldri i klientkoden):
+
+```bash
+npx supabase secrets set NØKKEL=verdi ANNAN_NØKKEL=verdi2
+npx supabase secrets list
+npx supabase secrets unset NØKKEL
+```
+
+**Viktig:** `secrets list` viser berre namn, ikkje verdiar — ein secret kan settast, men aldri lesast tilbake via CLI-en. Noter verdiane i ein passordhandterar når du set dei.
+
+### Feilsøking av pg_net-triggarar
+
+Nokre databasetriggarar (t.d. push-varsling via `notification_queue`, sjå `supabase/migrations/20260706120400_webhook_notification_queue_to_edge_function.sql`) kallar Edge Functions direkte via `pg_net` i staden for Supabase sin innebygde «Database Webhooks»-funksjon (som krev at `supabase_functions`-schemaet er provisjonert på prosjektet — ikkje tilfelle her). For å sjå kva HTTP-svar ein slik triggar faktisk fekk, køyr i SQL-editoren:
+
+```sql
+select id, status_code, content, error_msg, created
+from net._http_response
+order by id desc
+limit 5;
+```
+
+---
+
 ## GitHub-konfigurasjon
 
 Følgjande secrets må vere satt opp under **Settings → Environments**:
