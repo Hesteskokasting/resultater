@@ -98,6 +98,12 @@ export async function render(container: HTMLElement): Promise<void> {
         </section>
       </div>
     </div>`
+  const root = container.querySelector<HTMLElement>('.homepage')!
+
+  // A route change (e.g. a deep-linked push notification) can replace container's
+  // content while the fetches below are still in flight — abandon this render rather
+  // than writing into a page that isn't ours anymore.
+  const isCurrent = (): boolean => container.contains(root)
 
   try {
     const [
@@ -115,6 +121,8 @@ export async function render(container: HTMLElement): Promise<void> {
       getLiveTournaments(),
       getUser(),
     ])
+
+    if (!isCurrent()) return
 
     if (e1 || e2 || e3 || e4) {
       container.replaceChildren(createErrorBanner('Kunne ikkje laste framsida.'))
@@ -143,11 +151,12 @@ export async function render(container: HTMLElement): Promise<void> {
 
     if (throwerId !== null && auth?.user.id) {
       const registeredMap = await getRegistrationsForThrower(throwerId)
+      if (!isCurrent()) return
       bindRegistrationSlots(upcomingSection, throwerId, auth.user.id, registeredMap)
     }
 
   } catch (err) {
     logError('home.render', err)
-    container.replaceChildren(createErrorBanner('Kunne ikkje laste framsida.'))
+    if (isCurrent()) container.replaceChildren(createErrorBanner('Kunne ikkje laste framsida.'))
   }
 }
