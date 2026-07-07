@@ -52,6 +52,25 @@
   gap: 10px;
 }
 
+/* ── Pull-to-refresh (native Android app only) ── */
+
+.ptr-indicator {
+  height: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: height 0.2s ease;
+}
+
+.ptr-indicator__spinner {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-width: 0.2em;
+  color: var(--tekst-2);
+  opacity: 0;
+}
+
 /* ── Header nav (wide screens only) ── */
 
 .header-nav {
