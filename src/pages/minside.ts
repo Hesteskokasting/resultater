@@ -204,7 +204,7 @@ async function createMyMatches(throwerId: number): Promise<HTMLElement> {
   )
   const completedContent = groupMatchesByTournament(
     completed,
-    ks => `<a href="#/kamp/${ks.kamp?.id ?? ''}" class="btn btn-sm btn-outline-secondary">Sjå kamp</a>`,
+    ks => `<a href="#/kamp/${ks.kamp?.id ?? ''}" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener">Sjå kamp</a>`,
   )
 
   const card = document.createElement('div')

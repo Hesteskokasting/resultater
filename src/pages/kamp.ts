@@ -296,8 +296,7 @@ export async function render(container: HTMLElement, params: Params): Promise<vo
 
   container.addEventListener('click', (e) => {
     if ((e.target as HTMLElement).closest('.sb-tilbake-btn')) {
-      if (history.length > 1) history.back()
-      else window.close()
+      window.close()
     }
   })
 
