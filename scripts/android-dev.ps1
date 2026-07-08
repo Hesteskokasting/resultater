@@ -44,7 +44,18 @@ if (-not $ready) {
 }
 
 function Set-AdbReverse {
-    adb reverse tcp:5173 tcp:5173 2>$null
+    # adb skriv informasjonsmeldingar (t.d. "daemon not running; starting now")
+    # til stderr sjølv ved suksess. Med $ErrorActionPreference = "Stop" gjer ikkje
+    # PowerShell 5.1 skilnad her - stderr frå native exe-ar blir uansett pakka inn
+    # i ein terminerande NativeCommandError. Difor må ErrorActionPreference
+    # mjukast opp lokalt rundt kallet, og stderr fangast utan å redirigerast bort.
+    $prevPref = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        adb reverse tcp:5173 tcp:5173 2>&1 | Out-Null
+    } finally {
+        $ErrorActionPreference = $prevPref
+    }
     if ($LASTEXITCODE -eq 0) {
         Write-Host "$(Get-Date -Format 'HH:mm:ss') - adb reverse satt opp"
     }
@@ -57,7 +68,12 @@ $env:CAPACITOR_SERVER_URL = "http://localhost:5173"
 npx cap sync android
 
 Write-Host "Opnar Android Studio..."
-Start-Process npx -ArgumentList "cap","open","android"
+# "npx" er her npx.ps1 (sjå Get-Command npx), ikkje ein ekte .exe. Start-Process
+# kan ikkje køyre .ps1-filer direkte (same problem som er dokumentert for vite
+# lenger oppe) - kallet feila difor stille, utan feilmelding, og Android Studio
+# opna aldri. Køyrer i staden node.exe direkte mot @capacitor/cli sin bin-fil.
+Start-Process -WorkingDirectory $repoRoot -FilePath "node" `
+    -ArgumentList "node_modules/@capacitor/cli/bin/capacitor","open","android"
 
 Write-Host ""
 Write-Host "Ferdig. Kodeendringar oppdaterer WebView automatisk via Vite HMR - ikkje"
