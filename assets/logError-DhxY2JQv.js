@@ -1,1 +1,0 @@
-import{t as e}from"./vendor-3yxEHqvy.js";var t=e(`https://urtvpewjlevhlevtnvkf.supabase.co`,`eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVydHZwZXdqbGV2aGxldnRudmtmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0MTA2NDgsImV4cCI6MjA5MDk4NjY0OH0.0kCozO-eFJKZ19uU8F2HOHRcUsJD7HAVpVBl6sKoVbU`);function n(e,t){console.error(`[${e}]`,t)}export{t as n,n as t};
