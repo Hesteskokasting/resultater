@@ -194,14 +194,14 @@ Secrets (`supabase secrets set ...`, never committed): `ONESIGNAL_APP_ID`, `ONES
 3. In that Firebase project, enable "Firebase Cloud Messaging API (V1)" and generate a service-account JSON key; upload it to OneSignal's dashboard under Settings → Push & In-App → Platforms → Google Android (FCM).
 4. Copy the OneSignal **App ID** → set as `VITE_ONESIGNAL_APP_ID` (GitHub secret + local `.env.local`).
 5. Copy the OneSignal **REST API key** → `supabase secrets set ONESIGNAL_REST_API_KEY=...` (server-side only, never in client env vars).
-6. Pick a `PUSH_WEBHOOK_SECRET` value and set it both as a Supabase secret and inline in the Phase A migration 5 trigger literal.
+6. Pick a `PUSH_WEBHOOK_SECRET` value, set it as a Supabase secret (`supabase secrets set PUSH_WEBHOOK_SECRET=...`), and store the same value in Vault (`select vault.create_secret('<value>', 'push_webhook_secret');`, run directly against the project — never as a migration or a literal in the trigger function).
 
 ---
 
 ## Known gaps (deliberate scope decisions for v1, not oversights)
 
 - **No retry on failed sends.** If the Edge Function times out (5s) or OneSignal is briefly unavailable, the `notification_queue` row is left at `status = 'failed'` permanently — nothing re-attempts it. Acceptable for v1 given the low volume/low stakes (a missed "new match" push isn't critical — the data is still visible in-app), but this is an explicit scope cut, not an accident. If it becomes a problem, revisit with either a scheduled sweep of `status = 'failed' AND created_at > now() - interval '1 day'` re-invoking the Edge Function, or a bounded retry count column.
-- **Webhook secret is plaintext in the migration's trigger literal.** Anyone with SQL-editor access on this Supabase project can read `PUSH_WEBHOOK_SECRET` straight out of `pg_trigger`/`pg_proc`. Fine today since Sondre is the only one with that access, but two consequences to keep in mind: rotating the secret requires a new migration (can't just flip a dashboard value), and this stops being fine the moment a second person gets SQL-editor access. Future hardening path: move the secret into Supabase Vault (`vault.create_secret(...)` + read it via `vault.decrypted_secrets`/`current_setting()` inside the trigger function) instead of a literal in the `CREATE TRIGGER` call — not a v1 blocker, just don't forget it exists as a follow-up.
+- ~~Webhook secret is plaintext in the migration's trigger literal.~~ **Resolved 2026-07-08** after the original value leaked via a committed migration file. `PUSH_WEBHOOK_SECRET` now lives in Supabase Vault (`vault.create_secret(...)`, run directly against the project — never as a migration) and `trg_notification_queue_send_webhook` reads it at call time via `vault.decrypted_secrets` (see `20260708130000_vault_push_webhook_secret.sql`). Rotating it going forward means calling `vault.update_secret(...)` directly against the project plus `supabase secrets set` for the Edge Function side — no migration, no literal ever committed again.
 
 ---
 
