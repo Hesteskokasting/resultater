@@ -21,6 +21,9 @@
     "android:sync:dev": "cross-env CAPACITOR_SERVER_URL=https://res.hesteskokasting.no/dev cap sync android",
     "android:sync:local": "cross-env CAPACITOR_SERVER_URL=http://10.0.2.2:5173 cap sync android",
     "android:dev": "powershell -ExecutionPolicy Bypass -File scripts/android-dev.ps1",
+    "ios:sync": "cap sync ios",
+    "ios:sync:dev": "cross-env CAPACITOR_SERVER_URL=https://res.hesteskokasting.no/dev cap sync ios",
+    "ios:sync:local": "cross-env CAPACITOR_SERVER_URL=http://localhost:5173 cap sync ios",
     "postinstall": "patch-package"
   },
   "devDependencies": {
@@ -38,6 +41,7 @@
     "@capacitor/app": "^8.1.0",
     "@capacitor/cli": "^8.4.1",
     "@capacitor/core": "^8.4.1",
+    "@capacitor/ios": "^8.4.1",
     "@capgo/capacitor-social-login": "^8.3.33",
     "@onesignal/capacitor-plugin": "^1.1.3",
     "@supabase/supabase-js": "^2.105.4",
