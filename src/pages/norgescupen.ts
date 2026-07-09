@@ -240,7 +240,7 @@ export async function render(container: HTMLElement): Promise<void> {
       if (!rules) {
         teamContainer.replaceChildren(createEmptyState('Ingen data.'))
       } else {
-        const teamList = buildTeamList(cache.results, cache.tournaments, rules)
+        const teamList = buildTeamList(cache.results, cache.tournaments, rules, year < 2026)
         teamContainer.replaceChildren(createTeamTable(teamList))
         bindExpandableRows(teamContainer, { triggerSel: '.nc-team-points-cell', idAttr: 'team-idx', detailSel: '.nc-team-detail-row', lookupRoot: content })
       }
@@ -257,7 +257,7 @@ export async function render(container: HTMLElement): Promise<void> {
       if (!rules) {
         singleContainer.replaceChildren(createEmptyState('Ingen data.'))
       } else {
-        const singleList = buildSingleList(cache.results, cache.tournaments, rules, cupType, classNum)
+        const singleList = buildSingleList(cache.results, cache.tournaments, rules, cupType, classNum, year < 2026)
         singleContainer.replaceChildren(createSingleTable(singleList))
         bindExpandableRows(singleContainer, { triggerSel: '.nc-points-cell', idAttr: 'idx', detailSel: '.nc-detail-row', lookupRoot: content })
       }

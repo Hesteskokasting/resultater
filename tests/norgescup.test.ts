@@ -32,11 +32,11 @@ function mkRes(
   } as ResultWithRelations
 }
 
-function mkStevne(id: number, typeNavn: 'NC' | 'SNC' | 'DNC'): TournamentForNC {
+function mkStevne(id: number, typeNavn: 'NC' | 'SNC' | 'DNC', year = 2025): TournamentForNC {
   return {
     id,
     navn: `Stevne ${id}`,
-    dato: `2025-01-${String(id).padStart(2, '0')}`,
+    dato: `${year}-01-${String(id).padStart(2, '0')}`,
     stevnetype: { id, navn: typeNavn },
   } as TournamentForNC
 }
@@ -77,7 +77,7 @@ describe('buildSingleList', () => {
         mkRes(1, 3, 60),
       ]
       const regler = mkRegler({ max_nc_total: 2, maxtotal: 99 })
-      const liste = buildSingleList(resultater, allStevner, regler, 'NC', 1)
+      const liste = buildSingleList(resultater, allStevner, regler, 'NC', 1, true)
       expect(liste[0]!.totalPoeng).toBe(180)
     })
   })
@@ -89,7 +89,7 @@ describe('buildSingleList', () => {
         mkRes(1, 5, 60),
       ]
       const regler = mkRegler({ max_snc_total: 1, maxtotal: 99 })
-      const liste = buildSingleList(resultater, allStevner, regler, 'NC', 1)
+      const liste = buildSingleList(resultater, allStevner, regler, 'NC', 1, true)
       expect(liste[0]!.totalPoeng).toBe(100)
     })
   })
@@ -101,7 +101,7 @@ describe('buildSingleList', () => {
         mkRes(1, 7, 60),
       ]
       const regler = mkRegler({ max_dnc_total: 1, maxtotal: 99 })
-      const liste = buildSingleList(resultater, allStevner, regler, 'NC', 1)
+      const liste = buildSingleList(resultater, allStevner, regler, 'NC', 1, true)
       expect(liste[0]!.totalPoeng).toBe(100)
     })
   })
@@ -122,7 +122,7 @@ describe('buildSingleList', () => {
         mkRes(1, 5, 70),
       ]
       const regler = mkRegler({ max_nc_total: 2, maxtotal: 3 })
-      const liste = buildSingleList(resultater, allStevner, regler, 'NC', 1)
+      const liste = buildSingleList(resultater, allStevner, regler, 'NC', 1, true)
       expect(liste[0]!.totalPoeng).toBe(270)
     })
   })
@@ -138,23 +138,36 @@ describe('buildSingleList', () => {
         mkRes(1, 5, 20),
       ]
       const regler = mkRegler({ max_nc_total: 99, max_snc_total: 99, maxtotal: 3 })
-      const liste = buildSingleList(resultater, allStevner, regler, 'NC', 1)
+      const liste = buildSingleList(resultater, allStevner, regler, 'NC', 1, true)
       expect(liste[0]!.totalPoeng).toBe(120)
     })
   })
 
-  describe('class filtering', () => {
+  describe('class filtering (before 2026)', () => {
     it('only includes results from the requested class', () => {
       const resultater = [
         mkRes(1, 1, 100, 'Klasse 1'),
         mkRes(1, 2, 80, 'Klasse 2'),
       ]
       const regler = mkRegler()
-      const listeK1 = buildSingleList(resultater, allStevner, regler, 'NC', 1)
+      const listeK1 = buildSingleList(resultater, allStevner, regler, 'NC', 1, true)
       expect(listeK1[0]!.totalPoeng).toBe(100)
 
-      const listeK2 = buildSingleList(resultater, allStevner, regler, 'NC', 2)
+      const listeK2 = buildSingleList(resultater, allStevner, regler, 'NC', 2, true)
       expect(listeK2[0]!.totalPoeng).toBe(80)
+    })
+  })
+
+  describe('class filtering (2026+, no class distinction)', () => {
+    it('includes results regardless of klasse when isBefore2026 is false', () => {
+      const ncStevne2026 = mkStevne(8, 'NC', 2026)
+      const resultater = [
+        mkRes(1, 8, 100, 'Klasse 1'),
+        mkRes(1, 8, 80, 'Klasse 2'),
+      ]
+      const regler = mkRegler({ max_nc_total: 99, maxtotal: 99 })
+      const liste = buildSingleList(resultater, [...allStevner, ncStevne2026], regler, 'NC', 1, false)
+      expect(liste[0]!.totalPoeng).toBe(180)
     })
   })
 
@@ -166,7 +179,7 @@ describe('buildSingleList', () => {
         mkRes(3, 3, 30),
       ]
       const regler = mkRegler()
-      const liste = buildSingleList(resultater, allStevner, regler, 'NC', 1)
+      const liste = buildSingleList(resultater, allStevner, regler, 'NC', 1, true)
       expect(liste.map(r => r.totalPoeng)).toEqual([80, 50, 30])
     })
   })
@@ -179,7 +192,7 @@ describe('buildSingleList', () => {
         mkRes(3, 3, 80),
       ]
       const regler = mkRegler()
-      const liste = buildSingleList(resultater, allStevner, regler, 'NC', 1)
+      const liste = buildSingleList(resultater, allStevner, regler, 'NC', 1, true)
       expect(liste[0]!.plassering).toBe(1)
       expect(liste[1]!.plassering).toBe(1)
       expect(liste[2]!.plassering).toBe(3)
@@ -193,7 +206,7 @@ describe('buildSingleList', () => {
         mkRes(1, 4, 50),   // SNC event — should count
       ]
       const regler = mkRegler({ max_snc: 99 })
-      const liste = buildSingleList(resultater, allStevner, regler, 'SNC', 1)
+      const liste = buildSingleList(resultater, allStevner, regler, 'SNC', 1, true)
       expect(liste[0]!.totalPoeng).toBe(50)
     })
   })
@@ -205,7 +218,7 @@ describe('buildSingleList', () => {
         mkRes(1, 6, 70),   // DNC event — should count
       ]
       const regler = mkRegler({ max_dnc: 99 })
-      const liste = buildSingleList(resultater, allStevner, regler, 'DNC', 1)
+      const liste = buildSingleList(resultater, allStevner, regler, 'DNC', 1, true)
       expect(liste[0]!.totalPoeng).toBe(70)
     })
   })
@@ -221,7 +234,7 @@ describe('buildTeamList', () => {
         mkRes(kid, 1, [100, 80, 60, 40, 20][i]!, 'Klasse 1', 10, 'Klubb A')
       )
       const regler = mkRegler({ max_nc_total: 99, maxtotal: 99 })
-      const liste = buildTeamList(resultater, [ncStevne1], regler)
+      const liste = buildTeamList(resultater, [ncStevne1], regler, true)
       expect(liste[0]!.lagTotal).toBe(280)
       expect(liste[0]!.bidragsytere).toHaveLength(4)
     })
@@ -234,7 +247,7 @@ describe('buildTeamList', () => {
         mkRes(2, 1, 200, 'Klasse 1', 20, 'Klubb B'),
       ]
       const regler = mkRegler()
-      const liste = buildTeamList(resultater, [ncStevne1], regler)
+      const liste = buildTeamList(resultater, [ncStevne1], regler, true)
       expect(liste[0]!.klubb.navn).toBe('Klubb B')
       expect(liste[1]!.klubb.navn).toBe('Klubb A')
     })
@@ -248,14 +261,14 @@ describe('buildTeamList', () => {
         mkRes(3, 1, 60, 'Klasse 1', 30, 'Klubb C'),
       ]
       const regler = mkRegler()
-      const liste = buildTeamList(resultater, [ncStevne1], regler)
+      const liste = buildTeamList(resultater, [ncStevne1], regler, true)
       expect(liste[0]!.plassering).toBe(1)
       expect(liste[1]!.plassering).toBe(1)
       expect(liste[2]!.plassering).toBe(3)
     })
   })
 
-  describe('class filtering', () => {
+  describe('class filtering (before 2026)', () => {
     it('only includes Klasse 1 results in team rankings', () => {
       // Klasse 2 result has higher points but should be ignored
       const resultater = [
@@ -263,8 +276,21 @@ describe('buildTeamList', () => {
         mkRes(2, 1, 200, 'Klasse 2', 10, 'Klubb A'),
       ]
       const regler = mkRegler()
-      const liste = buildTeamList(resultater, [ncStevne1], regler)
+      const liste = buildTeamList(resultater, [ncStevne1], regler, true)
       expect(liste[0]!.lagTotal).toBe(50)
+    })
+  })
+
+  describe('class filtering (2026+, no class distinction)', () => {
+    it('includes results regardless of klasse when isBefore2026 is false', () => {
+      const ncStevne2026 = mkStevne(8, 'NC', 2026)
+      const resultater = [
+        mkRes(1, 8, 50, 'Klasse 1', 10, 'Klubb A'),
+        mkRes(2, 8, 200, 'Klasse 2', 10, 'Klubb A'),
+      ]
+      const regler = mkRegler()
+      const liste = buildTeamList(resultater, [ncStevne2026], regler, false)
+      expect(liste[0]!.lagTotal).toBe(250)
     })
   })
 })

@@ -111,13 +111,15 @@ export function buildSingleList(
   stevner: TournamentForNC[],
   regler: Regler,
   cupType: string,
-  klasse: number
+  klasse: number,
+  isBefore2026: boolean
 ): SingleListRow[] {
   const eventsMap = buildEventsMap(stevner)
   const beregn = velgBeregnFunksjon(cupType)
   const klasseNavn = klasse === 1 ? 'Klasse 1' : 'Klasse 2'
 
-  const kasterMap = groupByThrower(resultater.filter(r => r.klasse?.navn === klasseNavn))
+  const rader = isBefore2026 ? resultater.filter(r => r.klasse?.navn === klasseNavn) : resultater
+  const kasterMap = groupByThrower(rader)
 
   const liste: SingleListRow[] = []
   for (const [, entry] of kasterMap) {
@@ -138,10 +140,12 @@ export function buildSingleList(
 export function buildTeamList(
   resultater: ResultWithRelations[],
   stevner: TournamentForNC[],
-  regler: Regler
+  regler: Regler,
+  isBefore2026: boolean
 ): TeamListRow[] {
   const eventsMap = buildEventsMap(stevner)
-  const kasterMap = groupByThrower(resultater.filter(r => r.klasse?.navn === 'Klasse 1'))
+  const rader = isBefore2026 ? resultater.filter(r => r.klasse?.navn === 'Klasse 1') : resultater
+  const kasterMap = groupByThrower(rader)
 
   const bidragMap = new Map<string, { kaster: Kaster; klubbId: number; sum: number }>()
   const klubbInfoMap = new Map<number, Klubb>()

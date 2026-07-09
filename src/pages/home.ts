@@ -130,7 +130,7 @@ export async function render(container: HTMLElement): Promise<void> {
     }
 
     const live = r5.filter(s => !s.erfullfort)
-    const ncList = r3 ? buildSingleList(r4, s4, r3, 'NC', 1) : []
+    const ncList = r3 ? buildSingleList(r4, s4, r3, 'NC', 1, year < 2026) : []
     const throwerId = auth?.profil?.kasterid ?? null
     const showSlot = throwerId !== null && auth?.profil?.kobling_status === 'godkjent'
 
