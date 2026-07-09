@@ -84,12 +84,15 @@ function viewTabsHtml(selectedView: string): string {
 }
 
 function classTabsHtml(selectedClass: number, year: number): string {
+  const tabs = year <= 2025
+    ? `<div class="nc-class-tabs">
+        <button class="nc-class-tab${selectedClass === 1 ? ' active' : ''}" data-class="1">Klasse 1</button>
+        <button class="nc-class-tab${selectedClass === 2 ? ' active' : ''}" data-class="2">Klasse 2</button>
+      </div>`
+    : ''
   return `
     <div class="nc-class-tabs-wrapper">
-      <div class="nc-class-tabs">
-        <button class="nc-class-tab${selectedClass === 1 ? ' active' : ''}" data-class="1">Klasse 1</button>
-        ${year <= 2025 ? `<button class="nc-class-tab${selectedClass === 2 ? ' active' : ''}" data-class="2">Klasse 2</button>` : ''}
-      </div>
+      ${tabs}
       <span class="nc-click-hint">Klikk poengsum for å vise detaljer</span>
     </div>`
 }
@@ -247,7 +250,7 @@ export async function render(container: HTMLElement): Promise<void> {
     } else {
       content.innerHTML = `
         <section id="nc-single-section">
-          <h2 class="nc-section-title">${cupType} Singel ${year} - Klasse ${classNum}</h2>
+          <h2 class="nc-section-title">${cupType} Singel ${year}${year <= 2025 ? ` - Klasse ${classNum}` : ''}</h2>
           <p class="nc-description">${rules ? descriptionText(rules, cupType) : `Ingen telleregel funnet for ${year}`}</p>
           <div id="nc-class-tabs-container">${classTabsHtml(classNum, year)}</div>
           <div id="nc-single-table-container"></div>

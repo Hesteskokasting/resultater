@@ -82,7 +82,7 @@ export async function render(container: HTMLElement): Promise<void> {
       <div id="live-section"></div>
       <div class="homepage-grid">
         <section class="homepage-nc">
-          <h2 class="homepage-section-title">Norgescupen Klasse 1 - Topp 20</h2>
+          <h2 class="homepage-section-title">Norgescupen Topp 20</h2>
           <div class="skeleton-block skeleton-block--nc" id="nc-content"></div>
           <a class="homepage-more-link" href="#/norgescupen">Til detaljert liste</a>
         </section>
