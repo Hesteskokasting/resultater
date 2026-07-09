@@ -401,7 +401,7 @@ export async function getInitialPhaseTournament(stevneid: number): Promise<{ dat
 }
 
 export async function setTournamentCompleted(stevneid: number): Promise<{ error: unknown }> {
-  const { error } = await supabase.from('stevne').update({ erfullfort: true }).eq('id', stevneid)
+  const { error } = await supabase.rpc('complete_stevne', { p_stevneid: stevneid })
   if (error) logError('setTournamentCompleted', error)
   return { error }
 }

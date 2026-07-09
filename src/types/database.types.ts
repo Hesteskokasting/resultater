@@ -842,6 +842,7 @@ export type Database = {
         Args: { p_eliminert_kasterid?: number; p_kamp_id: number }
         Returns: undefined
       }
+      complete_stevne: { Args: { p_stevneid: number }; Returns: undefined }
       hent_bruker_epost: {
         Args: { bruker_ids: string[] }
         Returns: {
