@@ -108,16 +108,17 @@ async function deleteMatchesForPhase(stevneid: number, fase: string): Promise<vo
   if (kampDelErr) logError('deleteMatchesForPhase:kampDel', kampDelErr)
 }
 
-export async function resetTournament(stevneid: number): Promise<void> {
+export async function resetTournament(stevneid: number): Promise<{ error: unknown }> {
+  const { error: reopenErr } = await supabase
+    .from('stevne')
+    .update({ stevne_fase: 'ikke_startet', runde1_format: null, erfullfort: false })
+    .eq('id', stevneid)
+  if (reopenErr) { logError('resetTournament:stevne', reopenErr); return { error: reopenErr } }
+
   await deleteMatchesForPhase(stevneid, 'avsluttende')
   await deleteMatchesForPhase(stevneid, 'innledende')
 
   const { error: resErr } = await supabase.from('resultat').delete().eq('stevneid', stevneid)
-  if (resErr) { logError('resetTournament:resultat', resErr); return }
-
-  const { error: stevneErr } = await supabase
-    .from('stevne')
-    .update({ stevne_fase: 'ikke_startet', runde1_format: null, erfullfort: false })
-    .eq('id', stevneid)
-  if (stevneErr) logError('resetTournament:stevne', stevneErr)
+  if (resErr) logError('resetTournament:resultat', resErr)
+  return { error: resErr }
 }

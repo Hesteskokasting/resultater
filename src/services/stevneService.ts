@@ -11,7 +11,7 @@ export type TournamentAdminRow = Pick<Tables<'stevne'>,
   'ernm' | 'ernorgesranking' | 'erfullfort' | 'erekskludertfrarekorder' |
   'innbydelseurl' | 'resultaturl'
 >
-export type TournamentAdminPayload = Omit<TournamentAdminRow, 'id'>
+export type TournamentAdminPayload = Omit<TournamentAdminRow, 'id' | 'erfullfort'>
 
 export type TournamentTypeRow  = Pick<Tables<'stevnetype'>,  'id' | 'navn'>
 export type ThrowingMethodRow = Pick<Tables<'kastemetode'>, 'id' | 'navn'>
@@ -403,6 +403,12 @@ export async function getInitialPhaseTournament(stevneid: number): Promise<{ dat
 export async function setTournamentCompleted(stevneid: number): Promise<{ error: unknown }> {
   const { error } = await supabase.rpc('complete_stevne', { p_stevneid: stevneid })
   if (error) logError('setTournamentCompleted', error)
+  return { error }
+}
+
+export async function reopenTournament(stevneid: number): Promise<{ error: unknown }> {
+  const { error } = await supabase.rpc('reopen_stevne', { p_stevneid: stevneid })
+  if (error) logError('reopenTournament', error)
   return { error }
 }
 

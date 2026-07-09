@@ -110,7 +110,8 @@ export async function render(
       const btn = e.currentTarget as HTMLButtonElement
       if (!await confirmDialog({ title: 'Nullstill stevne', message: 'Dette slettar alle kampar og resultat og set stevnet tilbake til starttilstanden. Er du sikker?', danger: true })) return
       btn.disabled = true
-      await resetTournament(id)
+      const { error } = await resetTournament(id)
+      if (error) { showToast('Feil ved nullstilling: ' + errorMessage(error), 'error'); btn.disabled = false; return }
       await render(container, { id })
     })
   } catch (err) {

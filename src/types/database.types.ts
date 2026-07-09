@@ -851,6 +851,8 @@ export type Database = {
         }[]
       }
       min_rolle: { Args: never; Returns: string }
+      reopen_stevne: { Args: { p_stevneid: number }; Returns: undefined }
+      stevne_is_completed: { Args: { p_stevneid: number }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never

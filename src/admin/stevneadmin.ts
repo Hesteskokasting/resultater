@@ -16,6 +16,8 @@ import {
   createTournament,
   updateTournament,
   deleteTournament,
+  setTournamentCompleted,
+  reopenTournament,
   type TournamentAdminRow,
 } from '@/services/stevneService'
 import { getClubs } from '@/services/klubbService'
@@ -93,11 +95,18 @@ export async function render(
         <div class="mb-3 d-flex gap-4 flex-wrap">
           <div class="form-check"><input class="form-check-input" type="checkbox" name="ernm" id="ernm"${v.ernm ? ' checked' : ''}><label class="form-check-label" for="ernm">Er NM</label></div>
           <div class="form-check"><input class="form-check-input" type="checkbox" name="ernorgesranking" id="ernr"${v.ernorgesranking ? ' checked' : ''}><label class="form-check-label" for="ernr">Er Norgesranking</label></div>
-          <div class="form-check"><input class="form-check-input" type="checkbox" name="erfullfort" id="erfullfort"${v.erfullfort ? ' checked' : ''}><label class="form-check-label" for="erfullfort">Er fullført</label></div>
           <div class="form-check"><input class="form-check-input" type="checkbox" name="erekskludertfrarekorder" id="ekskl"${v.erekskludertfrarekorder ? ' checked' : ''}><label class="form-check-label" for="ekskl">Ekskl. frå rekorder</label></div>
         </div>
         ${formRowHtml('Innbydelses-URL', `<input type="url" class="form-control" name="innbydelseurl" value="${escHtml(v.innbydelseurl)}">`)}
         ${formRowHtml('Resultat-URL', `<input type="url" class="form-control" name="resultaturl" value="${escHtml(v.resultaturl)}">`)}
+        ${id ? `
+          <div class="mb-3 d-flex align-items-center gap-2">
+            <span class="fw-semibold">Status:</span>
+            <span>${v.erfullfort ? 'Fullført' : 'Ikkje fullført'}</span>
+            ${v.erfullfort
+              ? `<button type="button" id="reopen-button" class="btn btn-sm btn-outline-warning">Gjenåpne turnering</button>`
+              : `<button type="button" id="complete-button" class="btn btn-sm btn-outline-success">Fullfør turnering</button>`}
+          </div>` : ''}
         <div class="d-flex gap-2 mt-4">
           <button type="submit" class="btn btn-primary">Lagre</button>
           ${id ? `<button type="button" id="delete-button" class="btn btn-outline-danger ms-auto">Slett stevne</button>` : ''}
@@ -120,7 +129,6 @@ export async function render(
       kategoriid:               formNum(fd.get('kategoriid')),
       ernm:                     fd.get('ernm') === 'on',
       ernorgesranking:          fd.get('ernorgesranking') === 'on',
-      erfullfort:               fd.get('erfullfort') === 'on',
       erekskludertfrarekorder:  fd.get('erekskludertfrarekorder') === 'on',
       innbydelseurl:            (fd.get('innbydelseurl') as string).trim() || null,
       resultaturl:              (fd.get('resultaturl') as string).trim() || null,
@@ -140,5 +148,21 @@ export async function render(
     const { error } = await deleteTournament(id!)
     if (error) { showSaveError(container, errMsg(error)); return }
     location.hash = '#/terminliste'
+  })
+
+  container.querySelector<HTMLButtonElement>('#complete-button')?.addEventListener('click', async () => {
+    if (!await confirmDialog({ title: 'Fullfør turnering', message: `Fullfør «${tournament?.navn}»? Du kan ikkje lenger endre kampar og resultat for stevnet.`, danger: true })) return
+    const { error } = await setTournamentCompleted(id!)
+    if (error) { showSaveError(container, errMsg(error)); return }
+    showSuccess(container, 'Stevnet er fullført.')
+    setTimeout(() => { render(container, params) }, 1500)
+  })
+
+  container.querySelector<HTMLButtonElement>('#reopen-button')?.addEventListener('click', async () => {
+    if (!await confirmDialog({ title: 'Gjenåpne turnering', message: `Gjenåpne «${tournament?.navn}»? Kampar og resultat kan då endres igjen.` })) return
+    const { error } = await reopenTournament(id!)
+    if (error) { showSaveError(container, errMsg(error)); return }
+    showSuccess(container, 'Stevnet er gjenåpna.')
+    setTimeout(() => { render(container, params) }, 1500)
   })
 }
