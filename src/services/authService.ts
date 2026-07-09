@@ -110,7 +110,10 @@ async function signInWithGoogleNative(): Promise<{ error: { message: string } | 
   try {
     const response = await SocialLogin.login({
       provider: 'google',
-      options: { scopes: ['email', 'profile'], nonce: nonceDigest },
+      // 'bottom' (GetGoogleIdOption) avoids a known Android Credential Manager race
+      // where the default 'standard' full-screen chooser spuriously throws
+      // GetCredentialCancellationException right after the user taps an account.
+      options: { style: 'bottom', scopes: ['email', 'profile'], nonce: nonceDigest },
     })
 
     if (response.result.responseType !== 'online' || !response.result.idToken) {
