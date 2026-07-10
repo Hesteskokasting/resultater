@@ -51,10 +51,20 @@
     // The failed URL is passed in by MainActivity so retry targets whichever
     // server.url is actually configured (prod, dev, or a local dev server),
     // not a hardcoded host the WebView might refuse to navigate to.
+    // Only accept http(s) targets — the WebView can land here after failing to
+    // load any main-frame navigation, so this string isn't trustworthy and must
+    // never be allowed to become a javascript:/data:/intent: URI on the link.
     var params = new URLSearchParams(location.search);
     var target = params.get('url');
     if (target) {
-      document.getElementById('retry').href = target;
+      try {
+        var parsed = new URL(target, location.href);
+        if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+          document.getElementById('retry').href = parsed.href;
+        }
+      } catch (e) {
+        // Leave the default retry href in place.
+      }
     }
   </script>
 </body>
