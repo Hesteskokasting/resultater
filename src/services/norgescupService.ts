@@ -38,34 +38,32 @@ export async function getRules(ar: number) {
 }
 
 export async function getTournamentsAndResults(ar: number) {
-  const { data: allStevner, error: e1 } = await supabase
-    .from('stevne')
-    .select('id, navn, dato, stevnetype:stevnetypeid(id, navn)')
-    .gte('dato', `${ar}-01-01`)
-    .lte('dato', `${ar}-12-31`)
-
-  if (e1) {
-    logError('getTournamentsAndResults.stevner', e1)
-    return { stevner: [] as TournamentForNC[], resultater: [] as ResultWithRelations[], error: e1 }
-  }
-
-  const ncStevner = (allStevner ?? []).filter(s => NC_TYPER.includes(s.stevnetype?.navn ?? ''))
-  const ids = ncStevner.map(s => s.id)
-
-  if (ids.length === 0) return { stevner: ncStevner, resultater: [] as ResultWithRelations[], error: null }
-
-  const { data: resultater, error: e2 } = await supabase
+  const { data, error } = await supabase
     .from('resultat')
     .select(`
       id, nc_poeng, plassering, kasterid, klubbid, klasseid, stevneid,
       kaster:kasterid(id, fornavn, etternavn),
       klubb:klubbid(id, navn),
-      klasse:klasseid(id, navn)
+      klasse:klasseid(id, navn),
+      stevne:stevneid!inner(id, navn, dato, stevnetype:stevnetypeid(id, navn))
     `)
-    .in('stevneid', ids)
+    .gte('stevne.dato', `${ar}-01-01`)
+    .lte('stevne.dato', `${ar}-12-31`)
     .not('nc_poeng', 'is', null)
     .gt('nc_poeng', 0)
 
-  if (e2) logError('getTournamentsAndResults.resultater', e2)
-  return { stevner: ncStevner, resultater: resultater ?? [], error: e2 }
+  if (error) {
+    logError('getTournamentsAndResults', error)
+    return { stevner: [] as TournamentForNC[], resultater: [] as ResultWithRelations[], error }
+  }
+
+  const stevnerMap = new Map<number, TournamentForNC>()
+  const resultater: ResultWithRelations[] = []
+  for (const { stevne, ...rest } of data) {
+    if (!NC_TYPER.includes(stevne.stevnetype?.navn ?? '')) continue
+    if (!stevnerMap.has(stevne.id)) stevnerMap.set(stevne.id, stevne)
+    resultater.push(rest)
+  }
+
+  return { stevner: [...stevnerMap.values()], resultater, error: null }
 }
