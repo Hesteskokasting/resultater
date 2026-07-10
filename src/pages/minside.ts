@@ -6,6 +6,7 @@ import { createLoadingState } from '@/components/LoadingState'
 import { createEmptyState } from '@/components/EmptyState'
 import { showToast } from '@/components/Toast'
 import { escHtml } from '@/utils/escHtml'
+import { errorMessage } from '@/utils/errorMessage'
 import { logError } from '@/utils/logError'
 import { registerRefetch } from '@/utils/refetchRegistry'
 import { formatDate } from '@/utils/shared'
@@ -294,7 +295,7 @@ function bindNotificationToggles(container: HTMLElement, userId: string): void {
       input.disabled = false
       if (error) {
         input.checked = !value
-        showToast('Kunne ikkje lagre varslingsinnstilling.', 'error')
+        showToast(`Kunne ikkje lagre varslingsinnstilling: ${errorMessage(error)}`, 'error')
       }
     })
   }
