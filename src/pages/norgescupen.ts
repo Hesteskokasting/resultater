@@ -11,6 +11,7 @@ import { createTable } from '@/components/Table'
 import type { Tables } from '@/types'
 import type { ResultWithRelations, TournamentForNC } from '@/services/norgescupService'
 import type { SingleListRow, TeamListRow } from '@/utils/norgescup'
+import { escHtml } from '@/utils/escHtml'
 
 const FIRST_YEAR = 2007
 const FIRST_MULTI_CUP_YEAR = 2024
@@ -250,7 +251,7 @@ export async function render(container: HTMLElement): Promise<void> {
     } else {
       content.innerHTML = `
         <section id="nc-single-section">
-          <h2 class="nc-section-title">${cupType} Singel ${year}${year <= 2025 ? ` - Klasse ${classNum}` : ''}</h2>
+          <h2 class="nc-section-title">${escHtml(cupType)} Singel ${year}${year <= 2025 ? ` - Klasse ${classNum}` : ''}</h2>
           <p class="nc-description">${rules ? descriptionText(rules, cupType) : `Ingen telleregel funnet for ${year}`}</p>
           <div id="nc-class-tabs-container">${classTabsHtml(classNum, year)}</div>
           <div id="nc-single-table-container"></div>
