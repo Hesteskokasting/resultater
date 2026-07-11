@@ -2302,6 +2302,7 @@ th.initial-score-th {
 
 .skeleton-block--nc   { min-height: 520px; }
 .skeleton-block--list { min-height: 320px; }
+.skeleton-block--card { min-height: 140px; }
 
 @keyframes skeleton-shimmer {
   0%   { background-position: 200% 0; }

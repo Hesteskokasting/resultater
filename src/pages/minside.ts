@@ -1,33 +1,39 @@
 import { Capacitor } from '@capacitor/core'
-import { throwerName, buildThrowerSlug } from '@/utils/kaster'
 import { getUser } from '@/services/authService'
 import { createErrorBanner } from '@/components/ErrorBanner'
 import { createLoadingState } from '@/components/LoadingState'
-import { createEmptyState } from '@/components/EmptyState'
-import { showToast } from '@/components/Toast'
 import { escHtml } from '@/utils/escHtml'
-import { errorMessage } from '@/utils/errorMessage'
 import { logError } from '@/utils/logError'
 import { registerRefetch } from '@/utils/refetchRegistry'
-import { formatDate } from '@/utils/shared'
-import { getActiveThrowerList, getThrowerForLink } from '@/services/kasterService'
-import { getMyRegistrations } from '@/services/pameldingService'
-import { bindRegistrationSlots } from '@/components/PameldingKnapp'
-import { getMyMatches, getStartNumbersForTournaments } from '@/services/kampService'
-import { sendProfileLinkRequest } from '@/services/brukerProfilService'
-import { getNotificationPreferences, updateNotificationPreference } from '@/services/notificationPreferencesService'
-import { ensurePushPermission } from '@/services/pushNotificationService'
-import { createTabs } from '@/components/Tabs'
-import type { Role, LinkStatus } from '@/types'
-import type { RegistrationRow } from '@/services/pameldingService'
-import type { MatchPlayerRow } from '@/services/kampService'
-import type { ThrowerListRow } from '@/services/kasterService'
-import type { NotificationPreferencesRow } from '@/services/notificationPreferencesService'
+import { render as renderMatches }       from './minside/minside-kampar'
+import { render as renderRegistrations } from './minside/minside-pameldingar'
+import { render as renderNotifications } from './minside/minside-varslingar'
+import { render as renderSettings }      from './minside/minside-innstillingar'
+import { render as renderAccount }       from './minside/minside-konto'
+import type { MinSideContext } from './minside/_linkState'
+import type { Params, Role, LinkStatus } from '@/types'
 
-function makePanel(html: string): HTMLElement {
-  const div = document.createElement('div')
-  div.innerHTML = html
-  return div
+type TabRender = (container: HTMLElement, ctx: MinSideContext) => Promise<void>
+
+const TABS = [
+  { key: 'kampar',        label: 'Kampar',        nativeOnly: false },
+  { key: 'pameldingar',   label: 'Påmeldingar',   nativeOnly: false },
+  { key: 'varslingar',    label: 'Varslingar',    nativeOnly: true  },
+  { key: 'innstillingar', label: 'Innstillingar', nativeOnly: false },
+  { key: 'konto',         label: 'Konto',         nativeOnly: false },
+] as const
+
+type TabKey = (typeof TABS)[number]['key']
+
+const TAB_KEYS    = new Set<string>(TABS.map(f => f.key))
+const NATIVE_TABS = new Set<string>(TABS.filter(f => f.nativeOnly).map(f => f.key))
+
+const TAB_RENDER: Record<TabKey, TabRender> = {
+  kampar:        renderMatches,
+  pameldingar:   renderRegistrations,
+  varslingar:    renderNotifications,
+  innstillingar: renderSettings,
+  konto:         renderAccount,
 }
 
 const roleLabel: Record<Role, string> = {
@@ -36,288 +42,21 @@ const roleLabel: Record<Role, string> = {
   bruker: 'Brukar',
 }
 
-// ── HTML builders ─────────────────────────────────────────────────────────────
-
-function notificationSettingsHtml(prefs: NotificationPreferencesRow): string {
-  return `
-    <div class="card mb-4">
-      <div class="card-body">
-        <h5 class="card-title">Varslingar</h5>
-        <div class="form-check form-switch mb-2">
-          <input class="form-check-input" type="checkbox" role="switch" id="varsle-stevne-start"${prefs.varsle_stevne_start ? ' checked' : ''}>
-          <label class="form-check-label" for="varsle-stevne-start">Varsle når eit stevne startar</label>
-        </div>
-        <div class="form-check form-switch">
-          <input class="form-check-input" type="checkbox" role="switch" id="varsle-kamp-opprettet"${prefs.varsle_kamp_opprettet ? ' checked' : ''}>
-          <label class="form-check-label" for="varsle-kamp-opprettet">Varsle når kampar for meg blir oppretta</label>
-        </div>
-      </div>
-    </div>`
+function renderNav(active: string, isNative: boolean): string {
+  const items = TABS
+    .filter(f => isNative || !f.nativeOnly)
+    .map(({ key, label }) => `
+      <li class="nav-item">
+        <a class="nav-link${active === key ? ' active' : ''}"
+           href="#/minside/${key}">${label}</a>
+      </li>`)
+    .join('')
+  return `<ul class="nav nav-underline mypage-nav mb-3">${items}</ul>`
 }
 
-function unlinkedHtml(status: LinkStatus): string {
-  return `
-    ${status === 'avvist' ? '<div class="alert alert-warning">Koblingforespørselen din vart avvist. Du kan sende ein ny.</div>' : ''}
-    <div class="card mb-4">
-      <div class="card-body">
-        <h5 class="card-title">Koble til utøvarprofil</h5>
-        <p class="card-text text-muted">Søk etter deg sjølv i registeret og send ein forespørsel. Etter godkjenning kan du melde deg på stevner.</p>
-        <input type="search" id="thrower-search" class="form-control mb-2" placeholder="Søk på navn…">
-        <div id="thrower-matches" class="list-group mb-2"></div>
-        <div id="thrower-error" class="alert alert-danger d-none"></div>
-      </div>
-    </div>`
-}
-
-function pendingHtml(): string {
-  return '<div class="alert alert-info mb-4">Koblingforespørselen din ventar på godkjenning frå ein administrator.</div>'
-}
-
-async function linkedCardHtml(throwerId: number): Promise<string> {
-  const { data, error } = await getThrowerForLink(throwerId)
-  if (error || !data) return ''
-  return `
-    <div class="card mb-4">
-      <div class="card-body">
-        <h5 class="card-title">Kobla til utøvarprofil</h5>
-        <p class="mb-1"><strong>${escHtml(throwerName(data))}</strong> · ${escHtml(data.klubb?.navn ?? '')}</p>
-        <a href="#/kastere/${buildThrowerSlug(data)}" class="btn btn-sm btn-outline-primary mt-1">Sjå profil</a>
-      </div>
-    </div>`
-}
-
-interface RegistrationListResult {
-  html: string
-  registeredMap: Map<number, number>
-}
-
-async function registrationListHtml(kasterid: number): Promise<RegistrationListResult> {
-  const { data, error } = await getMyRegistrations(kasterid)
-  const registeredMap = new Map<number, number>()
-  if (error) return { html: '<p class="text-muted">Kunne ikkje laste påmeldingar.</p>', registeredMap }
-  const active = data.filter((p: RegistrationRow) => p.stevne?.erfullfort !== true)
-  if (!active.length) return { html: '<p class="empty-state">Ingen påmeldingar enno.</p>', registeredMap }
-
-  const sorted = [...active].sort((a: RegistrationRow, b: RegistrationRow) =>
-    (a.stevne?.dato ?? '').localeCompare(b.stevne?.dato ?? ''),
-  )
-
-  const rows = sorted.map(p => {
-    const date = formatDate(p.stevne?.dato)
-    const tournamentId = p.stevne?.id
-    if (tournamentId != null) registeredMap.set(tournamentId, p.id)
-    return `<tr>
-      <td><a href="#/stevne/${tournamentId ?? ''}/pamelding">${escHtml(p.stevne?.navn ?? '')}</a></td>
-      <td>${escHtml(date)}</td>
-      <td>${tournamentId != null ? `<span data-registration-slot="${tournamentId}"></span>` : ''}</td>
-    </tr>`
-  }).join('')
-
-  return {
-    html: `
-    <div class="card mb-4">
-      <div class="card-body">
-        <h5 class="card-title">Påmeldingar</h5>
-        <table class="table table-sm">
-          <thead><tr><th>Stevne</th><th>Dato</th><th></th></tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>
-    </div>`,
-    registeredMap,
-  }
-}
-
-type MatchPlayerInMatch = NonNullable<MatchPlayerRow['kamp']>['spelarar'][number]
-
-/** Players in a match other than the given thrower, excluding anyone sharing the same start number (teammates). */
-function findOpponents(
-  players: MatchPlayerInMatch[],
-  throwerId: number,
-  tournamentId: number | null | undefined,
-  startNrMap: Record<string, number>,
-): MatchPlayerInMatch[] {
-  const myStartNr = tournamentId != null ? startNrMap[`${tournamentId}:${throwerId}`] : undefined
-  return players.filter(s => {
-    if (s.kasterid == null || s.kasterid === throwerId) return false
-    const opponentStartNr = tournamentId != null ? startNrMap[`${tournamentId}:${s.kasterid}`] : undefined
-    return myStartNr == null || opponentStartNr == null || opponentStartNr !== myStartNr
-  })
-}
-
-async function createMyMatches(throwerId: number): Promise<HTMLElement> {
-  const { data, error } = await getMyMatches(throwerId)
-  if (error) {
-    const p = document.createElement('p')
-    p.className = 'text-muted'
-    p.textContent = 'Kunne ikkje laste kampar.'
-    return p
-  }
-
-  const allMatches = data.filter(ks => !ks.kamp?.er_walkover)
-
-  const tournamentIds = [...new Set(allMatches.map(ks => ks.kamp?.stevneid).filter((s): s is number => s != null))]
-  const startNrMap = await getStartNumbersForTournaments(tournamentIds)
-
-  const active = allMatches
-    .filter(ks => ks.kamp?.stevne?.erfullfort === false)
-    .sort((a, b) => (a.kamp?.runde_nummer ?? 0) - (b.kamp?.runde_nummer ?? 0))
-
-  const completed = allMatches
-    .filter(ks => ks.kamp?.stevne?.erfullfort === true)
-    .sort((a, b) => (a.kamp?.runde_nummer ?? 0) - (b.kamp?.runde_nummer ?? 0))
-
-  const tableHeader = `<thead><tr><th>Runde/Bane</th><th>Motstandar</th><th></th></tr></thead>`
-
-  const makeMatchRow = (ks: MatchPlayerRow, button: string): string => {
-    const match = ks.kamp
-    const tournamentId = match?.stevneid
-    const opponents = findOpponents(match?.spelarar ?? [], throwerId, tournamentId, startNrMap)
-    const opponentNames = opponents.length
-      ? opponents.map(m => escHtml(throwerName(m.kaster))).join(' / ')
-      : '–'
-    return `<tr>
-      <td>R${match?.runde_nummer ?? ''} / B${match?.bane_nummer ?? ''}</td>
-      <td>${opponentNames}</td>
-      <td>${button}</td>
-    </tr>`
-  }
-
-  const groupMatchesByTournament = (
-    matches: MatchPlayerRow[],
-    makeButton: (ks: MatchPlayerRow) => string,
-  ): string | null => {
-    if (!matches.length) return null
-    const groups = new Map<number | string, { name: string; matches: MatchPlayerRow[] }>()
-    for (const ks of matches) {
-      const tournamentId = ks.kamp?.stevneid ?? 'unknown'
-      const tournamentName = ks.kamp?.stevne?.navn ?? ''
-      if (!groups.has(tournamentId)) groups.set(tournamentId, { name: tournamentName, matches: [] })
-      groups.get(tournamentId)!.matches.push(ks)
-    }
-    return [...groups.values()].map(({ name, matches: group }) => `
-      <p class="fw-semibold mb-1 mt-2">${escHtml(name)}</p>
-      <table class="table table-sm mb-3">${tableHeader}<tbody>
-        ${group.map(ks => makeMatchRow(ks, makeButton(ks))).join('')}
-      </tbody></table>`
-    ).join('')
-  }
-
-  const activeContent = groupMatchesByTournament(
-    active,
-    ks => {
-      if (!ks.kamp?.er_bekreftet) {
-        return `<a href="#/kamp/${ks.kamp?.id ?? ''}" class="btn btn-sm btn-primary" target="_blank" rel="noopener">Scoreboard</a>`
-      }
-      const tournamentId = ks.kamp.stevneid
-      const myScore = ks.kamp.spelarar?.find(s => s.kasterid === throwerId)?.score_poeng
-      const oppScore = findOpponents(ks.kamp.spelarar ?? [], throwerId, tournamentId, startNrMap)[0]?.score_poeng
-      if (myScore == null || oppScore == null) return '–'
-      return `<span class="fw-semibold">${myScore} – ${oppScore}</span>`
-    },
-  )
-  const completedContent = groupMatchesByTournament(
-    completed,
-    ks => `<a href="#/kamp/${ks.kamp?.id ?? ''}" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener">Sjå kamp</a>`,
-  )
-
-  const card = document.createElement('div')
-  card.className = 'card mb-4'
-  card.id = 'my-matches-section'
-  const cardBody = document.createElement('div')
-  cardBody.className = 'card-body'
-  const title = document.createElement('h5')
-  title.className = 'card-title'
-  title.textContent = 'Mine kampar'
-  cardBody.appendChild(title)
-  cardBody.appendChild(createTabs({
-    tabs: [
-      { id: 'active',    label: `Aktive (${active.length})`,       panel: makePanel(activeContent    ?? '<p class="text-muted">Ingen aktive kampar.</p>') },
-      { id: 'completed', label: `Ferdige (${completed.length})`,   panel: makePanel(completedContent ?? '<p class="text-muted">Ingen ferdige kampar enno.</p>') },
-    ],
-  }))
-  card.appendChild(cardBody)
-  return card
-}
-
-// ── Event binding ─────────────────────────────────────────────────────────────
-
-function bindThrowerSearch(container: HTMLElement, userId: string): void {
-  let timer: number | null = null
-  let throwersCache: ThrowerListRow[] | null = null
-  const searchInput = container.querySelector<HTMLInputElement>('#thrower-search')!
-  const resultsDiv  = container.querySelector<HTMLElement>('#thrower-matches')!
-  const errorDiv    = container.querySelector<HTMLElement>('#thrower-error')!
-
-  searchInput.addEventListener('input', () => {
-    if (timer !== null) clearTimeout(timer)
-    const q = searchInput.value.trim().toLowerCase()
-    if (q.length < 2) { resultsDiv.innerHTML = ''; return }
-
-    timer = setTimeout(async () => {
-      if (!throwersCache) {
-        const { data } = await getActiveThrowerList()
-        throwersCache = data
-      }
-      const results = throwersCache
-        .filter(k => k.fornavn.toLowerCase().includes(q) || k.etternavn.toLowerCase().includes(q))
-        .slice(0, 8)
-
-      if (!results.length) {
-        const el = createEmptyState('Ingen treff.')
-        el.classList.add('small')
-        resultsDiv.replaceChildren(el)
-        return
-      }
-      resultsDiv.innerHTML = results.map(k =>
-        `<button class="list-group-item list-group-item-action" data-id="${k.id}">
-          ${escHtml(throwerName(k))} <span class="text-muted small">· ${escHtml(k.klubb?.navn ?? '')}</span>
-        </button>`
-      ).join('')
-    }, 300)
-  })
-
-  resultsDiv.addEventListener('click', async e => {
-    const button = (e.target as Element).closest<HTMLElement>('[data-id]')
-    if (!button) return
-    errorDiv.classList.add('d-none')
-
-    const { error } = await sendProfileLinkRequest(userId, Number(button.dataset.id))
-    if (error) {
-      errorDiv.textContent = 'Kunne ikkje sende forespørsel.'
-      errorDiv.classList.remove('d-none')
-      return
-    }
-    location.reload()
-  })
-}
-
-function bindNotificationToggles(container: HTMLElement, userId: string): void {
-  const toggles: [string, keyof NotificationPreferencesRow][] = [
-    ['varsle-stevne-start', 'varsle_stevne_start'],
-    ['varsle-kamp-opprettet', 'varsle_kamp_opprettet'],
-  ]
-  for (const [elementId, field] of toggles) {
-    const input = container.querySelector<HTMLInputElement>(`#${elementId}`)
-    if (!input) continue
-    input.addEventListener('change', async () => {
-      const value = input.checked
-      input.disabled = true
-      if (value) await ensurePushPermission()
-      const { error } = await updateNotificationPreference(userId, field, value)
-      input.disabled = false
-      if (error) {
-        input.checked = !value
-        showToast(`Kunne ikkje lagre varslingsinnstilling: ${errorMessage(error)}`, 'error')
-      }
-    })
-  }
-}
-
-// ── Main function ─────────────────────────────────────────────────────────────
-
-export async function render(container: HTMLElement): Promise<void> {
-  registerRefetch(() => render(container))
+export async function render(container: HTMLElement, params: Params): Promise<void> {
+  registerRefetch(() => render(container, params))
+  const tab = String(params.tab ?? 'kampar')
   container.replaceChildren(createLoadingState('Laster min side…'))
 
   try {
@@ -328,47 +67,21 @@ export async function render(container: HTMLElement): Promise<void> {
     const status: LinkStatus = profil?.kobling_status ?? 'ingen'
     const roleName = profil ? roleLabel[profil.role] : 'Ukjent'
 
-    // Push only works through the native OneSignal subscription — this page's bundle
-    // is also served on the public website, where these toggles would do nothing.
-    const showPushSettings = Capacitor.isNativePlatform()
-    const notificationPrefs = showPushSettings ? (await getNotificationPreferences(user.id)).data : null
+    const isNative = Capacitor.isNativePlatform()
+    const activeTab = (!TAB_KEYS.has(tab) || (!isNative && NATIVE_TABS.has(tab)))
+      ? 'kampar'
+      : tab as TabKey
 
-    let html = `
+    container.innerHTML = `
       <div class="mypage-container">
         <h2 class="mb-1">Min side</h2>
-        <p class="text-muted mb-4">${escHtml(user.email ?? '')} · <span class="badge bg-secondary">${escHtml(roleName)}</span></p>`
+        <p class="text-muted mb-3">${escHtml(user.email ?? '')} · <span class="badge bg-secondary">${escHtml(roleName)}</span></p>
+        ${renderNav(activeTab, isNative)}
+        <div id="minside-subpage"></div>
+      </div>`
 
-    if (notificationPrefs) html += notificationSettingsHtml(notificationPrefs)
-
-    if (status === 'ingen' || status === 'avvist') {
-      html += unlinkedHtml(status)
-    } else if (status === 'venter') {
-      html += pendingHtml()
-    } else if (status === 'godkjent' && profil?.kasterid) {
-      const throwerId = profil.kasterid
-      const [throwerCardHtml, registrations, myMatchesEl] = await Promise.all([
-        linkedCardHtml(throwerId),
-        registrationListHtml(throwerId),
-        createMyMatches(throwerId),
-      ])
-      html += throwerCardHtml
-      html += '</div>'
-      container.innerHTML = html
-      const mypageContainer = container.querySelector<HTMLElement>('.mypage-container')!
-      mypageContainer.appendChild(myMatchesEl)
-      mypageContainer.insertAdjacentHTML('beforeend', registrations.html)
-      bindRegistrationSlots(mypageContainer, throwerId, user.id, registrations.registeredMap)
-      if (notificationPrefs) bindNotificationToggles(container, user.id)
-      return
-    }
-
-    html += '</div>'
-    container.innerHTML = html
-
-    if (status === 'ingen' || status === 'avvist') {
-      bindThrowerSearch(container, user.id)
-    }
-    if (notificationPrefs) bindNotificationToggles(container, user.id)
+    const subpage = container.querySelector<HTMLElement>('#minside-subpage')!
+    await TAB_RENDER[activeTab](subpage, { user, profil, status })
   } catch (err) {
     logError('minside.render', err)
     container.replaceChildren(createErrorBanner('Kunne ikkje laste min side.'))

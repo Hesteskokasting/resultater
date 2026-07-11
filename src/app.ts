@@ -46,7 +46,7 @@ function authGuard(requiredRole: Role, renderFn: PageRenderFn): PageRenderFn {
 const routes: Route[] = [
   // Auth-ruter (spesifikke før generiske)
   { pattern: /^\/logginn$/,                      page: lazy(() => import('./pages/logginn')),                         params: () => ({}), title: 'Logg inn' },
-  { pattern: /^\/minside$/,                      page: authGuard('bruker', lazy(() => import('./pages/minside'))),    params: () => ({}), title: 'Min side' },
+  { pattern: /^\/minside(?:\/([^/]*))?$/,        page: authGuard('bruker', lazy(() => import('./pages/minside'))),    params: m => ({ tab: m[1] ?? 'kampar' }), title: 'Min side' },
   { pattern: /^\/admin$/,                        page: authGuard('admin',  lazy(() => import('./admin/admin'))),      params: () => ({}), title: 'Admin' },
   { pattern: /^\/stevne\/ny$/,                   page: authGuard('klubbadmin', lazy(() => import('./admin/stevneadmin'))), params: () => ({}), title: 'Nytt stevne' },
   { pattern: /^\/stevne\/(\d+)\/rediger$/,        page: authGuard('klubbadmin', lazy(() => import('./admin/stevneadmin'))), params: m => ({ id: Number(m[1]) }), title: 'Rediger stevne' },

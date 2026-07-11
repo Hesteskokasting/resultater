@@ -875,6 +875,14 @@ export type Database = {
           id: string
         }[]
       }
+      hent_kobla_kontoar: {
+        Args: never
+        Returns: {
+          epost: string
+          id: string
+          opprettet_at: string
+        }[]
+      }
       kamp_spelar_original: {
         Args: { p_id: number }
         Returns: {
@@ -884,6 +892,7 @@ export type Database = {
       }
       min_rolle: { Args: never; Returns: string }
       reopen_stevne: { Args: { p_stevneid: number }; Returns: undefined }
+      slett_brukarkonto: { Args: { target_id: string }; Returns: undefined }
       stevne_is_completed: { Args: { p_stevneid: number }; Returns: boolean }
     }
     Enums: {

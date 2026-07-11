@@ -66,6 +66,11 @@ export async function getUser(): Promise<AuthUser | null> {
   return _fetchCache()
 }
 
+/** Drop the cached user so the next getUser() refetches the profile (e.g. after kobling_status changes). */
+export function invalidateUserCache(): void {
+  _cache = null
+}
+
 async function getRole(): Promise<Role | null> {
   const auth = await _fetchCache()
   return auth?.profil?.role ?? null
@@ -141,6 +146,10 @@ export async function signInWithGoogle(redirect?: string) {
 
 export async function signUp(email: string, password: string) {
   return supabase.auth.signUp({ email, password })
+}
+
+export async function updatePassword(newPassword: string) {
+  return supabase.auth.updateUser({ password: newPassword })
 }
 
 // Abonner på auth-endringar. Tømer cache og sender DOM-event.

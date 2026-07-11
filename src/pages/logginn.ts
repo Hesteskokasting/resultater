@@ -11,8 +11,12 @@ function makePanel(html: string): HTMLElement {
   return div
 }
 
+function getHashQueryParam(name: string): string | null {
+  return new URLSearchParams(location.hash.split('?')[1] ?? '').get(name)
+}
+
 function getRedirectParam(): string | null {
-  return new URLSearchParams(location.hash.split('?')[1] ?? '').get('redirect')
+  return getHashQueryParam('redirect')
 }
 
 async function resolvePostLoginDestination(redirect: string | null): Promise<string> {
@@ -106,6 +110,12 @@ export async function render(container: HTMLElement): Promise<void> {
     ],
   }))
   container.replaceChildren(outer)
+
+  const prefillEmail = getHashQueryParam('email')
+  if (prefillEmail) {
+    container.querySelector<HTMLInputElement>('#li-email')!.value = prefillEmail
+    container.querySelector<HTMLInputElement>('#li-password')!.focus()
+  }
 
   googleButton.addEventListener('click', async () => {
     googleButton.disabled = true
