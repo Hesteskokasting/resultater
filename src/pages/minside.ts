@@ -12,6 +12,7 @@ import { registerRefetch } from '@/utils/refetchRegistry'
 import { formatDate } from '@/utils/shared'
 import { getActiveThrowerList, getThrowerForLink } from '@/services/kasterService'
 import { getMyRegistrations } from '@/services/pameldingService'
+import { bindRegistrationSlots } from '@/components/PameldingKnapp'
 import { getMyMatches, getStartNumbersForTournaments } from '@/services/kampService'
 import { sendProfileLinkRequest } from '@/services/brukerProfilService'
 import { getNotificationPreferences, updateNotificationPreference } from '@/services/notificationPreferencesService'
@@ -85,11 +86,17 @@ async function linkedCardHtml(throwerId: number): Promise<string> {
     </div>`
 }
 
-async function registrationListHtml(kasterid: number): Promise<string> {
+interface RegistrationListResult {
+  html: string
+  registeredMap: Map<number, number>
+}
+
+async function registrationListHtml(kasterid: number): Promise<RegistrationListResult> {
   const { data, error } = await getMyRegistrations(kasterid)
-  if (error) return '<p class="text-muted">Kunne ikkje laste påmeldingar.</p>'
+  const registeredMap = new Map<number, number>()
+  if (error) return { html: '<p class="text-muted">Kunne ikkje laste påmeldingar.</p>', registeredMap }
   const active = data.filter((p: RegistrationRow) => p.stevne?.erfullfort !== true)
-  if (!active.length) return '<p class="empty-state">Ingen påmeldingar enno.</p>'
+  if (!active.length) return { html: '<p class="empty-state">Ingen påmeldingar enno.</p>', registeredMap }
 
   const sorted = [...active].sort((a: RegistrationRow, b: RegistrationRow) =>
     (a.stevne?.dato ?? '').localeCompare(b.stevne?.dato ?? ''),
@@ -97,14 +104,17 @@ async function registrationListHtml(kasterid: number): Promise<string> {
 
   const rows = sorted.map(p => {
     const date = formatDate(p.stevne?.dato)
+    const tournamentId = p.stevne?.id
+    if (tournamentId != null) registeredMap.set(tournamentId, p.id)
     return `<tr>
-      <td><a href="#/stevne/${p.stevne?.id ?? ''}/pamelding">${escHtml(p.stevne?.navn ?? '')}</a></td>
+      <td><a href="#/stevne/${tournamentId ?? ''}/pamelding">${escHtml(p.stevne?.navn ?? '')}</a></td>
       <td>${escHtml(date)}</td>
-      <td><a href="#/stevne/${p.stevne?.id ?? ''}/pamelding" class="btn btn-sm btn-outline-danger">Meld av</a></td>
+      <td>${tournamentId != null ? `<span data-registration-slot="${tournamentId}"></span>` : ''}</td>
     </tr>`
   }).join('')
 
-  return `
+  return {
+    html: `
     <div class="card mb-4">
       <div class="card-body">
         <h5 class="card-title">Påmeldingar</h5>
@@ -113,7 +123,9 @@ async function registrationListHtml(kasterid: number): Promise<string> {
           <tbody>${rows}</tbody>
         </table>
       </div>
-    </div>`
+    </div>`,
+    registeredMap,
+  }
 }
 
 type MatchPlayerInMatch = NonNullable<MatchPlayerRow['kamp']>['spelarar'][number]
@@ -334,7 +346,7 @@ export async function render(container: HTMLElement): Promise<void> {
       html += pendingHtml()
     } else if (status === 'godkjent' && profil?.kasterid) {
       const throwerId = profil.kasterid
-      const [throwerCardHtml, regListHtml, myMatchesEl] = await Promise.all([
+      const [throwerCardHtml, registrations, myMatchesEl] = await Promise.all([
         linkedCardHtml(throwerId),
         registrationListHtml(throwerId),
         createMyMatches(throwerId),
@@ -342,9 +354,10 @@ export async function render(container: HTMLElement): Promise<void> {
       html += throwerCardHtml
       html += '</div>'
       container.innerHTML = html
-      const mypageContainer = container.querySelector('.mypage-container')!
+      const mypageContainer = container.querySelector<HTMLElement>('.mypage-container')!
       mypageContainer.appendChild(myMatchesEl)
-      mypageContainer.insertAdjacentHTML('beforeend', regListHtml)
+      mypageContainer.insertAdjacentHTML('beforeend', registrations.html)
+      bindRegistrationSlots(mypageContainer, throwerId, user.id, registrations.registeredMap)
       if (notificationPrefs) bindNotificationToggles(container, user.id)
       return
     }
