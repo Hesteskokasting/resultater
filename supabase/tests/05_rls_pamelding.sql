@@ -22,7 +22,7 @@ VALUES
   ('00000000-0000-0000-0000-000000000012', 9911, 'bruker', 'godkjent')
 ON CONFLICT (id) DO UPDATE SET kasterid = EXCLUDED.kasterid, kobling_status = EXCLUDED.kobling_status;
 
-INSERT INTO public.stevne (id, navn) VALUES (9911, 'RLS Test Stevne');
+INSERT INTO public.stevne (id, navn, dato) VALUES (9911, 'RLS Test Stevne', '2026-01-01');
 
 -- ── Case 1: player A registers their linked kasterid ──────────────────────────
 SET LOCAL ROLE authenticated;

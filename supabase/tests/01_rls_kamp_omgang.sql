@@ -26,7 +26,7 @@ VALUES
   ('00000000-0000-0000-0000-000000000003', 9903, 'bruker', 'ingen')
 ON CONFLICT (id) DO UPDATE SET kasterid = EXCLUDED.kasterid;
 
-INSERT INTO public.stevne (id, navn) VALUES (9901, 'RLS Test Stevne');
+INSERT INTO public.stevne (id, navn, dato) VALUES (9901, 'RLS Test Stevne', '2026-01-01');
 
 INSERT INTO public.kamp (id, match_id, stevneid, fase, runde_nummer, er_bekreftet)
 OVERRIDING SYSTEM VALUE
@@ -45,8 +45,8 @@ SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000001","role":"authenticated"}', true);
 
 SELECT lives_ok(
-  $$ INSERT INTO public.kamp_omgang (kamp_spelar_id, omgang, score, registrert_av)
-     VALUES (9901, 1, 4, '00000000-0000-0000-0000-000000000001') $$,
+  $$ INSERT INTO public.kamp_omgang (kamp_spelar_id, omgang, score, antall_ringer, registrert_av)
+     VALUES (9901, 1, 4, 1, '00000000-0000-0000-0000-000000000001') $$,
   'player A can insert omgang for own kamp_spelar'
 );
 
@@ -55,8 +55,8 @@ SELECT lives_ok(
 SELECT set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000002","role":"authenticated"}', true);
 
 SELECT lives_ok(
-  $$ INSERT INTO public.kamp_omgang (kamp_spelar_id, omgang, score, registrert_av)
-     VALUES (9901, 2, 6, '00000000-0000-0000-0000-000000000002') $$,
+  $$ INSERT INTO public.kamp_omgang (kamp_spelar_id, omgang, score, antall_ringer, registrert_av)
+     VALUES (9901, 2, 6, 2, '00000000-0000-0000-0000-000000000002') $$,
   'player B can insert omgang for player A kamp_spelar (both in match)'
 );
 
@@ -65,8 +65,8 @@ SELECT lives_ok(
 SELECT set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000003","role":"authenticated"}', true);
 
 SELECT throws_ok(
-  $$ INSERT INTO public.kamp_omgang (kamp_spelar_id, omgang, score, registrert_av)
-     VALUES (9901, 3, 4, '00000000-0000-0000-0000-000000000003') $$,
+  $$ INSERT INTO public.kamp_omgang (kamp_spelar_id, omgang, score, antall_ringer, registrert_av)
+     VALUES (9901, 3, 4, 1, '00000000-0000-0000-0000-000000000003') $$,
   '42501', NULL,
   'player C (not in match) cannot insert omgang'
 );
@@ -80,8 +80,8 @@ SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000001","role":"authenticated"}', true);
 
 SELECT throws_ok(
-  $$ INSERT INTO public.kamp_omgang (kamp_spelar_id, omgang, score, registrert_av)
-     VALUES (9901, 4, 4, '00000000-0000-0000-0000-000000000001') $$,
+  $$ INSERT INTO public.kamp_omgang (kamp_spelar_id, omgang, score, antall_ringer, registrert_av)
+     VALUES (9901, 4, 4, 1, '00000000-0000-0000-0000-000000000001') $$,
   '42501', NULL,
   'player A cannot insert omgang after match is confirmed'
 );

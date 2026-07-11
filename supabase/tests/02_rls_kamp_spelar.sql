@@ -26,7 +26,7 @@ VALUES
   ('00000000-0000-0000-0000-000000000003', 9903, 'bruker', 'ingen')
 ON CONFLICT (id) DO UPDATE SET kasterid = EXCLUDED.kasterid;
 
-INSERT INTO public.stevne (id, navn) VALUES (9901, 'RLS Test Stevne');
+INSERT INTO public.stevne (id, navn, dato) VALUES (9901, 'RLS Test Stevne', '2026-01-01');
 
 INSERT INTO public.kamp (id, match_id, stevneid, fase, runde_nummer, er_bekreftet)
 OVERRIDING SYSTEM VALUE

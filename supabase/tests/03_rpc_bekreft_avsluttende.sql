@@ -26,7 +26,7 @@ VALUES
   ('00000000-0000-0000-0000-000000000003', 9903, 'bruker', 'ingen')
 ON CONFLICT (id) DO UPDATE SET kasterid = EXCLUDED.kasterid;
 
-INSERT INTO public.stevne (id, navn) VALUES (9901, 'RLS Test Stevne');
+INSERT INTO public.stevne (id, navn, dato) VALUES (9901, 'RLS Test Stevne', '2026-01-01');
 
 -- kamp 9901: regular avsluttende round (runde_navn NULL → runde_eliminert branch)
 -- kamp 9902: Finale (runde_navn = 'Finale' → plassering branch)
@@ -48,10 +48,10 @@ VALUES
   (9904, 9902, 9902);
 
 -- resultat rows — the RPC updates these.  Regular nextval sequence: no OVERRIDING needed.
-INSERT INTO public.resultat (id, stevneid, kasterid)
+INSERT INTO public.resultat (id, stevneid, kasterid, hcp)
 VALUES
-  (9901, 9901, 9901),
-  (9902, 9901, 9902);
+  (9901, 9901, 9901, 0),
+  (9902, 9901, 9902, 0);
 
 -- ── Case 3: non-participant call raises exception ─────────────────────────────
 -- Must run as authenticated (not postgres) so auth.uid() is populated and the

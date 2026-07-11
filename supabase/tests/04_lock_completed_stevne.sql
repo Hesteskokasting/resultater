@@ -21,7 +21,7 @@ INSERT INTO public.kjonn (id, navn, kortform) VALUES (9910, 'Lock Test', 'X');
 INSERT INTO public.kaster (id, fornavn, etternavn, kjonnid) VALUES (9910, 'Lock', 'Tester', 9910);
 
 -- Stevne 9910: the one we lock/reopen. Not completed yet.
-INSERT INTO public.stevne (id, navn, erfullfort) VALUES (9910, 'Lock Test Stevne', false);
+INSERT INTO public.stevne (id, navn, dato, erfullfort) VALUES (9910, 'Lock Test Stevne', '2026-01-01', false);
 
 INSERT INTO public.kamp (id, match_id, stevneid, fase, runde_nummer, er_bekreftet)
 OVERRIDING SYSTEM VALUE
@@ -31,12 +31,12 @@ INSERT INTO public.kamp_spelar (id, kampid, kasterid)
 OVERRIDING SYSTEM VALUE
 VALUES (9910, 9910, 9910);
 
-INSERT INTO public.kamp_omgang (id, kamp_spelar_id, omgang, score)
+INSERT INTO public.kamp_omgang (id, kamp_spelar_id, omgang, score, antall_ringer)
 OVERRIDING SYSTEM VALUE
-VALUES (9910, 9910, 1, 4);
+VALUES (9910, 9910, 1, 4, 1);
 
-INSERT INTO public.resultat (id, stevneid, kasterid, plassering)
-VALUES (9910, 9910, 9910, 1);
+INSERT INTO public.resultat (id, stevneid, kasterid, plassering, hcp)
+VALUES (9910, 9910, 9910, 1, 0);
 
 -- ── Case 1: writes to all 4 tables succeed while stevne is not completed ─────
 
@@ -94,7 +94,7 @@ SELECT throws_ok(
 );
 
 SELECT throws_ok(
-  $$ INSERT INTO public.kamp_omgang (kamp_spelar_id, omgang, score) VALUES (9910, 99, 1) $$,
+  $$ INSERT INTO public.kamp_omgang (kamp_spelar_id, omgang, score, antall_ringer) VALUES (9910, 99, 1, 0) $$,
   'P0001', NULL,
   'kamp_omgang insert blocked after completion'
 );
@@ -116,7 +116,7 @@ SELECT throws_ok(
 INSERT INTO public.stevnetype (id, navn) VALUES (9910, 'NC');
 INSERT INTO public.norgescuppoeng (id, plassering, poengnc, poengdnc, gjelderfraaar) VALUES (9910, 1, 100, 75, 2020);
 INSERT INTO public.stevne (id, navn, dato, stevnetypeid, erfullfort) VALUES (9920, 'Complete Test Stevne', '2026-01-01', 9910, false);
-INSERT INTO public.resultat (id, stevneid, kasterid, plassering) VALUES (9911, 9920, 9910, 1);
+INSERT INTO public.resultat (id, stevneid, kasterid, plassering, hcp) VALUES (9911, 9920, 9910, 1, 0);
 
 SELECT lives_ok(
   $$ SELECT public.complete_stevne(9920) $$,
