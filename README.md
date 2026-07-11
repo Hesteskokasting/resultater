@@ -123,17 +123,11 @@ Integrasjonstestane verifiserer databaselaget: RLS-politikkar og `SECURITY DEFIN
 
 1. Opne ein WSL-shell (`wsl` i PowerShell/Windows Terminal, eller opne distroen din direkte). **Stadfest at du faktisk er inne i WSL** — promptet skal sjå ut som `bruker@maskin:~$` (eit vanleg Linux-prompt), ikkje `C:\...>`. Viss du opnar prosjektmappa via Windows Utforskar/VS Code og hamnar i eit `cmd.exe`/PowerShell-vindauge som berre viser stien via `\\wsl.localhost\...`, er du **ikkje** i WSL — kommandoar som `npx supabase` feilar då med noko slikt som `'supabase' is not recognized`, sidan `cmd.exe` ikkje støttar UNC-stiar som arbeidsmappe og hoppar attende til ei Windows-mappe. I VS Code: bruk `∨`-menyen ved sida av `+` i terminalpanelet og vel **Ubuntu (WSL)**-profilen.
 
-2. Lag ein **ny, separat kopi** av prosjektet — ikkje bruk den same mappa som `D:\repos\resultater`. Grunnen er at `D:\`-stasjonen din er tilgjengeleg inne i WSL under `/mnt/d/...`, men den ligg fysisk på Windows-sida. Filtilgang dit frå WSL er tregt, og viss du køyrer `npm install` frå same mappe både i Windows og i WSL, lastar dei ned forskjellige (inkompatible) versjonar av verktøy som `supabase`-CLI-en og `esbuild` oppå kvarandre kvar gong — det gir forvirrande feil.
-
-   Løysinga: klon prosjektet på nytt, inn i WSL sitt **eige** filsystem (heimemappa di der, `~`, som er heilt uavhengig av `D:\`-stasjonen):
-
+2. Gå til det **same** prosjektet du allereie har på `D:\repos\resultater` — WSL ser Windows-diskane dine under `/mnt/`:
    ```bash
-   cd ~                                                       # gå til heimemappa inne i WSL (ikkje D:-stasjonen)
-   git clone https://github.com/hesteskokasting/resultater.git   # last ned ein fersk, separat kopi her
-   cd resultater                                              # gå inn i den nye mappa
+   cd /mnt/d/repos/resultater
    ```
-
-   Du sit no med to heilt uavhengige kopiar av repoet: `D:\repos\resultater` (brukar du frå Windows til vanleg utvikling) og `~/resultater` inne i WSL (brukar du berre til å køyre den lokale Supabase-stacken og testane nedanfor).
+   Bruk **ikkje** ein separat klone/kopi her. Du vil teste migrasjonar og RLS-endringar *før* du committar dei, og ein separat kopi ville kravd at du committa + pusha + pulla berre for å køyre ein lokal test — det gir ingen meining under aktiv utvikling. `/mnt/d/...` er noko tregare enn WSL sitt eige filsystem for filtunge operasjonar, men det merkast lite for `supabase start`/`test db`, og du slepp all synkronisering.
 3. Installer Node (viss det ikkje finst frå før i WSL — Windows-installasjonen er ikkje synleg her):
    ```bash
    node -v   # viss denne feilar:
@@ -144,6 +138,7 @@ Integrasjonstestane verifiserer databaselaget: RLS-politikkar og `SECURITY DEFIN
    ```bash
    npm install
    ```
+   **Merk:** `node_modules` inneheld plattform-spesifikke binærfiler (`supabase`-CLI-en, `esbuild`). Sidan du no køyrer `npm install` mot den same mappa som Windows-checkoutet, overskriv dette dei Windows-bygde versjonane. Skal du tilbake til `npm run dev`/`npm run build` frå PowerShell etterpå, må du berre køyre `npm install` derifrå på nytt fyrst — éin kommando, tar nokre sekund. Ein grei bytte-kostnad mot å slepp separat klone + synkronisering.
 
 #### Kvar gong: køyr stacken og testane
 
@@ -154,8 +149,6 @@ npx supabase stop    # stoppar lokal stack når du er ferdig
 ```
 
 Køyr integrasjonstestane når du endrar migreringsfiler, RLS-politikkar eller `SECURITY DEFINER`-funksjonar. Dei er ikkje ein del av den raske pre-commit-sjekkanen (Vitest).
-
-**Merk:** Dette WSL-checkoutet er berre for å køyre den lokale Supabase-stacken og pgTAP-testane. Vanleg utvikling (`npm run dev`, redigering, commits) skjer framleis i det ordinære Windows-checkoutet — hugs å `git pull` i WSL-klonen etter at du har pusha migreringsendringar frå Windows-sida.
 
 ---
 
