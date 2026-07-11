@@ -30,7 +30,7 @@ export async function updateLinkStatus(
 ): Promise<{ error: unknown }> {
   const { error } = await supabase
     .from('bruker_profil')
-    .update({ kobling_status: status, kasterid })
+    .update({ kobling_status: status, kasterid, kobling_kasterid: null })
     .eq('id', userId)
   if (error) logError('updateLinkStatus', error)
   return { error }
