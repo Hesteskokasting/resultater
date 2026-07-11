@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       antallTellendeNc: {
@@ -165,31 +190,31 @@ export type Database = {
       }
       kamp_omgang: {
         Row: {
-          antall_ringer: number | null
+          antall_ringer: number
           id: number
           kamp_spelar_id: number
           omgang: number
           registrert_at: string
           registrert_av: string | null
-          score: number | null
+          score: number
         }
         Insert: {
-          antall_ringer?: number | null
+          antall_ringer: number
           id?: never
           kamp_spelar_id: number
           omgang: number
           registrert_at?: string
           registrert_av?: string | null
-          score?: number | null
+          score: number
         }
         Update: {
-          antall_ringer?: number | null
+          antall_ringer?: number
           id?: never
           kamp_spelar_id?: number
           omgang?: number
           registrert_at?: string
           registrert_av?: string | null
-          score?: number | null
+          score?: number
         }
         Relationships: [
           {
@@ -527,33 +552,33 @@ export type Database = {
       }
       pamelding: {
         Row: {
-          bruker_id: string | null
           er_bekreftet: boolean
           id: number
           kasterid: number
           lag_id: number | null
           opprettet_at: string
           posisjon: number | null
+          registrert_av: string | null
           stevneid: number
         }
         Insert: {
-          bruker_id?: string | null
           er_bekreftet?: boolean
           id?: never
           kasterid: number
           lag_id?: number | null
           opprettet_at?: string
           posisjon?: number | null
+          registrert_av?: string | null
           stevneid: number
         }
         Update: {
-          bruker_id?: string | null
           er_bekreftet?: boolean
           id?: never
           kasterid?: number
           lag_id?: number | null
           opprettet_at?: string
           posisjon?: number | null
+          registrert_av?: string | null
           stevneid?: number
         }
         Relationships: [
@@ -579,7 +604,7 @@ export type Database = {
           antall_ring_xkast: number | null
           erpremie: boolean | null
           gruppeid: number | null
-          hcp: number | null
+          hcp: number
           id: number
           kamp_poeng_innl: number | null
           kasterid: number | null
@@ -601,7 +626,7 @@ export type Database = {
           antall_ring_xkast?: number | null
           erpremie?: boolean | null
           gruppeid?: number | null
-          hcp?: number | null
+          hcp?: number
           id?: number
           kamp_poeng_innl?: number | null
           kasterid?: number | null
@@ -623,7 +648,7 @@ export type Database = {
           antall_ring_xkast?: number | null
           erpremie?: boolean | null
           gruppeid?: number | null
-          hcp?: number | null
+          hcp?: number
           id?: number
           kamp_poeng_innl?: number | null
           kasterid?: number | null
@@ -683,7 +708,7 @@ export type Database = {
           antall_runder_avsl: number | null
           antall_runder_innl: number | null
           avsluttendekastemetodeid: number | null
-          dato: string | null
+          dato: string
           erekskludertfrarekorder: boolean
           erfullfort: boolean
           ernm: boolean
@@ -707,7 +732,7 @@ export type Database = {
           antall_runder_avsl?: number | null
           antall_runder_innl?: number | null
           avsluttendekastemetodeid?: number | null
-          dato?: string | null
+          dato: string
           erekskludertfrarekorder?: boolean
           erfullfort?: boolean
           ernm?: boolean
@@ -731,7 +756,7 @@ export type Database = {
           antall_runder_avsl?: number | null
           antall_runder_innl?: number | null
           avsluttendekastemetodeid?: number | null
-          dato?: string | null
+          dato?: string
           erekskludertfrarekorder?: boolean
           erfullfort?: boolean
           ernm?: boolean
@@ -848,6 +873,13 @@ export type Database = {
         Returns: {
           epost: string
           id: string
+        }[]
+      }
+      kamp_spelar_original: {
+        Args: { p_id: number }
+        Returns: {
+          kampid: number
+          kasterid: number
         }[]
       }
       min_rolle: { Args: never; Returns: string }
@@ -981,6 +1013,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },
