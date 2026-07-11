@@ -31,7 +31,27 @@ Start maskinen på nytt når du vert beden om det. Installer deretter Docker Des
 winget install Docker.DockerDesktop
 ```
 
-Start Docker Desktop og vent til det grøne ikonet i systembrettet viser at det køyrer.
+Start Docker Desktop og vent til det grøne ikonet i systembrettet viser at det køyrer. Slå så på WSL-integrasjonen: Docker Desktop → **Settings → Resources → WSL Integration** → slå på bryteren for distroen din (t.d. `Ubuntu`) → **Apply & Restart**.
+
+**Sjekk at oppsettet stemmer** — i PowerShell:
+
+```powershell
+wsl -l -v        # lista over installerte distroar — VERSION-kolonnen skal vise 2, ikkje 1
+wsl --status     # standard-distro og standard WSL-versjon
+```
+
+Inne i WSL-shellen (`wsl`):
+
+```bash
+cat /etc/os-release   # kva distro/versjon du faktisk køyrer (t.d. Ubuntu 22.04)
+docker version         # stadfestar at Docker CLI-en i WSL når fram til Docker Desktop sin daemon
+docker info            # meir detaljert — sjekk at "Server"-delen svarar, ikkje berre "Client"
+docker context ls      # den aktive contexten (merka med *) skal vere desktop-linux
+```
+
+Viss `docker version`/`docker info` ikkje viser eit `Server`-svar, er ikkje WSL-integrasjonen slått på for distroen din — gå tilbake til Docker Desktop-innstillinga over.
+
+**Viktig:** Den lokale Supabase-stacken (`npx supabase start`, `npm run test:db`) må køyrast **frå ein WSL-shell**, ikkje frå PowerShell/CMD. Supabase CLI-en oppdagar at han køyrer på Windows-verten og krev då at Docker-daemonen er eksponert på `tcp://localhost:2375` — noko som gjer at `analytics`- og `realtime`-containerane feilar helsesjekken (`unhealthy`) og stacken aldri startar. Køyrer CLI-en frå WSL i staden, går han den vanlege Linux-vegen mot Docker-daemonen, og problemet forsvinn heilt. Sjå steg-for-steg i [Integrasjonstesting (pgTAP)](#integrasjonstesting-pgtap).
 
 ### 2. Klon og installer avhengigheiter
 
@@ -97,7 +117,35 @@ Konfigurasjon: `vite.config.js` (test-blokk) og `tsconfig.test.json`.
 
 Integrasjonstestane verifiserer databaselaget: RLS-politikkar og `SECURITY DEFINER`-funksjonar. Testfilene ligg i `supabase/tests/` og køyrer mot ein lokal Supabase-stack.
 
-**Krav:** WSL 2 og Docker Desktop må vere installert og køyrande (sjå [Oppsett på ny maskin](#oppsett-på-ny-maskin)).
+**Krav:** WSL 2 og Docker Desktop må vere installert og køyrande (sjå [Oppsett på ny maskin](#oppsett-på-ny-maskin)), og kommandoane nedanfor må køyrast **frå ein WSL-shell** — ikkje PowerShell/CMD. Grunn: Supabase CLI-en krev at Docker-daemonen er TCP-eksponert når han oppdagar at han køyrer direkte på Windows, og utan det feilar `analytics`/`realtime`-containerane helsesjekken. Frå WSL går CLI-en Linux-vegen og treng ikkje denne omvegen.
+
+#### Fyrste gong: sett opp prosjektet inni WSL
+
+1. Opne ein WSL-shell (`wsl` i PowerShell/Windows Terminal, eller opne distroen din direkte). **Stadfest at du faktisk er inne i WSL** — promptet skal sjå ut som `bruker@maskin:~$` (eit vanleg Linux-prompt), ikkje `C:\...>`. Viss du opnar prosjektmappa via Windows Utforskar/VS Code og hamnar i eit `cmd.exe`/PowerShell-vindauge som berre viser stien via `\\wsl.localhost\...`, er du **ikkje** i WSL — kommandoar som `npx supabase` feilar då med noko slikt som `'supabase' is not recognized`, sidan `cmd.exe` ikkje støttar UNC-stiar som arbeidsmappe og hoppar attende til ei Windows-mappe. I VS Code: bruk `∨`-menyen ved sida av `+` i terminalpanelet og vel **Ubuntu (WSL)**-profilen.
+
+2. Lag ein **ny, separat kopi** av prosjektet — ikkje bruk den same mappa som `D:\repos\resultater`. Grunnen er at `D:\`-stasjonen din er tilgjengeleg inne i WSL under `/mnt/d/...`, men den ligg fysisk på Windows-sida. Filtilgang dit frå WSL er tregt, og viss du køyrer `npm install` frå same mappe både i Windows og i WSL, lastar dei ned forskjellige (inkompatible) versjonar av verktøy som `supabase`-CLI-en og `esbuild` oppå kvarandre kvar gong — det gir forvirrande feil.
+
+   Løysinga: klon prosjektet på nytt, inn i WSL sitt **eige** filsystem (heimemappa di der, `~`, som er heilt uavhengig av `D:\`-stasjonen):
+
+   ```bash
+   cd ~                                                       # gå til heimemappa inne i WSL (ikkje D:-stasjonen)
+   git clone https://github.com/hesteskokasting/resultater.git   # last ned ein fersk, separat kopi her
+   cd resultater                                              # gå inn i den nye mappa
+   ```
+
+   Du sit no med to heilt uavhengige kopiar av repoet: `D:\repos\resultater` (brukar du frå Windows til vanleg utvikling) og `~/resultater` inne i WSL (brukar du berre til å køyre den lokale Supabase-stacken og testane nedanfor).
+3. Installer Node (viss det ikkje finst frå før i WSL — Windows-installasjonen er ikkje synleg her):
+   ```bash
+   node -v   # viss denne feilar:
+   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/master/install.sh | bash
+   nvm install --lts
+   ```
+4. Installer avhengigheiter (hentar Linux-bygg av `supabase`-CLI-en m.m.):
+   ```bash
+   npm install
+   ```
+
+#### Kvar gong: køyr stacken og testane
 
 ```bash
 npx supabase start   # startar lokal Postgres og køyrer alle migreringsfiler
@@ -106,6 +154,8 @@ npx supabase stop    # stoppar lokal stack når du er ferdig
 ```
 
 Køyr integrasjonstestane når du endrar migreringsfiler, RLS-politikkar eller `SECURITY DEFINER`-funksjonar. Dei er ikkje ein del av den raske pre-commit-sjekkanen (Vitest).
+
+**Merk:** Dette WSL-checkoutet er berre for å køyre den lokale Supabase-stacken og pgTAP-testane. Vanleg utvikling (`npm run dev`, redigering, commits) skjer framleis i det ordinære Windows-checkoutet — hugs å `git pull` i WSL-klonen etter at du har pusha migreringsendringar frå Windows-sida.
 
 ---
 
