@@ -1,5 +1,6 @@
 import { supabase } from '@/supabase'
 import { logError } from '@/utils/logError'
+import { verifyRowsAffected } from '@/utils/verifiedWrite'
 import type { Tables } from '@/types'
 
 export type ClubListRow = Pick<Tables<'klubb'>, 'id' | 'navn' | 'logourl'>
@@ -47,7 +48,9 @@ export async function updateClub(
   id: number,
   payload: ClubAdminPayload,
 ): Promise<{ error: unknown }> {
-  const { error } = await supabase.from('klubb').update(payload).eq('id', id)
+  const { error } = await verifyRowsAffected(
+    supabase.from('klubb').update(payload).eq('id', id).select('id'),
+  )
   if (error) logError('updateClub', error)
   return { error }
 }

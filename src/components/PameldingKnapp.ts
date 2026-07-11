@@ -1,5 +1,6 @@
 import { confirmDialog } from '@/components/ConfirmDialog'
 import { showToast } from '@/components/Toast'
+import { errorMessage } from '@/utils/errorMessage'
 import { registerForTournament, removeRegistration, getMyRegistrationForTournament } from '@/services/pameldingService'
 
 export interface RegistrationButtonProps {
@@ -42,7 +43,7 @@ export function createRegistrationButton(props: RegistrationButtonProps): HTMLBu
 
       const { error } = await removeRegistration(registrationId)
       if (error) {
-        showToast('Kunne ikkje melde av. Prøv igjen.', 'error')
+        showToast('Kunne ikkje melde av: ' + errorMessage(error), 'error')
         btn.disabled = false
         return
       }
@@ -52,7 +53,7 @@ export function createRegistrationButton(props: RegistrationButtonProps): HTMLBu
     } else {
       const { error, id } = await registerForTournament(props.tournamentId, props.throwerId)
       if (error) {
-        showToast('Kunne ikkje melde på. Prøv igjen.', 'error')
+        showToast('Kunne ikkje melde på: ' + errorMessage(error), 'error')
         btn.disabled = false
         return
       }

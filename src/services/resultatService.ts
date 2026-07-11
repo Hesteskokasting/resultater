@@ -1,6 +1,7 @@
 import type { QueryData } from '@supabase/supabase-js'
 import { supabase } from '@/supabase'
 import { logError } from '@/utils/logError'
+import { verifyRowsAffected } from '@/utils/verifiedWrite'
 
 // ── Typar ─────────────────────────────────────────────────────────────────────
 
@@ -95,7 +96,9 @@ export async function setGroupAssignment(
   if (!updates.length) return { error: null }
   const results = await Promise.all(
     updates.map(u =>
-      supabase.from('resultat').update({ gruppeid: u.gruppeid }).eq('stevneid', stevneid).eq('kasterid', u.kasterid),
+      verifyRowsAffected(
+        supabase.from('resultat').update({ gruppeid: u.gruppeid }).eq('stevneid', stevneid).eq('kasterid', u.kasterid).select('id'),
+      ),
     ),
   )
   const err = results.find(r => r.error)?.error ?? null

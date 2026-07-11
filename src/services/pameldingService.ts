@@ -1,6 +1,7 @@
 import type { QueryData, RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '@/supabase'
 import { logError } from '@/utils/logError'
+import { verifyRowsAffected } from '@/utils/verifiedWrite'
 
 const _pameldingQuery = supabase.from('pamelding').select('id, stevne:stevneid(id, navn, dato, erfullfort)')
 const _pameldingMedKasterQuery = supabase
@@ -84,16 +85,11 @@ export async function registerForTournament(
 }
 
 export async function removeRegistration(pameldingId: number): Promise<{ error: unknown }> {
-  const { data, error } = await supabase.from('pamelding').delete().eq('id', pameldingId).select('id')
-  if (error) { logError('removeRegistration', error); return { error } }
-  if (!data.length) {
-    // A DELETE whose RLS USING clause matches no rows returns success with an empty
-    // result, not an error — without this check a denied delete looks identical to a real one.
-    const deniedError = new Error('Påmeldinga blei ikkje fjerna (ikkje funne eller ikkje tillatt).')
-    logError('removeRegistration', deniedError)
-    return { error: deniedError }
-  }
-  return { error: null }
+  const { error } = await verifyRowsAffected(
+    supabase.from('pamelding').delete().eq('id', pameldingId).select('id'),
+  )
+  if (error) logError('removeRegistration', error)
+  return { error }
 }
 
 export async function getRegistrationCount(stevneId: number): Promise<number> {
@@ -142,29 +138,19 @@ export async function addRegistrationAdmin(stevneId: number, kasterid: number): 
 }
 
 export async function confirmRegistrationForThrower(stevneId: number, kasterid: number): Promise<{ error: unknown }> {
-  const { error } = await supabase
-    .from('pamelding')
-    .update({ er_bekreftet: true })
-    .eq('stevneid', stevneId)
-    .eq('kasterid', kasterid)
+  const { error } = await verifyRowsAffected(
+    supabase.from('pamelding').update({ er_bekreftet: true }).eq('stevneid', stevneId).eq('kasterid', kasterid).select('id'),
+  )
   if (error) logError('confirmRegistrationForThrower', error)
   return { error }
 }
 
 export async function removeRegistrationForThrower(stevneId: number, kasterid: number): Promise<{ error: unknown }> {
-  const { data, error } = await supabase
-    .from('pamelding')
-    .delete()
-    .eq('stevneid', stevneId)
-    .eq('kasterid', kasterid)
-    .select('id')
-  if (error) { logError('removeRegistrationForThrower', error); return { error } }
-  if (!data.length) {
-    const deniedError = new Error('Påmeldinga blei ikkje fjerna (ikkje funne eller ikkje tillatt).')
-    logError('removeRegistrationForThrower', deniedError)
-    return { error: deniedError }
-  }
-  return { error: null }
+  const { error } = await verifyRowsAffected(
+    supabase.from('pamelding').delete().eq('stevneid', stevneId).eq('kasterid', kasterid).select('id'),
+  )
+  if (error) logError('removeRegistrationForThrower', error)
+  return { error }
 }
 
 // ── Par/Mix functions ─────────────────────────────────────────────────────────

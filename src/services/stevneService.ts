@@ -1,6 +1,7 @@
 import type { QueryData } from '@supabase/supabase-js'
 import { supabase } from '@/supabase'
 import { logError } from '@/utils/logError'
+import { verifyRowsAffected } from '@/utils/verifiedWrite'
 import type { Tables, Json, Round1FormatTyped } from '@/types'
 
 // ── Admin-typar ───────────────────────────────────────────────────────────────
@@ -287,10 +288,9 @@ export async function getFinalPhaseTournament(stevneid: number): Promise<{ data:
 
 export async function setRound1Format(stevneid: number, format: Round1FormatTyped | null): Promise<{ error: unknown }> {
   // Round1FormatTyped serialises cleanly to JSON; cast is justified at this DB boundary
-  const { error } = await supabase
-    .from('stevne')
-    .update({ runde1_format: format as unknown as Json })
-    .eq('id', stevneid)
+  const { error } = await verifyRowsAffected(
+    supabase.from('stevne').update({ runde1_format: format as unknown as Json }).eq('id', stevneid).select('id'),
+  )
   if (error) logError('setRound1Format', error)
   return { error }
 }
@@ -338,7 +338,9 @@ export async function updateTournamentSettings(
   id: number,
   payload: TournamentSettingsUpdatePayload,
 ): Promise<{ error: unknown }> {
-  const { error } = await supabase.from('stevne').update(payload).eq('id', id)
+  const { error } = await verifyRowsAffected(
+    supabase.from('stevne').update(payload).eq('id', id).select('id'),
+  )
   if (error) logError('updateTournamentSettings', error)
   return { error }
 }

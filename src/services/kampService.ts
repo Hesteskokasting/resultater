@@ -2,6 +2,7 @@ import type { QueryData, RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '@/supabase'
 import { logError } from '@/utils/logError'
 import { calcMatchPoints } from '@/utils/kamp'
+import { verifyRowsAffected } from '@/utils/verifiedWrite'
 
 const _kampSpelarQuery = supabase.from('kamp_spelar').select(`
   id, kasterid,
@@ -385,8 +386,15 @@ export async function confirmInitialMatch(params: {
     hcp1, hcp2, erWalkover,
   })
 
+  // RLS only allows updates while er_bekreftet = false, so a zero-row write
+  // here means the match was already confirmed (typically by the opponent).
+  const alreadyConfirmedMessage = 'Kampen er allereie stadfesta av ein annan deltakar.'
+
   const spelarUpdates = [...updates.entries()].map(([id, values]) =>
-    supabase.from('kamp_spelar').update(values).eq('id', id),
+    verifyRowsAffected(
+      supabase.from('kamp_spelar').update(values).eq('id', id).select('id'),
+      alreadyConfirmedMessage,
+    ),
   )
 
   if (spelarUpdates.length) {
@@ -398,7 +406,10 @@ export async function confirmInitialMatch(params: {
     }
   }
 
-  const { error } = await supabase.from('kamp').update({ er_bekreftet: true }).eq('id', kampId)
+  const { error } = await verifyRowsAffected(
+    supabase.from('kamp').update({ er_bekreftet: true }).eq('id', kampId).select('id'),
+    alreadyConfirmedMessage,
+  )
   if (error) logError('confirmInitialMatch:kamp', error)
   return { error }
 }

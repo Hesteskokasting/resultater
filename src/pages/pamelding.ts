@@ -3,7 +3,9 @@ import { confirmDialog } from '@/components/ConfirmDialog'
 import { formatDate, formatTime } from '@/utils/shared'
 import { createErrorBanner } from '@/components/ErrorBanner'
 import { createLoadingState } from '@/components/LoadingState'
+import { showToast } from '@/components/Toast'
 import { escHtml } from '@/utils/escHtml'
+import { errorMessage } from '@/utils/errorMessage'
 import { throwerName } from '@/utils/kaster'
 import { logError } from '@/utils/logError'
 import { setPageTitle } from '@/utils/pageTitle'
@@ -187,7 +189,7 @@ function bindEventHandlers(
     const ownReg = registrations.find(p => p.kasterid === kasterid)
     if (!ownReg || !await confirmDialog({ title: 'Avmeld', message: 'Vil du melde deg av?' })) return
     const { error } = await removeRegistration(ownReg.id)
-    if (error) return
+    if (error) { showToast('Kunne ikkje melde av: ' + errorMessage(error), 'error'); return }
     render(container, params)
   })
 
@@ -197,7 +199,7 @@ function bindEventHandlers(
       const id = Number(button.dataset.id)
       if (!id) return
       const { error } = await removeRegistration(id)
-      if (error) return
+      if (error) { showToast('Kunne ikkje fjerne påmelding: ' + errorMessage(error), 'error'); return }
       render(container, params)
     })
   })

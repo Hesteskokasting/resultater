@@ -3,6 +3,7 @@ import { logError } from '@/utils/logError'
 import { createErrorBanner } from '@/components/ErrorBanner'
 import { createLoadingState } from '@/components/LoadingState'
 import { escHtml } from '@/utils/escHtml'
+import { errorMessage } from '@/utils/errorMessage'
 import { renderScoreboard, type ScoreboardOptions } from '@/components/Scoreboard'
 import {
   getMatch,
@@ -205,7 +206,7 @@ async function confirmMatch(ctx: MatchViewCtx, sides: SideState, orderedKasterid
       ...confirmData,
       orderedKasterids: orderedKasterids ?? null,
     })
-    if (error) { showMatchError(ctx.container, 'Feil ved bekreftelse av kamp.'); return }
+    if (error) { showMatchError(ctx.container, 'Feil ved bekreftelse av kamp: ' + errorMessage(error)); return }
   } else {
     const { error } = await confirmInitialMatch({
       kampId: ctx.matchId,
@@ -214,7 +215,7 @@ async function confirmMatch(ctx: MatchViewCtx, sides: SideState, orderedKasterid
       hcp2,
       erWalkover: ctx.match.er_walkover,
     })
-    if (error) { showMatchError(ctx.container, 'Feil ved bekreftelse av kamp.'); return }
+    if (error) { showMatchError(ctx.container, 'Feil ved bekreftelse av kamp: ' + errorMessage(error)); return }
   }
 
   await navigateToNextMatch(ctx)

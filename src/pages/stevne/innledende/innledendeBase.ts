@@ -31,6 +31,7 @@ import {
 } from '@/organizer/org-shared'
 import { createLoadingState } from '@/components/LoadingState'
 import { createErrorBanner } from '@/components/ErrorBanner'
+import { errorMessage } from '@/utils/errorMessage'
 import { logError } from '@/utils/logError'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import {
@@ -348,7 +349,7 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
       p1PartnerId: side1?.members[1]?.id ?? null,
       p2PartnerId: side2?.members[1]?.id ?? null,
     })
-    if (error) { showToast('DB-feil ved bekreft', 'error'); return false }
+    if (error) { showToast('DB-feil ved bekreft: ' + errorMessage(error), 'error'); return false }
     await loadAndRender(container, stevneid)
     return true
   }

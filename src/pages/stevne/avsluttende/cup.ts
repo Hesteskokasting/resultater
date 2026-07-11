@@ -14,6 +14,7 @@ import { livePillHtml } from '@/components/LivePill'
 import { canConfirmMatch, sideNameHtml, type StandingRow } from '@/organizer/org-shared'
 import { showScoreEditor } from '@/organizer/scoreEditor'
 import { escHtml } from '@/utils/escHtml'
+import { errorMessage } from '@/utils/errorMessage'
 import { logError } from '@/utils/logError'
 import { showToast } from '@/components/Toast'
 import { confirmDialog } from '@/components/ConfirmDialog'
@@ -132,7 +133,7 @@ const cupVariant: FinalPhaseVariant = {
         const groupBId = groupNameMap['B'] ?? null
         const updates = buildGroupUpdates(standings, results, nA, groupAId, groupBId)
         const { error: grErr } = await setGroupAssignment(stevneid, updates)
-        if (grErr) { showToast('Feil ved lagring av gruppefordeling', 'error'); return }
+        if (grErr) { showToast('Feil ved lagring av gruppefordeling: ' + errorMessage(grErr), 'error'); return }
       }
 
       await reload()
@@ -205,14 +206,14 @@ const cupVariant: FinalPhaseVariant = {
         const setupA = readSelectedSetup('round1-format-a', nA)
         const setupB = nB >= 2 ? readSelectedSetup('round1-format-b', nB) : null
         const { error: fmtErr } = await setRound1Format(stevneid, { A: setupA, B: setupB, nA })
-        if (fmtErr) { showToast('Feil ved lagring av format', 'error'); return }
+        if (fmtErr) { showToast('Feil ved lagring av format: ' + errorMessage(fmtErr), 'error'); return }
 
         if (stevne.stevne_fase === 'avsluttende') {
           const groupAId = groupNameMap['A'] ?? null
           const groupBId = groupNameMap['B'] ?? null
           const updates = buildGroupUpdates(standings, results, nA, groupAId, groupBId)
           const { error } = await setGroupAssignment(stevneid, updates)
-          if (error) { showToast('Feil ved lagring av gruppefordeling', 'error'); return }
+          if (error) { showToast('Feil ved lagring av gruppefordeling: ' + errorMessage(error), 'error'); return }
         }
 
         showToast('Gruppefordeling lagra', 'success')
