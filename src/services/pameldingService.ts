@@ -84,9 +84,16 @@ export async function registerForTournament(
 }
 
 export async function removeRegistration(pameldingId: number): Promise<{ error: unknown }> {
-  const { error } = await supabase.from('pamelding').delete().eq('id', pameldingId)
-  if (error) logError('removeRegistration', error)
-  return { error }
+  const { data, error } = await supabase.from('pamelding').delete().eq('id', pameldingId).select('id')
+  if (error) { logError('removeRegistration', error); return { error } }
+  if (!data.length) {
+    // A DELETE whose RLS USING clause matches no rows returns success with an empty
+    // result, not an error — without this check a denied delete looks identical to a real one.
+    const deniedError = new Error('Påmeldinga blei ikkje fjerna (ikkje funne eller ikkje tillatt).')
+    logError('removeRegistration', deniedError)
+    return { error: deniedError }
+  }
+  return { error: null }
 }
 
 export async function getRegistrationCount(stevneId: number): Promise<number> {
@@ -145,13 +152,19 @@ export async function confirmRegistrationForThrower(stevneId: number, kasterid: 
 }
 
 export async function removeRegistrationForThrower(stevneId: number, kasterid: number): Promise<{ error: unknown }> {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('pamelding')
     .delete()
     .eq('stevneid', stevneId)
     .eq('kasterid', kasterid)
-  if (error) logError('removeRegistrationForThrower', error)
-  return { error }
+    .select('id')
+  if (error) { logError('removeRegistrationForThrower', error); return { error } }
+  if (!data.length) {
+    const deniedError = new Error('Påmeldinga blei ikkje fjerna (ikkje funne eller ikkje tillatt).')
+    logError('removeRegistrationForThrower', deniedError)
+    return { error: deniedError }
+  }
+  return { error: null }
 }
 
 // ── Par/Mix functions ─────────────────────────────────────────────────────────
