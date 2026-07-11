@@ -22,9 +22,14 @@ async function linkedThrowerHtml(throwerId: number): Promise<string> {
     <a href="#/kastere/${buildThrowerSlug(data)}" class="btn btn-sm btn-outline-primary mt-1">Vis profil</a>`
 }
 
-function passwordCardHtml(): string {
+function passwordCardHtml(hasPasswordLogin: boolean): string {
+  const title = hasPasswordLogin ? 'Bytt passord' : 'Opprett passord'
+  const providerHint = hasPasswordLogin
+    ? ''
+    : '<p class="card-text text-muted">Du er innlogga med Google. Opprettar du eit passord, kan du også logge inn med e-post og passord.</p>'
   return `
-    <h5 class="card-title">Bytt passord</h5>
+    <h5 class="card-title">${title}</h5>
+    ${providerHint}
     <form id="password-form">
       <div class="mb-3">
         <label class="form-label" for="ko-password">Nytt passord</label>
@@ -35,7 +40,7 @@ function passwordCardHtml(): string {
         <input type="password" class="form-control" id="ko-password2" required autocomplete="new-password" minlength="8">
       </div>
       <div id="ko-password-error" class="alert alert-danger d-none"></div>
-      <button type="submit" class="btn btn-primary">Bytt passord</button>
+      <button type="submit" class="btn btn-primary">${title}</button>
     </form>`
 }
 
@@ -145,10 +150,13 @@ function bindDeleteOwnAccount(container: HTMLElement, ctx: MinSideContext): void
 export async function render(container: HTMLElement, ctx: MinSideContext): Promise<void> {
   const throwerId = ctx.status === 'godkjent' ? ctx.profil?.kasterid ?? null : null
   const isLinked = throwerId != null
+  // OAuth-only users (e.g. Google) have no 'email' identity; updateUser({ password })
+  // then ADDS password login rather than changing an existing one.
+  const hasPasswordLogin = ctx.user.identities?.some(identity => identity.provider === 'email') ?? true
 
   container.innerHTML = `
     ${isLinked ? '<div class="card mb-4"><div class="card-body" data-slot="thrower"><div class="skeleton-block skeleton-block--card"></div></div></div>' : ''}
-    <div class="card mb-4"><div class="card-body">${passwordCardHtml()}</div></div>
+    <div class="card mb-4"><div class="card-body">${passwordCardHtml(hasPasswordLogin)}</div></div>
     ${isLinked ? `
       <div class="card mb-4"><div class="card-body">
         <h5 class="card-title">Innloggingskontoar</h5>
