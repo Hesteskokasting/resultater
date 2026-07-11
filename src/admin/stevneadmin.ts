@@ -120,7 +120,7 @@ export async function render(
     const payload = {
       navn:                     (fd.get('navn') as string).trim(),
       sted:                     (fd.get('sted') as string).trim() || null,
-      dato:                     (fd.get('dato') as string) || null,
+      dato:                     fd.get('dato') as string,
       tid:                      (fd.get('tid') as string) || null,
       klubbid:                  formNum(fd.get('klubbid')),
       stevnetypeid:             formNum(fd.get('stevnetypeid')),
