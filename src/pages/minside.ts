@@ -11,7 +11,7 @@ import { render as renderNotifications } from './minside/minside-varslingar'
 import { render as renderSettings }      from './minside/minside-innstillingar'
 import { render as renderAccount }       from './minside/minside-konto'
 import type { MinSideContext } from './minside/_linkState'
-import type { Params, Role, LinkStatus } from '@/types'
+import type { Params, LinkStatus } from '@/types'
 
 type TabRender = (container: HTMLElement, ctx: MinSideContext) => Promise<void>
 
@@ -34,12 +34,6 @@ const TAB_RENDER: Record<TabKey, TabRender> = {
   varslingar:    renderNotifications,
   innstillingar: renderSettings,
   konto:         renderAccount,
-}
-
-const roleLabel: Record<Role, string> = {
-  admin: 'Administrator',
-  klubbadmin: 'Klubbadministrator',
-  bruker: 'Brukar',
 }
 
 function renderNav(active: string, isNative: boolean): string {
@@ -65,7 +59,6 @@ export async function render(container: HTMLElement, params: Params): Promise<vo
 
     const { profil, user } = auth
     const status: LinkStatus = profil?.kobling_status ?? 'ingen'
-    const roleName = profil ? roleLabel[profil.role] : 'Ukjent'
 
     const isNative = Capacitor.isNativePlatform()
     const activeTab = (!TAB_KEYS.has(tab) || (!isNative && NATIVE_TABS.has(tab)))
@@ -75,7 +68,7 @@ export async function render(container: HTMLElement, params: Params): Promise<vo
     container.innerHTML = `
       <div class="mypage-container">
         <h2 class="mb-1">Min side</h2>
-        <p class="text-muted mb-3">${escHtml(user.email ?? '')} · <span class="badge bg-secondary">${escHtml(roleName)}</span></p>
+        <p class="text-muted mb-3">${escHtml(user.email ?? '')}</p>
         ${renderNav(activeTab, isNative)}
         <div id="minside-subpage"></div>
       </div>`
