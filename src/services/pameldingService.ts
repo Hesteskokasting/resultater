@@ -2,7 +2,7 @@ import type { QueryData, RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '@/supabase'
 import { logError } from '@/utils/logError'
 
-const _pameldingQuery = supabase.from('pamelding').select('id, stevne:stevneid(id, navn, dato)')
+const _pameldingQuery = supabase.from('pamelding').select('id, stevne:stevneid(id, navn, dato, erfullfort)')
 const _pameldingMedKasterQuery = supabase
   .from('pamelding')
   .select('id, kasterid, kaster:kasterid(id, fornavn, etternavn, klubb:klubbid(navn))')
@@ -39,7 +39,7 @@ export interface RegistrationPair {
 export async function getMyRegistrations(kasterid: number): Promise<{ data: RegistrationRow[]; error: unknown }> {
   const { data, error } = await supabase
     .from('pamelding')
-    .select('id, stevne:stevneid(id, navn, dato)')
+    .select('id, stevne:stevneid(id, navn, dato, erfullfort)')
     .eq('kasterid', kasterid)
     .limit(50)
   if (error) logError('getMyRegistrations', error)

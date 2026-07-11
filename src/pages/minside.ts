@@ -88,9 +88,10 @@ async function linkedCardHtml(throwerId: number): Promise<string> {
 async function registrationListHtml(kasterid: number): Promise<string> {
   const { data, error } = await getMyRegistrations(kasterid)
   if (error) return '<p class="text-muted">Kunne ikkje laste påmeldingar.</p>'
-  if (!data.length) return '<p class="empty-state">Ingen påmeldingar enno.</p>'
+  const active = data.filter((p: RegistrationRow) => p.stevne?.erfullfort !== true)
+  if (!active.length) return '<p class="empty-state">Ingen påmeldingar enno.</p>'
 
-  const sorted = [...data].sort((a: RegistrationRow, b: RegistrationRow) =>
+  const sorted = [...active].sort((a: RegistrationRow, b: RegistrationRow) =>
     (a.stevne?.dato ?? '').localeCompare(b.stevne?.dato ?? ''),
   )
 
@@ -338,10 +339,12 @@ export async function render(container: HTMLElement): Promise<void> {
         registrationListHtml(throwerId),
         createMyMatches(throwerId),
       ])
-      html += throwerCardHtml + regListHtml
+      html += throwerCardHtml
       html += '</div>'
       container.innerHTML = html
-      container.querySelector('.mypage-container')!.appendChild(myMatchesEl)
+      const mypageContainer = container.querySelector('.mypage-container')!
+      mypageContainer.appendChild(myMatchesEl)
+      mypageContainer.insertAdjacentHTML('beforeend', regListHtml)
       if (notificationPrefs) bindNotificationToggles(container, user.id)
       return
     }
