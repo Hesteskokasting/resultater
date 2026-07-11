@@ -50,7 +50,7 @@ export function createRegistrationButton(props: RegistrationButtonProps): HTMLBu
       registrationId = undefined
       showToast('Du er meldt av stevnet.', 'success')
     } else {
-      const { error, id } = await registerForTournament(props.tournamentId, props.throwerId, props.userId)
+      const { error, id } = await registerForTournament(props.tournamentId, props.throwerId)
       if (error) {
         showToast('Kunne ikkje melde på. Prøv igjen.', 'error')
         btn.disabled = false

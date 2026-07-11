@@ -144,7 +144,6 @@ function bindEventHandlers(
   params: Record<string, string | number | undefined>,
   registrations: RegistrationWithThrowerRow[],
   kasterid: number | null,
-  userId: string,
   tournamentId: number,
 ): void {
   const registrationForm = container.querySelector<HTMLFormElement>('#registration-form')
@@ -153,7 +152,7 @@ function bindEventHandlers(
     const errorEl = container.querySelector<HTMLElement>('#registration-error')!
     errorEl.classList.add('d-none')
     if (kasterid == null) return
-    const { error } = await registerForTournament(tournamentId, kasterid, userId)
+    const { error } = await registerForTournament(tournamentId, kasterid)
     if (error) {
       errorEl.textContent = 'Feil ved påmelding.'
       errorEl.classList.remove('d-none')
@@ -174,7 +173,7 @@ function bindEventHandlers(
       errorEl.classList.remove('d-none')
       return
     }
-    const { error } = await registerForTournament(tournamentId, selectedThrowerId, userId)
+    const { error } = await registerForTournament(tournamentId, selectedThrowerId)
     if (error) {
       errorEl.textContent = 'Feil ved påmelding.'
       errorEl.classList.remove('d-none')
@@ -288,7 +287,7 @@ export async function render(container: HTMLElement, params: Params = {}): Promi
       </div>`
 
     if (auth) {
-      bindEventHandlers(container, params, registrations, kasterid, auth.user.id, tournamentId)
+      bindEventHandlers(container, params, registrations, kasterid, tournamentId)
     }
   } catch (err) {
     logError('pamelding.render', err)

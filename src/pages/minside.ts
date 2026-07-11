@@ -85,8 +85,8 @@ async function linkedCardHtml(throwerId: number): Promise<string> {
     </div>`
 }
 
-async function registrationListHtml(userId: string): Promise<string> {
-  const { data, error } = await getMyRegistrations(userId)
+async function registrationListHtml(kasterid: number): Promise<string> {
+  const { data, error } = await getMyRegistrations(kasterid)
   if (error) return '<p class="text-muted">Kunne ikkje laste påmeldingar.</p>'
   if (!data.length) return '<p class="empty-state">Ingen påmeldingar enno.</p>'
 
@@ -335,7 +335,7 @@ export async function render(container: HTMLElement): Promise<void> {
       const throwerId = profil.kasterid
       const [throwerCardHtml, regListHtml, myMatchesEl] = await Promise.all([
         linkedCardHtml(throwerId),
-        registrationListHtml(user.id),
+        registrationListHtml(throwerId),
         createMyMatches(throwerId),
       ])
       html += throwerCardHtml + regListHtml

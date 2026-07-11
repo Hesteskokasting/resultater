@@ -1,7 +1,6 @@
 import type { QueryData, RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '@/supabase'
 import { logError } from '@/utils/logError'
-import { getUser } from './authService'
 
 const _pameldingQuery = supabase.from('pamelding').select('id, stevne:stevneid(id, navn, dato)')
 const _pameldingMedKasterQuery = supabase
@@ -37,11 +36,11 @@ export interface RegistrationPair {
   sideB: RegistrationPairMember  // posisjon 2
 }
 
-export async function getMyRegistrations(userId: string): Promise<{ data: RegistrationRow[]; error: unknown }> {
+export async function getMyRegistrations(kasterid: number): Promise<{ data: RegistrationRow[]; error: unknown }> {
   const { data, error } = await supabase
     .from('pamelding')
     .select('id, stevne:stevneid(id, navn, dato)')
-    .eq('bruker_id', userId)
+    .eq('kasterid', kasterid)
     .limit(50)
   if (error) logError('getMyRegistrations', error)
   return { data: data ?? [], error }
@@ -74,11 +73,10 @@ export async function getMyRegistrationForTournament(
 export async function registerForTournament(
   stevneId: number,
   kasterid: number,
-  userId: string,
 ): Promise<{ error: unknown; id: number | null }> {
   const { data, error } = await supabase
     .from('pamelding')
-    .insert({ stevneid: stevneId, kasterid, bruker_id: userId })
+    .insert({ stevneid: stevneId, kasterid })
     .select('id')
     .single()
   if (error) logError('registerForTournament', error)
@@ -131,12 +129,7 @@ export async function getRegistrationStatusForTournament(stevneId: number): Prom
 }
 
 export async function addRegistrationAdmin(stevneId: number, kasterid: number): Promise<{ error: unknown }> {
-  const auth = await getUser()
-  const { error } = await supabase.from('pamelding').insert({
-    stevneid: stevneId,
-    kasterid,
-    ...(auth?.user ? { bruker_id: auth.user.id } : {}),
-  })
+  const { error } = await supabase.from('pamelding').insert({ stevneid: stevneId, kasterid })
   if (error) logError('addRegistrationAdmin', error)
   return { error }
 }
