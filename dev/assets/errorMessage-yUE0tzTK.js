@@ -1,1 +1,0 @@
-function e(e){if(e instanceof Error)return e.message;if(typeof e==`object`&&e&&`message`in e){let t=e.message;if(typeof t==`string`)return t}return String(e)}export{e as t};

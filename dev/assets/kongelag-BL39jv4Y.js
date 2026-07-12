@@ -1,0 +1,1 @@
+import{St as e}from"./index-CH5yb5iS.js";async function t(t,n,r=null){t.replaceChildren(e(`Kongelag-organisering er ikkje implementert enno.`))}export{t as render};

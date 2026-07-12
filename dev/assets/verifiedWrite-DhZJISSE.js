@@ -1,0 +1,1 @@
+var e=`Ingen rader blei endra (ikkje funne eller ikkje tillatt).`;async function t(t,n=e){let{data:r,error:i}=await t;return i?{error:i}:!r||r.length===0?{error:Error(n)}:{error:null}}export{t};
