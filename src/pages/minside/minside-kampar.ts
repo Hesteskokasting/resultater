@@ -14,6 +14,16 @@ function makePanel(html: string): HTMLElement {
 
 type MatchPlayerInMatch = NonNullable<MatchPlayerRow['kamp']>['spelarar'][number]
 
+const PHASES = [
+  { key: 'innledende',  label: 'Innleiande'  },
+  { key: 'avsluttende', label: 'Avsluttande' },
+] as const
+
+function phaseRank(ks: MatchPlayerRow): number {
+  const idx = PHASES.findIndex(p => p.key === ks.kamp?.fase)
+  return idx === -1 ? PHASES.length : idx
+}
+
 /** Players in a match other than the given thrower, excluding anyone sharing the same start number (teammates). */
 function findOpponents(
   players: MatchPlayerInMatch[],
@@ -49,7 +59,10 @@ async function buildMatchesContent(throwerId: number): Promise<HTMLElement> {
 
   const completed = allMatches
     .filter(ks => ks.kamp?.stevne?.erfullfort === true)
-    .sort((a, b) => (a.kamp?.runde_nummer ?? 0) - (b.kamp?.runde_nummer ?? 0))
+    .sort((a, b) =>
+      (b.kamp?.stevne?.dato ?? '').localeCompare(a.kamp?.stevne?.dato ?? '')
+      || phaseRank(a) - phaseRank(b)
+      || (a.kamp?.runde_nummer ?? 0) - (b.kamp?.runde_nummer ?? 0))
 
   const tableHeader = `<thead><tr><th>Runde/Bane</th><th>Motstandar</th><th></th></tr></thead>`
 
@@ -67,9 +80,28 @@ async function buildMatchesContent(throwerId: number): Promise<HTMLElement> {
     </tr>`
   }
 
+  const matchTableHtml = (group: MatchPlayerRow[], makeButton: (ks: MatchPlayerRow) => string): string => `
+      <table class="table table-sm mb-3">${tableHeader}<tbody>
+        ${group.map(ks => makeMatchRow(ks, makeButton(ks))).join('')}
+      </tbody></table>`
+
+  /** One table per phase with a small heading — only when the tournament actually spans both phases. */
+  const phaseSectionsHtml = (group: MatchPlayerRow[], makeButton: (ks: MatchPlayerRow) => string): string => {
+    const byPhase = PHASES
+      .map(({ key, label }) => ({ label, matches: group.filter(ks => ks.kamp?.fase === key) }))
+      .filter(p => p.matches.length)
+    const allPhasesKnown = byPhase.reduce((n, p) => n + p.matches.length, 0) === group.length
+    if (byPhase.length < 2 || !allPhasesKnown) return matchTableHtml(group, makeButton)
+    return byPhase.map(({ label, matches: phaseMatches }) => `
+      <p class="text-muted small mb-1">${label}</p>
+      ${matchTableHtml(phaseMatches, makeButton)}`
+    ).join('')
+  }
+
   const groupMatchesByTournament = (
     matches: MatchPlayerRow[],
     makeButton: (ks: MatchPlayerRow) => string,
+    groupByPhase = false,
   ): string | null => {
     if (!matches.length) return null
     const groups = new Map<number | string, { name: string; matches: MatchPlayerRow[] }>()
@@ -81,9 +113,7 @@ async function buildMatchesContent(throwerId: number): Promise<HTMLElement> {
     }
     return [...groups.values()].map(({ name, matches: group }) => `
       <p class="fw-semibold mb-1 mt-2">${escHtml(name)}</p>
-      <table class="table table-sm mb-3">${tableHeader}<tbody>
-        ${group.map(ks => makeMatchRow(ks, makeButton(ks))).join('')}
-      </tbody></table>`
+      ${groupByPhase ? phaseSectionsHtml(group, makeButton) : matchTableHtml(group, makeButton)}`
     ).join('')
   }
 
@@ -102,7 +132,8 @@ async function buildMatchesContent(throwerId: number): Promise<HTMLElement> {
   )
   const completedContent = groupMatchesByTournament(
     completed,
-    ks => `<a href="#/kamp/${ks.kamp?.id ?? ''}" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener">Sjå kamp</a>`,
+    ks => `<a href="#/kamp/${ks.kamp?.id ?? ''}" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener">Vis</a>`,
+    true,
   )
 
   return createTabs({

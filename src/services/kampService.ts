@@ -8,7 +8,7 @@ const _kampSpelarQuery = supabase.from('kamp_spelar').select(`
   id, kasterid,
   kamp:kampid(
     id, stevneid, fase, runde_nummer, bane_nummer, er_bekreftet, er_walkover,
-    stevne:stevneid(id, navn, erfullfort),
+    stevne:stevneid(id, navn, dato, erfullfort),
     spelarar:kamp_spelar(
       id, kasterid, score_poeng,
       kaster:kasterid(id, fornavn, etternavn)
@@ -25,7 +25,7 @@ export async function getMyMatches(kasterid: number): Promise<{ data: MatchPlaye
       id, kasterid,
       kamp:kampid(
         id, stevneid, fase, runde_nummer, bane_nummer, er_bekreftet, er_walkover,
-        stevne:stevneid(id, navn, erfullfort),
+        stevne:stevneid(id, navn, dato, erfullfort),
         spelarar:kamp_spelar(
           id, kasterid, score_poeng,
           kaster:kasterid(id, fornavn, etternavn)
