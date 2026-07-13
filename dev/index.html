@@ -15,19 +15,17 @@
   </script>
   <link rel="preconnect" href="https://urtvpewjlevhlevtnvkf.supabase.co" crossorigin>
   <link rel="icon" type="image/svg+xml" href="/dev/assets/NHF_logo_original_oppskalert-CHgQrqP2.svg">
-  <script type="module" crossorigin src="/dev/assets/index-CH5yb5iS.js"></script>
+  <script type="module" crossorigin src="/dev/assets/index-Bf8SkfAA.js"></script>
   <link rel="modulepreload" crossorigin href="/dev/assets/rolldown-runtime-lhHHWwHU.js">
   <link rel="modulepreload" crossorigin href="/dev/assets/vendor-D5vjawcB.js">
   <link rel="modulepreload" crossorigin href="/dev/assets/logError-D5z16FyH.js">
   <link rel="modulepreload" crossorigin href="/dev/assets/verifiedWrite-DhZJISSE.js">
-  <link rel="stylesheet" crossorigin href="/dev/assets/index-CKHXswLj.css">
+  <link rel="stylesheet" crossorigin href="/dev/assets/index-BLWVXq3_.css">
 </head>
 <body>
 
   <header class="top-header">
-    <span class="header-tittel-gruppe">
-      <span class="header-tittel">NHF Resultater</span><span class="header-versjon">v0.8.22</span>
-    </span>
+    <span class="header-tittel">NHF Resultater</span>
     <nav class="header-nav">
       <a href="#/" class="header-nav__link">Hjem</a>
       <a href="#/terminliste" class="header-nav__link">Terminliste</a>
@@ -45,9 +43,11 @@
     </nav>
     <div class="header-kontroller">
       <a class="header-email d-none" id="headerEmail" href="#/minside"></a>
-      <button class="tema-knapp" id="temaKnapp" aria-label="Bytt til lys modus">
-        <svg class="tema-ikon tema-ikon--sol" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-        <svg class="tema-ikon tema-ikon--mane" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      <button class="theme-switch" id="themeSwitch" role="switch" aria-checked="false" aria-label="Lys modus">
+        <span class="theme-switch__thumb">
+          <svg class="theme-switch__icon theme-switch__icon--sun" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          <svg class="theme-switch__icon theme-switch__icon--moon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </span>
       </button>
       <button class="meny-knapp" id="menyKnapp" aria-label="Åpne meny">
         <span></span>
@@ -88,29 +88,28 @@
       <li id="meny-loggut-item"  class="d-none">
         <button id="menyLoggUtKnapp" class="btn btn-link p-0 text-start w-100" style="font-size:inherit;color:inherit;">Logg ut</button>
       </li>
+      <li class="meny-skillelinje"></li>
+      <li class="menu-version">v0.9.0</li>
     </ul>
   </nav>
 
   <div id="app"></div>
 
   <script>
-    const temaKnapp = document.getElementById('temaKnapp')
-    const TEMAS = ['dark', 'light']
-    const TEMA_LABELS = { dark: 'Bytt til lys modus', light: 'Bytt til mørk modus' }
-    function oppdaterTemaKnapp() {
-      const tema = document.documentElement.getAttribute('data-theme') || 'dark'
-      temaKnapp.setAttribute('aria-label', TEMA_LABELS[tema] || 'Bytt til lys modus')
+    const themeSwitch = document.getElementById('themeSwitch')
+    function updateThemeSwitch() {
+      const theme = document.documentElement.getAttribute('data-theme') || 'dark'
+      themeSwitch.setAttribute('aria-checked', theme === 'light' ? 'true' : 'false')
     }
-    temaKnapp.addEventListener('click', function () {
-      const tema = document.documentElement.getAttribute('data-theme') || 'dark'
-      const idx = TEMAS.indexOf(tema)
-      const nytt = TEMAS[(idx + 1) % TEMAS.length]
-      document.documentElement.setAttribute('data-theme', nytt)
-      document.documentElement.setAttribute('data-bs-theme', nytt === 'dark' ? 'dark' : 'light')
-      localStorage.setItem('tema', nytt)
-      oppdaterTemaKnapp()
+    themeSwitch.addEventListener('click', function () {
+      const current = document.documentElement.getAttribute('data-theme') || 'dark'
+      const next = current === 'dark' ? 'light' : 'dark'
+      document.documentElement.setAttribute('data-theme', next)
+      document.documentElement.setAttribute('data-bs-theme', next)
+      localStorage.setItem('tema', next)
+      updateThemeSwitch()
     })
-    oppdaterTemaKnapp()
+    updateThemeSwitch()
 
     const knapp = document.getElementById('menyKnapp')
     const panel = document.getElementById('sidepanel')
