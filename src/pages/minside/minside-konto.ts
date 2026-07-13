@@ -52,15 +52,15 @@ function linkedAccountsHtml(accounts: LinkedAccountRow[], ownUserId: string): st
       : `<button class="btn btn-sm btn-outline-primary" data-login-email="${escHtml(account.epost)}">Logg inn</button>
          <button class="btn btn-sm btn-outline-danger" data-delete-id="${account.id}" data-email="${escHtml(account.epost)}">Slett</button>`
     return `<tr>
-      <td>${escHtml(account.epost)}</td>
-      <td>${escHtml(formatDate(account.opprettet_at))}</td>
-      <td class="text-end">${buttons}</td>
+      <td class="linked-accounts-table__email">${escHtml(account.epost)}</td>
+      <td class="linked-accounts-table__date">${escHtml(formatDate(account.opprettet_at))}</td>
+      <td class="text-end linked-accounts-table__actions">${buttons}</td>
     </tr>`
   }).join('')
 
   return `
     <p class="card-text text-muted">Alle kontoar som er kobla til utøvarprofilen din.</p>
-    <table class="table table-sm align-middle">
+    <table class="table table-sm align-middle linked-accounts-table">
       <thead><tr><th>E-post</th><th>Oppretta</th><th></th></tr></thead>
       <tbody>${rows}</tbody>
     </table>`
