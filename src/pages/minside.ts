@@ -1,4 +1,3 @@
-import { Capacitor } from '@capacitor/core'
 import { getUser } from '@/services/authService'
 import { createErrorBanner } from '@/components/ErrorBanner'
 import { createLoadingState } from '@/components/LoadingState'
@@ -7,7 +6,6 @@ import { logError } from '@/utils/logError'
 import { registerRefetch } from '@/utils/refetchRegistry'
 import { render as renderMatches }       from './minside/minside-kampar'
 import { render as renderRegistrations } from './minside/minside-pameldingar'
-import { render as renderNotifications } from './minside/minside-varslingar'
 import { render as renderSettings }      from './minside/minside-innstillingar'
 import { render as renderAccount }       from './minside/minside-konto'
 import type { MinSideContext } from './minside/_linkState'
@@ -16,29 +14,25 @@ import type { Params, LinkStatus } from '@/types'
 type TabRender = (container: HTMLElement, ctx: MinSideContext) => Promise<void>
 
 const TABS = [
-  { key: 'kampar',        label: 'Kampar',        nativeOnly: false },
-  { key: 'pameldingar',   label: 'Påmeldingar',   nativeOnly: false },
-  { key: 'varslingar',    label: 'Varslingar',    nativeOnly: true  },
-  { key: 'innstillingar', label: 'Innstillingar', nativeOnly: false },
-  { key: 'konto',         label: 'Konto',         nativeOnly: false },
+  { key: 'kampar',        label: 'Kampar' },
+  { key: 'pameldingar',   label: 'Påmeldingar' },
+  { key: 'innstillingar', label: 'Innstillingar' },
+  { key: 'konto',         label: 'Konto' },
 ] as const
 
 type TabKey = (typeof TABS)[number]['key']
 
-const TAB_KEYS    = new Set<string>(TABS.map(f => f.key))
-const NATIVE_TABS = new Set<string>(TABS.filter(f => f.nativeOnly).map(f => f.key))
+const TAB_KEYS = new Set<string>(TABS.map(f => f.key))
 
 const TAB_RENDER: Record<TabKey, TabRender> = {
   kampar:        renderMatches,
   pameldingar:   renderRegistrations,
-  varslingar:    renderNotifications,
   innstillingar: renderSettings,
   konto:         renderAccount,
 }
 
-function renderNav(active: string, isNative: boolean): string {
+function renderNav(active: string): string {
   const items = TABS
-    .filter(f => isNative || !f.nativeOnly)
     .map(({ key, label }) => `
       <li class="nav-item">
         <a class="nav-link${active === key ? ' active' : ''}"
@@ -60,16 +54,15 @@ export async function render(container: HTMLElement, params: Params): Promise<vo
     const { profil, user } = auth
     const status: LinkStatus = profil?.kobling_status ?? 'ingen'
 
-    const isNative = Capacitor.isNativePlatform()
-    const activeTab = (!TAB_KEYS.has(tab) || (!isNative && NATIVE_TABS.has(tab)))
-      ? 'kampar'
-      : tab as TabKey
+    // Notifications moved into innstillingar — keep old deep links working.
+    const requested = tab === 'varslingar' ? 'innstillingar' : tab
+    const activeTab = TAB_KEYS.has(requested) ? requested as TabKey : 'kampar'
 
     container.innerHTML = `
       <div class="mypage-container">
         <h2 class="mb-1">Min side</h2>
         <p class="text-muted mb-3">${escHtml(user.email ?? '')}</p>
-        ${renderNav(activeTab, isNative)}
+        ${renderNav(activeTab)}
         <div id="minside-subpage"></div>
       </div>`
 
