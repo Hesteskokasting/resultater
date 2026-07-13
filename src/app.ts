@@ -11,8 +11,8 @@ import { initPullToRefresh } from '@/components/PullToRefresh'
 import type { PageRenderFn, Role, Route } from '@/types'
 
 if (import.meta.env.VITE_ENV === 'dev') {
-  const versjonEl = document.querySelector('.header-versjon')
-  if (versjonEl) versjonEl.textContent += ' [DEV]'
+  const versionEl = document.querySelector('.menu-version')
+  if (versionEl) versionEl.textContent += ' [DEV]'
 }
 
 function lazy(load: () => Promise<{ render: PageRenderFn }>): PageRenderFn {

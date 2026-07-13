@@ -30,20 +30,9 @@
   z-index: 100;
 }
 
-.header-tittel-gruppe {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-}
-
 .header-tittel {
   font-size: 0.95rem;
   font-weight: bold;
-}
-
-.header-versjon {
-  font-size: 0.65rem;
-  color: var(--tekst-3);
 }
 
 .header-kontroller {
@@ -241,6 +230,12 @@
 .meny-skillelinje {
   border-top: 1px solid var(--kant);
   margin: 8px 0;
+}
+
+.menu-version {
+  padding: 12px 20px;
+  font-size: 0.75rem;
+  color: var(--tekst-3);
 }
 
 .meny-dropdown-knapp {
