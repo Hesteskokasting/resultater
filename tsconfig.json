@@ -8,9 +8,8 @@
     "noEmit": true,
     "isolatedModules": true,
     "skipLibCheck": true,
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["./src/*"]
     },
     "noUnusedLocals": true,
     "noUnusedParameters": true,
