@@ -14,7 +14,7 @@ export async function getLinkedAccounts(): Promise<{ data: LinkedAccountRow[]; e
   return { data: data ?? [], error }
 }
 
-/** Deletes a login account (own, or a sibling sharing the caller's kasterid). Thrower data is untouched. */
+/** Deletes the caller's own login account (targetId must be the caller's id). Thrower data is untouched. */
 export async function deleteUserAccount(targetId: string): Promise<{ error: unknown }> {
   const { error } = await supabase.rpc('slett_brukarkonto', { target_id: targetId })
   if (error) logError('deleteUserAccount', error)

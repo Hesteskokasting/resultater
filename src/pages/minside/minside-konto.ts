@@ -49,8 +49,7 @@ function linkedAccountsHtml(accounts: LinkedAccountRow[], ownUserId: string): st
     const isOwn = account.id === ownUserId
     const buttons = isOwn
       ? '<span class="badge bg-secondary">deg</span>'
-      : `<button class="btn btn-sm btn-outline-primary" data-login-email="${escHtml(account.epost)}">Logg inn</button>
-         <button class="btn btn-sm btn-outline-danger" data-delete-id="${account.id}" data-email="${escHtml(account.epost)}">Slett</button>`
+      : `<button class="btn btn-sm btn-outline-primary" data-login-email="${escHtml(account.epost)}">Logg inn</button>`
     return `<tr>
       <td class="linked-accounts-table__email">${escHtml(account.epost)}</td>
       <td class="linked-accounts-table__date">${escHtml(formatDate(account.opprettet_at))}</td>
@@ -97,49 +96,31 @@ function bindPasswordForm(container: HTMLElement): void {
   })
 }
 
-async function confirmAndDeleteAccount(targetId: string, email: string): Promise<boolean> {
-  const confirmed = await confirmDialog({
-    title: 'Slette kontoen?',
-    message: `Innloggingskontoen ${email} vert sletta permanent. ${DELETE_WARNING}`,
-    confirmText: 'Slett konto',
-    danger: true,
-  })
-  if (!confirmed) return false
-
-  const { error } = await deleteUserAccount(targetId)
-  if (error) {
-    showToast(`Kunne ikkje slette kontoen: ${errorMessage(error)}`, 'error')
-    return false
-  }
-  return true
-}
-
-function bindAccountActions(container: HTMLElement, ctx: MinSideContext): void {
+function bindAccountActions(container: HTMLElement): void {
   container.querySelector<HTMLElement>('[data-slot="accounts"]')!.addEventListener('click', async e => {
-    const target = e.target as Element
-
-    const loginButton = target.closest<HTMLElement>('[data-login-email]')
+    const loginButton = (e.target as Element).closest<HTMLElement>('[data-login-email]')
     if (loginButton) {
       await signOut()
       location.hash = `#/logginn?email=${encodeURIComponent(loginButton.dataset.loginEmail!)}`
-      return
-    }
-
-    const deleteButton = target.closest<HTMLElement>('[data-delete-id]')
-    if (deleteButton) {
-      const deleted = await confirmAndDeleteAccount(deleteButton.dataset.deleteId!, deleteButton.dataset.email ?? '')
-      if (deleted) {
-        showToast('Kontoen er sletta.', 'success')
-        await render(container, ctx)
-      }
     }
   })
 }
 
 function bindDeleteOwnAccount(container: HTMLElement, ctx: MinSideContext): void {
   container.querySelector<HTMLButtonElement>('#delete-own-account')!.addEventListener('click', async () => {
-    const deleted = await confirmAndDeleteAccount(ctx.user.id, ctx.user.email ?? '')
-    if (!deleted) return
+    const confirmed = await confirmDialog({
+      title: 'Slette kontoen?',
+      message: `Innloggingskontoen ${ctx.user.email ?? ''} vert sletta permanent. ${DELETE_WARNING}`,
+      confirmText: 'Slett konto',
+      danger: true,
+    })
+    if (!confirmed) return
+
+    const { error } = await deleteUserAccount(ctx.user.id)
+    if (error) {
+      showToast(`Kunne ikkje slette kontoen: ${errorMessage(error)}`, 'error')
+      return
+    }
     // The account is already gone server-side, so the logout call may 401 —
     // supabase-js clears the local session regardless.
     try { await signOut() } catch { /* session already invalid */ }
@@ -173,7 +154,7 @@ export async function render(container: HTMLElement, ctx: MinSideContext): Promi
 
   if (throwerId == null) return
 
-  bindAccountActions(container, ctx)
+  bindAccountActions(container)
 
   const throwerSlot  = container.querySelector<HTMLElement>('[data-slot="thrower"]')!
   const accountsSlot = container.querySelector<HTMLElement>('[data-slot="accounts"]')!
