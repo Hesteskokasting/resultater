@@ -1,6 +1,6 @@
 BEGIN;
 
-SELECT plan(6);
+SELECT plan(8);
 
 -- ── Seed (postgres superuser — bypasses RLS) ──────────────────────────────────
 
@@ -49,6 +49,25 @@ SELECT lives_ok(
   $$ UPDATE public.kamp_spelar SET score_poeng = 21 WHERE id = 9901 $$,
   'participant can update kamp_spelar score while match is unconfirmed'
 );
+
+-- ── Case 4b: participant edits the OPPONENT's kamp_spelar row ─────────────────
+-- confirmInitialMatch writes BOTH sides' rows. The pre-20260714120000 policy
+-- was own-rows-only, so this update silently matched 0 rows and the client
+-- misreported "Kampen er allereie stadfesta av ein annan deltakar."
+-- lives_ok alone can't catch a silent no-op — assert the value persisted.
+
+SELECT lives_ok(
+  $$ UPDATE public.kamp_spelar SET score_poeng = 18 WHERE id = 9902 $$,
+  'participant can update opponent kamp_spelar row while match is unconfirmed'
+);
+
+RESET ROLE;
+SELECT is(
+  (SELECT score_poeng FROM public.kamp_spelar WHERE id = 9902),
+  18,
+  'opponent row update persisted (not a silent no-op filtered by USING)'
+);
+SET LOCAL ROLE authenticated;
 
 -- ── Case 3: non-participant cannot flip er_bekreftet ─────────────────────────
 -- Run before case 1 so the kamp is still unconfirmed here; this isolates the
