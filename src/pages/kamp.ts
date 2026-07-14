@@ -1,3 +1,4 @@
+import { Capacitor } from '@capacitor/core'
 import { getUser } from '@/services/authService'
 import { logError } from '@/utils/logError'
 import { createErrorBanner } from '@/components/ErrorBanner'
@@ -297,7 +298,13 @@ export async function render(container: HTMLElement, params: Params): Promise<vo
 
   container.addEventListener('click', (e) => {
     if ((e.target as HTMLElement).closest('.sb-tilbake-btn')) {
-      window.close()
+      if (Capacitor.isNativePlatform()) {
+        // window.close() is a no-op in the Capacitor WebView (no script-opened tab)
+        if (history.length > 1) history.back()
+        else location.hash = '#/'
+      } else {
+        window.close()
+      }
     }
   })
 
