@@ -55,8 +55,11 @@ jobs:
             -scheme App \
             -clonedSourcePackagesDirPath ios/App/SourcePackages
 
+      # Version comes from package.json (same source as Android's versionName);
+      # the build number auto-increments via the workflow run number.
       - name: Archive
         run: |
+          APP_VERSION=$(node -p "require('./package.json').version")
           xcodebuild archive \
             -project ios/App/App.xcodeproj \
             -scheme App \
@@ -68,6 +71,7 @@ jobs:
             -authenticationKeyID "${{ secrets.APP_STORE_CONNECT_KEY_ID }}" \
             -authenticationKeyIssuerID "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}" \
             CURRENT_PROJECT_VERSION=${{ github.run_number }} \
+            MARKETING_VERSION="$APP_VERSION" \
             DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}"
 
       # destination=upload makes xcodebuild upload straight to App Store Connect,
