@@ -373,6 +373,52 @@ Sjå `plans/phase4-android-play-store.md` for status på Google Play-forberedels
 
 ---
 
+## iOS (Capacitor / TestFlight)
+
+Appen er òg pakka med [Capacitor](https://capacitorjs.com) for iOS. iOS-bygget skjer **via GitHub Actions** fordi Xcode 26 er påkravd (Capacitor 8.4.x), men macOS 15 Sequoia støttar berre Xcode 16.
+
+### Krav
+
+- **Betalt Apple Developer-konto** ($99/år) — påkravd for TestFlight og App Store Connect
+- Appen (`no.hesteskokasting.app`) oppretta i [App Store Connect](https://appstoreconnect.apple.com)
+- App Store Connect API-nøkkel (sjå under)
+
+### Sette opp signering (eingongsoppsett)
+
+1. Logg inn på [App Store Connect](https://appstoreconnect.apple.com) → **Users and Access → Integrations → App Store Connect API**
+2. Lag ein ny nøkkel med rolla **App Manager**. Last ned `.p8`-fila — du kan berre laste ho ned éin gong.
+3. Finn desse tre verdiane:
+   - **Key ID** — vist i tabellen etter at nøkkelen er oppretta
+   - **Issuer ID** — øvst på same side
+   - **Team ID** — øvst til høgre på [developer.apple.com](https://developer.apple.com)
+
+4. Legg til eit nytt GitHub Environment kalla `testflight` under **Settings → Environments**, og legg inn desse secrets:
+
+| Secret | Innhald |
+|---|---|
+| `APP_STORE_CONNECT_KEY_ID` | Key ID frå steg 3 |
+| `APP_STORE_CONNECT_ISSUER_ID` | Issuer ID frå steg 3 |
+| `APP_STORE_CONNECT_PRIVATE_KEY` | Innhald av `.p8`-fila (heile teksten, inkl. `-----BEGIN...`) |
+| `APPLE_TEAM_ID` | Team ID frå steg 3 |
+
+I tillegg treng `testflight`-miljøet dei same `VITE_*`-secrets som `github-pages`-miljøet — sjå [GitHub-konfigurasjon](#github-konfigurasjon).
+
+### Køyre ein TestFlight-bygg
+
+Workflowen triggar **ikkje** automatisk — han må startast manuelt:
+
+1. Gå til **GitHub → Actions → iOS TestFlight**
+2. Klikk **Run workflow**
+3. Appen dukkar opp i TestFlight (etter Apple si prosessering, vanlegvis 5–15 min) klar til å distribuere til testarar
+
+Byggnummeret aukar automatisk med kvart GitHub Actions-køyring (`github.run_number`), slik at Apple alltid får eit unikt bygg.
+
+### Lokal iOS-utvikling
+
+Lokal bygg mot ein simulator krev Xcode 26 + macOS 16. Inntil då er GitHub Actions einaste alternativet for å verifisere at appen bygger og køyrer.
+
+---
+
 ## Prosjektstruktur
 
 ```
