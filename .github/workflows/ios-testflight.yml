@@ -2,6 +2,11 @@ name: iOS TestFlight
 
 on:
   workflow_dispatch:
+    inputs:
+      server_url:
+        description: 'Server URL override, e.g. https://res.hesteskokasting.no/dev (empty = production)'
+        required: false
+        default: ''
 
 jobs:
   build:
@@ -27,8 +32,15 @@ jobs:
           VITE_GOOGLE_WEB_CLIENT_ID: ${{ secrets.VITE_GOOGLE_WEB_CLIENT_ID }}
           VITE_ONESIGNAL_APP_ID: ${{ secrets.VITE_ONESIGNAL_APP_ID }}
 
+      # capacitor.config.ts treats an empty CAPACITOR_SERVER_URL as set, so only
+      # export it when the input is non-empty — otherwise production is used.
       - name: Sync Capacitor iOS
-        run: npx cap sync ios
+        run: |
+          if [ -n "${{ inputs.server_url }}" ]; then
+            export CAPACITOR_SERVER_URL="${{ inputs.server_url }}"
+            echo "::warning::Building against non-production server: ${{ inputs.server_url }}"
+          fi
+          npx cap sync ios
 
       - name: Set up App Store Connect API key
         run: |
