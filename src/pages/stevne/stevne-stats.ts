@@ -211,7 +211,7 @@ export async function render(
     const players = aggregateStats(data, posisjonMap)
 
     if (!players.length) {
-      container.replaceChildren(createEmptyState('Ingen bekrefte kampar enno.'))
+      container.replaceChildren(createEmptyState('Ingen statistikk registrert.'))
       return
     }
 
