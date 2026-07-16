@@ -14,21 +14,16 @@ export type RegistrationWithThrowerRow = QueryData<typeof _pameldingMedKasterQue
 export type RegistrationStatusRow = QueryData<typeof _pameldingStatusQuery>[number]
 
 // ── Par/Mix pair types ────────────────────────────────────────────────────────
-// Manually typed until migration 20260610100000 is applied and types regenerated.
-// After: npx supabase gen types typescript --project-id urtvpewjlevhlevtnvkf > src/types/database.types.ts
 
-export interface RegistrationPairMember {
-  id: number
-  kasterid: number
+const _pairMemberQuery = supabase
+  .from('pamelding')
+  .select('id, kasterid, lag_id, posisjon, kaster:kasterid(id, fornavn, etternavn, kjonnid, klubb:klubbid(navn))')
+
+// lag_id/posisjon are non-null for every row getPairsForTournament returns —
+// guaranteed by its query filter and runtime narrowing.
+export type RegistrationPairMember = QueryData<typeof _pairMemberQuery>[number] & {
   lag_id: number
   posisjon: number
-  kaster: {
-    id: number
-    fornavn: string | null
-    etternavn: string | null
-    kjonnid: number | null
-    klubb: { navn: string } | null
-  } | null
 }
 
 export interface RegistrationPair {
@@ -169,7 +164,9 @@ export async function getPairsForTournament(stevneId: number): Promise<{ data: R
     return { data: [], error }
   }
 
-  const rows = (data ?? []) as unknown as RegistrationPairMember[]
+  const rows = (data ?? []).filter(
+    (r): r is RegistrationPairMember => r.lag_id != null && r.posisjon != null,
+  )
   const parMap = new Map<number, Partial<RegistrationPair>>()
 
   for (const row of rows) {
@@ -193,9 +190,6 @@ export async function createPair(
 ): Promise<{ error: unknown }> {
   // Atomic in one transaction: team-ID assignment, both position updates and
   // the Mix gender trigger — no half-pair can survive a mid-flight failure.
-  // @ts-expect-error -- create_pair is missing from the generated types until
-  // migration 20260716083540_rpc_create_pair is applied and types regenerated;
-  // typecheck then reports this directive as unused (TS2578) — delete it.
   const { error } = await supabase.rpc('create_pair', {
     p_stevneid: stevneId,
     p_kaster_a: kasterAId,
