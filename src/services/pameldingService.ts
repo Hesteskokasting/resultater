@@ -191,53 +191,18 @@ export async function createPair(
   kasterAId: number,
   kasterBId: number,
 ): Promise<{ error: unknown }> {
-  // Find current max lag_id for this stevne to assign a unique team ID
-  const { data: maxRow, error: fetchError } = await supabase
-    .from('pamelding')
-    .select('lag_id')
-    .eq('stevneid', stevneId)
-    .not('lag_id', 'is', null)
-    .order('lag_id', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  if (fetchError) {
-    logError('createPair.hentMaxLagId', fetchError)
-    return { error: fetchError }
-  }
-
-  const newTeamId = ((maxRow as { lag_id: number } | null)?.lag_id ?? 0) + 1
-
-  // Sequential, not Promise.all: the Mix gender trigger validates each row,
-  // and parallel transactions would race past cross-checks. On a second-step
-  // failure the first write is rolled back so no half-pair is left behind.
-  const res1 = await supabase
-    .from('pamelding')
-    .update({ lag_id: newTeamId, posisjon: 1 })
-    .eq('stevneid', stevneId)
-    .eq('kasterid', kasterAId)
-  if (res1.error) {
-    logError('createPair', res1.error)
-    return { error: res1.error }
-  }
-
-  const res2 = await supabase
-    .from('pamelding')
-    .update({ lag_id: newTeamId, posisjon: 2 })
-    .eq('stevneid', stevneId)
-    .eq('kasterid', kasterBId)
-  if (res2.error) {
-    logError('createPair', res2.error)
-    const { error: rollbackErr } = await supabase
-      .from('pamelding')
-      .update({ lag_id: null, posisjon: null })
-      .eq('stevneid', stevneId)
-      .eq('kasterid', kasterAId)
-    if (rollbackErr) logError('createPair.angre', rollbackErr)
-    return { error: res2.error }
-  }
-
-  return { error: null }
+  // Atomic in one transaction: team-ID assignment, both position updates and
+  // the Mix gender trigger — no half-pair can survive a mid-flight failure.
+  // @ts-expect-error -- create_pair is missing from the generated types until
+  // migration 20260716083540_rpc_create_pair is applied and types regenerated;
+  // typecheck then reports this directive as unused (TS2578) — delete it.
+  const { error } = await supabase.rpc('create_pair', {
+    p_stevneid: stevneId,
+    p_kaster_a: kasterAId,
+    p_kaster_b: kasterBId,
+  })
+  if (error) logError('createPair', error)
+  return { error }
 }
 
 export async function deletePair(stevneId: number, teamId: number): Promise<{ error: unknown }> {

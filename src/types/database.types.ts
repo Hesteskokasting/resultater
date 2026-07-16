@@ -868,6 +868,10 @@ export type Database = {
         Returns: undefined
       }
       complete_stevne: { Args: { p_stevneid: number }; Returns: undefined }
+      create_pair: {
+        Args: { p_kaster_a: number; p_kaster_b: number; p_stevneid: number }
+        Returns: undefined
+      }
       hent_bruker_epost: {
         Args: { bruker_ids: string[] }
         Returns: {
@@ -883,6 +887,7 @@ export type Database = {
           opprettet_at: string
         }[]
       }
+      is_match_participant: { Args: { p_kampid: number }; Returns: boolean }
       kamp_spelar_original: {
         Args: { p_id: number }
         Returns: {
