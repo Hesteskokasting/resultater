@@ -7,6 +7,7 @@ import { showReauthModal } from './components/ReauthModal'
 import { setPageTitle } from '@/utils/pageTitle'
 import { hasRefetch, registerRefetch, runRefetch } from '@/utils/refetchRegistry'
 import { initPushNotifications } from '@/services/pushNotificationService'
+import { initStatusBarThemeSync } from '@/services/statusBarService'
 import { initPullToRefresh } from '@/components/PullToRefresh'
 import type { PageRenderFn, Role, Route } from '@/types'
 
@@ -124,6 +125,8 @@ window.addEventListener('hashchange', navigate)
 App.addListener('resume', runRefetch)
 
 initPullToRefresh(refreshCurrent)
+
+initStatusBarThemeSync()
 
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('menyLoggUtKnapp')!.addEventListener('click', async () => {

@@ -1,6 +1,7 @@
 @import 'bootstrap/dist/css/bootstrap.min.css';
 
-/* CSS-variablar — mørk modus som standard */
+/* CSS-variablar — :root er mørk modus; lys modus (standard, satt via
+   data-theme="light" på <html>) overstyrer under */
 
 :root {
   --bg: #111318;

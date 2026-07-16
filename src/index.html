@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="nb" data-theme="dark" data-bs-theme="dark">
+<html lang="nb" data-theme="light" data-bs-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Hesteskokasting Resultater</title>
   <script>
     (function () {
-      var tema = localStorage.getItem('tema') || 'dark';
-      if (tema === 'light') {
+      var tema = localStorage.getItem('tema') || 'light';
+      if (tema === 'dark') {
         document.documentElement.setAttribute('data-theme', tema);
-        document.documentElement.setAttribute('data-bs-theme', 'light');
+        document.documentElement.setAttribute('data-bs-theme', 'dark');
       }
     })();
   </script>
@@ -95,11 +95,11 @@
   <script>
     const themeSwitch = document.getElementById('themeSwitch')
     function updateThemeSwitch() {
-      const theme = document.documentElement.getAttribute('data-theme') || 'dark'
+      const theme = document.documentElement.getAttribute('data-theme') || 'light'
       themeSwitch.setAttribute('aria-checked', theme === 'light' ? 'true' : 'false')
     }
     themeSwitch.addEventListener('click', function () {
-      const current = document.documentElement.getAttribute('data-theme') || 'dark'
+      const current = document.documentElement.getAttribute('data-theme') || 'light'
       const next = current === 'dark' ? 'light' : 'dark'
       document.documentElement.setAttribute('data-theme', next)
       document.documentElement.setAttribute('data-bs-theme', next)
