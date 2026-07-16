@@ -87,8 +87,8 @@ Byggenummeret settes automatisk til GitHub run number (`CURRENT_PROJECT_VERSION=
 
 ## Steg 5: Legg til testere
 
-- **Internal Testing**: Under TestFlight-fanen → **Internal Testing** → legg til styremedlemmer (de må være lagt til som brukere under **Users and Access** i App Store Connect med minst "Developer"-rolle). Ingen Apple-review nødvendig — tilgjengelig nesten umiddelbart.
-- **External Testing**: Krever at Apple godkjenner en "beta app review" første gang (vanligvis under 24t). Bruk denne gruppen hvis dere vil ha testere utenfor styret, opptil 10 000 personer via delbar lenke.
+- **Internal Testing**: Testeren må være lagt til som bruker under **Users and Access** i App Store Connect (minst "Developer"-rolle) — og får dermed reell tilgang til utviklerkontoen. Bruk denne kun for deg selv og eventuelt 1–2 betrodde. Ingen Apple-review — builds er tilgjengelige nesten umiddelbart. Maks 100 testere. Tips: en iPad fungerer fint som testenhet — iPhone-apper kjører i kompatibilitetsmodus via TestFlight.
+- **External Testing**: Riktig kanal for alle andre (klubbmedlemmer, styret osv.). Krever at Apple godkjenner en "beta app review" første gang (vanligvis under 24t). Deretter inviteres testere via e-post eller delbar offentlig lenke — de trenger bare TestFlight-appen, ingen konto-tilgang. Opptil 10 000 personer.
 
 ---
 
