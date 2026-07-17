@@ -7,6 +7,8 @@ function genMatchId(): string {
 
 interface MatchPair { p1Pos: number; p2Pos: number | null; isWalkover: boolean }
 interface MatchWithLane { id: number; bane_nummer: number | null }
+interface MatchWithMatchId { id: number; match_id: string }
+interface RoundPairs { roundNumber: number; pairs: MatchPair[] }
 interface MatchPlayerInsert { kampid: number; kasterid: number; score_poeng: number; kamp_poeng: number; antall_ringer: number }
 interface SwissPair { p1: number; p2: number | null; isWalkover: boolean }
 
@@ -136,37 +138,48 @@ function _pushPlayerRows(
   }
 }
 
-/** Inserts one round of matches plus their kamp_spelar rows; returns the match count. */
-async function _insertRoundMatches(
+/**
+ * Inserts all given rounds' kampar plus their kamp_spelar rows; returns the
+ * match count. Everything goes in one kamp insert and one kamp_spelar insert:
+ * the statement-level notify trigger then queues a single push per user for
+ * the whole generation, no matter how many rounds it spans.
+ */
+async function _insertRounds(
   stevneid: number,
-  roundPairs: MatchPair[],
-  roundNumber: number,
+  rounds: RoundPairs[],
   posToKasterids: Record<number, number[]>,
   errorContext: string,
 ): Promise<number> {
-  const roundMatches = roundPairs.map((pair, ci) => ({
-    match_id: genMatchId(),
-    stevneid,
-    fase: 'innledende',
-    runde_nummer: roundNumber,
-    bane_nummer: ci + 1,
-    er_bekreftet: false,
-    er_walkover: pair.isWalkover,
-  }))
+  const pairRows = rounds.flatMap(({ roundNumber, pairs }) =>
+    pairs.map((pair, ci) => ({
+      pair,
+      row: {
+        match_id: genMatchId(),
+        stevneid,
+        fase: 'innledende',
+        runde_nummer: roundNumber,
+        bane_nummer: ci + 1,
+        er_bekreftet: false,
+        er_walkover: pair.isWalkover,
+      },
+    })),
+  )
 
   const { data: insertedMatches, error: kampErr } = await supabase
     .from('kamp')
-    .insert(roundMatches)
-    .select('id, bane_nummer')
+    .insert(pairRows.map(pr => pr.row))
+    .select('id, match_id')
   if (kampErr) throw new Error(`Feil ved innsetting av kampar (${errorContext}): ` + kampErr.message)
 
-  const laneToMatchId: Record<number, number> = Object.fromEntries(
-    (insertedMatches as MatchWithLane[]).map(k => [k.bane_nummer, k.id]),
+  // bane_nummer repeats across rounds, so the client-generated match_id is
+  // the only key that maps inserted kamp ids back to their pair.
+  const matchIdToKampid: Record<string, number> = Object.fromEntries(
+    (insertedMatches as MatchWithMatchId[]).map(k => [k.match_id, k.id]),
   )
   const playerRows: MatchPlayerInsert[] = []
 
-  for (const [ci, pair] of roundPairs.entries()) {
-    const kampid = laneToMatchId[ci + 1]!
+  for (const { pair, row } of pairRows) {
+    const kampid = matchIdToKampid[row.match_id]!
     _pushPlayerRows(playerRows, kampid, posToKasterids[pair.p1Pos] ?? [], pair.isWalkover ? 21 : 0, pair.isWalkover ? 2 : 0)
     if (pair.p2Pos != null) _pushPlayerRows(playerRows, kampid, posToKasterids[pair.p2Pos] ?? [])
   }
@@ -174,7 +187,7 @@ async function _insertRoundMatches(
   const { error: spErr } = await supabase.from('kamp_spelar').insert(playerRows)
   if (spErr) throw new Error(`Feil ved innsetting av spelarar (${errorContext}): ` + spErr.message)
 
-  return (insertedMatches as MatchWithLane[]).length
+  return pairRows.length
 }
 
 async function _insertCascadeMatches(
@@ -184,14 +197,12 @@ async function _insertCascadeMatches(
   roundCount: number,
 ): Promise<number> {
   const allRounds = buildCascadePairs(N, roundCount)
-  let totalMatches = 0
-
-  for (const [ri, roundPairs] of allRounds.entries()) {
-    const roundNumber = ri + 1
-    totalMatches += await _insertRoundMatches(stevneid, roundPairs, roundNumber, posToKasterids, `runde ${roundNumber}`)
-  }
-
-  return totalMatches
+  return _insertRounds(
+    stevneid,
+    allRounds.map((pairs, ri) => ({ roundNumber: ri + 1, pairs })),
+    posToKasterids,
+    'kaskade',
+  )
 }
 
 export function buildSwissRound1Pairs(N: number): MatchPair[] {
@@ -208,7 +219,7 @@ async function _insertSwissRound1(
   posToKasterids: Record<number, number[]>,
   N: number,
 ): Promise<number> {
-  return _insertRoundMatches(stevneid, buildSwissRound1Pairs(N), 1, posToKasterids, 'Swiss runde 1')
+  return _insertRounds(stevneid, [{ roundNumber: 1, pairs: buildSwissRound1Pairs(N) }], posToKasterids, 'Swiss runde 1')
 }
 
 export function buildSwissPairs(
