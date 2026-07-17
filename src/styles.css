@@ -203,7 +203,8 @@
   top: 0;
   right: 0;
   height: 100%;
-  width: 260px;
+  /* Widen by the landscape notch inset so the usable area stays 260px */
+  width: calc(260px + env(safe-area-inset-right, 0px));
   background: var(--flate);
   box-shadow: -2px 0 12px rgba(0, 0, 0, 0.3);
   transform: translateX(100%);
@@ -211,6 +212,7 @@
   z-index: 300;
   overflow-y: auto;
   padding-top: env(safe-area-inset-top, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
 }
 
 .sidepanel.aktiv { transform: translateX(0); }
@@ -1728,19 +1730,6 @@ th.initial-score-th {
 .sb-waiting-content { padding: 20px; }
 .sb-waiting-text { font-size: 1.4rem; }
 .sb-waiting-refresh { margin-top: 12px; font-size: 1.2rem; padding: 14px; }
-
-/* ── Overlay-variant (fixed, full-screen) ── */
-
-.sb-overlay {
-  position: fixed;
-  inset: 0;
-  background: var(--sb-bg);
-  color: var(--sb-tekst);
-  z-index: 2000;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
 
 /* ── Felles scoreboard ── */
 
