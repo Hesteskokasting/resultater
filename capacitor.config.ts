@@ -3,8 +3,8 @@ import type { CapacitorConfig } from '@capacitor/cli';
 const PRODUCTION_URL = 'https://res.hesteskokasting.no';
 
 // Override for local testing only, e.g.:
-//   $env:CAPACITOR_SERVER_URL = "https://res.hesteskokasting.no/dev"
-//   $env:CAPACITOR_SERVER_URL = "http://10.0.2.2:5173"   (Vite dev server, Android emulator)
+//   bash:       export CAPACITOR_SERVER_URL="http://10.0.2.2:5173"     (Vite dev server, Android emulator)
+//   PowerShell: $env:CAPACITOR_SERVER_URL = "https://res.hesteskokasting.no/dev"
 // Leave unset for release builds — this must default to production so a forgotten
 // override can never end up in a Play Store upload.
 const serverUrl = process.env.CAPACITOR_SERVER_URL ?? PRODUCTION_URL;

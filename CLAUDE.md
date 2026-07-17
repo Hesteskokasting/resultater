@@ -236,6 +236,16 @@ src/
 
 ---
 
+## GitHub Issues for Flagged Findings
+
+- When you flag technical debt or an out-of-scope issue, offer to file it as a GitHub issue.
+- **Only create issues after I confirm** ("file it", "file 1 and 3") — never automatically.
+- Create with `gh issue create --title "..." --body "..." --label tech-debt`. If the label doesn't exist yet, create it once with `gh label create tech-debt`.
+- Title: imperative, ≤ 72 chars. Body: where (`file:line`), what's wrong, why it matters, and a suggested fix — written so it makes sense months later without this conversation.
+- Before filing, check `gh issue list --search "..."` for an existing issue covering the same thing.
+
+---
+
 ## Ask First When Unclear
 
 Ask before coding when: requirements are ambiguous, there are multiple valid interpretations, the request conflicts with these rules, or the decision is hard to reverse (schema change, new dependency, architectural pattern).

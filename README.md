@@ -12,6 +12,7 @@ Nettapplikasjon for Norges Hesteskokastingsforbund. Viser resultat, terminliste,
 - [Node.js](https://nodejs.org/) v20 eller nyare
 - [WSL 2](https://learn.microsoft.com/en-us/windows/wsl/install) (Windows Subsystem for Linux) — påkravd av Docker Desktop
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) — påkravd for lokal Supabase-stack og integrasjonstesting
+- [GitHub CLI](https://cli.github.com/) (`gh`) — for å opprette issues og PR-ar frå terminalen, m.a. brukt av Claude Code til å registrere tech-debt-funn (sjå `CLAUDE.md`)
 
 ---
 
@@ -75,6 +76,15 @@ npm run dev
 ```
 
 Appen er tilgjengeleg på `http://localhost:5173`.
+
+### 3. GitHub CLI
+
+```bash
+winget install --id GitHub.cli   # opne ein ny terminal etterpå (PATH vert oppdatert ved oppstart)
+gh auth login                    # vel GitHub.com og innlogging via nettlesar
+```
+
+Stadfest med `gh auth status`. CLI-en vert brukt til issues og PR-ar frå terminalen — m.a. av Claude Code, som etter konvensjonen i `CLAUDE.md` kan registrere tech-debt-funn som GitHub-issues (alltid etter stadfesting).
 
 ---
 
