@@ -2,7 +2,7 @@ import { escHtml } from '@/utils/escHtml'
 import { formatDate } from '@/utils/shared'
 import { getMyRegistrations } from '@/services/pameldingService'
 import { bindRegistrationSlots } from '@/components/PameldingKnapp'
-import { renderLinkGate } from './_linkState'
+import { renderSectionCard } from './_sectionCard'
 import type { MinSideContext } from './_linkState'
 import type { RegistrationRow } from '@/services/pameldingService'
 
@@ -44,19 +44,10 @@ async function buildRegistrationContent(throwerId: number): Promise<Registration
 }
 
 export async function render(container: HTMLElement, ctx: MinSideContext): Promise<void> {
-  const throwerId = renderLinkGate(container, ctx)
-  if (throwerId == null) return
+  const shell = renderSectionCard(container, ctx, 'Påmeldingar')
+  if (!shell) return
 
-  container.innerHTML = `
-    <div class="card mb-4">
-      <div class="card-body">
-        <h5 class="card-title">Påmeldingar</h5>
-        <div data-slot="content"><div class="skeleton-block skeleton-block--card"></div></div>
-      </div>
-    </div>`
-  const slot = container.querySelector<HTMLElement>('[data-slot="content"]')!
-
-  const { html, registeredMap } = await buildRegistrationContent(throwerId)
-  slot.innerHTML = html
-  bindRegistrationSlots(container, throwerId, ctx.user.id, registeredMap)
+  const { html, registeredMap } = await buildRegistrationContent(shell.throwerId)
+  shell.slot.innerHTML = html
+  bindRegistrationSlots(container, shell.throwerId, ctx.user.id, registeredMap)
 }

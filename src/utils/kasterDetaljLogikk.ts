@@ -27,6 +27,7 @@ function hasMethod(r: ResultDetailRow, metode: string): boolean {
 }
 
 export function calcStatistics(resultater: ResultDetailRow[]) {
+  const xKastMethods = ['minimatch', 'halvmatch', 'heilmatch'] as const
   const categories = [
     {
       label:   'Kongelag',
@@ -35,27 +36,13 @@ export function calcStatistics(resultater: ResultDetailRow[]) {
       ringFn:  (r: ResultDetailRow) => r.antall_ring_kongelag,
       maxRing: MAX_RING.kongelag,
     },
-    {
-      label:   'Minimatch',
-      rader:   resultater.filter(r => r.poeng_xkast != null && hasMethod(r, 'minimatch')),
+    ...xKastMethods.map(method => ({
+      label:   method.charAt(0).toUpperCase() + method.slice(1),
+      rader:   resultater.filter(r => r.poeng_xkast != null && hasMethod(r, method)),
       poengFn: (r: ResultDetailRow) => r.poeng_xkast as number,
       ringFn:  (r: ResultDetailRow) => r.antall_ring_xkast,
-      maxRing: MAX_RING.minimatch,
-    },
-    {
-      label:   'Halvmatch',
-      rader:   resultater.filter(r => r.poeng_xkast != null && hasMethod(r, 'halvmatch')),
-      poengFn: (r: ResultDetailRow) => r.poeng_xkast as number,
-      ringFn:  (r: ResultDetailRow) => r.antall_ring_xkast,
-      maxRing: MAX_RING.halvmatch,
-    },
-    {
-      label:   'Heilmatch',
-      rader:   resultater.filter(r => r.poeng_xkast != null && hasMethod(r, 'heilmatch')),
-      poengFn: (r: ResultDetailRow) => r.poeng_xkast as number,
-      ringFn:  (r: ResultDetailRow) => r.antall_ring_xkast,
-      maxRing: MAX_RING.heilmatch,
-    },
+      maxRing: MAX_RING[method],
+    })),
   ]
 
   return categories.map(({ label, rader, poengFn, ringFn, maxRing }) => {

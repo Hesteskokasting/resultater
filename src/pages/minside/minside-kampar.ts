@@ -2,7 +2,7 @@ import { throwerName } from '@/utils/kaster'
 import { escHtml } from '@/utils/escHtml'
 import { createTabs } from '@/components/Tabs'
 import { getMyMatches, getStartNumbersForTournaments } from '@/services/kampService'
-import { renderLinkGate } from './_linkState'
+import { renderSectionCard } from './_sectionCard'
 import type { MinSideContext } from './_linkState'
 import type { MatchPlayerRow } from '@/services/kampService'
 
@@ -145,18 +145,9 @@ async function buildMatchesContent(throwerId: number): Promise<HTMLElement> {
 }
 
 export async function render(container: HTMLElement, ctx: MinSideContext): Promise<void> {
-  const throwerId = renderLinkGate(container, ctx)
-  if (throwerId == null) return
+  const shell = renderSectionCard(container, ctx, 'Mine kampar')
+  if (!shell) return
 
-  container.innerHTML = `
-    <div class="card mb-4" id="my-matches-section">
-      <div class="card-body">
-        <h5 class="card-title">Mine kampar</h5>
-        <div class="skeleton-block skeleton-block--card" data-slot="content"></div>
-      </div>
-    </div>`
-  const slot = container.querySelector<HTMLElement>('[data-slot="content"]')!
-
-  const content = await buildMatchesContent(throwerId)
-  slot.replaceWith(content)
+  const content = await buildMatchesContent(shell.throwerId)
+  shell.slot.replaceChildren(content)
 }

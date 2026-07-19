@@ -32,7 +32,12 @@
       "PowerShell(npm run typecheck)",
       "Bash(Get-ChildItem -Path \"d:\\\\repos\\\\NY-resultat-app\\\\src\\\\components\\\\\" -Filter \"*.ts\" -Recurse | Select-Object -ExpandProperty FullName)",
       "Bash(Get-ChildItem -Path \"d:\\\\repos\\\\NY-resultat-app\\\\src\\\\services\\\\\" -File -Recurse | Select-Object -ExpandProperty FullName)",
-      "Bash(npx fallow *)"
+      "Bash(npx fallow *)",
+      "Bash(npx --yes fallow dupes --help)",
+      "Bash(gh issue *)",
+      "Bash(gh label *)",
+      "PowerShell(if \\(Test-Path \"$env:ProgramFiles\\\\GitHub CLI\\\\gh.exe\"\\) { & \"$env:ProgramFiles\\\\GitHub CLI\\\\gh.exe\" --version } else { echo 'not in Program Files'; winget list --id GitHub.cli 2>$null | Select-Object -Last 3 })",
+      "PowerShell($gh = \"$env:ProgramFiles\\\\GitHub CLI\\\\gh.exe\"; & $gh issue list --state open --limit 50; echo '---LABELS---'; & $gh label list --limit 100)"
     ]
   }
 }
