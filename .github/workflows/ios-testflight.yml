@@ -33,6 +33,7 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
           VITE_GOOGLE_WEB_CLIENT_ID: ${{ secrets.VITE_GOOGLE_WEB_CLIENT_ID }}
+          VITE_GOOGLE_IOS_CLIENT_ID: ${{ secrets.VITE_GOOGLE_IOS_CLIENT_ID }}
           VITE_ONESIGNAL_APP_ID: ${{ secrets.VITE_ONESIGNAL_APP_ID }}
 
       # capacitor.config.ts treats an empty CAPACITOR_SERVER_URL as set, so only
@@ -44,6 +45,25 @@ jobs:
             echo "::warning::Building against non-production server: ${{ inputs.server_url }}"
           fi
           npx cap sync ios
+
+      # GoogleSignIn returns to the app via a custom URL scheme (the reversed iOS
+      # client ID). Injected at build time instead of committed, so the client ID
+      # lives only in the environment secrets like the other VITE_* values.
+      - name: Register Google Sign-In URL scheme
+        env:
+          VITE_GOOGLE_IOS_CLIENT_ID: ${{ secrets.VITE_GOOGLE_IOS_CLIENT_ID }}
+        run: |
+          if [ -z "$VITE_GOOGLE_IOS_CLIENT_ID" ]; then
+            echo "::error::Secret VITE_GOOGLE_IOS_CLIENT_ID is not set in the testflight environment"
+            exit 1
+          fi
+          SCHEME="com.googleusercontent.apps.${VITE_GOOGLE_IOS_CLIENT_ID%.apps.googleusercontent.com}"
+          /usr/libexec/PlistBuddy \
+            -c "Add :CFBundleURLTypes array" \
+            -c "Add :CFBundleURLTypes:0 dict" \
+            -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes array" \
+            -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes:0 string $SCHEME" \
+            ios/App/App/Info.plist
 
       - name: Set up App Store Connect API key
         run: |

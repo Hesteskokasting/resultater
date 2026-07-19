@@ -105,14 +105,21 @@ export const GOOGLE_SIGN_IN_PENDING_KEY = 'googleSignInPending'
 // which resolves synchronously with a session — no redirect, so callers must
 // navigate themselves on success rather than relying on GOOGLE_SIGN_IN_PENDING_KEY.
 async function signInWithGoogleNative(): Promise<{ error: { message: string } | null }> {
-  const { SocialLogin } = await import('@capgo/capacitor-social-login')
-  const { rawNonce, nonceDigest } = await generateNonce()
-
-  await SocialLogin.initialize({
-    google: { webClientId: import.meta.env.VITE_GOOGLE_WEB_CLIENT_ID, mode: 'online' },
-  })
-
+  // Everything lives inside the try: initialize() throws on missing/invalid client
+  // config, and an unhandled rejection here would leave the login button silently
+  // disabled with no toast.
   try {
+    const { SocialLogin } = await import('@capgo/capacitor-social-login')
+    const { rawNonce, nonceDigest } = await generateNonce()
+
+    await SocialLogin.initialize({
+      google: {
+        webClientId: import.meta.env.VITE_GOOGLE_WEB_CLIENT_ID,
+        iOSClientId: import.meta.env.VITE_GOOGLE_IOS_CLIENT_ID,
+        mode: 'online',
+      },
+    })
+
     const response = await SocialLogin.login({
       provider: 'google',
       // 'bottom' (GetGoogleIdOption) avoids a known Android Credential Manager race
