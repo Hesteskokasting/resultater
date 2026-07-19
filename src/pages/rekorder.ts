@@ -189,14 +189,12 @@ export async function render(container: HTMLElement): Promise<void> {
       updateTable()
     })
 
-    container.querySelector('#record-search-slot')!.replaceWith(createSearchInput({
+    createSearchInput({
+      slot: container.querySelector('#record-search-slot')!,
       placeholder: 'Søk på etternavn/klubb',
-      value: filter.searchText,
-      onInput: text => {
-        filter.searchText = text
-        updateTable()
-      },
-    }))
+      state: filter,
+      onInput: updateTable,
+    })
 
     container.addEventListener('click', e => {
       const cell = (e.target as Element).closest<HTMLElement>('.record-points-cell')

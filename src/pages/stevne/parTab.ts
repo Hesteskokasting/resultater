@@ -78,7 +78,6 @@ async function renderPairs(root: HTMLElement, props: PairTabProps): Promise<void
     variant: 'form',
     onInput: () => renderUnpaired(),
   })
-  searchInput.classList.add('mb-2')
 
   const unpairedTable = createPlayerTable({
     formatTitle: n => `Spelarar utan par: ${n}`,

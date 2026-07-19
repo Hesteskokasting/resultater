@@ -44,7 +44,7 @@ function sortData(data: TournamentRow[]): TournamentRow[] {
 
 const filter = {
   year:             new Date().getFullYear(),
-  text:             '',
+  searchText:       '',
   tournamentTypeId: '',
   throwingMethodId: '',
   clubId:           '',
@@ -59,8 +59,8 @@ let _registeredMap: Map<number, number> = new Map()
 
 function filterData(data: TournamentRow[]): TournamentRow[] {
   return data.filter(s => {
-    if (filter.text) {
-      const search = filter.text.toLowerCase()
+    if (filter.searchText) {
+      const search = filter.searchText.toLowerCase()
       const matched = [
         s.navn, s.sted,
         s.klubb?.navn,
@@ -314,25 +314,15 @@ export async function render(container: HTMLElement): Promise<void> {
     // ── Event listeners ──
 
     const textInput = createSearchInput({
-      placeholder: 'Søk...',
-      value: filter.text,
-      onInput: text => {
-        filter.text           = text
-        textMobileInput.value = text
-        updateList()
-      },
+      slot: container.querySelector('#tl-text-slot')!,
+      state: filter,
+      onInput: () => updateList(),
     })
     const textMobileInput = createSearchInput({
-      placeholder: 'Søk...',
-      value: filter.text,
-      onInput: text => {
-        filter.text     = text
-        textInput.value = text
-        updateList()
-      },
+      slot: container.querySelector('#tl-text-mobile-slot')!,
+      state: filter,
+      onInput: () => updateList(),
     })
-    container.querySelector('#tl-text-slot')!.replaceWith(textInput)
-    container.querySelector('#tl-text-mobile-slot')!.replaceWith(textMobileInput)
 
     const listContainer           = container.querySelector<HTMLElement>('.tl-list-container')!
     const yearSelect              = container.querySelector<HTMLSelectElement>('#tl-year')!
@@ -411,7 +401,7 @@ export async function render(container: HTMLElement): Promise<void> {
     backdrop.addEventListener('click', closeSheet)
 
     resetBtn.addEventListener('click', () => {
-      filter.text             = ''
+      filter.searchText       = ''
       filter.tournamentTypeId = ''
       filter.throwingMethodId = ''
       filter.clubId           = ''

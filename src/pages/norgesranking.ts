@@ -202,14 +202,11 @@ export async function render(container: HTMLElement): Promise<void> {
     updateTable()
 
     const searchInput = createSearchInput({
+      slot: container.querySelector('#nr-search-slot')!,
       placeholder: 'Søk på navn/klubb...',
-      value: filter.searchText,
-      onInput: text => {
-        filter.searchText = text
-        updateTable()
-      },
+      state: filter,
+      onInput: updateTable,
     })
-    container.querySelector('#nr-search-slot')!.replaceWith(searchInput)
 
     const yearSelect  = container.querySelector<HTMLSelectElement>('#nr-year')!
     const excelButton = container.querySelector<HTMLButtonElement>('#nr-excel')!

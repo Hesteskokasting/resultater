@@ -30,7 +30,7 @@ function listSkeletonHtml(): string {
   return `
     <div class="content-page">
       <div class="thrower-list-controls">
-        <div class="nc-filter-rad" id="thrower-search-slot"></div>
+        <div class="nc-filter-rad"><span id="thrower-search-slot"></span></div>
         <div class="mt-2">
           <label class="thrower-checkbox-label">
             <input type="checkbox" id="thrower-active-only"${filterList.showAll ? '' : ' checked'}>
@@ -101,15 +101,15 @@ export async function renderList(container: HTMLElement): Promise<void> {
       grid.innerHTML      = pageSlice.map(throwerCardHtml).join('')
     }
 
-    container.querySelector<HTMLElement>('#thrower-search-slot')!.replaceChildren(createSearchInput({
+    createSearchInput({
+      slot: container.querySelector('#thrower-search-slot')!,
       placeholder: 'Søk på navn/klubb',
-      value: filterList.searchText,
-      onInput: text => {
-        filterList.searchText = text
+      state: filterList,
+      onInput: () => {
         filterList.page = 1
         filterAndRender()
       },
-    }))
+    })
 
     filterAndRender()
 

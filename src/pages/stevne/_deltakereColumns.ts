@@ -39,7 +39,6 @@ export function createAvailableColumn(props: AvailableColumnProps): AvailableCol
     placeholder: 'Søk etter navn eller klubb…',
     variant: 'form',
   })
-  searchInput.classList.add('mb-2')
 
   const table = createPlayerTable({
     formatTitle: () => 'Tilgjengelege spelarar',

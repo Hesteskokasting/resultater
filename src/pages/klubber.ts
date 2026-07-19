@@ -33,7 +33,7 @@ function listSkeletonHtml(): string {
   return `
     <div class="content-page">
       <div class="thrower-list-controls">
-        <div class="nc-filter-rad" id="club-search-slot"></div>
+        <div class="nc-filter-rad"><span id="club-search-slot"></span></div>
       </div>
       <div id="club-grid" class="thrower-grid"></div>
     </div>`
@@ -49,7 +49,7 @@ function detailSkeletonHtml(club: ClubListRow, count: number): string {
         <h1 class="club-detail-title">${escHtml(club.navn)}</h1>
       </div>
       <h3 class="mb-2">Aktive utøvarar (${count})</h3>
-      <div class="nc-filter-rad mb-3" id="club-detail-search-slot"></div>
+      <div class="nc-filter-rad mb-3"><span id="club-detail-search-slot"></span></div>
       <div id="club-detail-list"></div>
     </div>`
 }
@@ -134,14 +134,12 @@ async function renderList(container: HTMLElement): Promise<void> {
         : '<p class="empty-state">Ingen klubbar funnet.</p>'
     }
 
-    container.querySelector<HTMLElement>('#club-search-slot')!.replaceChildren(createSearchInput({
+    createSearchInput({
+      slot: container.querySelector('#club-search-slot')!,
       placeholder: 'Søk på klubbnavn eller utøvar',
-      value: filterList.searchText,
-      onInput: text => {
-        filterList.searchText = text
-        filterAndRender()
-      },
-    }))
+      state: filterList,
+      onInput: filterAndRender,
+    })
 
     filterAndRender()
 
@@ -186,14 +184,12 @@ async function renderDetail(container: HTMLElement, id: number): Promise<void> {
       listContainer.replaceChildren(createMemberTable(members, filterDetail.searchText))
     }
 
-    container.querySelector<HTMLElement>('#club-detail-search-slot')!.replaceChildren(createSearchInput({
+    createSearchInput({
+      slot: container.querySelector('#club-detail-search-slot')!,
       placeholder: 'Søk på utøvar',
-      value: filterDetail.searchText,
-      onInput: text => {
-        filterDetail.searchText = text
-        updateList()
-      },
-    }))
+      state: filterDetail,
+      onInput: updateList,
+    })
 
     updateList()
 

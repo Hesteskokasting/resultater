@@ -40,7 +40,8 @@ function bindThrowerSearch(container: HTMLElement, userId: string): void {
   const resultsDiv  = container.querySelector<HTMLElement>('#thrower-matches')!
   const errorDiv    = container.querySelector<HTMLElement>('#thrower-error')!
 
-  const searchInput = createSearchInput({
+  createSearchInput({
+    slot: container.querySelector('#thrower-search-slot')!,
     placeholder: 'Søk på navn…',
     variant: 'form',
     onInput: text => {
@@ -71,8 +72,6 @@ function bindThrowerSearch(container: HTMLElement, userId: string): void {
       }, 300)
     },
   })
-  searchInput.classList.add('mb-2')
-  container.querySelector('#thrower-search-slot')!.replaceWith(searchInput)
 
   resultsDiv.addEventListener('click', async e => {
     const button = (e.target as Element).closest<HTMLElement>('[data-id]')
