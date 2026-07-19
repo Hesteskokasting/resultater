@@ -4,6 +4,7 @@ import { createErrorBanner } from '@/components/ErrorBanner'
 import { createLoadingState } from '@/components/LoadingState'
 import { createEmptyState } from '@/components/EmptyState'
 import { createTable } from '@/components/Table'
+import { createSearchInput } from '@/components/SearchInput'
 import { escHtml } from '@/utils/escHtml'
 import { logError } from '@/utils/logError'
 import { setPageTitle } from '@/utils/pageTitle'
@@ -32,10 +33,7 @@ function listSkeletonHtml(): string {
   return `
     <div class="content-page">
       <div class="thrower-list-controls">
-        <div class="nc-filter-rad">
-          <input id="club-search" type="text" class="tl-select" placeholder="Søk på klubbnavn eller utøvar" value="">
-          <button id="club-search-button" class="btn btn-secondary btn-sm">Søk</button>
-        </div>
+        <div class="nc-filter-rad" id="club-search-slot"></div>
       </div>
       <div id="club-grid" class="thrower-grid"></div>
     </div>`
@@ -51,10 +49,7 @@ function detailSkeletonHtml(club: ClubListRow, count: number): string {
         <h1 class="club-detail-title">${escHtml(club.navn)}</h1>
       </div>
       <h3 class="mb-2">Aktive utøvarar (${count})</h3>
-      <div class="nc-filter-rad mb-3">
-        <input id="club-detail-search" type="text" class="tl-select" placeholder="Søk på utøvar" value="">
-        <button id="club-detail-search-button" class="btn btn-secondary btn-sm">Søk</button>
-      </div>
+      <div class="nc-filter-rad mb-3" id="club-detail-search-slot"></div>
       <div id="club-detail-list"></div>
     </div>`
 }
@@ -124,8 +119,7 @@ async function renderList(container: HTMLElement): Promise<void> {
 
     container.innerHTML = listSkeletonHtml()
 
-    const grid        = container.querySelector<HTMLElement>('#club-grid')!
-    const searchInput = container.querySelector<HTMLInputElement>('#club-search')!
+    const grid = container.querySelector<HTMLElement>('#club-grid')!
 
     function filterAndRender(): void {
       const search   = filterList.searchText.trim().toLowerCase()
@@ -140,19 +134,16 @@ async function renderList(container: HTMLElement): Promise<void> {
         : '<p class="empty-state">Ingen klubbar funnet.</p>'
     }
 
-    filterAndRender()
-
-    searchInput.addEventListener('keydown', e => {
-      if (e.key === 'Enter') {
-        filterList.searchText = searchInput.value
+    container.querySelector<HTMLElement>('#club-search-slot')!.replaceChildren(createSearchInput({
+      placeholder: 'Søk på klubbnavn eller utøvar',
+      value: filterList.searchText,
+      onInput: text => {
+        filterList.searchText = text
         filterAndRender()
-      }
-    })
+      },
+    }))
 
-    container.querySelector('#club-search-button')!.addEventListener('click', () => {
-      filterList.searchText = searchInput.value
-      filterAndRender()
-    })
+    filterAndRender()
 
     prependAdminLinkBar(container, {
       href: '#/klubber/ny',
@@ -190,25 +181,21 @@ async function renderDetail(container: HTMLElement, id: number): Promise<void> {
     container.innerHTML = detailSkeletonHtml(club, members.length)
 
     const listContainer = container.querySelector<HTMLElement>('#club-detail-list')!
-    const searchInput   = container.querySelector<HTMLInputElement>('#club-detail-search')!
 
     function updateList(): void {
       listContainer.replaceChildren(createMemberTable(members, filterDetail.searchText))
     }
 
-    updateList()
-
-    searchInput.addEventListener('keydown', e => {
-      if (e.key === 'Enter') {
-        filterDetail.searchText = searchInput.value
+    container.querySelector<HTMLElement>('#club-detail-search-slot')!.replaceChildren(createSearchInput({
+      placeholder: 'Søk på utøvar',
+      value: filterDetail.searchText,
+      onInput: text => {
+        filterDetail.searchText = text
         updateList()
-      }
-    })
+      },
+    }))
 
-    container.querySelector('#club-detail-search-button')!.addEventListener('click', () => {
-      filterDetail.searchText = searchInput.value
-      updateList()
-    })
+    updateList()
 
     prependAdminLinkBar(container, {
       href: `#/klubber/${id}/admin`,

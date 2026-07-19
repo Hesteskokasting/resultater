@@ -2,6 +2,7 @@ import { throwerName, buildThrowerSlug as buildSlug } from '@/utils/kaster'
 import { prependAdminLinkBar } from '@/components/AdminLinkBar'
 import { createErrorBanner } from '@/components/ErrorBanner'
 import { createLoadingState } from '@/components/LoadingState'
+import { createSearchInput } from '@/components/SearchInput'
 import { escHtml } from '@/utils/escHtml'
 import { logError } from '@/utils/logError'
 import {
@@ -29,12 +30,10 @@ function listSkeletonHtml(): string {
   return `
     <div class="content-page">
       <div class="thrower-list-controls">
-        <div class="nc-filter-rad">
-          <input id="thrower-search" type="search" class="tl-select" placeholder="Søk på navn/klubb" value="">
-        </div>
+        <div class="nc-filter-rad" id="thrower-search-slot"></div>
         <div class="mt-2">
           <label class="thrower-checkbox-label">
-            <input type="checkbox" id="thrower-active-only" checked>
+            <input type="checkbox" id="thrower-active-only"${filterList.showAll ? '' : ' checked'}>
             Vis berre aktive utøvarar
           </label>
         </div>
@@ -62,11 +61,10 @@ function paginationHtml(page: number, totalPages: number): string {
 }
 
 export async function renderList(container: HTMLElement): Promise<void> {
-  filterList.page = 1
   container.replaceChildren(createLoadingState('Laster utøvarar...'))
 
   try {
-    const init = await getActiveThrowerList()
+    const init = filterList.showAll ? await getAllThrowerList() : await getActiveThrowerList()
     if (init.error) {
       container.replaceChildren(createErrorBanner('Kunne ikkje laste utøvarar.'))
       return
@@ -79,7 +77,6 @@ export async function renderList(container: HTMLElement): Promise<void> {
     const pageInfoEl   = container.querySelector<HTMLElement>('#thrower-page-info')!
     const pagTop       = container.querySelector<HTMLElement>('#thrower-pagination-top')!
     const pagBottom    = container.querySelector<HTMLElement>('#thrower-pagination-bottom')!
-    const searchInput  = container.querySelector<HTMLInputElement>('#thrower-search')!
     const activeCheck  = container.querySelector<HTMLInputElement>('#thrower-active-only')!
 
     function filterAndRender(): void {
@@ -104,13 +101,17 @@ export async function renderList(container: HTMLElement): Promise<void> {
       grid.innerHTML      = pageSlice.map(throwerCardHtml).join('')
     }
 
-    filterAndRender()
+    container.querySelector<HTMLElement>('#thrower-search-slot')!.replaceChildren(createSearchInput({
+      placeholder: 'Søk på navn/klubb',
+      value: filterList.searchText,
+      onInput: text => {
+        filterList.searchText = text
+        filterList.page = 1
+        filterAndRender()
+      },
+    }))
 
-    searchInput.addEventListener('input', () => {
-      filterList.searchText = searchInput.value
-      filterList.page = 1
-      filterAndRender()
-    })
+    filterAndRender()
 
     activeCheck.addEventListener('change', async () => {
       filterList.showAll = !activeCheck.checked
