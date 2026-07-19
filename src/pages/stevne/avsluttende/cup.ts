@@ -6,6 +6,7 @@ import {
   renderStructureListHtml,
 } from '@/organizer/gruppefordelingUi'
 import { generateFinaleAndBronzeFinal } from '@/services/kampGenereringCupService'
+import { openInNewTab } from '@/services/navigationService'
 import { openGenerateRoundDialog } from './_avslCupGenererRundeDialog'
 import { openThreeSideConfirmDialog } from './_avslCupTreSpelarDialog'
 import { showNumberpad } from '@/components/ScoreNumberpad'
@@ -506,7 +507,7 @@ function bindMatchEventsLocal(
     })
 
     container.querySelector(`#scoreboard-${kamp.id}`)?.addEventListener('click', () => {
-      window.open(`#/kamp/${kamp.id}`, '_blank')
+      openInNewTab(`#/kamp/${kamp.id}`)
     })
 
     container.querySelector(`#bekrft-${kamp.id}`)?.addEventListener('click', async (e) => {

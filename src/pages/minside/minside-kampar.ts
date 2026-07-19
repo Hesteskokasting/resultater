@@ -2,6 +2,7 @@ import { throwerName } from '@/utils/kaster'
 import { escHtml } from '@/utils/escHtml'
 import { createTabs } from '@/components/Tabs'
 import { getMyMatches, getStartNumbersForTournaments } from '@/services/kampService'
+import { newTabAnchorAttrs } from '@/services/navigationService'
 import { renderSectionCard } from './_sectionCard'
 import type { MinSideContext } from './_linkState'
 import type { MatchPlayerRow } from '@/services/kampService'
@@ -121,7 +122,7 @@ async function buildMatchesContent(throwerId: number): Promise<HTMLElement> {
     active,
     ks => {
       if (!ks.kamp?.er_bekreftet) {
-        return `<a href="#/kamp/${ks.kamp?.id ?? ''}" class="btn btn-sm btn-primary" target="_blank" rel="noopener">Scoreboard</a>`
+        return `<a href="#/kamp/${ks.kamp?.id ?? ''}" class="btn btn-sm btn-primary"${newTabAnchorAttrs()}>Scoreboard</a>`
       }
       const tournamentId = ks.kamp.stevneid
       const myScore = ks.kamp.spelarar?.find(s => s.kasterid === throwerId)?.score_poeng
@@ -132,7 +133,7 @@ async function buildMatchesContent(throwerId: number): Promise<HTMLElement> {
   )
   const completedContent = groupMatchesByTournament(
     completed,
-    ks => `<a href="#/kamp/${ks.kamp?.id ?? ''}" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener">Vis</a>`,
+    ks => `<a href="#/kamp/${ks.kamp?.id ?? ''}" class="btn btn-sm btn-outline-secondary"${newTabAnchorAttrs()}>Vis</a>`,
     true,
   )
 

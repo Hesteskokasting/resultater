@@ -23,6 +23,7 @@ import { showToast } from '@/components/Toast'
 import { confirmDialog } from '@/components/ConfirmDialog'
 import { getMatchSides, groupStandingsByPair, scoreForPlayer, type MatchSide } from '@/utils/kamp'
 import { autoCompleteInitialRoundMatches } from '@/services/testDataService'
+import { openInNewTab } from '@/services/navigationService'
 import {
   buildInitialPlayerMap, sortStandings, renderInitialButtons, createChangeHandler,
   bindStandingDetails, renderMainContent, bindTabToggle, getActiveTab, setActiveTab, renderStandingTable, canConfirmMatch,
@@ -276,7 +277,7 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
     if (!mobileRow) return
 
     if (!isAdmin) {
-      mobileRow.addEventListener('click', () => { window.open(`#/kamp/${kamp.id}`, '_blank') })
+      mobileRow.addEventListener('click', () => { openInNewTab(`#/kamp/${kamp.id}`) })
       return
     }
 
@@ -291,7 +292,7 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
     })
     container.querySelector(`#m-scoreboard-${kamp.id}`)?.addEventListener('click', (e) => {
       e.stopPropagation()
-      window.open(`#/kamp/${kamp.id}`, '_blank')
+      openInNewTab(`#/kamp/${kamp.id}`)
     })
     container.querySelector(`#m-bekrft-${kamp.id}`)?.addEventListener('click',
       createConfirmHandler(container, stevneid, kamp, startNumberMap, hcpMap, positionMap, true))
@@ -309,7 +310,7 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
     if (canEditMatches) bindScoreEdit(container, stevneid, kamp, startNumberMap, positionMap)
 
     container.querySelector(`#scoreboard-${kamp.id}`)?.addEventListener('click', () => {
-      window.open(`#/kamp/${kamp.id}`, '_blank')
+      openInNewTab(`#/kamp/${kamp.id}`)
     })
     container.querySelector(`#bekrft-${kamp.id}`)?.addEventListener('click',
       createConfirmHandler(container, stevneid, kamp, startNumberMap, hcpMap, positionMap, false))
