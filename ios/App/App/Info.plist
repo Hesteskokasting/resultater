@@ -28,6 +28,10 @@
 	<string>Appen bruker ikke posisjonen din. Nøkkelen kreves fordi varslingskomponenten (OneSignal) refererer til posisjons-API-er.</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
