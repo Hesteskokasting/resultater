@@ -1,4 +1,5 @@
 import { createEmptyState } from '@/components/EmptyState'
+import { createSearchInput } from '@/components/SearchInput'
 import { escHtml } from '@/utils/escHtml'
 import { throwerName } from '@/utils/kaster'
 import { invalidateUserCache } from '@/services/authService'
@@ -22,7 +23,7 @@ function unlinkedHtml(status: LinkStatus): string {
       <div class="card-body">
         <h5 class="card-title">Koble til utøvarprofil</h5>
         <p class="card-text text-muted">Søk etter deg sjølv i registeret og send ein forespørsel. Etter godkjenning kan du melde deg på stevner.</p>
-        <input type="search" id="thrower-search" class="form-control mb-2" placeholder="Søk på navn…">
+        <span id="thrower-search-slot"></span>
         <div id="thrower-matches" class="list-group mb-2"></div>
         <div id="thrower-error" class="alert alert-danger d-none"></div>
       </div>
@@ -36,37 +37,42 @@ function pendingHtml(): string {
 function bindThrowerSearch(container: HTMLElement, userId: string): void {
   let timer: number | null = null
   let throwersCache: ThrowerListRow[] | null = null
-  const searchInput = container.querySelector<HTMLInputElement>('#thrower-search')!
   const resultsDiv  = container.querySelector<HTMLElement>('#thrower-matches')!
   const errorDiv    = container.querySelector<HTMLElement>('#thrower-error')!
 
-  searchInput.addEventListener('input', () => {
-    if (timer !== null) clearTimeout(timer)
-    const q = searchInput.value.trim().toLowerCase()
-    if (q.length < 2) { resultsDiv.innerHTML = ''; return }
+  const searchInput = createSearchInput({
+    placeholder: 'Søk på navn…',
+    variant: 'form',
+    onInput: text => {
+      if (timer !== null) clearTimeout(timer)
+      const q = text.trim().toLowerCase()
+      if (q.length < 2) { resultsDiv.innerHTML = ''; return }
 
-    timer = setTimeout(async () => {
-      if (!throwersCache) {
-        const { data } = await getActiveThrowerList()
-        throwersCache = data
-      }
-      const results = throwersCache
-        .filter(k => k.fornavn.toLowerCase().includes(q) || k.etternavn.toLowerCase().includes(q))
-        .slice(0, 8)
+      timer = setTimeout(async () => {
+        if (!throwersCache) {
+          const { data } = await getActiveThrowerList()
+          throwersCache = data
+        }
+        const results = throwersCache
+          .filter(k => k.fornavn.toLowerCase().includes(q) || k.etternavn.toLowerCase().includes(q))
+          .slice(0, 8)
 
-      if (!results.length) {
-        const el = createEmptyState('Ingen treff.')
-        el.classList.add('small')
-        resultsDiv.replaceChildren(el)
-        return
-      }
-      resultsDiv.innerHTML = results.map(k =>
-        `<button class="list-group-item list-group-item-action" data-id="${k.id}">
-          ${escHtml(throwerName(k))} <span class="text-muted small">· ${escHtml(k.klubb?.navn ?? '')}</span>
-        </button>`
-      ).join('')
-    }, 300)
+        if (!results.length) {
+          const el = createEmptyState('Ingen treff.')
+          el.classList.add('small')
+          resultsDiv.replaceChildren(el)
+          return
+        }
+        resultsDiv.innerHTML = results.map(k =>
+          `<button class="list-group-item list-group-item-action" data-id="${k.id}">
+            ${escHtml(throwerName(k))} <span class="text-muted small">· ${escHtml(k.klubb?.navn ?? '')}</span>
+          </button>`
+        ).join('')
+      }, 300)
+    },
   })
+  searchInput.classList.add('mb-2')
+  container.querySelector('#thrower-search-slot')!.replaceWith(searchInput)
 
   resultsDiv.addEventListener('click', async e => {
     const button = (e.target as Element).closest<HTMLElement>('[data-id]')

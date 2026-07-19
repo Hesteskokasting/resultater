@@ -10,6 +10,7 @@ import { escHtml } from '@/utils/escHtml'
 import { logError } from '@/utils/logError'
 import { registerRefetch } from '@/utils/refetchRegistry'
 import { bindRegistrationSlots } from '@/components/PameldingKnapp'
+import { createSearchInput } from '@/components/SearchInput'
 
 type TournamentRow = ScheduleTournamentRow
 
@@ -240,7 +241,7 @@ export async function render(container: HTMLElement): Promise<void> {
         <!-- Desktop filter row -->
         <div class="tl-filter-row">
           ${desktopSel.year}
-          <input class="tl-input" id="tl-text" type="search" placeholder="Søk..." value="${escHtml(filter.text)}">
+          <span id="tl-text-slot"></span>
           ${desktopSel.tournamentType}
           ${desktopSel.throwingMethod}
           ${desktopSel.organizer}
@@ -250,7 +251,7 @@ export async function render(container: HTMLElement): Promise<void> {
 
         <!-- Mobile row -->
         <div class="tl-mobile-row">
-          <input class="tl-input" id="tl-text-mobile" type="search" placeholder="Søk..." value="${escHtml(filter.text)}">
+          <span id="tl-text-mobile-slot"></span>
           <button class="tl-filter-button" id="tl-filter-open">Filter ≡</button>
           <button class="tl-excel-button" id="tl-excel-mobile">⬇ Excel</button>
         </div>
@@ -312,10 +313,29 @@ export async function render(container: HTMLElement): Promise<void> {
 
     // ── Event listeners ──
 
+    const textInput = createSearchInput({
+      placeholder: 'Søk...',
+      value: filter.text,
+      onInput: text => {
+        filter.text           = text
+        textMobileInput.value = text
+        updateList()
+      },
+    })
+    const textMobileInput = createSearchInput({
+      placeholder: 'Søk...',
+      value: filter.text,
+      onInput: text => {
+        filter.text     = text
+        textInput.value = text
+        updateList()
+      },
+    })
+    container.querySelector('#tl-text-slot')!.replaceWith(textInput)
+    container.querySelector('#tl-text-mobile-slot')!.replaceWith(textMobileInput)
+
     const listContainer           = container.querySelector<HTMLElement>('.tl-list-container')!
     const yearSelect              = container.querySelector<HTMLSelectElement>('#tl-year')!
-    const textInput               = container.querySelector<HTMLInputElement>('#tl-text')!
-    const textMobileInput         = container.querySelector<HTMLInputElement>('#tl-text-mobile')!
     const tournamentTypeSelect    = container.querySelector<HTMLSelectElement>('#tl-tournamenttype')!
     const throwingMethodSelect    = container.querySelector<HTMLSelectElement>('#tl-throwingmethod')!
     const organizerSelect         = container.querySelector<HTMLSelectElement>('#tl-organizer')!
@@ -373,17 +393,6 @@ export async function render(container: HTMLElement): Promise<void> {
     yearSelect.addEventListener('change', async () => {
       filter.year = Number(yearSelect.value)
       if (await reloadYear('terminliste.yearChange')) updateList()
-    })
-
-    textInput.addEventListener('input', () => {
-      filter.text = textInput.value
-      updateList()
-    })
-
-    textMobileInput.addEventListener('input', () => {
-      filter.text    = textMobileInput.value
-      textInput.value = textMobileInput.value
-      updateList()
     })
 
     tournamentTypeSelect.addEventListener('change', () => { filter.tournamentTypeId = tournamentTypeSelect.value; updateList() })

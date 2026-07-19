@@ -3,6 +3,7 @@ import { createErrorBanner } from '@/components/ErrorBanner'
 import { createLoadingState } from '@/components/LoadingState'
 import { createEmptyState } from '@/components/EmptyState'
 import { createTable } from '@/components/Table'
+import { createSearchInput } from '@/components/SearchInput'
 import { logError } from '@/utils/logError'
 import { bindExpandableRows } from '@/utils/expandableRows'
 import { getTournamentsAndResults } from '@/services/norgesrankingService'
@@ -158,7 +159,7 @@ function pageSkeletonHtml(year: number): string {
       <hr>
       <div class="nc-filter-rad">
         <select id="nr-year" class="tl-select">${yearOptions(year, FIRST_YEAR)}</select>
-        <input id="nr-search" type="text" class="tl-select" placeholder="Søk på navn/klubb..." value="">
+        <span id="nr-search-slot"></span>
         <button class="tl-excel-button" id="nr-excel">⬇ Excel</button>
       </div>
       <div class="nc-click-hint-row">
@@ -200,8 +201,17 @@ export async function render(container: HTMLElement): Promise<void> {
 
     updateTable()
 
+    const searchInput = createSearchInput({
+      placeholder: 'Søk på navn/klubb...',
+      value: filter.searchText,
+      onInput: text => {
+        filter.searchText = text
+        updateTable()
+      },
+    })
+    container.querySelector('#nr-search-slot')!.replaceWith(searchInput)
+
     const yearSelect  = container.querySelector<HTMLSelectElement>('#nr-year')!
-    const searchInput = container.querySelector<HTMLInputElement>('#nr-search')!
     const excelButton = container.querySelector<HTMLButtonElement>('#nr-excel')!
     const infoButton  = container.querySelector<HTMLButtonElement>('#nr-info-button')!
 
@@ -222,11 +232,6 @@ export async function render(container: HTMLElement): Promise<void> {
         logError('norgesranking.yearChange', err)
         container.querySelector('#nr-table-container')!.replaceChildren(createErrorBanner('Feil ved henting av data.'))
       }
-    })
-
-    searchInput.addEventListener('input', () => {
-      filter.searchText = searchInput.value
-      updateTable()
     })
 
     excelButton.addEventListener('click', exportExcel)

@@ -416,8 +416,8 @@ a.tournament-name {
 
 .tl-filter-row { margin-bottom: 12px; }
 
-.tl-input,
 .tl-select {
+  flex: 1 1 120px;
   padding: 6px 8px;
   border: 1px solid var(--kant-2);
   border-radius: 4px;
@@ -426,8 +426,8 @@ a.tournament-name {
   color: var(--tekst);
 }
 
-.tl-input { flex: 1 1 140px; }
-.tl-select { flex: 1 1 120px; }
+/* Live search input (SearchInput component) — capped so it doesn't span the container */
+.search-input { max-width: 300px; }
 
 .tl-mobile-row {
   display: none;
@@ -620,7 +620,7 @@ a.tournament-name {
 @media (max-width: 600px) {
   .tl-filter-row { display: none; }
   .tl-mobile-row { display: flex; }
-  .tl-mobile-row .tl-input { flex: 1; }
+  .tl-mobile-row .search-input { flex: 1; }
 }
 
 /* ── Resultatside ── */

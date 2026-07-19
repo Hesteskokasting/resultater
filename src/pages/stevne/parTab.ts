@@ -7,6 +7,7 @@ import { throwerName } from '@/utils/kaster'
 import type { ThrowerListRow } from '@/services/kasterService'
 import { createRemoveButton } from '@/components/RemoveButton'
 import { createPlayerTable } from '@/components/PlayerTable'
+import { createSearchInput } from '@/components/SearchInput'
 import { getPairsForTournament, createPair, deletePair } from '@/services/pameldingService'
 import type { RegistrationPair } from '@/services/pameldingService'
 
@@ -72,10 +73,12 @@ async function renderPairs(root: HTMLElement, props: PairTabProps): Promise<void
   const leftCol = document.createElement('div')
   leftCol.className = 'col-md-6 d-flex flex-column participant-column'
 
-  const searchInput = document.createElement('input')
-  searchInput.type = 'text'
-  searchInput.placeholder = 'Søk spelar…'
-  searchInput.className = 'form-control mb-2'
+  const searchInput = createSearchInput({
+    placeholder: 'Søk spelar…',
+    variant: 'form',
+    onInput: () => renderUnpaired(),
+  })
+  searchInput.classList.add('mb-2')
 
   const unpairedTable = createPlayerTable({
     formatTitle: n => `Spelarar utan par: ${n}`,
@@ -100,8 +103,6 @@ async function renderPairs(root: HTMLElement, props: PairTabProps): Promise<void
     })
     unpairedTable.setPlayers(available)
   }
-
-  searchInput.addEventListener('input', renderUnpaired)
 
   leftCol.appendChild(searchInput)
   leftCol.appendChild(unpairedTable.element)

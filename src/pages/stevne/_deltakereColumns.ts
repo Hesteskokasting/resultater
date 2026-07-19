@@ -2,6 +2,7 @@ import { showToast } from '@/components/Toast'
 import { errorMessage } from '@/utils/errorMessage'
 import { createRemoveButton } from '@/components/RemoveButton'
 import { createPlayerTable } from '@/components/PlayerTable'
+import { createSearchInput } from '@/components/SearchInput'
 import type { PlayerTableHandle } from '@/components/PlayerTable'
 import type { ThrowerListRow } from '@/services/kasterService'
 import {
@@ -34,10 +35,11 @@ export function createAvailableColumn(props: AvailableColumnProps): AvailableCol
   const leftWrapper = document.createElement('div')
   leftWrapper.className = 'col-md-6 d-flex flex-column participant-column'
 
-  const searchInput = document.createElement('input')
-  searchInput.type = 'text'
-  searchInput.placeholder = 'Søk etter navn eller klubb…'
-  searchInput.className = 'form-control mb-2'
+  const searchInput = createSearchInput({
+    placeholder: 'Søk etter navn eller klubb…',
+    variant: 'form',
+  })
+  searchInput.classList.add('mb-2')
 
   const table = createPlayerTable({
     formatTitle: () => 'Tilgjengelege spelarar',

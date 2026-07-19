@@ -3,6 +3,7 @@ import { createErrorBanner } from '@/components/ErrorBanner'
 import { createLoadingState } from '@/components/LoadingState'
 import { createEmptyState } from '@/components/EmptyState'
 import { createTable } from '@/components/Table'
+import { createSearchInput } from '@/components/SearchInput'
 import { escHtml } from '@/utils/escHtml'
 import { logError } from '@/utils/logError'
 import { registerRefetch } from '@/utils/refetchRegistry'
@@ -140,7 +141,7 @@ function pageSkeletonHtml(): string {
           <option value="herrer">Herrer</option>
           <option value="damer">Damer</option>
         </select>
-        <input id="record-search" type="text" class="tl-select" placeholder="Søk på etternavn/klubb" value="">
+        <span id="record-search-slot"></span>
       </div>
       <div id="record-table-container"></div>
     </div>`
@@ -188,10 +189,14 @@ export async function render(container: HTMLElement): Promise<void> {
       updateTable()
     })
 
-    container.querySelector<HTMLInputElement>('#record-search')!.addEventListener('input', e => {
-      filter.searchText = (e.target as HTMLInputElement).value
-      updateTable()
-    })
+    container.querySelector('#record-search-slot')!.replaceWith(createSearchInput({
+      placeholder: 'Søk på etternavn/klubb',
+      value: filter.searchText,
+      onInput: text => {
+        filter.searchText = text
+        updateTable()
+      },
+    }))
 
     container.addEventListener('click', e => {
       const cell = (e.target as Element).closest<HTMLElement>('.record-points-cell')
