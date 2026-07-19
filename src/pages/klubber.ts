@@ -46,9 +46,6 @@ function listSkeletonHtml(): string {
 function detailSkeletonHtml(club: ClubListRow, count: number): string {
   return `
     <div class="content-page">
-      <div class="mb-3">
-        <a href="#/klubber" class="btn btn-sm btn-outline-secondary">← Tilbake</a>
-      </div>
       <div class="club-detail-header">
         <img src="${escHtml(club.logourl || PLACEHOLDER_LOGO)}" alt="${escHtml(club.navn)}" class="club-logo-large">
         <h1 class="club-detail-title">${escHtml(club.navn)}</h1>

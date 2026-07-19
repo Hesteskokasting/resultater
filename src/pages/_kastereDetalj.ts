@@ -56,9 +56,6 @@ function detailSkeletonHtml(thrower: ThrowerDetailRow, results: ResultDetailRow[
 
   return `
     <div class="content-page">
-      <div class="mb-3">
-        <a href="#/kastere" class="btn btn-sm btn-outline-secondary">← Tilbake</a>
-      </div>
       <h1 class="thrower-detail-title">${name}${escHtml(nr)}</h1>
       <p class="thrower-detail-club">${escHtml(thrower.klubb?.navn ?? '–')}</p>
 
