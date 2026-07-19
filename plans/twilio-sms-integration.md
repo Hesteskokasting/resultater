@@ -1,5 +1,43 @@
 # Twilio SMS Phone Verification — Implementation Plan
 
+> **STATUS (parked 2026-07-19):** All 9 phases are implemented and verified
+> locally; the work is parked on branch `twilio-sms-integration` (wip commit
+> `c920fb2`) awaiting Twilio console setup + prod rollout. The RLS hardening
+> (Phase 2) was split out and shipped separately on `dev` (`6f1cd7e`) with a
+> trimmed pgTAP test (plan(5), RPC asserts removed). See **Resume checklist**
+> at the bottom before continuing.
+
+## Phase status
+
+- [x] Phase 1 — config.toml + spike (see **Implementation findings**)
+- [x] Phase 2 — RLS hardening migration + pgTAP — **shipped separately on `dev`**
+- [x] Phase 3 — RPC `godkjenn_kobling_med_telefon` + pgTAP + local types regen
+- [x] Phase 4 — `src/utils/phone.ts` + Vitest
+- [x] Phase 5 — service functions (authService, brukerProfilService)
+- [x] Phase 6 — `PhoneVerification` component + CSS
+- [x] Phase 7 — admin gate in `authGuard`
+- [x] Phase 8 — minside integration (`_linkState.ts`, `minside-konto.ts`)
+- [x] Phase 9 — verified locally: typecheck ×2, 215 Vitest, 109 pgTAP, API e2e
+      (request → 42501 on self-approve → OTP verify → RPC approves), prod build
+- [ ] Phase 0 — Twilio console (manual)
+- [ ] Phase 10 — production rollout
+- [ ] Browser-level check of the admin gate (only API-level e2e was run)
+
+## Implementation findings (amend the plan below)
+
+1. **`[auth.sms] enable_confirmations = true` is mandatory.** With it off,
+   GoTrue applies `updateUser({ phone })` immediately — phone confirmed, **no
+   OTP ever sent or checked** (verified in local spike). The parked config.toml
+   has it on; the prod dashboard equivalent must be enabled too, and the smoke
+   test must confirm a code is actually required.
+2. Phone numbers are **unique per account** — a second account claiming the
+   same number gets `phone_exists`. The component maps this to Norwegian copy.
+3. A wrong or expired code returns error code `otp_expired` (both cases).
+4. `test_otp` works with the Twilio provider left `enabled = false` locally,
+   and `phone_change` works with `enable_signup = false`, as planned.
+5. GoTrue stores the phone **without** `+` (`4790000001`); display as
+   `+${user.phone}`. `test_otp` keys are also written without `+`.
+
 ## Context
 
 The app needs phone verification via SMS (Twilio, nonprofit account, alphanumeric sender ID already created):
@@ -119,6 +157,33 @@ if `!auth.user.phone_confirmed_at` → `cont.replaceChildren(createPhoneVerifica
 - SMS to klubbadmins when a new link request lands in their queue.
 - Result-summary SMS when a stevne completes.
 - Emergency broadcast to all participants of a live stevne — the existing `notification_queue` → pg_net → edge-function pattern extends naturally to a Twilio-sending function.
+
+## Resume checklist (when picking this up again)
+
+1. `git checkout twilio-sms-integration && git rebase dev`. Expect an add/add
+   conflict on `supabase/tests/11_rls_bruker_profil_kobling.sql` (dev carries
+   the trimmed plan(5) version, this branch the full plan(11) with RPC
+   asserts): **keep this branch's full version**. The hardening migration
+   itself is content-identical apart from one comment line — either side is
+   fine.
+2. If `dev` gained migrations after `20260718093755`, recreate the RPC
+   migration with a fresh timestamp: `npx supabase migration new
+   rpc_godkjenn_kobling_med_telefon`, move the SQL over, delete the old file
+   (avoids version-collision on push; see memory note on hand-picked
+   timestamps).
+3. Local stack: `supabase db reset` (also clears the orphaned `…093755` entry
+   left in the local migration table when the file was pulled from dev's
+   tree), then `npm run test:db`.
+4. Re-run the checks: `npm run typecheck && npm run typecheck:test && npm run
+   test:run`.
+5. Continue at Phase 0 (Twilio console) and Phase 10 (rollout). Phase 10
+   step 1 shrinks to pushing only the RPC migration — the hardening is already
+   on dev (push it with `npx supabase db push` from dev if that hasn't been
+   done yet).
+6. Regenerate `src/types/database.types.ts` from remote after the prod push —
+   the parked version was generated with `--local`, which differs cosmetically
+   from the remote generator (`__InternalSupabase` block, `id?: never` on
+   identity columns).
 
 ## Key files
 
