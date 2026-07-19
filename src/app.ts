@@ -25,6 +25,41 @@ function lazy(load: () => Promise<{ render: PageRenderFn }>): PageRenderFn {
 
 const container = document.getElementById('app')!
 
+// ── Scroll restoration ────────────────────────────────────────────────────────
+// The browser's native restoration can't work here: pages re-render async on
+// hashchange, so at the moment the browser would restore, the content (and page
+// height) isn't there yet. Restore manually, keyed per history entry so
+// back/forward returns to the saved position while fresh navigations start at top.
+history.scrollRestoration = 'manual'
+
+const scrollPositions = new Map<number, number>()
+let currentEntryId = 0
+let nextEntryId = 1
+
+function readEntryId(): number | null {
+  const state: unknown = history.state
+  if (typeof state === 'object' && state !== null && 'entryId' in state && typeof state.entryId === 'number') {
+    return state.entryId
+  }
+  return null
+}
+
+// Runs after the URL has changed but before rendering: the browser hasn't moved
+// the scroll yet (manual restoration), so window.scrollY is still the departed
+// page's position. Returns the position the new page should land on.
+function beginNavigation(): number {
+  scrollPositions.set(currentEntryId, window.scrollY)
+  const existingId = readEntryId()
+  if (existingId === null) {
+    currentEntryId = nextEntryId++
+    history.replaceState({ entryId: currentEntryId }, '')
+    return 0
+  }
+  currentEntryId = existingId
+  nextEntryId = Math.max(nextEntryId, existingId + 1)
+  return scrollPositions.get(existingId) ?? 0
+}
+
 function authGuard(requiredRole: Role, renderFn: PageRenderFn): PageRenderFn {
   return async (cont, params) => {
     const auth = await getUser()
@@ -70,7 +105,11 @@ const routes: Route[] = [
   { pattern: /^\/?$/,                            page: renderHome,                                                   params: () => ({}) },
 ]
 
-function navigate(): void | Promise<void> {
+let navigationSeq = 0
+
+async function navigate(): Promise<void> {
+  const targetScrollY = beginNavigation()
+  const seq = ++navigationSeq
   const [hash = '/'] = (location.hash.replace(/^#/, '') || '/').split('?')
 
   for (const route of routes) {
@@ -80,7 +119,10 @@ function navigate(): void | Promise<void> {
       // Cleared by default so a stale page's refetch can't fire against a page that
       // hasn't opted in — pages that support resume-refetch re-register it themselves.
       registerRefetch(null)
-      return route.page(container, route.params(match))
+      await route.page(container, route.params(match))
+      // Skip if another navigation started while this page was rendering.
+      if (seq === navigationSeq) window.scrollTo(0, targetScrollY)
+      return
     }
   }
 
