@@ -1,9 +1,11 @@
 import { createEmptyState } from '@/components/EmptyState'
+import { createPhoneVerification } from '@/components/PhoneVerification'
+import { showToast } from '@/components/Toast'
 import { escHtml } from '@/utils/escHtml'
 import { throwerName } from '@/utils/kaster'
 import { invalidateUserCache } from '@/services/authService'
 import { getActiveThrowerList } from '@/services/kasterService'
-import { sendProfileLinkRequest } from '@/services/brukerProfilService'
+import { approveLinkWithPhone, sendProfileLinkRequest } from '@/services/brukerProfilService'
 import { runRefetch } from '@/utils/refetchRegistry'
 import type { User } from '@supabase/supabase-js'
 import type { LinkStatus, Profile } from '@/types'
@@ -33,7 +35,19 @@ function pendingHtml(): string {
   return '<div class="alert alert-info mb-4">Koblingforespørselen din ventar på godkjenning frå ein administrator.</div>'
 }
 
-function bindThrowerSearch(container: HTMLElement, userId: string): void {
+/** Approves the pending request via the phone-verified RPC and re-renders. */
+async function approvePendingLink(): Promise<void> {
+  const { error } = await approveLinkWithPhone()
+  if (error) {
+    showToast('Klarte ikkje å koble kontoen automatisk. Ein administrator må godkjenne forespørselen.', 'warning')
+  } else {
+    showToast('Kontoen er kobla til utøvarprofilen.', 'success')
+  }
+  invalidateUserCache()
+  await runRefetch()
+}
+
+function bindThrowerSearch(container: HTMLElement, ctx: MinSideContext): void {
   let timer: number | null = null
   let throwersCache: ThrowerListRow[] | null = null
   const searchInput = container.querySelector<HTMLInputElement>('#thrower-search')!
@@ -73,10 +87,14 @@ function bindThrowerSearch(container: HTMLElement, userId: string): void {
     if (!button) return
     errorDiv.classList.add('d-none')
 
-    const { error } = await sendProfileLinkRequest(userId, Number(button.dataset.id))
+    const { error } = await sendProfileLinkRequest(ctx.user.id, Number(button.dataset.id))
     if (error) {
       errorDiv.textContent = 'Kunne ikkje sende forespørsel.'
       errorDiv.classList.remove('d-none')
+      return
+    }
+    if (ctx.user.phone_confirmed_at) {
+      await approvePendingLink()
       return
     }
     // The cached auth profile still says 'ingen'/'avvist'; drop it so the
@@ -95,9 +113,26 @@ export function renderLinkGate(container: HTMLElement, ctx: MinSideContext): num
   if (ctx.status === 'godkjent' && ctx.profil?.kasterid != null) return ctx.profil.kasterid
   if (ctx.status === 'venter') {
     container.innerHTML = pendingHtml()
+    if (ctx.user.phone_confirmed_at) {
+      // Verified elsewhere (or the auto-approval failed): offer instant linking.
+      const linkNowButton = document.createElement('button')
+      linkNowButton.type = 'button'
+      linkNowButton.className = 'btn btn-primary mb-4'
+      linkNowButton.textContent = 'Koble til no'
+      linkNowButton.addEventListener('click', () => {
+        linkNowButton.disabled = true
+        void approvePendingLink()
+      })
+      container.append(linkNowButton)
+    } else {
+      container.append(createPhoneVerification({
+        description: 'Verifiser telefonnummeret ditt for å koble kontoen med ein gong — elles ventar du på godkjenning frå ein administrator.',
+        onVerified: () => { void approvePendingLink() },
+      }))
+    }
     return null
   }
   container.innerHTML = unlinkedHtml(ctx.status)
-  bindThrowerSearch(container, ctx.user.id)
+  bindThrowerSearch(container, ctx)
   return null
 }

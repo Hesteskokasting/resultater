@@ -32,7 +32,9 @@
       "PowerShell(npm run typecheck)",
       "Bash(Get-ChildItem -Path \"d:\\\\repos\\\\NY-resultat-app\\\\src\\\\components\\\\\" -Filter \"*.ts\" -Recurse | Select-Object -ExpandProperty FullName)",
       "Bash(Get-ChildItem -Path \"d:\\\\repos\\\\NY-resultat-app\\\\src\\\\services\\\\\" -File -Recurse | Select-Object -ExpandProperty FullName)",
-      "Bash(npx fallow *)"
+      "Bash(npx fallow *)",
+      "Bash(npx supabase *)",
+      "Bash(npx vitest *)"
     ]
   }
 }

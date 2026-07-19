@@ -2413,3 +2413,21 @@ th.initial-score-th {
 .modal-body {
   overflow-wrap: anywhere;
 }
+
+/* Phone verification (admin gate + min side). The code input gets wide
+   letter-spacing so the 6 digits read as a code, not a number. */
+.phone-verify {
+  max-width: 28rem;
+}
+
+.phone-verify__code {
+  letter-spacing: 0.4em;
+  font-variant-numeric: tabular-nums;
+}
+
+.phone-verify__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  align-items: center;
+}

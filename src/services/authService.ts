@@ -152,6 +152,20 @@ export async function updatePassword(newPassword: string) {
   return supabase.auth.updateUser({ password: newPassword })
 }
 
+/** Starts a phone_change flow: GoTrue stages the number and sends an OTP to it. */
+export async function updatePhone(phone: string) {
+  return supabase.auth.updateUser({ phone })
+}
+
+export async function verifyPhoneChange(phone: string, token: string) {
+  return supabase.auth.verifyOtp({ phone, token, type: 'phone_change' })
+}
+
+export async function hasVerifiedPhone(): Promise<boolean> {
+  const auth = await _fetchCache()
+  return Boolean(auth?.user.phone_confirmed_at)
+}
+
 // Abonner på auth-endringar. Tømer cache og sender DOM-event.
 supabase.auth.onAuthStateChange((event, session) => {
   if (event === 'SIGNED_OUT') {

@@ -3,6 +3,7 @@ import { App } from '@capacitor/app'
 import { render as renderHome } from './pages/home'
 import { getUser, isAdmin, isClubAdmin, signOut } from './services/authService'
 import { createErrorBanner } from './components/ErrorBanner'
+import { createPhoneVerification } from './components/PhoneVerification'
 import { showReauthModal } from './components/ReauthModal'
 import { setPageTitle } from '@/utils/pageTitle'
 import { hasRefetch, registerRefetch, runRefetch } from '@/utils/refetchRegistry'
@@ -38,6 +39,14 @@ function authGuard(requiredRole: Role, renderFn: PageRenderFn): PageRenderFn {
     }
     if (requiredRole === 'klubbadmin' && !(await isAdmin()) && !(await isClubAdmin())) {
       cont.replaceChildren(createErrorBanner('Ingen tilgang.'))
+      return
+    }
+    // Elevated roles must verify a phone number once before using their access.
+    if ((requiredRole === 'admin' || requiredRole === 'klubbadmin') && !auth.user.phone_confirmed_at) {
+      cont.replaceChildren(createPhoneVerification({
+        description: 'Som administrator må du verifisere telefonnummeret ditt før du får tilgang.',
+        onVerified: () => { void renderFn(cont, params) },
+      }))
       return
     }
     await renderFn(cont, params)

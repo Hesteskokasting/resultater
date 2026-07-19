@@ -5,7 +5,10 @@ import { errorMessage } from '@/utils/errorMessage'
 import { logError } from '@/utils/logError'
 import { showToast } from '@/components/Toast'
 import { confirmDialog } from '@/components/ConfirmDialog'
+import { createPhoneVerification } from '@/components/PhoneVerification'
 import { signOut, updatePassword } from '@/services/authService'
+import { approveLinkWithPhone } from '@/services/brukerProfilService'
+import { runRefetch } from '@/utils/refetchRegistry'
 import { getThrowerForLink } from '@/services/kasterService'
 import { getLinkedAccounts, deleteUserAccount } from '@/services/accountService'
 import type { MinSideContext } from './_linkState'
@@ -63,6 +66,35 @@ function linkedAccountsHtml(accounts: LinkedAccountRow[], ownUserId: string): st
       <thead><tr><th>E-post</th><th>Oppretta</th><th></th></tr></thead>
       <tbody>${rows}</tbody>
     </table>`
+}
+
+function renderPhoneCard(slot: HTMLElement, ctx: MinSideContext): void {
+  // After verification the pending link (if any) is auto-approved before the
+  // page refetches, so the user never has to wait for an admin.
+  const onVerified = (): void => {
+    void (async () => {
+      if (ctx.status === 'venter') await approveLinkWithPhone()
+      await runRefetch()
+    })()
+  }
+
+  if (ctx.user.phone_confirmed_at && ctx.user.phone) {
+    slot.innerHTML = `
+      <div class="card mb-4"><div class="card-body">
+        <h5 class="card-title">Telefonnummer</h5>
+        <p class="mb-2">+${escHtml(ctx.user.phone)} <span class="badge bg-success">Verifisert</span></p>
+        <button type="button" class="btn btn-sm btn-outline-primary" data-action="change-phone">Endre nummer</button>
+      </div></div>`
+    slot.querySelector<HTMLButtonElement>('[data-action="change-phone"]')!.addEventListener('click', () => {
+      slot.replaceChildren(createPhoneVerification({ heading: 'Endre telefonnummer', onVerified }))
+    })
+    return
+  }
+
+  slot.replaceChildren(createPhoneVerification({
+    description: 'Valfritt: med eit verifisert telefonnummer kan du koble kontoen til utøvarprofilen din utan godkjenning frå ein administrator.',
+    onVerified,
+  }))
 }
 
 function bindPasswordForm(container: HTMLElement): void {
@@ -138,6 +170,7 @@ export async function render(container: HTMLElement, ctx: MinSideContext): Promi
   container.innerHTML = `
     ${isLinked ? '<div class="card mb-4"><div class="card-body" data-slot="thrower"><div class="skeleton-block skeleton-block--card"></div></div></div>' : ''}
     <div class="card mb-4"><div class="card-body">${passwordCardHtml(hasPasswordLogin)}</div></div>
+    <div data-slot="phone"></div>
     ${isLinked ? `
       <div class="card mb-4"><div class="card-body">
         <h5 class="card-title">Innloggingskontoar</h5>
@@ -150,6 +183,7 @@ export async function render(container: HTMLElement, ctx: MinSideContext): Promi
     </div></div>`
 
   bindPasswordForm(container)
+  renderPhoneCard(container.querySelector<HTMLElement>('[data-slot="phone"]')!, ctx)
   bindDeleteOwnAccount(container, ctx)
 
   if (throwerId == null) return
