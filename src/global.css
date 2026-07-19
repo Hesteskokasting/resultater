@@ -61,8 +61,10 @@
   --sb-knapp-tekst: #111;
   --sb-knapp-dis-bg: #333;
   --sb-knapp-slett-hover: #c0392b;
+  /* Bekreft-knapp — intentionally identical in both themes */
   --sb-bekreft-bg: #1a8f2d;
   --sb-bekreft-hover: #157a24;
+  --sb-bekreft-tekst: #fff;
   --sb-vann-bg: rgba(0, 60, 0, 0.85);
 }
 
@@ -109,8 +111,6 @@
   --sb-knapp-tekst:     #ffffff;
   --sb-knapp-dis-bg:    #cccccc;
   --sb-knapp-slett-hover: #7a0000;
-  --sb-bekreft-bg:      #005500;
-  --sb-bekreft-hover:   #003d00;
   --sb-vann-bg:         rgba(0, 80, 0, 0.9);
 }
 

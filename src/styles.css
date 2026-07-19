@@ -1926,7 +1926,7 @@ th.initial-score-th {
 
 .sb-neste-btn--bekreft {
   background: var(--sb-bekreft-bg);
-  color: var(--sb-tekst);
+  color: var(--sb-bekreft-tekst);
 }
 
 .sb-neste-btn--bekreft:hover:not(:disabled) {
