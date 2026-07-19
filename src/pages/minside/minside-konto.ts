@@ -26,7 +26,7 @@ function passwordCardHtml(hasPasswordLogin: boolean): string {
   const title = hasPasswordLogin ? 'Bytt passord' : 'Opprett passord'
   const providerHint = hasPasswordLogin
     ? ''
-    : '<p class="card-text text-muted">Du er innlogga med Google. Opprettar du eit passord, kan du også logge inn med e-post og passord.</p>'
+    : '<p class="card-text text-muted">Du er innlogga med Google eller Apple. Opprettar du eit passord, kan du også logge inn med e-post og passord.</p>'
   return `
     <h5 class="card-title">${title}</h5>
     ${providerHint}

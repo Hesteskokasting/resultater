@@ -2251,12 +2251,14 @@ th.initial-score-th {
 
 .account-container { max-width: 480px; }
 
-.btn-google {
+.btn-google,
+.btn-apple {
   background: var(--flate);
   color: var(--tekst);
   border: 1px solid var(--kant);
 }
-.btn-google:hover { background: var(--primaer-hover); }
+.btn-google:hover,
+.btn-apple:hover { background: var(--primaer-hover); }
 
 .account-divider {
   display: flex;

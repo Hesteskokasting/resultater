@@ -101,10 +101,10 @@ export const GOOGLE_SIGN_IN_PENDING_KEY = 'googleSignInPending'
 
 // Google blocks its OAuth consent screen from loading inside a WebView (error
 // "disallowed_useragent"), so the Capacitor app can't use the browser-redirect
-// flow below. It signs in via the OS account picker (Credential Manager) instead,
-// which resolves synchronously with a session — no redirect, so callers must
-// navigate themselves on success rather than relying on GOOGLE_SIGN_IN_PENDING_KEY.
-async function signInWithGoogleNative(): Promise<{ error: { message: string } | null }> {
+// flow below. Native sign-in goes through the OS account sheet instead and
+// resolves a session directly — no redirect, so callers must navigate themselves
+// on success rather than relying on GOOGLE_SIGN_IN_PENDING_KEY.
+async function signInWithProviderNative(provider: 'google' | 'apple'): Promise<{ error: { message: string } | null }> {
   // Everything lives inside the try: initialize() throws on missing/invalid client
   // config, and an unhandled rejection here would leave the login button silently
   // disabled with no toast.
@@ -118,37 +118,52 @@ async function signInWithGoogleNative(): Promise<{ error: { message: string } | 
         iOSClientId: import.meta.env.VITE_GOOGLE_IOS_CLIENT_ID,
         mode: 'online',
       },
+      apple: {},
     })
 
-    const response = await SocialLogin.login({
-      provider: 'google',
-      // 'bottom' (GetGoogleIdOption) avoids a known Android Credential Manager race
-      // where the default 'standard' full-screen chooser spuriously throws
-      // GetCredentialCancellationException right after the user taps an account.
-      options: { style: 'bottom', scopes: ['email', 'profile'], nonce: nonceDigest },
-    })
-
-    if (response.result.responseType !== 'online' || !response.result.idToken) {
-      return { error: { message: 'Fekk ikkje innloggingstoken frå Google.' } }
+    let idToken: string | null
+    if (provider === 'google') {
+      const response = await SocialLogin.login({
+        provider: 'google',
+        // 'bottom' (GetGoogleIdOption) avoids a known Android Credential Manager race
+        // where the default 'standard' full-screen chooser spuriously throws
+        // GetCredentialCancellationException right after the user taps an account.
+        options: { style: 'bottom', scopes: ['email', 'profile'], nonce: nonceDigest },
+      })
+      idToken = response.result.responseType === 'online' ? (response.result.idToken ?? null) : null
+    } else {
+      const response = await SocialLogin.login({
+        provider: 'apple',
+        options: { scopes: ['email', 'name'], nonce: nonceDigest },
+      })
+      idToken = response.result.idToken ?? null
     }
 
-    return supabase.auth.signInWithIdToken({
-      provider: 'google',
-      token: response.result.idToken,
-      nonce: rawNonce,
-    })
+    if (!idToken) {
+      return { error: { message: `Fekk ikkje innloggingstoken frå ${provider === 'google' ? 'Google' : 'Apple'}.` } }
+    }
+
+    return supabase.auth.signInWithIdToken({ provider, token: idToken, nonce: rawNonce })
   } catch (err) {
     if (err instanceof Error && 'code' in err && err.code === 'USER_CANCELLED') return { error: null }
-    return { error: { message: err instanceof Error ? err.message : 'Google-innlogging feila.' } }
+    return { error: { message: err instanceof Error ? err.message : 'Innlogginga feila.' } }
   }
 }
 
 export async function signInWithGoogle(redirect?: string) {
-  if (Capacitor.isNativePlatform()) return signInWithGoogleNative()
+  if (Capacitor.isNativePlatform()) return signInWithProviderNative('google')
 
   const target = `${window.location.origin}${window.location.pathname}#/logginn${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ''}`
   sessionStorage.setItem(GOOGLE_SIGN_IN_PENDING_KEY, '1')
   return supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: target } })
+}
+
+// iOS-native only (App Store guideline 4.8 requires Apple sign-in alongside
+// Google). No web/Android fallback: that would need an Apple Services ID with a
+// client secret that expires every 6 months, so the login page only renders the
+// Apple button on iOS.
+export async function signInWithApple(): Promise<{ error: { message: string } | null }> {
+  return signInWithProviderNative('apple')
 }
 
 export async function signUp(email: string, password: string) {

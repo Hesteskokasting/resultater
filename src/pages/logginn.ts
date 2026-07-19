@@ -1,5 +1,5 @@
 import { Capacitor } from '@capacitor/core'
-import { GOOGLE_SIGN_IN_PENDING_KEY, getUser, isAdmin, signIn, signInWithGoogle, signUp } from '@/services/authService'
+import { GOOGLE_SIGN_IN_PENDING_KEY, getUser, isAdmin, signIn, signInWithApple, signInWithGoogle, signUp } from '@/services/authService'
 import { escHtml } from '@/utils/escHtml'
 import { createTabs } from '@/components/Tabs'
 import { showToast } from '@/components/Toast'
@@ -92,11 +92,38 @@ export async function render(container: HTMLElement): Promise<void> {
   heading.textContent = 'Konto'
   outer.appendChild(heading)
 
-  const googleButton = document.createElement('button')
-  googleButton.type = 'button'
-  googleButton.className = 'btn btn-google w-100'
-  googleButton.textContent = 'Logg inn med Google'
-  outer.appendChild(googleButton)
+  function createSocialLoginButton(label: string, className: string, signInFn: () => Promise<{ error: { message: string } | null }>): HTMLButtonElement {
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.className = `btn ${className} w-100`
+    button.textContent = label
+    button.addEventListener('click', async () => {
+      button.disabled = true
+      const { error } = await signInFn()
+      if (error) {
+        logError('logginn.socialLogin', error)
+        showToast(error.message, 'error')
+        button.disabled = false
+        return
+      }
+      // Web: signInWithOAuth already navigated the browser away, so this line never
+      // runs there. Native: the sign-in resolved a session directly with no
+      // redirect to hang navigation off, so this handler must navigate itself.
+      if (Capacitor.isNativePlatform()) {
+        location.hash = await resolvePostLoginDestination(getRedirectParam())
+      }
+    })
+    return button
+  }
+
+  outer.appendChild(createSocialLoginButton(
+    'Logg inn med Google', 'btn-google', () => signInWithGoogle(getRedirectParam() ?? undefined),
+  ))
+  // App Store guideline 4.8: offering Google sign-in on iOS requires offering
+  // Apple sign-in too. Native-only flow, so the button is iOS-only.
+  if (Capacitor.getPlatform() === 'ios') {
+    outer.appendChild(createSocialLoginButton(' Logg inn med Apple', 'btn-apple mt-2', signInWithApple))
+  }
 
   const divider = document.createElement('div')
   divider.className = 'account-divider'
@@ -116,23 +143,6 @@ export async function render(container: HTMLElement): Promise<void> {
     container.querySelector<HTMLInputElement>('#li-email')!.value = prefillEmail
     container.querySelector<HTMLInputElement>('#li-password')!.focus()
   }
-
-  googleButton.addEventListener('click', async () => {
-    googleButton.disabled = true
-    const { error } = await signInWithGoogle(getRedirectParam() ?? undefined)
-    if (error) {
-      logError('logginn.signInWithGoogle', error)
-      showToast(error.message, 'error')
-      googleButton.disabled = false
-      return
-    }
-    // Web: signInWithOAuth already navigated the browser away, so this line never
-    // runs there. Native: signInWithGoogle resolved a session directly with no
-    // redirect to hang navigation off, so this handler must navigate itself.
-    if (Capacitor.isNativePlatform()) {
-      location.hash = await resolvePostLoginDestination(getRedirectParam())
-    }
-  })
 
   container.querySelector('#login-form')!.addEventListener('submit', async e => {
     e.preventDefault()
