@@ -65,7 +65,10 @@
   --sb-bekreft-bg: #1a8f2d;
   --sb-bekreft-hover: #157a24;
   --sb-bekreft-tekst: #fff;
+  /* Vinnar-panel — dark green in both themes, so text stays light */
   --sb-vann-bg: rgba(0, 60, 0, 0.85);
+  --sb-vann-tekst: #fff;
+  --sb-vann-positiv: #4cff4c;
 }
 
 [data-theme="light"] {

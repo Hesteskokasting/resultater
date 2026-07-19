@@ -2007,6 +2007,10 @@ th.initial-score-th {
 
 .sb-wrap--3p .sb-spelar-panel--vann {
   background: var(--sb-vann-bg);
+  color: var(--sb-vann-tekst);
+  /* Name and plass badge read --sb-positiv, which is too dark on the green bg
+     in light theme — remap it inside the winner panel only */
+  --sb-positiv: var(--sb-vann-positiv);
 }
 
 .sb-plass-badge {
@@ -2047,8 +2051,28 @@ th.initial-score-th {
   }
 }
 
+/* Fixed-height column name block: wrapping names and the starter dot must
+   not push the score/buttons out of alignment across the three panels */
 .sb-wrap--3p .sb-spelar-navn {
   font-size: min(clamp(1.2rem, 2.5vw, 2rem), 5vh);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.2;
+  min-height: 4.2em; /* two text lines + dot row above and mirror below */
+}
+
+/* Panels are narrow — the starter dot sits above the name; the invisible
+   mirror below keeps the text vertically centered so scores stay aligned */
+.sb-wrap--3p .sb-spelar-navn--starter::before {
+  margin-right: 0;
+  margin-bottom: 0.35em;
+}
+
+.sb-wrap--3p .sb-spelar-navn--starter::after {
+  margin-left: 0;
+  margin-top: 0.35em;
 }
 
 .sb-wrap--3p .sb-spelar-navn--par {
