@@ -1,3 +1,4 @@
+import { Capacitor } from '@capacitor/core'
 import type { AuthUser } from '@/types'
 import { getUser } from '@/services/authService'
 import { getScheduleTournaments, getFilterOptions, getRegistrationsForThrower } from '@/services/stevneService'
@@ -221,6 +222,10 @@ export async function render(container: HTMLElement): Promise<void> {
 
     allData = data ?? []
 
+    const isNative = Capacitor.isNativePlatform()
+    const excelButtonHtml = isNative ? '' : '<button class="tl-excel-button" id="tl-excel-desktop">⬇ Excel</button>'
+    const excelButtonMobileHtml = isNative ? '' : '<button class="tl-excel-button" id="tl-excel-mobile">⬇ Excel</button>'
+
     // Same select set renders twice: desktop filter row ('') and mobile bottom sheet ('-mobil')
     function filterSelects(suffix: '' | '-mobil'): Record<'year' | 'tournamentType' | 'throwingMethod' | 'organizer' | 'category', string> {
       return {
@@ -246,14 +251,14 @@ export async function render(container: HTMLElement): Promise<void> {
           ${desktopSel.throwingMethod}
           ${desktopSel.organizer}
           ${desktopSel.category}
-          <button class="tl-excel-button" id="tl-excel-desktop">⬇ Excel</button>
+          ${excelButtonHtml}
         </div>
 
         <!-- Mobile row -->
         <div class="tl-mobile-row">
           <span id="tl-text-mobile-slot"></span>
           <button class="tl-filter-button" id="tl-filter-open">Filter ≡</button>
-          <button class="tl-excel-button" id="tl-excel-mobile">⬇ Excel</button>
+          ${excelButtonMobileHtml}
         </div>
 
         <p class="tl-count"></p>
@@ -330,8 +335,6 @@ export async function render(container: HTMLElement): Promise<void> {
     const throwingMethodSelect    = container.querySelector<HTMLSelectElement>('#tl-throwingmethod')!
     const organizerSelect         = container.querySelector<HTMLSelectElement>('#tl-organizer')!
     const categorySelect          = container.querySelector<HTMLSelectElement>('#tl-category')!
-    const excelDesktopBtn         = container.querySelector<HTMLButtonElement>('#tl-excel-desktop')!
-    const excelMobileBtn          = container.querySelector<HTMLButtonElement>('#tl-excel-mobile')!
     const filterOpenBtn           = container.querySelector<HTMLButtonElement>('#tl-filter-open')!
     const sheet                   = container.querySelector<HTMLElement>('#tl-sheet')!
     const backdrop                = container.querySelector<HTMLElement>('#tl-backdrop')!
@@ -390,9 +393,11 @@ export async function render(container: HTMLElement): Promise<void> {
     organizerSelect.addEventListener('change',      () => { filter.clubId           = organizerSelect.value;     updateList() })
     categorySelect.addEventListener('change',       () => { filter.categoryId       = categorySelect.value;      updateList() })
 
-    const excelHandler = () => exportToExcel(filterData(allData))
-    excelDesktopBtn.addEventListener('click', excelHandler)
-    excelMobileBtn.addEventListener('click',  excelHandler)
+    if (!isNative) {
+      const excelHandler = () => exportToExcel(filterData(allData))
+      container.querySelector<HTMLButtonElement>('#tl-excel-desktop')!.addEventListener('click', excelHandler)
+      container.querySelector<HTMLButtonElement>('#tl-excel-mobile')!.addEventListener('click',  excelHandler)
+    }
 
     function openSheet() { sheet.classList.add('active'); backdrop.classList.add('active') }
     function closeSheet() { sheet.classList.remove('active'); backdrop.classList.remove('active') }

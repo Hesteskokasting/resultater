@@ -1,3 +1,4 @@
+import { Capacitor } from '@capacitor/core'
 import { formatDate, yearOptions, downloadExcel, formatPercent } from '@/utils/shared'
 import { createErrorBanner } from '@/components/ErrorBanner'
 import { createLoadingState } from '@/components/LoadingState'
@@ -147,7 +148,8 @@ function createRankingTable(list: RankingItem[], searchText: string): HTMLElemen
   })
 }
 
-function pageSkeletonHtml(year: number): string {
+function pageSkeletonHtml(year: number, isNative: boolean): string {
+  const excelButtonHtml = isNative ? '' : '<button class="tl-excel-button" id="nr-excel">⬇ Excel</button>'
   return `
     <div class="content-page">
       <h1 class="nc-main-title">Norgesranking ${year}</h1>
@@ -160,7 +162,7 @@ function pageSkeletonHtml(year: number): string {
       <div class="nc-filter-rad">
         <select id="nr-year" class="tl-select">${yearOptions(year, FIRST_YEAR)}</select>
         <span id="nr-search-slot"></span>
-        <button class="tl-excel-button" id="nr-excel">⬇ Excel</button>
+        ${excelButtonHtml}
       </div>
       <div class="nc-click-hint-row">
         <span class="nc-click-hint">Klikk prosent for å vise detaljer</span>
@@ -186,7 +188,8 @@ export async function render(container: HTMLElement): Promise<void> {
       return
     }
 
-    container.innerHTML = pageSkeletonHtml(filter.year)
+    const isNative = Capacitor.isNativePlatform()
+    container.innerHTML = pageSkeletonHtml(filter.year, isNative)
 
     function updateTable(): void {
       const tournamentsMap = buildEventsMap(cache.tournaments)
@@ -209,7 +212,6 @@ export async function render(container: HTMLElement): Promise<void> {
     })
 
     const yearSelect  = container.querySelector<HTMLSelectElement>('#nr-year')!
-    const excelButton = container.querySelector<HTMLButtonElement>('#nr-excel')!
     const infoButton  = container.querySelector<HTMLButtonElement>('#nr-info-button')!
 
     yearSelect.addEventListener('change', async () => {
@@ -231,7 +233,9 @@ export async function render(container: HTMLElement): Promise<void> {
       }
     })
 
-    excelButton.addEventListener('click', exportExcel)
+    if (!isNative) {
+      container.querySelector<HTMLButtonElement>('#nr-excel')!.addEventListener('click', exportExcel)
+    }
 
     infoButton.addEventListener('click', () => {
       filter.infoVisible = !filter.infoVisible
