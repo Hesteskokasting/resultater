@@ -23,11 +23,10 @@ import { showToast } from '@/components/Toast'
 import { confirmDialog } from '@/components/ConfirmDialog'
 import { getMatchSides, groupStandingsByPair, scoreForPlayer, type MatchSide } from '@/utils/kamp'
 import { autoCompleteInitialRoundMatches } from '@/services/testDataService'
-import { openInNewTab } from '@/services/navigationService'
 import {
   buildInitialPlayerMap, sortStandings, renderInitialButtons, createChangeHandler,
   bindStandingDetails, renderMainContent, bindTabToggle, getActiveTab, setActiveTab, renderStandingTable, canConfirmMatch,
-  sideNameHtml,
+  sideNameHtml, bindScoreboardClicks,
   type StandingRow,
 } from '@/organizer/org-shared'
 import { createLoadingState } from '@/components/LoadingState'
@@ -154,6 +153,7 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
 
       applyFlashClasses(container, idsToFlash, allMatches)
 
+      bindScoreboardClicks(container)
       for (const kamp of allMatches) {
         bindMatchEvents(container, stevneid, kamp, startNumberMap, hcpMap, positionMap, canEditMatches)
       }
@@ -276,10 +276,9 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
     const mobileRow = container.querySelector<HTMLElement>(`.match-row-mobile[data-kamp-id="${kamp.id}"]`)
     if (!mobileRow) return
 
-    if (!isAdmin) {
-      mobileRow.addEventListener('click', () => { openInNewTab(`#/kamp/${kamp.id}`) })
-      return
-    }
+    // Viewer rows navigate via their data-scoreboard-kamp-id (delegated in
+    // bindScoreboardClicks); only admin rows have expand/confirm interactions.
+    if (!isAdmin) return
 
     mobileRow.querySelector('.match-row-mobile__header')?.addEventListener('click', () => {
       const expanded = mobileRow.dataset.expanded === 'true'
@@ -289,10 +288,6 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
       })
       mobileRow.dataset.expanded = expanded ? 'false' : 'true'
       mobileRow.setAttribute('aria-expanded', String(!expanded))
-    })
-    container.querySelector(`#m-scoreboard-${kamp.id}`)?.addEventListener('click', (e) => {
-      e.stopPropagation()
-      openInNewTab(`#/kamp/${kamp.id}`)
     })
     container.querySelector(`#m-bekrft-${kamp.id}`)?.addEventListener('click',
       createConfirmHandler(container, stevneid, kamp, startNumberMap, hcpMap, positionMap, true))
@@ -309,9 +304,6 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
   ): void {
     if (canEditMatches) bindScoreEdit(container, stevneid, kamp, startNumberMap, positionMap)
 
-    container.querySelector(`#scoreboard-${kamp.id}`)?.addEventListener('click', () => {
-      openInNewTab(`#/kamp/${kamp.id}`)
-    })
     container.querySelector(`#bekrft-${kamp.id}`)?.addEventListener('click',
       createConfirmHandler(container, stevneid, kamp, startNumberMap, hcpMap, positionMap, false))
 
@@ -560,14 +552,14 @@ function matchRowButtonTd(kamp: InitialMatchRow, admin: boolean, hasRounds: bool
   if (!admin) {
     return `<td class="text-end pe-2 text-nowrap">
         ${pill}
-        <button class="match-button" id="scoreboard-${kamp.id}" title="Scoreboard">Scoreboard</button>
+        <button class="match-button" data-scoreboard-kamp-id="${kamp.id}" title="Scoreboard">Scoreboard</button>
       </td>`
   }
   const scoreCss = `match-button${hasRounds ? ' match-button-primary' : ''}`
   const confirmCss = `match-button${canConfirm ? ' match-button-success' : ''}`
   return `<td class="text-end pe-2 text-nowrap">
         ${pill}
-        <button class="${scoreCss}" id="scoreboard-${kamp.id}" title="Scoreboard">Scoreboard</button>
+        <button class="${scoreCss}" data-scoreboard-kamp-id="${kamp.id}" title="Scoreboard">Scoreboard</button>
         <button class="${confirmCss}" id="bekrft-${kamp.id}"${!canConfirm ? ' disabled' : ''}>Bekreft</button>
       </td>`
 }
@@ -621,7 +613,7 @@ function matchRowMobile(
   const roleCss = admin ? '' : ' match-row-mobile--viewer'
 
   return `
-    <li class="match-row-mobile${roleCss}" data-kamp-id="${kamp.id}" data-status="${status}" role="button" tabindex="0">
+    <li class="match-row-mobile${roleCss}" data-kamp-id="${kamp.id}"${admin ? '' : ` data-scoreboard-kamp-id="${kamp.id}"`} data-status="${status}" role="button" tabindex="0">
       <div class="match-row-mobile__header">
         <span class="match-mobile-lane">${kamp.bane_nummer ?? ''}</span>
         <span class="match-mobile-name"><span class="match-mobile-name__p1">${p1NameShort}</span><span class="match-mobile-name__p2"><span class="match-mobile-vs">vs</span> ${p2NameShort}</span></span>
@@ -639,7 +631,7 @@ function matchRowMobileButtons(kamp: InitialMatchRow, canConfirm: boolean): stri
     : `<button class="match-button-mobile match-button-confirm-mobile" id="m-bekrft-${kamp.id}"${!canConfirm ? ' disabled' : ''}>Bekreft</button>`
   return `
       <div class="match-mobile-buttons">
-        <button class="match-button-mobile" id="m-scoreboard-${kamp.id}">Scoreboard</button>
+        <button class="match-button-mobile" data-scoreboard-kamp-id="${kamp.id}">Scoreboard</button>
         ${confirmCell}
       </div>`
 }

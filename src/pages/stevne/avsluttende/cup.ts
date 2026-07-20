@@ -6,13 +6,12 @@ import {
   renderStructureListHtml,
 } from '@/organizer/gruppefordelingUi'
 import { generateFinaleAndBronzeFinal } from '@/services/kampGenereringCupService'
-import { openInNewTab } from '@/services/navigationService'
 import { openGenerateRoundDialog } from './_avslCupGenererRundeDialog'
 import { openThreeSideConfirmDialog } from './_avslCupTreSpelarDialog'
 import { showNumberpad } from '@/components/ScoreNumberpad'
 import { scoreForPlayer, getAllMatchSides, type MatchSide } from '@/utils/kamp'
 import { livePillHtml } from '@/components/LivePill'
-import { canConfirmMatch, sideNameHtml, type StandingRow } from '@/organizer/org-shared'
+import { bindScoreboardClicks, canConfirmMatch, sideNameHtml, type StandingRow } from '@/organizer/org-shared'
 import { showScoreEditor } from '@/organizer/scoreEditor'
 import { escHtml } from '@/utils/escHtml'
 import { errorMessage } from '@/utils/errorMessage'
@@ -409,7 +408,7 @@ function adminRowHtml(kamp: FinalMatchRow, isConfirmed: boolean, btn: ConfirmBut
               ${!kamp.er_walkover && !kamp.er_tre_spelarar
                 ? `<button class="btn btn-primary btn-sm" id="plus-${kamp.id}"${isConfirmed ? ' disabled' : ''}>+</button> `
                 : ''}
-              ${!isConfirmed ? `<button class="btn btn-secondary btn-sm" id="scoreboard-${kamp.id}">Scoreboard</button> ` : ''}
+              ${!isConfirmed ? `<button class="btn btn-secondary btn-sm" data-scoreboard-kamp-id="${kamp.id}">Scoreboard</button> ` : ''}
               <button class="btn ${btn.css} btn-sm${btn.extraCss}" id="bekrft-${kamp.id}"${btn.disabled ? ' disabled' : ''}>${btn.text}</button>
             </td>
           </tr>`
@@ -462,6 +461,7 @@ function bindMatchEventsLocal(
   startNumberMap: Record<number, number>,
   positionMap: Record<number, number>,
 ): void {
+  bindScoreboardClicks(container)
   for (const kamp of finalMatches) {
     const sides = matchSides(kamp, startNumberMap, positionMap)
     const side1 = sides[0] ?? null
@@ -504,10 +504,6 @@ function bindMatchEventsLocal(
         onSave: writeSideScore,
         onSaved: reload,
       })
-    })
-
-    container.querySelector(`#scoreboard-${kamp.id}`)?.addEventListener('click', () => {
-      openInNewTab(`#/kamp/${kamp.id}`)
     })
 
     container.querySelector(`#bekrft-${kamp.id}`)?.addEventListener('click', async (e) => {

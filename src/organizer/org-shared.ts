@@ -3,6 +3,21 @@ import { throwerNameShort } from '@/utils/kaster'
 import { escHtml } from '@/utils/escHtml'
 import type { Tables } from '@/types'
 import { createTable, type ColumnDef } from '@/components/Table'
+import { openInNewTab } from '@/services/navigationService'
+
+/**
+ * Delegated click handler for every element carrying data-scoreboard-kamp-id.
+ * Bound once per container (idempotent) and survives innerHTML re-renders,
+ * so per-match listeners aren't needed.
+ */
+export function bindScoreboardClicks(container: HTMLElement): void {
+  if (container.dataset.scoreboardClicksBound === 'true') return
+  container.dataset.scoreboardClicksBound = 'true'
+  container.addEventListener('click', e => {
+    const trigger = (e.target as HTMLElement | null)?.closest<HTMLElement>('[data-scoreboard-kamp-id]')
+    if (trigger?.dataset.scoreboardKampId) openInNewTab(`#/kamp/${trigger.dataset.scoreboardKampId}`)
+  })
+}
 
 // Minimal shapes for organizer kamp data (spelarar is an aliased join from kamp_spelar)
 export interface OrgMatchPlayer {
