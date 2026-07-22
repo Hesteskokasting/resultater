@@ -118,6 +118,11 @@ export async function resetTournament(stevneid: number): Promise<{ error: unknow
   await deleteMatchesForPhase(stevneid, 'avsluttende')
   await deleteMatchesForPhase(stevneid, 'innledende')
 
+  // X-kast/Kongelag courts: deltaker and omgang rows cascade with the court
+  // (ON DELETE CASCADE), so one delete covers all three tables.
+  const { error: xkErr } = await supabase.from('xkast_kongelag').delete().eq('stevneid', stevneid)
+  if (xkErr) { logError('resetTournament:xkast_kongelag', xkErr); return { error: xkErr } }
+
   const { error: resErr } = await supabase.from('resultat').delete().eq('stevneid', stevneid)
   if (resErr) logError('resetTournament:resultat', resErr)
   return { error: resErr }

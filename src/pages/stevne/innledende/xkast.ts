@@ -132,9 +132,11 @@ function courtRowsHtml(court: CourtRow, totalRunder: number): string {
       ? `<td class="text-center align-middle fw-semibold" rowspan="${court.deltakarar.length}">${court.bane_nummer ?? ''}</td>`
       : ''
     const rowAttrs = i === 0 ? ` class="match-row-desktop" data-status="${courtStatus(court)}"` : ''
+    // text-start: the reused match-row-desktop styling right-aligns the P1
+    // column (td:nth-child(2)) for kamp rows; X-kast names stay left-aligned.
     return `<tr${rowAttrs}>
       ${firstCells}
-      <td>${escHtml(throwerName(participant.kaster))}</td>
+      <td class="text-start">${escHtml(throwerName(participant.kaster))}</td>
       ${rundeCells}
       <td class="text-center fw-semibold">${totalSum(participant)}</td>
       ${i === 0 ? courtActionTd(court) : ''}
