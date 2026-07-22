@@ -1,5 +1,5 @@
 import { createEl } from '@/utils/createEl'
-import { createPad, bindPadButtons } from '@/components/ScoreNumberpad'
+import { createNumberpadOverlay, createPad, bindPadButtons } from '@/components/ScoreNumberpad'
 import { showToast } from '@/components/Toast'
 import {
   isValidOmgangEntry,
@@ -34,23 +34,7 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
   let poeng = 0
   let ringer = 0
 
-  const overlay = document.createElement('div')
-  overlay.className = 'np-overlay'
-
-  history.pushState({ numberpad: true }, '')
-
-  function closeOverlay(): void {
-    window.removeEventListener('popstate', handlePopState)
-    if (document.body.contains(overlay)) document.body.removeChild(overlay)
-    if ((history.state as { numberpad?: boolean } | null)?.numberpad) history.back()
-  }
-
-  function handlePopState(): void {
-    window.removeEventListener('popstate', handlePopState)
-    if (document.body.contains(overlay)) document.body.removeChild(overlay)
-  }
-
-  window.addEventListener('popstate', handlePopState)
+  const { overlay, close } = createNumberpadOverlay()
 
   function advance(): void {
     stepIdx++
@@ -58,53 +42,66 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
     poeng = 0
     ringer = 0
     if (stepIdx >= steps.length) {
-      closeOverlay()
+      close()
       return
     }
     render()
+  }
+
+  function makeActionBtn(className: string): HTMLButtonElement {
+    if (stage === 'poeng') {
+      const nextBtn = createEl('button', '→', className) as HTMLButtonElement
+      nextBtn.addEventListener('click', () => { stage = 'ringer'; render() })
+      return nextBtn
+    }
+    const saveBtn = createEl('button', 'Lagre', className) as HTMLButtonElement
+    saveBtn.addEventListener('click', async () => {
+      const step = steps[stepIdx]
+      if (!step) return
+      if (!isValidOmgangEntry(poeng, ringer)) {
+        showToast(`${poeng} poeng med ${ringer} ringarar er ikkje mogleg.`, 'error')
+        return
+      }
+      saveBtn.disabled = true
+      saveBtn.textContent = 'Lagrer…'
+      const saved = await step.onSave(poeng, ringer)
+      if (saved) {
+        advance()
+      } else {
+        saveBtn.disabled = false
+        saveBtn.textContent = 'Lagre'
+      }
+    })
+    return saveBtn
   }
 
   function render(): void {
     overlay.innerHTML = ''
     const step = steps[stepIdx]
     if (!step) return
-
-    const wrap = createEl('div', null, 'np-wrap')
-    overlay.appendChild(wrap)
-
-    const closeBtn = createEl('button', '×', 'np-num-btn np-grid-btn np-grid-close-btn')
-    closeBtn.addEventListener('click', closeOverlay)
-
-    let actionBtn: HTMLButtonElement
-    if (stage === 'poeng') {
-      actionBtn = createEl('button', '→', 'np-num-btn') as HTMLButtonElement
-      actionBtn.addEventListener('click', () => { stage = 'ringer'; render() })
-    } else {
-      actionBtn = createEl('button', 'Lagre', 'np-num-btn') as HTMLButtonElement
-      actionBtn.addEventListener('click', async () => {
-        if (!isValidOmgangEntry(poeng, ringer)) {
-          showToast(`${poeng} poeng med ${ringer} ringarar er ikkje mogleg.`, 'error')
-          return
-        }
-        actionBtn.disabled = true
-        actionBtn.textContent = 'Lagrer…'
-        const saved = await step.onSave(poeng, ringer)
-        if (saved) {
-          advance()
-        } else {
-          actionBtn.disabled = false
-          actionBtn.textContent = 'Lagre'
-        }
-      })
-    }
+    const isMobile = window.matchMedia('(max-width: 767px)').matches
 
     const stageLabel = stage === 'poeng' ? 'poeng' : 'ringarar'
     const heading = `${step.label} · omgang ${step.omgang} · ${stageLabel}`
     const current = stage === 'poeng' ? poeng : ringer
     const max = stage === 'poeng' ? OMGANG_MAX_POENG : OMGANG_MAX_RINGER
 
-    const pad = createPad(heading, current, closeBtn, actionBtn)
+    let pad: HTMLElement
+    if (isMobile) {
+      const closeBtn = createEl('button', '×', 'np-num-btn np-grid-btn np-grid-close-btn')
+      closeBtn.addEventListener('click', close)
+      pad = createPad(heading, current, closeBtn, makeActionBtn('np-num-btn'))
+    } else {
+      const xBtn = createEl('button', '×', 'np-lukk-btn')
+      xBtn.addEventListener('click', close)
+      overlay.appendChild(xBtn)
+      overlay.appendChild(makeActionBtn('np-lagre-btn'))
+      pad = createPad(heading, current)
+    }
+
+    const wrap = createEl('div', null, 'np-wrap')
     wrap.appendChild(pad)
+    overlay.appendChild(wrap)
     bindPadButtons(
       pad,
       () => (stage === 'poeng' ? poeng : ringer),

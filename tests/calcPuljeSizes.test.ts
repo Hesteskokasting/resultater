@@ -6,8 +6,12 @@ describe('calcPuljeSizes', () => {
     expect(calcPuljeSizes(45, 10)).toEqual([9, 9, 9, 9, 9])
   })
 
-  it('spreads the remainder across the first puljer (45 players, cap 12)', () => {
-    expect(calcPuljeSizes(45, 12)).toEqual([12, 11, 11, 11])
+  it('spreads the remainder across the last puljer (45 players, cap 12)', () => {
+    expect(calcPuljeSizes(45, 12)).toEqual([11, 11, 11, 12])
+  })
+
+  it('puts the odd-sized court last (7 players, cap 3)', () => {
+    expect(calcPuljeSizes(7, 3)).toEqual([2, 2, 3])
   })
 
   it('returns a single pulje when everyone fits', () => {

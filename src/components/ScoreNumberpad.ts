@@ -7,6 +7,38 @@ export interface NumberpadEntry {
   score: number
 }
 
+export interface NumberpadOverlay {
+  overlay: HTMLDivElement
+  /** Removes the overlay and unwinds the history entry pushed on open. */
+  close: () => void
+}
+
+/**
+ * Fullscreen numberpad overlay shell. Opening pushes a history entry so the
+ * device back button closes the pad instead of leaving the page. Shared by
+ * showNumberpad and OmgangNumberpad.
+ */
+export function createNumberpadOverlay(): NumberpadOverlay {
+  const overlay = document.createElement('div')
+  overlay.className = 'np-overlay'
+
+  history.pushState({ numberpad: true }, '')
+
+  function handlePopState(): void {
+    window.removeEventListener('popstate', handlePopState)
+    if (document.body.contains(overlay)) document.body.removeChild(overlay)
+  }
+
+  function close(): void {
+    window.removeEventListener('popstate', handlePopState)
+    if (document.body.contains(overlay)) document.body.removeChild(overlay)
+    if ((history.state as { numberpad?: boolean } | null)?.numberpad) history.back()
+  }
+
+  window.addEventListener('popstate', handlePopState)
+  return { overlay, close }
+}
+
 /**
  * Fullscreen numberpad for direct score entry. Supports any number of
  * participants (kamp uses 2 sides, X-kast courts have 1–3 players).
@@ -20,23 +52,7 @@ export function showNumberpad(
   const scores = entries.map(e => e.score)
   let step = 0
 
-  const overlay = document.createElement('div')
-  overlay.className = 'np-overlay'
-
-  history.pushState({ numberpad: true }, '')
-
-  function closeOverlay(): void {
-    window.removeEventListener('popstate', handlePopState)
-    if (document.body.contains(overlay)) document.body.removeChild(overlay)
-    if ((history.state as { numberpad?: boolean } | null)?.numberpad) history.back()
-  }
-
-  function handlePopState(): void {
-    window.removeEventListener('popstate', handlePopState)
-    if (document.body.contains(overlay)) document.body.removeChild(overlay)
-  }
-
-  window.addEventListener('popstate', handlePopState)
+  const { overlay, close } = createNumberpadOverlay()
 
   function makeSaveBtn(className: string): HTMLButtonElement {
     const btn = createEl('button', 'Lagre', className) as HTMLButtonElement
@@ -44,7 +60,7 @@ export function showNumberpad(
       btn.disabled = true
       btn.textContent = 'Lagrer…'
       await onSave(scores)
-      closeOverlay()
+      close()
     })
     return btn
   }
@@ -55,7 +71,7 @@ export function showNumberpad(
 
     if (!isMobile) {
       const xBtn = createEl('button', '×', 'np-lukk-btn')
-      xBtn.addEventListener('click', closeOverlay)
+      xBtn.addEventListener('click', close)
       overlay.appendChild(xBtn)
       overlay.appendChild(makeSaveBtn('np-lagre-btn'))
     }
@@ -65,7 +81,7 @@ export function showNumberpad(
 
     if (isMobile) {
       const closeBtn = createEl('button', '×', 'np-num-btn np-grid-btn np-grid-close-btn')
-      closeBtn.addEventListener('click', closeOverlay)
+      closeBtn.addEventListener('click', close)
 
       let actionBtn: HTMLElement
       if (step < entries.length - 1) {
