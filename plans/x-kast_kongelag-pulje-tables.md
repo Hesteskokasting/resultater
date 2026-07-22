@@ -112,6 +112,30 @@ just the 2–4 figure sketched in the older doc's Phase 1 (see the correction th
 aggregate per omgang via a `ScoreNumberpad`-style input
 (`src/components/ScoreNumberpad.ts`): one total (0–20 poeng) plus ring count (0–4) per omgang.
 
+**Entry flow (resolved):** each omgang is entered as a two-step pad — poeng first (0–20),
+then the pad switches to ringere (0–4). Each completed omgang saves immediately (partial
+progress survives interruption; the live stilling updates via realtime). The two formats
+share the pad wizard and differ only in queue order:
+- **X-kast:** player-by-player within a court — player A enters a full runde (5 omganger,
+  each poeng→ringere), then the pad switches to player B on the same court, and so on.
+- **Kongelag:** court-by-court within an omgang — admin enters omgang N for court 1's player,
+  the pad switches to court 2, and so on through all courts (10 omganger total). Varies by
+  stevne type, but admin-driven entry is the common case.
+
+**Entry-grid layout (resolved):** the working view mirrors the kamp table — column 1: Bane
+(rowspan = player count on that court), column 2: player name, then **one column per runde**
+(not per omgang — 25/50 omgang columns would be unusable), last column: total poeng. Per-omgang
+detail behind a click on the player row (via the existing `bindExpandableRows()`) — deferred,
+added later when wanted. Kongelag reuses the same component (rowspan 1, no runde grouping —
+column layout decided when built).
+
+**Ranking view naming (resolved):** not called "scoreboard" — reuse the existing **stilling**
+table/concept from the kamp formats.
+
+**Tightened integrity check:** with `r` ringere, poeng must lie in `[5r, 5r + 3·(4−r)]`
+(each shoe is 5 or 0–3) — added as a `CHECK` alongside the 0–20/0–4 bounds, so impossible
+entries like "20 poeng, 0 ringere" are rejected by the database.
+
 **Omgang scoring (resolved):** one omgang = **4 shoes**. Each shoe scores 5 (ringer) or
 3/2/1/0 by distance from the stake — so an omgang row maxes at **20 poeng / 4 ringere**.
 A per-shoe detailed-scoring mode (per-shoe values {0,1,2,3,5}) was considered and **dropped
