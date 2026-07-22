@@ -95,7 +95,8 @@ export function showNumberpad(
   document.body.appendChild(overlay)
 }
 
-function createPad(
+/** Builds one numberpad card. Shared with OmgangNumberpad's sequential wizard. */
+export function createPad(
   name: string,
   initScore: number,
   bottomLeft?: HTMLElement,
@@ -130,10 +131,12 @@ function createPad(
   return pad
 }
 
-function bindPadButtons(
+/** Wires digit/reset buttons. `max` silently ignores presses that would exceed it. */
+export function bindPadButtons(
   pad: HTMLElement,
   getScore: () => number,
   setScore: (v: number) => void,
+  max?: number,
 ): void {
   const scoreEl = pad.querySelector<HTMLElement>('[data-score-el]')!
   const resetBtn = pad.querySelector<HTMLButtonElement>('[data-reset-btn]')!
@@ -142,6 +145,7 @@ function bindPadButtons(
     btn.addEventListener('click', () => {
       const curr = getScore()
       const next = curr === 0 ? Number(btn.dataset.val) : parseInt(String(curr) + btn.dataset.val)
+      if (max !== undefined && next > max) return
       setScore(next)
       scoreEl.textContent = String(next)
       resetBtn.disabled = false
