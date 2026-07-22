@@ -12,9 +12,10 @@ Don't blindly accept proposals. Challenge ideas when there's a flaw, simpler alt
 
 ## TypeScript
 
-- **ALWAYS use TypeScript.** Never write `.js` files.
-- **NEVER use `any`** (explicit or implicit). Use `unknown` + narrowing, or define a proper type.
-- **NEVER cast with `as unknown as SomeType`** to silence errors. Fix the underlying type mismatch.
+- **New application code is ALWAYS TypeScript.** Never create new `.ts` code as `.js`, and never add `.js` files under `src/`. Existing `.js` files are converted per the migration plan, not left to grow. Tooling/config that a tool genuinely requires in JS may use `.mjs`/`.cjs` (e.g. ESLint flat config, PostCSS) — prefer `.ts` wherever the tool supports it (Vite config, etc.).
+- **NEVER use `any`** (explicit or implicit). Use `unknown` + narrowing, or define a proper type. This has no exceptions — including in tests. A partially-typed mock is `Partial<T>` or a defined shape, never `any`.
+- **Avoid `as unknown as SomeType`.** In application code, fix the underlying type mismatch instead of double-casting to silence it. Permitted ONLY in test doubles and untyped-library interop, where it must be isolated to a single cast at the boundary and carry a comment explaining why the real type can't be satisfied.
+- Once database types are generated, use Supabase's `Database` type as the source of truth. Don't hand-write types that duplicate the schema — they drift the moment a migration runs.
 - Use Supabase's generated types (`Database` from `supabase gen types`) as the source of truth. Don't hand-write types that duplicate the schema.
 - Prefer `type` for unions and simple shapes, `interface` for objects that may be extended.
 - `strict: true` in `tsconfig.json` — always on.
@@ -50,6 +51,18 @@ Don't blindly accept proposals. Challenge ideas when there's a flaw, simpler alt
 - Components take a typed `Props` interface as their only argument.
 - **NEVER inline HTML creation** inside page/route files when the same pattern appears elsewhere.
 - Remove event listeners when components are destroyed.
+
+---
+
+## State / DOM Boundary
+
+- **State lives in an explicit JS object. The DOM is only ever a rendering of it, never a source of truth.**
+- Forbidden: reading `classList`, `dataset`, `scrollTop`, or any other DOM property to *decide* application logic. DOM inspection is allowed only for styling/measurement, never for control flow.
+- Each view/module owns one typed state object and exposes mutator functions (`setActiveTab()`, `updateScore()`, etc.) — never a raw exported mutable object, never mutation from outside its own module.
+- `render(state)` is a pure function of state and is the only thing allowed to write to that view's DOM. Every mutator updates state, then calls `render()`. Nothing re-renders any other way (no ad-hoc `innerHTML` writes, no re-reading old DOM to preserve UI state across a redraw — if it needs to survive a re-render, it belongs in state, not in the DOM).
+- Every subscription (realtime channel, listener, interval, etc.) has a matching `dispose()`, called from the owning view's `unmount()`. No exceptions for "only one instance."
+
+---
 
 ### Existing components — always reuse, never recreate
 

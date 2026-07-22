@@ -1,35 +1,43 @@
-# X-kast & Kongelag — Schema Verification
+# X-kast & Kongelag — Schema Verification & Implementation Reference
 
 > Verified against live database (project `urtvpewjlevhlevtnvkf`) on 2026-05-19.
-> All decisions finalized. Migration script is ready to apply.
+>
+> **Table-structure decision superseded** by
+> [x-kast_kongelag-pulje-tables.md](x-kast_kongelag-pulje-tables.md): X-kast and Kongelag get
+> their own new tables (`xkast_kongelag` / `xkast_kongelag_deltaker` /
+> `xkast_kongelag_omgang`), not a reuse of `kamp`/`kamp_spelar`/`kamp_omgang`. Section 1's
+> items about altering `kamp`/`kamp_omgang` and Section 2's migration are therefore no longer
+> needed — kept below only as a historical record of what was originally considered, each
+> marked superseded. Sections 3–5 are rewritten against the new tables.
 
 ---
 
 ## Section 1: Verification
 
-### 1.1 `kamp_omgang.score` — make NOT NULL
+### 1.1–1.4, 1.7, 1.8, 1.10 — superseded, no longer applicable
 
-No value-range CHECK constraint exists. `score` is currently nullable.
+The original plan altered `kamp`/`kamp_omgang` (making columns nullable/NOT NULL, dropping a
+constraint, adding trigger guards) so those tables could double as X-kast/Kongelag storage.
+Since the schema decision moved to dedicated `xkast_kongelag*` tables instead, **none of that
+applies** — `kamp`, `kamp_spelar`, and `kamp_omgang` stay exactly as they are today, used only
+by Gloppen/NHM/Cup:
 
-**Change:** Make `score` NOT NULL. Zero NULL rows in production (312 rows, 0 NULL). Rows are only inserted when a score is known — the nullable column offered false flexibility.
+- ~~1.1 `kamp_omgang.score` NOT NULL~~ — not needed, `kamp_omgang` is untouched.
+- ~~1.2 `kamp.fase`~~ — moot, X-kast/Kongelag no longer use `kamp.fase` at all.
+- ~~1.3 `kamp.gruppe_navn` constraint drop~~ — not needed. Cup's `'A'`/`'B'` constraint stays
+  in place, untouched; no service-layer validation has to replace it.
+- ~~1.4 `kamp.runde_nummer` nullable~~ — not needed, Cup rows keep requiring it.
+- ~~1.7 `kamp` full column list (as it would look post-migration)~~ — moot; see
+  [x-kast_kongelag-pulje-tables.md](x-kast_kongelag-pulje-tables.md) for `kamp`'s actual
+  (unchanged) column list and the new `xkast_kongelag` column list.
+- ~~1.8 `kamp_omgang` confirmed shape~~ — moot for X-kast/Kongelag; see
+  [x-kast_kongelag-pulje-tables.md](x-kast_kongelag-pulje-tables.md) for
+  `xkast_kongelag_omgang`'s actual shape (`poeng`, not `score`).
+- ~~1.10 Trigger guard for X-kast formats~~ — not needed. `kamp_spelar_sync_innl_poeng` /
+  `kamp_sync_innl_poeng` only ever fire on `kamp`/`kamp_spelar` writes, and X-kast/Kongelag
+  never write to those tables, so there's no corruption risk to guard against.
 
-### 1.2 `kamp.fase` — clear, no change
-
-Constraint `fase = ANY (ARRAY['innledende', 'avsluttende'])` is correct. X-kast → `'innledende'`. Kongelag → `'avsluttende'`. No new value needed.
-
-### 1.3 `kamp.gruppe_navn` — drop constraint, enforce Cup validation in service
-
-The existing constraint (`gruppe_navn IN ('A','B')` for avsluttende) cannot be rewritten to cover Kongelag-avsluttende separately from Cup-avsluttende using only columns on the `kamp` row. A cross-column `fase`-based rewrite would incorrectly reject Kongelag's `'Pulje A'` values.
-
-**Decision:** Drop constraint entirely. Cup's `'A'`/`'B'` validation moves to `kampGenereringCupService.ts` — the only code path that creates Cup avsluttende kamp rows.
-
-### 1.4 `kamp.runde_nummer` — make nullable
-
-Currently NOT NULL. For X-kast and Kongelag, the round concept does not apply to the kamp level. `NULL` is the honest semantic; `0` would be a magic value with no enforcement.
-
-**Change:** Drop NOT NULL. Store `NULL` for X-kast and Kongelag kamp rows.
-
-### 1.5 `resultat` columns — all confirmed
+### 1.5 `resultat` columns — all confirmed, still accurate
 
 | Column | Type | Nullable | Status |
 |--------|------|----------|--------|
@@ -43,149 +51,61 @@ Currently NOT NULL. For X-kast and Kongelag, the round concept does not apply to
 
 `kamp_poeng_innl` is `real` (0, 1, 1.5, 2 from win/draw/loss). For Gloppen/NHM → Kongelag carry-over: fractional value passes through directly without rounding. Not shown on the main scoreboard.
 
-### 1.6 `kastemetode` rows — all present, data fix needed
+Unaffected by the table-structure decision — these remain the target of the X-kast/Kongelag confirm RPCs regardless of which tables feed them.
+
+### 1.6 `kastemetode` rows — data fix already applied
 
 | id | navn | er_innledende | er_avsluttende | Action |
 |----|------|--------------|----------------|--------|
-| 23 | Minimatch | true | ~~true~~ | **Fix to false** |
-| 4 | Halvmatch | true | ~~true~~ | **Fix to false** |
+| 23 | Minimatch | true | false | ✅ fixed |
+| 4 | Halvmatch | true | false | ✅ fixed |
 | 10 | Heilmatch | true | false | ✅ |
 | 6 | Kongelag | false | true | ✅ |
 
-Minimatch and Halvmatch incorrectly expose themselves in the avsluttende kastemetode dropdown.
+Minimatch and Halvmatch no longer expose themselves in the avsluttende kastemetode dropdown —
+this fix has already been applied. Independent of the table-structure decision.
 
-### 1.7 `kamp` full column list
+### 1.9 `stevne` — correction, not used for X-kast/Kongelag round counts
 
-```
-id, match_id (text, unique per stevne), stevneid, fase,
-runde_nummer (→ nullable after migration), gruppe_navn (→ constraint dropped),
-runde_navn, bane_nummer, er_bekreftet, er_walkover, er_tre_spelarar
-```
+**Correction (superseded from the original verification):** `antall_runder_innl` /
+`antall_runder_avsl` are **not** used to drive X-kast or Kongelag omgang counts — wrong table
+entirely. Round/omgang count is a property of the **kastemetode**, not the stevne (every
+stevne using Minimatch always gets the same 15 omganger).
 
-**`match_id` format for X-kast:** `{stevneid}-xkast-{slugified_gruppe_navn}-bane-{n}`. Slugify gruppe_navn (remove spaces, lowercase) to avoid uniqueness edge cases.
-
-**`er_tre_spelarar`:** Cup-only concept. For X-kast, always `false`. Player count is `COUNT(kamp_spelar)`.
-
-**`kamp_spelar.kamp_poeng`:** Real, NOT NULL, default 0. No win/loss for X-kast or Kongelag — always 0. Unused but harmless.
-
-### 1.8 `kamp_omgang` — confirmed
-
-```
-id, kamp_spelar_id, omgang, score (→ NOT NULL after migration),
-antall_ringer (nullable), registrert_av, registrert_at
-```
-
-UNIQUE on `(kamp_spelar_id, omgang)` — correct for X-kast (1–15/25/50) and Kongelag (1–10).
-
-`antall_ringer` stays nullable: NULL = not yet recorded, 0 = recorded zero rings.
-
-### 1.9 `stevne` — all needed columns present
-
-`antall_runder_innl` and `antall_runder_avsl` already exist. `antall_runder_innl` stores X-kast round count (3 = Minimatch, 5 = Halvmatch, 10 = Heilmatch). No new column needed.
-
-### 1.10 Trigger `kamp_spelar_sync_innl_poeng` — must be updated
-
-**Current behavior:** fires on `kamp_spelar` changes when `kamp.fase = 'innledende'`; syncs `resultat.kamp_poeng_innl` (SUM of win/draw/loss points) and `resultat.score_poeng_innl`.
-
-**Problem:** For X-kast (also innledende), `kamp_poeng` is always 0, so `kamp_poeng_innl` gets written as 0. For a stevne where some kasters later switch from Gloppen/NHM to X-kast, the trigger would corrupt `kamp_poeng_innl` that the Gloppen/NHM carry-over formula depends on. More practically: `kamp_poeng_innl = 0` becomes ambiguous (no draws vs. wrong format).
-
-**Fix:** Add an early-return guard for X-kast formats. The trigger must check `stevne.innledendekastemetodeid` and skip when the stevne uses Minimatch, Halvmatch, or Heilmatch.
-
-The `kamp_sync_innl_poeng` trigger (fires on `kamp.er_bekreftet` changes) needs the same guard.
-
-**Note:** `resultat.poeng_xkast`, `poeng_kongelag`, `antall_ring_xkast`, `antall_ring_kongelag` have no triggers. These must be written explicitly by the confirmation RPC (see Section 4.1).
+**Resolved:** new column `kastemetode.antall_omganger` (int, nullable) stores the total omgang
+count directly — Minimatch=15, Halvmatch=25, Heilmatch=50, Kongelag=10, NULL for
+Gloppen/NHM/Cup. Chosen over hardcoding a TypeScript lookup table: the value travels with the
+row, survives a `navn` rename, and is directly queryable by the confirm RPC / score-input UI.
+X-kast's "5 omganger per runde" grouping (for the r1/r2/r3 display breakdown) stays a fixed
+code constant — display-only, nothing suggests it will vary. See
+[x-kast_kongelag-pulje-tables.md](x-kast_kongelag-pulje-tables.md).
 
 ---
 
-## Section 2: Migration script
+## Section 2: Migration script — superseded
 
-Five changes. All reversible.
+The original five-change migration (altering `kamp`/`kamp_omgang`, dropping a constraint,
+rewriting two triggers) is **no longer needed** — none of those tables are touched by
+X-kast/Kongelag under the current decision. The `kastemetode` flag fix (former item 4) is
+already applied and was never dependent on the table-structure choice.
 
-```sql
--- Migration: x-kast-kongelag-schema (2026-05-19)
-
--- 1. score NOT NULL (verified: 0 NULL rows exist)
-ALTER TABLE kamp_omgang ALTER COLUMN score SET NOT NULL;
-
--- 2. runde_nummer nullable (NULL = not applicable for X-kast/Kongelag)
-ALTER TABLE kamp ALTER COLUMN runde_nummer DROP NOT NULL;
-
--- 3. Drop gruppe_naam constraint (Cup A/B validation moves to service layer)
-ALTER TABLE kamp DROP CONSTRAINT kamp_gruppe_check;
-
--- 4. Fix kastemetode flags
-UPDATE kastemetode SET er_avsluttende = false WHERE navn IN ('Minimatch', 'Halvmatch');
-
--- 5. Update trigger to skip X-kast formats
-CREATE OR REPLACE FUNCTION trg_kamp_spelar_sync_innl()
-RETURNS TRIGGER AS $$
-DECLARE
-  v_stevneid integer;
-  v_fase text;
-BEGIN
-  SELECT k.stevneid, k.fase INTO v_stevneid, v_fase
-  FROM kamp k WHERE k.id = COALESCE(NEW.kampid, OLD.kampid);
-
-  IF v_fase != 'innledende' THEN RETURN COALESCE(NEW, OLD); END IF;
-
-  -- Skip X-kast formats: sync only applies to Gloppen/NHM innledende
-  IF EXISTS (
-    SELECT 1 FROM stevne s
-    JOIN kastemetode km ON km.id = s.innledendekastemetodeid
-    WHERE s.id = v_stevneid
-      AND km.navn IN ('Minimatch', 'Halvmatch', 'Heilmatch')
-  ) THEN RETURN COALESCE(NEW, OLD); END IF;
-
-  IF NEW IS NOT NULL THEN
-    PERFORM _sync_innl_poeng(NEW.kasterid, v_stevneid);
-  END IF;
-  IF OLD IS NOT NULL AND (NEW IS NULL OR OLD.kasterid != NEW.kasterid) THEN
-    PERFORM _sync_innl_poeng(OLD.kasterid, v_stevneid);
-  END IF;
-
-  RETURN COALESCE(NEW, OLD);
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE OR REPLACE FUNCTION trg_kamp_sync_innl()
-RETURNS TRIGGER AS $$
-DECLARE r record;
-BEGIN
-  IF NEW.fase != 'innledende' THEN RETURN NEW; END IF;
-  IF OLD.er_bekreftet IS NOT DISTINCT FROM NEW.er_bekreftet THEN RETURN NEW; END IF;
-
-  -- Skip X-kast formats
-  IF EXISTS (
-    SELECT 1 FROM stevne s
-    JOIN kastemetode km ON km.id = s.innledendekastemetodeid
-    WHERE s.id = NEW.stevneid
-      AND km.navn IN ('Minimatch', 'Halvmatch', 'Heilmatch')
-  ) THEN RETURN NEW; END IF;
-
-  FOR r IN SELECT kasterid FROM kamp_spelar WHERE kampid = NEW.id LOOP
-    PERFORM _sync_innl_poeng(r.kasterid, NEW.stevneid);
-  END LOOP;
-
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-```
-
-**Rollback:**
-```sql
-ALTER TABLE kamp_omgang ALTER COLUMN score DROP NOT NULL;
-ALTER TABLE kamp ALTER COLUMN runde_nummer SET NOT NULL;
-ALTER TABLE kamp ADD CONSTRAINT kamp_gruppe_check
-  CHECK ((gruppe_navn IS NULL) OR (gruppe_navn = ANY (ARRAY['A'::text, 'B'::text])));
-UPDATE kastemetode SET er_avsluttende = true WHERE navn IN ('Minimatch', 'Halvmatch');
--- Restore original trigger functions from 20260511120000_trigger_sync_resultat_innl_poeng.sql
-```
-
-**Nothing else to migrate.** No new tables. No new columns. No new foreign keys.
+The actual migration needed now is almost entirely additive — three new `CREATE TABLE`
+statements (`xkast_kongelag`, `xkast_kongelag_deltaker`, `xkast_kongelag_omgang`) plus their
+FKs, and two new nullable columns: `kastemetode.antall_omganger` (see 1.9) with a data `UPDATE`
+to populate it, and `stevne.tilgjengelige_baner` (see "Pulje sizing" in
+x-kast_kongelag-pulje-tables.md). Nothing altered or dropped on existing tables/rows' meaning. See
+[x-kast_kongelag-pulje-tables.md](x-kast_kongelag-pulje-tables.md) for the table definitions
+and the constraints/RLS/realtime requirements the migration must include ("Constraints, RLS,
+realtime" section there); the `CREATE TABLE` statements themselves are still to be written
+(see that doc's "Still to do").
 
 ---
 
 ## Section 3: Query examples
+
+Rewritten against `xkast_kongelag` / `xkast_kongelag_deltaker` / `xkast_kongelag_omgang`.
+Queries that only ever read `resultat`/`stevne`/`kastemetode` are unaffected by the
+table-structure decision and unchanged from the original verification.
 
 ### 3.1 X-kast scoreboard with tiebreaker data
 
@@ -195,25 +115,33 @@ SELECT
   r.poeng_xkast,
   r.antall_ring_xkast,
   (
-    SELECT array_agg(ko.score ORDER BY ko.score DESC)
-    FROM kamp_spelar ks
-    JOIN kamp k         ON k.id  = ks.kampid
-    JOIN kamp_omgang ko ON ko.kamp_spelar_id = ks.id
-    WHERE ks.kasterid = r.kasterid
-      AND k.stevneid  = r.stevneid
-      AND k.fase      = 'innledende'
-  ) AS omgang_scores_desc
+    SELECT array_agg(xko.poeng ORDER BY xko.poeng DESC)
+    FROM xkast_kongelag_deltaker xkd
+    JOIN xkast_kongelag xk         ON xk.id  = xkd.xkast_kongelag_id
+    JOIN xkast_kongelag_omgang xko ON xko.xkast_kongelag_deltaker_id = xkd.id
+    WHERE xkd.kasterid = r.kasterid
+      AND xk.stevneid  = r.stevneid
+      AND xk.fase      = 'innledende'
+  ) AS omgang_poeng_desc
 FROM resultat r
 WHERE r.stevneid = $1
   AND r.poeng_xkast IS NOT NULL
 ORDER BY
   r.poeng_xkast       DESC,
   r.antall_ring_xkast DESC;
--- Level 3+ tiebreaker: compare omgang_scores_desc[0], [1], [2], ... in TypeScript.
+-- Level 3+ tiebreaker: compare omgang_poeng_desc[0], [1], [2], ... in TypeScript.
 -- Same pattern as kasterDetaljLogikk.ts.
+--
+-- Round breakdown (r1/r2/r3 + total) for display is a separate concern from the tiebreaker
+-- array above (which is deliberately sorted by poeng, not by omgang). Fetch
+-- (xko.omgang, xko.poeng) ordered by omgang instead, then group by Math.ceil(omgang / 5) in
+-- code — no schema support needed, see the "Round display" resolution in
+-- x-kast_kongelag-pulje-tables.md.
 ```
 
 ### 3.2 Kongelag scoreboard — X-kast carry-over at read time
+
+Unaffected by the table-structure decision — only reads `resultat`/`stevne`/`kastemetode`.
 
 ```sql
 SELECT
@@ -241,9 +169,14 @@ WHERE r.stevneid = $1
   AND r.poeng_kongelag IS NOT NULL
 ORDER BY display_total DESC, r.antall_ring_kongelag DESC;
 -- Tiebreaker level 2: r.poeng_kongelag (kongelag-only, no carry-over).
+-- Sanity invariant: with one omgang maxing at 20 poeng (4 shoes × 5), all three factors
+-- normalize the max possible carry-over to 100:
+--   Minimatch 15×20=300 × 0.3333 ≈ 100 · Halvmatch 25×20=500 × 0.20 = 100 · Heilmatch 50×20=1000 × 0.10 = 100
 ```
 
 ### 3.3 Kongelag scoreboard — Gloppen/NHM carry-over at read time
+
+Unaffected by the table-structure decision — only reads `resultat`.
 
 ```sql
 SELECT
@@ -264,21 +197,23 @@ ORDER BY display_total DESC, r.antall_ring_kongelag DESC;
 
 ```sql
 SELECT
-  k.id          AS kamp_id,
-  k.gruppe_navn,
-  k.bane_nummer,
-  ks.id         AS kamp_spelar_id,
-  ks.kasterid
-FROM kamp k
-JOIN kamp_spelar ks ON ks.kampid = k.id
-WHERE k.stevneid  = $1
-  AND k.gruppe_navn = $2   -- e.g. 'Pulje A'
-ORDER BY k.bane_nummer;
+  xk.id  AS xkast_kongelag_id,
+  xk.pulje,
+  xk.bane_nummer,
+  xkd.id AS deltaker_id,
+  xkd.kasterid
+FROM xkast_kongelag xk
+JOIN xkast_kongelag_deltaker xkd ON xkd.xkast_kongelag_id = xk.id
+WHERE xk.stevneid = $1
+  AND xk.pulje     = $2   -- e.g. 2 (pulje is numeric now, not a text label)
+ORDER BY xk.bane_nummer;
 ```
 
 ### 3.5 NM-Kongelag: combined result across kvalifisering + finale
 
-Both stevner use Kongelag format. Winner = sum of `poeng_kongelag` from both. Qualification is a hard requirement — INNER JOIN is correct.
+Unaffected by the table-structure decision — only reads `resultat`. Both stevner use Kongelag
+format. Winner = sum of `poeng_kongelag` from both. Qualification is a hard requirement —
+INNER JOIN is correct.
 
 ```sql
 -- $1 = kvalifisering stevneid, $2 = finale stevneid
@@ -296,7 +231,7 @@ JOIN resultat kval
 WHERE fin.stevneid = $2
 ORDER BY display_total DESC, total_ringer DESC;
 -- Further tiebreaker: best single omgang across both stevner — same array pattern as 3.1,
--- merged and sorted across both kamp sets.
+-- merged and sorted across both xkast_kongelag sets.
 ```
 
 ---
@@ -305,32 +240,35 @@ ORDER BY display_total DESC, total_ringer DESC;
 
 ### 4.1 Write path — RPC required
 
-`resultat.poeng_xkast`, `antall_ring_xkast`, `poeng_kongelag`, `antall_ring_kongelag` have no triggers. Confirming a pulje result involves:
-1. Reading all `kamp_omgang` rows for N players
+`resultat.poeng_xkast`, `antall_ring_xkast`, `poeng_kongelag`, `antall_ring_kongelag` have no triggers. Confirming a court's result (one `xkast_kongelag` row, N = 1–3 players) involves:
+1. Reading all `xkast_kongelag_omgang` rows for N players
 2. Writing aggregated totals to `resultat` (N rows)
-3. Writing `kamp_spelar.score_poeng` for each player (N rows)
-4. Marking `kamp.er_bekreftet = true`
+3. Writing `xkast_kongelag_deltaker.poeng` for each player (N rows)
+4. Marking `xkast_kongelag.er_bekreftet = true`
 
 This is a multi-step atomic write. Per CLAUDE.md, it must be an RPC (Postgres function), not sequential client queries.
 
-**Proposed RPC signatures:**
+**Proposed RPC signature — one function, both formats:**
 ```sql
--- X-kast: confirm one pulje (one kamp = one group of 2–4 players)
-confirm_xkast_pulje(p_kampid integer) RETURNS void
-
--- Kongelag: confirm one player's result (one kamp = one player)
-confirm_kongelag_kamp(p_kampid integer) RETURNS void
+-- Confirm one court (one xkast_kongelag row: 1–3 players for X-kast, 1 for Kongelag).
+-- Branches on the row's fase: 'innledende' → writes resultat.poeng_xkast/antall_ring_xkast,
+-- 'avsluttende' → writes resultat.poeng_kongelag/antall_ring_kongelag. Otherwise identical.
+confirm_xkast_kongelag(p_xkast_kongelag_id integer) RETURNS void
 ```
 
-Each RPC: sums `kamp_omgang.score` and `antall_ringer` per `kamp_spelar`, writes to `kamp_spelar.score_poeng` and `kamp_spelar.antall_ringer`, then upserts `resultat.poeng_xkast`/`poeng_kongelag` and corresponding ring counts. Sets `kamp.er_bekreftet = true` atomically.
+(Replaces the earlier `confirm_xkast_pulje`/`confirm_kongelag_kamp` pair — they differed only
+in which `resultat` columns they write, and both names misused vocabulary: the unit being
+confirmed is a court, not a pulje, and "kamp" is the term this design abandoned.)
 
-### 4.2 `kamp_spelar.score_poeng` — populate on confirmation
+Each RPC: sums `xkast_kongelag_omgang.poeng` and `antall_ringer` per `xkast_kongelag_deltaker`, writes to `xkast_kongelag_deltaker.poeng` and `antall_ringer`, then upserts `resultat.poeng_xkast`/`poeng_kongelag` and corresponding ring counts. Sets `xkast_kongelag.er_bekreftet = true` atomically.
 
-For X-kast and Kongelag, `score_poeng` = `SUM(kamp_omgang.score)` for that player. Populate it inside the confirmation RPC alongside the `resultat` write. Having two sources for the same number is a drift risk; the RPC transaction eliminates it.
+### 4.2 `xkast_kongelag_deltaker.poeng` — populate on confirmation
+
+For X-kast and Kongelag, `poeng` = `SUM(xkast_kongelag_omgang.poeng)` for that player. Populate it inside the confirmation RPC alongside the `resultat` write. Having two sources for the same number is a drift risk; the RPC transaction eliminates it. Same pattern as `kamp_spelar.score_poeng` in the Cup RPC today.
 
 ### 4.3 NM-Kongelag Phase 6 — `forelderstevneid` sketch
 
-Worth defining the data model now even though implementation is Phase 6.
+Worth defining the data model now even though implementation is Phase 6. Unaffected by the table-structure decision.
 
 Proposed:
 ```sql
@@ -351,17 +289,19 @@ This is a one-column nullable FK, trivially reversible. Can be added at Phase 6 
 
 ### Phase 1 — X-kast Minimatch standalone
 
-**Apply migration from Section 2 first.**
+**Apply the `xkast_kongelag`/`xkast_kongelag_deltaker`/`xkast_kongelag_omgang` migration first** (see [x-kast_kongelag-pulje-tables.md](x-kast_kongelag-pulje-tables.md) — additive only, no changes to Cup's tables).
 
 **Services:**
-- New `xkastService.ts` — creates kamp (runde_nummer=NULL, gruppe_navn='Pulje X'), kamp_spelar per player; reads/writes kamp_omgang
-- New Postgres RPC `confirm_xkast_pulje(p_kampid)` — atomic aggregate + resultat write
-- Add `'A'/'B'` guard to `kampGenereringCupService.ts` (replaces dropped DB constraint)
+- New `xkastService.ts` — creates `xkast_kongelag` row (`fase='innledende'`, `pulje=N`), `xkast_kongelag_deltaker` per player; reads/writes `xkast_kongelag_omgang`
+- New Postgres RPC `confirm_xkast_kongelag(p_xkast_kongelag_id)` — atomic aggregate + resultat write (shared with Phase 3 Kongelag, branches on `fase`)
+- RLS policies for the three new tables — public read for scoreboards, role-based writes mirroring the kamp tables' policies. Real work: the kamp tables took four dedicated RLS migrations; budget it into this phase.
+- Realtime: add the new tables to the realtime publication (in the migration, not the dashboard) and subscribe via `postgres_changes` — same pattern as `kampService.ts` uses for `kamp`/`kamp_omgang`.
+- No changes needed to `kampGenereringCupService.ts` — Cup's `'A'`/`'B'` constraint on `kamp.gruppe_navn` is untouched, since `kamp` itself is untouched
 
 **Components:**
-- Score-input UI: 5 omganger × 3 runder (15 omganger total), 2–4 players on one bane
-- X-kast scoreboard (query 3.1, tiebreaker in TypeScript)
-- Pulje-assignment view: proposal from prior-year Norgescup ranking via `xkastService.foreslaaPulje()`
+- Score-input UI: 5 omganger × 3 runder (15 omganger total), 1–3 players on one bane (confirmed by the board — not a fixed pair). Aggregate entry per omgang: 0–20 poeng / 0–4 ringere (one omgang = 4 shoes). Reuse `ScoreNumberpad.ts`'s existing one-player-at-a-time mobile flow, generalized from a hardcoded pair to a 1–3 array.
+- X-kast scoreboard (query 3.1, tiebreaker in TypeScript, round breakdown r1/r2/r3 computed via `Math.ceil(omgang / 5)` — no schema support needed)
+- Pulje-assignment view: admin enters `stevne.tilgjengelige_baner` (available court capacity, not a raw pulje count); `xkastService.foreslaaPulje()` runs `fordelPuljer()` (see "Pulje sizing" in x-kast_kongelag-pulje-tables.md) to compute fair pulje sizes from the prior-year Norgescup ranking
 
 **Carry-over:** Not in Phase 1.
 
@@ -371,16 +311,16 @@ This is a one-column nullable FK, trivially reversible. Can be added at Phase 6 
 
 ### Phase 2 — Halvmatch + Heilmatch
 
-Same `xkastService.ts`; `stevne.antall_runder_innl` drives omgang count (25 or 50). **Size:** S
+Same `xkastService.ts`; omgang count (25 or 50) comes from `kastemetode.antall_omganger` (see 1.9), not a `stevne` column. **Size:** S
 
 ---
 
 ### Phase 3 — Kongelag standalone
 
-**Services:** New `kongelagService.ts` + RPC `confirm_kongelag_kamp(p_kampid)`.
+**Services:** New `kongelagService.ts`; reuses the `confirm_xkast_kongelag` RPC from Phase 1 (branches on `fase='avsluttende'`).
 
 **Components:**
-- Score-input UI: 1 player × 10 omganger per kamp, grouped by pulje
+- Score-input UI: 1 player × 10 omganger per `xkast_kongelag` entry, grouped by pulje
 - Kongelag scoreboard: `poeng_kongelag` → `antall_ring_kongelag` → best omgang (kongelag-only, no carry-over)
 
 **Size:** M
