@@ -1,0 +1,37 @@
+import { describe, expect, it } from 'vitest'
+import { calcXkastCourtSizes } from '@/utils/calcXkastCourtSizes'
+
+describe('calcXkastCourtSizes', () => {
+  it('splits even counts into pairs', () => {
+    expect(calcXkastCourtSizes(2)).toEqual([2])
+    expect(calcXkastCourtSizes(8)).toEqual([2, 2, 2, 2])
+  })
+
+  it('puts the odd remainder on the last court as a three', () => {
+    expect(calcXkastCourtSizes(3)).toEqual([3])
+    expect(calcXkastCourtSizes(5)).toEqual([2, 3])
+    expect(calcXkastCourtSizes(9)).toEqual([2, 2, 2, 3])
+  })
+
+  it('handles the single-participant edge case', () => {
+    expect(calcXkastCourtSizes(1)).toEqual([1])
+  })
+
+  it('returns empty for zero participants', () => {
+    expect(calcXkastCourtSizes(0)).toEqual([])
+  })
+
+  it('always sums to the participant count with pairs everywhere except the last court', () => {
+    for (let count = 2; count <= 40; count++) {
+      const sizes = calcXkastCourtSizes(count)
+      expect(sizes.reduce((a, b) => a + b, 0)).toBe(count)
+      expect(sizes.slice(0, -1).every(s => s === 2)).toBe(true)
+      expect([2, 3]).toContain(sizes[sizes.length - 1])
+    }
+  })
+
+  it('rejects invalid input', () => {
+    expect(() => calcXkastCourtSizes(-1)).toThrow()
+    expect(() => calcXkastCourtSizes(4.5)).toThrow()
+  })
+})

@@ -2,10 +2,9 @@ import { supabase } from '@/supabase'
 import { sortStandings, type MatchForSorting } from '@/organizer/org-shared'
 import { createCourts, type NewCourt } from '@/services/xkastKongelagService'
 import { calcPuljeSizes } from '@/utils/calcPuljeSizes'
+import { calcXkastCourtSizes } from '@/utils/calcXkastCourtSizes'
 import { isXkastMethodName } from '@/utils/kastemetode'
 import { errorMessage } from '@/utils/errorMessage'
-
-const MAX_PLAYERS_PER_COURT = 3
 
 function genMatchId(): string {
   return crypto.randomUUID()
@@ -120,8 +119,8 @@ export async function generateInitialRoundMatches(
 /**
  * X-kast: no matches — startnummer order (randomised above) fills puljer
  * sized from stevne.tilgjengelige_baner (optional: unset means everyone in
- * one pulje), each pulje split into courts of 1–3 players. Returns the
- * number of courts created.
+ * one pulje), each pulje split into courts of 2 players (the last court takes
+ * the odd remainder as a 3). Returns the number of courts created.
  */
 async function _insertXkastCourts(
   stevneid: number,
@@ -143,7 +142,7 @@ async function _insertXkastCourts(
   const courts: NewCourt[] = []
   let next = 0
   calcPuljeSizes(kasterids.length, lanes).forEach((puljeSize, puljeIdx) => {
-    calcPuljeSizes(puljeSize, MAX_PLAYERS_PER_COURT).forEach((courtSize, courtIdx) => {
+    calcXkastCourtSizes(puljeSize).forEach((courtSize, courtIdx) => {
       courts.push({
         pulje: puljeIdx + 1,
         baneNummer: courtIdx + 1,
