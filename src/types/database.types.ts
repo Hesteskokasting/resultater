@@ -273,6 +273,7 @@ export type Database = {
       }
       kastemetode: {
         Row: {
+          antall_omganger: number | null
           beskrivelse: string | null
           er_avsluttende: boolean
           er_innledende: boolean
@@ -282,6 +283,7 @@ export type Database = {
           navn: string
         }
         Insert: {
+          antall_omganger?: number | null
           beskrivelse?: string | null
           er_avsluttende?: boolean
           er_innledende?: boolean
@@ -291,6 +293,7 @@ export type Database = {
           navn: string
         }
         Update: {
+          antall_omganger?: number | null
           beskrivelse?: string | null
           er_avsluttende?: boolean
           er_innledende?: boolean
@@ -727,6 +730,7 @@ export type Database = {
           stevne_fase: string | null
           stevnetypeid: number | null
           tid: string | null
+          tilgjengelige_baner: number | null
         }
         Insert: {
           antall_runder_avsl?: number | null
@@ -751,6 +755,7 @@ export type Database = {
           stevne_fase?: string | null
           stevnetypeid?: number | null
           tid?: string | null
+          tilgjengelige_baner?: number | null
         }
         Update: {
           antall_runder_avsl?: number | null
@@ -775,6 +780,7 @@ export type Database = {
           stevne_fase?: string | null
           stevnetypeid?: number | null
           tid?: string | null
+          tilgjengelige_baner?: number | null
         }
         Relationships: [
           {
@@ -842,6 +848,118 @@ export type Database = {
         }
         Relationships: []
       }
+      xkast_kongelag: {
+        Row: {
+          bane_nummer: number | null
+          er_bekreftet: boolean
+          fase: string
+          id: number
+          pulje: number | null
+          stevneid: number
+        }
+        Insert: {
+          bane_nummer?: number | null
+          er_bekreftet?: boolean
+          fase: string
+          id?: never
+          pulje?: number | null
+          stevneid: number
+        }
+        Update: {
+          bane_nummer?: number | null
+          er_bekreftet?: boolean
+          fase?: string
+          id?: never
+          pulje?: number | null
+          stevneid?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "xkast_kongelag_stevneid_fkey"
+            columns: ["stevneid"]
+            isOneToOne: false
+            referencedRelation: "stevne"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      xkast_kongelag_deltaker: {
+        Row: {
+          antall_ringer: number
+          id: number
+          kasterid: number
+          poeng: number
+          xkast_kongelag_id: number
+        }
+        Insert: {
+          antall_ringer?: number
+          id?: never
+          kasterid: number
+          poeng?: number
+          xkast_kongelag_id: number
+        }
+        Update: {
+          antall_ringer?: number
+          id?: never
+          kasterid?: number
+          poeng?: number
+          xkast_kongelag_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "xkast_kongelag_deltaker_kasterid_fkey"
+            columns: ["kasterid"]
+            isOneToOne: false
+            referencedRelation: "kaster"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "xkast_kongelag_deltaker_xkast_kongelag_id_fkey"
+            columns: ["xkast_kongelag_id"]
+            isOneToOne: false
+            referencedRelation: "xkast_kongelag"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      xkast_kongelag_omgang: {
+        Row: {
+          antall_ringer: number | null
+          id: number
+          omgang: number
+          poeng: number
+          registrert_at: string
+          registrert_av: string | null
+          xkast_kongelag_deltaker_id: number
+        }
+        Insert: {
+          antall_ringer?: number | null
+          id?: never
+          omgang: number
+          poeng: number
+          registrert_at?: string
+          registrert_av?: string | null
+          xkast_kongelag_deltaker_id: number
+        }
+        Update: {
+          antall_ringer?: number | null
+          id?: never
+          omgang?: number
+          poeng?: number
+          registrert_at?: string
+          registrert_av?: string | null
+          xkast_kongelag_deltaker_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "xkast_kongelag_omgang_deltaker_fkey"
+            columns: ["xkast_kongelag_deltaker_id"]
+            isOneToOne: false
+            referencedRelation: "xkast_kongelag_deltaker"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       kaster_rekorder: {
@@ -868,6 +986,10 @@ export type Database = {
         Returns: undefined
       }
       complete_stevne: { Args: { p_stevneid: number }; Returns: undefined }
+      confirm_xkast_kongelag: {
+        Args: { p_xkast_kongelag_id: number }
+        Returns: undefined
+      }
       create_pair: {
         Args: { p_kaster_a: number; p_kaster_b: number; p_stevneid: number }
         Returns: undefined
@@ -893,6 +1015,13 @@ export type Database = {
         Returns: {
           kampid: number
           kasterid: number
+        }[]
+      }
+      min_kobling_original: {
+        Args: never
+        Returns: {
+          kasterid: number
+          kobling_status: string
         }[]
       }
       min_rolle: { Args: never; Returns: string }

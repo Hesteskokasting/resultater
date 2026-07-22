@@ -164,7 +164,7 @@ scoring is different from `kamp_omgang`'s: 4 shoes at 5/3/2/1/0 each, not kamp's
 | `omgang` | int | sequential omgang number (1..15/25/50 for X-kast per kastemetode, 1..10 for Kongelag) — **not** the same as "runde" (round), see below |
 | `poeng` | int | omgang total across its 4 shoes, `CHECK (poeng BETWEEN 0 AND 20)` (max = 4 ringere × 5) |
 | `antall_ringer` | int, nullable | ring count for the omgang, `CHECK (antall_ringer BETWEEN 0 AND 4)` — `NULL` = not yet recorded, `0` = recorded zero |
-| `registrert_av` | text, nullable | who recorded it |
+| `registrert_av` | uuid, nullable, FK → `auth.users.id`, default `auth.uid()` | who recorded it — corrected from `text`: `kamp_omgang.registrert_av` is actually a uuid FK with an `auth.uid()` default (see migrations 20260428163826 + 20260711130000); mirror that |
 | `registrert_at` | timestamp | |
 
 `UNIQUE(xkast_kongelag_deltaker_id, omgang)`.

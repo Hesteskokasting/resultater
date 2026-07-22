@@ -37,7 +37,10 @@ export async function showScoreEditor(opts: ScoreEditorOptions): Promise<void> {
     message: 'Dette sletter detaljar for denne kampen. Er du sikker?',
   })) return
 
-  showNumberpad(opts.side1Name, opts.side2Name, opts.currentS1, opts.currentS2, async (s1, s2) => {
+  showNumberpad([
+    { name: opts.side1Name, score: opts.currentS1 },
+    { name: opts.side2Name, score: opts.currentS2 },
+  ], async ([s1 = 0, s2 = 0]) => {
     try {
       if (opts.hasRounds && opts.playerIds.length) {
         const { error } = await deleteMatchRounds(opts.playerIds)

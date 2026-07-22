@@ -526,7 +526,10 @@ function bindMatchEventsLocal(
     if (isAdminLocal && kamp.er_bekreftet && !kamp.er_tre_spelarar) {
       const allKasterids = sides.flatMap(s => s.members.map(m => m.kasterid))
       const handler = (): void => {
-        showNumberpad(p1Name, p2Name, sideSum(side1), sideSum(side2), async (newS1, newS2) => {
+        showNumberpad([
+          { name: p1Name, score: sideSum(side1) },
+          { name: p2Name, score: sideSum(side2) },
+        ], async ([newS1 = 0, newS2 = 0]) => {
           if (playerIds.length) {
             const { error } = await deleteMatchRounds(playerIds)
             if (error) { showToast('DB-feil ved sletting av omgangar', 'error'); return }

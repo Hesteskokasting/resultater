@@ -266,9 +266,9 @@ Each RPC: sums `xkast_kongelag_omgang.poeng` and `antall_ringer` per `xkast_kong
 
 For X-kast and Kongelag, `poeng` = `SUM(xkast_kongelag_omgang.poeng)` for that player. Populate it inside the confirmation RPC alongside the `resultat` write. Having two sources for the same number is a drift risk; the RPC transaction eliminates it. Same pattern as `kamp_spelar.score_poeng` in the Cup RPC today.
 
-### 4.3 NM-Kongelag Phase 6 — `forelderstevneid` sketch
+### 4.3 NM-Kongelag (deferred) — `forelderstevneid` sketch
 
-Worth defining the data model now even though implementation is Phase 6. Unaffected by the table-structure decision.
+Worth defining the data model now even though NM-Kongelag finale logic is deferred to its own separate plan (see Section 5). Unaffected by the table-structure decision.
 
 Proposed:
 ```sql
@@ -281,26 +281,31 @@ ALTER TABLE stevne ADD COLUMN forelderstevneid integer REFERENCES stevne(id);
 
 The combined scoreboard query (3.5) is then parameterized by looking up `forelderstevneid` from the finale stevne. No application-level hardcoding of paired IDs.
 
-This is a one-column nullable FK, trivially reversible. Can be added at Phase 6 start without touching any earlier code.
+This is a one-column nullable FK, trivially reversible. Can be added when the NM-Kongelag work starts without touching any earlier code.
 
 ---
 
 ## Section 5: Implementation phases
 
-### Phase 1 — X-kast Minimatch standalone
+### Phase 1 — X-kast standalone (Minimatch, Halvmatch, Heilmatch)
+
+All three X-kast methods ship together — the logic is identical across them; the only variable
+is the omgang count, which comes from `kastemetode.antall_omganger` (15/25/50, see 1.9) at
+runtime. Nothing method-specific needs separate code, so splitting them into phases would
+just be artificial staging.
 
 **Apply the `xkast_kongelag`/`xkast_kongelag_deltaker`/`xkast_kongelag_omgang` migration first** (see [x-kast_kongelag-pulje-tables.md](x-kast_kongelag-pulje-tables.md) — additive only, no changes to Cup's tables).
 
 **Services:**
-- New `xkastService.ts` — creates `xkast_kongelag` row (`fase='innledende'`, `pulje=N`), `xkast_kongelag_deltaker` per player; reads/writes `xkast_kongelag_omgang`
-- New Postgres RPC `confirm_xkast_kongelag(p_xkast_kongelag_id)` — atomic aggregate + resultat write (shared with Phase 3 Kongelag, branches on `fase`)
+- New `xkastService.ts` — creates `xkast_kongelag` row (`fase='innledende'`, `pulje=N`), `xkast_kongelag_deltaker` per player; reads/writes `xkast_kongelag_omgang`. Omgang count read from `kastemetode.antall_omganger` — no per-method branches.
+- New Postgres RPC `confirm_xkast_kongelag(p_xkast_kongelag_id)` — atomic aggregate + resultat write (shared with Phase 2 Kongelag, branches on `fase`)
 - RLS policies for the three new tables — public read for scoreboards, role-based writes mirroring the kamp tables' policies. Real work: the kamp tables took four dedicated RLS migrations; budget it into this phase.
 - Realtime: add the new tables to the realtime publication (in the migration, not the dashboard) and subscribe via `postgres_changes` — same pattern as `kampService.ts` uses for `kamp`/`kamp_omgang`.
 - No changes needed to `kampGenereringCupService.ts` — Cup's `'A'`/`'B'` constraint on `kamp.gruppe_navn` is untouched, since `kamp` itself is untouched
 
 **Components:**
-- Score-input UI: 5 omganger × 3 runder (15 omganger total), 1–3 players on one bane (confirmed by the board — not a fixed pair). Aggregate entry per omgang: 0–20 poeng / 0–4 ringere (one omgang = 4 shoes). Reuse `ScoreNumberpad.ts`'s existing one-player-at-a-time mobile flow, generalized from a hardcoded pair to a 1–3 array.
-- X-kast scoreboard (query 3.1, tiebreaker in TypeScript, round breakdown r1/r2/r3 computed via `Math.ceil(omgang / 5)` — no schema support needed)
+- Score-input UI: `antall_omganger` omganger in runder of 5 (3/5/10 runder), 1–3 players on one bane (confirmed by the board — not a fixed pair). Aggregate entry per omgang: 0–20 poeng / 0–4 ringere (one omgang = 4 shoes). Reuse `ScoreNumberpad.ts`'s existing one-player-at-a-time mobile flow, generalized from a hardcoded pair to a 1–3 array.
+- X-kast scoreboard (query 3.1, tiebreaker in TypeScript, round breakdown r1/r2/… computed via `Math.ceil(omgang / 5)` — no schema support needed)
 - Pulje-assignment view: admin enters `stevne.tilgjengelige_baner` (available court capacity, not a raw pulje count); `xkastService.foreslaaPulje()` runs `fordelPuljer()` (see "Pulje sizing" in x-kast_kongelag-pulje-tables.md) to compute fair pulje sizes from the prior-year Norgescup ranking
 
 **Carry-over:** Not in Phase 1.
@@ -309,13 +314,7 @@ This is a one-column nullable FK, trivially reversible. Can be added at Phase 6 
 
 ---
 
-### Phase 2 — Halvmatch + Heilmatch
-
-Same `xkastService.ts`; omgang count (25 or 50) comes from `kastemetode.antall_omganger` (see 1.9), not a `stevne` column. **Size:** S
-
----
-
-### Phase 3 — Kongelag standalone
+### Phase 2 — Kongelag standalone
 
 **Services:** New `kongelagService.ts`; reuses the `confirm_xkast_kongelag` RPC from Phase 1 (branches on `fase='avsluttende'`).
 
@@ -327,24 +326,24 @@ Same `xkastService.ts`; omgang count (25 or 50) comes from `kastemetode.antall_o
 
 ---
 
-### Phase 4 — X-kast → Kongelag combo
+### Phase 3 — X-kast → Kongelag combo
 
 Carry-over formula (query 3.2) in display layer. Pure computation, no DB writes. Tiebreaker level 2 = `poeng_kongelag` (kongelag-only). **Size:** S
 
 ---
 
-### Phase 5 — Gloppen/NHM → Kongelag combo
+### Phase 4 — Gloppen/NHM → Kongelag combo
 
 Same display pattern; reads `kamp_poeng_innl` (fractional, no rounding). **Size:** XS
 
 ---
 
-### Phase 6 — NM-Kongelag finale logic
+### Deferred — NM-Kongelag finale logic
 
-Add `stevne.forelderstevneid` FK (see 4.3). UI to designate paired stevner. Combined scoreboard using query 3.5. **Size:** M
+Complicated enough to need its own plan; deliberately not scheduled as a phase here. The data-model sketch (`stevne.forelderstevneid` FK, 4.3) and the combined-scoreboard query (3.5) stay in this doc as design reference for when that planning happens. Nothing in Phases 1–4 depends on it, and 4.3's column can be added at that later point without touching earlier code.
 
 ---
 
-### Phase 7 — SNC
+### Deferred — SNC
 
-Separate spec. Deferred.
+Separate spec.

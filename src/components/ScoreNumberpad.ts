@@ -1,15 +1,24 @@
 import { createEl } from '@/utils/createEl'
 
+export interface NumberpadEntry {
+  /** Display name shown above the pad. */
+  name: string
+  /** Prefilled score. */
+  score: number
+}
+
+/**
+ * Fullscreen numberpad for direct score entry. Supports any number of
+ * participants (kamp uses 2 sides, X-kast courts have 1–3 players).
+ * Mobile shows one participant at a time ("→" advances, Save on the last);
+ * desktop shows all pads side by side.
+ */
 export function showNumberpad(
-  p1Namn: string,
-  p2Namn: string,
-  s1Init: number,
-  s2Init: number,
-  onLagre: (s1: number, s2: number) => Promise<void>,
+  entries: NumberpadEntry[],
+  onSave: (scores: number[]) => Promise<void>,
 ): void {
-  let s1 = s1Init
-  let s2 = s2Init
-  let steg = 0 // 0 = P1, 1 = P2 (mobil)
+  const scores = entries.map(e => e.score)
+  let step = 0
 
   const overlay = document.createElement('div')
   overlay.className = 'np-overlay'
@@ -34,17 +43,17 @@ export function showNumberpad(
     btn.addEventListener('click', async () => {
       btn.disabled = true
       btn.textContent = 'Lagrer…'
-      await onLagre(s1, s2)
+      await onSave(scores)
       closeOverlay()
     })
     return btn
   }
 
-  function tegn(): void {
+  function render(): void {
     overlay.innerHTML = ''
-    const isMobil = window.matchMedia('(max-width: 767px)').matches
+    const isMobile = window.matchMedia('(max-width: 767px)').matches
 
-    if (!isMobil) {
+    if (!isMobile) {
       const xBtn = createEl('button', '×', 'np-lukk-btn')
       xBtn.addEventListener('click', closeOverlay)
       overlay.appendChild(xBtn)
@@ -54,53 +63,47 @@ export function showNumberpad(
     const wrap = createEl('div', null, 'np-wrap')
     overlay.appendChild(wrap)
 
-    if (isMobil) {
+    if (isMobile) {
       const closeBtn = createEl('button', '×', 'np-num-btn np-grid-btn np-grid-close-btn')
       closeBtn.addEventListener('click', closeOverlay)
 
       let actionBtn: HTMLElement
-      if (steg === 0) {
-        const nesteBtn = createEl('button', '→', 'np-num-btn')
-        nesteBtn.addEventListener('click', () => { steg = 1; tegn() })
-        actionBtn = nesteBtn
+      if (step < entries.length - 1) {
+        const nextBtn = createEl('button', '→', 'np-num-btn')
+        nextBtn.addEventListener('click', () => { step++; render() })
+        actionBtn = nextBtn
       } else {
         actionBtn = makeSaveBtn('np-num-btn')
       }
 
-      const navn = steg === 0 ? p1Namn : p2Namn
-      const score = steg === 0 ? s1 : s2
-      const getter = steg === 0 ? (): number => s1 : (): number => s2
-      const setter = steg === 0
-        ? (v: number): void => { s1 = v }
-        : (v: number): void => { s2 = v }
-
-      const pad = lagPad(navn, score, closeBtn, actionBtn)
+      const entry = entries[step]
+      if (!entry) return
+      const idx = step
+      const pad = createPad(entry.name, scores[idx] ?? 0, closeBtn, actionBtn)
       wrap.appendChild(pad)
-      fiksKnappar(pad, getter, setter)
+      bindPadButtons(pad, () => scores[idx] ?? 0, v => { scores[idx] = v })
     } else {
-      const pad1 = lagPad(p1Namn, s1)
-      wrap.appendChild(pad1)
-      fiksKnappar(pad1, () => s1, v => { s1 = v })
-
-      const pad2 = lagPad(p2Namn, s2)
-      wrap.appendChild(pad2)
-      fiksKnappar(pad2, () => s2, v => { s2 = v })
+      entries.forEach((entry, idx) => {
+        const pad = createPad(entry.name, scores[idx] ?? 0)
+        wrap.appendChild(pad)
+        bindPadButtons(pad, () => scores[idx] ?? 0, v => { scores[idx] = v })
+      })
     }
   }
 
-  tegn()
+  render()
   document.body.appendChild(overlay)
 }
 
-function lagPad(
-  navn: string,
+function createPad(
+  name: string,
   initScore: number,
   bottomLeft?: HTMLElement,
   bottomRight?: HTMLElement,
 ): HTMLElement {
   const pad = createEl('div', null, 'np-pad')
 
-  pad.appendChild(createEl('h3', navn, 'np-navn'))
+  pad.appendChild(createEl('h3', name, 'np-navn'))
 
   const scoreEl = createEl('div', String(initScore), 'np-score')
   scoreEl.dataset.scoreEl = '1'
@@ -118,16 +121,16 @@ function lagPad(
     grid.appendChild(btn)
   }
   grid.appendChild(bottomLeft ?? document.createElement('div'))
-  const nulBtn = createEl('button', '0', 'np-num-btn') as HTMLButtonElement
-  nulBtn.dataset.val = '0'
-  grid.appendChild(nulBtn)
+  const zeroBtn = createEl('button', '0', 'np-num-btn') as HTMLButtonElement
+  zeroBtn.dataset.val = '0'
+  grid.appendChild(zeroBtn)
   grid.appendChild(bottomRight ?? document.createElement('div'))
 
   pad.appendChild(grid)
   return pad
 }
 
-function fiksKnappar(
+function bindPadButtons(
   pad: HTMLElement,
   getScore: () => number,
   setScore: (v: number) => void,
@@ -138,9 +141,9 @@ function fiksKnappar(
   for (const btn of pad.querySelectorAll<HTMLButtonElement>('[data-val]')) {
     btn.addEventListener('click', () => {
       const curr = getScore()
-      const ny = curr === 0 ? Number(btn.dataset.val) : parseInt(String(curr) + btn.dataset.val)
-      setScore(ny)
-      scoreEl.textContent = String(ny)
+      const next = curr === 0 ? Number(btn.dataset.val) : parseInt(String(curr) + btn.dataset.val)
+      setScore(next)
+      scoreEl.textContent = String(next)
       resetBtn.disabled = false
     })
   }
