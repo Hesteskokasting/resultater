@@ -66,10 +66,15 @@ export async function render(
               ${optionsHtml(finalMethods, stevne.avsluttendekastemetodeid)}
             </select>
           </div>
-          <div class="mb-4">
+          <div class="mb-3">
             <label class="form-label fw-semibold">Antal rundar innleiande</label>
             <input id="antall-rundar" type="number" min="1" class="form-control"
               value="${stevne.antall_runder_innl ?? ''}" placeholder="t.d. 6">
+          </div>
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Tilgjengelege banar (X-kast/Kongelag)</label>
+            <input id="tilgjengelege-banar" type="number" min="1" class="form-control"
+              value="${stevne.tilgjengelige_baner ?? ''}" placeholder="Valfritt — utan verdi blir det éi pulje">
           </div>
           <button type="submit" class="btn btn-primary">Lagre</button>
           <span id="lagre-status" class="ms-3 text-success d-none">Lagra ✓</span>
@@ -88,11 +93,13 @@ export async function render(
       const initialId = container.querySelector<HTMLSelectElement>('#innl-metode')!.value || null
       const finalId   = container.querySelector<HTMLSelectElement>('#avsl-metode')!.value || null
       const rounds    = container.querySelector<HTMLInputElement>('#antall-rundar')!.value
+      const lanes     = container.querySelector<HTMLInputElement>('#tilgjengelege-banar')!.value
 
       const { error } = await updateTournamentSettings(id, {
         innledendekastemetodeid:  initialId ? Number(initialId) : null,
         avsluttendekastemetodeid: finalId ? Number(finalId) : null,
         antall_runder_innl:       rounds ? Number(rounds) : null,
+        tilgjengelige_baner:      lanes ? Number(lanes) : null,
       })
 
       if (error) {

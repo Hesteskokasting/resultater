@@ -10,6 +10,12 @@ import { throwerName } from '@/utils/kaster'
 import { logError } from '@/utils/logError'
 import { unsubscribeChannel } from '@/utils/realtime'
 import {
+  renderMainContent,
+  bindTabToggle,
+  getActiveTab,
+  setActiveTab,
+} from '@/organizer/org-shared'
+import {
   getCourts,
   getXkastConfig,
   saveOmgang,
@@ -56,6 +62,12 @@ function isCourtComplete(court: CourtRow, antallOmganger: number): boolean {
   return court.deltakarar.every(p => p.omgangar.length >= antallOmganger)
 }
 
+function courtStatus(court: CourtRow): string {
+  if (court.er_bekreftet) return 'done'
+  if (court.deltakarar.some(p => p.omgangar.length > 0)) return 'in-progress'
+  return 'not-started'
+}
+
 // ── Entry wizard ──────────────────────────────────────────────────────────────
 
 /**
@@ -93,65 +105,62 @@ function buildEntrySteps(court: CourtRow, antallOmganger: number): OmgangEntrySt
   return steps
 }
 
-// ── Rendering ─────────────────────────────────────────────────────────────────
+// ── Rendering (same structure/classes as the kamp views) ─────────────────────
 
-function participantRowHtml(
-  court: CourtRow,
-  participant: CourtParticipantRow,
-  isFirstRow: boolean,
-  totalRunder: number,
-): string {
+function courtActionTd(court: CourtRow): string {
   const s = state!
-  const rowspan = court.deltakarar.length
-  const confirmedMark = court.er_bekreftet ? ' ✓' : ''
-
-  const baneCell = isFirstRow
-    ? `<td class="xk-bane-cell" rowspan="${rowspan}">${court.bane_nummer ?? '–'}${confirmedMark}</td>`
-    : ''
-
-  const rundeCells = Array.from({ length: totalRunder }, (_, i) => {
-    const sum = rundeSum(participant, i + 1)
-    return `<td class="xk-runde-cell">${sum ?? '–'}</td>`
-  }).join('')
-
-  const actionCell = isFirstRow && s.isAdmin
-    ? `<td class="xk-action-cell" rowspan="${rowspan}">${
-        court.er_bekreftet
-          ? ''
-          : `<button class="btn btn-sm btn-outline-primary" data-xk-register="${court.id}">Registrer</button>
-             <button class="btn btn-sm btn-success" data-xk-confirm="${court.id}"${isCourtComplete(court, s.antallOmganger) ? '' : ' disabled'}>Bekreft</button>`
-      }</td>`
-    : ''
-
-  return `<tr class="xk-player-row">
-    ${baneCell}
-    <td class="xk-name-cell">${escHtml(throwerName(participant.kaster))}</td>
-    ${rundeCells}
-    <td class="xk-total-cell">${totalSum(participant)}</td>
-    ${actionCell}
-  </tr>`
+  if (court.er_bekreftet) {
+    return `<td class="text-end pe-2" rowspan="${court.deltakarar.length}"><span class="match-confirmed-indicator">✓ Bekreftet</span></td>`
+  }
+  if (!s.isAdmin) {
+    return `<td rowspan="${court.deltakarar.length}"></td>`
+  }
+  const canConfirm = isCourtComplete(court, s.antallOmganger)
+  return `<td class="text-end pe-2 text-nowrap" rowspan="${court.deltakarar.length}">
+      <button class="match-button match-button-primary" data-xk-register="${court.id}">Registrer</button>
+      <button class="match-button${canConfirm ? ' match-button-success' : ''}" data-xk-confirm="${court.id}"${canConfirm ? '' : ' disabled'}>Bekreft</button>
+    </td>`
 }
 
-function puljeTableHtml(courts: CourtRow[], puljeLabel: string): string {
+function courtRowsHtml(court: CourtRow, totalRunder: number): string {
+  return sortedParticipants(court).map((participant, i) => {
+    const rundeCells = Array.from({ length: totalRunder }, (_, r) => {
+      const sum = rundeSum(participant, r + 1)
+      return `<td class="text-center">${sum ?? '—'}</td>`
+    }).join('')
+    const firstCells = i === 0
+      ? `<td class="text-center align-middle fw-semibold" rowspan="${court.deltakarar.length}">${court.bane_nummer ?? ''}</td>`
+      : ''
+    const rowAttrs = i === 0 ? ` class="match-row-desktop" data-status="${courtStatus(court)}"` : ''
+    return `<tr${rowAttrs}>
+      ${firstCells}
+      <td>${escHtml(throwerName(participant.kaster))}</td>
+      ${rundeCells}
+      <td class="text-center fw-semibold">${totalSum(participant)}</td>
+      ${i === 0 ? courtActionTd(court) : ''}
+    </tr>`
+  }).join('')
+}
+
+function puljeSectionHtml(courts: CourtRow[], puljeLabel: string): string {
   const s = state!
   const totalRunder = Math.ceil(s.antallOmganger / OMGANGER_PER_RUNDE)
-  const rundeHeaders = Array.from({ length: totalRunder }, (_, i) => `<th class="xk-runde-cell">R${i + 1}</th>`).join('')
-  const actionHeader = s.isAdmin ? '<th></th>' : ''
-
-  const bodyRows = courts.map(court =>
-    sortedParticipants(court)
-      .map((participant, i) => participantRowHtml(court, participant, i === 0, totalRunder))
-      .join(''),
-  ).join('')
+  const rundeHeaders = Array.from({ length: totalRunder }, (_, i) => `<th class="text-center th-36">R${i + 1}</th>`).join('')
 
   return `
-    <h3 class="xk-pulje-title">${escHtml(puljeLabel)}</h3>
-    <div class="standing-table-wrap">
-      <table class="table table-sm match-table xk-table">
+    <div class="mb-3">
+      <h6 class="text-center fw-bold mb-1">${escHtml(puljeLabel)}</h6>
+      <table class="table table-sm match-table mb-0">
         <thead class="org-thead">
-          <tr><th>Bane</th><th>Namn</th>${rundeHeaders}<th>Tot</th>${actionHeader}</tr>
+          <tr>
+            <th class="th-36 text-center">B</th>
+            <th>NAMN</th>
+            ${rundeHeaders}
+            <th class="text-center th-44">TOT</th>
+            ${s.isAdmin ? '<th class="th-148"></th>' : '<th class="th-80"></th>'}
+          </tr>
         </thead>
-        <tbody>${bodyRows}</tbody>
+        <tbody>${courts.map(court => courtRowsHtml(court, totalRunder)).join('')}</tbody>
       </table>
     </div>`
 }
@@ -167,20 +176,26 @@ function standingHtml(): string {
   )
   if (!standing.length) return ''
 
-  const rows = standing.map(row => `<tr class="xk-player-row">
-    <td class="xk-runde-cell">${row.plassering}</td>
-    <td class="xk-name-cell">${escHtml(row.navn)}</td>
-    <td class="xk-runde-cell">${row.antallOmganger}</td>
-    <td class="xk-runde-cell">${row.antallRinger}</td>
-    <td class="xk-total-cell">${row.poeng}</td>
+  const rows = standing.map(row => `<tr class="standing-player-row" data-kasterid="${row.kasterid}">
+    <td class="standing-dim-cell">${row.plassering}</td>
+    <td>${escHtml(row.navn)}</td>
+    <td class="standing-number standing-dim-cell">${row.antallOmganger}</td>
+    <td class="standing-number standing-kp-cell">${row.antallRinger}</td>
+    <td class="standing-number standing-sp-cell">${row.poeng}</td>
   </tr>`).join('')
 
   return `
-    <h3 class="xk-pulje-title">Stilling</h3>
     <div class="standing-table-wrap">
-      <table class="table table-sm match-table xk-table">
+      <h6 class="text-center fw-bold mb-1">${standing.length} spelarar</h6>
+      <table class="table table-sm match-table mb-0">
         <thead class="org-thead">
-          <tr><th>#</th><th>Namn</th><th>O</th><th>Ringar</th><th>Poeng</th></tr>
+          <tr>
+            <th class="th-32">#</th>
+            <th>NAMN</th>
+            <th class="th-50 standing-number">O</th>
+            <th class="th-44 standing-number standing-kp-th">R</th>
+            <th class="th-44 standing-number standing-sp-th">P</th>
+          </tr>
         </thead>
         <tbody>${rows}</tbody>
       </table>
@@ -205,12 +220,15 @@ function renderView(container: HTMLElement): void {
     byPulje.set(key, [...(byPulje.get(key) ?? []), court])
   }
 
-  const sections = [...byPulje.entries()]
+  const courtsHtml = [...byPulje.entries()]
     .sort(([a], [b]) => a - b)
-    .map(([pulje, courts]) => puljeTableHtml(courts, pulje === 0 ? 'Utan pulje' : `Pulje ${pulje}`))
+    .map(([pulje, courts]) => puljeSectionHtml(courts, pulje === 0 ? 'Utan pulje' : `Pulje ${pulje}`))
     .join('')
 
-  container.innerHTML = `<div class="xk-view">${standingHtml()}${sections}</div>`
+  const activeTab = getActiveTab(container)
+  container.innerHTML = renderMainContent(courtsHtml, standingHtml())
+  bindTabToggle(container)
+  if (activeTab === 'standing') setActiveTab(container, 'standing')
 }
 
 // ── Events ────────────────────────────────────────────────────────────────────
@@ -244,7 +262,7 @@ function bindActions(container: HTMLElement): void {
       if (!court) return
       const ok = await confirmDialog({
         title: 'Bekreft resultat',
-        message: `Bekrefte resultata for bane ${court.bane_nummer ?? '?'} i pulje ${court.pulje ?? '?'}? Dette låser bana.`,
+        message: `Bekrefte resultata for bane ${court.bane_nummer ?? '?'}? Dette låser bana.`,
       })
       if (!ok) return
       const { error } = await confirmCourt(court.id)

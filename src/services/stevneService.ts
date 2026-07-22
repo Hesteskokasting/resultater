@@ -307,17 +307,17 @@ export async function getTournamentRegistrationCount(stevneid: number): Promise<
 // ── Innstillingar-tab ─────────────────────────────────────────────────────────
 
 export type TournamentSettingsRow = Pick<Tables<'stevne'>,
-  'id' | 'stevne_fase' | 'antall_runder_innl' | 'innledendekastemetodeid' | 'avsluttendekastemetodeid'
+  'id' | 'stevne_fase' | 'antall_runder_innl' | 'innledendekastemetodeid' | 'avsluttendekastemetodeid' | 'tilgjengelige_baner'
 >
 export type ActiveThrowingMethodRow = Pick<Tables<'kastemetode'>, 'id' | 'navn' | 'er_innledende' | 'er_avsluttende'>
 export type TournamentSettingsUpdatePayload = Pick<Tables<'stevne'>,
-  'innledendekastemetodeid' | 'avsluttendekastemetodeid' | 'antall_runder_innl'
+  'innledendekastemetodeid' | 'avsluttendekastemetodeid' | 'antall_runder_innl' | 'tilgjengelige_baner'
 >
 
 export async function getTournamentSettings(id: number): Promise<{ data: TournamentSettingsRow | null; error: unknown }> {
   const { data, error } = await supabase
     .from('stevne')
-    .select('id, stevne_fase, antall_runder_innl, innledendekastemetodeid, avsluttendekastemetodeid')
+    .select('id, stevne_fase, antall_runder_innl, innledendekastemetodeid, avsluttendekastemetodeid, tilgjengelige_baner')
     .eq('id', id)
     .single()
   if (error) logError('getTournamentSettings', error)

@@ -71,18 +71,6 @@ export async function getXkastConfig(
   }
 }
 
-export async function setAvailableLanes(
-  stevneid: number,
-  lanes: number,
-): Promise<{ error: unknown }> {
-  const { error } = await supabase
-    .from('stevne')
-    .update({ tilgjengelige_baner: lanes })
-    .eq('id', stevneid)
-  if (error) logError('setAvailableLanes', error)
-  return { error }
-}
-
 // ── Court generation (admin) ──────────────────────────────────────────────────
 
 export interface NewCourt {

@@ -7,10 +7,7 @@ import { logError } from '@/utils/logError'
 import { errorMessage } from '@/utils/errorMessage'
 import { showToast } from '@/components/Toast'
 import { confirmDialog } from '@/components/ConfirmDialog'
-import { promptDialog } from '@/components/PromptDialog'
 import { getInfoTournament, updateTournamentPhase } from '@/services/stevneService'
-import { setAvailableLanes } from '@/services/xkastKongelagService'
-import { isXkastMethodName } from '@/utils/kastemetode'
 import { livePillHtml } from '@/components/LivePill'
 import { getRegistrationCount, getPairCount, getUnconfirmedCount, getMyRegistrationForTournament } from '@/services/pameldingService'
 import { createRegistrationButton } from '@/components/PameldingKnapp'
@@ -80,24 +77,6 @@ export async function render(
         if (isCascade && !stevne.antall_runder_innl) {
           showToast('Du må setje antal rundar for innleiande fase. Gå til Innstillingar for å endre.', 'error')
           return
-        }
-        if (isXkastMethodName(methodName) && !stevne.tilgjengelige_baner) {
-          const answer = await promptDialog({
-            title: 'Tilgjengelege banar',
-            message: 'Kor mange banar er tilgjengelege? Talet styrer puljeinndelinga.',
-            inputType: 'number',
-          })
-          if (answer === null) return
-          const lanes = Number(answer)
-          if (!Number.isInteger(lanes) || lanes < 1) {
-            showToast('Ugyldig tal på banar.', 'error')
-            return
-          }
-          const { error: lanesError } = await setAvailableLanes(id, lanes)
-          if (lanesError) {
-            showToast('Feil ved lagring av tilgjengelege banar.', 'error')
-            return
-          }
         }
         const unconfirmedCount = await getUnconfirmedCount(id)
         if (unconfirmedCount > 0) {

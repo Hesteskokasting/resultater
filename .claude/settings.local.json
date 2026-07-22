@@ -40,7 +40,8 @@
       "PowerShell($gh = \"$env:ProgramFiles\\\\GitHub CLI\\\\gh.exe\"; & $gh issue list --state open --limit 50; echo '---LABELS---'; & $gh label list --limit 100)",
       "PowerShell(& \"$env:ProgramFiles\\\\GitHub CLI\\\\gh.exe\" issue list --search \"startkort print\" --state all; & \"$env:ProgramFiles\\\\GitHub CLI\\\\gh.exe\" issue create --label tech-debt --title \"Start-card printing uses window.open popup - broken in native app\" --body-file \"C:\\\\Users\\\\Bruker1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\d--repos-resultater\\\\e422e8a9-4954-4b01-a618-e0ad7c57d174\\\\scratchpad\\\\issue-startkort.md\")",
       "Bash(gh issue create --title 'Consider deriving kamp.er_tre_spelarar from a count instead of storing it' --body ' *)",
-      "Bash(npx supabase *)"
+      "Bash(npx supabase *)",
+      "Bash(gh issue create --title 'Test X-kast Phase 1 end-to-end' --body ' *)"
     ]
   }
 }

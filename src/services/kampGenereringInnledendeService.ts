@@ -119,8 +119,9 @@ export async function generateInitialRoundMatches(
 
 /**
  * X-kast: no matches — startnummer order (randomised above) fills puljer
- * sized from stevne.tilgjengelige_baner, each pulje split into courts of
- * 1–3 players. Returns the number of courts created.
+ * sized from stevne.tilgjengelige_baner (optional: unset means everyone in
+ * one pulje), each pulje split into courts of 1–3 players. Returns the
+ * number of courts created.
  */
 async function _insertXkastCourts(
   stevneid: number,
@@ -134,13 +135,10 @@ async function _insertXkastCourts(
     .single()
   if (error) throw new Error('Feil ved henting av stevne: ' + error.message)
 
-  const lanes = stevne.tilgjengelige_baner
-  if (!lanes || lanes < 1) {
-    throw new Error('Du må setje talet på tilgjengelege banar før stevnet kan startast.')
-  }
-
   const kasterids: number[] = []
   for (let pos = 1; pos <= N; pos++) kasterids.push(...(posToKasterids[pos] ?? []))
+
+  const lanes = stevne.tilgjengelige_baner ?? kasterids.length
 
   const courts: NewCourt[] = []
   let next = 0

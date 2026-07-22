@@ -2439,31 +2439,3 @@ th.initial-score-th {
 .modal-body {
   overflow-wrap: anywhere;
 }
-
-/* ── X-kast entry grid (pages/stevne/innledende/xkast.ts) ──────────────────── */
-.xk-pulje-title {
-  font-size: 1rem;
-  font-weight: 600;
-  margin: 16px 0 6px;
-}
-.xk-table .xk-bane-cell {
-  font-weight: 600;
-  text-align: center;
-  vertical-align: middle;
-  white-space: nowrap;
-}
-.xk-table .xk-runde-cell,
-.xk-table .xk-total-cell {
-  text-align: center;
-  font-variant-numeric: tabular-nums;
-}
-.xk-table .xk-total-cell {
-  font-weight: 600;
-}
-.xk-table .xk-action-cell {
-  vertical-align: middle;
-  white-space: nowrap;
-}
-.xk-table .xk-action-cell .btn + .btn {
-  margin-left: 4px;
-}
