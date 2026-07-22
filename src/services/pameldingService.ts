@@ -96,6 +96,23 @@ export async function getRegistrationCount(stevneId: number): Promise<number> {
   return count ?? 0
 }
 
+/** Enrolled single players with klubb, e.g. for seeding a standalone Kongelag. */
+export async function getEnrolledPlayers(
+  stevneId: number,
+): Promise<{ data: { kasterid: number; klubbid: number | null }[]; error: unknown }> {
+  const { data, error } = await supabase
+    .from('pamelding')
+    .select('kasterid, kaster:kasterid(klubbid)')
+    .eq('stevneid', stevneId)
+    .order('id')
+  if (error) logError('getEnrolledPlayers', error)
+  const players = (data ?? []).map(p => ({
+    kasterid: p.kasterid,
+    klubbid: p.kaster?.klubbid ?? null,
+  }))
+  return { data: players, error }
+}
+
 export async function getPairCount(stevneId: number): Promise<number> {
   const { count, error } = await supabase
     .from('pamelding')

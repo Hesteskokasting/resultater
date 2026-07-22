@@ -3,6 +3,7 @@ import { throwerName } from '@/utils/kaster'
 import { showToast } from '@/components/Toast'
 import { confirmDialog } from '@/components/ConfirmDialog'
 import { updateTournamentPhase } from '@/services/stevneService'
+import { getRegistrationCount } from '@/services/pameldingService'
 import {
   getKongelagConfig,
   isInnledendeComplete,
@@ -52,19 +53,34 @@ function renderStartPanel(ctx: CourtPhaseContext): HTMLElement | null {
   startBtn.disabled = true
   panel.appendChild(startBtn)
 
-  void isInnledendeComplete(ctx.stevneid).then(({ data: complete }) => {
-    if (complete) {
-      startBtn.disabled = false
-      status.textContent = 'Innleiande fase er ferdig — banar blir seeda frå innleiande resultat.'
-    } else {
-      status.textContent = 'Alle innleiande kampar/banar må vere bekrefta før Kongelag kan starte.'
-    }
-  })
+  // Standalone Kongelag (no innledende metode) draws randomly from enrollment
+  // instead of waiting for innledende results.
+  if (ctx.config.hasInitialPhase) {
+    void isInnledendeComplete(ctx.stevneid).then(({ data: complete }) => {
+      if (complete) {
+        startBtn.disabled = false
+        status.textContent = 'Innleiande fase er ferdig — banar blir seeda frå innleiande resultat.'
+      } else {
+        status.textContent = 'Alle innleiande kampar/banar må vere bekrefta før Kongelag kan starte.'
+      }
+    })
+  } else {
+    void getRegistrationCount(ctx.stevneid).then(count => {
+      if (count > 0) {
+        startBtn.disabled = false
+        status.textContent = `${count} spelarar påmelde — startrekkjefølgja blir trekt tilfeldig.`
+      } else {
+        status.textContent = 'Ingen spelarar er påmelde enno.'
+      }
+    })
+  }
 
   startBtn.addEventListener('click', async () => {
     const ok = await confirmDialog({
       title: 'Start Kongelag',
-      message: 'Generere Kongelag-banar frå innleiande resultat? Dei beste spelarane hamnar i pulje 1.',
+      message: ctx.config.hasInitialPhase
+        ? 'Generere Kongelag-banar frå innleiande resultat? Dei beste spelarane hamnar i pulje 1.'
+        : 'Generere Kongelag-banar med tilfeldig trekt startrekkjefølgje?',
     })
     if (!ok) return
     startBtn.disabled = true

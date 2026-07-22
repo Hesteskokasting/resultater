@@ -2,6 +2,7 @@ import type { QueryData, RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '@/supabase'
 import { logError } from '@/utils/logError'
 import { getKongelagSeedingRows } from '@/services/resultatService'
+import { getEnrolledPlayers } from '@/services/pameldingService'
 import { orderKongelagSeeding, buildKongelagCourts } from '@/utils/kongelagSeeding'
 
 // ── Court reads ───────────────────────────────────────────────────────────────
@@ -51,6 +52,7 @@ export interface CourtPhaseConfig {
   tilgjengeligeBaner: number | null
   stevneFase: string | null
   erfullfort: boolean
+  hasInitialPhase: boolean
   hasFinalPhase: boolean
 }
 
@@ -60,7 +62,7 @@ export async function getXkastConfig(
   const { data, error } = await supabase
     .from('stevne')
     .select(`
-      tilgjengelige_baner, stevne_fase, erfullfort, avsluttendekastemetodeid,
+      tilgjengelige_baner, stevne_fase, erfullfort, innledendekastemetodeid, avsluttendekastemetodeid,
       kastemetodeInnl:kastemetode!stevne_innledendekastemetodeid_fkey(antall_omganger)
     `)
     .eq('id', stevneid)
@@ -73,6 +75,7 @@ export async function getXkastConfig(
           tilgjengeligeBaner: data.tilgjengelige_baner,
           stevneFase: data.stevne_fase,
           erfullfort: data.erfullfort ?? false,
+          hasInitialPhase: data.innledendekastemetodeid != null,
           hasFinalPhase: data.avsluttendekastemetodeid != null,
         }
       : null,
@@ -86,7 +89,7 @@ export async function getKongelagConfig(
   const { data, error } = await supabase
     .from('stevne')
     .select(`
-      tilgjengelige_baner, stevne_fase, erfullfort, avsluttendekastemetodeid,
+      tilgjengelige_baner, stevne_fase, erfullfort, innledendekastemetodeid, avsluttendekastemetodeid,
       kastemetodeAvsl:kastemetode!stevne_avsluttendekastemetodeid_fkey(antall_omganger)
     `)
     .eq('id', stevneid)
@@ -99,6 +102,7 @@ export async function getKongelagConfig(
           tilgjengeligeBaner: data.tilgjengelige_baner,
           stevneFase: data.stevne_fase,
           erfullfort: data.erfullfort ?? false,
+          hasInitialPhase: data.innledendekastemetodeid != null,
           hasFinalPhase: data.avsluttendekastemetodeid != null,
         }
       : null,
@@ -143,22 +147,68 @@ export async function isInnledendeComplete(
 // ── Kongelag court generation ─────────────────────────────────────────────────
 
 /**
- * Seeds Kongelag courts from innledende results: best players first (pulje 1,
- * bane 1), puljer capped by stevne.tilgjengelige_baner, one player per court.
+ * Standalone Kongelag (no innledende metode): draws a random start order from
+ * enrollment and creates the resultat rows the confirm RPC writes to.
+ * Returns kasterids in drawn order.
+ */
+async function _seedStandaloneKongelag(
+  stevneid: number,
+): Promise<{ data: number[]; error: unknown }> {
+  const { data: players, error } = await getEnrolledPlayers(stevneid)
+  if (error) return { data: [], error }
+  if (!players.length) {
+    const noPlayersError = new Error('generateKongelagCourts: no enrolled players')
+    logError('generateKongelagCourts', noPlayersError)
+    return { data: [], error: noPlayersError }
+  }
+
+  for (let i = players.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [players[i], players[j]] = [players[j]!, players[i]!]
+  }
+
+  const { error: insertError } = await supabase.from('resultat').insert(
+    players.map((p, i) => ({
+      stevneid,
+      kasterid: p.kasterid,
+      klubbid: p.klubbid,
+      startnummer: i + 1,
+      posisjon: null,
+    })),
+  )
+  if (insertError) {
+    logError('generateKongelagCourts:resultat', insertError)
+    return { data: [], error: insertError }
+  }
+  return { data: players.map(p => p.kasterid), error: null }
+}
+
+/**
+ * Seeds Kongelag courts best-first (pulje 1, bane 1), puljer capped by
+ * stevne.tilgjengelige_baner, one player per court. Order comes from
+ * innledende results; a standalone Kongelag draws randomly from enrollment
+ * (and creates the resultat rows) instead.
  */
 export async function generateKongelagCourts(stevneid: number): Promise<{ error: unknown }> {
   const { data: config, error: configError } = await getKongelagConfig(stevneid)
   if (configError || !config) return { error: configError ?? new Error('Stevne ikkje funne') }
 
-  const { data: seedingRows, error: seedingError } = await getKongelagSeedingRows(stevneid)
-  if (seedingError) return { error: seedingError }
-  if (!seedingRows.length) {
-    const error = new Error('generateKongelagCourts: no resultat rows to seed from')
-    logError('generateKongelagCourts', error)
-    return { error }
+  let kasterids: number[]
+  if (config.hasInitialPhase) {
+    const { data: seedingRows, error: seedingError } = await getKongelagSeedingRows(stevneid)
+    if (seedingError) return { error: seedingError }
+    if (!seedingRows.length) {
+      const error = new Error('generateKongelagCourts: no resultat rows to seed from')
+      logError('generateKongelagCourts', error)
+      return { error }
+    }
+    kasterids = orderKongelagSeeding(seedingRows)
+  } else {
+    const { data, error } = await _seedStandaloneKongelag(stevneid)
+    if (error) return { error }
+    kasterids = data
   }
 
-  const kasterids = orderKongelagSeeding(seedingRows)
   const courts = buildKongelagCourts(kasterids, config.tilgjengeligeBaner)
   return createCourts(stevneid, 'avsluttende', courts)
 }
