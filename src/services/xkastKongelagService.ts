@@ -41,6 +41,48 @@ export async function getCourts(
   return { data: data ?? [], error }
 }
 
+// ── Stevne config ─────────────────────────────────────────────────────────────
+
+export interface XkastConfig {
+  antallOmganger: number | null
+  tilgjengeligeBaner: number | null
+}
+
+export async function getXkastConfig(
+  stevneid: number,
+): Promise<{ data: XkastConfig | null; error: unknown }> {
+  const { data, error } = await supabase
+    .from('stevne')
+    .select(`
+      tilgjengelige_baner,
+      kastemetodeInnl:kastemetode!stevne_innledendekastemetodeid_fkey(antall_omganger)
+    `)
+    .eq('id', stevneid)
+    .maybeSingle()
+  if (error) logError('getXkastConfig', error)
+  return {
+    data: data
+      ? {
+          antallOmganger: data.kastemetodeInnl?.antall_omganger ?? null,
+          tilgjengeligeBaner: data.tilgjengelige_baner,
+        }
+      : null,
+    error,
+  }
+}
+
+export async function setAvailableLanes(
+  stevneid: number,
+  lanes: number,
+): Promise<{ error: unknown }> {
+  const { error } = await supabase
+    .from('stevne')
+    .update({ tilgjengelige_baner: lanes })
+    .eq('id', stevneid)
+  if (error) logError('setAvailableLanes', error)
+  return { error }
+}
+
 // ── Court generation (admin) ──────────────────────────────────────────────────
 
 export interface NewCourt {

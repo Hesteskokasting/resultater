@@ -1,5 +1,11 @@
 import { supabase } from '@/supabase'
 import { sortStandings, type MatchForSorting } from '@/organizer/org-shared'
+import { createCourts, type NewCourt } from '@/services/xkastKongelagService'
+import { calcPuljeSizes } from '@/utils/calcPuljeSizes'
+import { isXkastMethodName } from '@/utils/kastemetode'
+import { errorMessage } from '@/utils/errorMessage'
+
+const MAX_PLAYERS_PER_COURT = 3
 
 function genMatchId(): string {
   return crypto.randomUUID()
@@ -98,6 +104,10 @@ export async function generateInitialRoundMatches(
   const { error: resErr } = await supabase.from('resultat').insert(resultatRows)
   if (resErr) throw new Error('Feil ved lagring av startnummer: ' + resErr.message)
 
+  if (isXkastMethodName(throwingMethodName)) {
+    return _insertXkastCourts(stevneid, posToKasterids, N)
+  }
+
   const isCascade = throwingMethodName.toLowerCase().includes('gloppen')
 
   if (isCascade) {
@@ -105,6 +115,49 @@ export async function generateInitialRoundMatches(
   } else {
     return _insertSwissRound1(stevneid, posToKasterids, N)
   }
+}
+
+/**
+ * X-kast: no matches — startnummer order (randomised above) fills puljer
+ * sized from stevne.tilgjengelige_baner, each pulje split into courts of
+ * 1–3 players. Returns the number of courts created.
+ */
+async function _insertXkastCourts(
+  stevneid: number,
+  posToKasterids: Record<number, number[]>,
+  N: number,
+): Promise<number> {
+  const { data: stevne, error } = await supabase
+    .from('stevne')
+    .select('tilgjengelige_baner')
+    .eq('id', stevneid)
+    .single()
+  if (error) throw new Error('Feil ved henting av stevne: ' + error.message)
+
+  const lanes = stevne.tilgjengelige_baner
+  if (!lanes || lanes < 1) {
+    throw new Error('Du må setje talet på tilgjengelege banar før stevnet kan startast.')
+  }
+
+  const kasterids: number[] = []
+  for (let pos = 1; pos <= N; pos++) kasterids.push(...(posToKasterids[pos] ?? []))
+
+  const courts: NewCourt[] = []
+  let next = 0
+  calcPuljeSizes(kasterids.length, lanes).forEach((puljeSize, puljeIdx) => {
+    calcPuljeSizes(puljeSize, MAX_PLAYERS_PER_COURT).forEach((courtSize, courtIdx) => {
+      courts.push({
+        pulje: puljeIdx + 1,
+        baneNummer: courtIdx + 1,
+        kasterids: kasterids.slice(next, next + courtSize),
+      })
+      next += courtSize
+    })
+  })
+
+  const { error: courtError } = await createCourts(stevneid, 'innledende', courts)
+  if (courtError) throw new Error('Feil ved oppretting av banar: ' + errorMessage(courtError))
+  return courts.length
 }
 
 export function buildCascadePairs(N: number, roundCount: number): MatchPair[][] {

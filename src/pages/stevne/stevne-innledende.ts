@@ -1,6 +1,7 @@
 import { createLoadingState } from '@/components/LoadingState'
 import { createErrorBanner } from '@/components/ErrorBanner'
 import { getInitialMethodName } from '@/services/stevneService'
+import { isXkastMethodName } from '@/utils/kastemetode'
 
 export async function render(
   container: HTMLElement,
@@ -22,7 +23,7 @@ export async function render(
   } else if (navn.includes('nordhordland')) {
     const { render: r } = await import('./innledende/nordhordland')
     await r(container, { id, isAdmin }, bannerSlot)
-  } else if (navn.includes('x-kast') || navn.includes('minimatch') || navn.includes('halvmatch') || navn.includes('heilmatch')) {
+  } else if (isXkastMethodName(navn)) {
     const { render: r } = await import('./innledende/xkast')
     await r(container, { id, isAdmin }, bannerSlot)
   } else {

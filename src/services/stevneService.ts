@@ -23,7 +23,7 @@ export type CategoryRow    = Pick<Tables<'kategori'>,    'id' | 'navn'>
 const _infoStevneQuery = supabase
   .from('stevne')
   .select(`
-    id, navn, dato, tid, sted, stevne_fase, antall_runder_innl, erfullfort, klubbid,
+    id, navn, dato, tid, sted, stevne_fase, antall_runder_innl, erfullfort, klubbid, tilgjengelige_baner,
     kastemetodeInnl:kastemetode!stevne_innledendekastemetodeid_fkey(id, navn),
     kastemetodeAvsl:kastemetode!stevne_avsluttendekastemetodeid_fkey(id, navn),
     kategori:kategoriid(erlagbasert, navn)
@@ -110,7 +110,7 @@ export async function getInfoTournament(id: number): Promise<{ data: InfoTournam
   const { data, error } = await supabase
     .from('stevne')
     .select(`
-      id, navn, dato, tid, sted, stevne_fase, antall_runder_innl, erfullfort, klubbid,
+      id, navn, dato, tid, sted, stevne_fase, antall_runder_innl, erfullfort, klubbid, tilgjengelige_baner,
       kastemetodeInnl:kastemetode!stevne_innledendekastemetodeid_fkey(id, navn),
       kastemetodeAvsl:kastemetode!stevne_avsluttendekastemetodeid_fkey(id, navn),
       kategori:kategoriid(erlagbasert, navn)
