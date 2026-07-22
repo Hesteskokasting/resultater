@@ -18,6 +18,7 @@ import {
   type CourtRow,
   type CourtParticipantRow,
 } from '@/services/xkastKongelagService'
+import { buildXkastStanding } from '@/utils/xkastStilling'
 
 const OMGANGER_PER_RUNDE = 5
 
@@ -155,6 +156,37 @@ function puljeTableHtml(courts: CourtRow[], puljeLabel: string): string {
     </div>`
 }
 
+function standingHtml(): string {
+  const s = state!
+  const standing = buildXkastStanding(
+    s.courts.flatMap(court => court.deltakarar.map(p => ({
+      kasterid: p.kasterid,
+      navn: throwerName(p.kaster),
+      omganger: p.omgangar,
+    }))),
+  )
+  if (!standing.length) return ''
+
+  const rows = standing.map(row => `<tr class="xk-player-row">
+    <td class="xk-runde-cell">${row.plassering}</td>
+    <td class="xk-name-cell">${escHtml(row.navn)}</td>
+    <td class="xk-runde-cell">${row.antallOmganger}</td>
+    <td class="xk-runde-cell">${row.antallRinger}</td>
+    <td class="xk-total-cell">${row.poeng}</td>
+  </tr>`).join('')
+
+  return `
+    <h3 class="xk-pulje-title">Stilling</h3>
+    <div class="standing-table-wrap">
+      <table class="table table-sm match-table xk-table">
+        <thead class="org-thead">
+          <tr><th>#</th><th>Namn</th><th>O</th><th>Ringar</th><th>Poeng</th></tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`
+}
+
 function renderView(container: HTMLElement): void {
   const s = state
   if (!s) return
@@ -178,7 +210,7 @@ function renderView(container: HTMLElement): void {
     .map(([pulje, courts]) => puljeTableHtml(courts, pulje === 0 ? 'Utan pulje' : `Pulje ${pulje}`))
     .join('')
 
-  container.innerHTML = `<div class="xk-view">${sections}</div>`
+  container.innerHTML = `<div class="xk-view">${standingHtml()}${sections}</div>`
 }
 
 // ── Events ────────────────────────────────────────────────────────────────────
