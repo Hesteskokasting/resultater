@@ -1,6 +1,8 @@
 import type { QueryData, RealtimeChannel } from '@supabase/supabase-js'
 import { supabase } from '@/supabase'
 import { logError } from '@/utils/logError'
+import { getKongelagSeedingRows } from '@/services/resultatService'
+import { orderKongelagSeeding, buildKongelagCourts } from '@/utils/kongelagSeeding'
 
 // ── Court reads ───────────────────────────────────────────────────────────────
 
@@ -43,18 +45,22 @@ export async function getCourts(
 
 // ── Stevne config ─────────────────────────────────────────────────────────────
 
-export interface XkastConfig {
+/** Shared config for the X-kast/Kongelag court views (see @/organizer/xkastKongelagView). */
+export interface CourtPhaseConfig {
   antallOmganger: number | null
   tilgjengeligeBaner: number | null
+  stevneFase: string | null
+  erfullfort: boolean
+  hasFinalPhase: boolean
 }
 
 export async function getXkastConfig(
   stevneid: number,
-): Promise<{ data: XkastConfig | null; error: unknown }> {
+): Promise<{ data: CourtPhaseConfig | null; error: unknown }> {
   const { data, error } = await supabase
     .from('stevne')
     .select(`
-      tilgjengelige_baner,
+      tilgjengelige_baner, stevne_fase, erfullfort, avsluttendekastemetodeid,
       kastemetodeInnl:kastemetode!stevne_innledendekastemetodeid_fkey(antall_omganger)
     `)
     .eq('id', stevneid)
@@ -65,10 +71,96 @@ export async function getXkastConfig(
       ? {
           antallOmganger: data.kastemetodeInnl?.antall_omganger ?? null,
           tilgjengeligeBaner: data.tilgjengelige_baner,
+          stevneFase: data.stevne_fase,
+          erfullfort: data.erfullfort ?? false,
+          hasFinalPhase: data.avsluttendekastemetodeid != null,
         }
       : null,
     error,
   }
+}
+
+export async function getKongelagConfig(
+  stevneid: number,
+): Promise<{ data: CourtPhaseConfig | null; error: unknown }> {
+  const { data, error } = await supabase
+    .from('stevne')
+    .select(`
+      tilgjengelige_baner, stevne_fase, erfullfort, avsluttendekastemetodeid,
+      kastemetodeAvsl:kastemetode!stevne_avsluttendekastemetodeid_fkey(antall_omganger)
+    `)
+    .eq('id', stevneid)
+    .maybeSingle()
+  if (error) logError('getKongelagConfig', error)
+  return {
+    data: data
+      ? {
+          antallOmganger: data.kastemetodeAvsl?.antall_omganger ?? null,
+          tilgjengeligeBaner: data.tilgjengelige_baner,
+          stevneFase: data.stevne_fase,
+          erfullfort: data.erfullfort ?? false,
+          hasFinalPhase: data.avsluttendekastemetodeid != null,
+        }
+      : null,
+    error,
+  }
+}
+
+// ── Innledende completion (gate for starting Kongelag) ────────────────────────
+
+/**
+ * True when the innledende phase has content and everything is confirmed —
+ * covers both kamp-based innledende (Gloppen/NHM) and X-kast courts.
+ */
+export async function isInnledendeComplete(
+  stevneid: number,
+): Promise<{ data: boolean; error: unknown }> {
+  try {
+    const [kampTotal, kampOpen, courtTotal, courtOpen] = await Promise.all([
+      supabase.from('kamp').select('id', { count: 'exact', head: true })
+        .eq('stevneid', stevneid).eq('fase', 'innledende'),
+      supabase.from('kamp').select('id', { count: 'exact', head: true })
+        .eq('stevneid', stevneid).eq('fase', 'innledende').eq('er_bekreftet', false).eq('er_walkover', false),
+      supabase.from('xkast_kongelag').select('id', { count: 'exact', head: true })
+        .eq('stevneid', stevneid).eq('fase', 'innledende'),
+      supabase.from('xkast_kongelag').select('id', { count: 'exact', head: true })
+        .eq('stevneid', stevneid).eq('fase', 'innledende').eq('er_bekreftet', false),
+    ])
+    const error = kampTotal.error ?? kampOpen.error ?? courtTotal.error ?? courtOpen.error
+    if (error) {
+      logError('isInnledendeComplete', error)
+      return { data: false, error }
+    }
+    const total = (kampTotal.count ?? 0) + (courtTotal.count ?? 0)
+    const open = (kampOpen.count ?? 0) + (courtOpen.count ?? 0)
+    return { data: total > 0 && open === 0, error: null }
+  } catch (e) {
+    logError('isInnledendeComplete', e)
+    return { data: false, error: e }
+  }
+}
+
+// ── Kongelag court generation ─────────────────────────────────────────────────
+
+/**
+ * Seeds Kongelag courts from innledende results: best players first (pulje 1,
+ * bane 1), puljer capped by stevne.tilgjengelige_baner, one player per court.
+ */
+export async function generateKongelagCourts(stevneid: number): Promise<{ error: unknown }> {
+  const { data: config, error: configError } = await getKongelagConfig(stevneid)
+  if (configError || !config) return { error: configError ?? new Error('Stevne ikkje funne') }
+
+  const { data: seedingRows, error: seedingError } = await getKongelagSeedingRows(stevneid)
+  if (seedingError) return { error: seedingError }
+  if (!seedingRows.length) {
+    const error = new Error('generateKongelagCourts: no resultat rows to seed from')
+    logError('generateKongelagCourts', error)
+    return { error }
+  }
+
+  const kasterids = orderKongelagSeeding(seedingRows)
+  const courts = buildKongelagCourts(kasterids, config.tilgjengeligeBaner)
+  return createCourts(stevneid, 'avsluttende', courts)
 }
 
 // ── Court generation (admin) ──────────────────────────────────────────────────

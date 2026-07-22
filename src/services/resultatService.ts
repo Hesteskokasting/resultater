@@ -2,6 +2,7 @@ import type { QueryData } from '@supabase/supabase-js'
 import { supabase } from '@/supabase'
 import { logError } from '@/utils/logError'
 import { verifyRowsAffected } from '@/utils/verifiedWrite'
+import type { KongelagSeedingRow } from '@/utils/kongelagSeeding'
 
 // ── Typar ─────────────────────────────────────────────────────────────────────
 
@@ -119,6 +120,20 @@ export async function writePlacements(
   const err = results.find(r => r.error)?.error ?? null
   if (err) logError('writePlacements', err)
   return { error: err }
+}
+
+/** Innledende results used to seed Kongelag courts (see @/utils/kongelagSeeding). */
+export async function getKongelagSeedingRows(
+  stevneid: number,
+): Promise<{ data: KongelagSeedingRow[]; error: unknown }> {
+  const { data, error } = await supabase
+    .from('resultat')
+    .select('kasterid, poeng_xkast, antall_ring_xkast, kamp_poeng_innl, score_poeng_innl')
+    .eq('stevneid', stevneid)
+    .not('kasterid', 'is', null)
+  if (error) logError('getKongelagSeedingRows', error)
+  const rows = (data ?? []).filter((r): r is typeof r & { kasterid: number } => r.kasterid != null)
+  return { data: rows, error }
 }
 
 export async function clearGroupAssignment(stevneid: number): Promise<{ error: unknown }> {
