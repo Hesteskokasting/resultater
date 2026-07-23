@@ -6,6 +6,7 @@ import { updateTournamentPhase } from '@/services/stevneService'
 import { getRegistrationCount } from '@/services/pameldingService'
 import {
   getKongelagConfig,
+  getKongelagCarryOver,
   isInnledendeComplete,
   generateKongelagCourts,
   type CourtRow,
@@ -125,6 +126,7 @@ const kongelagVariant: CourtPhaseVariant = {
   entryOrder,
   emptyHint: () => 'Kongelag er ikkje starta enno.',
   renderNoCourts: renderStartPanel,
+  loadCarryOver: getKongelagCarryOver,
 }
 
 export const render = createCourtPhaseRenderer(kongelagVariant)

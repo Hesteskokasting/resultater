@@ -39,6 +39,21 @@ function compareRows(a: XkastStandingRow, b: XkastStandingRow): number {
   return compareOmgangArrays(a.omgangPoengDesc, b.omgangPoengDesc)
 }
 
+/** Sorts rows with `compare` and stamps 1-based `plassering`, ties sharing a placement (1, 1, 3). */
+export function assignPlacements<T extends { plassering: number }>(
+  rows: T[],
+  compare: (a: T, b: T) => number,
+): T[] {
+  rows.sort(compare)
+  let placement = 1
+  rows.forEach((row, i) => {
+    const previous = rows[i - 1]
+    if (previous && compare(previous, row) !== 0) placement = i + 1
+    row.plassering = placement
+  })
+  return rows
+}
+
 export function buildXkastStanding(participants: XkastStandingParticipant[]): XkastStandingRow[] {
   const rows: XkastStandingRow[] = participants.map(p => ({
     kasterid: p.kasterid,
@@ -50,13 +65,5 @@ export function buildXkastStanding(participants: XkastStandingParticipant[]): Xk
     plassering: 0,
   }))
 
-  rows.sort(compareRows)
-
-  let placement = 1
-  rows.forEach((row, i) => {
-    const previous = rows[i - 1]
-    if (previous && compareRows(previous, row) !== 0) placement = i + 1
-    row.plassering = placement
-  })
-  return rows
+  return assignPlacements(rows, compareRows)
 }

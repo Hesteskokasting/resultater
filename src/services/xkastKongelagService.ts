@@ -4,6 +4,8 @@ import { logError } from '@/utils/logError'
 import { getKongelagSeedingRows } from '@/services/resultatService'
 import { getEnrolledPlayers } from '@/services/pameldingService'
 import { orderKongelagSeeding, buildKongelagCourts } from '@/utils/kongelagSeeding'
+import { calcCarryOverByKasterid } from '@/utils/kongelagStilling'
+import { isXkastMethodName } from '@/utils/kastemetode'
 
 // ── Court reads ───────────────────────────────────────────────────────────────
 
@@ -141,6 +143,40 @@ export async function isInnledendeComplete(
   } catch (e) {
     logError('isInnledendeComplete', e)
     return { data: false, error: e }
+  }
+}
+
+// ── Kongelag carry-over (Phases 3/4) ──────────────────────────────────────────
+
+/**
+ * Innledende carry-over per kasterid for the Kongelag standing. Null (not an
+ * error) when the stevne has no innledende metode — standalone Kongelag has
+ * nothing to carry.
+ */
+export async function getKongelagCarryOver(
+  stevneid: number,
+): Promise<{ data: Record<number, number> | null; error: unknown }> {
+  const { data: stevne, error } = await supabase
+    .from('stevne')
+    .select('kastemetodeInnl:kastemetode!stevne_innledendekastemetodeid_fkey(navn, antall_omganger)')
+    .eq('id', stevneid)
+    .maybeSingle()
+  if (error) {
+    logError('getKongelagCarryOver', error)
+    return { data: null, error }
+  }
+  if (!stevne?.kastemetodeInnl) return { data: null, error: null }
+
+  const { data: seedingRows, error: seedingError } = await getKongelagSeedingRows(stevneid)
+  if (seedingError) return { data: null, error: seedingError }
+
+  const { navn, antall_omganger } = stevne.kastemetodeInnl
+  return {
+    data: calcCarryOverByKasterid(seedingRows, {
+      isXkast: isXkastMethodName(navn ?? ''),
+      antallOmganger: antall_omganger,
+    }),
+    error: null,
   }
 }
 

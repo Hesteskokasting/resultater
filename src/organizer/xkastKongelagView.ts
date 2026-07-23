@@ -35,7 +35,8 @@ import {
 } from '@/services/xkastKongelagService'
 import { writePlacements } from '@/services/resultatService'
 import { setTournamentCompleted } from '@/services/stevneService'
-import { buildXkastStanding } from '@/utils/xkastStilling'
+import { buildXkastStanding, type XkastStandingRow } from '@/utils/xkastStilling'
+import { buildKongelagStanding, type KongelagStandingRow } from '@/utils/kongelagStilling'
 
 // ── Variant contract ──────────────────────────────────────────────────────────
 
@@ -70,6 +71,12 @@ export interface CourtPhaseVariant {
   emptyHint: (isAdmin: boolean) => string
   /** Optional replacement for the empty state (e.g. Kongelag's admin start panel). */
   renderNoCourts?: (ctx: CourtPhaseContext) => HTMLElement | null
+  /**
+   * Optional innledende carry-over per kasterid (Kongelag Phases 3/4). When
+   * it resolves non-null, the standing gains I/TOT columns and ranks by
+   * poeng + carry-over; placements on Fullfør use the same ranking.
+   */
+  loadCarryOver?: (stevneid: number) => Promise<{ data: Record<number, number> | null; error: unknown }>
 }
 
 // ── Shared pure helpers ───────────────────────────────────────────────────────
@@ -105,6 +112,8 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
     config: CourtPhaseConfig
     antallOmganger: number
     courts: CourtRow[]
+    /** Innledende carry-over per kasterid; null = no carry-over columns. */
+    carryOver: Record<number, number> | null
   }
 
   let state: CourtPhaseState | null = null
@@ -213,24 +222,44 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
       </div>`
   }
 
-  function standingHtml(): string {
+  function computeStanding(): XkastStandingRow[] | KongelagStandingRow[] {
     const s = state!
-    const standing = buildXkastStanding(
+    const base = buildXkastStanding(
       s.courts.flatMap(court => court.deltakarar.map(p => ({
         kasterid: p.kasterid,
         navn: throwerName(p.kaster),
         omganger: p.omgangar,
       }))),
     )
-    if (!standing.length) return ''
+    return s.carryOver ? buildKongelagStanding(base, s.carryOver) : base
+  }
 
-    const rows = standing.map(row => `<tr class="standing-player-row" data-kasterid="${row.kasterid}">
+  function standingRowHtml(row: XkastStandingRow | KongelagStandingRow): string {
+    const carryCells = 'carryOver' in row
+      ? `<td class="standing-number">${row.poeng}</td>
+      <td class="standing-number standing-dim-cell">${row.carryOver}</td>
+      <td class="standing-number standing-sp-cell">${row.displayTotal}</td>`
+      : `<td class="standing-number standing-sp-cell">${row.poeng}</td>`
+    return `<tr class="standing-player-row" data-kasterid="${row.kasterid}">
       <td class="standing-dim-cell">${row.plassering}</td>
       <td>${escHtml(row.navn)}</td>
       <td class="standing-number standing-dim-cell">${row.antallOmganger}</td>
       <td class="standing-number standing-kp-cell">${row.antallRinger}</td>
-      <td class="standing-number standing-sp-cell">${row.poeng}</td>
-    </tr>`).join('')
+      ${carryCells}
+    </tr>`
+  }
+
+  function standingHtml(): string {
+    const s = state!
+    const standing = computeStanding()
+    if (!standing.length) return ''
+
+    // With carry-over: P = kongelag poeng, I = innleiande carry-over, TOT = P + I
+    const scoreHeaders = s.carryOver
+      ? `<th class="th-44 standing-number">P</th>
+            <th class="th-44 standing-number">I</th>
+            <th class="th-50 standing-number standing-sp-th">TOT</th>`
+      : '<th class="th-44 standing-number standing-sp-th">P</th>'
 
     return `
       <div class="standing-table-wrap">
@@ -242,10 +271,10 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
               <th>NAMN</th>
               <th class="th-50 standing-number">O</th>
               <th class="th-44 standing-number standing-kp-th">R</th>
-              <th class="th-44 standing-number standing-sp-th">P</th>
+              ${scoreHeaders}
             </tr>
           </thead>
-          <tbody>${rows}</tbody>
+          <tbody>${standing.map(row => standingRowHtml(row)).join('')}</tbody>
         </table>
       </div>`
   }
@@ -305,14 +334,8 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
     bannerSlot.innerHTML = `<button id="complete-tournament-btn" class="btn btn-sm btn-success"${s.config.erfullfort ? ' disabled' : ''}>Fullfør turnering</button>`
     bannerSlot.querySelector('#complete-tournament-btn')?.addEventListener('click', async () => {
       if (!await confirmDialog({ title: 'Fullfør turnering', message: 'Vil du fullføre turneringa? Dette kan ikkje angrast.', danger: true })) return
-      const standing = buildXkastStanding(
-        s.courts.flatMap(court => court.deltakarar.map(p => ({
-          kasterid: p.kasterid,
-          navn: throwerName(p.kaster),
-          omganger: p.omgangar,
-        }))),
-      )
-      const { error: plErr } = await writePlacements(s.stevneid, standing)
+      // Same ranking as the displayed standing — includes carry-over when present
+      const { error: plErr } = await writePlacements(s.stevneid, computeStanding())
       if (plErr) { showToast('Feil ved lagring av plasseringar', 'error'); return }
       const { error } = await setTournamentCompleted(s.stevneid)
       if (error) { showToast('Feil ved fullføring av turnering', 'error'); return }
@@ -369,13 +392,15 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
     const s = state
     if (!s) return
     try {
-      const [configRes, courtsRes] = await Promise.all([
+      const [configRes, courtsRes, carryRes] = await Promise.all([
         variant.loadConfig(s.stevneid),
         getCourts(s.stevneid, variant.fase),
+        variant.loadCarryOver?.(s.stevneid) ?? Promise.resolve({ data: null, error: null }),
       ])
-      if (configRes.error || courtsRes.error) return // logError done in the service; keep the last good view
+      if (configRes.error || courtsRes.error || carryRes.error) return // logError done in the service; keep the last good view
       if (configRes.data) s.config = configRes.data
       s.courts = courtsRes.data
+      s.carryOver = carryRes.data
       renderView(container)
     } catch (err) {
       logError('xkastKongelagView.reload', err)
@@ -395,11 +420,12 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
     container.replaceChildren(createLoadingState())
 
     try {
-      const [configRes, courtsRes] = await Promise.all([
+      const [configRes, courtsRes, carryRes] = await Promise.all([
         variant.loadConfig(id),
         getCourts(id, variant.fase),
+        variant.loadCarryOver?.(id) ?? Promise.resolve({ data: null, error: null }),
       ])
-      if (configRes.error || courtsRes.error || !configRes.data) {
+      if (configRes.error || courtsRes.error || carryRes.error || !configRes.data) {
         container.replaceChildren(createErrorBanner('Kunne ikkje laste data.'))
         return
       }
@@ -409,7 +435,7 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
         return
       }
 
-      state = { stevneid: id, isAdmin, config: configRes.data, antallOmganger, courts: courtsRes.data }
+      state = { stevneid: id, isAdmin, config: configRes.data, antallOmganger, courts: courtsRes.data, carryOver: carryRes.data }
       renderView(container)
       bindActions(container)
       channel = subscribeToCourtChanges(id, variant.channelName(id), () => { void reload(container) })
