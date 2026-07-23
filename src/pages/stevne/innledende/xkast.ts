@@ -36,7 +36,7 @@ function entryOrder(courts: CourtRow[], antallOmganger: number): EntrySlot[] {
           slots.push({
             participant,
             omgang,
-            contextLabel: `Bane ${court.bane_nummer ?? '?'} · Runde ${runde}`,
+            contextLabel: `Bane ${court.bane_nummer ?? '?'} · Runde ${runde} · Omgang ${omgang - from + 1}`,
           })
         }
       }
