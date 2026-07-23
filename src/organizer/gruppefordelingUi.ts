@@ -7,6 +7,8 @@ interface StandingRowForGroup {
   navn?: string | null
   kamp_poeng?: number | null
   score_poeng?: number | null
+  poeng_xkast?: number | null
+  antall_ring_xkast?: number | null
 }
 
 interface StandingRowWithCupRank extends StandingRowForGroup {
@@ -112,15 +114,20 @@ export function renderGroupPreview(
   const groupA = sorted.slice(0, nA)
   const groupB = sorted.slice(nA)
 
+  // X-kast-fed cups carry poeng_xkast; show R (ringere) / X (poeng) instead of KP / SP.
+  const isXkast = sorted.some(r => r.poeng_xkast != null)
+
   function tableRows(spel: StandingRowWithCupRank[], woCount = 0): string {
     return spel.map((r, i) => {
       const isWalkover = i < woCount
+      const col1 = isXkast ? (r.antall_ring_xkast ?? 0) : (r.kamp_poeng ?? 0)
+      const col2 = isXkast ? (r.poeng_xkast ?? 0) : (r.score_poeng ?? 0)
       return `
       <tr>
         <td>${r.cupPlassering}</td>
         <td>${escHtml(r.navn ?? '')}${isWalkover ? ' <span class="badge bg-info text-dark">Walkover</span>' : ''}</td>
-        <td class="text-center">${r.kamp_poeng ?? 0}</td>
-        <td class="text-center">${r.score_poeng ?? 0}</td>
+        <td class="text-center">${col1}</td>
+        <td class="text-center">${col2}</td>
       </tr>`
     }).join('')
   }
@@ -128,8 +135,8 @@ export function renderGroupPreview(
   const tableHeader = `
     <thead class="org-thead"><tr>
       <th class="th-32">#</th><th>NAMN</th>
-      <th class="th-44 text-center">KP</th>
-      <th class="th-44 text-center">SP</th>
+      <th class="th-44 text-center">${isXkast ? 'R' : 'KP'}</th>
+      <th class="th-44 text-center">${isXkast ? 'X' : 'SP'}</th>
     </tr></thead>`
 
   const tableA = `

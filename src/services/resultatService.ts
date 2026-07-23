@@ -68,6 +68,7 @@ export async function getResultsForInitialRound(stevneid: number): Promise<{ dat
 
 const _avslResultatQuery = supabase.from('resultat').select(`
   kasterid, startnummer, posisjon, plassering, runde_eliminert,
+  poeng_xkast, antall_ring_xkast,
   kaster:kasterid(fornavn, etternavn),
   gruppe:gruppeid(id, navn)
 `)
@@ -78,6 +79,7 @@ export async function getResultsForFinalRound(stevneid: number): Promise<{ data:
     .from('resultat')
     .select(`
       kasterid, startnummer, posisjon, plassering, runde_eliminert,
+      poeng_xkast, antall_ring_xkast,
       kaster:kasterid(fornavn, etternavn),
       gruppe:gruppeid(id, navn)
     `)

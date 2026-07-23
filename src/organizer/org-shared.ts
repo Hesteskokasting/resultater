@@ -49,6 +49,9 @@ export interface StandingRow {
   startnummer?: number | null
   kamp_poeng?: number | null
   score_poeng?: number | null
+  /** X-kast innledande poeng/ringere — present when the cup is fed by an X-kast format. */
+  poeng_xkast?: number | null
+  antall_ring_xkast?: number | null
   runde_eliminert?: number | null
   plassering?: number | null
   hcp?: number | null
@@ -225,6 +228,18 @@ export function renderStandingTable(
     .sort(([a], [b]) => a === '_' ? 1 : b === '_' ? -1 : a.localeCompare(b))
     .flatMap(([, groupPlayers]) => groupPlayers.map((r, i) => ({ ...r, posInGroup: i + 1 })))
 
+  // X-kast-fed cups carry poeng_xkast; show R (ringere) / X (poeng) instead of KP / SP.
+  const isXkast = standings.some(r => r.poeng_xkast != null)
+  const scoreColumns: ColumnDef<FlatStandingRow>[] = isXkast
+    ? [
+        { label: 'R', thClass: 'th-44 standing-number standing-kp-th', cellClass: 'standing-number standing-kp-cell', render: (r) => String(r.antall_ring_xkast ?? 0) },
+        { label: 'X', thClass: 'th-44 standing-number standing-sp-th', cellClass: 'standing-number standing-sp-cell', render: (r) => String(r.poeng_xkast ?? 0) },
+      ]
+    : [
+        { label: 'KP', thClass: 'th-44 standing-number standing-kp-th', cellClass: 'standing-number standing-kp-cell', render: (r) => String(r.kamp_poeng ?? 0) },
+        { label: 'SP', thClass: 'th-44 standing-number standing-sp-th', cellClass: 'standing-number standing-sp-cell', render: (r) => String(r.score_poeng ?? 0) },
+      ]
+
   const columns: ColumnDef<FlatStandingRow>[] = [
     {
       label: '#', thClass: thW,
@@ -236,8 +251,7 @@ export function renderStandingTable(
     },
     { label: 'NAMN', render: (r) => escHtml(r.navn ?? `Spelar ${r.kasterid}`) },
     ...(hasMatchCount ? [{ label: 'K', thClass: 'th-50 standing-number', cellClass: 'standing-number standing-dim-cell' as const, render: (r: FlatStandingRow) => String(r.antall_kamper ?? 0) }] : []),
-    { label: 'KP', thClass: 'th-44 standing-number standing-kp-th', cellClass: 'standing-number standing-kp-cell', render: (r) => String(r.kamp_poeng ?? 0) },
-    { label: 'SP', thClass: 'th-44 standing-number standing-sp-th', cellClass: 'standing-number standing-sp-cell', render: (r) => String(r.score_poeng ?? 0) },
+    ...scoreColumns,
   ]
 
   const colspan = columns.length
@@ -461,6 +475,8 @@ export function buildFinalStandings(
     plassering: number | null
     runde_eliminert: number | null
     gruppe: { navn: string } | null
+    poeng_xkast?: number | null
+    antall_ring_xkast?: number | null
   }>,
   nameMap: Record<number, string>,
   startNumberMap: Record<number, number>,
@@ -475,6 +491,9 @@ export function buildFinalStandings(
     runde_eliminert: r.runde_eliminert,
     kamp_poeng: playerMap[r.kasterid]?.kamp_poeng ?? 0,
     score_poeng: playerMap[r.kasterid]?.score_poeng ?? 0,
+    // X-kast innledande scores live on resultat, not in kamp rows
+    poeng_xkast: r.poeng_xkast ?? null,
+    antall_ring_xkast: r.antall_ring_xkast ?? null,
     gruppe: r.gruppe,
   }))
   // Par/Mix: one row per pair (no-op for Singel — every startnummer is unique)
@@ -507,8 +526,15 @@ export function sortStandings(standings: StandingRow[], matches: MatchForSorting
     const pB = b.plassering ?? Infinity
     if (pA !== pB) return pA - pB
 
-    if (b.kamp_poeng !== a.kamp_poeng) return (b.kamp_poeng ?? 0) - (a.kamp_poeng ?? 0)
-    if (b.score_poeng !== a.score_poeng) return (b.score_poeng ?? 0) - (a.score_poeng ?? 0)
+    // Initial-standing tiebreaker: X-kast innledande ranks on poeng_xkast → ringere,
+    // kamp-based innledande on kamp_poeng → score_poeng.
+    const useXkast = a.poeng_xkast != null || b.poeng_xkast != null
+    const primaryA = useXkast ? (a.poeng_xkast ?? 0) : (a.kamp_poeng ?? 0)
+    const primaryB = useXkast ? (b.poeng_xkast ?? 0) : (b.kamp_poeng ?? 0)
+    if (primaryA !== primaryB) return primaryB - primaryA
+    const secondaryA = useXkast ? (a.antall_ring_xkast ?? 0) : (a.score_poeng ?? 0)
+    const secondaryB = useXkast ? (b.antall_ring_xkast ?? 0) : (b.score_poeng ?? 0)
+    if (secondaryA !== secondaryB) return secondaryB - secondaryA
 
     // Head-to-head (match points in matches where both met)
     let kpA = 0, kpB = 0
