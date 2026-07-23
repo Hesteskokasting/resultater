@@ -1,8 +1,7 @@
 import { supabase } from '@/supabase'
 import { sortStandings, type MatchForSorting } from '@/organizer/org-shared'
 import { createCourts, type NewCourt } from '@/services/xkastKongelagService'
-import { calcPuljeSizes } from '@/utils/calcPuljeSizes'
-import { calcXkastCourtSizes } from '@/utils/calcXkastCourtSizes'
+import { calcXkastLayout } from '@/utils/calcXkastLayout'
 import { isXkastMethodName } from '@/utils/kastemetode'
 import { errorMessage } from '@/utils/errorMessage'
 
@@ -117,11 +116,11 @@ export async function generateInitialRoundMatches(
 }
 
 /**
- * X-kast: no matches — startnummer order (randomised above) fills puljer
- * sized from stevne.tilgjengelige_baner (optional: unset means everyone in
- * one pulje), each pulje split into courts of 2 players. An odd remainder
- * throws alone on the last court, unless a lane cap is set — then it joins
- * the final pair as a 3 to conserve courts. Returns the number of courts
+ * X-kast: no matches — startnummer order (randomised above) is packed onto
+ * courts by calcXkastLayout: pairs when lanes are unlimited (odd player
+ * alone on the last court); with stevne.tilgjengelige_baner set, players
+ * fill the available courts directly (up to 3 per court), and puljer only
+ * appear when the count exceeds lanes × 3. Returns the number of courts
  * created.
  */
 async function _insertXkastCourts(
@@ -139,13 +138,10 @@ async function _insertXkastCourts(
   const kasterids: number[] = []
   for (let pos = 1; pos <= N; pos++) kasterids.push(...(posToKasterids[pos] ?? []))
 
-  const hasLaneCap = stevne.tilgjengelige_baner != null
-  const lanes = stevne.tilgjengelige_baner ?? kasterids.length
-
   const courts: NewCourt[] = []
   let next = 0
-  calcPuljeSizes(kasterids.length, lanes).forEach((puljeSize, puljeIdx) => {
-    calcXkastCourtSizes(puljeSize, hasLaneCap).forEach((courtSize, courtIdx) => {
+  calcXkastLayout(kasterids.length, stevne.tilgjengelige_baner).forEach((courtSizes, puljeIdx) => {
+    courtSizes.forEach((courtSize, courtIdx) => {
       courts.push({
         pulje: puljeIdx + 1,
         baneNummer: courtIdx + 1,
