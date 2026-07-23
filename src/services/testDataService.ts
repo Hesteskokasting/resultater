@@ -2,6 +2,8 @@ import type { QueryData } from '@supabase/supabase-js'
 import { supabase } from '@/supabase'
 import { calcMatchPoints, getMatchSides } from '@/utils/kamp'
 import { logError } from '@/utils/logError'
+import type { CourtFase } from '@/services/xkastKongelagService'
+import { SHOES_PER_OMGANG } from '@/utils/omgangValidation'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -73,6 +75,58 @@ export async function autoCompleteInitialRoundMatches(stevneid: number): Promise
     } catch (e) {
       logError('autoCompleteInitialRoundMatches:update', e)
     }
+  }
+}
+
+/** Simulates one omgang shoe by shoe so the poeng/ringer pair always satisfies the DB CHECK. */
+function randomOmgangEntry(): { poeng: number; antall_ringer: number } {
+  let poeng = 0
+  let ringer = 0
+  for (let shoe = 0; shoe < SHOES_PER_OMGANG; shoe++) {
+    if (Math.random() < 0.3) { poeng += 5; ringer++ }
+    else poeng += Math.floor(Math.random() * 4)
+  }
+  return { poeng, antall_ringer: ringer }
+}
+
+/**
+ * Dev helper: fills every missing omgang on unconfirmed X-kast/Kongelag courts
+ * with random valid scores, then confirms each court via the RPC (which writes
+ * the resultat columns — so carry-over can be tested end to end).
+ */
+export async function autoCompleteCourts(
+  stevneid: number,
+  fase: CourtFase,
+  antallOmganger: number,
+): Promise<void> {
+  const { data: courts, error } = await supabase
+    .from('xkast_kongelag')
+    .select('id, deltakarar:xkast_kongelag_deltaker(id, omgangar:xkast_kongelag_omgang(omgang))')
+    .eq('stevneid', stevneid)
+    .eq('fase', fase)
+    .eq('er_bekreftet', false)
+
+  if (error) { logError('autoCompleteCourts', error); return }
+  if (!courts?.length) return
+
+  const missingRows = courts.flatMap(court => court.deltakarar.flatMap(participant => {
+    const recorded = new Set(participant.omgangar.map(o => o.omgang))
+    const rows: { xkast_kongelag_deltaker_id: number; omgang: number; poeng: number; antall_ringer: number }[] = []
+    for (let omgang = 1; omgang <= antallOmganger; omgang++) {
+      if (recorded.has(omgang)) continue
+      rows.push({ xkast_kongelag_deltaker_id: participant.id, omgang, ...randomOmgangEntry() })
+    }
+    return rows
+  }))
+
+  if (missingRows.length) {
+    const { error: insertError } = await supabase.from('xkast_kongelag_omgang').insert(missingRows)
+    if (insertError) { logError('autoCompleteCourts:omgang', insertError); return }
+  }
+
+  for (const court of courts) {
+    const { error: confirmError } = await supabase.rpc('confirm_xkast_kongelag', { p_xkast_kongelag_id: court.id })
+    if (confirmError) { logError('autoCompleteCourts:confirm', confirmError); return }
   }
 }
 

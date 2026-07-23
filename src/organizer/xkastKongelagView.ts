@@ -35,6 +35,7 @@ import {
 } from '@/services/xkastKongelagService'
 import { writePlacements } from '@/services/resultatService'
 import { setTournamentCompleted } from '@/services/stevneService'
+import { autoCompleteCourts } from '@/services/testDataService'
 import { buildXkastStanding, type XkastStandingRow } from '@/utils/xkastStilling'
 import { buildKongelagStanding, type KongelagStandingRow } from '@/utils/kongelagStilling'
 
@@ -329,9 +330,22 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
 
     const allConfirmed = s.courts.length > 0 && s.courts.every(c => c.er_bekreftet)
     const isFinalView = variant.fase === 'avsluttende' || !s.config.hasFinalPhase
-    if (!allConfirmed || !isFinalView) { bannerSlot.innerHTML = ''; return }
+    const showComplete = allConfirmed && isFinalView
+    const showAutoComplete = import.meta.env.VITE_ENV === 'dev' && s.courts.length > 0 && !allConfirmed
 
-    bannerSlot.innerHTML = `<button id="complete-tournament-btn" class="btn btn-sm btn-success"${s.config.erfullfort ? ' disabled' : ''}>Fullfør turnering</button>`
+    bannerSlot.innerHTML = `
+      ${showComplete ? `<button id="complete-tournament-btn" class="btn btn-sm btn-success"${s.config.erfullfort ? ' disabled' : ''}>Fullfør turnering</button>` : ''}
+      ${showAutoComplete ? '<button id="test-auto-complete-btn" class="btn btn-sm btn-outline-warning">TEST: Autofullfør</button>' : ''}
+    `
+
+    bannerSlot.querySelector('#test-auto-complete-btn')?.addEventListener('click', async (e) => {
+      const btn = e.currentTarget as HTMLButtonElement
+      if (!await confirmDialog({ title: 'Autofullfør banar', message: 'Fylle alle manglande omganger med tilfeldige resultat og bekrefte banane?' })) return
+      btn.disabled = true
+      await autoCompleteCourts(s.stevneid, variant.fase, s.antallOmganger)
+      await reload(container)
+    })
+
     bannerSlot.querySelector('#complete-tournament-btn')?.addEventListener('click', async () => {
       if (!await confirmDialog({ title: 'Fullfør turnering', message: 'Vil du fullføre turneringa? Dette kan ikkje angrast.', danger: true })) return
       // Same ranking as the displayed standing — includes carry-over when present
