@@ -16,6 +16,18 @@ export function validRingerRange(poeng: number): { min: number; max: number } {
   return { min, max }
 }
 
+/**
+ * Ring choices the numberpad should offer for a poengsum: `allowed` counts
+ * (empty = the poengsum itself is impossible, e.g. 19), and `autoSelected`
+ * when only one count is possible (e.g. poeng 3 → 0 ringer).
+ */
+export function ringOptions(poeng: number): { allowed: number[]; autoSelected: number | null } {
+  const { min, max } = validRingerRange(poeng)
+  if (min > max) return { allowed: [], autoSelected: null }
+  const allowed = Array.from({ length: max - min + 1 }, (_, i) => min + i)
+  return { allowed, autoSelected: allowed.length === 1 ? allowed[0]! : null }
+}
+
 export function isValidOmgangEntry(poeng: number, antallRinger: number): boolean {
   if (!Number.isInteger(poeng) || !Number.isInteger(antallRinger)) return false
   if (poeng < 0 || poeng > OMGANG_MAX_POENG) return false

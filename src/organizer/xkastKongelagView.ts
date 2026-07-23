@@ -45,7 +45,8 @@ import { buildKongelagStanding, type KongelagStandingRow } from '@/utils/kongela
 export interface EntrySlot {
   participant: CourtParticipantRow
   omgang: number
-  label: string
+  /** Context line above the player name in the pad, e.g. "Bane 1 · Runde 2". */
+  contextLabel: string
 }
 
 export interface CourtPhaseContext {
@@ -128,8 +129,8 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
     return slots
       .filter(slot => !slot.participant.omgangar.some(o => o.omgang === slot.omgang))
       .map(slot => ({
-        label: slot.label,
-        omgang: slot.omgang,
+        contextLabel: slot.contextLabel,
+        playerName: throwerName(slot.participant.kaster),
         onSave: async (poeng, antallRinger) => {
           const { error } = await saveOmgang(slot.participant.id, slot.omgang, poeng, antallRinger)
           if (error) {

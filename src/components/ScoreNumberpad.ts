@@ -16,11 +16,11 @@ export interface NumberpadOverlay {
 /**
  * Fullscreen numberpad overlay shell. Opening pushes a history entry so the
  * device back button closes the pad instead of leaving the page. Shared by
- * showNumberpad and OmgangNumberpad.
+ * showNumberpad (np-overlay) and OmgangNumberpad (onp-overlay).
  */
-export function createNumberpadOverlay(): NumberpadOverlay {
+export function createNumberpadOverlay(className = 'np-overlay'): NumberpadOverlay {
   const overlay = document.createElement('div')
-  overlay.className = 'np-overlay'
+  overlay.className = className
 
   history.pushState({ numberpad: true }, '')
 

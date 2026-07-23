@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isValidOmgangEntry, validRingerRange } from '@/utils/omgangValidation'
+import { isValidOmgangEntry, ringOptions, validRingerRange } from '@/utils/omgangValidation'
 
 describe('validRingerRange', () => {
   it('20 poeng requires exactly 4 ringere', () => {
@@ -16,6 +16,25 @@ describe('validRingerRange', () => {
 
   it('13 poeng needs at least one ringer (max without is 12)', () => {
     expect(validRingerRange(13)).toEqual({ min: 1, max: 2 })
+  })
+})
+
+describe('ringOptions', () => {
+  it('auto-selects when only one ring count is possible', () => {
+    expect(ringOptions(3)).toEqual({ allowed: [0], autoSelected: 0 })
+    expect(ringOptions(18)).toEqual({ allowed: [3], autoSelected: 3 })
+    expect(ringOptions(20)).toEqual({ allowed: [4], autoSelected: 4 })
+  })
+
+  it('offers all valid counts without auto-selection when ambiguous', () => {
+    expect(ringOptions(8)).toEqual({ allowed: [0, 1], autoSelected: null })
+    expect(ringOptions(12)).toEqual({ allowed: [0, 1, 2], autoSelected: null })
+    expect(ringOptions(15)).toEqual({ allowed: [2, 3], autoSelected: null })
+  })
+
+  it('returns no options for an impossible poengsum (19)', () => {
+    // 5+5+5+3 = 18 is the max below a clean 4-ringer 20
+    expect(ringOptions(19)).toEqual({ allowed: [], autoSelected: null })
   })
 })
 

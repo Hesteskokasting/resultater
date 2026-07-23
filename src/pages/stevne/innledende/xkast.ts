@@ -1,4 +1,3 @@
-import { throwerName } from '@/utils/kaster'
 import { getXkastConfig, type CourtRow } from '@/services/xkastKongelagService'
 import {
   createCourtPhaseRenderer,
@@ -34,7 +33,11 @@ function entryOrder(courts: CourtRow[], antallOmganger: number): EntrySlot[] {
         const from = (runde - 1) * OMGANGER_PER_RUNDE + 1
         const to = Math.min(runde * OMGANGER_PER_RUNDE, antallOmganger)
         for (let omgang = from; omgang <= to; omgang++) {
-          slots.push({ participant, omgang, label: throwerName(participant.kaster) })
+          slots.push({
+            participant,
+            omgang,
+            contextLabel: `Bane ${court.bane_nummer ?? '?'} · Runde ${runde}`,
+          })
         }
       }
     }

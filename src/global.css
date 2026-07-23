@@ -46,6 +46,18 @@
   --np-reset-bg: rgba(255, 255, 255, 0.25);
   --np-nav-bg: rgba(255, 255, 255, 0.15);
 
+  /* Omgang-nummerpad (X-kast/Kongelag) — intentionally dark navy in both themes */
+  --onp-backdrop: rgba(5, 10, 20, 0.72);
+  --onp-card-bg: #0e1f38;
+  --onp-flate: #15294a;
+  --onp-kant: #24406e;
+  --onp-tekst: #ffffff;
+  --onp-tekst-2: #8296b8;
+  --onp-aksent: #14c9a6;
+  --onp-aksent-tekst: #06253f;
+  --onp-valgt: #f2a33c;
+  --onp-seg-inaktiv: #24365a;
+
   /* Scoreboard — intentionally dark in both themes */
   --sb-bg: #000;
   --sb-topbar-bg: #111;

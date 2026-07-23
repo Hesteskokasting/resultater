@@ -1640,6 +1640,221 @@ th.initial-score-th {
   justify-content: center;
 }
 
+/* ── Omgang-nummerpad (X-kast/Kongelag) ── */
+
+.onp-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: var(--onp-backdrop);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.onp-card {
+  position: relative;
+  background: var(--onp-card-bg);
+  color: var(--onp-tekst);
+  border-radius: 20px;
+  padding: 14px 20px 20px;
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.onp-handle {
+  width: 48px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--onp-kant);
+  margin: 0 auto 2px;
+}
+
+.onp-close {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  background: none;
+  border: none;
+  color: var(--onp-tekst-2);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.onp-progress {
+  display: flex;
+  gap: 10px;
+  margin: 2px 0 6px;
+}
+
+.onp-progress-seg {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--onp-seg-inaktiv);
+}
+
+.onp-progress-seg.active { background: var(--onp-aksent); }
+
+.onp-back {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--onp-aksent);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.onp-context {
+  color: var(--onp-aksent);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.onp-name {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.onp-display {
+  background: var(--onp-flate);
+  border: 1px solid var(--onp-kant);
+  border-radius: 14px;
+  padding: 14px;
+  text-align: center;
+}
+
+.onp-display-label {
+  color: var(--onp-tekst-2);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+
+.onp-display-value {
+  font-size: 2.8rem;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.onp-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.onp-key {
+  padding: 18px 0;
+  font-size: 1.4rem;
+  font-weight: 600;
+  background: var(--onp-flate);
+  color: var(--onp-tekst);
+  border: 1px solid var(--onp-kant);
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.onp-key-muted {
+  background: none;
+  border-color: transparent;
+  color: var(--onp-aksent);
+  font-size: 1.2rem;
+}
+
+.onp-key-action {
+  background: var(--onp-aksent);
+  border-color: var(--onp-aksent);
+  color: var(--onp-aksent-tekst);
+}
+
+.onp-ring-heading {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+}
+
+.onp-ring-heading-main {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.onp-ring-heading-sub {
+  color: var(--onp-tekst-2);
+  font-size: 0.7rem;
+}
+
+.onp-ring-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.onp-ring-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 0;
+  background: var(--onp-flate);
+  color: var(--onp-tekst);
+  border: 1px solid var(--onp-kant);
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.onp-ring-zero {
+  grid-column: 1 / -1;
+  flex-direction: row;
+  gap: 8px;
+  align-items: baseline;
+  justify-content: center;
+}
+
+.onp-ring-value {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.onp-ring-label {
+  color: var(--onp-tekst-2);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+}
+
+.onp-ring-btn:disabled { opacity: 0.35; cursor: default; }
+.onp-ring-btn.selected { border-color: var(--onp-valgt); }
+
+.onp-ring-btn.selected .onp-ring-value,
+.onp-ring-btn.selected .onp-ring-label { color: var(--onp-valgt); }
+
+.onp-register {
+  margin-top: 4px;
+  padding: 14px;
+  background: var(--onp-aksent);
+  color: var(--onp-aksent-tekst);
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.onp-register:disabled { opacity: 0.45; cursor: default; }
+
 /* ===================== SCOREBOARD ===================== */
 
 /* ── Kamp-scoreboard fullskjerm-modus ── */

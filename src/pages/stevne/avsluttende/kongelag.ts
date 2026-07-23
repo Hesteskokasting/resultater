@@ -1,5 +1,4 @@
 import { createEl } from '@/utils/createEl'
-import { throwerName } from '@/utils/kaster'
 import { showToast } from '@/components/Toast'
 import { confirmDialog } from '@/components/ConfirmDialog'
 import { updateTournamentPhase } from '@/services/stevneService'
@@ -20,25 +19,28 @@ import {
 } from '@/organizer/xkastKongelagView'
 
 /**
- * Kongelag entry order: court-by-court within an omgang — the admin enters
- * omgang N for bane 1, the pad switches to bane 2, and so on through the
- * pulje, then omgang N+1 starts over at bane 1.
+ * Kongelag entry order: one omgang at a time, court by court — the admin
+ * enters omgang N for bane 1, the pad switches to bane 2, and so on through
+ * the pulje. When every court has omgang N, the pad closes so the omgang's
+ * results can be reviewed; the next Registrer starts omgang N+1.
  */
 function entryOrder(courts: CourtRow[], antallOmganger: number): EntrySlot[] {
   const orderedCourts = [...courts].sort((a, b) => (a.bane_nummer ?? 0) - (b.bane_nummer ?? 0))
-  const slots: EntrySlot[] = []
   for (let omgang = 1; omgang <= antallOmganger; omgang++) {
+    const slots: EntrySlot[] = []
     for (const court of orderedCourts) {
       for (const participant of sortedParticipants(court)) {
+        if (participant.omgangar.some(o => o.omgang === omgang)) continue
         slots.push({
           participant,
           omgang,
-          label: `Bane ${court.bane_nummer ?? '?'} · ${throwerName(participant.kaster)}`,
+          contextLabel: `Bane ${court.bane_nummer ?? '?'} · Omgang ${omgang}`,
         })
       }
     }
+    if (slots.length) return slots
   }
-  return slots
+  return []
 }
 
 // ── Start panel (admin, before courts exist) ──────────────────────────────────
