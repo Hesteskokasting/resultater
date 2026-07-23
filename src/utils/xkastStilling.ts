@@ -40,7 +40,13 @@ export function compareOmgangArrays(a: number[], b: number[]): number {
   return 0
 }
 
-function compareRows(a: XkastStandingRow, b: XkastStandingRow): number {
+/**
+ * The shared X-kast/Kongelag ranking order: total poeng, then total ringere,
+ * then best-first omgang arrays. Kongelag layers displayTotal on top of this
+ * (see buildKongelagStanding). Keeping it in one place means a tiebreaker rule
+ * change (see issue #12) touches only here.
+ */
+export function compareXkastRows(a: XkastStandingRow, b: XkastStandingRow): number {
   if (b.poeng !== a.poeng) return b.poeng - a.poeng
   if (b.antallRinger !== a.antallRinger) return b.antallRinger - a.antallRinger
   return compareOmgangArrays(a.omgangPoengDesc, b.omgangPoengDesc)
@@ -85,5 +91,5 @@ export function buildXkastStanding(participants: XkastStandingParticipant[]): Xk
     }
   })
 
-  return assignPlacements(rows, compareRows)
+  return assignPlacements(rows, compareXkastRows)
 }

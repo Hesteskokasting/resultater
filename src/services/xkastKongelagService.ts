@@ -58,58 +58,42 @@ export interface CourtPhaseConfig {
   hasFinalPhase: boolean
 }
 
-export async function getXkastConfig(
+/** Loads the court-phase config, reading the omgang count from the fase's kastemetode. */
+async function loadCourtPhaseConfig(
   stevneid: number,
+  fase: CourtFase,
 ): Promise<{ data: CourtPhaseConfig | null; error: unknown }> {
   const { data, error } = await supabase
     .from('stevne')
     .select(`
       tilgjengelige_baner, stevne_fase, erfullfort, innledendekastemetodeid, avsluttendekastemetodeid,
-      kastemetodeInnl:kastemetode!stevne_innledendekastemetodeid_fkey(antall_omganger)
-    `)
-    .eq('id', stevneid)
-    .maybeSingle()
-  if (error) logError('getXkastConfig', error)
-  return {
-    data: data
-      ? {
-          antallOmganger: data.kastemetodeInnl?.antall_omganger ?? null,
-          tilgjengeligeBaner: data.tilgjengelige_baner,
-          stevneFase: data.stevne_fase,
-          erfullfort: data.erfullfort ?? false,
-          hasInitialPhase: data.innledendekastemetodeid != null,
-          hasFinalPhase: data.avsluttendekastemetodeid != null,
-        }
-      : null,
-    error,
-  }
-}
-
-export async function getKongelagConfig(
-  stevneid: number,
-): Promise<{ data: CourtPhaseConfig | null; error: unknown }> {
-  const { data, error } = await supabase
-    .from('stevne')
-    .select(`
-      tilgjengelige_baner, stevne_fase, erfullfort, innledendekastemetodeid, avsluttendekastemetodeid,
+      kastemetodeInnl:kastemetode!stevne_innledendekastemetodeid_fkey(antall_omganger),
       kastemetodeAvsl:kastemetode!stevne_avsluttendekastemetodeid_fkey(antall_omganger)
     `)
     .eq('id', stevneid)
     .maybeSingle()
-  if (error) logError('getKongelagConfig', error)
+  if (error) logError('loadCourtPhaseConfig', error)
+  if (!data) return { data: null, error }
+  const kastemetode = fase === 'innledende' ? data.kastemetodeInnl : data.kastemetodeAvsl
   return {
-    data: data
-      ? {
-          antallOmganger: data.kastemetodeAvsl?.antall_omganger ?? null,
-          tilgjengeligeBaner: data.tilgjengelige_baner,
-          stevneFase: data.stevne_fase,
-          erfullfort: data.erfullfort ?? false,
-          hasInitialPhase: data.innledendekastemetodeid != null,
-          hasFinalPhase: data.avsluttendekastemetodeid != null,
-        }
-      : null,
+    data: {
+      antallOmganger: kastemetode?.antall_omganger ?? null,
+      tilgjengeligeBaner: data.tilgjengelige_baner,
+      stevneFase: data.stevne_fase,
+      erfullfort: data.erfullfort ?? false,
+      hasInitialPhase: data.innledendekastemetodeid != null,
+      hasFinalPhase: data.avsluttendekastemetodeid != null,
+    },
     error,
   }
+}
+
+export function getXkastConfig(stevneid: number): Promise<{ data: CourtPhaseConfig | null; error: unknown }> {
+  return loadCourtPhaseConfig(stevneid, 'innledende')
+}
+
+export function getKongelagConfig(stevneid: number): Promise<{ data: CourtPhaseConfig | null; error: unknown }> {
+  return loadCourtPhaseConfig(stevneid, 'avsluttende')
 }
 
 // ── Innledende completion (gate for starting Kongelag) ────────────────────────

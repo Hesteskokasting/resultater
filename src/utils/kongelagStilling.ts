@@ -7,7 +7,7 @@ import type { KongelagSeedingRow } from '@/utils/kongelagSeeding'
 import { OMGANG_MAX_POENG } from '@/utils/omgangValidation'
 import {
   assignPlacements,
-  compareOmgangArrays,
+  compareXkastRows,
   type XkastStandingRow,
 } from '@/utils/xkastStilling'
 
@@ -53,10 +53,8 @@ export interface KongelagStandingRow extends XkastStandingRow {
 
 function compareRows(a: KongelagStandingRow, b: KongelagStandingRow): number {
   if (b.displayTotal !== a.displayTotal) return b.displayTotal - a.displayTotal
-  // Level 2 per plan: kongelag-only poeng (final-phase performance breaks ties)
-  if (b.poeng !== a.poeng) return b.poeng - a.poeng
-  if (b.antallRinger !== a.antallRinger) return b.antallRinger - a.antallRinger
-  return compareOmgangArrays(a.omgangPoengDesc, b.omgangPoengDesc)
+  // Below displayTotal, the shared ranking applies (kongelag poeng → ringere → best omgang)
+  return compareXkastRows(a, b)
 }
 
 /** Adds carry-over and re-ranks a Kongelag standing by displayTotal (poeng + carry-over). */

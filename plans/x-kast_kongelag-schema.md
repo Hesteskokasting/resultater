@@ -287,6 +287,17 @@ This is a one-column nullable FK, trivially reversible. Can be added when the NM
 
 ## Section 5: Implementation phases
 
+> **Status (2026-07-23): Phases 1–4 implemented and merged.** Deviations from the
+> sketch below: the service is `xkastKongelagService.ts` (shared X-kast + Kongelag,
+> not separate `xkastService`/`kongelagService`); the two views share a
+> `createCourtPhaseRenderer` factory in `organizer/xkastKongelagView.ts`; score entry
+> uses a dedicated two-stage `OmgangNumberpad` (poeng → ringere buttons), not the kamp
+> `ScoreNumberpad`. Pulje seeding is currently **random**, not ranking-based (the one
+> unbuilt item from Phase 1 — tracked as its own issue). Admin score editing and manual
+> totals were added later (see [xkast-kongelag-manual-scoring.md](xkast-kongelag-manual-scoring.md)),
+> which also delivered the per-omgang detail drill-down originally deferred in the
+> pulje-tables doc.
+
 ### Phase 1 — X-kast standalone (Minimatch, Halvmatch, Heilmatch)
 
 All three X-kast methods ship together — the logic is identical across them; the only variable
@@ -344,6 +355,8 @@ Complicated enough to need its own plan; deliberately not scheduled as a phase h
 
 ---
 
-### Deferred — SNC
+### SNC — resolved
 
-Separate spec.
+Originally deferred pending a separate spec. In practice SNC stevner are just
+ordinary X-kast (innledande) + Kongelag (avsluttande) stevner, so they were solved
+by Phases 1–4 with no SNC-specific work. **No longer outstanding.**
