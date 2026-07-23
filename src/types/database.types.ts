@@ -962,6 +962,30 @@ export type Database = {
       }
     }
     Views: {
+      innledende_kamp_poeng: {
+        Row: {
+          kamp_poeng_innl: number | null
+          kasterid: number | null
+          score_poeng_innl: number | null
+          stevneid: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kamp_spelar_kasterid_fkey"
+            columns: ["kasterid"]
+            isOneToOne: false
+            referencedRelation: "kaster"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kamp_stevneid_fkey"
+            columns: ["stevneid"]
+            isOneToOne: false
+            referencedRelation: "stevne"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kaster_rekorder: {
         Row: {
           ar: number | null

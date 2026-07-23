@@ -122,18 +122,52 @@ export async function writePlacements(
   return { error: err }
 }
 
-/** Innledende results used to seed Kongelag courts (see @/utils/kongelagSeeding). */
+/**
+ * Innledende results used to seed Kongelag courts (see @/utils/kongelagSeeding).
+ * X-kast totals come from resultat (written by the confirm RPC); kamp totals
+ * come from the innledende_kamp_poeng view — resultat.kamp_poeng_innl has
+ * been unwritten since the sync triggers were dropped (20260521120000).
+ */
 export async function getKongelagSeedingRows(
   stevneid: number,
 ): Promise<{ data: KongelagSeedingRow[]; error: unknown }> {
-  const { data, error } = await supabase
-    .from('resultat')
-    .select('kasterid, poeng_xkast, antall_ring_xkast, kamp_poeng_innl, score_poeng_innl')
-    .eq('stevneid', stevneid)
-    .not('kasterid', 'is', null)
-  if (error) logError('getKongelagSeedingRows', error)
-  const rows = (data ?? []).filter((r): r is typeof r & { kasterid: number } => r.kasterid != null)
-  return { data: rows, error }
+  try {
+    const [resultatRes, kampRes] = await Promise.all([
+      supabase
+        .from('resultat')
+        .select('kasterid, poeng_xkast, antall_ring_xkast')
+        .eq('stevneid', stevneid)
+        .not('kasterid', 'is', null),
+      supabase
+        .from('innledende_kamp_poeng')
+        .select('kasterid, kamp_poeng_innl, score_poeng_innl')
+        .eq('stevneid', stevneid),
+    ])
+    const error = resultatRes.error ?? kampRes.error
+    if (error) {
+      logError('getKongelagSeedingRows', error)
+      return { data: [], error }
+    }
+
+    const kampByKasterid = new Map(
+      (kampRes.data ?? [])
+        .filter((r): r is typeof r & { kasterid: number } => r.kasterid != null)
+        .map(r => [r.kasterid, r]),
+    )
+    const rows = (resultatRes.data ?? [])
+      .filter((r): r is typeof r & { kasterid: number } => r.kasterid != null)
+      .map(r => ({
+        kasterid: r.kasterid,
+        poeng_xkast: r.poeng_xkast,
+        antall_ring_xkast: r.antall_ring_xkast,
+        kamp_poeng_innl: kampByKasterid.get(r.kasterid)?.kamp_poeng_innl ?? null,
+        score_poeng_innl: kampByKasterid.get(r.kasterid)?.score_poeng_innl ?? null,
+      }))
+    return { data: rows, error: null }
+  } catch (e) {
+    logError('getKongelagSeedingRows', e)
+    return { data: [], error: e }
+  }
 }
 
 export async function clearGroupAssignment(stevneid: number): Promise<{ error: unknown }> {
