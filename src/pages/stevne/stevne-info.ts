@@ -12,6 +12,7 @@ import { livePillHtml } from '@/components/LivePill'
 import { getRegistrationCount, getPairCount, getUnconfirmedCount, getMyRegistrationForTournament } from '@/services/pameldingService'
 import { createRegistrationButton } from '@/components/PameldingKnapp'
 import { generateInitialRoundMatches } from '@/services/kampGenereringInnledendeService'
+import { generateKongelagCourts } from '@/services/xkastKongelagService'
 import { registerRefetch } from '@/utils/refetchRegistry'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -57,11 +58,16 @@ export async function render(
 
     // ── Start-tournament button (admin, not started) ──────────────────────────
 
+    // No innleiande metode + Kongelag avsluttande = standalone Kongelag:
+    // the stevne starts directly in the avsluttende phase.
+    const isStandaloneKongelag = !stevne.kastemetodeInnl
+      && (stevne.kastemetodeAvsl?.navn ?? '').toLowerCase().includes('kongelag')
+
     if (bannerSlot && isNotStarted && isAdmin) {
       bannerSlot.innerHTML = `<button id="start-stevne-btn" class="btn btn-sm btn-success">Start stevne</button>`
       const startBtn = bannerSlot.querySelector<HTMLButtonElement>('#start-stevne-btn')!
       startBtn.addEventListener('click', async () => {
-        if (!stevne.kastemetodeInnl) {
+        if (!stevne.kastemetodeInnl && !isStandaloneKongelag) {
           showToast('Du må velje kastemetode for innleiande fase. Gå til Innstillingar for å endre.', 'error')
           return
         }
@@ -85,6 +91,28 @@ export async function render(
         }
         startBtn.disabled = true
         startBtn.textContent = 'Starter…'
+
+        if (isStandaloneKongelag) {
+          // Phase first: if generation fails, the avsluttende tab still shows
+          // the Start Kongelag panel as a retry path.
+          const { error: phaseError } = await updateTournamentPhase(id, 'avsluttende')
+          if (phaseError) {
+            showToast('Feil ved oppdatering av fase.', 'error')
+            startBtn.disabled = false
+            startBtn.textContent = 'Start stevne'
+            return
+          }
+          const { error: generateError } = await generateKongelagCourts(id)
+          if (generateError) {
+            showToast('Feil ved generering av Kongelag-banar: ' + errorMessage(generateError), 'error')
+            startBtn.disabled = false
+            startBtn.textContent = 'Start stevne'
+            return
+          }
+          location.hash = `#/stevne/${id}/avsluttende`
+          return
+        }
+
         try {
           await generateInitialRoundMatches(id, methodName, stevne.antall_runder_innl ?? 1, isTeam)
         } catch (err) {

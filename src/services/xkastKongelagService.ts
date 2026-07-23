@@ -211,6 +211,13 @@ async function _seedStandaloneKongelag(
     return { data: [], error: noPlayersError }
   }
 
+  // Retry after a partial failure must not duplicate start-order rows
+  const { error: clearError } = await supabase.from('resultat').delete().eq('stevneid', stevneid)
+  if (clearError) {
+    logError('generateKongelagCourts:clearResultat', clearError)
+    return { data: [], error: clearError }
+  }
+
   for (let i = players.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [players[i], players[j]] = [players[j]!, players[i]!]
@@ -241,6 +248,22 @@ async function _seedStandaloneKongelag(
 export async function generateKongelagCourts(stevneid: number): Promise<{ error: unknown }> {
   const { data: config, error: configError } = await getKongelagConfig(stevneid)
   if (configError || !config) return { error: configError ?? new Error('Stevne ikkje funne') }
+
+  // Two entry points (Info tab and the avsluttende panel) — never generate twice
+  const { count, error: countError } = await supabase
+    .from('xkast_kongelag')
+    .select('id', { count: 'exact', head: true })
+    .eq('stevneid', stevneid)
+    .eq('fase', 'avsluttende')
+  if (countError) {
+    logError('generateKongelagCourts:count', countError)
+    return { error: countError }
+  }
+  if ((count ?? 0) > 0) {
+    const existsError = new Error('generateKongelagCourts: courts already generated')
+    logError('generateKongelagCourts', existsError)
+    return { error: existsError }
+  }
 
   let kasterids: number[]
   if (config.hasInitialPhase) {
