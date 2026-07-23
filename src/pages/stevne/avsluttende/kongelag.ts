@@ -126,6 +126,7 @@ const kongelagVariant: CourtPhaseVariant = {
       participant.omgangar.find(o => o.omgang === i + 1)?.poeng ?? null),
   registerScope: 'pulje',
   entryOrder,
+  omgangerForScoreCell: (cellIndex) => [cellIndex + 1],
   emptyHint: () => 'Kongelag er ikkje starta enno.',
   renderNoCourts: renderStartPanel,
   loadCarryOver: getKongelagCarryOver,

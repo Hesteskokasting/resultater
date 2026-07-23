@@ -75,4 +75,22 @@ describe('buildXkastStanding', () => {
   it('handles the empty list', () => {
     expect(buildXkastStanding([])).toEqual([])
   })
+
+  it('uses a manual total instead of summing omganger', () => {
+    const rows = buildXkastStanding([
+      { kasterid: 1, navn: 'Manuell', omganger: [], manualTotal: { poeng: 120, antallRinger: 18, antallOmganger: 15 } },
+      participant(2, 'Omgang', [[12, 2], [10, 2]]),
+    ])
+    expect(rows.map(r => r.kasterid)).toEqual([1, 2])
+    expect(rows[0]).toMatchObject({ poeng: 120, antallRinger: 18, antallOmganger: 15 })
+  })
+
+  it('loses a poeng+ringer tie to an omgang player (empty tiebreaker array)', () => {
+    const rows = buildXkastStanding([
+      { kasterid: 1, navn: 'Manuell', omganger: [], manualTotal: { poeng: 20, antallRinger: 4, antallOmganger: 2 } },
+      participant(2, 'Omgang', [[10, 2], [10, 2]]), // 20 poeng, 4 ringere, best omgang 10 > manual's nothing
+    ])
+    expect(rows.map(r => r.kasterid)).toEqual([2, 1])
+    expect(rows.map(r => r.plassering)).toEqual([1, 2])
+  })
 })

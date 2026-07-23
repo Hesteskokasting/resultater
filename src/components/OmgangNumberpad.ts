@@ -13,6 +13,10 @@ export interface OmgangEntryStep {
   contextLabel: string
   /** Player throwing this omgang. */
   playerName: string
+  /** Prefilled poeng when editing an existing omgang (omit for a fresh entry). */
+  initialPoeng?: number
+  /** Prefilled ringere when editing an existing omgang. */
+  initialRinger?: number | null
   /**
    * Persists the completed omgang. Runs once per step, when both poeng and
    * ringere are entered. Return false to stay on the step (failed save).
@@ -44,20 +48,26 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
   const state: PadState = { stepIdx: 0, stage: 'poeng', poengInput: '', selectedRinger: null, isSaving: false }
   const { overlay, close } = createNumberpadOverlay('onp-overlay')
 
+  /** Resets the two-stage state for the current step, prefilling when editing. */
+  function loadStepDefaults(): void {
+    const step = steps[state.stepIdx]
+    state.stage = 'poeng'
+    state.poengInput = step?.initialPoeng != null ? String(step.initialPoeng) : ''
+    state.selectedRinger = step?.initialRinger ?? null
+    state.isSaving = false
+  }
+
   function currentPoeng(): number {
     return Math.min(OMGANG_MAX_POENG, parseInt(state.poengInput || '0'))
   }
 
   function advance(): void {
     state.stepIdx++
-    state.stage = 'poeng'
-    state.poengInput = ''
-    state.selectedRinger = null
-    state.isSaving = false
     if (state.stepIdx >= steps.length) {
       close()
       return
     }
+    loadStepDefaults()
     render()
   }
 
@@ -200,6 +210,7 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
     overlay.appendChild(card)
   }
 
+  loadStepDefaults()
   render()
   document.body.appendChild(overlay)
 }

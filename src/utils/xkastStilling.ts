@@ -7,6 +7,13 @@ export interface XkastStandingParticipant {
   kasterid: number
   navn: string
   omganger: { poeng: number; antall_ringer: number | null }[]
+  /**
+   * Set when the participant has a directly-entered total (no omganger).
+   * The standing then uses these figures; `antallOmganger` is the configured
+   * count so the O column reads as complete. No per-omgang tiebreaker array,
+   * so manual totals rank on poeng → ringere only.
+   */
+  manualTotal?: { poeng: number; antallRinger: number; antallOmganger: number } | null
 }
 
 export interface XkastStandingRow {
@@ -55,15 +62,28 @@ export function assignPlacements<T extends { plassering: number }>(
 }
 
 export function buildXkastStanding(participants: XkastStandingParticipant[]): XkastStandingRow[] {
-  const rows: XkastStandingRow[] = participants.map(p => ({
-    kasterid: p.kasterid,
-    navn: p.navn,
-    poeng: p.omganger.reduce((sum, o) => sum + o.poeng, 0),
-    antallRinger: p.omganger.reduce((sum, o) => sum + (o.antall_ringer ?? 0), 0),
-    antallOmganger: p.omganger.length,
-    omgangPoengDesc: p.omganger.map(o => o.poeng).sort((a, b) => b - a),
-    plassering: 0,
-  }))
+  const rows: XkastStandingRow[] = participants.map(p => {
+    if (p.manualTotal) {
+      return {
+        kasterid: p.kasterid,
+        navn: p.navn,
+        poeng: p.manualTotal.poeng,
+        antallRinger: p.manualTotal.antallRinger,
+        antallOmganger: p.manualTotal.antallOmganger,
+        omgangPoengDesc: [],
+        plassering: 0,
+      }
+    }
+    return {
+      kasterid: p.kasterid,
+      navn: p.navn,
+      poeng: p.omganger.reduce((sum, o) => sum + o.poeng, 0),
+      antallRinger: p.omganger.reduce((sum, o) => sum + (o.antall_ringer ?? 0), 0),
+      antallOmganger: p.omganger.length,
+      omgangPoengDesc: p.omganger.map(o => o.poeng).sort((a, b) => b - a),
+      plassering: 0,
+    }
+  })
 
   return assignPlacements(rows, compareRows)
 }

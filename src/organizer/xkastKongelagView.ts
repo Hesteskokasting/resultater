@@ -13,6 +13,7 @@ import { createEmptyState } from '@/components/EmptyState'
 import { showToast } from '@/components/Toast'
 import { confirmDialog } from '@/components/ConfirmDialog'
 import { showOmgangNumberpad, type OmgangEntryStep } from '@/components/OmgangNumberpad'
+import { showTotalNumberpad } from '@/components/TotalNumberpad'
 import { escHtml } from '@/utils/escHtml'
 import { throwerName } from '@/utils/kaster'
 import { logError } from '@/utils/logError'
@@ -28,6 +29,8 @@ import {
   saveOmgang,
   confirmCourt,
   swapCourtPlayers,
+  editCourtOmgang,
+  setCourtTotal,
   subscribeToCourtChanges,
   type CourtRow,
   type CourtParticipantRow,
@@ -72,6 +75,12 @@ export interface CourtPhaseVariant {
   registerScope: 'court' | 'pulje'
   /** Numberpad entry order over the given courts (recorded omganger are filtered out later). */
   entryOrder: (courts: CourtRow[], antallOmganger: number) => EntrySlot[]
+  /**
+   * The omgang number(s) a score cell represents. Kongelag: one omgang per
+   * cell → click edits it directly. X-kast: a round of ≤5 omganger → click
+   * expands an inline drill-down of those omganger.
+   */
+  omgangerForScoreCell: (cellIndex: number, antallOmganger: number) => number[]
   emptyHint: (isAdmin: boolean) => string
   /**
    * Lets admins swap two players between courts (tap one, tap the other) as
@@ -97,16 +106,17 @@ export function sortedParticipants(court: CourtRow): CourtParticipantRow[] {
 }
 
 function totalSum(participant: CourtParticipantRow): number {
+  if (participant.totalsum_manuelt) return participant.poeng
   return participant.omgangar.reduce((sum, o) => sum + o.poeng, 0)
 }
 
 function isCourtComplete(court: CourtRow, antallOmganger: number): boolean {
-  return court.deltakarar.every(p => p.omgangar.length >= antallOmganger)
+  return court.deltakarar.every(p => p.totalsum_manuelt || p.omgangar.length >= antallOmganger)
 }
 
 function courtStatus(court: CourtRow): string {
   if (court.er_bekreftet) return 'done'
-  if (court.deltakarar.some(p => p.omgangar.length > 0)) return 'in-progress'
+  if (court.deltakarar.some(p => p.totalsum_manuelt || p.omgangar.length > 0)) return 'in-progress'
   return 'not-started'
 }
 
@@ -127,6 +137,8 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
     carryOver: KongelagCarryOverInfo | null
     /** Deltaker id of the first player picked in a pending swap. */
     swapSelectedId: number | null
+    /** Score cell currently drilled-down for omgang editing (X-kast rounds). */
+    expandedCell: { deltakerId: number; cellIndex: number } | null
   }
 
   let state: CourtPhaseState | null = null
@@ -138,7 +150,8 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
 
   function buildEntrySteps(slots: EntrySlot[]): OmgangEntryStep[] {
     return slots
-      .filter(slot => !slot.participant.omgangar.some(o => o.omgang === slot.omgang))
+      // Manual-total players have no omganger to enter; already-recorded omganger are skipped.
+      .filter(slot => !slot.participant.totalsum_manuelt && !slot.participant.omgangar.some(o => o.omgang === slot.omgang))
       .map(slot => ({
         contextLabel: slot.contextLabel,
         playerName: throwerName(slot.participant.kaster),
@@ -167,20 +180,34 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
 
   // ── Rendering (same structure/classes as the kamp views) ───────────────────
 
+  /** The participant whose round is drilled-down in this court, if still editable. */
+  function expandedParticipant(court: CourtRow): CourtParticipantRow | null {
+    const s = state!
+    if (!s.expandedCell) return null
+    const p = court.deltakarar.find(pp => pp.id === s.expandedCell!.deltakerId)
+    if (!p) return null
+    return canEditScores(p) ? p : null
+  }
+
+  function courtRowspan(court: CourtRow): number {
+    return court.deltakarar.length + (expandedParticipant(court) ? 1 : 0)
+  }
+
   function courtActionTd(court: CourtRow): string {
     const s = state!
+    const rowspan = courtRowspan(court)
     if (court.er_bekreftet) {
-      return `<td class="text-end pe-2" rowspan="${court.deltakarar.length}"><span class="match-confirmed-indicator">✓ Bekreftet</span></td>`
+      return `<td class="text-end pe-2" rowspan="${rowspan}"><span class="match-confirmed-indicator">✓ Bekreftet</span></td>`
     }
     if (!s.isAdmin) {
-      return `<td rowspan="${court.deltakarar.length}"></td>`
+      return `<td rowspan="${rowspan}"></td>`
     }
     const canConfirm = isCourtComplete(court, s.antallOmganger)
     const registerBtn = variant.registerScope === 'court'
       ? `<button class="match-button match-button-primary" data-xk-register="${court.id}">Registrer</button>
       `
       : ''
-    return `<td class="text-end pe-2 text-nowrap" rowspan="${court.deltakarar.length}">
+    return `<td class="text-end pe-2 text-nowrap" rowspan="${rowspan}">
         ${registerBtn}<button class="match-button${canConfirm ? ' match-button-success' : ''}" data-xk-confirm="${court.id}"${canConfirm ? '' : ' disabled'}>Bekreft</button>
       </td>`
   }
@@ -190,14 +217,47 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
     return Boolean(variant.canSwapPlayers) && s.isAdmin && !court.er_bekreftet && participant.omgangar.length === 0
   }
 
+  /** Admin may edit omgang scores (confirmed courts allowed; fullført and manual totals not). */
+  function canEditScores(participant: CourtParticipantRow): boolean {
+    const s = state!
+    return s.isAdmin && !s.config.erfullfort && !participant.totalsum_manuelt
+  }
+
+  /** Inline drill-down row for one round: its omganger as tappable chips. */
+  function detailRowHtml(participant: CourtParticipantRow, cellIndex: number): string {
+    const s = state!
+    const scoreColCount = variant.scoreColumnHeaders(s.antallOmganger).length
+    const chips = variant.omgangerForScoreCell(cellIndex, s.antallOmganger).map(omgang => {
+      const existing = participant.omgangar.find(o => o.omgang === omgang)
+      const val = existing
+        ? `${existing.poeng} p${existing.antall_ringer != null ? ` · ${existing.antall_ringer} r` : ''}`
+        : 'Ikkje ført'
+      return `<button class="xk-omgang-chip" data-xk-omgang-edit="${participant.id}:${omgang}">
+        <span class="xk-omgang-chip-nr">Omgang ${omgang}</span>
+        <span class="xk-omgang-chip-val">${val}</span>
+      </button>`
+    }).join('')
+    // B and action are rowspanned to cover this row; span the middle columns.
+    return `<tr class="xk-detail-row"><td colspan="${scoreColCount + 2}">
+        <div class="xk-omgang-chips">${chips}</div>
+      </td></tr>`
+  }
+
   function courtRowsHtml(court: CourtRow): string {
     const s = state!
+    const expanded = expandedParticipant(court)
     return sortedParticipants(court).map((participant, i) => {
+      const editScores = canEditScores(participant)
       const scoreCells = variant.scoreCellValues(participant, s.antallOmganger)
-        .map(value => `<td class="text-center">${value ?? '—'}</td>`)
+        .map((value, cellIndex) => {
+          const isExpanded = s.expandedCell?.deltakerId === participant.id && s.expandedCell?.cellIndex === cellIndex
+          const cls = `text-center${editScores ? ' xk-editable-cell' : ''}${isExpanded ? ' xk-cell-expanded' : ''}`
+          const attr = editScores ? ` data-xk-score="${participant.id}:${cellIndex}"` : ''
+          return `<td class="${cls}"${attr}>${value ?? '—'}</td>`
+        })
         .join('')
       const firstCells = i === 0
-        ? `<td class="text-center align-middle fw-semibold" rowspan="${court.deltakarar.length}">${court.bane_nummer ?? ''}</td>`
+        ? `<td class="text-center align-middle fw-semibold" rowspan="${courtRowspan(court)}">${court.bane_nummer ?? ''}</td>`
         : ''
       const rowAttrs = i === 0 ? ` class="match-row-desktop" data-status="${courtStatus(court)}"` : ''
       const isSwappable = canSwapParticipant(court, participant)
@@ -205,15 +265,22 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
         ? ` court-swap-cell${s.swapSelectedId === participant.id ? ' court-swap-selected' : ''}`
         : ''
       const swapAttr = isSwappable ? ` data-xk-swap="${participant.id}"` : ''
+      const canEditTotal = s.isAdmin && !s.config.erfullfort
+      const totCls = `text-center fw-semibold${canEditTotal ? ' xk-editable-cell' : ''}`
+      const totAttr = canEditTotal ? ` data-xk-total="${participant.id}"` : ''
       // text-start: the reused match-row-desktop styling right-aligns the P1
       // column (td:nth-child(2)) for kamp rows; court names stay left-aligned.
-      return `<tr${rowAttrs}>
+      const row = `<tr${rowAttrs}>
         ${firstCells}
         <td class="text-start${swapClasses}"${swapAttr}>${escHtml(throwerName(participant.kaster))}</td>
         ${scoreCells}
-        <td class="text-center fw-semibold">${totalSum(participant)}</td>
+        <td class="${totCls}"${totAttr}>${totalSum(participant)}</td>
         ${i === 0 ? courtActionTd(court) : ''}
       </tr>`
+      const detail = expanded?.id === participant.id && s.expandedCell
+        ? detailRowHtml(participant, s.expandedCell.cellIndex)
+        : ''
+      return row + detail
     }).join('')
   }
 
@@ -252,6 +319,9 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
         kasterid: p.kasterid,
         navn: throwerName(p.kaster),
         omganger: p.omgangar,
+        manualTotal: p.totalsum_manuelt
+          ? { poeng: p.poeng, antallRinger: p.antall_ringer, antallOmganger: s.antallOmganger }
+          : null,
       }))),
     )
     return s.carryOver ? buildKongelagStanding(base, s.carryOver.byKasterid) : base
@@ -445,6 +515,77 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
     await reload(container)
   }
 
+  // ── Score editing (admin) ───────────────────────────────────────────────────
+
+  function ringerSum(participant: CourtParticipantRow): number {
+    if (participant.totalsum_manuelt) return participant.antall_ringer
+    return participant.omgangar.reduce((sum, o) => sum + (o.antall_ringer ?? 0), 0)
+  }
+
+  function openOmgangEdit(deltakerId: number, omgang: number): void {
+    const found = findParticipant(deltakerId)
+    if (!found) return
+    const { court, participant } = found
+    const existing = participant.omgangar.find(o => o.omgang === omgang)
+    showOmgangNumberpad([{
+      contextLabel: `Bane ${court.bane_nummer ?? '?'} · Omgang ${omgang}`,
+      playerName: throwerName(participant.kaster),
+      initialPoeng: existing?.poeng,
+      initialRinger: existing?.antall_ringer ?? undefined,
+      onSave: async (poeng, antallRinger) => {
+        const { error } = await editCourtOmgang(participant.id, omgang, poeng, antallRinger)
+        if (error) { showToast('Feil ved lagring av omgang.', 'error'); return false }
+        return true
+      },
+    }])
+  }
+
+  function openTotalEdit(deltakerId: number): void {
+    const s = state
+    if (!s) return
+    const found = findParticipant(deltakerId)
+    if (!found) return
+    const { court, participant } = found
+    const hasOmganger = participant.omgangar.length > 0
+    const open = (): void => showTotalNumberpad({
+      contextLabel: `Bane ${court.bane_nummer ?? '?'} · Totalsum`,
+      playerName: throwerName(participant.kaster),
+      antallOmganger: s.antallOmganger,
+      initialPoeng: participant.totalsum_manuelt || hasOmganger ? totalSum(participant) : undefined,
+      initialRinger: participant.totalsum_manuelt || hasOmganger ? ringerSum(participant) : undefined,
+      onSave: async (poeng, antallRinger) => {
+        const { error } = await setCourtTotal(participant.id, poeng, antallRinger)
+        if (error) { showToast('Feil ved lagring av totalsum.', 'error'); return false }
+        showToast('Totalsum lagra.', 'success')
+        return true
+      },
+    })
+    if (hasOmganger) {
+      void confirmDialog({
+        title: 'Overstyr med totalsum',
+        message: `Dette slettar alle omgangsskår for ${throwerName(participant.kaster)} og lagrar berre totalsummen. Vil du halde fram?`,
+        danger: true,
+      }).then(ok => { if (ok) open() })
+    } else {
+      open()
+    }
+  }
+
+  function handleScoreCellClick(container: HTMLElement, deltakerId: number, cellIndex: number): void {
+    const s = state
+    if (!s) return
+    const omganger = variant.omgangerForScoreCell(cellIndex, s.antallOmganger)
+    if (omganger.length === 1) {
+      openOmgangEdit(deltakerId, omganger[0]!)
+      return
+    }
+    const cur = s.expandedCell
+    s.expandedCell = cur && cur.deltakerId === deltakerId && cur.cellIndex === cellIndex
+      ? null
+      : { deltakerId, cellIndex }
+    renderView(container)
+  }
+
   // ── Events ──────────────────────────────────────────────────────────────────
 
   function bindActions(container: HTMLElement): void {
@@ -472,6 +613,26 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
       const swapCell = target.closest<HTMLElement>('[data-xk-swap]')
       if (swapCell) {
         await handleSwapClick(container, Number(swapCell.dataset.xkSwap))
+        return
+      }
+
+      const totalCell = target.closest<HTMLElement>('[data-xk-total]')
+      if (totalCell) {
+        openTotalEdit(Number(totalCell.dataset.xkTotal))
+        return
+      }
+
+      const omgangChip = target.closest<HTMLElement>('[data-xk-omgang-edit]')
+      if (omgangChip) {
+        const [pid, omgang] = omgangChip.dataset.xkOmgangEdit!.split(':').map(Number)
+        openOmgangEdit(pid!, omgang!)
+        return
+      }
+
+      const scoreCell = target.closest<HTMLElement>('[data-xk-score]')
+      if (scoreCell) {
+        const [pid, cellIndex] = scoreCell.dataset.xkScore!.split(':').map(Number)
+        handleScoreCellClick(container, pid!, cellIndex!)
         return
       }
 
@@ -543,7 +704,7 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
         return
       }
 
-      state = { stevneid: id, isAdmin, config: configRes.data, antallOmganger, courts: courtsRes.data, carryOver: carryRes.data, swapSelectedId: null }
+      state = { stevneid: id, isAdmin, config: configRes.data, antallOmganger, courts: courtsRes.data, carryOver: carryRes.data, swapSelectedId: null, expandedCell: null }
       renderView(container)
       bindActions(container)
       channel = subscribeToCourtChanges(id, variant.channelName(id), () => { void reload(container) })

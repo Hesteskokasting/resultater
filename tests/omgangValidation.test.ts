@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { isValidOmgangEntry, ringOptions, validRingerRange } from '@/utils/omgangValidation'
+import {
+  isValidOmgangEntry,
+  isValidTotalEntry,
+  ringOptions,
+  totalMaxPoeng,
+  totalMaxRinger,
+  validRingerRange,
+} from '@/utils/omgangValidation'
 
 describe('validRingerRange', () => {
   it('20 poeng requires exactly 4 ringere', () => {
@@ -16,6 +23,34 @@ describe('validRingerRange', () => {
 
   it('13 poeng needs at least one ringer (max without is 12)', () => {
     expect(validRingerRange(13)).toEqual({ min: 1, max: 2 })
+  })
+})
+
+describe('validRingerRange with a custom shoe count', () => {
+  it('scales the range to the given shoe count (one Minimatch = 60 shoes)', () => {
+    // 300 poeng over 60 shoes must be 60 ringere; 0 poeng is 0 ringere
+    expect(validRingerRange(300, 60)).toEqual({ min: 60, max: 60 })
+    expect(validRingerRange(0, 60)).toEqual({ min: 0, max: 0 })
+    // 150 poeng: max ringere floor(150/5)=30; min ceil((150-180)/2)=0
+    expect(validRingerRange(150, 60)).toEqual({ min: 0, max: 30 })
+  })
+})
+
+describe('total helpers', () => {
+  it('derives Minimatch/Halvmatch/Heilmatch maxes', () => {
+    expect([totalMaxPoeng(15), totalMaxRinger(15)]).toEqual([300, 60])
+    expect([totalMaxPoeng(25), totalMaxRinger(25)]).toEqual([500, 100])
+    expect([totalMaxPoeng(50), totalMaxRinger(50)]).toEqual([1000, 200])
+  })
+
+  it('validates an aggregate total against the shoe model', () => {
+    expect(isValidTotalEntry(300, 60, 15)).toBe(true)   // all ringere
+    expect(isValidTotalEntry(0, 0, 15)).toBe(true)       // nothing scored
+    expect(isValidTotalEntry(180, 0, 15)).toBe(true)     // 60 shoes × 3, no ringere
+    expect(isValidTotalEntry(181, 0, 15)).toBe(false)    // impossible without a ringer
+    expect(isValidTotalEntry(301, 60, 15)).toBe(false)   // over the max
+    expect(isValidTotalEntry(100, 61, 15)).toBe(false)   // more ringere than shoes
+    expect(isValidTotalEntry(10.5, 2, 15)).toBe(false)   // non-integer
   })
 })
 

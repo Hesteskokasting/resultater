@@ -1865,6 +1865,51 @@ th.initial-score-th {
   outline-offset: -2px;
 }
 
+/* ── X-kast/Kongelag: admin score editing ── */
+
+.xk-editable-cell { cursor: pointer; }
+.xk-editable-cell:hover { background: var(--primaer-hover); }
+
+.xk-cell-expanded {
+  background: var(--primaer-aktiv);
+  outline: 2px solid var(--primaer-selektert);
+  outline-offset: -2px;
+}
+
+.xk-detail-row > td { background: var(--flate-2); padding: 8px; }
+
+.xk-omgang-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.xk-omgang-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 84px;
+  padding: 8px 10px;
+  background: var(--flate);
+  color: var(--tekst);
+  border: 1px solid var(--kant);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.xk-omgang-chip:hover { border-color: var(--primaer-selektert); }
+
+.xk-omgang-chip-nr {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--tekst-2);
+}
+
+.xk-omgang-chip-val { font-size: 1rem; font-weight: 600; }
+
 /* ===================== SCOREBOARD ===================== */
 
 /* ── Kamp-scoreboard fullskjerm-modus ── */
