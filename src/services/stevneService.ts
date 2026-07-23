@@ -272,14 +272,14 @@ export async function getTournamentHeader(id: number): Promise<{ data: Tournamen
 
 const _avslStevneQuery = supabase
   .from('stevne')
-  .select('id, navn, stevne_fase, erfullfort, runde1_format, avsluttendemetode:avsluttendekastemetodeid(id, navn), kategori:kategoriid(erlagbasert)')
+  .select('id, navn, stevne_fase, erfullfort, runde1_format, kastemetodeInnl:kastemetode!stevne_innledendekastemetodeid_fkey(navn), avsluttendemetode:kastemetode!stevne_avsluttendekastemetodeid_fkey(id, navn), kategori:kategoriid(erlagbasert)')
 
 export type FinalPhaseTournamentRow = QueryData<typeof _avslStevneQuery>[number]
 
 export async function getFinalPhaseTournament(stevneid: number): Promise<{ data: FinalPhaseTournamentRow | null; error: unknown }> {
   const { data, error } = await supabase
     .from('stevne')
-    .select('id, navn, stevne_fase, erfullfort, runde1_format, avsluttendemetode:avsluttendekastemetodeid(id, navn), kategori:kategoriid(erlagbasert)')
+    .select('id, navn, stevne_fase, erfullfort, runde1_format, kastemetodeInnl:kastemetode!stevne_innledendekastemetodeid_fkey(navn), avsluttendemetode:kastemetode!stevne_avsluttendekastemetodeid_fkey(id, navn), kategori:kategoriid(erlagbasert)')
     .eq('id', stevneid)
     .maybeSingle()
   if (error) logError('getFinalPhaseTournament', error)

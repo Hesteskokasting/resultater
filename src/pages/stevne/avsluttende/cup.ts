@@ -33,6 +33,8 @@ import {
   updateTournamentPhase,
   setRound1Format,
 } from '@/services/stevneService'
+import { isInnledendeComplete } from '@/services/xkastKongelagService'
+import { isXkastMethodName } from '@/utils/kastemetode'
 import {
   setGroupAssignment,
   clearGroupAssignment,
@@ -208,7 +210,24 @@ const cupVariant: FinalPhaseVariant = {
         const { error: fmtErr } = await setRound1Format(stevneid, { A: setupA, B: setupB, nA })
         if (fmtErr) { showToast('Feil ved lagring av format: ' + errorMessage(fmtErr), 'error'); return }
 
-        if (stevne.stevne_fase === 'avsluttende') {
+        // X-kast-family innledende (minimatch etc.) creates no kamp rows, so
+        // #start-final-btn — gated on confirmed kamp rows — never appears to flip
+        // the phase to 'avsluttende' the way it does for head-to-head innledende.
+        // Mirror kongelag's start panel: flip it here once the innledende phase
+        // is complete. Head-to-head is unaffected (not an X-kast method).
+        let phase = stevne.stevne_fase
+        if (phase !== 'avsluttende' && isXkastMethodName(stevne.kastemetodeInnl?.navn ?? '')) {
+          const { data: innledendeDone } = await isInnledendeComplete(stevneid)
+          if (!innledendeDone) {
+            showToast('Fullfør den innleiande fasen før cupen kan startast', 'error')
+            return
+          }
+          const { error: phaseErr } = await updateTournamentPhase(stevneid, 'avsluttende')
+          if (phaseErr) { showToast('Feil ved oppstart av avsluttande fase: ' + errorMessage(phaseErr), 'error'); return }
+          phase = 'avsluttende'
+        }
+
+        if (phase === 'avsluttende') {
           const groupAId = groupNameMap['A'] ?? null
           const groupBId = groupNameMap['B'] ?? null
           const updates = buildGroupUpdates(standings, results, nA, groupAId, groupBId)

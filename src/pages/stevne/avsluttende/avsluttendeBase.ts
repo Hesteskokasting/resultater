@@ -182,6 +182,14 @@ export function createFinalPhaseRenderer(variant: FinalPhaseVariant) {
           }
         }
       }
+      // X-kast-family innledende (minimatch etc.) produces no kamp rows, so the
+      // loop above finds no names. resultat rows cover every participant — use
+      // them so standings/preview show names instead of "Spelar <kasterid>".
+      for (const r of typedResults) {
+        if (r.kaster && !nameMap[r.kasterid]) {
+          nameMap[r.kasterid] = `${r.kaster.fornavn} ${r.kaster.etternavn}`
+        }
+      }
 
       const initialMatchesOrg = toOrgMatch(initialMatches)
       const standings = buildFinalStandings(initialMatchesOrg, typedResults, nameMap, startNumberMap, positionMap)
