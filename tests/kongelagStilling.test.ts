@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   xkastCarryOverFactor,
+  xkastCarryOverPercent,
   calcCarryOverByKasterid,
   buildKongelagStanding,
 } from '@/utils/kongelagStilling'
@@ -33,6 +34,14 @@ describe('xkastCarryOverFactor', () => {
     expect(300 * xkastCarryOverFactor(15)).toBe(100)
     expect(500 * xkastCarryOverFactor(25)).toBe(100)
     expect(1000 * xkastCarryOverFactor(50)).toBe(100)
+  })
+})
+
+describe('xkastCarryOverPercent', () => {
+  it('formats the factor as a percentage without float noise', () => {
+    expect(xkastCarryOverPercent(15)).toBe(33.33)
+    expect(xkastCarryOverPercent(25)).toBe(20)
+    expect(xkastCarryOverPercent(50)).toBe(10)
   })
 })
 

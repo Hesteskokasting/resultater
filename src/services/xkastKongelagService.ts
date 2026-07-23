@@ -4,7 +4,7 @@ import { logError } from '@/utils/logError'
 import { getKongelagSeedingRows } from '@/services/resultatService'
 import { getEnrolledPlayers } from '@/services/pameldingService'
 import { orderKongelagSeeding, buildKongelagCourts } from '@/utils/kongelagSeeding'
-import { calcCarryOverByKasterid } from '@/utils/kongelagStilling'
+import { calcCarryOverByKasterid, xkastCarryOverPercent } from '@/utils/kongelagStilling'
 import { isXkastMethodName } from '@/utils/kastemetode'
 
 // ── Court reads ───────────────────────────────────────────────────────────────
@@ -148,6 +148,15 @@ export async function isInnledendeComplete(
 
 // ── Kongelag carry-over (Phases 3/4) ──────────────────────────────────────────
 
+export interface KongelagCarryOverInfo {
+  /** Carry-over added to each player's kongelag total. */
+  byKasterid: Record<number, number>
+  /** Raw innledende X-kast totals; null for kamp-based innledende (Gloppen/NHM). */
+  xkastPoengByKasterid: Record<number, number> | null
+  /** X-kast carry-over percentage (33.33/20/10); null for kamp-based innledende. */
+  xkastPercent: number | null
+}
+
 /**
  * Innledende carry-over per kasterid for the Kongelag standing. Null (not an
  * error) when the stevne has no innledende metode — standalone Kongelag has
@@ -155,7 +164,7 @@ export async function isInnledendeComplete(
  */
 export async function getKongelagCarryOver(
   stevneid: number,
-): Promise<{ data: Record<number, number> | null; error: unknown }> {
+): Promise<{ data: KongelagCarryOverInfo | null; error: unknown }> {
   const { data: stevne, error } = await supabase
     .from('stevne')
     .select('kastemetodeInnl:kastemetode!stevne_innledendekastemetodeid_fkey(navn, antall_omganger)')
@@ -171,11 +180,15 @@ export async function getKongelagCarryOver(
   if (seedingError) return { data: null, error: seedingError }
 
   const { navn, antall_omganger } = stevne.kastemetodeInnl
+  const isXkast = isXkastMethodName(navn ?? '')
   return {
-    data: calcCarryOverByKasterid(seedingRows, {
-      isXkast: isXkastMethodName(navn ?? ''),
-      antallOmganger: antall_omganger,
-    }),
+    data: {
+      byKasterid: calcCarryOverByKasterid(seedingRows, { isXkast, antallOmganger: antall_omganger }),
+      xkastPoengByKasterid: isXkast
+        ? Object.fromEntries(seedingRows.map(r => [r.kasterid, r.poeng_xkast ?? 0]))
+        : null,
+      xkastPercent: isXkast && antall_omganger ? xkastCarryOverPercent(antall_omganger) : null,
+    },
     error: null,
   }
 }

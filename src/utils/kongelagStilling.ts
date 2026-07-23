@@ -25,6 +25,11 @@ export function xkastCarryOverFactor(antallOmganger: number): number {
   return 100 / (antallOmganger * OMGANG_MAX_POENG)
 }
 
+/** The factor as a display percentage: 15 omganger → 33.33, 25 → 20, 50 → 10. */
+export function xkastCarryOverPercent(antallOmganger: number): number {
+  return Number((xkastCarryOverFactor(antallOmganger) * 100).toFixed(2))
+}
+
 export function calcCarryOverByKasterid(
   rows: KongelagSeedingRow[],
   innledende: InnledendeMethodInfo,
