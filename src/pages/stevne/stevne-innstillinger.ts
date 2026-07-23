@@ -12,6 +12,7 @@ import {
 } from '@/services/stevneService'
 import type { ActiveThrowingMethodRow } from '@/services/stevneService'
 import { resetTournament } from '@/services/testDataService'
+import { usesInitialRoundCount } from '@/utils/kastemetode'
 import { registerRefetch } from '@/utils/refetchRegistry'
 
 // ── Render ────────────────────────────────────────────────────────────────────
@@ -86,6 +87,20 @@ export async function render(
           </div>
         </form>
       </div>`
+
+    // antall_runder_innl only drives Gloppen/NHM kamp generation — X-kast
+    // methods get their omgang count from kastemetode.antall_omganger.
+    const initialSelect = container.querySelector<HTMLSelectElement>('#innl-metode')!
+    const roundsInput = container.querySelector<HTMLInputElement>('#antall-rundar')!
+    function syncRoundsInput(): void {
+      const method = initialMethods.find(m => m.id === Number(initialSelect.value))
+      const isRoundBased = method != null && usesInitialRoundCount(method.navn)
+      roundsInput.disabled = !isRoundBased
+      if (!isRoundBased) roundsInput.value = ''
+      roundsInput.placeholder = isRoundBased ? 't.d. 6' : 'Berre for Gloppen/NHM'
+    }
+    syncRoundsInput()
+    initialSelect.addEventListener('change', syncRoundsInput)
 
     container.querySelector<HTMLFormElement>('#innstillingar-form')!.addEventListener('submit', async e => {
       e.preventDefault()
