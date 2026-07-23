@@ -119,8 +119,10 @@ export async function generateInitialRoundMatches(
 /**
  * X-kast: no matches — startnummer order (randomised above) fills puljer
  * sized from stevne.tilgjengelige_baner (optional: unset means everyone in
- * one pulje), each pulje split into courts of 2 players (the last court takes
- * the odd remainder as a 3). Returns the number of courts created.
+ * one pulje), each pulje split into courts of 2 players. An odd remainder
+ * throws alone on the last court, unless a lane cap is set — then it joins
+ * the final pair as a 3 to conserve courts. Returns the number of courts
+ * created.
  */
 async function _insertXkastCourts(
   stevneid: number,
@@ -137,12 +139,13 @@ async function _insertXkastCourts(
   const kasterids: number[] = []
   for (let pos = 1; pos <= N; pos++) kasterids.push(...(posToKasterids[pos] ?? []))
 
+  const hasLaneCap = stevne.tilgjengelige_baner != null
   const lanes = stevne.tilgjengelige_baner ?? kasterids.length
 
   const courts: NewCourt[] = []
   let next = 0
   calcPuljeSizes(kasterids.length, lanes).forEach((puljeSize, puljeIdx) => {
-    calcXkastCourtSizes(puljeSize).forEach((courtSize, courtIdx) => {
+    calcXkastCourtSizes(puljeSize, hasLaneCap).forEach((courtSize, courtIdx) => {
       courts.push({
         pulje: puljeIdx + 1,
         baneNummer: courtIdx + 1,
