@@ -12,7 +12,7 @@ import { isXkastMethodName } from '@/utils/kastemetode'
 const _courtsQuery = supabase.from('xkast_kongelag').select(`
   id, stevneid, fase, pulje, bane_nummer, er_bekreftet,
   deltakarar:xkast_kongelag_deltaker(
-    id, kasterid, poeng, antall_ringer,
+    id, kasterid, poeng, antall_ringer, totalsum_manuelt,
     kaster:kasterid(id, fornavn, etternavn, klubb:klubbid(kortnavn, navn)),
     omgangar:xkast_kongelag_omgang(id, omgang, poeng, antall_ringer)
   )
@@ -33,7 +33,7 @@ export async function getCourts(
     .select(`
       id, stevneid, fase, pulje, bane_nummer, er_bekreftet,
       deltakarar:xkast_kongelag_deltaker(
-        id, kasterid, poeng, antall_ringer,
+        id, kasterid, poeng, antall_ringer, totalsum_manuelt,
         kaster:kasterid(id, fornavn, etternavn, klubb:klubbid(kortnavn, navn)),
         omgangar:xkast_kongelag_omgang(id, omgang, poeng, antall_ringer)
       )
@@ -381,6 +381,43 @@ export async function swapCourtPlayers(
     p_deltaker_b: deltakerIdB,
   })
   if (error) logError('swapCourtPlayers', error)
+  return { error }
+}
+
+// ── Score editing (admin) ─────────────────────────────────────────────────────
+
+/** Upserts one omgang for a participant. Re-syncs resultat if the court is confirmed. */
+export async function editCourtOmgang(
+  deltakerId: number,
+  omgang: number,
+  poeng: number,
+  antallRinger: number,
+): Promise<{ error: unknown }> {
+  const { error } = await supabase.rpc('edit_xkast_kongelag_omgang', {
+    p_deltaker_id: deltakerId,
+    p_omgang: omgang,
+    p_poeng: poeng,
+    p_antall_ringer: antallRinger,
+  })
+  if (error) logError('editCourtOmgang', error)
+  return { error }
+}
+
+/**
+ * Sets a participant's total directly, deleting their omgang rows and marking
+ * the total as manual. Re-syncs resultat if the court is confirmed.
+ */
+export async function setCourtTotal(
+  deltakerId: number,
+  poeng: number,
+  antallRinger: number,
+): Promise<{ error: unknown }> {
+  const { error } = await supabase.rpc('set_xkast_kongelag_total', {
+    p_deltaker_id: deltakerId,
+    p_poeng: poeng,
+    p_antall_ringer: antallRinger,
+  })
+  if (error) logError('setCourtTotal', error)
   return { error }
 }
 

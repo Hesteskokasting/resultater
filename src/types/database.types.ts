@@ -889,6 +889,7 @@ export type Database = {
           id: number
           kasterid: number
           poeng: number
+          totalsum_manuelt: boolean
           xkast_kongelag_id: number
         }
         Insert: {
@@ -896,6 +897,7 @@ export type Database = {
           id?: never
           kasterid: number
           poeng?: number
+          totalsum_manuelt?: boolean
           xkast_kongelag_id: number
         }
         Update: {
@@ -903,6 +905,7 @@ export type Database = {
           id?: never
           kasterid?: number
           poeng?: number
+          totalsum_manuelt?: boolean
           xkast_kongelag_id?: number
         }
         Relationships: [
@@ -1005,6 +1008,10 @@ export type Database = {
       }
     }
     Functions: {
+      _sync_xkast_kongelag_resultat: {
+        Args: { p_xkast_kongelag_id: number }
+        Returns: undefined
+      }
       bekreft_avsluttende_kamp_deltakar: {
         Args: { p_eliminert_kasterid?: number; p_kamp_id: number }
         Returns: undefined
@@ -1016,6 +1023,15 @@ export type Database = {
       }
       create_pair: {
         Args: { p_kaster_a: number; p_kaster_b: number; p_stevneid: number }
+        Returns: undefined
+      }
+      edit_xkast_kongelag_omgang: {
+        Args: {
+          p_antall_ringer: number
+          p_deltaker_id: number
+          p_omgang: number
+          p_poeng: number
+        }
         Returns: undefined
       }
       hent_bruker_epost: {
@@ -1050,6 +1066,14 @@ export type Database = {
       }
       min_rolle: { Args: never; Returns: string }
       reopen_stevne: { Args: { p_stevneid: number }; Returns: undefined }
+      set_xkast_kongelag_total: {
+        Args: {
+          p_antall_ringer: number
+          p_deltaker_id: number
+          p_poeng: number
+        }
+        Returns: undefined
+      }
       slett_brukarkonto: { Args: { target_id: string }; Returns: undefined }
       stevne_is_completed: { Args: { p_stevneid: number }; Returns: boolean }
       swap_xkast_kongelag_deltaker: {
