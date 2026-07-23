@@ -1049,6 +1049,7 @@ export type Database = {
           opprettet_at: string
         }[]
       }
+      insert_avsluttende_matches: { Args: { p_matches: Json }; Returns: number }
       is_match_participant: { Args: { p_kampid: number }; Returns: boolean }
       kamp_spelar_original: {
         Args: { p_id: number }

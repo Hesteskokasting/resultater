@@ -1,7 +1,7 @@
 import type { User } from '@supabase/supabase-js'
 import type { Tables } from './database.types'
 
-export type { Json, Tables } from './database.types'
+export type { Json, Tables, TablesInsert } from './database.types'
 
 // --- String literals ---
 
