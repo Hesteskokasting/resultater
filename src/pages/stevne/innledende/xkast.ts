@@ -55,6 +55,7 @@ const xkastVariant: CourtPhaseVariant = {
     Array.from({ length: totalRunder(antallOmganger) }, (_, i) => rundeSum(participant.omgangar, i + 1)),
   registerScope: 'court',
   entryOrder,
+  canSwapPlayers: true,
   emptyHint: (isAdmin) => isAdmin
     ? 'Ingen puljar er genererte enno. Start stevnet frå Info-fana.'
     : 'Ingen puljar er genererte enno.',

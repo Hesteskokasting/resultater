@@ -1028,6 +1028,10 @@ export type Database = {
       reopen_stevne: { Args: { p_stevneid: number }; Returns: undefined }
       slett_brukarkonto: { Args: { target_id: string }; Returns: undefined }
       stevne_is_completed: { Args: { p_stevneid: number }; Returns: boolean }
+      swap_xkast_kongelag_deltaker: {
+        Args: { p_deltaker_a: number; p_deltaker_b: number }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

@@ -1855,6 +1855,16 @@ th.initial-score-th {
 
 .onp-register:disabled { opacity: 0.45; cursor: default; }
 
+/* ── X-kast: byte spelarar mellom banar (tap–tap) ── */
+
+.court-swap-cell { cursor: pointer; }
+
+.court-swap-selected {
+  background: var(--primaer-aktiv);
+  outline: 2px solid var(--primaer-selektert);
+  outline-offset: -2px;
+}
+
 /* ===================== SCOREBOARD ===================== */
 
 /* ── Kamp-scoreboard fullskjerm-modus ── */

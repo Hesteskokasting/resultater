@@ -343,6 +343,24 @@ export async function saveOmgang(
   return { error }
 }
 
+// ── Player reassignment (admin) ───────────────────────────────────────────────
+
+/**
+ * Atomic swap of two court seats' players via RPC. The RPC refuses same-court
+ * swaps, confirmed courts, and seats with recorded omganger.
+ */
+export async function swapCourtPlayers(
+  deltakerIdA: number,
+  deltakerIdB: number,
+): Promise<{ error: unknown }> {
+  const { error } = await supabase.rpc('swap_xkast_kongelag_deltaker', {
+    p_deltaker_a: deltakerIdA,
+    p_deltaker_b: deltakerIdB,
+  })
+  if (error) logError('swapCourtPlayers', error)
+  return { error }
+}
+
 // ── Confirmation ──────────────────────────────────────────────────────────────
 
 /** Atomic confirm via RPC: aggregates omganger, writes resultat, locks the court. */

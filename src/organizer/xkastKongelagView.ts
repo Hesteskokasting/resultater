@@ -27,6 +27,7 @@ import {
   getCourts,
   saveOmgang,
   confirmCourt,
+  swapCourtPlayers,
   subscribeToCourtChanges,
   type CourtRow,
   type CourtParticipantRow,
@@ -72,6 +73,12 @@ export interface CourtPhaseVariant {
   /** Numberpad entry order over the given courts (recorded omganger are filtered out later). */
   entryOrder: (courts: CourtRow[], antallOmganger: number) => EntrySlot[]
   emptyHint: (isAdmin: boolean) => string
+  /**
+   * Lets admins swap two players between courts (tap one, tap the other) as
+   * long as neither court is confirmed and neither seat has recorded
+   * omganger. X-kast only for now.
+   */
+  canSwapPlayers?: boolean
   /** Optional replacement for the empty state (e.g. Kongelag's admin start panel). */
   renderNoCourts?: (ctx: CourtPhaseContext) => HTMLElement | null
   /**
@@ -118,6 +125,8 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
     courts: CourtRow[]
     /** Innledende carry-over; null = no carry-over columns. */
     carryOver: KongelagCarryOverInfo | null
+    /** Deltaker id of the first player picked in a pending swap. */
+    swapSelectedId: number | null
   }
 
   let state: CourtPhaseState | null = null
@@ -176,6 +185,11 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
       </td>`
   }
 
+  function canSwapParticipant(court: CourtRow, participant: CourtParticipantRow): boolean {
+    const s = state!
+    return Boolean(variant.canSwapPlayers) && s.isAdmin && !court.er_bekreftet && participant.omgangar.length === 0
+  }
+
   function courtRowsHtml(court: CourtRow): string {
     const s = state!
     return sortedParticipants(court).map((participant, i) => {
@@ -186,11 +200,16 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
         ? `<td class="text-center align-middle fw-semibold" rowspan="${court.deltakarar.length}">${court.bane_nummer ?? ''}</td>`
         : ''
       const rowAttrs = i === 0 ? ` class="match-row-desktop" data-status="${courtStatus(court)}"` : ''
+      const isSwappable = canSwapParticipant(court, participant)
+      const swapClasses = isSwappable
+        ? ` court-swap-cell${s.swapSelectedId === participant.id ? ' court-swap-selected' : ''}`
+        : ''
+      const swapAttr = isSwappable ? ` data-xk-swap="${participant.id}"` : ''
       // text-start: the reused match-row-desktop styling right-aligns the P1
       // column (td:nth-child(2)) for kamp rows; court names stay left-aligned.
       return `<tr${rowAttrs}>
         ${firstCells}
-        <td class="text-start">${escHtml(throwerName(participant.kaster))}</td>
+        <td class="text-start${swapClasses}"${swapAttr}>${escHtml(throwerName(participant.kaster))}</td>
         ${scoreCells}
         <td class="text-center fw-semibold">${totalSum(participant)}</td>
         ${i === 0 ? courtActionTd(court) : ''}
@@ -370,6 +389,62 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
     })
   }
 
+  // ── Player swap (tap one player, tap the other) ─────────────────────────────
+
+  function findParticipant(deltakerId: number): { court: CourtRow; participant: CourtParticipantRow } | null {
+    const s = state
+    if (!s) return null
+    for (const court of s.courts) {
+      const participant = court.deltakarar.find(p => p.id === deltakerId)
+      if (participant) return { court, participant }
+    }
+    return null
+  }
+
+  async function handleSwapClick(container: HTMLElement, deltakerId: number): Promise<void> {
+    const s = state
+    if (!s) return
+
+    if (s.swapSelectedId == null) {
+      s.swapSelectedId = deltakerId
+      renderView(container)
+      showToast('Vel spelaren du vil byte med.', 'info')
+      return
+    }
+    if (s.swapSelectedId === deltakerId) {
+      s.swapSelectedId = null
+      renderView(container)
+      return
+    }
+
+    const first = findParticipant(s.swapSelectedId)
+    const second = findParticipant(deltakerId)
+    if (!first || !second) {
+      s.swapSelectedId = null
+      renderView(container)
+      return
+    }
+    if (first.court.id === second.court.id) {
+      showToast('Spelarane står allereie på same bane.', 'info')
+      return
+    }
+
+    const ok = await confirmDialog({
+      title: 'Byte spelarar',
+      message: `Byte ${throwerName(first.participant.kaster)} (bane ${first.court.bane_nummer ?? '?'}) og ${throwerName(second.participant.kaster)} (bane ${second.court.bane_nummer ?? '?'})?`,
+    })
+    if (!ok) return
+
+    const { error } = await swapCourtPlayers(first.participant.id, second.participant.id)
+    if (error) {
+      showToast('Feil ved byte av spelarar.', 'error')
+      return
+    }
+    s.swapSelectedId = null
+    showToast('Spelarane har bytt bane.', 'success')
+    await reload(container)
+  }
+
   // ── Events ──────────────────────────────────────────────────────────────────
 
   function bindActions(container: HTMLElement): void {
@@ -391,6 +466,12 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
       if (puljeRegisterBtn) {
         const pulje = Number(puljeRegisterBtn.dataset.xkRegisterPulje)
         openEntryPad(s.courts.filter(c => (c.pulje ?? 0) === pulje))
+        return
+      }
+
+      const swapCell = target.closest<HTMLElement>('[data-xk-swap]')
+      if (swapCell) {
+        await handleSwapClick(container, Number(swapCell.dataset.xkSwap))
         return
       }
 
@@ -462,7 +543,7 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
         return
       }
 
-      state = { stevneid: id, isAdmin, config: configRes.data, antallOmganger, courts: courtsRes.data, carryOver: carryRes.data }
+      state = { stevneid: id, isAdmin, config: configRes.data, antallOmganger, courts: courtsRes.data, carryOver: carryRes.data, swapSelectedId: null }
       renderView(container)
       bindActions(container)
       channel = subscribeToCourtChanges(id, variant.channelName(id), () => { void reload(container) })
