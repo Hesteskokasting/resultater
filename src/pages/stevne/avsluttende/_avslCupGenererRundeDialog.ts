@@ -20,6 +20,12 @@ export function openGenerateRoundDialog(
   const totalCount = groupStanding.length
   const n = active.length
 
+  // X-kast-fed cups carry poeng_xkast; show X-kast poeng (ringere) instead of KP (SP).
+  const isXkast = groupStanding.some(r => r.poeng_xkast != null)
+  const scoreLabel = (r: StandingRow): string => isXkast
+    ? `${r.poeng_xkast ?? 0}p (${r.antall_ring_xkast ?? 0})`
+    : `${r.kamp_poeng ?? 0}p (${r.score_poeng ?? 0})`
+
   const round1Setup: RoundSetup | null = round === 1 ? (runde1Format?.[groupName as 'A' | 'B'] ?? null) : null
 
   const wo = round1Setup?.walkovers ?? 0
@@ -67,7 +73,7 @@ export function openGenerateRoundDialog(
   function playerHtml(r: StandingRow): string {
     return `<div class="d-flex justify-content-between gap-2 py-1">
       <span class="small">${escHtml(r.navn ?? '')}</span>
-      <span class="small text-muted text-nowrap">${r.kamp_poeng ?? 0}p (${r.score_poeng ?? 0})</span>
+      <span class="small text-muted text-nowrap">${scoreLabel(r)}</span>
     </div>`
   }
 
@@ -105,7 +111,7 @@ export function openGenerateRoundDialog(
           ${active.slice(wo).map((r, i) => `
             <div class="small d-flex justify-content-between gap-2">
               <span>${wo + i + 1}. ${escHtml(r.navn ?? '')}</span>
-              <span class="text-muted text-nowrap">${r.kamp_poeng ?? 0}p (${r.score_poeng ?? 0})</span>
+              <span class="text-muted text-nowrap">${scoreLabel(r)}</span>
             </div>`).join('')}
         </div>`
 
