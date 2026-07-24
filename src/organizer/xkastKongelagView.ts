@@ -243,9 +243,15 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
       </td></tr>`
   }
 
-  function courtRowsHtml(court: CourtRow): string {
+  function courtRowsHtml(court: CourtRow, courtIndex: number): string {
     const s = state!
     const expanded = expandedParticipant(court)
+    // Zebra tint alternates per bane group (court order within the pulje), not
+    // per row — so both kastar rows of a bane share one tint and a solo bane
+    // never desyncs the stripe. Status accent is handled separately below.
+    const tintClass = courtIndex % 2 === 1 ? 'bane-group bane-group--b' : 'bane-group'
+    // A solo bane (rowspan 1) gets a min block height so it matches a pair.
+    const laneCellClass = courtRowspan(court) === 1 ? 'bane-lane-cell bane-lane-cell--solo' : 'bane-lane-cell'
     return sortedParticipants(court).map((participant, i) => {
       const editScores = canEditScores(participant)
       const scoreCells = variant.scoreCellValues(participant, s.antallOmganger)
@@ -257,9 +263,12 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
         })
         .join('')
       const firstCells = i === 0
-        ? `<td class="text-center align-middle fw-semibold" rowspan="${courtRowspan(court)}">${court.bane_nummer ?? ''}</td>`
+        ? `<td class="text-center align-middle fw-semibold ${laneCellClass}" rowspan="${courtRowspan(court)}">${court.bane_nummer ?? ''}</td>`
         : ''
-      const rowAttrs = i === 0 ? ` class="match-row-desktop" data-status="${courtStatus(court)}"` : ''
+      // Every row of the court carries the tint class; only the first row also
+      // carries the status accent (match-row-desktop + data-status).
+      const rowClass = i === 0 ? `${tintClass} match-row-desktop` : tintClass
+      const rowAttrs = i === 0 ? ` class="${rowClass}" data-status="${courtStatus(court)}"` : ` class="${rowClass}"`
       const isSwappable = canSwapParticipant(court, participant)
       const swapClasses = isSwappable
         ? ` court-swap-cell${s.swapSelectedId === participant.id ? ' court-swap-selected' : ''}`
@@ -307,7 +316,7 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
               ${actionTh}
             </tr>
           </thead>
-          <tbody>${courts.map(court => courtRowsHtml(court)).join('')}</tbody>
+          <tbody>${courts.map((court, i) => courtRowsHtml(court, i)).join('')}</tbody>
         </table>
       </div>`
   }

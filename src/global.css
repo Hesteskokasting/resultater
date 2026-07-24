@@ -26,6 +26,10 @@
   --kamp-stripe-ikke: var(--tekst-3);
   --kamp-stripe-pagaar: #d4860a;
   --kamp-stripe-ferdig: #4caf50;
+  /* Zebra tint per bane group. Dark mode: stronger step so the tint survives
+     on dark backgrounds and venue screens. */
+  --bane-tint-a: var(--flate);
+  --bane-tint-b: color-mix(in srgb, var(--flate) 89%, var(--tekst) 11%);
   --standing-kp-bg:  color-mix(in srgb, var(--primaer) 40%, var(--flate));
   --standing-kp-th:  var(--primaer);
   --standing-sp-bg:  color-mix(in srgb, #4CAF50 22%, var(--flate));
@@ -105,6 +109,8 @@
   --match-eliminated-bg:#f8d0d0;
   --kamp-stripe-pagaar: #b36000;
   --kamp-stripe-ferdig: #2e7d32;
+  /* Subtler step in light mode — high-contrast surfaces need less. */
+  --bane-tint-b: color-mix(in srgb, var(--flate) 94%, var(--tekst) 6%);
   --standing-kp-bg:  #d0e4f7;
   --standing-kp-th:  #2563eb;
   --standing-sp-bg:  #c8f0c8;

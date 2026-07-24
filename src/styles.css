@@ -894,7 +894,9 @@ a.tournament-name {
 .match-table th {
   border: none;
   border-bottom: 0.5px solid var(--kant);
-  background: var(--flate);
+  /* --rad-bg lets bane-group rows tint themselves; everything else falls back
+     to the plain surface, so the standing table stays untinted. */
+  background: var(--rad-bg, var(--flate));
 }
 .match-table tbody tr:last-child td { border-bottom: none; }
 
@@ -1854,6 +1856,17 @@ th.initial-score-th {
 }
 
 .onp-register:disabled { opacity: 0.45; cursor: default; }
+
+/* ── X-kast/Kongelag: zebra tint per bane group ── */
+/* Parity is set on every <tr> of a court by the render logic (court index
+   within its pulje), NOT via :nth-child — a solo bane would otherwise desync
+   the stripe. The left-border status accent is a separate channel. */
+.match-table tbody tr.bane-group    { --rad-bg: var(--bane-tint-a); }
+.match-table tbody tr.bane-group--b { --rad-bg: var(--bane-tint-b); }
+
+/* Each bane group's lane cell spans the whole court; forcing a min block
+   height on a solo bane gives a lone kastar the visual weight of a pair. */
+.bane-lane-cell--solo { height: 3.75rem; }
 
 /* ── X-kast: byte spelarar mellom banar (tap–tap) ── */
 
