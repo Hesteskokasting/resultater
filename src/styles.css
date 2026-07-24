@@ -1868,6 +1868,19 @@ th.initial-score-th {
    height on a solo bane gives a lone kastar the visual weight of a pair. */
 .bane-lane-cell--solo { height: 3.75rem; }
 
+/* The bane boundary uses a per-theme divider colour so its weight matches
+   across themes (--kant reads heavier on the light surface). */
+.match-table tbody tr.bane-group > td { border-bottom-color: var(--bane-divider); }
+
+/* No intra-bane row separator: both kastar of a bane share the tint, so the
+   line between them is redundant. Drop it from the first row's non-spanned
+   cells when a second kastar (or drill-down) row follows; the rowspanned lane
+   and action cells still draw the boundary at the court's base. A solo bane has
+   no following in-group row, so its boundary is left intact. */
+.match-table tbody tr.match-row-desktop.bane-group:has(+ tr:not(.match-row-desktop)) > td:not([rowspan]) {
+  border-bottom: none;
+}
+
 /* ── X-kast: byte spelarar mellom banar (tap–tap) ── */
 
 .court-swap-cell { cursor: pointer; }

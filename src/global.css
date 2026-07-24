@@ -30,6 +30,8 @@
      on dark backgrounds and venue screens. */
   --bane-tint-a: var(--flate);
   --bane-tint-b: color-mix(in srgb, var(--flate) 89%, var(--tekst) 11%);
+  /* Divider between bane groups. Dark keeps the plain border weight. */
+  --bane-divider: var(--kant);
   --standing-kp-bg:  color-mix(in srgb, var(--primaer) 40%, var(--flate));
   --standing-kp-th:  var(--primaer);
   --standing-sp-bg:  color-mix(in srgb, #4CAF50 22%, var(--flate));
@@ -111,6 +113,9 @@
   --kamp-stripe-ferdig: #2e7d32;
   /* Subtler step in light mode — high-contrast surfaces need less. */
   --bane-tint-b: color-mix(in srgb, var(--flate) 94%, var(--tekst) 6%);
+  /* --kant reads heavier on the light surface; soften it toward the surface so
+     the bane boundary carries the same perceived weight as in dark. */
+  --bane-divider: color-mix(in srgb, var(--kant) 60%, var(--flate));
   --standing-kp-bg:  #d0e4f7;
   --standing-kp-th:  #2563eb;
   --standing-sp-bg:  #c8f0c8;
