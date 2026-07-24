@@ -355,8 +355,15 @@ Complicated enough to need its own plan; deliberately not scheduled as a phase h
 
 ---
 
-### SNC — resolved
+### Deferred — SNC (Seminasjonal Norgescup)
 
-Originally deferred pending a separate spec. In practice SNC stevner are just
-ordinary X-kast (innledande) + Kongelag (avsluttande) stevner, so they were solved
-by Phases 1–4 with no SNC-specific work. **No longer outstanding.**
+**Correction:** an earlier revision of this doc marked SNC "resolved" — that was wrong.
+Only the *per-location scoring* is done: SNC uses X-kast and/or Kongelag, which Phases 1–4
+cover. SNC itself is a distinct, unsolved problem — **one logical competition run
+simultaneously at multiple locations with multiple organizers**, whose results a national
+coordinator consolidates into a single national result (today a large manual job).
+
+That needs its own plan: data model (one stevne with locations vs. parent/child stevner —
+possibly shared with the NM-Kongelag `forelderstevneid` sketch in 4.3), per-location
+registration, per-location organizer permissions, and automatic national consolidation.
+Tracked in **issue #22**; not scheduled here.
