@@ -9,12 +9,12 @@ function genMatchId(): string {
   return crypto.randomUUID()
 }
 
-interface MatchPair { p1Pos: number; p2Pos: number | null; isWalkover: boolean }
+interface Matchup { p1Pos: number; p2Pos: number | null; isWalkover: boolean }
 interface MatchWithLane { id: number; bane_nummer: number | null }
 interface MatchWithMatchId { id: number; match_id: string }
-interface RoundPairs { roundNumber: number; pairs: MatchPair[] }
+interface RoundMatchups { roundNumber: number; matchups: Matchup[] }
 interface MatchPlayerInsert { kampid: number; kasterid: number; score_poeng: number; kamp_poeng: number; antall_ringer: number }
-interface SwissPair { p1: number; p2: number | null; isWalkover: boolean }
+interface SwissMatchup { p1: number; p2: number | null; isWalkover: boolean }
 
 interface EntryMember { kasterid: number; klubbid: number | null }
 /** One competition unit: a single player (Singel) or a pair (Par/Mix), members ordered by posisjon. */
@@ -156,13 +156,13 @@ async function _insertXkastCourts(
   return courts.length
 }
 
-export function buildCascadePairs(N: number, roundCount: number): MatchPair[][] {
+export function buildCascadeMatchups(N: number, roundCount: number): Matchup[][] {
   const paddedN = N % 2 === 0 ? N : N + 1
   const totalCourts = paddedN / 2
-  const rounds: MatchPair[][] = []
+  const rounds: Matchup[][] = []
 
   for (let r = 1; r <= roundCount; r++) {
-    const matches: MatchPair[] = []
+    const matches: Matchup[] = []
     for (let c = 1; c <= totalCourts; c++) {
       const p1Pos = ((c - 1 + r - 1) % totalCourts) + 1
       const rawP2Pos = ((c - 1 + 2 * (r - 1)) % totalCourts) + 1 + totalCourts
@@ -195,13 +195,13 @@ function _pushPlayerRows(
  */
 async function _insertRounds(
   stevneid: number,
-  rounds: RoundPairs[],
+  rounds: RoundMatchups[],
   posToKasterids: Record<number, number[]>,
   errorContext: string,
 ): Promise<number> {
-  const pairRows = rounds.flatMap(({ roundNumber, pairs }) =>
-    pairs.map((pair, ci) => ({
-      pair,
+  const matchupRows = rounds.flatMap(({ roundNumber, matchups }) =>
+    matchups.map((matchup, ci) => ({
+      matchup,
       row: {
         match_id: genMatchId(),
         stevneid,
@@ -209,34 +209,34 @@ async function _insertRounds(
         runde_nummer: roundNumber,
         bane_nummer: ci + 1,
         er_bekreftet: false,
-        er_walkover: pair.isWalkover,
+        er_walkover: matchup.isWalkover,
       },
     })),
   )
 
   const { data: insertedMatches, error: kampErr } = await supabase
     .from('kamp')
-    .insert(pairRows.map(pr => pr.row))
+    .insert(matchupRows.map(mr => mr.row))
     .select('id, match_id')
   if (kampErr) throw new Error(`Feil ved innsetting av kampar (${errorContext}): ` + kampErr.message)
 
   // bane_nummer repeats across rounds, so the client-generated match_id is
-  // the only key that maps inserted kamp ids back to their pair.
+  // the only key that maps inserted kamp ids back to their matchup.
   const matchIdToKampid: Record<string, number> = Object.fromEntries(
     (insertedMatches as MatchWithMatchId[]).map(k => [k.match_id, k.id]),
   )
   const playerRows: MatchPlayerInsert[] = []
 
-  for (const { pair, row } of pairRows) {
+  for (const { matchup, row } of matchupRows) {
     const kampid = matchIdToKampid[row.match_id]!
-    _pushPlayerRows(playerRows, kampid, posToKasterids[pair.p1Pos] ?? [], pair.isWalkover ? 21 : 0, pair.isWalkover ? 2 : 0)
-    if (pair.p2Pos != null) _pushPlayerRows(playerRows, kampid, posToKasterids[pair.p2Pos] ?? [])
+    _pushPlayerRows(playerRows, kampid, posToKasterids[matchup.p1Pos] ?? [], matchup.isWalkover ? 21 : 0, matchup.isWalkover ? 2 : 0)
+    if (matchup.p2Pos != null) _pushPlayerRows(playerRows, kampid, posToKasterids[matchup.p2Pos] ?? [])
   }
 
   const { error: spErr } = await supabase.from('kamp_spelar').insert(playerRows)
   if (spErr) throw new Error(`Feil ved innsetting av spelarar (${errorContext}): ` + spErr.message)
 
-  return pairRows.length
+  return matchupRows.length
 }
 
 async function _insertCascadeMatches(
@@ -245,22 +245,22 @@ async function _insertCascadeMatches(
   N: number,
   roundCount: number,
 ): Promise<number> {
-  const allRounds = buildCascadePairs(N, roundCount)
+  const allRounds = buildCascadeMatchups(N, roundCount)
   return _insertRounds(
     stevneid,
-    allRounds.map((pairs, ri) => ({ roundNumber: ri + 1, pairs })),
+    allRounds.map((matchups, ri) => ({ roundNumber: ri + 1, matchups })),
     posToKasterids,
     'kaskade',
   )
 }
 
-export function buildSwissRound1Pairs(N: number): MatchPair[] {
-  const pairs: MatchPair[] = []
+export function buildSwissRound1Matchups(N: number): Matchup[] {
+  const matchups: Matchup[] = []
   for (let i = 1; i <= N; i += 2) {
     const isWalkover = i + 1 > N
-    pairs.push({ p1Pos: i, p2Pos: isWalkover ? null : i + 1, isWalkover })
+    matchups.push({ p1Pos: i, p2Pos: isWalkover ? null : i + 1, isWalkover })
   }
-  return pairs
+  return matchups
 }
 
 async function _insertSwissRound1(
@@ -268,14 +268,14 @@ async function _insertSwissRound1(
   posToKasterids: Record<number, number[]>,
   N: number,
 ): Promise<number> {
-  return _insertRounds(stevneid, [{ roundNumber: 1, pairs: buildSwissRound1Pairs(N) }], posToKasterids, 'Swiss runde 1')
+  return _insertRounds(stevneid, [{ roundNumber: 1, matchups: buildSwissRound1Matchups(N) }], posToKasterids, 'Swiss runde 1')
 }
 
-export function buildSwissPairs(
+export function buildSwissMatchups(
   ranked: number[],
   unplayedMatches: Record<number, number[]>,
   byeCount: Record<number, number>,
-): SwissPair[] | null {
+): SwissMatchup[] | null {
   const byes = { ...byeCount }
 
   function getByePlayer(ids: number[]): number | null {
@@ -286,7 +286,7 @@ export function buildSwissPairs(
     return null
   }
 
-  function tryPairing(ids: number[], matchesSoFar: SwissPair[]): SwissPair[] | null {
+  function tryPairing(ids: number[], matchesSoFar: SwissMatchup[]): SwissMatchup[] | null {
     if (ids.length === 0) return matchesSoFar
     if (ids.length % 2 === 1) {
       const byeKasterid = getByePlayer(ids)
@@ -316,11 +316,11 @@ export function buildSwissPairs(
     return null
   }
 
-  const pairs = tryPairing(ranked, [])
-  if (!pairs) return null
+  const matchups = tryPairing(ranked, [])
+  if (!matchups) return null
 
-  pairs.sort((a, b) => (a.isWalkover ? 1 : 0) - (b.isWalkover ? 1 : 0))
-  return pairs
+  matchups.sort((a, b) => (a.isWalkover ? 1 : 0) - (b.isWalkover ? 1 : 0))
+  return matchups
 }
 
 export async function generateNextSwissRound(
@@ -416,17 +416,17 @@ export async function generateNextSwissRound(
     .map(r => kasteridToSnr[r.kasterid])
     .filter((snr): snr is number => snr !== undefined)
 
-  const pairs = buildSwissPairs(rankedSnr, unplayed, byes)
-  if (!pairs) throw new Error('Paring er ikkje mogleg. Alle moglege motstandarar er allereie spela.')
+  const matchups = buildSwissMatchups(rankedSnr, unplayed, byes)
+  if (!matchups) throw new Error('Paring er ikkje mogleg. Alle moglege motstandarar er allereie spela.')
 
-  const roundMatches = pairs.map((pair, i) => ({
+  const roundMatches = matchups.map((matchup, i) => ({
     match_id: genMatchId(),
     stevneid,
     fase: 'innledende',
     runde_nummer: roundNumber,
     bane_nummer: i + 1,
     er_bekreftet: false,
-    er_walkover: pair.isWalkover,
+    er_walkover: matchup.isWalkover,
   }))
 
   const { data: insertedMatches, error: kampErr } = await supabase
@@ -440,10 +440,10 @@ export async function generateNextSwissRound(
   )
   const playerRows: MatchPlayerInsert[] = []
 
-  for (const [i, pair] of pairs.entries()) {
+  for (const [i, matchup] of matchups.entries()) {
     const kampid = laneToMatchId[i + 1]!
-    _pushPlayerRows(playerRows, kampid, snrToKasterids[pair.p1] ?? [], pair.isWalkover ? 21 : 0, pair.isWalkover ? 2 : 0)
-    if (pair.p2 != null) _pushPlayerRows(playerRows, kampid, snrToKasterids[pair.p2] ?? [])
+    _pushPlayerRows(playerRows, kampid, snrToKasterids[matchup.p1] ?? [], matchup.isWalkover ? 21 : 0, matchup.isWalkover ? 2 : 0)
+    if (matchup.p2 != null) _pushPlayerRows(playerRows, kampid, snrToKasterids[matchup.p2] ?? [])
   }
 
   const { error: spErr } = await supabase.from('kamp_spelar').insert(playerRows)

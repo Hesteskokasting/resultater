@@ -1,4 +1,4 @@
-import { buildSwissRound1Pairs, buildSwissPairs } from '@/services/kampGenereringInnledendeService'
+import { buildSwissRound1Matchups, buildSwissMatchups } from '@/services/kampGenereringInnledendeService'
 
 // Helpers to build fully-connected unplayedMatches (no prior matches played)
 function allUnplayed(ids: number[]): Record<number, number[]> {
@@ -13,42 +13,42 @@ function zeroByes(ids: number[]): Record<number, number> {
   return result
 }
 
-// ── buildSwissRound1Pairs ─────────────────────────────────────────────────────
+// ── buildSwissRound1Matchups ─────────────────────────────────────────────────
 
-describe('buildSwissRound1Pairs', () => {
-  it('pairs positions sequentially: (1,2), (3,4), (5,6) for N=6', () => {
-    const pairs = buildSwissRound1Pairs(6)
-    expect(pairs[0]).toEqual({ p1Pos: 1, p2Pos: 2, isWalkover: false })
-    expect(pairs[1]).toEqual({ p1Pos: 3, p2Pos: 4, isWalkover: false })
-    expect(pairs[2]).toEqual({ p1Pos: 5, p2Pos: 6, isWalkover: false })
+describe('buildSwissRound1Matchups', () => {
+  it('matches positions sequentially: (1,2), (3,4), (5,6) for N=6', () => {
+    const matchups = buildSwissRound1Matchups(6)
+    expect(matchups[0]).toEqual({ p1Pos: 1, p2Pos: 2, isWalkover: false })
+    expect(matchups[1]).toEqual({ p1Pos: 3, p2Pos: 4, isWalkover: false })
+    expect(matchups[2]).toEqual({ p1Pos: 5, p2Pos: 6, isWalkover: false })
   })
 
   it('even N: produces N/2 matches with no walkovers', () => {
-    const pairs = buildSwissRound1Pairs(8)
-    expect(pairs.length).toBe(4)
-    expect(pairs.every(p => !p.isWalkover)).toBe(true)
+    const matchups = buildSwissRound1Matchups(8)
+    expect(matchups.length).toBe(4)
+    expect(matchups.every(m => !m.isWalkover)).toBe(true)
   })
 
   it('odd N: produces ceil(N/2) matches with exactly one walkover at the end', () => {
-    const pairs = buildSwissRound1Pairs(5)
-    expect(pairs.length).toBe(3)
-    const walkovers = pairs.filter(p => p.isWalkover)
+    const matchups = buildSwissRound1Matchups(5)
+    expect(matchups.length).toBe(3)
+    const walkovers = matchups.filter(m => m.isWalkover)
     expect(walkovers.length).toBe(1)
     expect(walkovers[0]).toEqual({ p1Pos: 5, p2Pos: null, isWalkover: true })
   })
 })
 
-// ── buildSwissPairs ───────────────────────────────────────────────────────────
+// ── buildSwissMatchups ────────────────────────────────────────────────────────
 
-describe('buildSwissPairs', () => {
+describe('buildSwissMatchups', () => {
   describe('basic properties', () => {
     it('all player kasterids appear exactly once across all returned matches', () => {
       const ids = [1, 2, 3, 4]
-      const pairs = buildSwissPairs(ids, allUnplayed(ids), zeroByes(ids))
+      const matchups = buildSwissMatchups(ids, allUnplayed(ids), zeroByes(ids))
       const seen = new Set<number>()
-      for (const p of pairs!) {
-        seen.add(p.p1)
-        if (!p.isWalkover) seen.add(p.p2!)
+      for (const m of matchups!) {
+        seen.add(m.p1)
+        if (!m.isWalkover) seen.add(m.p2!)
       }
       expect(seen.size).toBe(4)
       expect(seen).toContain(1)
@@ -57,19 +57,19 @@ describe('buildSwissPairs', () => {
 
     it('produces Math.ceil(N/2) matches for even N', () => {
       const ids = [1, 2, 3, 4, 5, 6]
-      const pairs = buildSwissPairs(ids, allUnplayed(ids), zeroByes(ids))
-      expect(pairs!.length).toBe(3)
+      const matchups = buildSwissMatchups(ids, allUnplayed(ids), zeroByes(ids))
+      expect(matchups!.length).toBe(3)
     })
 
     it('produces Math.ceil(N/2) matches for odd N', () => {
       const ids = [1, 2, 3, 4, 5]
-      const pairs = buildSwissPairs(ids, allUnplayed(ids), zeroByes(ids))
-      expect(pairs!.length).toBe(3)
+      const matchups = buildSwissMatchups(ids, allUnplayed(ids), zeroByes(ids))
+      expect(matchups!.length).toBe(3)
     })
   })
 
   describe('rematch avoidance', () => {
-    it('never pairs two players who have already played', () => {
+    it('never matches two players who have already played', () => {
       // Round 1: (1,2) and (3,4) have played
       const ids = [1, 2, 3, 4]
       const unplayed: Record<number, number[]> = {
@@ -78,37 +78,37 @@ describe('buildSwissPairs', () => {
         3: [1, 2],
         4: [1, 2],
       }
-      const pairs = buildSwissPairs(ids, unplayed, zeroByes(ids))
-      expect(pairs).not.toBeNull()
-      for (const p of pairs!) {
-        if (!p.isWalkover) {
-          const key = `${p.p1}-${p.p2}`
+      const matchups = buildSwissMatchups(ids, unplayed, zeroByes(ids))
+      expect(matchups).not.toBeNull()
+      for (const m of matchups!) {
+        if (!m.isWalkover) {
+          const key = `${m.p1}-${m.p2}`
           expect(key).not.toBe('1-2')
           expect(key).not.toBe('3-4')
         }
       }
     })
 
-    it('returns null when all possible pairings are exhausted', () => {
+    it('returns null when all possible matchups are exhausted', () => {
       const ids = [1, 2, 3, 4]
       const noneUnplayed: Record<number, number[]> = { 1: [], 2: [], 3: [], 4: [] }
-      expect(buildSwissPairs(ids, noneUnplayed, zeroByes(ids))).toBeNull()
+      expect(buildSwissMatchups(ids, noneUnplayed, zeroByes(ids))).toBeNull()
     })
   })
 
   describe('walkover behavior', () => {
     it('odd N: exactly one walkover with p2=null', () => {
       const ids = [1, 2, 3, 4, 5]
-      const pairs = buildSwissPairs(ids, allUnplayed(ids), zeroByes(ids))
-      const walkovers = pairs!.filter(p => p.isWalkover)
+      const matchups = buildSwissMatchups(ids, allUnplayed(ids), zeroByes(ids))
+      const walkovers = matchups!.filter(m => m.isWalkover)
       expect(walkovers.length).toBe(1)
       expect(walkovers[0]!.p2).toBeNull()
     })
 
     it('walkover goes to the lowest-ranked player (last in rankedKasterids) with 0 prior byes', () => {
       const ids = [1, 2, 3, 4, 5]
-      const pairs = buildSwissPairs(ids, allUnplayed(ids), zeroByes(ids))
-      const bye = pairs!.find(p => p.isWalkover)
+      const matchups = buildSwissMatchups(ids, allUnplayed(ids), zeroByes(ids))
+      const bye = matchups!.find(m => m.isWalkover)
       // Player 5 is last in rankedKasterids and has 0 byes
       expect(bye?.p1).toBe(5)
     })
@@ -116,24 +116,24 @@ describe('buildSwissPairs', () => {
     it('skips a player who already has a bye; gives it to the next eligible', () => {
       const ids = [1, 2, 3, 4, 5]
       const byes = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 1 } // player 5 already had a bye
-      const pairs = buildSwissPairs(ids, allUnplayed(ids), byes)
-      const bye = pairs!.find(p => p.isWalkover)
+      const matchups = buildSwissMatchups(ids, allUnplayed(ids), byes)
+      const bye = matchups!.find(m => m.isWalkover)
       // Player 5 skipped (byes >= 1); player 4 is next lowest with 0 byes
       expect(bye?.p1).toBe(4)
     })
 
     it('walkover entry is last in the returned array', () => {
       const ids = [1, 2, 3]
-      const pairs = buildSwissPairs(ids, allUnplayed(ids), zeroByes(ids))
+      const matchups = buildSwissMatchups(ids, allUnplayed(ids), zeroByes(ids))
       // tryPairing adds the bye first internally; sort must push it to the end
-      expect(pairs![pairs!.length - 1]!.isWalkover).toBe(true)
-      expect(pairs![0]!.isWalkover).toBe(false)
+      expect(matchups![matchups!.length - 1]!.isWalkover).toBe(true)
+      expect(matchups![0]!.isWalkover).toBe(false)
     })
 
     it('does not mutate the caller\'s byeCount object', () => {
       const ids = [1, 2, 3]
       const byes = zeroByes(ids)
-      buildSwissPairs(ids, allUnplayed(ids), byes)
+      buildSwissMatchups(ids, allUnplayed(ids), byes)
       expect(byes[1]).toBe(0)
       expect(byes[2]).toBe(0)
       expect(byes[3]).toBe(0)
