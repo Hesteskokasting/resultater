@@ -236,10 +236,10 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
     return s.isAdmin && !s.config.erfullfort && !participant.totalsum_manuelt
   }
 
-  /** One score cell: read-only round summary in X-kast, editable in Kongelag. */
+  /** One score cell: poeng with the ringer count as a small secondary figure. */
   function omgangValueHtml(rec: CourtParticipantRow['omgangar'][number] | undefined): string {
     if (!rec) return '<span class="bane-detail-dash">—</span>'
-    const ringer = rec.antall_ringer != null ? `<span class="bane-detail-ringer">${rec.antall_ringer}r</span>` : ''
+    const ringer = rec.antall_ringer != null ? `<span class="bane-detail-ringer">${rec.antall_ringer}</span>` : ''
     return `<span class="bane-detail-poeng">${rec.poeng}</span>${ringer}`
   }
 
@@ -255,7 +255,7 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
     const maxPerRound = rounds.reduce((max, r) => Math.max(max, r.omganger.length), 0)
     const editable = canEditScores(participant)
 
-    const omgangHeaders = Array.from({ length: maxPerRound }, (_, j) => `<th class="text-center">O${j + 1}</th>`).join('')
+    const omgangHeaders = Array.from({ length: maxPerRound }, (_, j) => `<th class="text-center">${j + 1}</th>`).join('')
 
     const bodyRows = rounds.map(round => {
       const cells = Array.from({ length: maxPerRound }, (_, j) => {
@@ -267,23 +267,29 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
           ? `<td class="text-center"><button type="button" class="bane-detail-cell-btn" data-xk-omgang-edit="${participant.id}:${omgang}" aria-label="Rediger omgang ${omgang}">${inner}</button></td>`
           : `<td class="text-center bane-detail-value">${inner}</td>`
       }).join('')
-      const roundSum = round.omganger.reduce((sum, o) => sum + (participant.omgangar.find(r => r.omgang === o)?.poeng ?? 0), 0)
+      const totals = round.omganger.reduce((acc, o) => {
+        const rec = participant.omgangar.find(r => r.omgang === o)
+        return { poeng: acc.poeng + (rec?.poeng ?? 0), ringer: acc.ringer + (rec?.antall_ringer ?? 0) }
+      }, { poeng: 0, ringer: 0 })
       return `<tr>
           <th scope="row" class="bane-detail-runde">${escHtml(round.label)}</th>
           ${cells}
-          <td class="bane-detail-sum">${roundSum}</td>
+          <td class="text-center bane-detail-ringer-sum">${totals.ringer}</td>
+          <td class="bane-detail-sum">${totals.poeng}</td>
         </tr>`
     }).join('')
 
-    // Lane + action columns are rowspanned over this row; span the middle ones.
-    // The tint class frames the recessed panel with the court's zebra tint.
-    return `<tr class="xk-detail-row ${tintClass}"><td colspan="${headers.length + 2}">
+    // Lane + action columns are rowspanned over this row; span the middle ones
+    // (NAMN + score columns + R + TOT). The tint class frames the recessed
+    // panel with the court's zebra tint.
+    return `<tr class="xk-detail-row ${tintClass}"><td colspan="${headers.length + 3}">
         <div class="bane-detail-panel">
           <table class="bane-detail-table">
             <thead>
               <tr>
                 <th class="bane-detail-runde-head">RUNDE</th>
                 ${omgangHeaders}
+                <th class="text-center bane-detail-ringer-head">R</th>
                 <th class="bane-detail-sum-head">SUM</th>
               </tr>
             </thead>
@@ -360,6 +366,7 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
         ${firstCells}
         ${nameCellHtml(court, participant, hasDetail, isExpanded)}
         ${scoreCells}
+        <td class="text-center bane-ringer-col">${ringerSum(participant)}</td>
         <td class="${totCls}"${totAttr}>${totalSum(participant)}</td>
         ${i === 0 ? courtActionTd(court) : ''}
       </tr>`
@@ -387,6 +394,7 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
               <th class="th-36 text-center">B</th>
               <th>NAMN</th>
               ${scoreHeaders}
+              <th class="text-center th-44">R</th>
               <th class="text-center th-44">TOT</th>
               ${actionTh}
             </tr>

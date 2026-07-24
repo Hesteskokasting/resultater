@@ -1969,9 +1969,15 @@ th.initial-score-th {
 .bane-detail-sum-head { text-align: center; }
 .bane-detail-sum { font-weight: 700; color: var(--tekst); }
 
+/* Round ringer total — secondary to the poeng SUM, still readable. */
+.bane-detail-ringer-sum { color: var(--tekst); }
+
 .bane-detail-poeng { font-weight: 600; color: var(--tekst); }
 .bane-detail-ringer { margin-left: 3px; font-size: 0.8em; color: var(--tekst-2); }
 .bane-detail-dash { color: var(--tekst-3); }
+
+/* Per-player total ringers in the main court row (left of TOT). */
+.bane-ringer-col { color: var(--tekst-2); }
 
 .bane-detail-cell-btn {
   min-width: 32px;
