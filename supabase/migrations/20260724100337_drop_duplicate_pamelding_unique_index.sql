@@ -1,0 +1,15 @@
+-- Performance advisor (duplicate_index): pamelding has two identical UNIQUE
+-- constraints on (stevneid, kasterid) — pamelding_stevneid_kasterid_key and
+-- pamelding_stevneid_kasterid_uniq — each backed by its own unique index. The
+-- duplicate wastes write throughput and storage on every pamelding write.
+--
+-- Only _uniq is in migration history (20260711140000, which explicitly notes
+-- no unique existed on these columns before it). _key was added to prod
+-- out-of-band, so drop _key to reconverge prod with the migrations; _uniq
+-- keeps enforcing uniqueness. Both are UNIQUE constraints (verified via
+-- pg_constraint), so the index can only be removed by dropping the constraint.
+-- Neither is referenced by an ON CONFLICT ON CONSTRAINT or a foreign key.
+--
+-- IF EXISTS: no-op on a fresh `supabase db reset`, where _key was never
+-- created and only the _uniq constraint exists.
+ALTER TABLE public.pamelding DROP CONSTRAINT IF EXISTS pamelding_stevneid_kasterid_key;
