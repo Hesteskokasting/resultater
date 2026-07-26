@@ -325,7 +325,7 @@
 
 .homepage-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr;
   gap: 24px;
   align-items: start;
 }
@@ -2592,7 +2592,6 @@ th.initial-score-th {
   border-radius: 4px;
 }
 
-.skeleton-block--nc   { min-height: 520px; }
 .skeleton-block--list { min-height: 320px; }
 .skeleton-block--card { min-height: 140px; }
 
