@@ -101,7 +101,6 @@ async function exportToExcel(filtered: TournamentRow[]): Promise<void> {
     'Kastemetode (avsluttende)': s.avsluttende?.navn ?? '',
     'Kategori': s.kategori?.navn ?? '',
     'NM': s.ernm ? 'Ja' : 'Nei',
-    'InnbydelseUrl': s.innbydelseurl ?? '',
   }))
   await downloadExcel(rows, `terminliste-${filter.year}.xlsx`, 'Terminliste')
 }
@@ -129,9 +128,6 @@ function tableRowHtml(s: TournamentRow): string {
   const date     = s.dato ? new Date(s.dato + 'T12:00:00').toLocaleDateString('nb-NO') : ''
   const method   = [s.innledende?.navn, s.avsluttende?.navn].filter((v): v is string => Boolean(v)).join(' \\ ')
   const nm       = s.ernm ? '<span class="tl-nm-merke">NM</span> ' : ''
-  const invitation = s.innbydelseurl
-    ? `<a href="${escHtml(s.innbydelseurl)}" target="_blank" rel="noopener" class="tl-invitation-icon" title="Innbydelse">📄</a>`
-    : ''
   return `<tr class="tl-tr">
     <td><a class="tl-link" href="#/stevne/${s.id}/resultat">${nm}${escHtml(s.navn ?? '')}</a></td>
     <td>${date}</td>
@@ -140,7 +136,6 @@ function tableRowHtml(s: TournamentRow): string {
     <td>${escHtml(s.klubb?.navn ?? '')}</td>
     <td>${escHtml(s.stevnetype?.navn ?? '')}</td>
     <td>${escHtml(s.kategori?.navn ?? '')}</td>
-    <td>${invitation}</td>
   </tr>`
 }
 
@@ -148,7 +143,6 @@ function tableHtml(filtered: TournamentRow[]): string {
   if (filtered.length === 0) return '<p class="empty-state">Ingen stevner funnet med valgte filtre.</p>'
   const thead = `<thead><tr>
     ${tableColumns.map(k => `<th class="tl-th" data-column="${k.id}">${k.label}${sortIconHtml(k.id)}</th>`).join('')}
-    <th class="tl-th">Innbydelse</th>
   </tr></thead>`
   const tbody = `<tbody>${sortData(filtered).map(tableRowHtml).join('')}</tbody>`
   return `<table class="tl-table">${thead}${tbody}</table>`
@@ -166,9 +160,6 @@ function cardHtml(s: TournamentRow): string {
   const organizer = s.klubb ? `<p class="tl-detail">Arrangør: ${escHtml(s.klubb.navn ?? '')}</p>` : ''
   const type     = s.stevnetype ? `<p class="tl-detail">Type: ${escHtml(s.stevnetype.navn ?? '')}</p>` : ''
   const nm       = s.ernm ? '<span class="tl-nm-merke">NM</span>' : ''
-  const invitation = s.innbydelseurl
-    ? `<a class="tl-invitation-link" href="${escHtml(s.innbydelseurl)}" target="_blank" rel="noopener">Innbydelse 📄</a>`
-    : ''
   const result   = s.resultaturl
     ? `<a class="tournament-link" href="#/stevne/${s.id}/resultat">Vis resultat</a>`
     : ''
@@ -185,7 +176,7 @@ function cardHtml(s: TournamentRow): string {
       <a class="tl-name tl-name-link" href="#/stevne/${s.id}/resultat">${nm}${escHtml(s.navn ?? '')}</a>
       <p class="tournament-date">${date}</p>
       ${place}${organizer}${type}
-      ${invitation}${result}${registrationSlot}
+      ${result}${registrationSlot}
     </div>
   `
 }

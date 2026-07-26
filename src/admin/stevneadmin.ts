@@ -97,7 +97,6 @@ export async function render(
           <div class="form-check"><input class="form-check-input" type="checkbox" name="ernorgesranking" id="ernr"${v.ernorgesranking ? ' checked' : ''}><label class="form-check-label" for="ernr">Er Norgesranking</label></div>
           <div class="form-check"><input class="form-check-input" type="checkbox" name="erekskludertfrarekorder" id="ekskl"${v.erekskludertfrarekorder ? ' checked' : ''}><label class="form-check-label" for="ekskl">Ekskl. frå rekorder</label></div>
         </div>
-        ${formRowHtml('Innbydelses-URL', `<input type="url" class="form-control" name="innbydelseurl" value="${escHtml(v.innbydelseurl)}">`)}
         ${formRowHtml('Resultat-URL', `<input type="url" class="form-control" name="resultaturl" value="${escHtml(v.resultaturl)}">`)}
         ${id ? `
           <div class="mb-3 d-flex align-items-center gap-2">
@@ -130,7 +129,6 @@ export async function render(
       ernm:                     fd.get('ernm') === 'on',
       ernorgesranking:          fd.get('ernorgesranking') === 'on',
       erekskludertfrarekorder:  fd.get('erekskludertfrarekorder') === 'on',
-      innbydelseurl:            (fd.get('innbydelseurl') as string).trim() || null,
       resultaturl:              (fd.get('resultaturl') as string).trim() || null,
     }
 

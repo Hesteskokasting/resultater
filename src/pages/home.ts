@@ -64,7 +64,6 @@ function upcomingCard(s: UpcomingTournamentRow, showSlot: boolean): HTMLElement 
     href: `#/stevne/${s.id}/info`,
     date: formatDateLong(s.dato),
     status: 'upcoming',
-    invitationUrl: s.innbydelseurl ?? undefined,
     registrationSlotId: canRegister ? s.id : undefined,
   })
 }

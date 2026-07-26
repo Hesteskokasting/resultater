@@ -13,8 +13,6 @@ export interface StevneCardProps {
   meta?: string[]
   /** Optional pill text, e.g. "NM" or "Live". */
   badge?: string
-  /** External innbydelse (invitation) URL, shown as a distinct secondary link. */
-  invitationUrl?: string
   /**
    * When set, the trailing slot emits a `<span data-registration-slot>` placeholder
    * (hydrated later by `bindRegistrationSlots`) instead of the chevron.
@@ -43,9 +41,6 @@ export function createStevneCard(props: StevneCardProps): HTMLElement {
   const metaLines = (props.meta ?? [])
     .map(line => `<span class="stevne-kort__meta">${escHtml(line)}</span>`)
     .join('')
-  const invitation = props.invitationUrl
-    ? `<a class="stevne-kort__invitation" href="${escHtml(props.invitationUrl)}" target="_blank" rel="noopener">Innbydelse</a>`
-    : ''
 
   const trailing =
     props.registrationSlotId !== undefined
@@ -59,7 +54,6 @@ export function createStevneCard(props: StevneCardProps): HTMLElement {
     `<span class="stevne-kort__title-row">${liveDot}<span class="stevne-kort__title">${escHtml(props.title)}</span>${badge}</span>` +
     `<span class="stevne-kort__date">${escHtml(props.date)}</span>` +
     metaLines +
-    invitation +
     `</div>` +
     trailing
 

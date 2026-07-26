@@ -10,7 +10,7 @@ export type TournamentAdminRow = Pick<Tables<'stevne'>,
   'id' | 'navn' | 'sted' | 'dato' | 'tid' | 'klubbid' | 'stevnetypeid' |
   'innledendekastemetodeid' | 'avsluttendekastemetodeid' | 'kategoriid' |
   'ernm' | 'ernorgesranking' | 'erfullfort' | 'erekskludertfrarekorder' |
-  'innbydelseurl' | 'resultaturl'
+  'resultaturl'
 >
 export type TournamentAdminPayload = Omit<TournamentAdminRow, 'id' | 'erfullfort'>
 
@@ -33,7 +33,7 @@ export type InfoTournamentRow = QueryData<typeof _infoStevneQuery>[number]
 
 export type LatestResultRow  = Pick<Tables<'stevne'>, 'id' | 'navn' | 'dato'>
 export type LiveTournamentRow     = Pick<Tables<'stevne'>, 'id' | 'navn' | 'stevne_fase' | 'erfullfort'>
-export type UpcomingTournamentRow = Pick<Tables<'stevne'>, 'id' | 'navn' | 'dato' | 'innbydelseurl' | 'stevne_fase' | 'erfullfort'>
+export type UpcomingTournamentRow = Pick<Tables<'stevne'>, 'id' | 'navn' | 'dato' | 'stevne_fase' | 'erfullfort'>
 const _pameldingStevneQuery = supabase
   .from('stevne')
   .select('id, navn, dato, tid, sted, erfullfort, klubbid, kategori:kategoriid(navn)')
@@ -68,7 +68,7 @@ export async function getUpcomingTournaments(): Promise<{ data: UpcomingTourname
   const today = new Date().toISOString().slice(0, 10)
   const { data, error } = await supabase
     .from('stevne')
-    .select('id, navn, dato, innbydelseurl, stevne_fase, erfullfort')
+    .select('id, navn, dato, stevne_fase, erfullfort')
     .gte('dato', today)
     .or('stevne_fase.is.null,stevne_fase.eq.ikke_startet')
     .order('dato', { ascending: true })
@@ -158,7 +158,7 @@ export async function getCategories(): Promise<{ data: CategoryRow[]; error: unk
 export async function getTournamentForAdmin(id: number): Promise<{ data: TournamentAdminRow | null; error: unknown }> {
   const { data, error } = await supabase
     .from('stevne')
-    .select('id, navn, sted, dato, tid, klubbid, stevnetypeid, innledendekastemetodeid, avsluttendekastemetodeid, kategoriid, ernm, ernorgesranking, erfullfort, erekskludertfrarekorder, innbydelseurl, resultaturl')
+    .select('id, navn, sted, dato, tid, klubbid, stevnetypeid, innledendekastemetodeid, avsluttendekastemetodeid, kategoriid, ernm, ernorgesranking, erfullfort, erekskludertfrarekorder, resultaturl')
     .eq('id', id)
     .single()
   if (error) logError('getTournamentForAdmin', error)
@@ -202,7 +202,7 @@ export interface FilterOptions {
 const _terminlisteStevneQuery = supabase
   .from('stevne')
   .select(`
-    id, navn, sted, dato, tid, ernm, erfullfort, stevne_fase, innbydelseurl, resultaturl,
+    id, navn, sted, dato, tid, ernm, erfullfort, stevne_fase, resultaturl,
     klubb:klubbid(id, navn),
     stevnetype:stevnetypeid(id, navn),
     innledende:kastemetode!innledendekastemetodeid(id, navn),
@@ -216,7 +216,7 @@ export async function getScheduleTournaments(ar: number): Promise<{ data: Schedu
   const { data, error } = await supabase
     .from('stevne')
     .select(`
-      id, navn, sted, dato, tid, ernm, erfullfort, stevne_fase, innbydelseurl, resultaturl,
+      id, navn, sted, dato, tid, ernm, erfullfort, stevne_fase, resultaturl,
       klubb:klubbid(id, navn),
       stevnetype:stevnetypeid(id, navn),
       innledende:kastemetode!innledendekastemetodeid(id, navn),

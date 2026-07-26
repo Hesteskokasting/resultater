@@ -492,16 +492,6 @@ a.tournament-name {
   vertical-align: middle;
 }
 
-.tl-invitation-link {
-  display: block;
-  margin-top: 6px;
-  font-size: 0.85rem;
-  color: var(--lenke);
-  text-decoration: none;
-}
-
-.tl-invitation-link:hover { text-decoration: underline; }
-
 /* Bunnark (mobil-filtre) */
 
 .tl-sheet {
@@ -614,8 +604,6 @@ a.tournament-name {
   border-bottom: 1px solid var(--kant);
   vertical-align: middle;
 }
-
-.tl-invitation-icon { font-size: 1rem; }
 
 @media (max-width: 600px) {
   .tl-filter-row { display: none; }
@@ -2795,9 +2783,9 @@ th.initial-score-th {
    StevneCard — one reusable card for Forside / Terminliste / Påmeldingar.
    The whole card is a single tap target: an empty, absolutely-positioned
    .stevne-kort__link stretches over the card (stretched-link pattern). Body
-   text sits below it so clicks fall through and navigate; interactive siblings
-   (registration button, invitation link) are raised above it to receive their
-   own clicks — no nested <button> inside <a>, no click handlers on the card.
+   text sits below it so clicks fall through and navigate; an interactive
+   sibling (the registration button) is raised above it to receive its own
+   clicks — no nested <button> inside <a>, no click handlers on the card.
    ========================================================================== */
 .stevne-kort-liste {
   display: flex;
@@ -2886,16 +2874,6 @@ th.initial-score-th {
 .stevne-kort--live .stevne-kort__badge {
   background: color-mix(in srgb, var(--live-prikk) 20%, var(--flate));
   color: var(--live-prikk);
-}
-
-/* Distinct secondary link — must clear the stretched overlay to be tappable. */
-.stevne-kort__invitation {
-  position: relative;
-  z-index: 2;
-  align-self: flex-start;
-  margin-top: 4px;
-  font-size: 0.8rem;
-  color: var(--lenke);
 }
 
 .stevne-kort__trailing {
