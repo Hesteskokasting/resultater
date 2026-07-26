@@ -7,6 +7,8 @@ import { formatDateLong, yearOptions, downloadExcel } from '@/utils/shared'
 import { buildDropdownOptions } from '@/utils/buildDropdownOptions'
 import { createErrorBanner } from '@/components/ErrorBanner'
 import { createLoadingState } from '@/components/LoadingState'
+import { createEmptyState } from '@/components/EmptyState'
+import { createStevneCard } from '@/components/StevneCard'
 import { escHtml } from '@/utils/escHtml'
 import { logError } from '@/utils/logError'
 import { registerRefetch } from '@/utils/refetchRegistry'
@@ -148,44 +150,43 @@ function tableHtml(filtered: TournamentRow[]): string {
   return `<table class="tl-table">${thead}${tbody}</table>`
 }
 
-function buildView(filtered: TournamentRow[]): string {
+function buildView(filtered: TournamentRow[]): string | HTMLElement {
   return window.innerWidth > 600 ? tableHtml(filtered) : buildList(filtered)
 }
 
 // ── Card (mobile) ─────────────────────────────────────────────────────────────
 
-function cardHtml(s: TournamentRow): string {
-  const date     = formatDateLong(s.dato)
-  const place    = s.sted ? `<p class="tl-detail">Sted: ${escHtml(s.sted)}</p>` : ''
-  const organizer = s.klubb ? `<p class="tl-detail">Arrangør: ${escHtml(s.klubb.navn ?? '')}</p>` : ''
-  const type     = s.stevnetype ? `<p class="tl-detail">Type: ${escHtml(s.stevnetype.navn ?? '')}</p>` : ''
-  const nm       = s.ernm ? '<span class="tl-nm-merke">NM</span>' : ''
-  const result   = s.resultaturl
-    ? `<a class="tournament-link" href="#/stevne/${s.id}/resultat">Vis resultat</a>`
-    : ''
+function cardNode(s: TournamentRow): HTMLElement {
+  const isLive     = (s.stevne_fase === 'innledende' || s.stevne_fase === 'avsluttende') && !s.erfullfort
+  const isUpcoming = s.dato ? new Date(s.dato + 'T12:00:00') > new Date() : false
+  const notStarted = s.stevne_fase === null || s.stevne_fase === 'ikke_startet'
+  const hasAccess  = _auth?.profil?.kobling_status === 'godkjent'
+  const canRegister = hasAccess && isUpcoming && notStarted && !s.erfullfort
 
-  const isUpcoming   = s.dato && new Date(s.dato + 'T12:00:00') > new Date()
-  const notStarted   = s.stevne_fase === null || s.stevne_fase === 'ikke_startet'
-  const hasAccess    = _auth?.profil?.kobling_status === 'godkjent'
-  const registrationSlot = hasAccess && isUpcoming && notStarted && !s.erfullfort
-    ? `<span data-registration-slot="${s.id}"></span>`
-    : ''
+  const meta: string[] = []
+  if (s.sted) meta.push(`Sted: ${s.sted}`)
+  if (s.klubb?.navn) meta.push(`Arrangør: ${s.klubb.navn}`)
+  if (s.stevnetype?.navn) meta.push(`Type: ${s.stevnetype.navn}`)
 
-  return `
-    <div class="tournament-card tl-kort">
-      <a class="tl-name tl-name-link" href="#/stevne/${s.id}/resultat">${nm}${escHtml(s.navn ?? '')}</a>
-      <p class="tournament-date">${date}</p>
-      ${place}${organizer}${type}
-      ${result}${registrationSlot}
-    </div>
-  `
+  return createStevneCard({
+    title: s.navn ?? '',
+    href: `#/stevne/${s.id}/resultat`,
+    date: formatDateLong(s.dato),
+    status: isLive ? 'live' : isUpcoming ? 'upcoming' : 'done',
+    meta,
+    badge: s.ernm ? 'NM' : undefined,
+    registrationSlotId: canRegister ? s.id : undefined,
+  })
 }
 
-function buildList(filtered: TournamentRow[]): string {
+function buildList(filtered: TournamentRow[]): HTMLElement {
   if (filtered.length === 0) {
-    return '<p class="empty-state">Ingen stevner funnet med valgte filtre.</p>'
+    return createEmptyState('Ingen stevner funnet med valgte filtre.')
   }
-  return `<div class="tournament-list">${filtered.map(cardHtml).join('')}</div>`
+  const wrap = document.createElement('div')
+  wrap.className = 'stevne-kort-liste'
+  filtered.forEach(s => wrap.appendChild(cardNode(s)))
+  return wrap
 }
 
 // ── Render ────────────────────────────────────────────────────────────────────
@@ -289,7 +290,9 @@ export async function render(container: HTMLElement): Promise<void> {
       const filtered = filterData(allData)
       const listEl   = container.querySelector<HTMLElement>('.tl-list-container')
       if (!listEl) return filtered
-      listEl.innerHTML = buildView(filtered)
+      const view = buildView(filtered)
+      if (typeof view === 'string') listEl.innerHTML = view
+      else listEl.replaceChildren(view)
       const countEl     = container.querySelector('.tl-count')
       if (countEl) countEl.textContent = `${filtered.length} stevner`
       const throwerId = _auth?.profil?.kasterid
