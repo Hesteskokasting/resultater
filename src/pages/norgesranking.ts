@@ -204,7 +204,7 @@ export async function render(container: HTMLElement): Promise<void> {
 
     updateTable()
 
-    const searchInput = createSearchInput({
+    createSearchInput({
       slot: container.querySelector('#nr-search-slot')!,
       placeholder: 'Søk på navn/klubb...',
       state: filter,
@@ -216,8 +216,6 @@ export async function render(container: HTMLElement): Promise<void> {
 
     yearSelect.addEventListener('change', async () => {
       filter.year = Number(yearSelect.value)
-      filter.searchText = ''
-      searchInput.value = ''
       container.querySelector('.nc-main-title')!.textContent = `Norgesranking ${filter.year}`
       container.querySelector('#nr-table-container')!.replaceChildren(createLoadingState('Laster...'))
       try {
