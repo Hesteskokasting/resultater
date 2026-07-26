@@ -2790,3 +2790,129 @@ th.initial-score-th {
 .modal-body {
   overflow-wrap: anywhere;
 }
+
+/* ============================================================================
+   StevneCard — one reusable card for Forside / Terminliste / Påmeldingar.
+   The whole card is a single tap target: an empty, absolutely-positioned
+   .stevne-kort__link stretches over the card (stretched-link pattern). Body
+   text sits below it so clicks fall through and navigate; interactive siblings
+   (registration button, invitation link) are raised above it to receive their
+   own clicks — no nested <button> inside <a>, no click handlers on the card.
+   ========================================================================== */
+.stevne-kort-liste {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.stevne-kort {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  min-height: 44px;
+  border: 1px solid var(--kant);
+  border-radius: 12px;
+  background: var(--flate);
+  overflow: hidden;
+}
+
+.stevne-kort:hover { background: var(--primaer-hover); }
+
+/* 3px inner colored stripe as the leftmost flex item (a single-sided border on
+   a rounded card looks off; overflow:hidden clips this child to the radius). */
+.stevne-kort__stripe {
+  flex: 0 0 3px;
+  align-self: stretch;
+  background: var(--kant-2);
+}
+.stevne-kort--live .stevne-kort__stripe { background: var(--live-prikk); }
+
+/* Empty stretched link: covers the whole card, sits above the body text
+   (z-index 1) so the entire card navigates, but below interactive siblings. */
+.stevne-kort__link {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+}
+.stevne-kort__link:focus-visible {
+  outline: 2px solid var(--primaer);
+  outline-offset: -2px;
+}
+
+.stevne-kort__body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 0;
+}
+
+.stevne-kort__title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stevne-kort__title {
+  color: var(--tekst);
+  font-weight: 500;
+  font-size: 1rem;
+  overflow-wrap: anywhere;
+}
+
+.stevne-kort__date {
+  color: var(--tekst-2);
+  font-size: 0.85rem;
+}
+
+.stevne-kort__meta {
+  color: var(--tekst-2);
+  font-size: 0.8rem;
+}
+
+.stevne-kort__badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--flate-2);
+  color: var(--tekst-2);
+}
+.stevne-kort--live .stevne-kort__badge {
+  background: color-mix(in srgb, var(--live-prikk) 20%, var(--flate));
+  color: var(--live-prikk);
+}
+
+/* Distinct secondary link — must clear the stretched overlay to be tappable. */
+.stevne-kort__invitation {
+  position: relative;
+  z-index: 2;
+  align-self: flex-start;
+  margin-top: 4px;
+  font-size: 0.8rem;
+  color: var(--lenke);
+}
+
+.stevne-kort__trailing {
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+}
+
+/* Trailing slot that hosts an interactive button (Meld på/av) must be raised
+   above the stretched link; the chevron variant stays below it so tapping the
+   chevron area still navigates. */
+.stevne-kort__trailing--action {
+  position: relative;
+  z-index: 2;
+}
+
+.stevne-kort__chevron {
+  display: block;
+  color: var(--tekst-3);
+}
