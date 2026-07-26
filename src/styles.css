@@ -2890,6 +2890,15 @@ th.initial-score-th {
   z-index: 2;
 }
 
+/* Registration button (Meld på/av) hydrated into the action slot — keep a
+   44px minimum touch target regardless of Bootstrap's compact btn-sm. */
+.stevne-kort__trailing--action .btn {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
 .stevne-kort__chevron {
   display: block;
   color: var(--tekst-3);

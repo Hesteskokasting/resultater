@@ -1,53 +1,54 @@
-import { escHtml } from '@/utils/escHtml'
 import { formatDate } from '@/utils/shared'
 import { getMyRegistrations } from '@/services/pameldingService'
 import { bindRegistrationSlots } from '@/components/PameldingKnapp'
+import { createEmptyState } from '@/components/EmptyState'
+import { createStevneCard } from '@/components/StevneCard'
 import { renderSectionCard } from './_sectionCard'
 import type { MinSideContext } from './_linkState'
 import type { RegistrationRow } from '@/services/pameldingService'
 
 interface RegistrationContent {
-  html: string
+  node: HTMLElement
   registeredMap: Map<number, number>
 }
 
 async function buildRegistrationContent(throwerId: number): Promise<RegistrationContent> {
   const { data, error } = await getMyRegistrations(throwerId)
   const registeredMap = new Map<number, number>()
-  if (error) return { html: '<p class="text-muted">Kunne ikkje laste påmeldingar.</p>', registeredMap }
+  if (error) {
+    const p = document.createElement('p')
+    p.className = 'text-muted'
+    p.textContent = 'Kunne ikkje laste påmeldingar.'
+    return { node: p, registeredMap }
+  }
   const active = data.filter((p: RegistrationRow) => p.stevne?.erfullfort !== true)
-  if (!active.length) return { html: '<p class="empty-state">Ingen påmeldingar enno.</p>', registeredMap }
+  if (!active.length) return { node: createEmptyState('Ingen påmeldingar enno.'), registeredMap }
 
   const sorted = [...active].sort((a: RegistrationRow, b: RegistrationRow) =>
     (a.stevne?.dato ?? '').localeCompare(b.stevne?.dato ?? ''),
   )
 
-  const rows = sorted.map(p => {
-    const date = formatDate(p.stevne?.dato)
+  const wrap = document.createElement('div')
+  wrap.className = 'stevne-kort-liste'
+  for (const p of sorted) {
     const tournamentId = p.stevne?.id
     if (tournamentId != null) registeredMap.set(tournamentId, p.id)
-    return `<tr>
-      <td><a href="#/stevne/${tournamentId ?? ''}/pamelding">${escHtml(p.stevne?.navn ?? '')}</a></td>
-      <td>${escHtml(date)}</td>
-      <td>${tournamentId != null ? `<span data-registration-slot="${tournamentId}"></span>` : ''}</td>
-    </tr>`
-  }).join('')
-
-  return {
-    html: `
-      <table class="table table-sm">
-        <thead><tr><th>Stevne</th><th>Dato</th><th></th></tr></thead>
-        <tbody>${rows}</tbody>
-      </table>`,
-    registeredMap,
+    wrap.appendChild(createStevneCard({
+      title: p.stevne?.navn ?? '',
+      href: tournamentId != null ? `#/stevne/${tournamentId}/info` : '#',
+      date: formatDate(p.stevne?.dato),
+      status: 'upcoming',
+      registrationSlotId: tournamentId ?? undefined,
+    }))
   }
+  return { node: wrap, registeredMap }
 }
 
 export async function render(container: HTMLElement, ctx: MinSideContext): Promise<void> {
   const shell = renderSectionCard(container, ctx, 'Påmeldingar')
   if (!shell) return
 
-  const { html, registeredMap } = await buildRegistrationContent(shell.throwerId)
-  shell.slot.innerHTML = html
+  const { node, registeredMap } = await buildRegistrationContent(shell.throwerId)
+  shell.slot.replaceChildren(node)
   bindRegistrationSlots(container, shell.throwerId, ctx.user.id, registeredMap)
 }
