@@ -11,6 +11,7 @@ import type { SingleListRow } from '@/utils/norgescup'
 import { getUser } from '@/services/authService'
 import { getRegistrationsForThrower } from '@/services/stevneService'
 import { bindRegistrationSlots } from '@/components/PameldingKnapp'
+import { createStevneCard } from '@/components/StevneCard'
 
 // ── HTML builders ─────────────────────────────────────────────────────────────
 
@@ -46,29 +47,33 @@ function liveCardHtml(s: LiveTournamentRow): string {
     </a>`
 }
 
-function resultCardHtml(s: LatestResultRow): string {
-  return `
-    <div class="tournament-card">
-      <p class="tournament-date">${formatDateLong(s.dato)}</p>
-      <p class="tournament-name">${escHtml(s.navn)}</p>
-      <a class="tournament-link" href="#/stevne/${s.id}/resultat">Vis resultat</a>
-    </div>`
+function resultCard(s: LatestResultRow): HTMLElement {
+  return createStevneCard({
+    title: s.navn,
+    href: `#/stevne/${s.id}/resultat`,
+    date: formatDateLong(s.dato),
+    status: 'done',
+  })
 }
 
-function upcomingCardHtml(s: UpcomingTournamentRow, showSlot: boolean): string {
+function upcomingCard(s: UpcomingTournamentRow, showSlot: boolean): HTMLElement {
   const notStarted = s.stevne_fase === null || s.stevne_fase === 'ikke_startet'
   const canRegister = showSlot && notStarted && !s.erfullfort
-  const invitation = s.innbydelseurl
-    ? `<a class="tournament-link" href="${escHtml(s.innbydelseurl)}" target="_blank" rel="noopener">Innbydelse &#128196;</a>`
-    : canRegister
-      ? `<span data-registration-slot="${s.id}"></span>`
-      : `<span class="tournament-link-inactive">Innbydelse er ikkje klar</span>`
-  return `
-    <div class="tournament-card">
-      <p class="tournament-date">${formatDateLong(s.dato)}</p>
-      <a class="tournament-name" href="#/stevne/${s.id}/info">${escHtml(s.navn)}</a>
-      ${invitation}
-    </div>`
+  return createStevneCard({
+    title: s.navn,
+    href: `#/stevne/${s.id}/info`,
+    date: formatDateLong(s.dato),
+    status: 'upcoming',
+    invitationUrl: s.innbydelseurl ?? undefined,
+    registrationSlotId: canRegister ? s.id : undefined,
+  })
+}
+
+function cardList(cards: HTMLElement[]): HTMLElement {
+  const wrap = document.createElement('div')
+  wrap.className = 'stevne-kort-liste'
+  cards.forEach(c => wrap.appendChild(c))
+  return wrap
 }
 
 // ── Main function ─────────────────────────────────────────────────────────────
@@ -142,12 +147,12 @@ export async function render(container: HTMLElement): Promise<void> {
 
     container.querySelector<HTMLElement>('#nc-content')!.outerHTML = ncTop20Html(ncList)
 
-    container.querySelector<HTMLElement>('#results-content')!.outerHTML =
-      `<div class="tournament-list">${r1.map(resultCardHtml).join('')}</div>`
+    container.querySelector<HTMLElement>('#results-content')!
+      .replaceWith(cardList(r1.map(resultCard)))
 
     const upcomingSection = container.querySelector<HTMLElement>('.homepage-upcoming')!
-    container.querySelector<HTMLElement>('#upcoming-content')!.outerHTML =
-      `<div class="tournament-list">${r2.map(s => upcomingCardHtml(s, showSlot)).join('')}</div>`
+    container.querySelector<HTMLElement>('#upcoming-content')!
+      .replaceWith(cardList(r2.map(s => upcomingCard(s, showSlot))))
 
     if (throwerId !== null && auth?.user.id) {
       const registeredMap = await getRegistrationsForThrower(throwerId)
