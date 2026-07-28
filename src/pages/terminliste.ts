@@ -8,39 +8,34 @@ import { buildDropdownOptions } from '@/utils/buildDropdownOptions'
 import { createErrorBanner } from '@/components/ErrorBanner'
 import { createLoadingState } from '@/components/LoadingState'
 import { createEmptyState } from '@/components/EmptyState'
-import { createStevneCard } from '@/components/StevneCard'
+import { createStevneCard, CHEVRON_SVG } from '@/components/StevneCard'
 import { escHtml } from '@/utils/escHtml'
 import { logError } from '@/utils/logError'
 import { registerRefetch } from '@/utils/refetchRegistry'
 import { bindRegistrationSlots } from '@/components/PameldingKnapp'
 import { createSearchInput } from '@/components/SearchInput'
+import { sortSchedule, groupSchedule, type ScheduleSort, type ScheduleSortColumn, type MonthGroup, type ScheduleGroups } from '@/utils/terminlisteLogikk'
 
 type TournamentRow = ScheduleTournamentRow
 
-// ── Sorting ───────────────────────────────────────────────────────────────────
+// ── Sorting & grouping state ──────────────────────────────────────────────────
 
-const sort: { column: string; direction: 'asc' | 'desc' } = { column: 'dato', direction: 'asc' }
-
-function sortValue(s: TournamentRow, column: string): string {
-  switch (column) {
-    case 'navn':          return s.navn ?? ''
-    case 'dato':          return s.dato ?? ''
-    case 'sted':          return s.sted ?? ''
-    case 'metode':        return [s.innledende?.navn, s.avsluttende?.navn].filter((v): v is string => Boolean(v)).join(' ')
-    case 'organizer':     return s.klubb?.navn ?? ''
-    case 'type':          return s.stevnetype?.navn ?? ''
-    case 'klassifisering': return s.kategori?.navn ?? ''
-    default:              return ''
-  }
-}
+const sort: ScheduleSort = { column: 'dato', direction: 'asc' }
+let ferdigeExpanded = false
 
 function sortData(data: TournamentRow[]): TournamentRow[] {
-  return [...data].sort((a, b) => {
-    const va = sortValue(a, sort.column)
-    const vb = sortValue(b, sort.column)
-    const cmp = va.localeCompare(vb, 'nb')
-    return sort.direction === 'asc' ? cmp : -cmp
-  })
+  return sortSchedule(data, sort)
+}
+
+function todayIso(): string {
+  return new Date().toISOString().slice(0, 10)
+}
+
+function canRegisterRow(s: TournamentRow, auth: AuthUser | null): boolean {
+  const isUpcoming = new Date(s.dato + 'T12:00:00') > new Date()
+  const notStarted = s.stevne_fase === null || s.stevne_fase === 'ikke_startet'
+  const hasAccess  = auth?.profil?.kobling_status === 'godkjent'
+  return hasAccess === true && isUpcoming && notStarted && !s.erfullfort
 }
 
 // ── Filter state ──────────────────────────────────────────────────────────────
@@ -118,6 +113,7 @@ const tableColumns = [
   { id: 'type',          label: 'Type' },
   { id: 'klassifisering', label: 'Klassifisering' },
 ]
+const TABLE_COLUMN_COUNT = tableColumns.length + 1 // + trailing action column
 
 function sortIconHtml(column: string): string {
   if (sort.column !== column) return '<span class="tl-sort-icon">↕</span>'
@@ -126,8 +122,13 @@ function sortIconHtml(column: string): string {
     : '<span class="tl-sort-icon active">↓</span>'
 }
 
+function trailingLinkHtml(s: TournamentRow): string {
+  if (canRegisterRow(s, _auth)) return `<span data-registration-slot="${s.id}"></span>`
+  return `<a class="tl-chevron-link" href="#/stevne/${s.id}/resultat" aria-label="Gå til stevne">${CHEVRON_SVG}</a>`
+}
+
 function tableRowHtml(s: TournamentRow): string {
-  const date     = s.dato ? new Date(s.dato + 'T12:00:00').toLocaleDateString('nb-NO') : ''
+  const date     = new Date(s.dato + 'T12:00:00').toLocaleDateString('nb-NO')
   const method   = [s.innledende?.navn, s.avsluttende?.navn].filter((v): v is string => Boolean(v)).join(' \\ ')
   const nm       = s.ernm ? '<span class="tl-nm-merke">NM</span> ' : ''
   return `<tr class="tl-tr">
@@ -138,30 +139,60 @@ function tableRowHtml(s: TournamentRow): string {
     <td>${escHtml(s.klubb?.navn ?? '')}</td>
     <td>${escHtml(s.stevnetype?.navn ?? '')}</td>
     <td>${escHtml(s.kategori?.navn ?? '')}</td>
+    <td class="tl-td-trailing">${trailingLinkHtml(s)}</td>
   </tr>`
 }
 
-function tableHtml(filtered: TournamentRow[]): string {
-  if (filtered.length === 0) return '<p class="empty-state">Ingen stevner funnet med valgte filtre.</p>'
-  const thead = `<thead><tr>
-    ${tableColumns.map(k => `<th class="tl-th" data-column="${k.id}">${k.label}${sortIconHtml(k.id)}</th>`).join('')}
-  </tr></thead>`
-  const tbody = `<tbody>${sortData(filtered).map(tableRowHtml).join('')}</tbody>`
-  return `<table class="tl-table">${thead}${tbody}</table>`
+function monthRowHtml(group: MonthGroup<TournamentRow>): string {
+  const header = `<tr class="tl-month-row"><td colspan="${TABLE_COLUMN_COUNT}">${escHtml(group.label)}</td></tr>`
+  return header + sortData(group.rows).map(tableRowHtml).join('')
 }
 
-function buildView(filtered: TournamentRow[]): string | HTMLElement {
-  return window.innerWidth > 600 ? tableHtml(filtered) : buildList(filtered)
+function sectionHeaderRowHtml(label: string, count: number): string {
+  return `<tr class="tl-section-row"><td colspan="${TABLE_COLUMN_COUNT}">${label} <span class="tl-section-count">${count}</span></td></tr>`
+}
+
+function ferdigeToggleRowHtml(count: number, expanded: boolean): string {
+  const icon = expanded ? '▲' : '▼'
+  return `<tr class="tl-section-row"><td colspan="${TABLE_COLUMN_COUNT}">
+    <button type="button" class="tl-ferdige-toggle" id="tl-ferdige-toggle" aria-expanded="${expanded}">
+      Ferdige <span class="tl-section-count">${count}</span> <span class="tl-toggle-icon" aria-hidden="true">${icon}</span>
+    </button>
+  </td></tr>`
+}
+
+function tableHtml(groups: ScheduleGroups<TournamentRow>, expanded: boolean): string {
+  const upcomingCount = groups.upcoming.reduce((n, g) => n + g.rows.length, 0)
+  const pastCount     = groups.past.reduce((n, g) => n + g.rows.length, 0)
+  if (upcomingCount === 0 && pastCount === 0) return '<p class="empty-state">Ingen stevner funnet med valgte filtre.</p>'
+
+  const thead = `<thead><tr>
+    ${tableColumns.map(k => `<th class="tl-th" data-column="${k.id}">${k.label}${sortIconHtml(k.id)}</th>`).join('')}
+    <th class="tl-th tl-th-trailing" aria-hidden="true"></th>
+  </tr></thead>`
+
+  let body = ''
+  if (upcomingCount > 0) {
+    body += sectionHeaderRowHtml('Kommande', upcomingCount)
+    body += groups.upcoming.map(monthRowHtml).join('')
+  }
+  if (pastCount > 0) {
+    body += ferdigeToggleRowHtml(pastCount, expanded)
+    if (expanded) body += groups.past.map(monthRowHtml).join('')
+  }
+
+  return `<table class="tl-table">${thead}<tbody>${body}</tbody></table>`
+}
+
+function buildView(groups: ScheduleGroups<TournamentRow>, expanded: boolean): string | HTMLElement {
+  return window.innerWidth > 600 ? tableHtml(groups, expanded) : buildList(groups, expanded)
 }
 
 // ── Card (mobile) ─────────────────────────────────────────────────────────────
 
 function cardNode(s: TournamentRow): HTMLElement {
   const isLive     = (s.stevne_fase === 'innledende' || s.stevne_fase === 'avsluttende') && !s.erfullfort
-  const isUpcoming = s.dato ? new Date(s.dato + 'T12:00:00') > new Date() : false
-  const notStarted = s.stevne_fase === null || s.stevne_fase === 'ikke_startet'
-  const hasAccess  = _auth?.profil?.kobling_status === 'godkjent'
-  const canRegister = hasAccess && isUpcoming && notStarted && !s.erfullfort
+  const isUpcoming = new Date(s.dato + 'T12:00:00') > new Date()
 
   const meta: string[] = []
   if (s.sted) meta.push(`Sted: ${s.sted}`)
@@ -175,17 +206,60 @@ function cardNode(s: TournamentRow): HTMLElement {
     status: isLive ? 'live' : isUpcoming ? 'upcoming' : 'done',
     meta,
     badge: s.ernm ? 'NM' : undefined,
-    registrationSlotId: canRegister ? s.id : undefined,
+    registrationSlotId: canRegisterRow(s, _auth) ? s.id : undefined,
   })
 }
 
-function buildList(filtered: TournamentRow[]): HTMLElement {
-  if (filtered.length === 0) {
+function sectionHeaderNode(label: string, count: number): HTMLElement {
+  const el = document.createElement('p')
+  el.className = 'tl-section-header'
+  el.innerHTML = `${escHtml(label)} <span class="tl-section-count">${count}</span>`
+  return el
+}
+
+function monthHeaderNode(label: string): HTMLElement {
+  const el = document.createElement('p')
+  el.className = 'tl-month-header'
+  el.textContent = label
+  return el
+}
+
+function ferdigeToggleNode(count: number, expanded: boolean): HTMLButtonElement {
+  const btn = document.createElement('button')
+  btn.type = 'button'
+  btn.className = 'tl-ferdige-toggle'
+  btn.id = 'tl-ferdige-toggle'
+  btn.setAttribute('aria-expanded', String(expanded))
+  btn.innerHTML = `Ferdige <span class="tl-section-count">${count}</span> <span class="tl-toggle-icon" aria-hidden="true">${expanded ? '▲' : '▼'}</span>`
+  return btn
+}
+
+function appendMonthGroups(wrap: HTMLElement, groups: MonthGroup<TournamentRow>[]): void {
+  groups.forEach(group => {
+    wrap.appendChild(monthHeaderNode(group.label))
+    sortData(group.rows).forEach(s => wrap.appendChild(cardNode(s)))
+  })
+}
+
+function buildList(groups: ScheduleGroups<TournamentRow>, expanded: boolean): HTMLElement {
+  const upcomingCount = groups.upcoming.reduce((n, g) => n + g.rows.length, 0)
+  const pastCount     = groups.past.reduce((n, g) => n + g.rows.length, 0)
+  if (upcomingCount === 0 && pastCount === 0) {
     return createEmptyState('Ingen stevner funnet med valgte filtre.')
   }
+
   const wrap = document.createElement('div')
   wrap.className = 'stevne-kort-liste'
-  filtered.forEach(s => wrap.appendChild(cardNode(s)))
+
+  if (upcomingCount > 0) {
+    wrap.appendChild(sectionHeaderNode('Kommande', upcomingCount))
+    appendMonthGroups(wrap, groups.upcoming)
+  }
+  if (pastCount > 0) {
+    wrap.appendChild(ferdigeToggleNode(pastCount, expanded))
+    if (expanded) appendMonthGroups(wrap, groups.past)
+  }
+
   return wrap
 }
 
@@ -290,7 +364,8 @@ export async function render(container: HTMLElement): Promise<void> {
       const filtered = filterData(allData)
       const listEl   = container.querySelector<HTMLElement>('.tl-list-container')
       if (!listEl) return filtered
-      const view = buildView(filtered)
+      const groups = groupSchedule(filtered, todayIso())
+      const view = buildView(groups, ferdigeExpanded)
       if (typeof view === 'string') listEl.innerHTML = view
       else listEl.replaceChildren(view)
       const countEl     = container.querySelector('.tl-count')
@@ -341,16 +416,26 @@ export async function render(container: HTMLElement): Promise<void> {
     const categoryMobSelect       = container.querySelector<HTMLSelectElement>('#tl-category-mobil')!
 
     listContainer.addEventListener('click', e => {
-      const th = (e.target as Element).closest<HTMLElement>('[data-column]')
-      if (!th) return
-      const column = th.dataset.column!
-      if (sort.column === column) {
-        sort.direction = sort.direction === 'asc' ? 'desc' : 'asc'
-      } else {
-        sort.column    = column
-        sort.direction = 'asc'
+      const target = e.target as Element
+
+      const th = target.closest<HTMLElement>('[data-column]')
+      if (th) {
+        const column = th.dataset.column as ScheduleSortColumn
+        if (sort.column === column) {
+          sort.direction = sort.direction === 'asc' ? 'desc' : 'asc'
+        } else {
+          sort.column    = column
+          sort.direction = 'asc'
+        }
+        updateList()
+        return
       }
-      updateList()
+
+      const toggle = target.closest<HTMLElement>('#tl-ferdige-toggle')
+      if (toggle) {
+        ferdigeExpanded = !ferdigeExpanded
+        updateList()
+      }
     })
 
     let resizeTimer: number | null = null
@@ -365,6 +450,7 @@ export async function render(container: HTMLElement): Promise<void> {
     window.addEventListener('resize', handleResize)
 
     async function reloadYear(logContext: string): Promise<boolean> {
+      ferdigeExpanded = false
       container.querySelector('.tl-title')!.textContent = `Terminliste ${filter.year}`
       container.querySelector('.tl-list-container')!.replaceChildren(createLoadingState('Laster...'))
       const { data: newData, error: newError } = await getScheduleTournaments(filter.year)

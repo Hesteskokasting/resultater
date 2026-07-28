@@ -538,6 +538,80 @@
   vertical-align: middle;
 }
 
+/* Terminliste — section (Kommande/Ferdige) and month grouping, shared between
+   the desktop table and the mobile card list. */
+
+.tl-section-row td,
+.tl-month-row td {
+  border-bottom: none;
+}
+
+.tl-section-row td {
+  padding: 14px 10px 6px;
+  font-weight: 600;
+  color: var(--tekst);
+}
+
+.tl-month-row td {
+  padding: 14px 10px 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--tekst-2);
+}
+
+.tl-section-header {
+  margin: 4px 0 -2px;
+  font-weight: 600;
+  color: var(--tekst);
+}
+
+.tl-month-header {
+  margin: 14px 0 -2px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--tekst-2);
+}
+
+.tl-section-count {
+  color: var(--tekst-2);
+  font-weight: 400;
+}
+
+.tl-ferdige-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  background: none;
+  border: none;
+  padding: 4px 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--tekst);
+  cursor: pointer;
+}
+
+.tl-ferdige-toggle:hover { color: var(--lenke); }
+
+.tl-toggle-icon {
+  font-size: 0.7rem;
+  color: var(--tekst-2);
+}
+
+.tl-td-trailing {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.tl-th-trailing { width: 1%; }
+
+.tl-chevron-link { display: inline-flex; }
+
 @media (max-width: 600px) {
   .tl-filter-row { display: none; }
   .tl-mobile-row { display: flex; }
