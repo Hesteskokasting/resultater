@@ -18,6 +18,40 @@ function average(vals: number[]): number | null {
   return Math.round(vals.reduce((s, t) => s + t, 0) / vals.length)
 }
 
+// ── Result sorting ──────────────────────────────────────────────────────────────
+
+export type ResultSortColumn = 'dato' | 'plassering'
+export interface ResultSort {
+  column: ResultSortColumn
+  direction: 'asc' | 'desc'
+}
+
+/** Minimal shape sortResults needs — ResultDetailRow satisfies it structurally. */
+type SortableResult = {
+  plassering: number | null
+  stevne: { dato: string | null } | null
+}
+
+/**
+ * Client-side sort of the (already filtered) result set. Placement is numeric with
+ * ascending = best (1 first); rows with no placement always sink to the bottom regardless
+ * of direction. Date is an ISO-string compare.
+ */
+export function sortResults<T extends SortableResult>(rows: T[], sort: ResultSort): T[] {
+  const dir = sort.direction === 'asc' ? 1 : -1
+  return [...rows].sort((a, b) => {
+    if (sort.column === 'plassering') {
+      const pa = a.plassering
+      const pb = b.plassering
+      if (pa == null && pb == null) return 0
+      if (pa == null) return 1
+      if (pb == null) return -1
+      return (pa - pb) * dir
+    }
+    return (a.stevne?.dato ?? '').localeCompare(b.stevne?.dato ?? '') * dir
+  })
+}
+
 // ── Statistics ────────────────────────────────────────────────────────────────
 
 function hasMethod(r: ResultDetailRow, metode: string): boolean {
