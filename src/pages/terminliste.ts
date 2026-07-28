@@ -61,6 +61,8 @@ const filter = {
 let allData: TournamentRow[] = []
 let _auth: AuthUser | null = null
 let _registeredMap: Map<number, number> = new Map()
+// "NM" is one of the stevnetype options, but ernm is the authoritative NM flag
+let _nmTypeId: number | undefined
 
 // ── Client-side filtering ─────────────────────────────────────────────────────
 
@@ -79,7 +81,10 @@ function filterData(data: TournamentRow[]): TournamentRow[] {
       if (!matched) return false
     }
 
-    if (filter.tournamentTypeId && String(s.stevnetype?.id) !== filter.tournamentTypeId) return false
+    if (filter.tournamentTypeId) {
+      const isNmOption = _nmTypeId != null && filter.tournamentTypeId === String(_nmTypeId)
+      if (isNmOption ? !s.ernm : String(s.stevnetype?.id) !== filter.tournamentTypeId) return false
+    }
 
     if (filter.throwingMethodId) {
       const id = filter.throwingMethodId
@@ -323,6 +328,7 @@ export async function render(container: HTMLElement): Promise<void> {
       getFilterOptions(),
       getUser(),
     ])
+    _nmTypeId = filterOptions.stevnetyper.find(t => t.navn === 'NM')?.id
     _auth = auth
     _registeredMap = auth?.profil?.kasterid != null
       ? await getRegistrationsForThrower(auth.profil.kasterid)
