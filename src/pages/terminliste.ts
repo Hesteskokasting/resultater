@@ -157,8 +157,7 @@ function tableRowHtml(s: TournamentRow, nearestLabel: string | undefined): strin
   const nearestPill = nearestLabel ? `<span class="tl-nearest-merke">${escHtml(nearestLabel)}</span> ` : ''
   const medal       = s.ernm ? `<span class="tl-nm-medalje" role="img" aria-label="${NM_LABEL}" title="${NM_LABEL}">🥇</span> ` : ''
   const trailing    = canRegisterRow(s, _auth) ? `<span data-registration-slot="${s.id}"></span>` : ''
-  const rowClass    = `tl-tr${nearestLabel ? ' tl-tr--nearest' : ''}`
-  return `<tr class="${rowClass}" tabindex="0" data-href="#/stevne/${s.id}/resultat" aria-label="Gå til ${escHtml(s.navn ?? '')}, ${date}">
+  return `<tr class="tl-tr" tabindex="0" data-href="#/stevne/${s.id}/resultat" aria-label="Gå til ${escHtml(s.navn ?? '')}, ${date}">
     <td>${date}</td>
     <td>${nearestPill}${medal}${escHtml(s.navn ?? '')}</td>
     <td>${typeBadgeCellHtml(s)}</td>

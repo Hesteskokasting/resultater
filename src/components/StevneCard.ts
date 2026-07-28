@@ -29,7 +29,7 @@ export interface StevneCardProps {
   typeBadge?: StevneCardTypeBadge
   /** Gold medal marker for NM stevner — the only NM indicator the card shows. */
   isNm?: boolean
-  /** Marks the single nearest not-yet-started upcoming stevne: label text (e.g. "I DAG"/"NESTE") plus a light row tint. Unset means no marking. */
+  /** Marks the single nearest not-yet-started upcoming stevne with a small label (e.g. "I DAG"/"NESTE"). Unset means no marking. */
   nearestLabel?: string
   /**
    * When set, the trailing slot emits a `<span data-registration-slot>` placeholder
@@ -54,7 +54,7 @@ const NM_LABEL = 'Noregsmeisterskap'
  */
 export function createStevneCard(props: StevneCardProps): HTMLElement {
   const card = document.createElement('div')
-  card.className = `stevne-kort stevne-kort--${props.status}${props.nearestLabel ? ' stevne-kort--nearest' : ''}`
+  card.className = `stevne-kort stevne-kort--${props.status}`
 
   const liveDot = props.status === 'live' ? '<span class="live-prikk" aria-hidden="true"></span>' : ''
   const nmMedal = props.isNm

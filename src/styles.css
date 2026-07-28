@@ -675,8 +675,6 @@
   vertical-align: middle;
 }
 
-.tl-tr--nearest { background: color-mix(in srgb, var(--primaer) 6%, var(--flate)); }
-
 @media (max-width: 600px) {
   .tl-filter-row { display: none; }
   .tl-mobile-row { display: flex; }
@@ -2877,11 +2875,6 @@ th.initial-score-th {
 }
 
 .stevne-kort:hover { background: var(--primaer-hover); }
-
-/* The single nearest not-yet-started upcoming stevne gets a light tint so it's
-   findable without reading dates. */
-.stevne-kort--nearest { background: color-mix(in srgb, var(--primaer) 8%, var(--flate)); }
-.stevne-kort--nearest:hover { background: color-mix(in srgb, var(--primaer) 14%, var(--flate)); }
 
 /* 3px inner colored stripe as the leftmost flex item (a single-sided border on
    a rounded card looks off; overflow:hidden clips this child to the radius). */
