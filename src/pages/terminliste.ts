@@ -18,6 +18,21 @@ import { sortSchedule, groupSchedule, findNearestUpcomingId, type ScheduleSort, 
 
 const NM_LABEL = 'Noregsmeisterskap'
 
+// Bootstrap Icons isn't loaded in this app — inline SVGs, matching StevneCard's chevron convention.
+const FILTER_SVG =
+  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+  'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+  '<line x1="4" y1="6" x2="20" y2="6"/><circle cx="9" cy="6" r="2" fill="currentColor" stroke="none"/>' +
+  '<line x1="4" y1="12" x2="20" y2="12"/><circle cx="15" cy="12" r="2" fill="currentColor" stroke="none"/>' +
+  '<line x1="4" y1="18" x2="20" y2="18"/><circle cx="7" cy="18" r="2" fill="currentColor" stroke="none"/>' +
+  '</svg>'
+const EXCEL_SVG =
+  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+  'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+  '<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/>' +
+  '<line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/>' +
+  '</svg>'
+
 type TournamentRow = ScheduleTournamentRow
 
 // ── Sorting & grouping state ──────────────────────────────────────────────────
@@ -163,7 +178,7 @@ function tableRowHtml(s: TournamentRow, nearestLabel: string | undefined): strin
 }
 
 function monthRowHtml(group: MonthGroup<TournamentRow>, sort: ScheduleSort, nearestId: number | undefined, today: string): string {
-  const header = `<tr class="tl-month-row"><td colspan="${TABLE_COLUMN_COUNT}">${escHtml(group.label)}</td></tr>`
+  const header = `<tr class="tl-month-row"><td colspan="${TABLE_COLUMN_COUNT}">${escHtml(group.label)} <span class="tl-month-count">${group.rows.length} stevner</span></td></tr>`
   return header + sortSchedule(group.rows, sort).map(s => tableRowHtml(s, nearestLabelFor(s, nearestId, today))).join('')
 }
 
@@ -187,7 +202,7 @@ function sectionHeadHtml(title: string, count: number, toggle?: { controlsId: st
     : ''
   return `<div class="tl-section-head">
     <span class="tl-section-title">${escHtml(title)}</span>
-    <span class="tl-section-count">${count} stevner</span>
+    <span class="tl-section-count-pill">${count}</span>
     ${toggleHtml}
   </div>`
 }
@@ -248,7 +263,7 @@ function cardNode(s: TournamentRow, nearestLabel: string | undefined): HTMLEleme
 function sectionHeadNode(title: string, count: number, toggle?: { controlsId: string; expanded: boolean }): HTMLElement {
   const head = document.createElement('div')
   head.className = 'tl-section-head'
-  head.innerHTML = `<span class="tl-section-title">${escHtml(title)}</span><span class="tl-section-count">${count} stevner</span>`
+  head.innerHTML = `<span class="tl-section-title">${escHtml(title)}</span><span class="tl-section-count-pill">${count}</span>`
   if (toggle) {
     const btn = document.createElement('button')
     btn.type = 'button'
@@ -262,17 +277,21 @@ function sectionHeadNode(title: string, count: number, toggle?: { controlsId: st
   return head
 }
 
-function monthHeaderNode(label: string): HTMLElement {
+function monthHeaderNode(label: string, count: number): HTMLElement {
   const el = document.createElement('p')
   el.className = 'tl-month-header'
-  el.textContent = label
+  el.innerHTML = `${escHtml(label)} <span class="tl-month-count">${count} stevner</span>`
   return el
 }
 
+// Its own flex+gap (not just a plain wrapper div) so cards inside get the same
+// spacing as .stevne-kort-liste's direct children — this container nests one
+// level deeper (needed so the whole Ferdige group can be hidden/shown as a unit).
 function monthGroupsNode(groups: MonthGroup<TournamentRow>[], sort: ScheduleSort, nearestId: number | undefined, today: string): HTMLElement {
   const wrap = document.createElement('div')
+  wrap.className = 'tl-month-groups'
   groups.forEach(group => {
-    wrap.appendChild(monthHeaderNode(group.label))
+    wrap.appendChild(monthHeaderNode(group.label, group.rows.length))
     sortSchedule(group.rows, sort).forEach(s => wrap.appendChild(cardNode(s, nearestLabelFor(s, nearestId, today))))
   })
   return wrap
@@ -331,8 +350,8 @@ export async function render(container: HTMLElement): Promise<void> {
     allData = data ?? []
 
     const isNative = Capacitor.isNativePlatform()
-    const excelButtonHtml = isNative ? '' : '<button class="tl-excel-button" id="tl-excel-desktop">⬇ Excel</button>'
-    const excelButtonMobileHtml = isNative ? '' : '<button class="tl-excel-button" id="tl-excel-mobile">⬇ Excel</button>'
+    const excelButtonHtml = isNative ? '' : `<button class="tl-excel-button" id="tl-excel-desktop" aria-label="Last ned Excel" title="Last ned Excel">${EXCEL_SVG}</button>`
+    const excelButtonMobileHtml = isNative ? '' : `<button class="tl-excel-button" id="tl-excel-mobile" aria-label="Last ned Excel" title="Last ned Excel">${EXCEL_SVG}</button>`
 
     // Same select set renders twice: desktop filter row ('') and mobile bottom sheet ('-mobil')
     function filterSelects(suffix: '' | '-mobil'): Record<'year' | 'tournamentType' | 'throwingMethod' | 'organizer' | 'category', string> {
@@ -365,7 +384,7 @@ export async function render(container: HTMLElement): Promise<void> {
         <!-- Mobile row -->
         <div class="tl-mobile-row">
           <span id="tl-text-mobile-slot"></span>
-          <button class="tl-filter-button" id="tl-filter-open">Filter ≡</button>
+          <button class="tl-filter-button" id="tl-filter-open">${FILTER_SVG} Filter</button>
           ${excelButtonMobileHtml}
         </div>
 

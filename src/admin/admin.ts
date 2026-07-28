@@ -20,7 +20,8 @@ import { getLiveTournaments } from '@/services/stevneService'
 import type { LiveTournamentRow } from '@/services/stevneService'
 import { createLoadingState } from '@/components/LoadingState'
 import { createEmptyState } from '@/components/EmptyState'
-import { livePillHtml } from '@/components/LivePill'
+import { createStevneCard } from '@/components/StevneCard'
+import { formatDateLong } from '@/utils/shared'
 
 type Tab = 'links' | 'users' | 'club-admin'
 
@@ -31,13 +32,23 @@ const TAB_LABEL: Record<Tab, string> = {
   'club-admin': 'Klubbadmin-tilgang',
 }
 
-function liveCardHtml(s: LiveTournamentRow): string {
+// Same card component as home.ts/terminliste — the live-prikk dot on `status: 'live'`
+// is the only "ongoing" indicator, consistent everywhere it appears.
+function liveCard(s: LiveTournamentRow): HTMLElement {
   const tab = s.stevne_fase === 'avsluttende' ? 'avsluttende' : 'innledende'
-  return `
-    <a class="live-card" href="#/stevne/${s.id}/${tab}">
-      ${livePillHtml()}
-      <span>${escHtml(s.navn)}</span>
-    </a>`
+  return createStevneCard({
+    title: s.navn,
+    href: `#/stevne/${s.id}/${tab}`,
+    date: formatDateLong(s.dato),
+    status: 'live',
+  })
+}
+
+function cardList(cards: HTMLElement[]): HTMLElement {
+  const wrap = document.createElement('div')
+  wrap.className = 'stevne-kort-liste'
+  cards.forEach(c => wrap.appendChild(c))
+  return wrap
 }
 
 export async function render(container: HTMLElement): Promise<void> {
@@ -82,8 +93,8 @@ export async function render(container: HTMLElement): Promise<void> {
 
   const liveTournaments = (liveTournamentsData ?? []).filter(s => !s.erfullfort)
   if (liveTournaments.length) {
-    container.querySelector<HTMLElement>('#live-section')!.innerHTML =
-      `<div class="live-banner">${liveTournaments.map(liveCardHtml).join('')}</div>`
+    container.querySelector<HTMLElement>('#live-section')!
+      .replaceChildren(cardList(liveTournaments.map(liveCard)))
   }
 }
 

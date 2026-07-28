@@ -278,27 +278,10 @@
 .res-side,
 .content-page { padding-bottom: 40px; }
 
-.live-banner {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 24px;
-}
-
-.live-card {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 16px;
-  border: 1px solid var(--kant-2);
-  border-radius: 6px;
-  text-decoration: none;
-  color: var(--tekst);
-  background: var(--flate);
-  font-weight: 600;
-}
-
-.live-card:hover { background: var(--primaer-hover); }
+/* Live tournaments render as StevneCard now (home.ts + admin.ts), same as
+   everywhere else; #live-section just needs its old bottom margin preserved
+   when populated. */
+#live-section:not(:empty) { margin-bottom: 24px; }
 
 .live-prikk {
   position: relative;
@@ -393,6 +376,9 @@
 
 .tl-filter-button,
 .tl-excel-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 7px 12px;
   border: 1px solid var(--primaer);
   border-radius: 4px;
@@ -406,6 +392,13 @@
 
 .tl-filter-button:hover,
 .tl-excel-button:hover { background: var(--primaer-hover); }
+
+/* Icon-only, Excel-brand-tinted (the icon reuses .tl-filter-button's border/hover shape). */
+.tl-excel-button {
+  padding: 7px;
+  border-color: var(--excel-gronn);
+  color: var(--excel-gronn);
+}
 
 .tl-count {
   font-size: 0.8rem;
@@ -556,9 +549,18 @@
   color: var(--tekst);
 }
 
-.tl-section-count {
-  color: var(--tekst-2);
-  font-size: 0.85rem;
+.tl-section-count-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--primaer-hover);
+  color: var(--lenke);
+  font-size: 0.8rem;
+  font-weight: 600;
 }
 
 .tl-toggle-text-btn {
@@ -609,6 +611,24 @@
   color: var(--tekst);
   background: var(--bg);
   border-bottom: 1px solid var(--kant);
+}
+
+/* Per-month count — plain and muted, not uppercase/bold like the month label itself. */
+.tl-month-count {
+  font-size: 0.7rem;
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--tekst-2);
+}
+
+/* Mobile only: nests one level deeper than .stevne-kort-liste (so the whole
+   Ferdige month-group can be hidden/shown as a unit), so it needs its own
+   flex+gap to give its cards the same spacing as .stevne-kort-liste's direct children. */
+.tl-month-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .tl-td-trailing,
