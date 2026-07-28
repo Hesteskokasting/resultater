@@ -1,5 +1,6 @@
 import { Capacitor } from '@capacitor/core'
 import { formatDate, yearOptions, downloadExcel, formatPercent } from '@/utils/shared'
+import { createExcelButton } from '@/components/ExcelButton'
 import { createErrorBanner } from '@/components/ErrorBanner'
 import { createLoadingState } from '@/components/LoadingState'
 import { createEmptyState } from '@/components/EmptyState'
@@ -149,7 +150,6 @@ function createRankingTable(list: RankingItem[], searchText: string): HTMLElemen
 }
 
 function pageSkeletonHtml(year: number, isNative: boolean): string {
-  const excelButtonHtml = isNative ? '' : '<button class="tl-excel-button" id="nr-excel">⬇ Excel</button>'
   return `
     <div class="content-page">
       <h1 class="nc-main-title">Norgesranking ${year}</h1>
@@ -162,7 +162,7 @@ function pageSkeletonHtml(year: number, isNative: boolean): string {
       <div class="nc-filter-rad">
         <select id="nr-year" class="tl-select">${yearOptions(year, FIRST_YEAR)}</select>
         <span id="nr-search-slot"></span>
-        ${excelButtonHtml}
+        ${isNative ? '' : '<span id="nr-excel-slot"></span>'}
       </div>
       <div class="nc-click-hint-row">
         <span class="nc-click-hint">Klikk prosent for å vise detaljer</span>
@@ -232,7 +232,7 @@ export async function render(container: HTMLElement): Promise<void> {
     })
 
     if (!isNative) {
-      container.querySelector<HTMLButtonElement>('#nr-excel')!.addEventListener('click', exportExcel)
+      createExcelButton({ slot: container.querySelector('#nr-excel-slot')!, onClick: exportExcel })
     }
 
     infoButton.addEventListener('click', () => {

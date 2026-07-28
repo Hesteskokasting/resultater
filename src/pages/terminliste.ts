@@ -9,6 +9,8 @@ import { createErrorBanner } from '@/components/ErrorBanner'
 import { createLoadingState } from '@/components/LoadingState'
 import { createEmptyState } from '@/components/EmptyState'
 import { createStevneCard, type StevneCardTypeBadge } from '@/components/StevneCard'
+import { createExcelButton } from '@/components/ExcelButton'
+import { createFilterButton } from '@/components/FilterButton'
 import { escHtml } from '@/utils/escHtml'
 import { logError } from '@/utils/logError'
 import { registerRefetch } from '@/utils/refetchRegistry'
@@ -17,21 +19,6 @@ import { createSearchInput } from '@/components/SearchInput'
 import { sortSchedule, groupSchedule, findNearestUpcomingId, type ScheduleSort, type ScheduleSortColumn, type MonthGroup, type ScheduleGroups } from '@/utils/terminlisteLogikk'
 
 const NM_LABEL = 'Noregsmeisterskap'
-
-// Bootstrap Icons isn't loaded in this app — inline SVGs, matching StevneCard's chevron convention.
-const FILTER_SVG =
-  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
-  'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-  '<line x1="4" y1="6" x2="20" y2="6"/><circle cx="9" cy="6" r="2" fill="currentColor" stroke="none"/>' +
-  '<line x1="4" y1="12" x2="20" y2="12"/><circle cx="15" cy="12" r="2" fill="currentColor" stroke="none"/>' +
-  '<line x1="4" y1="18" x2="20" y2="18"/><circle cx="7" cy="18" r="2" fill="currentColor" stroke="none"/>' +
-  '</svg>'
-const EXCEL_SVG =
-  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
-  'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-  '<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/>' +
-  '<line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/>' +
-  '</svg>'
 
 type TournamentRow = ScheduleTournamentRow
 
@@ -350,8 +337,8 @@ export async function render(container: HTMLElement): Promise<void> {
     allData = data ?? []
 
     const isNative = Capacitor.isNativePlatform()
-    const excelButtonHtml = isNative ? '' : `<button class="tl-excel-button" id="tl-excel-desktop" aria-label="Last ned Excel" title="Last ned Excel">${EXCEL_SVG}</button>`
-    const excelButtonMobileHtml = isNative ? '' : `<button class="tl-excel-button" id="tl-excel-mobile" aria-label="Last ned Excel" title="Last ned Excel">${EXCEL_SVG}</button>`
+    const excelSlotHtml = isNative ? '' : '<span id="tl-excel-slot"></span>'
+    const excelSlotMobileHtml = isNative ? '' : '<span id="tl-excel-slot-mobil"></span>'
 
     // Same select set renders twice: desktop filter row ('') and mobile bottom sheet ('-mobil')
     function filterSelects(suffix: '' | '-mobil'): Record<'year' | 'tournamentType' | 'throwingMethod' | 'organizer' | 'category', string> {
@@ -378,14 +365,14 @@ export async function render(container: HTMLElement): Promise<void> {
           ${desktopSel.throwingMethod}
           ${desktopSel.organizer}
           ${desktopSel.category}
-          ${excelButtonHtml}
+          ${excelSlotHtml}
         </div>
 
         <!-- Mobile row -->
         <div class="tl-mobile-row">
           <span id="tl-text-mobile-slot"></span>
-          <button class="tl-filter-button" id="tl-filter-open">${FILTER_SVG} Filter</button>
-          ${excelButtonMobileHtml}
+          <span id="tl-filter-slot"></span>
+          ${excelSlotMobileHtml}
         </div>
 
         <p class="tl-count"></p>
@@ -466,7 +453,6 @@ export async function render(container: HTMLElement): Promise<void> {
     const throwingMethodSelect    = container.querySelector<HTMLSelectElement>('#tl-throwingmethod')!
     const organizerSelect         = container.querySelector<HTMLSelectElement>('#tl-organizer')!
     const categorySelect          = container.querySelector<HTMLSelectElement>('#tl-category')!
-    const filterOpenBtn           = container.querySelector<HTMLButtonElement>('#tl-filter-open')!
     const sheet                   = container.querySelector<HTMLElement>('#tl-sheet')!
     const backdrop                = container.querySelector<HTMLElement>('#tl-backdrop')!
     const resetBtn                = container.querySelector<HTMLButtonElement>('#tl-reset')!
@@ -554,14 +540,14 @@ export async function render(container: HTMLElement): Promise<void> {
 
     if (!isNative) {
       const excelHandler = () => exportToExcel(filterData(allData))
-      container.querySelector<HTMLButtonElement>('#tl-excel-desktop')!.addEventListener('click', excelHandler)
-      container.querySelector<HTMLButtonElement>('#tl-excel-mobile')!.addEventListener('click',  excelHandler)
+      createExcelButton({ slot: container.querySelector('#tl-excel-slot')!, onClick: excelHandler })
+      createExcelButton({ slot: container.querySelector('#tl-excel-slot-mobil')!, onClick: excelHandler })
     }
 
     function openSheet() { sheet.classList.add('active'); backdrop.classList.add('active') }
     function closeSheet() { sheet.classList.remove('active'); backdrop.classList.remove('active') }
 
-    filterOpenBtn.addEventListener('click', openSheet)
+    createFilterButton({ slot: container.querySelector('#tl-filter-slot')!, onClick: openSheet })
     backdrop.addEventListener('click', closeSheet)
 
     resetBtn.addEventListener('click', () => {
