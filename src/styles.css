@@ -413,18 +413,6 @@
   margin-bottom: 10px;
 }
 
-.tl-nm-merke {
-  display: inline-block;
-  background: var(--gull);
-  color: var(--gull-tekst);
-  font-size: 0.7rem;
-  font-weight: bold;
-  padding: 1px 5px;
-  border-radius: 3px;
-  margin-right: 5px;
-  vertical-align: middle;
-}
-
 /* Bunnark (mobil-filtre) */
 
 .tl-sheet {
@@ -532,6 +520,15 @@
 
 .tl-table tbody .tl-tr:hover { background: var(--primaer-hover); }
 
+/* The whole row navigates (JS-driven — see terminliste.ts), so it needs its own
+   pointer affordance and a visible focus ring since there's no <a> to carry one. */
+.tl-tr { cursor: pointer; }
+
+.tl-tr:focus-visible {
+  outline: 2px solid var(--primaer);
+  outline-offset: -2px;
+}
+
 .tl-table td {
   padding: 7px 10px;
   border-bottom: 1px solid var(--kant);
@@ -584,23 +581,34 @@
   font-size: 0.7rem;
 }
 
+/* Month header row — a real divider, not a whisper: bold, uppercase, tinted
+   background. Spec called for a literal #e7ecf3 desktop background, but that's
+   a hardcoded, non-theme-aware color (breaks dark mode); var(--flate-2) is the
+   closest existing theme-aware surface tint, so used instead. */
 .tl-month-row td {
-  padding: 14px 10px 4px;
+  padding: 8px 10px;
   font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font-weight: 700;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
-  color: var(--tekst-2);
-  border-bottom: none;
+  color: var(--tekst);
+  background: var(--flate-2);
+  border-bottom: 1px solid var(--kant);
 }
 
 .tl-month-header {
-  margin: 14px 0 -2px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin: 0;
+  padding: 8px 2px;
   font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font-weight: 700;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
-  color: var(--tekst-2);
+  color: var(--tekst);
+  background: var(--bg);
+  border-bottom: 1px solid var(--kant);
 }
 
 .tl-td-trailing,
@@ -610,7 +618,44 @@
   text-align: right;
 }
 
-.tl-chevron-link { display: inline-flex; }
+/* Merged type+kategori pill (desktop cell) — same visual treatment as the
+   mobile card's .stevne-kort__type-badge: type (the <b>) reads heavier. */
+.tl-type-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--flate-2);
+  color: var(--tekst-2);
+}
+.tl-type-badge b {
+  color: var(--tekst);
+  font-weight: 700;
+}
+
+/* Gold medal — the only NM indicator on the row. */
+.tl-nm-medalje {
+  font-size: 0.9rem;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+/* The single nearest not-yet-started upcoming row — label plus a light tint,
+   findable without reading dates. Hover keeps winning (higher specificity). */
+.tl-nearest-merke {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--primaer);
+  color: var(--primaer-text);
+  vertical-align: middle;
+}
+
+.tl-tr--nearest { background: color-mix(in srgb, var(--primaer) 6%, var(--flate)); }
 
 @media (max-width: 600px) {
   .tl-filter-row { display: none; }
@@ -2813,6 +2858,11 @@ th.initial-score-th {
 
 .stevne-kort:hover { background: var(--primaer-hover); }
 
+/* The single nearest not-yet-started upcoming stevne gets a light tint so it's
+   findable without reading dates. */
+.stevne-kort--nearest { background: color-mix(in srgb, var(--primaer) 8%, var(--flate)); }
+.stevne-kort--nearest:hover { background: color-mix(in srgb, var(--primaer) 14%, var(--flate)); }
+
 /* 3px inner colored stripe as the leftmost flex item (a single-sided border on
    a rounded card looks off; overflow:hidden clips this child to the radius). */
 .stevne-kort__stripe {
@@ -2867,19 +2917,63 @@ th.initial-score-th {
   font-size: 0.8rem;
 }
 
-.stevne-kort__badge {
-  font-size: 0.7rem;
+/* Stacked weekday/day date block (terminliste's mobile card) — a flex sibling
+   of .stevne-kort__body, sitting between the stripe and the title/badge/meta column. */
+.stevne-kort__datecol {
+  flex: 0 0 auto;
+  width: 42px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  padding: 12px 0;
+}
+
+.stevne-kort__weekday {
+  font-size: 0.65rem;
   font-weight: 600;
-  text-transform: uppercase;
   letter-spacing: 0.04em;
-  padding: 2px 7px;
+  color: var(--tekst-2);
+}
+
+.stevne-kort__day {
+  font-size: 1.3rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--tekst);
+}
+
+/* Gold medal — the only NM indicator on the card. */
+.stevne-kort__nm {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+/* Merged type+kategori pill — type (the <b>) reads heavier than kategori. */
+.stevne-kort__type-badge {
+  align-self: flex-start;
+  font-size: 0.75rem;
+  padding: 2px 8px;
   border-radius: 999px;
   background: var(--flate-2);
   color: var(--tekst-2);
 }
-.stevne-kort--live .stevne-kort__badge {
-  background: color-mix(in srgb, var(--live-prikk) 20%, var(--flate));
-  color: var(--live-prikk);
+.stevne-kort__type-badge b {
+  color: var(--tekst);
+  font-weight: 700;
+}
+
+.stevne-kort__nearest-merke {
+  align-self: flex-start;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--primaer);
+  color: var(--primaer-text);
 }
 
 .stevne-kort__trailing {

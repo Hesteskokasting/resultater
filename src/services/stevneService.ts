@@ -32,7 +32,7 @@ const _infoStevneQuery = supabase
 export type InfoTournamentRow = QueryData<typeof _infoStevneQuery>[number]
 
 export type LatestResultRow  = Pick<Tables<'stevne'>, 'id' | 'navn' | 'dato'>
-export type LiveTournamentRow     = Pick<Tables<'stevne'>, 'id' | 'navn' | 'stevne_fase' | 'erfullfort'>
+export type LiveTournamentRow     = Pick<Tables<'stevne'>, 'id' | 'navn' | 'dato' | 'stevne_fase' | 'erfullfort'>
 export type UpcomingTournamentRow = Pick<Tables<'stevne'>, 'id' | 'navn' | 'dato' | 'stevne_fase' | 'erfullfort'>
 const _pameldingStevneQuery = supabase
   .from('stevne')
@@ -57,7 +57,7 @@ export async function getLatestResults(): Promise<{ data: LatestResultRow[]; err
 export async function getLiveTournaments(): Promise<{ data: LiveTournamentRow[]; error: unknown }> {
   const { data, error } = await supabase
     .from('stevne')
-    .select('id, navn, stevne_fase, erfullfort')
+    .select('id, navn, dato, stevne_fase, erfullfort')
     .in('stevne_fase', ['innledende', 'avsluttende'])
     .order('dato', { ascending: true })
   if (error) logError('getLiveTournaments', error)

@@ -1,6 +1,6 @@
 // ── Sorting ───────────────────────────────────────────────────────────────────
 
-export type ScheduleSortColumn = 'navn' | 'dato' | 'sted' | 'metode' | 'organizer' | 'type' | 'klassifisering'
+export type ScheduleSortColumn = 'navn' | 'dato' | 'sted' | 'metode' | 'organizer' | 'type'
 
 export interface ScheduleSort {
   column: ScheduleSortColumn
@@ -20,13 +20,13 @@ interface SortableScheduleRow {
 
 function sortValue(s: SortableScheduleRow, column: ScheduleSortColumn): string {
   switch (column) {
-    case 'navn':           return s.navn ?? ''
-    case 'dato':           return s.dato
-    case 'sted':           return s.sted ?? ''
-    case 'metode':         return [s.innledende?.navn, s.avsluttende?.navn].filter((v): v is string => Boolean(v)).join(' ')
-    case 'organizer':      return s.klubb?.navn ?? ''
-    case 'type':           return s.stevnetype?.navn ?? ''
-    case 'klassifisering': return s.kategori?.navn ?? ''
+    case 'navn':      return s.navn ?? ''
+    case 'dato':      return s.dato
+    case 'sted':      return s.sted ?? ''
+    case 'metode':    return [s.innledende?.navn, s.avsluttende?.navn].filter((v): v is string => Boolean(v)).join(' ')
+    case 'organizer': return s.klubb?.navn ?? ''
+    // Type and kategori render as one merged column/badge, so they sort as one field too.
+    case 'type':      return [s.stevnetype?.navn, s.kategori?.navn].filter((v): v is string => Boolean(v)).join(' ')
   }
 }
 
@@ -100,4 +100,23 @@ export function groupSchedule<T extends GroupableScheduleRow>(rows: T[], todayIs
     upcoming: buildMonthGroups(upcomingRows, 'asc'),
     past: buildMonthGroups(pastRows, 'desc'),
   }
+}
+
+interface NearestScheduleRow {
+  id: number
+  dato: string
+}
+
+/**
+ * The single nearest not-yet-started upcoming row, regardless of the current
+ * column sort or which month group it falls in — always the earliest `dato`.
+ */
+export function findNearestUpcomingId<T extends NearestScheduleRow>(groups: MonthGroup<T>[]): number | undefined {
+  let nearest: T | undefined
+  for (const group of groups) {
+    for (const row of group.rows) {
+      if (!nearest || row.dato < nearest.dato) nearest = row
+    }
+  }
+  return nearest?.id
 }

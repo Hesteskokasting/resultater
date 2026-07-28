@@ -1,4 +1,4 @@
-import { groupSchedule, sortSchedule, type ScheduleSort } from '@/utils/terminlisteLogikk'
+import { groupSchedule, sortSchedule, findNearestUpcomingId, type ScheduleSort } from '@/utils/terminlisteLogikk'
 
 // Minimal rows matching the shape each function needs.
 function groupRow(dato: string, stevneFase: string | null = null) {
@@ -127,10 +127,43 @@ describe('sortSchedule', () => {
       .toEqual(['Gloppen', 'Nordhordlandsmetoden Cup'])
   })
 
+  it('sorts by type, merging stevnetype and kategori into one field', () => {
+    const rows = [
+      sortRow({ stevnetype: 'SNC', kategori: 'Kongelag' }),
+      sortRow({ stevnetype: 'DNC', kategori: 'Singel' }),
+    ]
+    const sort: ScheduleSort = { column: 'type', direction: 'asc' }
+    expect(sortSchedule(rows, sort).map(r => `${r.stevnetype?.navn ?? ''} ${r.kategori?.navn ?? ''}`.trim()))
+      .toEqual(['DNC Singel', 'SNC Kongelag'])
+  })
+
   it('does not mutate the input array', () => {
     const rows = [sortRow({ dato: '2026-09-01' }), sortRow({ dato: '2026-07-01' })]
     const before = [...rows]
     sortSchedule(rows, { column: 'dato', direction: 'asc' })
     expect(rows).toEqual(before)
+  })
+})
+
+describe('findNearestUpcomingId', () => {
+  function nearestRow(id: number, dato: string) {
+    return { id, dato }
+  }
+
+  it('returns undefined for no groups', () => {
+    expect(findNearestUpcomingId([])).toBeUndefined()
+  })
+
+  it('picks the earliest dato across a single group', () => {
+    const groups = [{ key: '2026-08', label: 'AUGUST 2026', rows: [nearestRow(1, '2026-08-20'), nearestRow(2, '2026-08-01'), nearestRow(3, '2026-08-10')] }]
+    expect(findNearestUpcomingId(groups)).toBe(2)
+  })
+
+  it('picks the earliest dato across multiple groups, not just the first group', () => {
+    const groups = [
+      { key: '2026-07', label: 'JULI 2026', rows: [nearestRow(1, '2026-07-28')] },
+      { key: '2026-08', label: 'AUGUST 2026', rows: [nearestRow(2, '2026-08-01')] },
+    ]
+    expect(findNearestUpcomingId(groups)).toBe(1)
   })
 })

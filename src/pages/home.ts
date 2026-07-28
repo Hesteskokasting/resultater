@@ -1,7 +1,5 @@
 import { formatDateLong } from '@/utils/shared'
 import { createErrorBanner } from '@/components/ErrorBanner'
-import { escHtml } from '@/utils/escHtml'
-import { livePillHtml } from '@/components/LivePill'
 import { getLatestResults, getLiveTournaments, getUpcomingTournaments } from '@/services/stevneService'
 import type { LatestResultRow, LiveTournamentRow, UpcomingTournamentRow } from '@/services/stevneService'
 import { logError } from '@/utils/logError'
@@ -12,13 +10,16 @@ import { createStevneCard } from '@/components/StevneCard'
 
 // ── HTML builders ─────────────────────────────────────────────────────────────
 
-function liveCardHtml(s: LiveTournamentRow): string {
+// Same card component as terminliste — the live-prikk dot on `status: 'live'` is
+// the only "ongoing" indicator, consistent across both pages.
+function liveCard(s: LiveTournamentRow): HTMLElement {
   const tab = s.stevne_fase === 'avsluttende' ? 'avsluttende' : 'innledende'
-  return `
-    <a class="live-card" href="#/stevne/${s.id}/${tab}">
-      ${livePillHtml()}
-      <span>${escHtml(s.navn)}</span>
-    </a>`
+  return createStevneCard({
+    title: s.navn,
+    href: `#/stevne/${s.id}/${tab}`,
+    date: formatDateLong(s.dato),
+    status: 'live',
+  })
 }
 
 function resultCard(s: LatestResultRow): HTMLElement {
@@ -103,7 +104,7 @@ export async function render(container: HTMLElement): Promise<void> {
     // Update sections in-place to avoid layout shift
     if (live.length) {
       const liveSection = container.querySelector<HTMLElement>('#live-section')!
-      liveSection.innerHTML = `<div class="live-banner">${live.map(liveCardHtml).join('')}</div>`
+      liveSection.replaceChildren(cardList(live.map(liveCard)))
     }
 
     container.querySelector<HTMLElement>('#results-content')!

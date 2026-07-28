@@ -3,18 +3,20 @@ import type { AuthUser } from '@/types'
 import { getUser } from '@/services/authService'
 import { getScheduleTournaments, getFilterOptions, getRegistrationsForThrower } from '@/services/stevneService'
 import type { ScheduleTournamentRow } from '@/services/stevneService'
-import { formatDateLong, yearOptions, downloadExcel } from '@/utils/shared'
+import { formatDateLong, formatDateWeekday, formatWeekdayShort, formatDayOfMonth, yearOptions, downloadExcel } from '@/utils/shared'
 import { buildDropdownOptions } from '@/utils/buildDropdownOptions'
 import { createErrorBanner } from '@/components/ErrorBanner'
 import { createLoadingState } from '@/components/LoadingState'
 import { createEmptyState } from '@/components/EmptyState'
-import { createStevneCard, CHEVRON_SVG } from '@/components/StevneCard'
+import { createStevneCard, type StevneCardTypeBadge } from '@/components/StevneCard'
 import { escHtml } from '@/utils/escHtml'
 import { logError } from '@/utils/logError'
 import { registerRefetch } from '@/utils/refetchRegistry'
 import { bindRegistrationSlots } from '@/components/PameldingKnapp'
 import { createSearchInput } from '@/components/SearchInput'
-import { sortSchedule, groupSchedule, type ScheduleSort, type ScheduleSortColumn, type MonthGroup, type ScheduleGroups } from '@/utils/terminlisteLogikk'
+import { sortSchedule, groupSchedule, findNearestUpcomingId, type ScheduleSort, type ScheduleSortColumn, type MonthGroup, type ScheduleGroups } from '@/utils/terminlisteLogikk'
+
+const NM_LABEL = 'Noregsmeisterskap'
 
 type TournamentRow = ScheduleTournamentRow
 
@@ -110,13 +112,12 @@ async function exportToExcel(filtered: TournamentRow[]): Promise<void> {
 // ── Table (desktop) ───────────────────────────────────────────────────────────
 
 const tableColumns = [
-  { id: 'navn',          label: 'Stevne' },
-  { id: 'dato',          label: 'Dato' },
-  { id: 'sted',          label: 'Sted' },
-  { id: 'metode',        label: 'Metode' },
-  { id: 'organizer',     label: 'Arrangør' },
-  { id: 'type',          label: 'Type' },
-  { id: 'klassifisering', label: 'Klassifisering' },
+  { id: 'dato',      label: 'Dato' },
+  { id: 'navn',      label: 'Stevne' },
+  { id: 'type',      label: 'Type / kategori' },
+  { id: 'metode',    label: 'Metode' },
+  { id: 'sted',      label: 'Sted' },
+  { id: 'organizer', label: 'Arrangør' },
 ]
 const TABLE_COLUMN_COUNT = tableColumns.length + 1 // + trailing action column
 
@@ -127,38 +128,54 @@ function sortIconHtml(sort: ScheduleSort, column: string): string {
     : '<span class="tl-sort-icon active">↓</span>'
 }
 
-function trailingLinkHtml(s: TournamentRow): string {
-  if (canRegisterRow(s, _auth)) return `<span data-registration-slot="${s.id}"></span>`
-  return `<a class="tl-chevron-link" href="#/stevne/${s.id}/resultat" aria-label="Gå til stevne">${CHEVRON_SVG}</a>`
+// The single nearest not-yet-started upcoming row gets "I DAG" (dated today) or
+// "NESTE" (later); nothing else is marked. Never set for the Ferdige section.
+function nearestLabelFor(s: TournamentRow, nearestId: number | undefined, today: string): string | undefined {
+  if (nearestId === undefined || s.id !== nearestId) return undefined
+  return s.dato === today ? 'I DAG' : 'NESTE'
 }
 
-function tableRowHtml(s: TournamentRow): string {
-  const date     = new Date(s.dato + 'T12:00:00').toLocaleDateString('nb-NO')
-  const method   = [s.innledende?.navn, s.avsluttende?.navn].filter((v): v is string => Boolean(v)).join(' \\ ')
-  const nm       = s.ernm ? '<span class="tl-nm-merke">NM</span> ' : ''
-  return `<tr class="tl-tr">
-    <td><a class="tl-link" href="#/stevne/${s.id}/resultat">${nm}${escHtml(s.navn ?? '')}</a></td>
+// Type and kategori render as one pill, type first and heavier — shared visual
+// treatment between the desktop cell (here) and the mobile badge (StevneCard).
+function typeBadgeCellHtml(s: TournamentRow): string {
+  if (!s.stevnetype?.navn) return ''
+  const kategori = s.kategori?.navn ? ` ${escHtml(s.kategori.navn)}` : ''
+  return `<span class="tl-type-badge"><b>${escHtml(s.stevnetype.navn)}</b>${kategori}</span>`
+}
+
+// The whole row navigates (see the delegated click/keydown handlers in render());
+// the trailing cell only ever hosts the Meld på action, never a link/chevron.
+function tableRowHtml(s: TournamentRow, nearestLabel: string | undefined): string {
+  const date        = new Date(s.dato + 'T12:00:00').toLocaleDateString('nb-NO')
+  const nearestPill = nearestLabel ? `<span class="tl-nearest-merke">${escHtml(nearestLabel)}</span> ` : ''
+  const medal       = s.ernm ? `<span class="tl-nm-medalje" role="img" aria-label="${NM_LABEL}" title="${NM_LABEL}">🥇</span> ` : ''
+  const trailing    = canRegisterRow(s, _auth) ? `<span data-registration-slot="${s.id}"></span>` : ''
+  const rowClass    = `tl-tr${nearestLabel ? ' tl-tr--nearest' : ''}`
+  return `<tr class="${rowClass}" tabindex="0" data-href="#/stevne/${s.id}/resultat" aria-label="Gå til ${escHtml(s.navn ?? '')}, ${date}">
     <td>${date}</td>
+    <td>${nearestPill}${medal}${escHtml(s.navn ?? '')}</td>
+    <td>${typeBadgeCellHtml(s)}</td>
+    <td>${escHtml([s.innledende?.navn, s.avsluttende?.navn].filter((v): v is string => Boolean(v)).join(' \\ '))}</td>
     <td>${escHtml(s.sted ?? '')}</td>
-    <td>${escHtml(method)}</td>
     <td>${escHtml(s.klubb?.navn ?? '')}</td>
-    <td>${escHtml(s.stevnetype?.navn ?? '')}</td>
-    <td>${escHtml(s.kategori?.navn ?? '')}</td>
-    <td class="tl-td-trailing">${trailingLinkHtml(s)}</td>
+    <td class="tl-td-trailing">${trailing}</td>
   </tr>`
 }
 
-function monthRowHtml(group: MonthGroup<TournamentRow>, sort: ScheduleSort): string {
+function monthRowHtml(group: MonthGroup<TournamentRow>, sort: ScheduleSort, nearestId: number | undefined, today: string): string {
   const header = `<tr class="tl-month-row"><td colspan="${TABLE_COLUMN_COUNT}">${escHtml(group.label)}</td></tr>`
-  return header + sortSchedule(group.rows, sort).map(tableRowHtml).join('')
+  return header + sortSchedule(group.rows, sort).map(s => tableRowHtml(s, nearestLabelFor(s, nearestId, today))).join('')
 }
 
-function sectionTableHtml(tableId: string, label: string, groups: MonthGroup<TournamentRow>[], sort: ScheduleSort, hidden: boolean): string {
+function sectionTableHtml(
+  tableId: string, label: string, groups: MonthGroup<TournamentRow>[], sort: ScheduleSort, hidden: boolean,
+  nearestId: number | undefined, today: string,
+): string {
   const thead = `<thead><tr>
     ${tableColumns.map(k => `<th class="tl-th" data-column="${k.id}">${k.label}${sortIconHtml(sort, k.id)}</th>`).join('')}
     <th class="tl-th tl-th-trailing" aria-hidden="true"></th>
   </tr></thead>`
-  const tbody = `<tbody>${groups.map(g => monthRowHtml(g, sort)).join('')}</tbody>`
+  const tbody = `<tbody>${groups.map(g => monthRowHtml(g, sort, nearestId, today)).join('')}</tbody>`
   return `<table class="tl-table" id="${tableId}" aria-label="${escHtml(label)}"${hidden ? ' hidden' : ''}>${thead}${tbody}</table>`
 }
 
@@ -175,45 +192,55 @@ function sectionHeadHtml(title: string, count: number, toggle?: { controlsId: st
   </div>`
 }
 
-function tableHtml(groups: ScheduleGroups<TournamentRow>, expanded: boolean): string {
+function tableHtml(groups: ScheduleGroups<TournamentRow>, expanded: boolean, today: string): string {
   const upcomingCount = countRows(groups.upcoming)
   const pastCount     = countRows(groups.past)
   if (upcomingCount === 0 && pastCount === 0) return '<p class="empty-state">Ingen stevner funnet med valgte filtre.</p>'
 
+  const nearestId = findNearestUpcomingId(groups.upcoming)
+
   let html = ''
   if (upcomingCount > 0) {
     html += sectionHeadHtml('Kommande', upcomingCount)
-    html += sectionTableHtml('tl-table-kommande', 'Kommande', groups.upcoming, sortKommande, false)
+    html += sectionTableHtml('tl-table-kommande', 'Kommande', groups.upcoming, sortKommande, false, nearestId, today)
   }
   if (pastCount > 0) {
     html += sectionHeadHtml('Ferdige', pastCount, { controlsId: 'tl-table-ferdige', expanded })
-    html += sectionTableHtml('tl-table-ferdige', 'Ferdige', groups.past, sortFerdige, !expanded)
+    html += sectionTableHtml('tl-table-ferdige', 'Ferdige', groups.past, sortFerdige, !expanded, undefined, today)
   }
   return html
 }
 
-function buildView(groups: ScheduleGroups<TournamentRow>, expanded: boolean): string | HTMLElement {
-  return window.innerWidth > 600 ? tableHtml(groups, expanded) : buildList(groups, expanded)
+function buildView(groups: ScheduleGroups<TournamentRow>, expanded: boolean, today: string): string | HTMLElement {
+  return window.innerWidth > 600 ? tableHtml(groups, expanded, today) : buildList(groups, expanded, today)
 }
 
 // ── Card (mobile) ─────────────────────────────────────────────────────────────
 
-function cardNode(s: TournamentRow): HTMLElement {
+function cardNode(s: TournamentRow, nearestLabel: string | undefined): HTMLElement {
   const isLive     = (s.stevne_fase === 'innledende' || s.stevne_fase === 'avsluttende') && !s.erfullfort
   const isUpcoming = new Date(s.dato + 'T12:00:00') > new Date()
 
-  const meta: string[] = []
-  if (s.sted) meta.push(`Sted: ${s.sted}`)
-  if (s.klubb?.navn) meta.push(`Arrangør: ${s.klubb.navn}`)
-  if (s.stevnetype?.navn) meta.push(`Type: ${s.stevnetype.navn}`)
+  const stedArrangor = [s.sted, s.klubb?.navn].filter((v): v is string => Boolean(v)).join(' · ')
+  const meta = stedArrangor ? [stedArrangor] : []
+
+  const typeBadge: StevneCardTypeBadge | undefined = s.stevnetype?.navn
+    ? { type: s.stevnetype.navn, kategori: s.kategori?.navn ?? undefined }
+    : undefined
 
   return createStevneCard({
     title: s.navn ?? '',
     href: `#/stevne/${s.id}/resultat`,
-    date: formatDateLong(s.dato),
+    date: formatDateWeekday(s.dato),
+    dateIso: s.dato,
+    dateFull: formatDateLong(s.dato),
+    dateWeekday: formatWeekdayShort(s.dato),
+    dateDay: formatDayOfMonth(s.dato),
     status: isLive ? 'live' : isUpcoming ? 'upcoming' : 'done',
     meta,
-    badge: s.ernm ? 'NM' : undefined,
+    typeBadge,
+    isNm: s.ernm,
+    nearestLabel,
     registrationSlotId: canRegisterRow(s, _auth) ? s.id : undefined,
   })
 }
@@ -242,32 +269,34 @@ function monthHeaderNode(label: string): HTMLElement {
   return el
 }
 
-function monthGroupsNode(groups: MonthGroup<TournamentRow>[], sort: ScheduleSort): HTMLElement {
+function monthGroupsNode(groups: MonthGroup<TournamentRow>[], sort: ScheduleSort, nearestId: number | undefined, today: string): HTMLElement {
   const wrap = document.createElement('div')
   groups.forEach(group => {
     wrap.appendChild(monthHeaderNode(group.label))
-    sortSchedule(group.rows, sort).forEach(s => wrap.appendChild(cardNode(s)))
+    sortSchedule(group.rows, sort).forEach(s => wrap.appendChild(cardNode(s, nearestLabelFor(s, nearestId, today))))
   })
   return wrap
 }
 
-function buildList(groups: ScheduleGroups<TournamentRow>, expanded: boolean): HTMLElement {
+function buildList(groups: ScheduleGroups<TournamentRow>, expanded: boolean, today: string): HTMLElement {
   const upcomingCount = countRows(groups.upcoming)
   const pastCount     = countRows(groups.past)
   if (upcomingCount === 0 && pastCount === 0) {
     return createEmptyState('Ingen stevner funnet med valgte filtre.')
   }
 
+  const nearestId = findNearestUpcomingId(groups.upcoming)
+
   const wrap = document.createElement('div')
   wrap.className = 'stevne-kort-liste'
 
   if (upcomingCount > 0) {
     wrap.appendChild(sectionHeadNode('Kommande', upcomingCount))
-    wrap.appendChild(monthGroupsNode(groups.upcoming, sortKommande))
+    wrap.appendChild(monthGroupsNode(groups.upcoming, sortKommande, nearestId, today))
   }
   if (pastCount > 0) {
     wrap.appendChild(sectionHeadNode('Ferdige', pastCount, { controlsId: 'tl-cards-ferdige', expanded }))
-    const ferdigeGroup = monthGroupsNode(groups.past, sortFerdige)
+    const ferdigeGroup = monthGroupsNode(groups.past, sortFerdige, undefined, today)
     ferdigeGroup.id = 'tl-cards-ferdige'
     ferdigeGroup.hidden = !expanded
     wrap.appendChild(ferdigeGroup)
@@ -377,8 +406,9 @@ export async function render(container: HTMLElement): Promise<void> {
       const filtered = filterData(allData)
       const listEl   = container.querySelector<HTMLElement>('.tl-list-container')
       if (!listEl) return filtered
-      const groups = groupSchedule(filtered, todayIso())
-      const view = buildView(groups, ferdigeExpanded)
+      const today  = todayIso()
+      const groups = groupSchedule(filtered, today)
+      const view = buildView(groups, ferdigeExpanded, today)
       if (typeof view === 'string') listEl.innerHTML = view
       else listEl.replaceChildren(view)
       const countEl     = container.querySelector('.tl-count')
@@ -449,7 +479,23 @@ export async function render(container: HTMLElement): Promise<void> {
       if (toggle) {
         ferdigeExpanded = !ferdigeExpanded
         updateList()
+        return
       }
+
+      // Whole row navigates, except clicks on the trailing Meld på action.
+      if (target.closest('.tl-td-trailing')) return
+      const row = target.closest<HTMLElement>('tr.tl-tr[data-href]')
+      if (row) window.location.hash = row.dataset.href!
+    })
+
+    listContainer.addEventListener('keydown', e => {
+      if (e.key !== 'Enter' && e.key !== ' ') return
+      const target = e.target as Element
+      if (target.closest('.tl-td-trailing')) return
+      const row = target.closest<HTMLElement>('tr.tl-tr[data-href]')
+      if (!row) return
+      e.preventDefault()
+      window.location.hash = row.dataset.href!
     })
 
     let resizeTimer: number | null = null
