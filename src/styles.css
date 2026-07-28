@@ -2835,3 +2835,156 @@ th.initial-score-th {
   display: block;
   color: var(--tekst-3);
 }
+
+/* ============================================================================
+   Kaster profile — Resultat tab: sortable responsive rows (replaces the
+   horizontal-scroll table). Desktop = aligned columns; < 700px collapses to a
+   stacked 3-line row via display:contents on the meta group. Header and rows
+   share --kd-cols (px/fr only) so their columns align across separate grids.
+   ========================================================================== */
+#kd-result-table {
+  --kd-cols: 96px 1fr 56px 150px 232px 44px;
+}
+
+.kd-res-head,
+.kd-res-row {
+  display: grid;
+  grid-template-columns: var(--kd-cols);
+  grid-template-areas: "date name type klubb chips pl";
+  align-items: center;
+  gap: 0 14px;
+}
+
+.kd-res-head {
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--kant);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--tekst-3);
+}
+
+.kd-res-head__date {
+  grid-area: date;
+  white-space: nowrap;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--tekst-2);
+}
+.kd-res-head__label--name  { grid-area: name; }
+.kd-res-head__label--type  { grid-area: type; }
+.kd-res-head__label--klubb { grid-area: klubb; }
+.kd-res-head__label--chips { grid-area: chips; }
+.kd-res-head__pl {
+  grid-area: pl;
+  justify-self: end;
+  text-transform: none;
+}
+
+.kd-sort-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 32px;
+  padding: 2px 4px;
+  border: none;
+  background: none;
+  font: inherit;
+  color: var(--tekst-2);
+  cursor: pointer;
+}
+.kd-sort-btn--active { color: var(--tekst); font-weight: 600; }
+.kd-sort-icon { color: var(--tekst-3); }
+.kd-sort-icon--active { color: var(--lenke); }
+
+.kd-res-row {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--kant);
+}
+.kd-res-row:hover { background: var(--primaer-hover); }
+
+.kd-res-row__name {
+  grid-area: name;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--tekst);
+  font-weight: 500;
+  font-size: 0.94rem;
+  text-decoration: none;
+}
+a.kd-res-row__name:hover { text-decoration: underline; }
+
+/* Desktop: meta dissolves so date/type/klubb become their own grid columns. */
+.kd-res-row__meta { display: contents; }
+.kd-res-row__date  { grid-area: date; white-space: nowrap; color: var(--tekst-2); font-size: 0.8rem; }
+.kd-res-row__type  { grid-area: type; color: var(--tekst-2); font-size: 0.8rem; }
+.kd-res-row__klubb {
+  grid-area: klubb;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--tekst-2);
+  font-size: 0.8rem;
+}
+
+.kd-res-row__chips {
+  grid-area: chips;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.kd-res-row__chips:empty { display: none; }
+
+.kd-round-chip {
+  display: inline-block;
+  padding: 2px 8px;
+  border: 1px solid var(--kant-2);
+  border-radius: 6px;
+  font-size: 0.75rem;
+  color: var(--tekst-2);
+  white-space: nowrap;
+}
+
+.kd-res-row__pl {
+  grid-area: pl;
+  justify-self: end;
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: var(--tekst);
+  font-variant-numeric: tabular-nums;
+}
+.kd-res-row__pl--empty { color: var(--tekst-3); font-weight: 400; }
+
+@media (max-width: 699px) {
+  .kd-res-head {
+    grid-template-columns: 1fr auto;
+    grid-template-areas: "date pl";
+  }
+  .kd-res-head__label { display: none; }
+
+  .kd-res-row {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "name pl"
+      "meta meta"
+      "chips chips";
+    align-items: baseline;
+    gap: 2px 12px;
+  }
+  .kd-res-row__name { white-space: normal; }
+
+  /* Back to normal flow: date · type · klubb on one line. */
+  .kd-res-row__meta {
+    grid-area: meta;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .kd-res-row__meta > span + span::before {
+    content: "· ";
+    color: var(--tekst-3);
+  }
+  .kd-res-row__chips { margin-top: 4px; }
+}

@@ -14,8 +14,9 @@ import {
   FIRST_RING_YEAR,
   getYear, calcStatistics,
   getPreviousClubs, buildChartData,
+  sortResults,
 } from '@/utils/kasterDetaljLogikk'
-import type { MethodName } from '@/utils/kasterDetaljLogikk'
+import type { MethodName, ResultSort, ResultSortColumn } from '@/utils/kasterDetaljLogikk'
 
 // ── Module state ──────────────────────────────────────────────────────────────
 
@@ -25,6 +26,7 @@ const filterDetail = {
   active:       'resultater',
   year:         'alle',
   tournamentType: 'alle',
+  resultSort:   { column: 'dato', direction: 'desc' } as ResultSort,
   chartMetric:  'plassering',
   chartMethod:  'kongelag' as MethodName,
   chartFrom:    null as string | null,
@@ -112,7 +114,26 @@ function detailSkeletonHtml(thrower: ThrowerDetailRow, results: ResultDetailRow[
     </div>`
 }
 
-function resultsTableHtml(results: ResultDetailRow[], yearFilter: string, typeFilter: string): string {
+function roundChipHtml(label: string, points: number | null, rings: number | null): string {
+  if (points == null) return ''
+  const value = rings != null ? `${points} (${rings})` : `${points}`
+  return `<span class="kd-round-chip">${label} ${value}</span>`
+}
+
+function sortIconHtml(active: boolean, direction: 'asc' | 'desc'): string {
+  const glyph = !active ? '↕' : direction === 'asc' ? '↑' : '↓'
+  return `<span class="kd-sort-icon${active ? ' kd-sort-icon--active' : ''}" aria-hidden="true">${glyph}</span>`
+}
+
+function sortButtonHtml(column: ResultSortColumn, label: string, sort: ResultSort): string {
+  const active  = sort.column === column
+  const dirWord = sort.direction === 'asc' ? 'stigande' : 'synkande'
+  const aria    = active ? `Sortert etter ${label}, ${dirWord}. Vel for å snu.` : `Sorter etter ${label}`
+  return `<button type="button" class="kd-sort-btn${active ? ' kd-sort-btn--active' : ''}" ` +
+    `data-sort="${column}" aria-pressed="${active}" aria-label="${aria}">${label}${sortIconHtml(active, sort.direction)}</button>`
+}
+
+function resultsListHtml(results: ResultDetailRow[], yearFilter: string, typeFilter: string, sort: ResultSort): string {
   let filtered = results
   if (yearFilter !== 'alle') filtered = filtered.filter(r => String(getYear(r.stevne?.dato)) === yearFilter)
   if (typeFilter !== 'alle') filtered = filtered.filter(r => String(r.stevne?.stevnetype?.id) === typeFilter)
@@ -126,40 +147,40 @@ function resultsTableHtml(results: ResultDetailRow[], yearFilter: string, typeFi
 
   if (!count) return infoHtml + '<p class="empty-state">Ingen resultat funnet.</p>'
 
-  const ringText = (points: number | null, rings: number | null): string => {
-    if (points == null) return ''
-    return rings != null ? `${points} (${rings})` : `${points}`
-  }
+  const headHtml = `
+    <div class="kd-res-head">
+      <div class="kd-res-head__date">Sortér: ${sortButtonHtml('dato', 'Dato', sort)}</div>
+      <span class="kd-res-head__label kd-res-head__label--name">Stevne</span>
+      <span class="kd-res-head__label kd-res-head__label--type">Type</span>
+      <span class="kd-res-head__label kd-res-head__label--klubb">Klubb</span>
+      <span class="kd-res-head__label kd-res-head__label--chips">Rundar</span>
+      <div class="kd-res-head__pl">${sortButtonHtml('plassering', 'Pl.', sort)}</div>
+    </div>`
 
-  const rows = filtered.map(r => {
+  const rows = sortResults(filtered, sort).map(r => {
     const s = r.stevne
-    const tournamentHtml = s?.id
-      ? `<a href="#/stevne/${s.id}/resultat" class="tl-link">${escHtml(s.navn ?? '')}</a>`
-      : escHtml(s?.navn ?? '–')
+    const name = s?.id
+      ? `<a href="#/stevne/${s.id}/resultat" class="kd-res-row__name">${escHtml(s.navn ?? '')}</a>`
+      : `<span class="kd-res-row__name">${escHtml(s?.navn ?? '–')}</span>`
+    const chips = roundChipHtml('X-kast', r.poeng_xkast, r.antall_ring_xkast) +
+      roundChipHtml('Kongelag', r.poeng_kongelag, r.antall_ring_kongelag)
+    const placement = r.plassering != null
+      ? `<span class="kd-res-row__pl">${r.plassering}</span>`
+      : `<span class="kd-res-row__pl kd-res-row__pl--empty">–</span>`
     return `
-      <tr>
-        <td class="text-nowrap">${formatDate(s?.dato)}</td>
-        <td>${tournamentHtml}</td>
-        <td>${escHtml(s?.stevnetype?.navn ?? '–')}</td>
-        <td>${escHtml(r.klubb?.navn ?? '–')}</td>
-        <td class="text-center fw-bold">${r.plassering ?? '–'}</td>
-        <td class="text-center">${ringText(r.poeng_kongelag, r.antall_ring_kongelag)}</td>
-        <td class="text-center">${ringText(r.poeng_xkast, r.antall_ring_xkast)}</td>
-      </tr>`
+      <div class="kd-res-row">
+        ${name}
+        <div class="kd-res-row__meta">
+          <span class="kd-res-row__date">${formatDate(s?.dato)}</span>
+          <span class="kd-res-row__type">${escHtml(s?.stevnetype?.navn ?? '–')}</span>
+          <span class="kd-res-row__klubb">${escHtml(r.klubb?.navn ?? '–')}</span>
+        </div>
+        <div class="kd-res-row__chips">${chips}</div>
+        ${placement}
+      </div>`
   }).join('')
 
-  return infoHtml + `
-    <div class="table-responsive">
-      <table class="app-table">
-        <thead class="app-thead">
-          <tr>
-            <th>Dato</th><th>Stevne</th><th>Type</th><th>Klubb</th>
-            <th>Pl.</th><th>Kongelag</th><th>X-kast</th>
-          </tr>
-        </thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>`
+  return infoHtml + headHtml + `<div class="kd-res-list">${rows}</div>`
 }
 
 function statisticsHtml(results: ResultDetailRow[], thrower: ThrowerDetailRow): string {
@@ -283,6 +304,7 @@ export async function renderDetail(container: HTMLElement, id: number): Promise<
   filterDetail.active        = 'resultater'
   filterDetail.year          = 'alle'
   filterDetail.tournamentType = 'alle'
+  filterDetail.resultSort    = { column: 'dato', direction: 'desc' }
   filterDetail.chartMetric   = 'plassering'
   filterDetail.chartMethod   = 'kongelag'
   filterDetail.chartFrom     = null
@@ -308,10 +330,29 @@ export async function renderDetail(container: HTMLElement, id: number): Promise<
     const typeSelect = container.querySelector<HTMLSelectElement>('#kd-type')!
     const methodEl   = container.querySelector<HTMLSelectElement>('#kd-chart-method')!
 
+    const resultsEl = container.querySelector<HTMLElement>('#kd-result-table')!
+
     function updateResults(): void {
-      container.querySelector<HTMLElement>('#kd-result-table')!.innerHTML =
-        resultsTableHtml(results, filterDetail.year, filterDetail.tournamentType)
+      resultsEl.innerHTML =
+        resultsListHtml(results, filterDetail.year, filterDetail.tournamentType, filterDetail.resultSort)
     }
+
+    // Delegated on the stable container so it survives each innerHTML re-render.
+    resultsEl.addEventListener('click', e => {
+      const btn = (e.target as Element).closest<HTMLElement>('[data-sort]')
+      if (!btn) return
+      const column = btn.dataset.sort as ResultSortColumn
+      if (filterDetail.resultSort.column === column) {
+        filterDetail.resultSort = {
+          column,
+          direction: filterDetail.resultSort.direction === 'asc' ? 'desc' : 'asc',
+        }
+      } else {
+        // Sensible default when switching field: newest-first for date, best-first for placement.
+        filterDetail.resultSort = { column, direction: column === 'plassering' ? 'asc' : 'desc' }
+      }
+      updateResults()
+    })
 
     function updateStatistics(): void {
       container.querySelector<HTMLElement>('#kd-statistics-content')!.innerHTML =
