@@ -538,18 +538,50 @@
   vertical-align: middle;
 }
 
-/* Terminliste — section (Kommande/Ferdige) and month grouping, shared between
-   the desktop table and the mobile card list. */
+/* Terminliste — Kommande/Ferdige sections and month grouping within each,
+   shared between the desktop tables and the mobile card list. Kommande and
+   Ferdige are each a standalone table/section, not rows inside one shared
+   table — the heading (title, count, Ferdige's Vis/Skjul toggle) sits above
+   its table, not inside it. */
 
-.tl-section-row td,
-.tl-month-row td {
-  border-bottom: none;
+.tl-section-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 20px 0 8px;
 }
 
-.tl-section-row td {
-  padding: 14px 10px 6px;
+.tl-section-head:first-child { margin-top: 0; }
+
+.tl-section-title {
   font-weight: 600;
+  font-size: 1rem;
   color: var(--tekst);
+}
+
+.tl-section-count {
+  color: var(--tekst-2);
+  font-size: 0.85rem;
+}
+
+.tl-toggle-text-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  background: none;
+  border: none;
+  padding: 4px 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--lenke);
+  cursor: pointer;
+}
+
+.tl-toggle-text-btn:hover { text-decoration: underline; }
+
+.tl-toggle-icon {
+  font-size: 0.7rem;
 }
 
 .tl-month-row td {
@@ -559,12 +591,7 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--tekst-2);
-}
-
-.tl-section-header {
-  margin: 4px 0 -2px;
-  font-weight: 600;
-  color: var(--tekst);
+  border-bottom: none;
 }
 
 .tl-month-header {
@@ -576,39 +603,12 @@
   color: var(--tekst-2);
 }
 
-.tl-section-count {
-  color: var(--tekst-2);
-  font-weight: 400;
-}
-
-.tl-ferdige-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 32px;
-  background: none;
-  border: none;
-  padding: 4px 0;
-  font: inherit;
-  font-weight: 600;
-  color: var(--tekst);
-  cursor: pointer;
-}
-
-.tl-ferdige-toggle:hover { color: var(--lenke); }
-
-.tl-toggle-icon {
-  font-size: 0.7rem;
-  color: var(--tekst-2);
-}
-
-.tl-td-trailing {
-  width: 1%;
+.tl-td-trailing,
+.tl-th-trailing {
+  width: 30px;
   white-space: nowrap;
   text-align: right;
 }
-
-.tl-th-trailing { width: 1%; }
 
 .tl-chevron-link { display: inline-flex; }
 

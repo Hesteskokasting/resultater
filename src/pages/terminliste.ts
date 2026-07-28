@@ -19,13 +19,14 @@ import { sortSchedule, groupSchedule, type ScheduleSort, type ScheduleSortColumn
 type TournamentRow = ScheduleTournamentRow
 
 // ── Sorting & grouping state ──────────────────────────────────────────────────
+//
+// Kommande and Ferdige are separate tables (desktop) / sections (mobile), each with
+// its own sort state and its own default direction — Kommande newest-first by
+// default is wrong, so each keeps its own dato default rather than sharing one.
 
-const sort: ScheduleSort = { column: 'dato', direction: 'asc' }
+const sortKommande: ScheduleSort = { column: 'dato', direction: 'asc' }
+const sortFerdige:  ScheduleSort = { column: 'dato', direction: 'desc' }
 let ferdigeExpanded = false
-
-function sortData(data: TournamentRow[]): TournamentRow[] {
-  return sortSchedule(data, sort)
-}
 
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10)
@@ -36,6 +37,10 @@ function canRegisterRow(s: TournamentRow, auth: AuthUser | null): boolean {
   const notStarted = s.stevne_fase === null || s.stevne_fase === 'ikke_startet'
   const hasAccess  = auth?.profil?.kobling_status === 'godkjent'
   return hasAccess === true && isUpcoming && notStarted && !s.erfullfort
+}
+
+function countRows(groups: MonthGroup<TournamentRow>[]): number {
+  return groups.reduce((n, g) => n + g.rows.length, 0)
 }
 
 // ── Filter state ──────────────────────────────────────────────────────────────
@@ -115,7 +120,7 @@ const tableColumns = [
 ]
 const TABLE_COLUMN_COUNT = tableColumns.length + 1 // + trailing action column
 
-function sortIconHtml(column: string): string {
+function sortIconHtml(sort: ScheduleSort, column: string): string {
   if (sort.column !== column) return '<span class="tl-sort-icon">↕</span>'
   return sort.direction === 'asc'
     ? '<span class="tl-sort-icon active">↑</span>'
@@ -143,45 +148,48 @@ function tableRowHtml(s: TournamentRow): string {
   </tr>`
 }
 
-function monthRowHtml(group: MonthGroup<TournamentRow>): string {
+function monthRowHtml(group: MonthGroup<TournamentRow>, sort: ScheduleSort): string {
   const header = `<tr class="tl-month-row"><td colspan="${TABLE_COLUMN_COUNT}">${escHtml(group.label)}</td></tr>`
-  return header + sortData(group.rows).map(tableRowHtml).join('')
+  return header + sortSchedule(group.rows, sort).map(tableRowHtml).join('')
 }
 
-function sectionHeaderRowHtml(label: string, count: number): string {
-  return `<tr class="tl-section-row"><td colspan="${TABLE_COLUMN_COUNT}">${label} <span class="tl-section-count">${count}</span></td></tr>`
+function sectionTableHtml(tableId: string, label: string, groups: MonthGroup<TournamentRow>[], sort: ScheduleSort, hidden: boolean): string {
+  const thead = `<thead><tr>
+    ${tableColumns.map(k => `<th class="tl-th" data-column="${k.id}">${k.label}${sortIconHtml(sort, k.id)}</th>`).join('')}
+    <th class="tl-th tl-th-trailing" aria-hidden="true"></th>
+  </tr></thead>`
+  const tbody = `<tbody>${groups.map(g => monthRowHtml(g, sort)).join('')}</tbody>`
+  return `<table class="tl-table" id="${tableId}" aria-label="${escHtml(label)}"${hidden ? ' hidden' : ''}>${thead}${tbody}</table>`
 }
 
-function ferdigeToggleRowHtml(count: number, expanded: boolean): string {
-  const icon = expanded ? '▲' : '▼'
-  return `<tr class="tl-section-row"><td colspan="${TABLE_COLUMN_COUNT}">
-    <button type="button" class="tl-ferdige-toggle" id="tl-ferdige-toggle" aria-expanded="${expanded}">
-      Ferdige <span class="tl-section-count">${count}</span> <span class="tl-toggle-icon" aria-hidden="true">${icon}</span>
-    </button>
-  </td></tr>`
+function sectionHeadHtml(title: string, count: number, toggle?: { controlsId: string; expanded: boolean }): string {
+  const toggleHtml = toggle
+    ? `<button type="button" class="tl-toggle-text-btn" id="tl-ferdige-toggle" aria-expanded="${toggle.expanded}" aria-controls="${toggle.controlsId}">
+         ${toggle.expanded ? 'Skjul' : 'Vis'} <span class="tl-toggle-icon" aria-hidden="true">${toggle.expanded ? '▲' : '▼'}</span>
+       </button>`
+    : ''
+  return `<div class="tl-section-head">
+    <span class="tl-section-title">${escHtml(title)}</span>
+    <span class="tl-section-count">${count} stevner</span>
+    ${toggleHtml}
+  </div>`
 }
 
 function tableHtml(groups: ScheduleGroups<TournamentRow>, expanded: boolean): string {
-  const upcomingCount = groups.upcoming.reduce((n, g) => n + g.rows.length, 0)
-  const pastCount     = groups.past.reduce((n, g) => n + g.rows.length, 0)
+  const upcomingCount = countRows(groups.upcoming)
+  const pastCount     = countRows(groups.past)
   if (upcomingCount === 0 && pastCount === 0) return '<p class="empty-state">Ingen stevner funnet med valgte filtre.</p>'
 
-  const thead = `<thead><tr>
-    ${tableColumns.map(k => `<th class="tl-th" data-column="${k.id}">${k.label}${sortIconHtml(k.id)}</th>`).join('')}
-    <th class="tl-th tl-th-trailing" aria-hidden="true"></th>
-  </tr></thead>`
-
-  let body = ''
+  let html = ''
   if (upcomingCount > 0) {
-    body += sectionHeaderRowHtml('Kommande', upcomingCount)
-    body += groups.upcoming.map(monthRowHtml).join('')
+    html += sectionHeadHtml('Kommande', upcomingCount)
+    html += sectionTableHtml('tl-table-kommande', 'Kommande', groups.upcoming, sortKommande, false)
   }
   if (pastCount > 0) {
-    body += ferdigeToggleRowHtml(pastCount, expanded)
-    if (expanded) body += groups.past.map(monthRowHtml).join('')
+    html += sectionHeadHtml('Ferdige', pastCount, { controlsId: 'tl-table-ferdige', expanded })
+    html += sectionTableHtml('tl-table-ferdige', 'Ferdige', groups.past, sortFerdige, !expanded)
   }
-
-  return `<table class="tl-table">${thead}<tbody>${body}</tbody></table>`
+  return html
 }
 
 function buildView(groups: ScheduleGroups<TournamentRow>, expanded: boolean): string | HTMLElement {
@@ -210,11 +218,21 @@ function cardNode(s: TournamentRow): HTMLElement {
   })
 }
 
-function sectionHeaderNode(label: string, count: number): HTMLElement {
-  const el = document.createElement('p')
-  el.className = 'tl-section-header'
-  el.innerHTML = `${escHtml(label)} <span class="tl-section-count">${count}</span>`
-  return el
+function sectionHeadNode(title: string, count: number, toggle?: { controlsId: string; expanded: boolean }): HTMLElement {
+  const head = document.createElement('div')
+  head.className = 'tl-section-head'
+  head.innerHTML = `<span class="tl-section-title">${escHtml(title)}</span><span class="tl-section-count">${count} stevner</span>`
+  if (toggle) {
+    const btn = document.createElement('button')
+    btn.type = 'button'
+    btn.className = 'tl-toggle-text-btn'
+    btn.id = 'tl-ferdige-toggle'
+    btn.setAttribute('aria-expanded', String(toggle.expanded))
+    btn.setAttribute('aria-controls', toggle.controlsId)
+    btn.innerHTML = `${toggle.expanded ? 'Skjul' : 'Vis'} <span class="tl-toggle-icon" aria-hidden="true">${toggle.expanded ? '▲' : '▼'}</span>`
+    head.appendChild(btn)
+  }
+  return head
 }
 
 function monthHeaderNode(label: string): HTMLElement {
@@ -224,26 +242,18 @@ function monthHeaderNode(label: string): HTMLElement {
   return el
 }
 
-function ferdigeToggleNode(count: number, expanded: boolean): HTMLButtonElement {
-  const btn = document.createElement('button')
-  btn.type = 'button'
-  btn.className = 'tl-ferdige-toggle'
-  btn.id = 'tl-ferdige-toggle'
-  btn.setAttribute('aria-expanded', String(expanded))
-  btn.innerHTML = `Ferdige <span class="tl-section-count">${count}</span> <span class="tl-toggle-icon" aria-hidden="true">${expanded ? '▲' : '▼'}</span>`
-  return btn
-}
-
-function appendMonthGroups(wrap: HTMLElement, groups: MonthGroup<TournamentRow>[]): void {
+function monthGroupsNode(groups: MonthGroup<TournamentRow>[], sort: ScheduleSort): HTMLElement {
+  const wrap = document.createElement('div')
   groups.forEach(group => {
     wrap.appendChild(monthHeaderNode(group.label))
-    sortData(group.rows).forEach(s => wrap.appendChild(cardNode(s)))
+    sortSchedule(group.rows, sort).forEach(s => wrap.appendChild(cardNode(s)))
   })
+  return wrap
 }
 
 function buildList(groups: ScheduleGroups<TournamentRow>, expanded: boolean): HTMLElement {
-  const upcomingCount = groups.upcoming.reduce((n, g) => n + g.rows.length, 0)
-  const pastCount     = groups.past.reduce((n, g) => n + g.rows.length, 0)
+  const upcomingCount = countRows(groups.upcoming)
+  const pastCount     = countRows(groups.past)
   if (upcomingCount === 0 && pastCount === 0) {
     return createEmptyState('Ingen stevner funnet med valgte filtre.')
   }
@@ -252,12 +262,15 @@ function buildList(groups: ScheduleGroups<TournamentRow>, expanded: boolean): HT
   wrap.className = 'stevne-kort-liste'
 
   if (upcomingCount > 0) {
-    wrap.appendChild(sectionHeaderNode('Kommande', upcomingCount))
-    appendMonthGroups(wrap, groups.upcoming)
+    wrap.appendChild(sectionHeadNode('Kommande', upcomingCount))
+    wrap.appendChild(monthGroupsNode(groups.upcoming, sortKommande))
   }
   if (pastCount > 0) {
-    wrap.appendChild(ferdigeToggleNode(pastCount, expanded))
-    if (expanded) appendMonthGroups(wrap, groups.past)
+    wrap.appendChild(sectionHeadNode('Ferdige', pastCount, { controlsId: 'tl-cards-ferdige', expanded }))
+    const ferdigeGroup = monthGroupsNode(groups.past, sortFerdige)
+    ferdigeGroup.id = 'tl-cards-ferdige'
+    ferdigeGroup.hidden = !expanded
+    wrap.appendChild(ferdigeGroup)
   }
 
   return wrap
@@ -421,6 +434,7 @@ export async function render(container: HTMLElement): Promise<void> {
       const th = target.closest<HTMLElement>('[data-column]')
       if (th) {
         const column = th.dataset.column as ScheduleSortColumn
+        const sort = th.closest('table')?.id === 'tl-table-ferdige' ? sortFerdige : sortKommande
         if (sort.column === column) {
           sort.direction = sort.direction === 'asc' ? 'desc' : 'asc'
         } else {
