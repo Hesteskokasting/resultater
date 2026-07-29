@@ -1,1 +1,0 @@
-import{O as e,wt as t}from"./index-DVHt6_kn.js";function n(n,{href:r,label:i,variant:a,canShow:o}){e().then(e=>{if(!e?.profil||!o(e))return;let s=document.createElement(`div`);s.className=`mb-2 px-2`,s.innerHTML=`<a href="${r}" class="btn btn-sm btn-${a}">${t(i)}</a>`,n.querySelector(`.content-page`)?.prepend(s)})}export{n as t};
