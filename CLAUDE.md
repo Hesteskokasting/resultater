@@ -23,13 +23,12 @@ Don't blindly accept proposals. Challenge ideas when there's a flaw, simpler alt
 
 ---
 
-## Use english identifiers
+## English identifiers
 
-- **ALL identifiers must be in English.** Variables, functions, types, interfaces, parameters, CSS class names, object keys. Norwegian is only acceptable in user-facing strings (UI text, HTML, error messages). Replace existing norwegian identifiers with english when appropriate.
-
-"Database column/table names (kasterid, stevneid, omgang, etc.) may keep their Norwegian schema names only when directly referencing that column/table. Never let this influence naming of new variables, functions, or non-schema concepts — those are always English."
-
-"Common near-miss: bruker/brukerId is NOT a schema-derived exception (unlike kasterid/stevneid). Always use user/userId."
+- **NEVER use Norwegian identifiers** — variables, functions, types, interfaces, parameters, CSS class names, object keys. Norwegian is permitted only in user-facing strings (UI text, HTML, error messages).
+- **Exception: schema-derived names.** An identifier may keep its Norwegian schema name (`kasterid`, `stevneid`, `omgang`, etc.) only when it directly references that column or table in the same statement/type. This exception never extends to new variables, functions, or concepts that merely relate to the domain.
+- **Known near-miss:** `bruker`/`brukerId` is NOT a schema exception (unlike `kasterid`/`stevneid`) — always use `user`/`userId`.
+- **Existing Norwegian identifiers:** rename to English when you're already editing that code. Don't do drive-by renames in files you're not otherwise touching.
 
 ---
 
