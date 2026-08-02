@@ -8,7 +8,7 @@ export default defineConfig({
   },
   fmt: {},
   lint: {
-    ignorePatterns: ["supabase/functions/**"],
+    ignorePatterns: ["supabase/functions/**", "src/types/database.types.ts"],
     jsPlugins: [{ name: "vite-plus", specifier: "vite-plus/oxlint-plugin" }],
     rules: { "vite-plus/prefer-vite-plus-imports": "error" },
     options: { typeAware: true, typeCheck: true },
