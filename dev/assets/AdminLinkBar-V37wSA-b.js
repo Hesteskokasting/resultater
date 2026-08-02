@@ -1,1 +1,0 @@
-import{a as e,k as t}from"./index-BWk7I7cT.js";function n(n,{href:r,label:i,variant:a,canShow:o}){t().then(t=>{if(!t?.profil||!o(t))return;let s=document.createElement(`div`);s.className=`mb-2 px-2`,s.innerHTML=`<a href="${r}" class="btn btn-sm btn-${a}">${e(i)}</a>`,n.querySelector(`.content-page`)?.prepend(s)})}export{n as t};
