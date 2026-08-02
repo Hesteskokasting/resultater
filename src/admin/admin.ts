@@ -1,39 +1,41 @@
+import { createErrorBanner } from "@/components/ErrorBanner";
+import { createStevneCard } from "@/components/StevneCard";
+import { createEl } from "@/utils/createEl";
 import { logError } from "@/utils/logError";
-import { escHtml } from "@/utils/escHtml";
-import { errMsg } from "@/utils/adminForms";
 import { registerRefetch } from "@/utils/refetchRegistry";
-import {
-  getPendingLinks,
-  getUserEmails,
-  updateLinkStatus,
-  getAllUsers,
-  updateUserRole,
-  getClubAdminUsers,
-  getClubAdminAssignments,
-  addClubAdminAccess,
-  removeClubAdminAccess,
-} from "@/services/adminService";
-import { getClubs } from "@/services/klubbService";
-import { getThrowersById } from "@/services/kasterService";
-import { throwerName } from "@/utils/kaster";
+import { formatDateLong } from "@/utils/shared";
+import { getPendingLinkCount } from "@/services/adminService";
+import { getUser } from "@/services/authService";
 import { getLiveTournaments } from "@/services/stevneService";
 import type { LiveTournamentRow } from "@/services/stevneService";
-import { createLoadingState } from "@/components/LoadingState";
-import { createEmptyState } from "@/components/EmptyState";
-import { createStevneCard } from "@/components/StevneCard";
-import { formatDateLong } from "@/utils/shared";
+import { destroyAdminCharts } from "./_adminCharts";
+import { render as renderOverview } from "./panels/oversikt";
+import { render as renderTournaments } from "./panels/stevne";
+import { render as renderThrowers } from "./panels/utovarar";
+import { render as renderClubs } from "./panels/klubbar";
+import { render as renderUsers } from "./panels/brukarar";
+import { render as renderRequests } from "./panels/forespurnader";
+import { render as renderClubAccess } from "./panels/klubbtilgang";
+import type { Params } from "@/types";
 
-type Tab = "links" | "users" | "club-admin";
+type PanelRender = (el: HTMLElement) => Promise<void>;
 
-const TABS: Tab[] = ["links", "users", "club-admin"];
-const TAB_LABEL: Record<Tab, string> = {
-  links: "Koblingforespørslar",
-  users: "Brukarar",
-  "club-admin": "Klubbadmin-tilgang",
-};
+const TABS = [
+  { key: "oversikt", label: "Oversikt", render: renderOverview },
+  { key: "stevne", label: "Stevne", render: renderTournaments },
+  { key: "utovarar", label: "Utøvarar", render: renderThrowers },
+  { key: "klubbar", label: "Klubbar", render: renderClubs },
+  { key: "brukarar", label: "Brukarar", render: renderUsers },
+  { key: "forespurnader", label: "Forespørslar", render: renderRequests },
+  { key: "tilgang", label: "Klubbadmin-tilgang", render: renderClubAccess },
+] as const satisfies readonly { key: string; label: string; render: PanelRender }[];
 
-// Same card component as home.ts/terminliste — the live-prikk dot on `status: 'live'`
-// is the only "ongoing" indicator, consistent everywhere it appears.
+type TabKey = (typeof TABS)[number]["key"];
+
+const TAB_KEYS = new Set<string>(TABS.map((t) => t.key));
+
+// Same card as home.ts/terminliste — the live-prikk dot is the only "ongoing"
+// indicator, consistent everywhere it appears.
 function liveCard(s: LiveTournamentRow): HTMLElement {
   const tab = s.stevne_fase === "avsluttende" ? "avsluttende" : "innledende";
   return createStevneCard({
@@ -44,321 +46,69 @@ function liveCard(s: LiveTournamentRow): HTMLElement {
   });
 }
 
-function cardList(cards: HTMLElement[]): HTMLElement {
-  const wrap = document.createElement("div");
-  wrap.className = "stevne-kort-liste";
-  cards.forEach((c) => wrap.appendChild(c));
-  return wrap;
+function buildNav(active: TabKey): HTMLElement {
+  const nav = createEl("ul", null, "nav nav-underline admin-nav");
+  for (const tab of TABS) {
+    const item = createEl("li", null, "nav-item");
+    const link = createEl("a", tab.label, `nav-link${tab.key === active ? " active" : ""}`);
+    link.href = `#/admin/${tab.key}`;
+    if (tab.key === active) link.setAttribute("aria-current", "page");
+    if (tab.key === "forespurnader") link.dataset.badgeSlot = "pending";
+    item.appendChild(link);
+    nav.appendChild(item);
+  }
+  return nav;
 }
 
-export async function render(container: HTMLElement): Promise<void> {
-  container.innerHTML = `
-    <div class="content-page">
-      <div id="live-section"></div>
-      <h2 class="mb-3">Administrasjon</h2>
-      <ul class="nav nav-tabs mb-4" id="admin-tabs">
-        ${TABS.map(
-          (t, i) => `<li class="nav-item">
-          <button class="nav-link${i === 0 ? " active" : ""}" data-tab="${t}">${TAB_LABEL[t]}</button>
-        </li>`,
-        ).join("")}
-      </ul>
-      <div id="admin-content"></div>
-    </div>`;
+export async function render(container: HTMLElement, params: Params = {}): Promise<void> {
+  // Charts from the previous render hold on to their (now detached) canvases and
+  // resize observers until they are explicitly destroyed.
+  destroyAdminCharts();
+  registerRefetch(() => render(container, params));
 
-  const content = container.querySelector<HTMLElement>("#admin-content")!;
+  const requested = String(params.tab ?? "oversikt");
+  const activeTab: TabKey = TAB_KEYS.has(requested) ? (requested as TabKey) : "oversikt";
+  const tab = TABS.find((t) => t.key === activeTab) ?? TABS[0];
 
-  let activeTab: Tab = "links";
+  const page = createEl("div", null, "content-page admin-side");
+  const liveSection = createEl("div", null);
+  liveSection.id = "live-section";
 
-  async function showTab(tab: Tab): Promise<void> {
-    activeTab = tab;
-    container.querySelectorAll<HTMLElement>("[data-tab]").forEach((el) => {
-      el.classList.toggle("active", el.dataset.tab === tab);
-    });
-    createLoadingState("Laster...");
-    if (tab === "links") await _renderLinks(content);
-    if (tab === "users") await _renderUsers(content);
-    if (tab === "club-admin") await _renderClubAdmin(content);
-  }
+  const head = createEl("header", null, "admin-head");
+  head.appendChild(createEl("h2", "Administrasjon", "admin-head__title"));
+  const subtitle = createEl("span", null, "admin-head__sub");
+  head.appendChild(subtitle);
 
-  registerRefetch(() => showTab(activeTab));
+  const nav = buildNav(activeTab);
+  const content = createEl("div", null, "admin-panel");
 
-  container.querySelector("#admin-tabs")!.addEventListener("click", (e) => {
-    const button = (e.target as HTMLElement).closest<HTMLElement>("[data-tab]");
-    if (button?.dataset.tab) void showTab(button.dataset.tab as Tab);
+  page.append(liveSection, head, nav, content);
+  container.replaceChildren(page);
+
+  void getUser().then((auth) => {
+    if (auth?.user.email) subtitle.textContent = auth.user.email;
   });
 
-  const [, { data: liveTournamentsData }] = await Promise.all([
-    showTab("links"),
+  const panel = tab.render(content).catch((err: unknown) => {
+    logError(`admin.panel.${activeTab}`, err);
+    content.replaceChildren(createErrorBanner("Kunne ikkje laste denne fanen."));
+  });
+
+  const [{ data: live }, pending] = await Promise.all([
     getLiveTournaments(),
+    getPendingLinkCount(),
+    panel,
   ]);
 
-  const liveTournaments = (liveTournamentsData ?? []).filter((s) => !s.erfullfort);
-  if (liveTournaments.length) {
-    container
-      .querySelector<HTMLElement>("#live-section")!
-      .replaceChildren(cardList(liveTournaments.map(liveCard)));
-  }
-}
-
-// ── Link requests ─────────────────────────────────────────────
-
-async function _renderLinks(el: HTMLElement): Promise<void> {
-  const { data, error } = await getPendingLinks();
-
-  const tabBtn = el.closest(".content-page")?.querySelector<HTMLElement>('[data-tab="links"]');
-  if (tabBtn)
-    tabBtn.textContent =
-      error || !data.length ? TAB_LABEL["links"] : `${TAB_LABEL["links"]} (${data.length})`;
-
-  if (error) {
-    el.innerHTML = `<div class="alert alert-danger">${escHtml(errMsg(error))}</div>`;
-    return;
-  }
-  if (!data.length) {
-    el.replaceChildren(createEmptyState("Ingen ventande forespørslar."));
-    return;
+  const ongoing = live.filter((s) => !s.erfullfort);
+  if (ongoing.length) {
+    const list = createEl("div", null, "stevne-kort-liste");
+    ongoing.forEach((s) => list.appendChild(liveCard(s)));
+    liveSection.replaceChildren(list);
   }
 
-  const userIds = data.map((r) => r.id);
-  const throwerIds = data.map((r) => r.kobling_kasterid).filter((x): x is number => x !== null);
-
-  const [{ data: emails }, { data: throwers }] = await Promise.all([
-    getUserEmails(userIds),
-    getThrowersById(throwerIds),
-  ]);
-
-  const emailMap = Object.fromEntries((emails ?? []).map((r) => [r.id, r.epost]));
-  const throwerMap = new Map((throwers ?? []).map((k) => [k.id, k] as const));
-
-  el.innerHTML = `<table class="table table-hover">
-    <thead><tr><th>E-post</th><th>Vil koblast til</th><th>Handling</th></tr></thead>
-    <tbody>
-      ${data
-        .map((r) => {
-          const thrower = r.kobling_kasterid ? throwerMap.get(r.kobling_kasterid) : null;
-          const club = thrower?.klubb as { navn: string } | null | undefined;
-          const throwerDisplayName = thrower
-            ? `${escHtml(thrower.fornavn)} ${escHtml(thrower.etternavn)} (${escHtml(club?.navn ?? "")})`
-            : "—";
-          return `<tr data-id="${r.id}" data-thrower-id="${r.kobling_kasterid ?? ""}">
-          <td>${escHtml(emailMap[r.id] ?? r.id)}</td>
-          <td>${throwerDisplayName}</td>
-          <td>
-            <button class="btn btn-sm btn-success me-1 approve-button">Godkjenn</button>
-            <button class="btn btn-sm btn-outline-danger reject-button">Avvis</button>
-          </td>
-        </tr>`;
-        })
-        .join("")}
-    </tbody>
-  </table>`;
-
-  el.querySelectorAll<HTMLButtonElement>(".approve-button").forEach((button) => {
-    button.addEventListener("click", async () => {
-      const row = button.closest<HTMLElement>("tr")!;
-      const kasterid = row.dataset.throwerId ? Number(row.dataset.throwerId) : null;
-      const { error } = await updateLinkStatus(row.dataset.id!, kasterid, "godkjent");
-      if (error) {
-        el.innerHTML = `<div class="alert alert-danger">${escHtml(errMsg(error))}</div>`;
-        return;
-      }
-      void _renderLinks(el);
-    });
-  });
-  el.querySelectorAll<HTMLButtonElement>(".reject-button").forEach((button) => {
-    button.addEventListener("click", async () => {
-      const row = button.closest<HTMLElement>("tr")!;
-      const { error } = await updateLinkStatus(row.dataset.id!, null, "avvist");
-      if (error) {
-        el.innerHTML = `<div class="alert alert-danger">${escHtml(errMsg(error))}</div>`;
-        return;
-      }
-      void _renderLinks(el);
-    });
-  });
-}
-
-// ── Users ─────────────────────────────────────────────────────
-
-async function _getEmailMap(ids: string[]): Promise<Record<string, string>> {
-  const { data: emails } = await getUserEmails(ids);
-  return Object.fromEntries((emails ?? []).map((r) => [r.id, r.epost]));
-}
-
-async function _renderUsers(el: HTMLElement): Promise<void> {
-  const { data, error } = await getAllUsers();
-  if (error) {
-    el.innerHTML = `<div class="alert alert-danger">${escHtml(errMsg(error))}</div>`;
-    return;
+  if (pending > 0) {
+    const link = nav.querySelector<HTMLElement>('[data-badge-slot="pending"]');
+    link?.appendChild(createEl("span", String(pending), "admin-nav__badge"));
   }
-  if (!data.length) {
-    el.replaceChildren(createEmptyState("Ingen brukarar."));
-    return;
-  }
-
-  const throwerIds = data.map((r) => r.kobling_kasterid).filter((x): x is number => x !== null);
-
-  const [emailMap, { data: throwers }] = await Promise.all([
-    _getEmailMap(data.map((r) => r.id)),
-    getThrowersById(throwerIds),
-  ]);
-  const throwerMap = new Map((throwers ?? []).map((k) => [k.id, k] as const));
-
-  const roleOptions = ["bruker", "klubbadmin", "admin"]
-    .map((r) => `<option value="${r}">${r}</option>`)
-    .join("");
-
-  el.innerHTML = `
-    <div id="user-error" class="alert alert-danger d-none"></div>
-    <table class="table table-hover">
-      <thead><tr><th>E-post</th><th>Rolle</th><th>Kobling</th><th></th></tr></thead>
-      <tbody>
-        ${data
-          .map((r) => {
-            const thrower = r.kobling_kasterid ? throwerMap.get(r.kobling_kasterid) : null;
-            const nameCell = thrower
-              ? ` <span class="text-muted small">(${escHtml(throwerName(thrower))})</span>`
-              : "";
-            return `<tr data-id="${r.id}">
-          <td>${escHtml(emailMap[r.id] ?? r.id)}${nameCell}</td>
-          <td>
-            <select id="role-select-${r.id}" class="form-select form-select-sm role-select sel-auto">
-              ${roleOptions}
-            </select>
-          </td>
-          <td><span class="badge bg-secondary">${escHtml(r.kobling_status)}</span></td>
-          <td><button class="btn btn-sm btn-primary save-role">Lagre</button></td>
-        </tr>`;
-          })
-          .join("")}
-      </tbody>
-    </table>`;
-
-  data.forEach((r) => {
-    const row = el.querySelector<HTMLElement>(`tr[data-id="${r.id}"]`);
-    if (row) row.querySelector<HTMLSelectElement>(".role-select")!.value = r.rolle;
-  });
-
-  el.querySelectorAll<HTMLButtonElement>(".save-role").forEach((button) => {
-    button.addEventListener("click", async () => {
-      const row = button.closest<HTMLElement>("tr")!;
-      const newRole = row.querySelector<HTMLSelectElement>(".role-select")!.value;
-      const errorEl = el.querySelector<HTMLElement>("#user-error")!;
-      errorEl.classList.add("d-none");
-      const { error } = await updateUserRole(row.dataset.id!, newRole);
-      if (error) {
-        errorEl.textContent = errMsg(error);
-        errorEl.classList.remove("d-none");
-      } else {
-        button.textContent = "✓";
-        setTimeout(() => {
-          button.textContent = "Lagre";
-        }, 2000);
-      }
-    });
-  });
-}
-
-// ── Club admin access ──────────────────────────────────────────
-
-async function _renderClubAdmin(el: HTMLElement): Promise<void> {
-  let users: { id: string }[];
-  let clubs: { id: number; navn: string; logourl: string | null }[];
-  let assignments: { bruker_id: string; klubbid: number }[];
-
-  try {
-    const results = await Promise.all([getClubAdminUsers(), getClubs(), getClubAdminAssignments()]);
-    users = results[0].data;
-    clubs = results[1].data;
-    assignments = results[2].data;
-  } catch (err) {
-    logError("admin._renderClubAdmin", err);
-    el.innerHTML = `<div class="alert alert-danger">Kunne ikkje laste data.</div>`;
-    return;
-  }
-
-  if (!users.length) {
-    el.replaceChildren(createEmptyState('Ingen brukarar med rolle "klubbadmin".'));
-    return;
-  }
-
-  const emailMap = await _getEmailMap(users.map((r) => r.id));
-
-  const assignmentMap: Record<string, Set<number>> = {};
-  assignments.forEach((r) => {
-    const clubSet = (assignmentMap[r.bruker_id] ??= new Set());
-    clubSet.add(r.klubbid);
-  });
-
-  const clubOptions = clubs
-    .map((k) => `<option value="${k.id}">${escHtml(k.navn)}</option>`)
-    .join("");
-
-  el.innerHTML = `
-    <div id="club-admin-error" class="alert alert-danger d-none"></div>
-    ${users
-      .map((u) => {
-        const assigned = [...(assignmentMap[u.id] ?? [])];
-        const assignedBadges = assigned
-          .map((clubId) => {
-            const club = clubs.find((x) => x.id === clubId);
-            return club
-              ? `<span class="badge bg-primary me-1" data-club-id="${clubId}">${escHtml(club.navn)} <button class="btn-close btn-close-white btn-close-xs remove-club"></button></span>`
-              : "";
-          })
-          .join("");
-        return `<div class="card mb-3" data-user="${u.id}">
-        <div class="card-body">
-          <h6 class="card-title mb-2">${escHtml(emailMap[u.id] ?? u.id)}</h6>
-          <div class="club-admin-clubs mb-2">${assignedBadges || '<span class="text-muted small">Ingen klubbar tildelt</span>'}</div>
-          <div class="d-flex gap-2">
-            <select id="add-club-select-${u.id}" class="form-select form-select-sm add-club-select sel-auto">
-              <option value="">Legg til klubb…</option>
-              ${clubOptions}
-            </select>
-            <button class="btn btn-sm btn-success add-club-button">Legg til</button>
-          </div>
-        </div>
-      </div>`;
-      })
-      .join("")}`;
-
-  el.querySelectorAll<HTMLButtonElement>(".add-club-button").forEach((button) => {
-    button.addEventListener("click", async () => {
-      const card = button.closest<HTMLElement>("[data-user]")!;
-      const select = card.querySelector<HTMLSelectElement>(".add-club-select")!;
-      const clubId = Number(select.value);
-      if (!clubId) return;
-      const errorEl = el.querySelector<HTMLElement>("#club-admin-error")!;
-      errorEl.classList.add("d-none");
-      const { error } = await addClubAdminAccess(card.dataset.user!, clubId);
-      if (error) {
-        errorEl.textContent = errMsg(error);
-        errorEl.classList.remove("d-none");
-        return;
-      }
-      void _renderClubAdmin(el);
-    });
-  });
-
-  el.querySelectorAll<HTMLButtonElement>(".remove-club").forEach((button) => {
-    button.addEventListener("click", async (e) => {
-      e.stopPropagation();
-      const badge = button.closest<HTMLElement>("[data-club-id]")!;
-      const card = button.closest<HTMLElement>("[data-user]")!;
-      const errorEl = el.querySelector<HTMLElement>("#club-admin-error")!;
-      errorEl.classList.add("d-none");
-      const { error } = await removeClubAdminAccess(
-        card.dataset.user!,
-        Number(badge.dataset.clubId),
-      );
-      if (error) {
-        errorEl.textContent = errMsg(error);
-        errorEl.classList.remove("d-none");
-        return;
-      }
-      void _renderClubAdmin(el);
-    });
-  });
 }

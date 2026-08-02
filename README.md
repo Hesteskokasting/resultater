@@ -439,6 +439,10 @@ src/
 ├── app.ts                  # SPA-ruter
 ├── supabase.ts             # Supabase-klient
 ├── admin/                  # Admin-sider (kaster, klubb, stevne)
+│   ├── admin.ts            # Admin-skalet: fanene under #/admin/<fane>
+│   ├── _adminUi.ts         # Delte DOM-byggjarar (rader, nøkkeltal, snarvegar)
+│   ├── _adminCharts.ts     # Chart.js-innpakking; les fargane frå --chart-*
+│   └── panels/             # Ei fil per fane (oversikt, stevne, utøvarar, …)
 ├── components/             # Gjenbrukbare UI-faktoriar (create<Name>)
 │   ├── ConfirmDialog.ts
 │   ├── EmptyState.ts

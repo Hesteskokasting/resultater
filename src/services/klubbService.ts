@@ -39,6 +39,14 @@ export type ClubAdminRow = Pick<
 >;
 export type ClubAdminPayload = Omit<ClubAdminRow, "id">;
 
+/**
+ * Drop the cached active-club list so the next read hits the database.
+ * Called after every write below, since a rename or a deactivation changes it.
+ */
+export function invalidateClubCache(): void {
+  _clubCache = null;
+}
+
 export async function getClubForAdmin(
   id: number,
 ): Promise<{ data: ClubAdminRow | null; error: unknown }> {
@@ -51,6 +59,25 @@ export async function getClubForAdmin(
   return { data, error };
 }
 
+/** Every club, inactive ones included — the admin club list has to show those too. */
+export async function getAllClubsForAdmin(): Promise<{ data: ClubAdminRow[]; error: unknown }> {
+  const { data, error } = await supabase
+    .from("klubb")
+    .select("id, navn, kortnavn, logourl, eraktiv")
+    .order("navn");
+  if (error) logError("getAllClubsForAdmin", error);
+  return { data: data ?? [], error };
+}
+
+export async function createClub(
+  payload: ClubAdminPayload,
+): Promise<{ data: { id: number } | null; error: unknown }> {
+  const { data, error } = await supabase.from("klubb").insert(payload).select("id").single();
+  if (error) logError("createClub", error);
+  else invalidateClubCache();
+  return { data, error };
+}
+
 export async function updateClub(
   id: number,
   payload: ClubAdminPayload,
@@ -59,5 +86,6 @@ export async function updateClub(
     supabase.from("klubb").update(payload).eq("id", id).select("id"),
   );
   if (error) logError("updateClub", error);
+  else invalidateClubCache();
   return { error };
 }

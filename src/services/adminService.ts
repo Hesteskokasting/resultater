@@ -5,7 +5,7 @@ import type { Tables } from "@/types";
 type PendingLinkRow = Pick<Tables<"bruker_profil">, "id" | "kobling_kasterid">;
 type UserListRow = Pick<
   Tables<"bruker_profil">,
-  "id" | "rolle" | "kobling_status" | "kobling_kasterid"
+  "id" | "rolle" | "kobling_status" | "kobling_kasterid" | "kasterid" | "opprettet_at"
 >;
 type ClubAdminAccess = Pick<Tables<"klubbadmin_klubber">, "bruker_id" | "klubbid">;
 
@@ -42,10 +42,20 @@ export async function updateLinkStatus(
 export async function getAllUsers(): Promise<{ data: UserListRow[]; error: unknown }> {
   const { data, error } = await supabase
     .from("bruker_profil")
-    .select("id, rolle, kobling_status, kobling_kasterid")
+    .select("id, rolle, kobling_status, kobling_kasterid, kasterid, opprettet_at")
     .order("opprettet_at", { ascending: false });
   if (error) logError("getAllUsers", error);
   return { data: data ?? [], error };
+}
+
+/** Head-count of link requests awaiting a decision — drives the tab badge. */
+export async function getPendingLinkCount(): Promise<number> {
+  const { count, error } = await supabase
+    .from("bruker_profil")
+    .select("id", { count: "exact", head: true })
+    .eq("kobling_status", "venter");
+  if (error) logError("getPendingLinkCount", error);
+  return count ?? 0;
 }
 
 export async function updateUserRole(userId: string, role: string): Promise<{ error: unknown }> {

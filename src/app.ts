@@ -102,12 +102,12 @@ const routes: Route[] = [
     title: "Min side",
   },
   {
-    pattern: /^\/admin$/,
+    pattern: /^\/admin(?:\/([^/]*))?$/,
     page: authGuard(
       "admin",
       lazy(() => import("./admin/admin")),
     ),
-    params: () => ({}),
+    params: (m) => ({ tab: m[1] ?? "oversikt" }),
     title: "Admin",
   },
   {
@@ -160,6 +160,15 @@ const routes: Route[] = [
     ),
     params: (m) => ({ id: m[1] }),
     title: "Rediger utøvar",
+  },
+  {
+    pattern: /^\/klubber\/ny$/,
+    page: authGuard(
+      "admin",
+      lazy(() => import("./admin/klubbadmin")),
+    ),
+    params: () => ({}),
+    title: "Ny klubb",
   },
   {
     pattern: /^\/klubber\/(\d+)\/admin$/,
