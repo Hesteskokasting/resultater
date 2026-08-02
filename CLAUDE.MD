@@ -1,0 +1,1 @@
+1. provide a one line commit text when done with a task.

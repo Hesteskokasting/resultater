@@ -1,8 +1,8 @@
 /**
  * Renders the admin panels against mocked services and asserts what lands in the
- * DOM: which rows appear, what the filters do, and which service call each
- * action fires. The Supabase client is mocked away at the bottom of the graph so
- * nothing here touches the network.
+ * DOM: the key figures, the detail on each row, what the filters do, and that the
+ * create/edit actions open the overlay instead of navigating away. Chart.js and
+ * the Supabase client are mocked out — neither works under happy-dom.
  */
 
 // vi.mock factories are hoisted above the module body, so the spies they close
@@ -11,9 +11,9 @@ const mocks = vi.hoisted(() => ({
   getScheduleTournaments: vi.fn(),
   getLiveTournaments: vi.fn(),
   getAllClubsForAdmin: vi.fn(),
-  getActiveThrowerList: vi.fn(),
-  getAllThrowerList: vi.fn(),
+  getThrowerAdminList: vi.fn(),
   getThrowersById: vi.fn(),
+  getRegistrationCountsForTournaments: vi.fn(),
   getAllUsers: vi.fn(),
   getUserEmails: vi.fn(),
   updateUserRole: vi.fn(),
@@ -21,6 +21,9 @@ const mocks = vi.hoisted(() => ({
   updateLinkStatus: vi.fn(),
   getPendingLinkCount: vi.fn(),
   getUser: vi.fn(),
+  openTournamentEditor: vi.fn(),
+  openThrowerEditor: vi.fn(),
+  openClubEditor: vi.fn(),
 }));
 
 vi.mock("@/supabase", () => ({ supabase: {} }));
@@ -33,9 +36,11 @@ vi.mock("@/services/klubbService", () => ({
   getClubs: vi.fn(),
 }));
 vi.mock("@/services/kasterService", () => ({
-  getActiveThrowerList: mocks.getActiveThrowerList,
-  getAllThrowerList: mocks.getAllThrowerList,
+  getThrowerAdminList: mocks.getThrowerAdminList,
   getThrowersById: mocks.getThrowersById,
+}));
+vi.mock("@/services/adminStatsService", () => ({
+  getRegistrationCountsForTournaments: mocks.getRegistrationCountsForTournaments,
 }));
 vi.mock("@/services/adminService", () => ({
   getAllUsers: mocks.getAllUsers,
@@ -50,13 +55,26 @@ vi.mock("@/services/adminService", () => ({
   removeClubAdminAccess: vi.fn(),
 }));
 vi.mock("@/services/authService", () => ({ getUser: mocks.getUser }));
+vi.mock("@/admin/_adminCharts", () => ({
+  drawBarChart: vi.fn(),
+  drawLineChart: vi.fn(),
+  drawShareBar: vi.fn(),
+  seriesColor: () => "#2a78d6",
+  destroyAdminCharts: vi.fn(),
+}));
+vi.mock("@/admin/_adminEdit", () => ({
+  openTournamentEditor: mocks.openTournamentEditor,
+  openThrowerEditor: mocks.openThrowerEditor,
+  openClubEditor: mocks.openClubEditor,
+}));
 
 const {
   getScheduleTournaments,
   getLiveTournaments,
   getAllClubsForAdmin,
-  getActiveThrowerList,
+  getThrowerAdminList,
   getThrowersById,
+  getRegistrationCountsForTournaments,
   getAllUsers,
   getUserEmails,
   updateUserRole,
@@ -64,6 +82,9 @@ const {
   updateLinkStatus,
   getPendingLinkCount,
   getUser,
+  openTournamentEditor,
+  openThrowerEditor,
+  openClubEditor,
 } = mocks;
 
 import { render as renderAdmin } from "@/admin/admin";
@@ -84,10 +105,35 @@ function rowTitles(el: HTMLElement): string[] {
   return [...el.querySelectorAll(".admin-row__title")].map((n) => n.textContent ?? "");
 }
 
+function tileValue(el: HTMLElement, label: string): string | undefined {
+  const tile = [...el.querySelectorAll<HTMLElement>(".admin-stat")].find(
+    (t) => t.querySelector(".admin-stat__label")?.textContent === label,
+  );
+  return tile?.querySelector(".admin-stat__value")?.textContent ?? undefined;
+}
+
 function typeInSearch(el: HTMLElement, text: string): void {
   const input = el.querySelector<HTMLInputElement>('input[type="search"]')!;
   input.value = text;
   input.dispatchEvent(new Event("input"));
+}
+
+function selectByLabel(el: HTMLElement, label: string): HTMLSelectElement {
+  return el.querySelector<HTMLSelectElement>(`select[aria-label="${label}"]`)!;
+}
+
+function choose(select: HTMLSelectElement, value: string): void {
+  select.value = value;
+  select.dispatchEvent(new Event("change"));
+}
+
+/** Clicks the action button with the given label in row `index`. */
+function clickAction(el: HTMLElement, index: number, label: string): void {
+  const row = [...el.querySelectorAll<HTMLElement>(".admin-row")][index]!;
+  const button = [...row.querySelectorAll<HTMLButtonElement>(".admin-row__actions button")].find(
+    (b) => b.textContent === label,
+  )!;
+  button.click();
 }
 
 const YEAR = new Date().getFullYear();
@@ -97,6 +143,10 @@ beforeEach(() => {
   getLiveTournaments.mockResolvedValue({ data: [], error: null });
   getPendingLinkCount.mockResolvedValue(0);
   getUser.mockResolvedValue({ user: { email: "sjef@example.com" }, profil: null, clubs: [] });
+  getRegistrationCountsForTournaments.mockResolvedValue(new Map());
+  getThrowerAdminList.mockResolvedValue({ data: [], error: null });
+  getScheduleTournaments.mockResolvedValue({ data: [], error: null });
+  getAllClubsForAdmin.mockResolvedValue({ data: [], error: null });
 });
 
 describe("createAdminRow", () => {
@@ -142,59 +192,124 @@ describe("stevne panel", () => {
       navn: "Oslo Open",
       sted: "Bislett",
       dato: `${YEAR}-05-01`,
+      tid: "11:00:00",
       ernm: false,
       erfullfort: true,
       stevne_fase: "avsluttende",
+      resultaturl: "https://example.com/res.pdf",
       klubb: { id: 1, navn: "Oslo HK" },
       stevnetype: { id: 1, navn: "DNC" },
       kategori: { id: 1, navn: "Singel" },
+      innledende: { id: 1, navn: "X-kast" },
+      avsluttende: { id: 2, navn: "Cup" },
     },
     {
       id: 2,
       navn: "Bergen Cup",
       sted: "Bergen",
       dato: `${YEAR}-06-01`,
+      tid: null,
       ernm: true,
       erfullfort: false,
       stevne_fase: "innledende",
+      resultaturl: null,
       klubb: { id: 2, navn: "Bergen HK" },
       stevnetype: null,
       kategori: null,
+      innledende: null,
+      avsluttende: null,
+    },
+    {
+      id: 3,
+      navn: "Trondheim Open",
+      sted: null,
+      dato: `${YEAR}-12-24`,
+      tid: null,
+      ernm: false,
+      erfullfort: false,
+      stevne_fase: null,
+      resultaturl: null,
+      klubb: { id: 2, navn: "Bergen HK" },
+      stevnetype: null,
+      kategori: null,
+      innledende: null,
+      avsluttende: null,
     },
   ];
 
   beforeEach(() => {
     getScheduleTournaments.mockResolvedValue({ data: rows, error: null });
+    getRegistrationCountsForTournaments.mockResolvedValue(
+      new Map([
+        [1, 24],
+        [2, 12],
+      ]),
+    );
   });
 
-  it("lists tournaments with status badges and edit links", async () => {
+  it("leads with key figures for the selected year", async () => {
     const el = host();
     await renderTournaments(el);
 
-    expect(rowTitles(el)).toEqual(["Oslo Open", "Bergen Cup"]);
-    expect(el.textContent).toContain("Fullført");
-    expect(el.textContent).toContain("Innleiande");
-    expect(el.textContent).toContain("NM");
+    expect(tileValue(el, `Stevne i ${YEAR}`)).toBe("3");
+    expect(tileValue(el, "Fullført")).toBe("1");
+    expect(tileValue(el, "Pågåande")).toBe("1");
+    expect(tileValue(el, "Påmeldingar")).toBe("36");
+    expect(tileValue(el, "Snitt påmelde")).toBe("18");
+  });
 
+  it("asks for registration counts for exactly the listed tournaments", async () => {
+    const el = host();
+    await renderTournaments(el);
+    expect(getRegistrationCountsForTournaments).toHaveBeenCalledWith([1, 2, 3]);
+  });
+
+  it("shows per-row detail beyond what the terminliste carries", async () => {
+    const el = host();
+    await renderTournaments(el);
+
+    const first = el.querySelector(".admin-row")!;
+    const meta = first.querySelector(".admin-row__meta")?.textContent ?? "";
+    expect(meta).toContain("Oslo HK");
+    expect(meta).toContain("11:00");
+    expect(meta).toContain("DNC · Singel");
+    expect(meta).toContain("X-kast → Cup");
+    expect(meta).toContain("24 påmelde");
+    expect(first.textContent).toContain("PDF");
+  });
+
+  it("filters by status as well as by text", async () => {
+    const el = host();
+    await renderTournaments(el);
+
+    choose(selectByLabel(el, "Filtrer på status"), "pagaar");
+    expect(rowTitles(el)).toEqual(["Bergen Cup"]);
+
+    choose(selectByLabel(el, "Filtrer på status"), "alle");
+    typeInSearch(el, "bergen hk");
+    expect(rowTitles(el)).toEqual(["Bergen Cup", "Trondheim Open"]);
+
+    typeInSearch(el, "");
+    expect(rowTitles(el)).toHaveLength(3);
+  });
+
+  it("edits and creates through the overlay, never by navigating", async () => {
+    const el = host();
+    await renderTournaments(el);
+
+    clickAction(el, 0, "Rediger");
+    expect(openTournamentEditor).toHaveBeenCalledWith(1, expect.any(Function));
+
+    el.querySelector<HTMLButtonElement>(".admin-toolbar button")!.click();
+    expect(openTournamentEditor).toHaveBeenLastCalledWith(undefined, expect.any(Function));
+
+    // No create/edit link may point away from the dashboard.
     const hrefs = [...el.querySelectorAll<HTMLAnchorElement>("a")].map((a) =>
       a.getAttribute("href"),
     );
+    expect(hrefs).not.toContain("#/stevne/ny");
+    expect(hrefs).not.toContain("#/stevne/1/rediger");
     expect(hrefs).toContain("#/stevne/1/resultat");
-    expect(hrefs).toContain("#/stevne/2/innledende");
-    expect(hrefs).toContain("#/stevne/2/rediger");
-    expect(hrefs).toContain("#/stevne/ny");
-  });
-
-  it("filters on name, place and club", async () => {
-    const el = host();
-    await renderTournaments(el);
-
-    typeInSearch(el, "bergen hk");
-    expect(rowTitles(el)).toEqual(["Bergen Cup"]);
-    expect(el.querySelector(".admin-count")?.textContent).toBe(`1 av 2 stevne i ${YEAR}`);
-
-    typeInSearch(el, "");
-    expect(rowTitles(el)).toHaveLength(2);
   });
 
   it("reloads when the year changes", async () => {
@@ -202,9 +317,7 @@ describe("stevne panel", () => {
     await renderTournaments(el);
     getScheduleTournaments.mockClear();
 
-    const select = el.querySelector<HTMLSelectElement>(".admin-select")!;
-    select.value = String(YEAR - 1);
-    select.dispatchEvent(new Event("change"));
+    choose(selectByLabel(el, "Vel år"), String(YEAR - 1));
     await vi.waitFor(() => expect(getScheduleTournaments).toHaveBeenCalledWith(YEAR - 1));
   });
 
@@ -216,61 +329,200 @@ describe("stevne panel", () => {
   });
 });
 
-describe("klubbar panel", () => {
-  it("counts active members per club and marks inactive clubs", async () => {
-    getAllClubsForAdmin.mockResolvedValue({
-      data: [
-        { id: 1, navn: "Oslo HK", kortnavn: "OHK", logourl: null, eraktiv: true },
-        { id: 2, navn: "Gamle HK", kortnavn: "", logourl: null, eraktiv: false },
-      ],
-      error: null,
-    });
-    getActiveThrowerList.mockResolvedValue({
-      data: [
-        { id: 10, fornavn: "A", etternavn: "B", eraktiv: true, klubb: { id: 1, navn: "Oslo HK" } },
-        { id: 11, fornavn: "C", etternavn: "D", eraktiv: true, klubb: { id: 1, navn: "Oslo HK" } },
-      ],
-      error: null,
-    });
-
-    const el = host();
-    await renderClubs(el);
-
-    expect(rowTitles(el)).toEqual(["Oslo HK", "Gamle HK"]);
-    expect(el.textContent).toContain("2 aktive utøvarar");
-    expect(el.textContent).toContain("0 aktive utøvarar");
-    expect(el.querySelector(".admin-badge--muted")?.textContent).toBe("Inaktiv");
-  });
-});
-
 describe("utovarar panel", () => {
-  it("searches across name and club", async () => {
-    getActiveThrowerList.mockResolvedValue({
-      data: [
-        {
-          id: 1,
-          fornavn: "Ola",
-          etternavn: "Nordmann",
-          eraktiv: true,
-          klubb: { id: 1, navn: "Oslo HK" },
-        },
-        {
-          id: 2,
-          fornavn: "Kari",
-          etternavn: "Vik",
-          eraktiv: true,
-          klubb: { id: 2, navn: "Bergen HK" },
-        },
-      ],
-      error: null,
-    });
+  const throwers = [
+    {
+      id: 1,
+      fornavn: "Ola",
+      etternavn: "Nordmann",
+      eraktiv: true,
+      medlemsnummer: 1234,
+      epost: "ola@example.com",
+      telefon: null,
+      klubbid: 1,
+      klubb: { id: 1, navn: "Oslo HK" },
+      klasse: { id: 1, navn: "Senior" },
+      kjonn: { id: 1, navn: "Mann" },
+    },
+    {
+      id: 2,
+      fornavn: "Kari",
+      etternavn: "Vik",
+      eraktiv: true,
+      medlemsnummer: null,
+      epost: null,
+      telefon: null,
+      klubbid: 2,
+      klubb: { id: 2, navn: "Bergen HK" },
+      klasse: { id: 2, navn: "Junior" },
+      kjonn: { id: 2, navn: "Kvinne" },
+    },
+    {
+      id: 3,
+      fornavn: "Per",
+      etternavn: "Utan",
+      eraktiv: false,
+      medlemsnummer: null,
+      epost: null,
+      telefon: null,
+      klubbid: null,
+      klubb: null,
+      klasse: null,
+      kjonn: { id: 1, navn: "Mann" },
+    },
+  ];
 
+  beforeEach(() => {
+    getThrowerAdminList.mockResolvedValue({ data: throwers, error: null });
+  });
+
+  it("summarises the roster before the list", async () => {
+    const el = host();
+    await renderThrowers(el);
+
+    expect(tileValue(el, "Utøvarar totalt")).toBe("3");
+    expect(tileValue(el, "Inaktive")).toBe("1");
+    expect(tileValue(el, "Klubbar representert")).toBe("2");
+    expect(tileValue(el, "Utan klubb")).toBe("1");
+    expect(tileValue(el, "Med kontaktinfo")).toBe("1");
+    expect(tileValue(el, "Med medlemsnr.")).toBe("1");
+  });
+
+  it("shows class, gender, member number and contact per row", async () => {
+    const el = host();
+    await renderThrowers(el);
+
+    const first = el.querySelector(".admin-row")!;
+    expect(first.textContent).toContain("Senior");
+    const meta = first.querySelector(".admin-row__meta")?.textContent ?? "";
+    expect(meta).toContain("Oslo HK");
+    expect(meta).toContain("Mann");
+    expect(meta).toContain("Medlemsnr. 1234");
+    expect(meta).toContain("ola@example.com");
+  });
+
+  it("scopes to active by default and can show only inactive", async () => {
     const el = host();
     await renderThrowers(el);
     expect(rowTitles(el)).toEqual(["Ola Nordmann", "Kari Vik"]);
 
+    choose(selectByLabel(el, "Vis utøvarar"), "inaktive");
+    expect(rowTitles(el)).toEqual(["Per Utan"]);
+
+    choose(selectByLabel(el, "Vis utøvarar"), "alle");
+    expect(rowTitles(el)).toHaveLength(3);
+  });
+
+  it("offers a club filter built from the data", async () => {
+    const el = host();
+    await renderThrowers(el);
+
+    const clubFilter = selectByLabel(el, "Filtrer på klubb");
+    expect([...clubFilter.options].map((o) => o.textContent)).toEqual([
+      "Alle klubbar",
+      "Bergen HK",
+      "Oslo HK",
+    ]);
+
+    choose(clubFilter, "2");
+    expect(rowTitles(el)).toEqual(["Kari Vik"]);
+    choose(clubFilter, "alle");
+  });
+
+  it("searches name, club, e-post and member number", async () => {
+    const el = host();
+    await renderThrowers(el);
+
+    typeInSearch(el, "1234");
+    expect(rowTitles(el)).toEqual(["Ola Nordmann"]);
+
     typeInSearch(el, "bergen");
     expect(rowTitles(el)).toEqual(["Kari Vik"]);
+    typeInSearch(el, "");
+  });
+
+  it("edits and creates through the overlay", async () => {
+    const el = host();
+    await renderThrowers(el);
+
+    clickAction(el, 0, "Rediger");
+    expect(openThrowerEditor).toHaveBeenCalledWith(1, expect.any(Function));
+
+    el.querySelector<HTMLButtonElement>(".admin-toolbar button")!.click();
+    expect(openThrowerEditor).toHaveBeenLastCalledWith(undefined, expect.any(Function));
+  });
+});
+
+describe("klubbar panel", () => {
+  beforeEach(() => {
+    getAllClubsForAdmin.mockResolvedValue({
+      data: [
+        { id: 1, navn: "Oslo HK", kortnavn: "OHK", logourl: "http://x/logo.png", eraktiv: true },
+        { id: 2, navn: "Gamle HK", kortnavn: "", logourl: null, eraktiv: false },
+      ],
+      error: null,
+    });
+    getThrowerAdminList.mockResolvedValue({
+      data: [
+        { id: 10, fornavn: "A", etternavn: "B", eraktiv: true, klubb: { id: 1, navn: "Oslo HK" } },
+        { id: 11, fornavn: "C", etternavn: "D", eraktiv: true, klubb: { id: 1, navn: "Oslo HK" } },
+        { id: 12, fornavn: "E", etternavn: "F", eraktiv: false, klubb: { id: 1, navn: "Oslo HK" } },
+      ],
+      error: null,
+    });
+    getScheduleTournaments.mockResolvedValue({
+      data: [{ id: 1, navn: "Oslo Open", klubb: { id: 1, navn: "Oslo HK" } }],
+      error: null,
+    });
+  });
+
+  it("summarises the club register", async () => {
+    const el = host();
+    await renderClubs(el);
+
+    expect(tileValue(el, "Klubbar totalt")).toBe("2");
+    expect(tileValue(el, "Inaktive")).toBe("1");
+    expect(tileValue(el, "Utan utøvarar")).toBe("1");
+    expect(tileValue(el, "Snitt utøvarar")).toBe("1");
+    expect(tileValue(el, `Arrangørar i ${YEAR}`)).toBe("1");
+    expect(tileValue(el, "Største klubb")).toBe("2");
+  });
+
+  it("shows members, inactive members, hosting and logo state per row", async () => {
+    const el = host();
+    await renderClubs(el);
+
+    const first = el.querySelector(".admin-row")!;
+    const meta = first.querySelector(".admin-row__meta")?.textContent ?? "";
+    expect(meta).toContain("OHK");
+    expect(meta).toContain("2 aktive utøvarar");
+    expect(meta).toContain("1 inaktive");
+    expect(meta).toContain("Har logo");
+    expect(first.textContent).toContain("1 stevne i år");
+
+    const second = [...el.querySelectorAll(".admin-row")][1]!;
+    expect(second.textContent).toContain("Inaktiv");
+    expect(second.querySelector(".admin-row__meta")?.textContent).toContain("Manglar logo");
+  });
+
+  it("filters to clubs without throwers", async () => {
+    const el = host();
+    await renderClubs(el);
+
+    choose(selectByLabel(el, "Vis klubbar"), "tomme");
+    expect(rowTitles(el)).toEqual(["Gamle HK"]);
+    choose(selectByLabel(el, "Vis klubbar"), "alle");
+  });
+
+  it("edits and creates through the overlay", async () => {
+    const el = host();
+    await renderClubs(el);
+
+    clickAction(el, 0, "Rediger");
+    expect(openClubEditor).toHaveBeenCalledWith(1, expect.any(Function));
+
+    el.querySelector<HTMLButtonElement>(".admin-toolbar button")!.click();
+    expect(openClubEditor).toHaveBeenLastCalledWith(undefined, expect.any(Function));
   });
 });
 
@@ -330,10 +582,7 @@ describe("brukarar panel", () => {
     const el = host();
     await renderUsers(el);
 
-    const roleFilter = el.querySelector<HTMLSelectElement>(".admin-toolbar .admin-select")!;
-    roleFilter.value = "admin";
-    roleFilter.dispatchEvent(new Event("change"));
-
+    choose(selectByLabel(el, "Filtrer på rolle"), "admin");
     expect(rowTitles(el)).toEqual(["sjef@example.com"]);
   });
 
@@ -344,9 +593,7 @@ describe("brukarar panel", () => {
 
     // Toolbar filters live in module state and survive a re-render on purpose
     // (same as the public thrower list) — clear the previous test's role filter.
-    const roleFilter = el.querySelector<HTMLSelectElement>(".admin-toolbar .admin-select")!;
-    roleFilter.value = "alle";
-    roleFilter.dispatchEvent(new Event("change"));
+    choose(selectByLabel(el, "Filtrer på rolle"), "alle");
 
     el.querySelector<HTMLButtonElement>(".admin-row__actions button")!.click();
     await vi.waitFor(() => {
@@ -381,27 +628,17 @@ describe("forespurnader panel", () => {
     await renderRequests(el);
     expect(el.textContent).toContain("Vil koblast til Ny Spelar");
 
-    const [approve, reject] = [
-      ...el.querySelectorAll<HTMLButtonElement>(".admin-row__actions button"),
-    ];
-    approve!.click();
+    clickAction(el, 0, "Godkjenn");
     await vi.waitFor(() => expect(updateLinkStatus).toHaveBeenCalledWith("u1", 7, "godkjent"));
 
     updateLinkStatus.mockClear();
-    getPendingLinks.mockResolvedValue({ data: [{ id: "u1", kobling_kasterid: 7 }], error: null });
     await renderRequests(el);
-    const buttons = [...el.querySelectorAll<HTMLButtonElement>(".admin-row__actions button")];
-    buttons[1]!.click();
+    clickAction(el, 0, "Avvis");
     await vi.waitFor(() => expect(updateLinkStatus).toHaveBeenCalledWith("u1", null, "avvist"));
-    void reject;
   });
 });
 
 describe("admin shell", () => {
-  beforeEach(() => {
-    getScheduleTournaments.mockResolvedValue({ data: [], error: null });
-  });
-
   it("renders every tab, marks the active one and deep-links each", async () => {
     const el = host();
     await renderAdmin(el, { tab: "stevne" });
@@ -421,12 +658,10 @@ describe("admin shell", () => {
 
   it("falls back to Oversikt for an unknown tab", async () => {
     getAllUsers.mockResolvedValue({ data: [], error: null });
-    getActiveThrowerList.mockResolvedValue({ data: [], error: null });
     const el = host();
     await renderAdmin(el, { tab: "tullball" });
 
-    const active = el.querySelector(".admin-nav .nav-link.active");
-    expect(active?.textContent).toBe("Oversikt");
+    expect(el.querySelector(".admin-nav .nav-link.active")?.textContent).toBe("Oversikt");
   });
 
   it("badges the requests tab with the pending count", async () => {

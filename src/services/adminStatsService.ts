@@ -63,6 +63,27 @@ export async function getTournamentStatRows(
   return { data: data ?? [], error };
 }
 
+/**
+ * Registration counts per tournament, for a set of tournament ids. Returned as a
+ * map so a list can show "N påmelde" per row from a single round trip.
+ */
+export async function getRegistrationCountsForTournaments(
+  ids: number[],
+): Promise<Map<number, number>> {
+  const counts = new Map<number, number>();
+  if (!ids.length) return counts;
+
+  const { data, error } = await supabase.from("pamelding").select("stevneid").in("stevneid", ids);
+  if (error) {
+    logError("getRegistrationCountsForTournaments", error);
+    return counts;
+  }
+  for (const row of data ?? []) {
+    if (row.stevneid != null) counts.set(row.stevneid, (counts.get(row.stevneid) ?? 0) + 1);
+  }
+  return counts;
+}
+
 /** Registration timestamps for one year, for the per-month activity chart. */
 export async function getRegistrationStatRows(
   year: number,

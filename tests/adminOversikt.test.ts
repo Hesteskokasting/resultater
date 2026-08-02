@@ -13,6 +13,9 @@ const mocks = vi.hoisted(() => ({
   drawBarChart: vi.fn(),
   drawLineChart: vi.fn(),
   drawShareBar: vi.fn(),
+  openTournamentEditor: vi.fn(),
+  openThrowerEditor: vi.fn(),
+  openClubEditor: vi.fn(),
 }));
 
 vi.mock("@/supabase", () => ({ supabase: {} }));
@@ -25,6 +28,13 @@ vi.mock("@/services/kasterService", () => ({
   getActiveThrowerList: mocks.getActiveThrowerList,
 }));
 vi.mock("@/services/adminService", () => ({ getAllUsers: mocks.getAllUsers }));
+// The quick actions open the shared editors; the overlay itself is covered in
+// adminModal.test.
+vi.mock("@/admin/_adminEdit", () => ({
+  openTournamentEditor: mocks.openTournamentEditor,
+  openThrowerEditor: mocks.openThrowerEditor,
+  openClubEditor: mocks.openClubEditor,
+}));
 vi.mock("@/admin/_adminCharts", () => ({
   drawBarChart: mocks.drawBarChart,
   drawLineChart: mocks.drawLineChart,
@@ -88,16 +98,27 @@ beforeEach(() => {
 });
 
 describe("oversikt dashboard", () => {
-  it("shows quick actions for the create flows", async () => {
+  it("opens the create flows in the overlay and links out only for navigation", async () => {
     const el = document.createElement("div");
     await renderOverview(el);
 
-    const hrefs = [...el.querySelectorAll<HTMLAnchorElement>(".admin-action")].map((a) =>
-      a.getAttribute("href"),
-    );
-    expect(hrefs).toEqual(
-      expect.arrayContaining(["#/stevne/ny", "#/kaster/ny", "#/klubber/ny", "#/terminliste"]),
-    );
+    const actions = [...el.querySelectorAll<HTMLElement>(".admin-action")];
+    const label = (a: HTMLElement) => a.querySelector(".admin-action__label")?.textContent;
+
+    const create = actions.filter((a) => a instanceof HTMLButtonElement);
+    expect(create.map(label)).toEqual(["Nytt stevne", "Ny utøvar", "Ny klubb"]);
+
+    const links = actions.filter((a): a is HTMLAnchorElement => a instanceof HTMLAnchorElement);
+    expect(links.map((a) => a.getAttribute("href"))).toEqual([
+      "#/terminliste",
+      "#/norgesranking",
+      "#/rekorder",
+    ]);
+
+    create[0]!.click();
+    expect(mocks.openTournamentEditor).toHaveBeenCalledWith(undefined, expect.any(Function));
+    create[2]!.click();
+    expect(mocks.openClubEditor).toHaveBeenCalledWith(undefined, expect.any(Function));
   });
 
   it("derives the key figures from counts and this year's tournaments", async () => {

@@ -4285,3 +4285,82 @@ a.admin-stat:hover {
     width: 100%;
   }
 }
+
+/* ── Admin: entity dashboards ──────────────────────────────────────────────
+   The per-entity tabs (Stevne, Utøvarar, Klubbar) lead with their own key
+   figures and charts, then the list. Tiles are denser here than on Oversikt —
+   six of them share the row above the charts. */
+
+.admin-stats--compact {
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+}
+
+.admin-stats--compact .admin-stat {
+  padding: 9px 11px;
+}
+
+.admin-stats--compact .admin-stat__value {
+  font-size: 1.3rem;
+}
+
+.admin-stats--compact .admin-stat__label {
+  font-size: 0.68rem;
+}
+
+.admin-stats--compact .admin-stat__sub {
+  font-size: 0.7rem;
+  overflow-wrap: anywhere;
+}
+
+.admin-row--muted {
+  border-left-color: var(--kant);
+  opacity: 0.75;
+}
+
+/* ── Admin: overlay forms ──────────────────────────────────────────────────
+   Create/edit runs in an overlay so the admin keeps their tab, filters and
+   scroll position. Same form module as the standalone routes. */
+
+.admin-modal .modal-content {
+  background: var(--flate);
+  color: var(--tekst);
+  border: 1px solid var(--kant);
+}
+
+.admin-modal .modal-header,
+.admin-modal .modal-footer {
+  border-color: var(--kant);
+}
+
+.admin-modal .modal-body {
+  max-height: min(72vh, 720px);
+}
+
+.admin-form-modal .admin-form-actions {
+  position: sticky;
+  bottom: 0;
+  padding: 12px 0 2px;
+  background: var(--flate);
+}
+
+/* Two fields per line once there is room; one per line on a phone. */
+.admin-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 0 12px;
+}
+
+.admin-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+/* The modal body scrolls; keep the page behind it from scrolling too. Driven by
+   the open dialog rather than by `body.modal-open`, because a confirm dialog
+   stacked on top of the form overlay drops that class when it closes. */
+body:has(.modal.show) {
+  overflow: hidden;
+}

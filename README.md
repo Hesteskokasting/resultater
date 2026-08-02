@@ -442,6 +442,9 @@ src/
 │   ├── admin.ts            # Admin-skalet: fanene under #/admin/<fane>
 │   ├── _adminUi.ts         # Delte DOM-byggjarar (rader, nøkkeltal, snarvegar)
 │   ├── _adminCharts.ts     # Chart.js-innpakking; les fargane frå --chart-*
+│   ├── _adminModal.ts      # Overlegget for opprett/rediger på dashbordet
+│   ├── _adminEdit.ts       # Opnar rett skjema i overlegget og oppdaterer panelet
+│   ├── forms/              # Skjema delt mellom eiga rute og overlegget
 │   └── panels/             # Ei fil per fane (oversikt, stevne, utøvarar, …)
 ├── components/             # Gjenbrukbare UI-faktoriar (create<Name>)
 │   ├── ConfirmDialog.ts

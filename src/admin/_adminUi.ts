@@ -1,4 +1,7 @@
 import { createEl } from "@/utils/createEl";
+import { createEmptyState } from "@/components/EmptyState";
+import { seriesColor } from "./_adminCharts";
+import type { LabelCount } from "@/utils/adminStats";
 
 /**
  * Shared building blocks for the admin page. Everything here is built with DOM
@@ -50,7 +53,9 @@ export interface StatTile {
 
 export interface QuickAction {
   label: string;
-  href: string;
+  /** Renders an <a>; mutually exclusive with `onClick`, which renders a <button>. */
+  href?: string;
+  onClick?: () => void;
   /** Single glyph shown before the label. */
   icon: string;
   variant?: "primary" | "plain";
@@ -81,8 +86,8 @@ export function createStatTile(tile: StatTile): HTMLElement {
   return el;
 }
 
-export function createStatGrid(tiles: StatTile[]): HTMLElement {
-  const grid = createEl("div", null, "admin-stats");
+export function createStatGrid(tiles: StatTile[], compact = false): HTMLElement {
+  const grid = createEl("div", null, `admin-stats${compact ? " admin-stats--compact" : ""}`);
   tiles.forEach((t) => grid.appendChild(createStatTile(t)));
   return grid;
 }
@@ -96,22 +101,94 @@ export function createStatGridSkeleton(count: number): HTMLElement {
   return grid;
 }
 
+// ── Chart cards ──────────────────────────────────────────────────────────────
+
+export interface ChartCard {
+  card: HTMLElement;
+  canvas: HTMLCanvasElement;
+  legend: HTMLElement;
+  /** Replaces the canvas with a message when there is nothing to plot. */
+  showEmpty: (message: string) => void;
+}
+
+export function createChartCard(title: string, subtitle?: string): ChartCard {
+  const card = createEl("section", null, "admin-chart");
+  card.appendChild(createEl("h4", title, "admin-chart__title"));
+  if (subtitle) card.appendChild(createEl("p", subtitle, "admin-chart__subtitle"));
+
+  const wrap = createEl("div", null, "admin-chart__canvas");
+  const canvas = createEl("canvas", null);
+  canvas.setAttribute("role", "img");
+  canvas.setAttribute("aria-label", title);
+  wrap.appendChild(canvas);
+  card.appendChild(wrap);
+
+  const legend = createEl("div", null, "admin-legend");
+  card.appendChild(legend);
+
+  return {
+    card,
+    canvas,
+    legend,
+    showEmpty: (message: string) => {
+      wrap.replaceChildren(createEmptyState(message));
+      legend.replaceChildren();
+    },
+  };
+}
+
+export function createChartGrid(cards: ChartCard[]): HTMLElement {
+  const grid = createEl("div", null, "admin-charts");
+  cards.forEach((c) => grid.appendChild(c.card));
+  return grid;
+}
+
+/**
+ * Legend doubling as the value table: swatch, label, count and share. Share-bar
+ * fills sit below 3:1 against the light surface, so these labels — not the
+ * colours — are what carry the numbers.
+ */
+export function fillShareLegend(
+  legend: HTMLElement,
+  data: LabelCount[],
+  host: Element,
+  labelOf: (label: string) => string = (l) => l,
+): void {
+  const total = data.reduce((sum, d) => sum + d.count, 0);
+  legend.replaceChildren();
+
+  data.forEach((entry, i) => {
+    const item = createEl("div", null, "admin-legend__item");
+    const swatch = createEl("span", null, "admin-legend__swatch");
+    swatch.style.background = seriesColor(host, i + 1);
+    item.appendChild(swatch);
+    item.appendChild(createEl("span", labelOf(entry.label), "admin-legend__label"));
+    item.appendChild(createEl("span", String(entry.count), "admin-legend__value"));
+    const share = total ? Math.round((entry.count / total) * 100) : 0;
+    item.appendChild(createEl("span", `${share} %`, "admin-legend__share"));
+    legend.appendChild(item);
+  });
+}
+
 // ── Quick actions ────────────────────────────────────────────────────────────
 
 export function createQuickActions(actions: QuickAction[]): HTMLElement {
   const wrap = createEl("div", null, "admin-actions");
   for (const action of actions) {
-    const link = createEl(
-      "a",
-      null,
-      `admin-action${action.variant === "primary" ? " admin-action--primary" : ""}`,
-    );
-    link.href = action.href;
+    const cls = `admin-action${action.variant === "primary" ? " admin-action--primary" : ""}`;
+    // Create actions open the overlay (a button); navigation actions are links.
+    const el = action.href ? createEl("a", null, cls) : createEl("button", null, cls);
+    if (el instanceof HTMLAnchorElement) {
+      el.href = action.href!;
+    } else if (el instanceof HTMLButtonElement) {
+      el.type = "button";
+      el.addEventListener("click", () => action.onClick?.());
+    }
     const icon = createEl("span", action.icon, "admin-action__icon");
     icon.setAttribute("aria-hidden", "true");
-    link.appendChild(icon);
-    link.appendChild(createEl("span", action.label, "admin-action__label"));
-    wrap.appendChild(link);
+    el.appendChild(icon);
+    el.appendChild(createEl("span", action.label, "admin-action__label"));
+    wrap.appendChild(el);
   }
   return wrap;
 }

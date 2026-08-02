@@ -61,18 +61,21 @@ export function countTournamentsPerYear(
 }
 
 /**
- * Registrations per month for one year, January first. All 12 months are always
- * present — a flat tail reads as "no activity yet", not as missing data.
+ * Rows per month for one year, January first, keyed off whichever date column
+ * the caller points at. All 12 months are always present — a flat tail reads as
+ * "no activity yet", not as missing data.
  */
-export function countRegistrationsPerMonth(
-  rows: { opprettet_at: string | null }[],
+export function countPerMonth<T>(
+  rows: T[],
   year: number,
+  dateOf: (row: T) => string | null | undefined,
 ): LabelCount[] {
   const counts: number[] = Array.from({ length: 12 }, () => 0);
 
   for (const row of rows) {
-    if (yearOf(row.opprettet_at) !== year) continue;
-    const month = monthOf(row.opprettet_at);
+    const dato = dateOf(row);
+    if (yearOf(dato) !== year) continue;
+    const month = monthOf(dato);
     if (month === null) continue;
     counts[month - 1] = (counts[month - 1] ?? 0) + 1;
   }
@@ -81,6 +84,14 @@ export function countRegistrationsPerMonth(
     label: monthFmt.format(new Date(Date.UTC(year, i, 1))).replace(".", ""),
     count,
   }));
+}
+
+/** Registrations per month, by `opprettet_at`. */
+export function countRegistrationsPerMonth(
+  rows: { opprettet_at: string | null }[],
+  year: number,
+): LabelCount[] {
+  return countPerMonth(rows, year, (row) => row.opprettet_at);
 }
 
 /**

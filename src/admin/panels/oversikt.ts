@@ -1,4 +1,3 @@
-import { createEmptyState } from "@/components/EmptyState";
 import { createErrorBanner } from "@/components/ErrorBanner";
 import { createEl } from "@/utils/createEl";
 import { logError } from "@/utils/logError";
@@ -9,7 +8,7 @@ import {
   countUsersByRole,
   summarizeTournaments,
 } from "@/utils/adminStats";
-import type { LabelCount, TournamentStatRow } from "@/utils/adminStats";
+import type { TournamentStatRow } from "@/utils/adminStats";
 import { getAllUsers } from "@/services/adminService";
 import {
   getAdminEntityCounts,
@@ -17,12 +16,16 @@ import {
   getTournamentStatRows,
 } from "@/services/adminStatsService";
 import { getActiveThrowerList } from "@/services/kasterService";
-import { drawBarChart, drawLineChart, drawShareBar, seriesColor } from "../_adminCharts";
+import { drawBarChart, drawLineChart, drawShareBar } from "../_adminCharts";
+import { openClubEditor, openThrowerEditor, openTournamentEditor } from "../_adminEdit";
 import {
+  createChartCard,
+  createChartGrid,
   createQuickActions,
   createSectionTitle,
   createStatGrid,
   createStatGridSkeleton,
+  fillShareLegend,
 } from "../_adminUi";
 import type { StatTile } from "../_adminUi";
 
@@ -33,64 +36,6 @@ const ROLE_LABEL: Record<string, string> = {
   klubbadmin: "Klubbadmin",
   bruker: "Brukar",
 };
-
-interface ChartCard {
-  card: HTMLElement;
-  canvas: HTMLCanvasElement;
-  legend: HTMLElement;
-  /** Replaces the canvas with a message when there is nothing to plot. */
-  showEmpty: (message: string) => void;
-}
-
-function createChartCard(title: string, subtitle?: string): ChartCard {
-  const card = createEl("section", null, "admin-chart");
-  card.appendChild(createEl("h4", title, "admin-chart__title"));
-  if (subtitle) card.appendChild(createEl("p", subtitle, "admin-chart__subtitle"));
-
-  const wrap = createEl("div", null, "admin-chart__canvas");
-  const canvas = createEl("canvas", null);
-  canvas.setAttribute("role", "img");
-  canvas.setAttribute("aria-label", title);
-  wrap.appendChild(canvas);
-  card.appendChild(wrap);
-
-  const legend = createEl("div", null, "admin-legend");
-  card.appendChild(legend);
-
-  return {
-    card,
-    canvas,
-    legend,
-    showEmpty: (message: string) => {
-      wrap.replaceChildren(createEmptyState(message));
-      legend.replaceChildren();
-    },
-  };
-}
-
-/**
- * Legend doubling as the value table: swatch, label, count and share. The share
- * bar's fills sit below 3:1 against the light surface, so these labels — not the
- * colours — are what carry the numbers.
- */
-function fillShareLegend(legend: HTMLElement, data: LabelCount[], host: Element): void {
-  const total = data.reduce((sum, d) => sum + d.count, 0);
-  legend.replaceChildren();
-
-  data.forEach((entry, i) => {
-    const item = createEl("div", null, "admin-legend__item");
-    const swatch = createEl("span", null, "admin-legend__swatch");
-    swatch.style.background = seriesColor(host, i + 1);
-    item.appendChild(swatch);
-    item.appendChild(
-      createEl("span", ROLE_LABEL[entry.label] ?? entry.label, "admin-legend__label"),
-    );
-    item.appendChild(createEl("span", String(entry.count), "admin-legend__value"));
-    const share = total ? Math.round((entry.count / total) * 100) : 0;
-    item.appendChild(createEl("span", `${share} %`, "admin-legend__share"));
-    legend.appendChild(item);
-  });
-}
 
 function statTiles(
   counts: Awaited<ReturnType<typeof getAdminEntityCounts>>,
@@ -152,10 +97,35 @@ function statTiles(
 export async function render(el: HTMLElement): Promise<void> {
   const year = new Date().getFullYear();
 
+  // The create actions open the overlay so the dashboard stays put underneath.
+  const refresh = (): void => {
+    void render(el);
+  };
   const actions = createQuickActions([
-    { label: "Nytt stevne", href: "#/stevne/ny", icon: "＋", variant: "primary" },
-    { label: "Ny utøvar", href: "#/kaster/ny", icon: "＋", variant: "primary" },
-    { label: "Ny klubb", href: "#/klubber/ny", icon: "＋", variant: "primary" },
+    {
+      label: "Nytt stevne",
+      icon: "＋",
+      variant: "primary",
+      onClick: () => {
+        openTournamentEditor(undefined, refresh);
+      },
+    },
+    {
+      label: "Ny utøvar",
+      icon: "＋",
+      variant: "primary",
+      onClick: () => {
+        openThrowerEditor(undefined, refresh);
+      },
+    },
+    {
+      label: "Ny klubb",
+      icon: "＋",
+      variant: "primary",
+      onClick: () => {
+        openClubEditor(undefined, refresh);
+      },
+    },
     { label: "Terminliste", href: "#/terminliste", icon: "📅" },
     { label: "Norgesranking", href: "#/norgesranking", icon: "📊" },
     { label: "Rekorder", href: "#/rekorder", icon: "🏆" },
@@ -172,10 +142,7 @@ export async function render(el: HTMLElement): Promise<void> {
   const clubChart = createChartCard("Aktive utøvarar per klubb", "Dei ti største klubbane");
   const roleChart = createChartCard("Brukarar per rolle", "Del av alle kontoar");
 
-  const chartGrid = createEl("div", null, "admin-charts");
-  [tournamentChart, registrationChart, clubChart, roleChart].forEach((c) =>
-    chartGrid.appendChild(c.card),
-  );
+  const chartGrid = createChartGrid([tournamentChart, registrationChart, clubChart, roleChart]);
 
   el.replaceChildren(
     createSectionTitle("Snarvegar"),
@@ -227,7 +194,12 @@ export async function render(el: HTMLElement): Promise<void> {
 
       if (perRole.some((d) => d.count > 0)) {
         await drawShareBar(roleChart.canvas, perRole);
-        fillShareLegend(roleChart.legend, perRole, roleChart.card);
+        fillShareLegend(
+          roleChart.legend,
+          perRole,
+          roleChart.card,
+          (label) => ROLE_LABEL[label] ?? label,
+        );
       } else {
         roleChart.showEmpty("Ingen brukarar.");
       }

@@ -3,10 +3,10 @@ import { createErrorBanner } from "@/components/ErrorBanner";
 import { createLoadingState } from "@/components/LoadingState";
 import { errMsg } from "@/utils/adminForms";
 import { throwerName } from "@/utils/kaster";
-import { getPendingLinks, getUserEmails, updateLinkStatus } from "@/services/adminService";
-import { getThrowersById } from "@/services/kasterService";
+import { getPendingLinks, updateLinkStatus } from "@/services/adminService";
 import { createAdminList, createInlineAlert } from "../_adminUi";
 import type { AdminListItem } from "../_adminUi";
+import { loadUserLookups } from "./_userLookups";
 
 /**
  * Approval queue for users asking to be linked to a thrower. Approving writes the
@@ -25,14 +25,10 @@ export async function render(el: HTMLElement): Promise<void> {
     return;
   }
 
-  const throwerIds = data.map((r) => r.kobling_kasterid).filter((x): x is number => x !== null);
-  const [{ data: emails }, { data: throwers }] = await Promise.all([
-    getUserEmails(data.map((r) => r.id)),
-    getThrowersById(throwerIds),
-  ]);
-
-  const emailMap = new Map((emails ?? []).map((r) => [r.id, r.epost] as const));
-  const throwerMap = new Map((throwers ?? []).map((k) => [k.id, k] as const));
+  const { emailMap, throwerMap } = await loadUserLookups(
+    data.map((r) => r.id),
+    data.map((r) => r.kobling_kasterid).filter((x): x is number => x !== null),
+  );
 
   const alert = createInlineAlert();
 

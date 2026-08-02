@@ -6,8 +6,7 @@ import { createEl } from "@/utils/createEl";
 import { errMsg } from "@/utils/adminForms";
 import { formatDate } from "@/utils/shared";
 import { throwerName } from "@/utils/kaster";
-import { getAllUsers, getUserEmails, updateUserRole } from "@/services/adminService";
-import { getThrowersById } from "@/services/kasterService";
+import { getAllUsers, updateUserRole } from "@/services/adminService";
 import {
   createAdminList,
   createInlineAlert,
@@ -16,6 +15,7 @@ import {
   flashSaved,
 } from "../_adminUi";
 import type { AdminBadge, AdminListItem } from "../_adminUi";
+import { loadUserLookups } from "./_userLookups";
 
 const ROLES = ["bruker", "klubbadmin", "admin"] as const;
 
@@ -47,18 +47,12 @@ export async function render(el: HTMLElement): Promise<void> {
     return;
   }
 
-  const throwerIds = [
-    ...data.map((r) => r.kasterid),
-    ...data.map((r) => r.kobling_kasterid),
-  ].filter((x): x is number => x !== null);
-
-  const [{ data: emails }, { data: throwers }] = await Promise.all([
-    getUserEmails(data.map((r) => r.id)),
-    getThrowersById([...new Set(throwerIds)]),
-  ]);
-
-  const emailMap = new Map((emails ?? []).map((r) => [r.id, r.epost] as const));
-  const throwerMap = new Map((throwers ?? []).map((k) => [k.id, k] as const));
+  const { emailMap, throwerMap } = await loadUserLookups(
+    data.map((r) => r.id),
+    [...data.map((r) => r.kasterid), ...data.map((r) => r.kobling_kasterid)].filter(
+      (x): x is number => x !== null,
+    ),
+  );
 
   const alert = createInlineAlert();
   const countEl = createEl("span", null, "admin-count");

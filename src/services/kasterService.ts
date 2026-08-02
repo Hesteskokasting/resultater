@@ -18,6 +18,13 @@ const _kasterDetaljQuery = supabase
 const _kasterForKoblingQuery = supabase
   .from("kaster")
   .select("id, fornavn, etternavn, klubb:klubbid(navn)");
+// Admin list: everything the admin dashboard shows or counts on, active and
+// inactive alike, in one round trip.
+const _kasterAdminListeQuery = supabase
+  .from("kaster")
+  .select(
+    "id, fornavn, etternavn, eraktiv, medlemsnummer, epost, telefon, klubbid, klubb:klubbid(id, navn), klasse:klasseid(id, navn), kjonn:kjonnid(id, navn)",
+  );
 const _resultatDetaljQuery = supabase.from("resultat").select(`
   id, plassering, poeng_kongelag, poeng_xkast, antall_ring_kongelag, antall_ring_xkast,
   klubb:klubbid(id, navn),
@@ -26,6 +33,7 @@ const _resultatDetaljQuery = supabase.from("resultat").select(`
 
 export type MemberRow = QueryData<typeof _medlemQuery>[number];
 export type ThrowerListRow = QueryData<typeof _kasterListeQuery>[number];
+export type ThrowerAdminListRow = QueryData<typeof _kasterAdminListeQuery>[number];
 export type ThrowerDetailRow = QueryData<typeof _kasterDetaljQuery>[number];
 export type ThrowerForLinkRow = QueryData<typeof _kasterForKoblingQuery>[number];
 export type ResultDetailRow = QueryData<typeof _resultatDetaljQuery>[number];
@@ -34,6 +42,7 @@ export type ResultDetailRow = QueryData<typeof _resultatDetaljQuery>[number];
 
 let _kasterListeAktivCache: ThrowerListRow[] | null = null;
 let _kasterListeAlleCache: ThrowerListRow[] | null = null;
+let _kasterAdminListeCache: ThrowerAdminListRow[] | null = null;
 
 const _klubbDetaljCache = new Map<number, { data: MemberRow[]; error: unknown }>();
 const _kasterDetaljCache = new Map<
@@ -217,6 +226,30 @@ export async function getThrowerForAdmin(
 export function invalidateThrowerListCache(): void {
   _kasterListeAktivCache = null;
   _kasterListeAlleCache = null;
+  _kasterAdminListeCache = null;
+  _kasterDetaljCache.clear();
+  _klubbDetaljCache.clear();
+}
+
+/**
+ * Every thrower with the fields the admin dashboard lists and counts on.
+ * Inactive throwers are included — the admin view needs to see and reactivate them.
+ */
+export async function getThrowerAdminList(): Promise<{
+  data: ThrowerAdminListRow[];
+  error: unknown;
+}> {
+  if (_kasterAdminListeCache) return { data: _kasterAdminListeCache, error: null };
+  const { data, error } = await supabase
+    .from("kaster")
+    .select(
+      "id, fornavn, etternavn, eraktiv, medlemsnummer, epost, telefon, klubbid, klubb:klubbid(id, navn), klasse:klasseid(id, navn), kjonn:kjonnid(id, navn)",
+    )
+    .order("etternavn")
+    .order("fornavn");
+  if (error) logError("getThrowerAdminList", error);
+  _kasterAdminListeCache = data ?? [];
+  return { data: _kasterAdminListeCache, error };
 }
 
 export async function createThrower(

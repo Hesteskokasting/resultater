@@ -75,7 +75,7 @@ export async function render(container: HTMLElement, params: Params = {}): Promi
   liveSection.id = "live-section";
 
   const head = createEl("header", null, "admin-head");
-  head.appendChild(createEl("h2", "Administrasjon", "admin-head__title"));
+  head.appendChild(createEl("h2", "Dashboard - Admin", "admin-head__title"));
   const subtitle = createEl("span", null, "admin-head__sub");
   head.appendChild(subtitle);
 
