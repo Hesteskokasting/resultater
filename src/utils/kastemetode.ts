@@ -3,8 +3,13 @@
  * (xkast_kongelag tables) rather than head-to-head kamper.
  */
 export function isXkastMethodName(navn: string): boolean {
-  const n = navn.toLowerCase()
-  return n.includes('x-kast') || n.includes('minimatch') || n.includes('halvmatch') || n.includes('heilmatch')
+  const n = navn.toLowerCase();
+  return (
+    n.includes("x-kast") ||
+    n.includes("minimatch") ||
+    n.includes("halvmatch") ||
+    n.includes("heilmatch")
+  );
 }
 
 /**
@@ -13,6 +18,6 @@ export function isXkastMethodName(navn: string): boolean {
  * count from kastemetode.antall_omganger instead.
  */
 export function usesInitialRoundCount(navn: string): boolean {
-  const n = navn.toLowerCase()
-  return n.includes('gloppen') || n.includes('nordhordland')
+  const n = navn.toLowerCase();
+  return n.includes("gloppen") || n.includes("nordhordland");
 }

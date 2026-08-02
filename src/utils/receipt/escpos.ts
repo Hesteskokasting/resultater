@@ -1,31 +1,31 @@
 // Minimal ESC/POS encoder for 55mm thermal receipt printers.
 // All byte sequences follow the ESC/POS standard command set.
 
-export const RECEIPT_COLS = 32
+export const RECEIPT_COLS = 32;
 
-const NUL = 0x00
-const LF  = 0x0A
-const ESC = 0x1B
-const GS  = 0x1D
+const NUL = 0x00;
+const LF = 0x0a;
+const ESC = 0x1b;
+const GS = 0x1d;
 
 function bytes(...vals: number[]): Uint8Array {
-  return new Uint8Array(vals)
+  return new Uint8Array(vals);
 }
 
 /** ESC @ — initialize printer (reset all modes) */
 export function init(): Uint8Array {
-  return bytes(ESC, 0x40)
+  return bytes(ESC, 0x40);
 }
 
 /** ESC a n — select justification: 0=left, 1=center, 2=right */
-export function align(dir: 'left' | 'center' | 'right'): Uint8Array {
-  const n = dir === 'center' ? 1 : dir === 'right' ? 2 : 0
-  return bytes(ESC, 0x61, n)
+export function align(dir: "left" | "center" | "right"): Uint8Array {
+  const n = dir === "center" ? 1 : dir === "right" ? 2 : 0;
+  return bytes(ESC, 0x61, n);
 }
 
 /** ESC ! n — select print mode (bit 3 = emphasized/bold, bit 4 = double-height, bit 5 = double-width) */
 export function bold(on: boolean): Uint8Array {
-  return bytes(ESC, 0x21, on ? 0x08 : 0x00)
+  return bytes(ESC, 0x21, on ? 0x08 : 0x00);
 }
 
 /**
@@ -34,8 +34,8 @@ export function bold(on: boolean): Uint8Array {
  * Double-height only (1, 2) keeps the 32-column line limit intact.
  */
 export function charSize(widthMul: 1 | 2, heightMul: 1 | 2): Uint8Array {
-  const n = ((widthMul - 1) << 4) | (heightMul - 1)
-  return bytes(GS, 0x21, n)
+  const n = ((widthMul - 1) << 4) | (heightMul - 1);
+  return bytes(GS, 0x21, n);
 }
 
 /**
@@ -48,38 +48,42 @@ export function charSize(widthMul: 1 | 2, heightMul: 1 | 2): Uint8Array {
  */
 export function textLine(s: string): Uint8Array {
   const normalized = s
-    .replace(/æ/g, 'ae').replace(/ø/g, 'oe').replace(/å/g, 'aa')
-    .replace(/Æ/g, 'Ae').replace(/Ø/g, 'Oe').replace(/Å/g, 'Aa')
+    .replace(/æ/g, "ae")
+    .replace(/ø/g, "oe")
+    .replace(/å/g, "aa")
+    .replace(/Æ/g, "Ae")
+    .replace(/Ø/g, "Oe")
+    .replace(/Å/g, "Aa")
     // eslint-disable-next-line no-control-regex
-    .replace(/[\x00-\x1F\x7F]/g, ' ')
-    .slice(0, RECEIPT_COLS)
+    .replace(/[\x00-\x1F\x7F]/g, " ")
+    .slice(0, RECEIPT_COLS);
 
-  const out = new Uint8Array(normalized.length + 1)
+  const out = new Uint8Array(normalized.length + 1);
   for (let i = 0; i < normalized.length; i++) {
-    out[i] = normalized.charCodeAt(i) & 0xFF
+    out[i] = normalized.charCodeAt(i) & 0xff;
   }
-  out[normalized.length] = LF
-  return out
+  out[normalized.length] = LF;
+  return out;
 }
 
 /** A full-width separator line followed by LF */
 export function separator(): Uint8Array {
-  return textLine('-'.repeat(RECEIPT_COLS))
+  return textLine("-".repeat(RECEIPT_COLS));
 }
 
 /** GS V A (0x41) — full paper cut */
 export function cut(): Uint8Array {
-  return bytes(GS, 0x56, 0x41, NUL)
+  return bytes(GS, 0x56, 0x41, NUL);
 }
 
 /** Concatenate multiple Uint8Arrays into one */
 export function concat(...arrays: Uint8Array[]): Uint8Array {
-  const total = arrays.reduce((n, a) => n + a.length, 0)
-  const out = new Uint8Array(total)
-  let offset = 0
+  const total = arrays.reduce((n, a) => n + a.length, 0);
+  const out = new Uint8Array(total);
+  let offset = 0;
   for (const a of arrays) {
-    out.set(a, offset)
-    offset += a.length
+    out.set(a, offset);
+    offset += a.length;
   }
-  return out
+  return out;
 }

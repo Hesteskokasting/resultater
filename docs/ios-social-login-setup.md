@@ -13,9 +13,7 @@ The steps below are the external config that makes it actually work. Work top to
 
 - [ ] Open [Credentials](https://console.cloud.google.com/apis/credentials) in the **same
       project** that owns the existing web client ID (`VITE_GOOGLE_WEB_CLIENT_ID`).
-- [ ] **Create credentials → OAuth client ID → iOS**:
-      - Bundle ID: `no.hesteskokasting.app`
-      - App Store ID / Team ID: optional, can be added later.
+- [ ] **Create credentials → OAuth client ID → iOS**: - Bundle ID: `no.hesteskokasting.app` - App Store ID / Team ID: optional, can be added later.
 - [ ] Copy the new client ID (`<number>-<hash>.apps.googleusercontent.com`).
 
 ## 2. Supabase — authorize the iOS client ID
@@ -49,7 +47,7 @@ the App ID must have the matching capability or signing fails.
       flow, which is deliberately not used (the secret expires every 6 months).
 
 **Heads-up on duplicate accounts:** a user who previously signed in with Google and now
-uses Apple with "Hide My Email" gets a *new* Supabase user (the private-relay address
+uses Apple with "Hide My Email" gets a _new_ Supabase user (the private-relay address
 doesn't match their Gmail). Supabase only auto-links identities with the same verified
 email. Not fixable in config — just good to know when a user reports a "missing" profile.
 

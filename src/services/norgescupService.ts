@@ -1,45 +1,43 @@
-import type { QueryData } from '@supabase/supabase-js'
-import { supabase } from '@/supabase'
-import { logError } from '@/utils/logError'
+import type { QueryData } from "@supabase/supabase-js";
+import { supabase } from "@/supabase";
+import { logError } from "@/utils/logError";
 
 // ── Type-inferens-buildarar ───────────────────────────────────────────────────
 
-const _resultaterQuery = supabase
-  .from('resultat')
-  .select(`
+const _resultaterQuery = supabase.from("resultat").select(`
     id, nc_poeng, plassering, kasterid, klubbid, klasseid, stevneid,
     kaster:kasterid(id, fornavn, etternavn),
     klubb:klubbid(id, navn),
     klasse:klasseid(id, navn)
-  `)
+  `);
 
-export type ResultWithRelations = QueryData<typeof _resultaterQuery>[number]
+export type ResultWithRelations = QueryData<typeof _resultaterQuery>[number];
 
 const _stevneNcQuery = supabase
-  .from('stevne')
-  .select('id, navn, dato, stevnetype:stevnetypeid(id, navn)')
+  .from("stevne")
+  .select("id, navn, dato, stevnetype:stevnetypeid(id, navn)");
 
-export type TournamentForNC = QueryData<typeof _stevneNcQuery>[number]
+export type TournamentForNC = QueryData<typeof _stevneNcQuery>[number];
 
 // ── Private ───────────────────────────────────────────────────────────────────
 
-const NC_TYPER = ['NC', 'SNC', 'DNC']
+const NC_TYPER = ["NC", "SNC", "DNC"];
 
 // ── Eksporterte funksjonar ────────────────────────────────────────────────────
 
 export async function getRules(ar: number) {
   const { data, error } = await supabase
-    .from('antallTellendeNc')
-    .select('id, year, max_nc_total, max_snc_total, max_dnc_total, maxtotal, max_snc, max_dnc')
-    .eq('year', ar)
-    .maybeSingle()
-  if (error) logError('getRules', error)
-  return { data, error }
+    .from("antallTellendeNc")
+    .select("id, year, max_nc_total, max_snc_total, max_dnc_total, maxtotal, max_snc, max_dnc")
+    .eq("year", ar)
+    .maybeSingle();
+  if (error) logError("getRules", error);
+  return { data, error };
 }
 
 export async function getTournamentsAndResults(ar: number) {
   const { data, error } = await supabase
-    .from('resultat')
+    .from("resultat")
     .select(`
       id, nc_poeng, plassering, kasterid, klubbid, klasseid, stevneid,
       kaster:kasterid(id, fornavn, etternavn),
@@ -47,23 +45,23 @@ export async function getTournamentsAndResults(ar: number) {
       klasse:klasseid(id, navn),
       stevne:stevneid!inner(id, navn, dato, stevnetype:stevnetypeid(id, navn))
     `)
-    .gte('stevne.dato', `${ar}-01-01`)
-    .lte('stevne.dato', `${ar}-12-31`)
-    .not('nc_poeng', 'is', null)
-    .gt('nc_poeng', 0)
+    .gte("stevne.dato", `${ar}-01-01`)
+    .lte("stevne.dato", `${ar}-12-31`)
+    .not("nc_poeng", "is", null)
+    .gt("nc_poeng", 0);
 
   if (error) {
-    logError('getTournamentsAndResults', error)
-    return { stevner: [] as TournamentForNC[], resultater: [] as ResultWithRelations[], error }
+    logError("getTournamentsAndResults", error);
+    return { stevner: [] as TournamentForNC[], resultater: [] as ResultWithRelations[], error };
   }
 
-  const stevnerMap = new Map<number, TournamentForNC>()
-  const resultater: ResultWithRelations[] = []
+  const stevnerMap = new Map<number, TournamentForNC>();
+  const resultater: ResultWithRelations[] = [];
   for (const { stevne, ...rest } of data) {
-    if (!NC_TYPER.includes(stevne.stevnetype?.navn ?? '')) continue
-    if (!stevnerMap.has(stevne.id)) stevnerMap.set(stevne.id, stevne)
-    resultater.push(rest)
+    if (!NC_TYPER.includes(stevne.stevnetype?.navn ?? "")) continue;
+    if (!stevnerMap.has(stevne.id)) stevnerMap.set(stevne.id, stevne);
+    resultater.push(rest);
   }
 
-  return { stevner: [...stevnerMap.values()], resultater, error: null }
+  return { stevner: [...stevnerMap.values()], resultater, error: null };
 }

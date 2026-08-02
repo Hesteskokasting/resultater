@@ -34,22 +34,23 @@ Forside (Siste resultat + Kommande), Terminliste (mobile cards), Minside (Påmel
 ## Component API — `src/components/StevneCard.ts`
 
 ```ts
-export type StevneCardStatus = 'live' | 'done' | 'upcoming'
+export type StevneCardStatus = "live" | "done" | "upcoming";
 
 export interface StevneCardProps {
-  title: string
-  href: string                 // e.g. "#/stevne/2310/resultat"
-  date: string                 // preformatted display date
-  status: StevneCardStatus
-  meta?: string[]              // secondary lines: Sted, Arrangør, Type
-  badge?: string               // pill text, e.g. "NM"
-  invitationUrl?: string       // external innbydelse PDF (upcoming/terminliste); secondary sibling link
-  registrationSlotId?: number  // when set → trailing slot emits <span data-registration-slot="id">;
-                               // hydrated later by bindRegistrationSlots. No chevron in this case.
+  title: string;
+  href: string; // e.g. "#/stevne/2310/resultat"
+  date: string; // preformatted display date
+  status: StevneCardStatus;
+  meta?: string[]; // secondary lines: Sted, Arrangør, Type
+  badge?: string; // pill text, e.g. "NM"
+  invitationUrl?: string; // external innbydelse PDF (upcoming/terminliste); secondary sibling link
+  registrationSlotId?: number; // when set → trailing slot emits <span data-registration-slot="id">;
+  // hydrated later by bindRegistrationSlots. No chevron in this case.
 }
 ```
 
 `createStevneCard(props): HTMLElement` returns a `<div class="stevne-kort stevne-kort--{status}">`:
+
 - `<span class="stevne-kort__stripe">` — 3px inner colored left stripe (overflow:hidden on card).
 - `<a class="stevne-kort__link" href aria-label="${title}, ${date}">` wrapping title + date;
   `::after` stretches over the whole card.
@@ -76,7 +77,7 @@ export interface StevneCardProps {
 5. **Cleanup + verify.** Remove now-dead CSS (`.tournament-card`, `.tl-kort`,
    `.tournament-link`, `.tournament-name`, `.tournament-date` if unreferenced). Run
    `npm run typecheck && npm run typecheck:test && npm run test:run`. Manual: `npm run build
-   && npm run preview` — verify all three lists, keyboard focus/Enter, middle-click, and that
+&& npm run preview` — verify all three lists, keyboard focus/Enter, middle-click, and that
    tapping Meld på/av does not navigate.
 
 ## Open item for step 2 review

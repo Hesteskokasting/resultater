@@ -1,160 +1,217 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="nb" data-theme="light" data-bs-theme="light">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Hesteskokasting Resultater</title>
-  <script>
-    (function () {
-      var tema = localStorage.getItem('tema') || 'light';
-      if (tema === 'dark') {
-        document.documentElement.setAttribute('data-theme', tema);
-        document.documentElement.setAttribute('data-bs-theme', 'dark');
-      }
-    })();
-  </script>
-  <link rel="preconnect" href="https://urtvpewjlevhlevtnvkf.supabase.co" crossorigin>
-  <link rel="icon" type="image/svg+xml" href="assets/NHF_logo_original_oppskalert.svg">
-  <link rel="stylesheet" href="global.css">
-  <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-
-  <header class="top-header">
-    <span class="header-tittel">NHF Resultater</span>
-    <nav class="header-nav">
-      <a href="#/" class="header-nav__link">Hjem</a>
-      <a href="#/terminliste" class="header-nav__link">Terminliste</a>
-      <a href="#/norgescupen" class="header-nav__link">Norgescupen</a>
-      <a href="#/norgesranking" class="header-nav__link">Norgesranking</a>
-      <a href="#/klubber" class="header-nav__link">Klubber</a>
-      <a href="#/kastere" class="header-nav__link">Utøvere</a>
-      <div class="header-nav__dropdown">
-        <button class="header-nav__link header-nav__dropdown-btn" aria-haspopup="true" aria-expanded="false">Statistikk ▾</button>
-        <div class="header-nav__dropdown-menu">
-          <a href="#/nmvinnere" class="header-nav__dropdown-item">NM-vinnere</a>
-          <a href="#/rekorder" class="header-nav__dropdown-item">Rekorder</a>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Hesteskokasting Resultater</title>
+    <script>
+      (function () {
+        var tema = localStorage.getItem("tema") || "light";
+        if (tema === "dark") {
+          document.documentElement.setAttribute("data-theme", tema);
+          document.documentElement.setAttribute("data-bs-theme", "dark");
+        }
+      })();
+    </script>
+    <link rel="preconnect" href="https://urtvpewjlevhlevtnvkf.supabase.co" crossorigin />
+    <link rel="icon" type="image/svg+xml" href="assets/NHF_logo_original_oppskalert.svg" />
+    <link rel="stylesheet" href="global.css" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="top-header">
+      <span class="header-tittel">NHF Resultater</span>
+      <nav class="header-nav">
+        <a href="#/" class="header-nav__link">Hjem</a>
+        <a href="#/terminliste" class="header-nav__link">Terminliste</a>
+        <a href="#/norgescupen" class="header-nav__link">Norgescupen</a>
+        <a href="#/norgesranking" class="header-nav__link">Norgesranking</a>
+        <a href="#/klubber" class="header-nav__link">Klubber</a>
+        <a href="#/kastere" class="header-nav__link">Utøvere</a>
+        <div class="header-nav__dropdown">
+          <button
+            class="header-nav__link header-nav__dropdown-btn"
+            aria-haspopup="true"
+            aria-expanded="false"
+          >
+            Statistikk ▾
+          </button>
+          <div class="header-nav__dropdown-menu">
+            <a href="#/nmvinnere" class="header-nav__dropdown-item">NM-vinnere</a>
+            <a href="#/rekorder" class="header-nav__dropdown-item">Rekorder</a>
+          </div>
         </div>
-      </div>
-    </nav>
-    <div class="header-kontroller">
-      <a class="header-email d-none" id="headerEmail" href="#/minside"></a>
-      <button class="theme-switch" id="themeSwitch" role="switch" aria-checked="false" aria-label="Lys modus">
-        <span class="theme-switch__thumb">
-          <svg class="theme-switch__icon theme-switch__icon--sun" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-          <svg class="theme-switch__icon theme-switch__icon--moon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-        </span>
-      </button>
-      <button class="meny-knapp" id="menyKnapp" aria-label="Åpne meny">
-        <span></span>
-        <span></span>
-        <span></span>
-      </button>
-    </div>
-  </header>
-
-  <!-- Mørk bakgrunn bak menyen -->
-  <div class="meny-bakgrunn" id="menyBakgrunn"></div>
-
-  <!-- Slideout-meny fra høyre -->
-  <nav class="sidepanel" id="sidepanel">
-    <ul class="meny-liste">
-      <li><a href="https://hesteskokasting.no" target="_blank" rel="noopener">Til hesteskokasting.no</a></li>
-      <li class="meny-skillelinje"></li>
-      <li><a href="#/">Hjem</a></li>
-      <li><a href="#/terminliste">Terminliste og Resultat</a></li>
-      <li><a href="#/norgescupen">Norgescupen</a></li>
-      <li><a href="#/norgesranking">Norgesranking</a></li>
-      <li><a href="#/klubber">Klubber</a></li>
-      <li><a href="#/kastere">Utøvere</a></li>
-      <li class="meny-dropdown-item">
-        <button class="meny-dropdown-knapp" id="statistikk-knapp" aria-expanded="false">
-          Statistikk <span class="meny-chevron">▼</span>
+      </nav>
+      <div class="header-kontroller">
+        <a class="header-email d-none" id="headerEmail" href="#/minside"></a>
+        <button
+          class="theme-switch"
+          id="themeSwitch"
+          role="switch"
+          aria-checked="false"
+          aria-label="Lys modus"
+        >
+          <span class="theme-switch__thumb">
+            <svg
+              class="theme-switch__icon theme-switch__icon--sun"
+              xmlns="http://www.w3.org/2000/svg"
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="5" />
+              <line x1="12" y1="1" x2="12" y2="3" />
+              <line x1="12" y1="21" x2="12" y2="23" />
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+              <line x1="1" y1="12" x2="3" y2="12" />
+              <line x1="21" y1="12" x2="23" y2="12" />
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+            </svg>
+            <svg
+              class="theme-switch__icon theme-switch__icon--moon"
+              xmlns="http://www.w3.org/2000/svg"
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+            </svg>
+          </span>
         </button>
-        <ul class="meny-undermeny" id="statistikk-undermeny" style="display:none">
-          <li><a href="#/nmvinnere">NM-vinnere</a></li>
-          <li><a href="#/rekorder">Rekorder</a></li>
-        </ul>
-      </li>
-      <li><a href="#/dokumenter">Dokumenter</a></li>
-      <li class="meny-skillelinje"></li>
-      <li id="meny-logginn-item" class="d-none"><a href="#/logginn">Logg inn</a></li>
-      <li id="meny-minside-item" class="d-none"><a href="#/minside">Min side</a></li>
-      <li id="meny-admin-item"   class="d-none"><a href="#/admin">Admin</a></li>
-      <li id="meny-loggut-item"  class="d-none">
-        <button id="menyLoggUtKnapp" class="btn btn-link p-0 text-start w-100" style="font-size:inherit;color:inherit;">Logg ut</button>
-      </li>
-      <li class="meny-skillelinje"></li>
-      <li class="menu-version">v%APP_VERSION%</li>
-    </ul>
-  </nav>
+        <button class="meny-knapp" id="menyKnapp" aria-label="Åpne meny">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+      </div>
+    </header>
 
-  <div id="app"></div>
+    <!-- Mørk bakgrunn bak menyen -->
+    <div class="meny-bakgrunn" id="menyBakgrunn"></div>
 
-  <script type="module" src="app.ts"></script>
-  <script>
-    const themeSwitch = document.getElementById('themeSwitch')
-    function updateThemeSwitch() {
-      const theme = document.documentElement.getAttribute('data-theme') || 'light'
-      themeSwitch.setAttribute('aria-checked', theme === 'light' ? 'true' : 'false')
-    }
-    themeSwitch.addEventListener('click', function () {
-      const current = document.documentElement.getAttribute('data-theme') || 'light'
-      const next = current === 'dark' ? 'light' : 'dark'
-      document.documentElement.setAttribute('data-theme', next)
-      document.documentElement.setAttribute('data-bs-theme', next)
-      localStorage.setItem('tema', next)
-      updateThemeSwitch()
-    })
-    updateThemeSwitch()
+    <!-- Slideout-meny fra høyre -->
+    <nav class="sidepanel" id="sidepanel">
+      <ul class="meny-liste">
+        <li>
+          <a href="https://hesteskokasting.no" target="_blank" rel="noopener"
+            >Til hesteskokasting.no</a
+          >
+        </li>
+        <li class="meny-skillelinje"></li>
+        <li><a href="#/">Hjem</a></li>
+        <li><a href="#/terminliste">Terminliste og Resultat</a></li>
+        <li><a href="#/norgescupen">Norgescupen</a></li>
+        <li><a href="#/norgesranking">Norgesranking</a></li>
+        <li><a href="#/klubber">Klubber</a></li>
+        <li><a href="#/kastere">Utøvere</a></li>
+        <li class="meny-dropdown-item">
+          <button class="meny-dropdown-knapp" id="statistikk-knapp" aria-expanded="false">
+            Statistikk <span class="meny-chevron">▼</span>
+          </button>
+          <ul class="meny-undermeny" id="statistikk-undermeny" style="display: none">
+            <li><a href="#/nmvinnere">NM-vinnere</a></li>
+            <li><a href="#/rekorder">Rekorder</a></li>
+          </ul>
+        </li>
+        <li><a href="#/dokumenter">Dokumenter</a></li>
+        <li class="meny-skillelinje"></li>
+        <li id="meny-logginn-item" class="d-none"><a href="#/logginn">Logg inn</a></li>
+        <li id="meny-minside-item" class="d-none"><a href="#/minside">Min side</a></li>
+        <li id="meny-admin-item" class="d-none"><a href="#/admin">Admin</a></li>
+        <li id="meny-loggut-item" class="d-none">
+          <button
+            id="menyLoggUtKnapp"
+            class="btn btn-link p-0 text-start w-100"
+            style="font-size: inherit; color: inherit"
+          >
+            Logg ut
+          </button>
+        </li>
+        <li class="meny-skillelinje"></li>
+        <li class="menu-version">v%APP_VERSION%</li>
+      </ul>
+    </nav>
 
-    const knapp = document.getElementById('menyKnapp')
-    const panel = document.getElementById('sidepanel')
-    const bakgrunn = document.getElementById('menyBakgrunn')
+    <div id="app"></div>
 
-    function apneMeny() {
-      panel.classList.add('aktiv')
-      bakgrunn.classList.add('aktiv')
-      knapp.classList.add('aktiv')
-    }
-
-    function lukkMeny() {
-      panel.classList.remove('aktiv')
-      bakgrunn.classList.remove('aktiv')
-      knapp.classList.remove('aktiv')
-    }
-
-    knapp.addEventListener('click', () => {
-      panel.classList.contains('aktiv') ? lukkMeny() : apneMeny()
-    })
-
-    bakgrunn.addEventListener('click', lukkMeny)
-
-    document.querySelectorAll('.sidepanel a').forEach(a => {
-      a.addEventListener('click', lukkMeny)
-    })
-
-    document.getElementById('menyLoggUtKnapp').addEventListener('click', lukkMeny)
-
-    const desktopDropdown = document.querySelector('.header-nav__dropdown')
-    const desktopDropdownBtn = document.querySelector('.header-nav__dropdown-btn')
-    desktopDropdown.addEventListener('focusin', () => {
-      desktopDropdownBtn.setAttribute('aria-expanded', 'true')
-    })
-    desktopDropdown.addEventListener('focusout', (e) => {
-      if (!desktopDropdown.contains(e.relatedTarget)) {
-        desktopDropdownBtn.setAttribute('aria-expanded', 'false')
+    <script type="module" src="app.ts"></script>
+    <script>
+      const themeSwitch = document.getElementById("themeSwitch");
+      function updateThemeSwitch() {
+        const theme = document.documentElement.getAttribute("data-theme") || "light";
+        themeSwitch.setAttribute("aria-checked", theme === "light" ? "true" : "false");
       }
-    })
+      themeSwitch.addEventListener("click", function () {
+        const current = document.documentElement.getAttribute("data-theme") || "light";
+        const next = current === "dark" ? "light" : "dark";
+        document.documentElement.setAttribute("data-theme", next);
+        document.documentElement.setAttribute("data-bs-theme", next);
+        localStorage.setItem("tema", next);
+        updateThemeSwitch();
+      });
+      updateThemeSwitch();
 
-    document.getElementById('statistikk-knapp').addEventListener('click', () => {
-      const undermeny = document.getElementById('statistikk-undermeny')
-      const knapp = document.getElementById('statistikk-knapp')
-      const open = undermeny.style.display !== 'none'
-      undermeny.style.display = open ? 'none' : 'block'
-      knapp.setAttribute('aria-expanded', !open)
-      knapp.querySelector('.meny-chevron').textContent = open ? '▼' : '▲'
-    })
-  </script>
-</body>
+      const knapp = document.getElementById("menyKnapp");
+      const panel = document.getElementById("sidepanel");
+      const bakgrunn = document.getElementById("menyBakgrunn");
+
+      function apneMeny() {
+        panel.classList.add("aktiv");
+        bakgrunn.classList.add("aktiv");
+        knapp.classList.add("aktiv");
+      }
+
+      function lukkMeny() {
+        panel.classList.remove("aktiv");
+        bakgrunn.classList.remove("aktiv");
+        knapp.classList.remove("aktiv");
+      }
+
+      knapp.addEventListener("click", () => {
+        panel.classList.contains("aktiv") ? lukkMeny() : apneMeny();
+      });
+
+      bakgrunn.addEventListener("click", lukkMeny);
+
+      document.querySelectorAll(".sidepanel a").forEach((a) => {
+        a.addEventListener("click", lukkMeny);
+      });
+
+      document.getElementById("menyLoggUtKnapp").addEventListener("click", lukkMeny);
+
+      const desktopDropdown = document.querySelector(".header-nav__dropdown");
+      const desktopDropdownBtn = document.querySelector(".header-nav__dropdown-btn");
+      desktopDropdown.addEventListener("focusin", () => {
+        desktopDropdownBtn.setAttribute("aria-expanded", "true");
+      });
+      desktopDropdown.addEventListener("focusout", (e) => {
+        if (!desktopDropdown.contains(e.relatedTarget)) {
+          desktopDropdownBtn.setAttribute("aria-expanded", "false");
+        }
+      });
+
+      document.getElementById("statistikk-knapp").addEventListener("click", () => {
+        const undermeny = document.getElementById("statistikk-undermeny");
+        const knapp = document.getElementById("statistikk-knapp");
+        const open = undermeny.style.display !== "none";
+        undermeny.style.display = open ? "none" : "block";
+        knapp.setAttribute("aria-expanded", !open);
+        knapp.querySelector(".meny-chevron").textContent = open ? "▼" : "▲";
+      });
+    </script>
+  </body>
 </html>

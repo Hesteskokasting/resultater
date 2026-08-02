@@ -1,14 +1,14 @@
-import { getUser } from '@/services/authService'
-import { escHtml } from '@/utils/escHtml'
-import type { AuthUser } from '@/types'
+import { getUser } from "@/services/authService";
+import { escHtml } from "@/utils/escHtml";
+import type { AuthUser } from "@/types";
 
 export interface AdminLinkBarProps {
-  href: string
-  label: string
+  href: string;
+  label: string;
   /** 'warning' for edit links, 'success' for create links */
-  variant: 'warning' | 'success'
+  variant: "warning" | "success";
   /** Permission rule; called only when a profile is present */
-  canShow: (auth: AuthUser) => boolean
+  canShow: (auth: AuthUser) => boolean;
 }
 
 /**
@@ -19,11 +19,11 @@ export function prependAdminLinkBar(
   container: HTMLElement,
   { href, label, variant, canShow }: AdminLinkBarProps,
 ): void {
-  void getUser().then(auth => {
-    if (!auth?.profil || !canShow(auth)) return
-    const bar = document.createElement('div')
-    bar.className = 'mb-2 px-2'
-    bar.innerHTML = `<a href="${href}" class="btn btn-sm btn-${variant}">${escHtml(label)}</a>`
-    container.querySelector('.content-page')?.prepend(bar)
-  })
+  void getUser().then((auth) => {
+    if (!auth?.profil || !canShow(auth)) return;
+    const bar = document.createElement("div");
+    bar.className = "mb-2 px-2";
+    bar.innerHTML = `<a href="${href}" class="btn btn-sm btn-${variant}">${escHtml(label)}</a>`;
+    container.querySelector(".content-page")?.prepend(bar);
+  });
 }

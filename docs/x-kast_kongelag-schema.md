@@ -39,15 +39,15 @@ by Gloppen/NHM/Cup:
 
 ### 1.5 `resultat` columns — all confirmed, still accurate
 
-| Column | Type | Nullable | Status |
-|--------|------|----------|--------|
-| `poeng_xkast` | integer | YES | ✅ |
-| `antall_ring_xkast` | integer | YES | ✅ |
-| `poeng_kongelag` | integer | YES | ✅ |
-| `antall_ring_kongelag` | integer | YES | ✅ |
-| `kamp_poeng_innl` | **real** | YES | ✅ (note: `real`, not `integer`) |
-| `score_poeng_innl` | integer | YES | ✅ |
-| `startnummer` | integer | YES | ✅ |
+| Column                 | Type     | Nullable | Status                           |
+| ---------------------- | -------- | -------- | -------------------------------- |
+| `poeng_xkast`          | integer  | YES      | ✅                               |
+| `antall_ring_xkast`    | integer  | YES      | ✅                               |
+| `poeng_kongelag`       | integer  | YES      | ✅                               |
+| `antall_ring_kongelag` | integer  | YES      | ✅                               |
+| `kamp_poeng_innl`      | **real** | YES      | ✅ (note: `real`, not `integer`) |
+| `score_poeng_innl`     | integer  | YES      | ✅                               |
+| `startnummer`          | integer  | YES      | ✅                               |
 
 `kamp_poeng_innl` is `real` (0, 1, 1.5, 2 from win/draw/loss). For Gloppen/NHM → Kongelag carry-over: fractional value passes through directly without rounding. Not shown on the main scoreboard.
 
@@ -55,12 +55,12 @@ Unaffected by the table-structure decision — these remain the target of the X-
 
 ### 1.6 `kastemetode` rows — data fix already applied
 
-| id | navn | er_innledende | er_avsluttende | Action |
-|----|------|--------------|----------------|--------|
-| 23 | Minimatch | true | false | ✅ fixed |
-| 4 | Halvmatch | true | false | ✅ fixed |
-| 10 | Heilmatch | true | false | ✅ |
-| 6 | Kongelag | false | true | ✅ |
+| id  | navn      | er_innledende | er_avsluttende | Action   |
+| --- | --------- | ------------- | -------------- | -------- |
+| 23  | Minimatch | true          | false          | ✅ fixed |
+| 4   | Halvmatch | true          | false          | ✅ fixed |
+| 10  | Heilmatch | true          | false          | ✅       |
+| 6   | Kongelag  | false         | true           | ✅       |
 
 Minimatch and Halvmatch no longer expose themselves in the avsluttende kastemetode dropdown —
 this fix has already been applied. Independent of the table-structure decision.
@@ -241,6 +241,7 @@ ORDER BY display_total DESC, total_ringer DESC;
 ### 4.1 Write path — RPC required
 
 `resultat.poeng_xkast`, `antall_ring_xkast`, `poeng_kongelag`, `antall_ring_kongelag` have no triggers. Confirming a court's result (one `xkast_kongelag` row, N = 1–3 players) involves:
+
 1. Reading all `xkast_kongelag_omgang` rows for N players
 2. Writing aggregated totals to `resultat` (N rows)
 3. Writing `xkast_kongelag_deltaker.poeng` for each player (N rows)
@@ -249,6 +250,7 @@ ORDER BY display_total DESC, total_ringer DESC;
 This is a multi-step atomic write. Per CLAUDE.md, it must be an RPC (Postgres function), not sequential client queries.
 
 **Proposed RPC signature — one function, both formats:**
+
 ```sql
 -- Confirm one court (one xkast_kongelag row: 1–3 players for X-kast, 1 for Kongelag).
 -- Branches on the row's fase: 'innledende' → writes resultat.poeng_xkast/antall_ring_xkast,
@@ -271,6 +273,7 @@ For X-kast and Kongelag, `poeng` = `SUM(xkast_kongelag_omgang.poeng)` for that p
 Worth defining the data model now even though NM-Kongelag finale logic is deferred to its own separate plan (see Section 5). Unaffected by the table-structure decision.
 
 Proposed:
+
 ```sql
 -- Add to stevne:
 ALTER TABLE stevne ADD COLUMN forelderstevneid integer REFERENCES stevne(id);
@@ -308,6 +311,7 @@ just be artificial staging.
 **Apply the `xkast_kongelag`/`xkast_kongelag_deltaker`/`xkast_kongelag_omgang` migration first** (see [x-kast_kongelag-pulje-tables.md](x-kast_kongelag-pulje-tables.md) — additive only, no changes to Cup's tables).
 
 **Services:**
+
 - New `xkastService.ts` — creates `xkast_kongelag` row (`fase='innledende'`, `pulje=N`), `xkast_kongelag_deltaker` per player; reads/writes `xkast_kongelag_omgang`. Omgang count read from `kastemetode.antall_omganger` — no per-method branches.
 - New Postgres RPC `confirm_xkast_kongelag(p_xkast_kongelag_id)` — atomic aggregate + resultat write (shared with Phase 2 Kongelag, branches on `fase`)
 - RLS policies for the three new tables — public read for scoreboards, role-based writes mirroring the kamp tables' policies. Real work: the kamp tables took four dedicated RLS migrations; budget it into this phase.
@@ -315,6 +319,7 @@ just be artificial staging.
 - No changes needed to `kampGenereringCupService.ts` — Cup's `'A'`/`'B'` constraint on `kamp.gruppe_navn` is untouched, since `kamp` itself is untouched
 
 **Components:**
+
 - Score-input UI: `antall_omganger` omganger in runder of 5 (3/5/10 runder), 1–3 players on one bane (confirmed by the board — not a fixed pair). Aggregate entry per omgang: 0–20 poeng / 0–4 ringere (one omgang = 4 shoes). Reuse `ScoreNumberpad.ts`'s existing one-player-at-a-time mobile flow, generalized from a hardcoded pair to a 1–3 array.
 - X-kast scoreboard (query 3.1, tiebreaker in TypeScript, round breakdown r1/r2/… computed via `Math.ceil(omgang / 5)` — no schema support needed)
 - Pulje-assignment view: admin enters `stevne.tilgjengelige_baner` (available court capacity, not a raw pulje count); `xkastService.foreslaaPulje()` runs `fordelPuljer()` (see "Pulje sizing" in x-kast_kongelag-pulje-tables.md) to compute fair pulje sizes from the prior-year Norgescup ranking
@@ -330,6 +335,7 @@ just be artificial staging.
 **Services:** New `kongelagService.ts`; reuses the `confirm_xkast_kongelag` RPC from Phase 1 (branches on `fase='avsluttende'`).
 
 **Components:**
+
 - Score-input UI: 1 player × 10 omganger per `xkast_kongelag` entry, grouped by pulje
 - Kongelag scoreboard: `poeng_kongelag` → `antall_ring_kongelag` → best omgang (kongelag-only, no carry-over)
 
@@ -358,7 +364,7 @@ Complicated enough to need its own plan; deliberately not scheduled as a phase h
 ### Deferred — SNC (Seminasjonal Norgescup)
 
 **Correction:** an earlier revision of this doc marked SNC "resolved" — that was wrong.
-Only the *per-location scoring* is done: SNC uses X-kast and/or Kongelag, which Phases 1–4
+Only the _per-location scoring_ is done: SNC uses X-kast and/or Kongelag, which Phases 1–4
 cover. SNC itself is a distinct, unsolved problem — **one logical competition run
 simultaneously at multiple locations with multiple organizers**, whose results a national
 coordinator consolidates into a single national result (today a large manual job).

@@ -90,15 +90,15 @@ Stadfest med `gh auth status`. CLI-en vert brukt til issues og PR-ar frå termin
 
 ## Kommandoar
 
-| Kommando | Når du brukar det |
-|---|---|
-| `npm run dev` | Under utvikling — startar lokal Vite-dev-server med hot reload |
-| `npm run build` | For å sjekke at prod-bygget fungerer lokalt før du pushar |
-| `npm run preview` | Køyrer det ferdige `dist/`-bygget lokalt, nyttig for å teste prod-åtferd |
-| `npm run test` | Køyrer Vitest i watch-modus — re-køyrer testar ved kvar filendring |
-| `npm run test:run` | Eingongskøyring av alle testar — bruk dette før commit og i CI |
+| Kommando                 | Når du brukar det                                                                                       |
+| ------------------------ | ------------------------------------------------------------------------------------------------------- |
+| `npm run dev`            | Under utvikling — startar lokal Vite-dev-server med hot reload                                          |
+| `npm run build`          | For å sjekke at prod-bygget fungerer lokalt før du pushar                                               |
+| `npm run preview`        | Køyrer det ferdige `dist/`-bygget lokalt, nyttig for å teste prod-åtferd                                |
+| `npm run test`           | Køyrer Vitest i watch-modus — re-køyrer testar ved kvar filendring                                      |
+| `npm run test:run`       | Eingongskøyring av alle testar — bruk dette før commit og i CI                                          |
 | `npm run typecheck:test` | Typesjekkjer testfilene (Vitest brukar esbuild, ikkje tsc — dette er einaste typesjekkinga av `tests/`) |
-| `npm run test:db` | Køyrer pgTAP-integrasjonstestane mot lokal Supabase-stack (krev `npx supabase start` fyrst) |
+| `npm run test:db`        | Køyrer pgTAP-integrasjonstestane mot lokal Supabase-stack (krev `npx supabase start` fyrst)             |
 
 **Du treng ikkje køyre `build` eller `dev` før du pushar.** GitHub Actions byggjer automatisk når du pushar:
 
@@ -137,7 +137,7 @@ Integrasjonstestane verifiserer databaselaget: RLS-politikkar og `SECURITY DEFIN
    ```bash
    cd /mnt/d/repos/resultater
    ```
-   Bruk **ikkje** ein separat klone/kopi her. Du vil teste migrasjonar og RLS-endringar *før* du committar dei, og ein separat kopi ville kravd at du committa + pusha + pulla berre for å køyre ein lokal test — det gir ingen meining under aktiv utvikling. `/mnt/d/...` er noko tregare enn WSL sitt eige filsystem for filtunge operasjonar, men det merkast lite for `supabase start`/`test db`, og du slepp all synkronisering.
+   Bruk **ikkje** ein separat klone/kopi her. Du vil teste migrasjonar og RLS-endringar _før_ du committar dei, og ein separat kopi ville kravd at du committa + pusha + pulla berre for å køyre ein lokal test — det gir ingen meining under aktiv utvikling. `/mnt/d/...` er noko tregare enn WSL sitt eige filsystem for filtunge operasjonar, men det merkast lite for `supabase start`/`test db`, og du slepp all synkronisering.
 3. Installer Node (viss det ikkje finst frå før i WSL — Windows-installasjonen er ikkje synleg her):
    ```bash
    node -v   # viss denne feilar:
@@ -164,10 +164,10 @@ Køyr integrasjonstestane når du endrar migreringsfiler, RLS-politikkar eller `
 
 ## Branchar og deployment
 
-| Branch | Miljø | URL |
-|---|---|---|
-| `main` | Produksjon | `res.hesteskokasting.no` |
-| `dev` | Dev | `res.hesteskokasting.no/dev` |
+| Branch | Miljø      | URL                          |
+| ------ | ---------- | ---------------------------- |
+| `main` | Produksjon | `res.hesteskokasting.no`     |
+| `dev`  | Dev        | `res.hesteskokasting.no/dev` |
 
 Push til `main` triggar GitHub Actions-workflow som byggjer og deployer til GitHub Pages. **Produksjon krev manuell godkjenning** i GitHub → Environments → `github-pages`.
 
@@ -277,16 +277,19 @@ limit 5;
 Følgjande secrets må vere satt opp under **Settings → Environments**:
 
 **Environment: `github-pages` (prod)**
+
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
 - `VITE_GOOGLE_WEB_CLIENT_ID` — sjå [Android (Capacitor) → Google-innlogging i den native appen](#google-innlogging-i-den-native-appen). Trengst her sjølv om det berre brukast av Android-appen, sidan appen lastar denne same produksjonsbygningen.
 
 **Environment: `dev`**
+
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
 - `VITE_GOOGLE_WEB_CLIENT_ID` (same verdi som over, eller ein eigen dev-klient viss du vil skilje dei)
 
 Når du koplar inn Supabase-migrering i CI, trengst òg:
+
 - `SUPABASE_PROJECT_REF`
 - `SUPABASE_ACCESS_TOKEN` (frå supabase.com → Account → Access tokens)
 
@@ -404,12 +407,12 @@ Appen er òg pakka med [Capacitor](https://capacitorjs.com) for iOS. iOS-bygget 
 
 4. Legg til eit nytt GitHub Environment kalla `testflight` under **Settings → Environments**, og legg inn desse secrets:
 
-| Secret | Innhald |
-|---|---|
-| `APP_STORE_CONNECT_KEY_ID` | Key ID frå steg 3 |
-| `APP_STORE_CONNECT_ISSUER_ID` | Issuer ID frå steg 3 |
+| Secret                          | Innhald                                                      |
+| ------------------------------- | ------------------------------------------------------------ |
+| `APP_STORE_CONNECT_KEY_ID`      | Key ID frå steg 3                                            |
+| `APP_STORE_CONNECT_ISSUER_ID`   | Issuer ID frå steg 3                                         |
 | `APP_STORE_CONNECT_PRIVATE_KEY` | Innhald av `.p8`-fila (heile teksten, inkl. `-----BEGIN...`) |
-| `APPLE_TEAM_ID` | Team ID frå steg 3 |
+| `APPLE_TEAM_ID`                 | Team ID frå steg 3                                           |
 
 I tillegg treng `testflight`-miljøet dei same `VITE_*`-secrets som `github-pages`-miljøet — sjå [GitHub-konfigurasjon](#github-konfigurasjon).
 

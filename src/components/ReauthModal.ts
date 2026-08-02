@@ -1,18 +1,18 @@
-import { createModalEl, createModalLifecycle } from '@/components/ModalBase'
-import { signIn, getLastKnownEmail } from '@/services/authService'
-import { showToast } from '@/components/Toast'
+import { createModalEl, createModalLifecycle } from "@/components/ModalBase";
+import { signIn, getLastKnownEmail } from "@/services/authService";
+import { showToast } from "@/components/Toast";
 
-let _el: HTMLElement | null = null
-let _isOpen = false
-const _modal = createModalLifecycle()
+let _el: HTMLElement | null = null;
+let _isOpen = false;
+const _modal = createModalLifecycle();
 
 function getEl(): HTMLElement {
-  if (_el) return _el
+  if (_el) return _el;
 
   _el = createModalEl({
-    role: 'dialog',
-    labelledBy: 'reauth-title',
-    describedBy: 'reauth-message',
+    role: "dialog",
+    labelledBy: "reauth-title",
+    describedBy: "reauth-message",
     html: `
     <div class="modal-dialog modal-dialog-centered modal-sm">
       <div class="modal-content">
@@ -40,60 +40,66 @@ function getEl(): HTMLElement {
       </div>
     </div>
   `,
-  })
+  });
 
-  _el.querySelector('#reauth-cancel')!.addEventListener('click', () => { dismiss() })
-  _el.querySelector('#reauth-form')!.addEventListener('submit', (e) => {
-    e.preventDefault()
-    void handleSubmit()
-  })
-  return _el
+  _el.querySelector("#reauth-cancel")!.addEventListener("click", () => {
+    dismiss();
+  });
+  _el.querySelector("#reauth-form")!.addEventListener("submit", (e) => {
+    e.preventDefault();
+    void handleSubmit();
+  });
+  return _el;
 }
 
 async function handleSubmit(): Promise<void> {
-  if (!_el) return
-  const errorEl  = _el.querySelector<HTMLElement>('#reauth-error')!
-  const submitBtn = _el.querySelector<HTMLButtonElement>('#reauth-submit')!
-  const email    = _el.querySelector<HTMLInputElement>('#reauth-email')!.value.trim()
-  const password = _el.querySelector<HTMLInputElement>('#reauth-password')!.value
+  if (!_el) return;
+  const errorEl = _el.querySelector<HTMLElement>("#reauth-error")!;
+  const submitBtn = _el.querySelector<HTMLButtonElement>("#reauth-submit")!;
+  const email = _el.querySelector<HTMLInputElement>("#reauth-email")!.value.trim();
+  const password = _el.querySelector<HTMLInputElement>("#reauth-password")!.value;
 
-  errorEl.classList.add('d-none')
-  submitBtn.disabled = true
+  errorEl.classList.add("d-none");
+  submitBtn.disabled = true;
 
-  const { error } = await signIn(email, password)
+  const { error } = await signIn(email, password);
 
   if (error) {
-    errorEl.textContent = error.message === 'Invalid login credentials'
-      ? 'Feil e-post eller passord.'
-      : error.message
-    errorEl.classList.remove('d-none')
-    submitBtn.disabled = false
-    return
+    errorEl.textContent =
+      error.message === "Invalid login credentials" ? "Feil e-post eller passord." : error.message;
+    errorEl.classList.remove("d-none");
+    submitBtn.disabled = false;
+    return;
   }
 
-  submitBtn.disabled = false
-  close()
-  showToast('Du er logga inn igjen.', 'success')
+  submitBtn.disabled = false;
+  close();
+  showToast("Du er logga inn igjen.", "success");
 }
 
 /** Dismisses without re-authenticating (e.g. a logged-out viewer just browsing). */
 function dismiss(): void {
-  close()
+  close();
 }
 
 function close(): void {
-  if (!_el || !_isOpen) return
-  _isOpen = false
-  _el.querySelector<HTMLInputElement>('#reauth-password')!.value = ''
-  _el.querySelector<HTMLElement>('#reauth-error')!.classList.add('d-none')
-  _modal.close(_el)
+  if (!_el || !_isOpen) return;
+  _isOpen = false;
+  _el.querySelector<HTMLInputElement>("#reauth-password")!.value = "";
+  _el.querySelector<HTMLElement>("#reauth-error")!.classList.add("d-none");
+  _modal.close(_el);
 }
 
 /** Opens the in-place re-auth modal. Idempotent: a no-op while already open. */
 export function showReauthModal(): void {
-  if (_isOpen) return
-  const el = getEl()
-  el.querySelector<HTMLInputElement>('#reauth-email')!.value = getLastKnownEmail() ?? ''
-  _isOpen = true
-  _modal.open(el, { focus: '#reauth-password', onEscape: () => { dismiss() } })
+  if (_isOpen) return;
+  const el = getEl();
+  el.querySelector<HTMLInputElement>("#reauth-email")!.value = getLastKnownEmail() ?? "";
+  _isOpen = true;
+  _modal.open(el, {
+    focus: "#reauth-password",
+    onEscape: () => {
+      dismiss();
+    },
+  });
 }

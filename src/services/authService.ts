@@ -1,161 +1,176 @@
-import { Capacitor } from '@capacitor/core'
-import { supabase } from '@/supabase'
-import type { AuthUser, Profile, Role } from '@/types'
-import { getProfileForUser } from '@/services/brukerProfilService'
-import { getClubAdminClubsForUser } from '@/services/adminService'
-import { generateNonce } from '@/utils/nonce'
-import { syncPushLogin, syncPushLogout } from '@/services/pushNotificationService'
+import { Capacitor } from "@capacitor/core";
+import { supabase } from "@/supabase";
+import type { AuthUser, Profile, Role } from "@/types";
+import { getProfileForUser } from "@/services/brukerProfilService";
+import { getClubAdminClubsForUser } from "@/services/adminService";
+import { generateNonce } from "@/utils/nonce";
+import { syncPushLogin, syncPushLogout } from "@/services/pushNotificationService";
 
-const ROLES = ['admin', 'klubbadmin', 'bruker'] as const
+const ROLES = ["admin", "klubbadmin", "bruker"] as const;
 
 function isRole(value: unknown): value is Role {
-  return typeof value === 'string' && (ROLES as readonly string[]).includes(value)
+  return typeof value === "string" && (ROLES as readonly string[]).includes(value);
 }
 
 function mapToProfile(obj: unknown): Profile | null {
-  if (obj === null || typeof obj !== 'object') return null
-  const raw = obj as Record<string, unknown>
-  if (!isRole(raw.rolle)) return null
+  if (obj === null || typeof obj !== "object") return null;
+  const raw = obj as Record<string, unknown>;
+  if (!isRole(raw.rolle)) return null;
   return {
     role: raw.rolle,
-    kasterid: typeof raw.kasterid === 'number' ? raw.kasterid : null,
-    kobling_status: typeof raw.kobling_status === 'string' ? raw.kobling_status as Profile['kobling_status'] : null,
-    kobling_kasterid: typeof raw.kobling_kasterid === 'number' ? raw.kobling_kasterid : null,
-  }
+    kasterid: typeof raw.kasterid === "number" ? raw.kasterid : null,
+    kobling_status:
+      typeof raw.kobling_status === "string"
+        ? (raw.kobling_status as Profile["kobling_status"])
+        : null,
+    kobling_kasterid: typeof raw.kobling_kasterid === "number" ? raw.kobling_kasterid : null,
+  };
 }
 
 // Cache per sesjon. Tømt ved SIGNED_OUT / ny innlogging.
-let _cache: AuthUser | null = null
-let _inflight: Promise<AuthUser | null> | null = null
-let _intentionalSignOut = false
+let _cache: AuthUser | null = null;
+let _inflight: Promise<AuthUser | null> | null = null;
+let _intentionalSignOut = false;
 // Track whether an authenticated session is currently active, so the UI can tell
 // "session expired" (auth → unauth) apart from restoring a dead token on load.
-let _hasActiveSession = false
+let _hasActiveSession = false;
 // Survives cache clearing on SIGNED_OUT so the re-auth modal can pre-fill the email.
-let _lastKnownEmail: string | null = null
+let _lastKnownEmail: string | null = null;
 
 async function _fetchUser(): Promise<AuthUser | null> {
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) return null
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (!session) return null;
 
-  const { data: profilRow } = await getProfileForUser(session.user.id)
+  const { data: profilRow } = await getProfileForUser(session.user.id);
 
-  let clubs: number[] = []
-  if (profilRow?.rolle === 'klubbadmin') {
-    const { data: clubIds } = await getClubAdminClubsForUser(session.user.id)
-    clubs = clubIds
+  let clubs: number[] = [];
+  if (profilRow?.rolle === "klubbadmin") {
+    const { data: clubIds } = await getClubAdminClubsForUser(session.user.id);
+    clubs = clubIds;
   }
 
-  _lastKnownEmail = session.user.email ?? _lastKnownEmail
-  _cache = { user: session.user, profil: mapToProfile(profilRow), clubs }
-  return _cache
+  _lastKnownEmail = session.user.email ?? _lastKnownEmail;
+  _cache = { user: session.user, profil: mapToProfile(profilRow), clubs };
+  return _cache;
 }
 
 export function getLastKnownEmail(): string | null {
-  return _lastKnownEmail
+  return _lastKnownEmail;
 }
 
 async function _fetchCache(): Promise<AuthUser | null> {
-  if (_cache) return _cache
-  if (_inflight) return _inflight
-  _inflight = _fetchUser().finally(() => { _inflight = null })
-  return _inflight
+  if (_cache) return _cache;
+  if (_inflight) return _inflight;
+  _inflight = _fetchUser().finally(() => {
+    _inflight = null;
+  });
+  return _inflight;
 }
 
 export async function getUser(): Promise<AuthUser | null> {
-  return _fetchCache()
+  return _fetchCache();
 }
 
 /** Drop the cached user so the next getUser() refetches the profile (e.g. after kobling_status changes). */
 export function invalidateUserCache(): void {
-  _cache = null
+  _cache = null;
 }
 
 async function getRole(): Promise<Role | null> {
-  const auth = await _fetchCache()
-  return auth?.profil?.role ?? null
+  const auth = await _fetchCache();
+  return auth?.profil?.role ?? null;
 }
 
 export async function isAdmin(): Promise<boolean> {
-  return (await getRole()) === 'admin'
+  return (await getRole()) === "admin";
 }
 
 export async function isClubAdmin(clubId: number | string | null = null): Promise<boolean> {
-  const auth = await _fetchCache()
-  if (!auth || auth.profil?.role !== 'klubbadmin') return false
-  if (clubId === null) return true
-  return auth.clubs.includes(Number(clubId))
+  const auth = await _fetchCache();
+  if (!auth || auth.profil?.role !== "klubbadmin") return false;
+  if (clubId === null) return true;
+  return auth.clubs.includes(Number(clubId));
 }
 
 export async function signOut(): Promise<void> {
-  _intentionalSignOut = true
-  _cache = null
-  await supabase.auth.signOut()
+  _intentionalSignOut = true;
+  _cache = null;
+  await supabase.auth.signOut();
 }
 
 export async function signIn(email: string, password: string) {
-  return supabase.auth.signInWithPassword({ email, password })
+  return supabase.auth.signInWithPassword({ email, password });
 }
 
-export const GOOGLE_SIGN_IN_PENDING_KEY = 'googleSignInPending'
+export const GOOGLE_SIGN_IN_PENDING_KEY = "googleSignInPending";
 
 // Google blocks its OAuth consent screen from loading inside a WebView (error
 // "disallowed_useragent"), so the Capacitor app can't use the browser-redirect
 // flow below. Native sign-in goes through the OS account sheet instead and
 // resolves a session directly — no redirect, so callers must navigate themselves
 // on success rather than relying on GOOGLE_SIGN_IN_PENDING_KEY.
-async function signInWithProviderNative(provider: 'google' | 'apple'): Promise<{ error: { message: string } | null }> {
+async function signInWithProviderNative(
+  provider: "google" | "apple",
+): Promise<{ error: { message: string } | null }> {
   // Everything lives inside the try: initialize() throws on missing/invalid client
   // config, and an unhandled rejection here would leave the login button silently
   // disabled with no toast.
   try {
-    const { SocialLogin } = await import('@capgo/capacitor-social-login')
-    const { rawNonce, nonceDigest } = await generateNonce()
+    const { SocialLogin } = await import("@capgo/capacitor-social-login");
+    const { rawNonce, nonceDigest } = await generateNonce();
 
     await SocialLogin.initialize({
       google: {
         webClientId: import.meta.env.VITE_GOOGLE_WEB_CLIENT_ID,
         iOSClientId: import.meta.env.VITE_GOOGLE_IOS_CLIENT_ID,
-        mode: 'online',
+        mode: "online",
       },
       apple: {},
-    })
+    });
 
-    let idToken: string | null
-    if (provider === 'google') {
+    let idToken: string | null;
+    if (provider === "google") {
       const response = await SocialLogin.login({
-        provider: 'google',
+        provider: "google",
         // 'bottom' (GetGoogleIdOption) avoids a known Android Credential Manager race
         // where the default 'standard' full-screen chooser spuriously throws
         // GetCredentialCancellationException right after the user taps an account.
-        options: { style: 'bottom', scopes: ['email', 'profile'], nonce: nonceDigest },
-      })
-      idToken = response.result.responseType === 'online' ? (response.result.idToken ?? null) : null
+        options: { style: "bottom", scopes: ["email", "profile"], nonce: nonceDigest },
+      });
+      idToken =
+        response.result.responseType === "online" ? (response.result.idToken ?? null) : null;
     } else {
       const response = await SocialLogin.login({
-        provider: 'apple',
-        options: { scopes: ['email', 'name'], nonce: nonceDigest },
-      })
-      idToken = response.result.idToken ?? null
+        provider: "apple",
+        options: { scopes: ["email", "name"], nonce: nonceDigest },
+      });
+      idToken = response.result.idToken ?? null;
     }
 
     if (!idToken) {
-      return { error: { message: `Fekk ikkje innloggingstoken frå ${provider === 'google' ? 'Google' : 'Apple'}.` } }
+      return {
+        error: {
+          message: `Fekk ikkje innloggingstoken frå ${provider === "google" ? "Google" : "Apple"}.`,
+        },
+      };
     }
 
-    return supabase.auth.signInWithIdToken({ provider, token: idToken, nonce: rawNonce })
+    return supabase.auth.signInWithIdToken({ provider, token: idToken, nonce: rawNonce });
   } catch (err) {
-    if (err instanceof Error && 'code' in err && err.code === 'USER_CANCELLED') return { error: null }
-    return { error: { message: err instanceof Error ? err.message : 'Innlogginga feila.' } }
+    if (err instanceof Error && "code" in err && err.code === "USER_CANCELLED")
+      return { error: null };
+    return { error: { message: err instanceof Error ? err.message : "Innlogginga feila." } };
   }
 }
 
 export async function signInWithGoogle(redirect?: string) {
-  if (Capacitor.isNativePlatform()) return signInWithProviderNative('google')
+  if (Capacitor.isNativePlatform()) return signInWithProviderNative("google");
 
-  const target = `${window.location.origin}${window.location.pathname}#/logginn${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ''}`
-  sessionStorage.setItem(GOOGLE_SIGN_IN_PENDING_KEY, '1')
-  return supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: target } })
+  const target = `${window.location.origin}${window.location.pathname}#/logginn${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ""}`;
+  sessionStorage.setItem(GOOGLE_SIGN_IN_PENDING_KEY, "1");
+  return supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: target } });
 }
 
 // iOS-native only (App Store guideline 4.8 requires Apple sign-in alongside
@@ -163,47 +178,55 @@ export async function signInWithGoogle(redirect?: string) {
 // client secret that expires every 6 months, so the login page only renders the
 // Apple button on iOS.
 export async function signInWithApple(): Promise<{ error: { message: string } | null }> {
-  return signInWithProviderNative('apple')
+  return signInWithProviderNative("apple");
 }
 
 export async function signUp(email: string, password: string) {
-  return supabase.auth.signUp({ email, password })
+  return supabase.auth.signUp({ email, password });
 }
 
 export async function updatePassword(newPassword: string) {
-  return supabase.auth.updateUser({ password: newPassword })
+  return supabase.auth.updateUser({ password: newPassword });
 }
 
 // Abonner på auth-endringar. Tømer cache og sender DOM-event.
 supabase.auth.onAuthStateChange((event, session) => {
-  if (event === 'SIGNED_OUT') {
-    _cache = null
-    _inflight = null
+  if (event === "SIGNED_OUT") {
+    _cache = null;
+    _inflight = null;
     // SIGNED_IN: no cache clear needed — before real login _cache is already null (cleared by signOut());
     // for session restore on page load, the cache is valid and clearing it causes a redundant DB fetch.
-    syncPushLogout()
+    syncPushLogout();
   }
-  if (session && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION' || event === 'USER_UPDATED')) {
-    _hasActiveSession = true
-    syncPushLogin(session.user.id)
+  if (
+    session &&
+    (event === "SIGNED_IN" ||
+      event === "TOKEN_REFRESHED" ||
+      event === "INITIAL_SESSION" ||
+      event === "USER_UPDATED")
+  ) {
+    _hasActiveSession = true;
+    syncPushLogin(session.user.id);
   }
-  const intentional = _intentionalSignOut
+  const intentional = _intentionalSignOut;
   // Captured before reset: true only when an authenticated session was actually live.
   // On a SIGNED_OUT this also de-dupes — the reset means a second failed-refresh
   // SIGNED_OUT reports hadSession=false, so the "session expired" toast fires once.
-  const hadSession = _hasActiveSession
-  if (event === 'SIGNED_OUT') {
-    _intentionalSignOut = false
-    _hasActiveSession = false
+  const hadSession = _hasActiveSession;
+  if (event === "SIGNED_OUT") {
+    _intentionalSignOut = false;
+    _hasActiveSession = false;
     if (!intentional && hadSession) {
       // Log context to help diagnose unexpected sign-outs (token refresh failure, multi-tab, etc.)
-      console.warn('[auth] Unexpected SIGNED_OUT event', {
+      console.warn("[auth] Unexpected SIGNED_OUT event", {
         hadSession: session !== null,
         hadCache: _cache !== null,
         userAgent: navigator.userAgent,
         url: window.location.href,
-      })
+      });
     }
   }
-  document.dispatchEvent(new CustomEvent('authStateChanged', { detail: { event, intentional, hadSession } }))
-})
+  document.dispatchEvent(
+    new CustomEvent("authStateChanged", { detail: { event, intentional, hadSession } }),
+  );
+});

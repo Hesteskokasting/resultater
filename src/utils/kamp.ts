@@ -1,28 +1,28 @@
 export interface PlayerScore {
-  score_poeng?: number | null
-  omgangar?: { score?: number | null }[] | null
+  score_poeng?: number | null;
+  omgangar?: { score?: number | null }[] | null;
 }
 
 export interface PlayerRings {
-  antall_ringer?: number | null
-  omgangar?: { antall_ringer?: number | null }[] | null
+  antall_ringer?: number | null;
+  omgangar?: { antall_ringer?: number | null }[] | null;
 }
 
 export interface PlayerWithThrowerId {
-  kasterid: number
+  kasterid: number;
 }
 
 export function calcMatchPoints(s1: number, s2: number): [number, number] {
-  if (s1 === s2) return [1.5, 1.5]
-  if (s1 > s2) return [2, s2 >= 11 ? 1 : 0]
-  return [s1 >= 11 ? 1 : 0, 2]
+  if (s1 === s2) return [1.5, 1.5];
+  if (s1 > s2) return [2, s2 >= 11 ? 1 : 0];
+  return [s1 >= 11 ? 1 : 0, 2];
 }
 
 export interface MatchSide<T> {
   /** Representative row (posisjon 1) — carries the side's score and omgangar. */
-  rep: T
+  rep: T;
   /** 1 member for Singel, 2 for Par/Mix, ordered by posisjon. */
-  members: T[]
+  members: T[];
 }
 
 /**
@@ -36,24 +36,27 @@ export function getAllMatchSides<T extends PlayerWithThrowerId>(
   startnrMap: Record<number, number>,
   posisjonMap: Record<number, number> = {},
 ): MatchSide<T>[] {
-  const groups = new Map<number | string, T[]>()
+  const groups = new Map<number | string, T[]>();
   for (const sp of spelarar ?? []) {
-    const key = startnrMap[sp.kasterid] ?? `kaster-${sp.kasterid}`
-    const members = groups.get(key) ?? []
-    members.push(sp)
-    groups.set(key, members)
+    const key = startnrMap[sp.kasterid] ?? `kaster-${sp.kasterid}`;
+    const members = groups.get(key) ?? [];
+    members.push(sp);
+    groups.set(key, members);
   }
 
   return [...groups.entries()]
-    .sort(([a], [b]) => (typeof a === 'number' ? a : Infinity) - (typeof b === 'number' ? b : Infinity))
+    .sort(
+      ([a], [b]) => (typeof a === "number" ? a : Infinity) - (typeof b === "number" ? b : Infinity),
+    )
     .map(([, members]) => {
-      members.sort((x, y) =>
-        (posisjonMap[x.kasterid] ?? Infinity) - (posisjonMap[y.kasterid] ?? Infinity)
-        || x.kasterid - y.kasterid,
-      )
+      members.sort(
+        (x, y) =>
+          (posisjonMap[x.kasterid] ?? Infinity) - (posisjonMap[y.kasterid] ?? Infinity) ||
+          x.kasterid - y.kasterid,
+      );
       // groups entries are created non-empty (push on insert), so members[0] always exists
-      return { rep: members[0]!, members }
-    })
+      return { rep: members[0]!, members };
+    });
 }
 
 /** Two-sided convenience wrapper around getAllMatchSides. */
@@ -62,8 +65,8 @@ export function getMatchSides<T extends PlayerWithThrowerId>(
   startnrMap: Record<number, number>,
   posisjonMap: Record<number, number> = {},
 ): [MatchSide<T> | null, MatchSide<T> | null] {
-  const sides = getAllMatchSides(spelarar, startnrMap, posisjonMap)
-  return [sides[0] ?? null, sides[1] ?? null]
+  const sides = getAllMatchSides(spelarar, startnrMap, posisjonMap);
+  return [sides[0] ?? null, sides[1] ?? null];
 }
 
 /**
@@ -72,20 +75,20 @@ export function getMatchSides<T extends PlayerWithThrowerId>(
  * (round-robin, so it generalizes to N members). Singel: always the player.
  */
 export function getOmgangThrowerId(sideSpelarIds: number[], omgang: number): number | null {
-  if (!sideSpelarIds.length) return null
-  return sideSpelarIds[(omgang - 1) % sideSpelarIds.length] ?? null
+  if (!sideSpelarIds.length) return null;
+  return sideSpelarIds[(omgang - 1) % sideSpelarIds.length] ?? null;
 }
 
 /** 0-based index of the side that starts a given omgang (2 omgangar per side). */
 export function getOmgangStarterIndex(omgang: number, numSides: number): number {
-  return Math.floor((omgang - 1) / 2) % numSides
+  return Math.floor((omgang - 1) / 2) % numSides;
 }
 
 export interface PairableStandingRow {
-  kasterid: number
-  navn?: string | null
-  startnummer?: number | null
-  score_poeng?: number | null
+  kasterid: number;
+  navn?: string | null;
+  startnummer?: number | null;
+  score_poeng?: number | null;
 }
 
 /**
@@ -98,39 +101,40 @@ export function groupStandingsByPair<T extends PairableStandingRow>(
   rows: T[],
   posisjonMap: Record<number, number> = {},
 ): T[] {
-  const groups = new Map<number | string, T[]>()
+  const groups = new Map<number | string, T[]>();
   for (const row of rows) {
-    const key = row.startnummer ?? `kaster-${row.kasterid}`
-    const members = groups.get(key) ?? []
-    members.push(row)
-    groups.set(key, members)
+    const key = row.startnummer ?? `kaster-${row.kasterid}`;
+    const members = groups.get(key) ?? [];
+    members.push(row);
+    groups.set(key, members);
   }
 
-  return [...groups.values()].map(members => {
+  return [...groups.values()].map((members) => {
     // groups entries are created non-empty (push on insert), so members[0] always exists
-    if (members.length === 1) return members[0]!
-    members.sort((a, b) =>
-      (posisjonMap[a.kasterid] ?? Infinity) - (posisjonMap[b.kasterid] ?? Infinity)
-      || a.kasterid - b.kasterid,
-    )
+    if (members.length === 1) return members[0]!;
+    members.sort(
+      (a, b) =>
+        (posisjonMap[a.kasterid] ?? Infinity) - (posisjonMap[b.kasterid] ?? Infinity) ||
+        a.kasterid - b.kasterid,
+    );
     return {
       ...members[0]!,
-      navn: members.map(m => m.navn ?? `Spelar ${m.kasterid}`).join(' / '),
+      navn: members.map((m) => m.navn ?? `Spelar ${m.kasterid}`).join(" / "),
       score_poeng: members.reduce((sum, m) => sum + (m.score_poeng ?? 0), 0),
-    }
-  })
+    };
+  });
 }
 
 export function scoreForPlayer(sp: PlayerScore | null | undefined): number {
-  if (sp?.omgangar?.length) return sp.omgangar.reduce((sum, o) => sum + (o.score ?? 0), 0)
-  return sp?.score_poeng ?? 0
+  if (sp?.omgangar?.length) return sp.omgangar.reduce((sum, o) => sum + (o.score ?? 0), 0);
+  return sp?.score_poeng ?? 0;
 }
 
 export function ringsForPlayer(sp: PlayerRings | null | undefined): number {
-  if (sp?.omgangar?.length) return sp.omgangar.reduce((sum, o) => sum + (o.antall_ringer ?? 0), 0)
-  return sp?.antall_ringer ?? 0
+  if (sp?.omgangar?.length) return sp.omgangar.reduce((sum, o) => sum + (o.antall_ringer ?? 0), 0);
+  return sp?.antall_ringer ?? 0;
 }
 
 export function calcRingCount(score: number): number {
-  return score === 6 ? 2 : (score === 3 || score === 4) ? 1 : 0
+  return score === 6 ? 2 : score === 3 || score === 4 ? 1 : 0;
 }

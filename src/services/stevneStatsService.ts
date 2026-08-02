@@ -1,8 +1,8 @@
-import type { QueryData } from '@supabase/supabase-js'
-import { supabase } from '@/supabase'
-import { logError } from '@/utils/logError'
+import type { QueryData } from "@supabase/supabase-js";
+import { supabase } from "@/supabase";
+import { logError } from "@/utils/logError";
 
-const _statsQuery = supabase.from('kamp').select(`
+const _statsQuery = supabase.from("kamp").select(`
   id,
   er_walkover,
   er_tre_spelarar,
@@ -13,15 +13,15 @@ const _statsQuery = supabase.from('kamp').select(`
     omgangar:kamp_omgang(score, antall_ringer),
     kaster:kasterid(id, fornavn, etternavn)
   )
-`)
+`);
 
-export type StatsMatchRow = QueryData<typeof _statsQuery>[number]
+export type StatsMatchRow = QueryData<typeof _statsQuery>[number];
 
 export async function getMatchesForStats(
   stevneId: number,
 ): Promise<{ data: StatsMatchRow[]; error: unknown }> {
   const { data, error } = await supabase
-    .from('kamp')
+    .from("kamp")
     .select(`
       id,
       er_walkover,
@@ -34,11 +34,11 @@ export async function getMatchesForStats(
         kaster:kasterid(id, fornavn, etternavn)
       )
     `)
-    .eq('stevneid', stevneId)
-    .eq('er_bekreftet', true)
-    .eq('er_walkover', false)
-  if (error) logError('getMatchesForStats', error)
-  return { data: data ?? [], error }
+    .eq("stevneid", stevneId)
+    .eq("er_bekreftet", true)
+    .eq("er_walkover", false);
+  if (error) logError("getMatchesForStats", error);
+  return { data: data ?? [], error };
 }
 
 /**
@@ -48,13 +48,13 @@ export async function getMatchesForStats(
  */
 export async function getPositionForTournament(stevneId: number): Promise<Map<number, number>> {
   const { data, error } = await supabase
-    .from('resultat')
-    .select('kasterid, posisjon')
-    .eq('stevneid', stevneId)
-  if (error) logError('getPositionForTournament', error)
-  const map = new Map<number, number>()
+    .from("resultat")
+    .select("kasterid, posisjon")
+    .eq("stevneid", stevneId);
+  if (error) logError("getPositionForTournament", error);
+  const map = new Map<number, number>();
   for (const r of data ?? []) {
-    if (r.kasterid != null && r.posisjon != null) map.set(r.kasterid, r.posisjon)
+    if (r.kasterid != null && r.posisjon != null) map.set(r.kasterid, r.posisjon);
   }
-  return map
+  return map;
 }

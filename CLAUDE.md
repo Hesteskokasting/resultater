@@ -6,7 +6,7 @@
 
 ## Critical Thinking
 
-Don't blindly accept proposals. Challenge ideas when there's a flaw, simpler alternative, or rule violation — *before* writing code. Suggest alternatives as: "You proposed X. Y trades off A for B. I'd recommend Y because…" Flag technical debt you notice. Disagree directly and without apology.
+Don't blindly accept proposals. Challenge ideas when there's a flaw, simpler alternative, or rule violation — _before_ writing code. Suggest alternatives as: "You proposed X. Y trades off A for B. I'd recommend Y because…" Flag technical debt you notice. Disagree directly and without apology.
 
 ---
 
@@ -19,7 +19,7 @@ Don't blindly accept proposals. Challenge ideas when there's a flaw, simpler alt
 - Use Supabase's generated types (`Database` from `supabase gen types`) as the source of truth. Don't hand-write types that duplicate the schema.
 - Prefer `type` for unions and simple shapes, `interface` for objects that may be extended.
 - `strict: true` in `tsconfig.json` — always on.
-- Run `npm run typecheck` before considering work done. Vite does not type-check. When tests are involved, run all three checks — see **Unit Testing** below.
+- Run `vp run typecheck` before considering work done. Vite does not type-check. When tests are involved, run all three checks — see **Unit Testing** below.
 
 ---
 
@@ -56,7 +56,7 @@ Don't blindly accept proposals. Challenge ideas when there's a flaw, simpler alt
 ## State / DOM Boundary
 
 - **State lives in an explicit JS object. The DOM is only ever a rendering of it, never a source of truth.**
-- Forbidden: reading `classList`, `dataset`, `scrollTop`, or any other DOM property to *decide* application logic. DOM inspection is allowed only for styling/measurement, never for control flow.
+- Forbidden: reading `classList`, `dataset`, `scrollTop`, or any other DOM property to _decide_ application logic. DOM inspection is allowed only for styling/measurement, never for control flow.
 - Each view/module owns one typed state object and exposes mutator functions (`setActiveTab()`, `updateScore()`, etc.) — never a raw exported mutable object, never mutation from outside its own module.
 - `render(state)` is a pure function of state and is the only thing allowed to write to that view's DOM. Every mutator updates state, then calls `render()`. Nothing re-renders any other way (no ad-hoc `innerHTML` writes, no re-reading old DOM to preserve UI state across a redraw — if it needs to survive a re-render, it belongs in state, not in the DOM).
 - Every subscription (realtime channel, listener, interval, etc.) has a matching `dispose()`, called from the owning view's `unmount()`. No exceptions for "only one instance."
@@ -65,17 +65,17 @@ Don't blindly accept proposals. Challenge ideas when there's a flaw, simpler alt
 
 ### Existing components — always reuse, never recreate
 
-| Use case | Import |
-|---|---|
-| Loading state | `createLoadingState()` — `@/components/LoadingState` |
-| Error banner | `createErrorBanner()` — `@/components/ErrorBanner` |
-| Empty state | `createEmptyState()` — `@/components/EmptyState` |
-| Toast notification | `showToast()` — `@/components/Toast` |
-| Confirm dialog | `confirmDialog()` — `@/components/ConfirmDialog` |
-| Prompt dialog | `promptDialog()` — `@/components/PromptDialog` |
-| Table | `createTable()` — `@/components/Table` |
-| Tab panels | `createTabs()` — `@/components/Tabs` |
-| Expandable rows | `bindExpandableRows()` — `@/utils/expandableRows` |
+| Use case           | Import                                               |
+| ------------------ | ---------------------------------------------------- |
+| Loading state      | `createLoadingState()` — `@/components/LoadingState` |
+| Error banner       | `createErrorBanner()` — `@/components/ErrorBanner`   |
+| Empty state        | `createEmptyState()` — `@/components/EmptyState`     |
+| Toast notification | `showToast()` — `@/components/Toast`                 |
+| Confirm dialog     | `confirmDialog()` — `@/components/ConfirmDialog`     |
+| Prompt dialog      | `promptDialog()` — `@/components/PromptDialog`       |
+| Table              | `createTable()` — `@/components/Table`               |
+| Tab panels         | `createTabs()` — `@/components/Tabs`                 |
+| Expandable rows    | `bindExpandableRows()` — `@/utils/expandableRows`    |
 
 **Never use `alert()`, `confirm()`, or `prompt()`.** Use the dialog/toast components above.
 
@@ -161,7 +161,7 @@ Don't blindly accept proposals. Challenge ideas when there's a flaw, simpler alt
 - **Layout classes before `await`** — Any class that changes page layout (e.g. `sb-fullskjerm-modus`) must be set synchronously before the first `await`. Deferring causes CLS.
 - **New routes use `lazy()`** — In `app.ts`, wrap new page imports with `lazy(() => import('./pages/...'))`. `renderHome` is the only eager page (it's the LCP route). A new landing/LCP route must stay eager too — otherwise lazy.
 - **Heavy libraries use dynamic import** — Optional libraries > ~100 kB use `await import(...)` inside the function that needs them (`xlsx`, `chart.js` done). Never add a static top-level import for one.
-- **Never benchmark on `npm run dev`** — Unminified, unoptimized. Use `npm run build && npm run preview` and run Lighthouse against the preview URL.
+- **Never benchmark on `vp dev`** — Unminified, unoptimized. Use `vp build && vp preview` and run Lighthouse against the preview URL.
 
 ---
 
@@ -203,7 +203,7 @@ Don't blindly accept proposals. Challenge ideas when there's a flaw, simpler alt
 - Tests live in `tests/*.test.ts`. Framework: Vitest with happy-dom. Config: `vite.config.js` (test block) + `tsconfig.test.json`.
 - **Three-command check before considering any work done:**
   ```
-  npm run typecheck && npm run typecheck:test && npm run test:run
+  vp run typecheck && vp run typecheck:test && vp run test:run
   ```
   Vitest transpiles with esbuild and does NOT type-check. `typecheck:test` is the only thing that catches type errors in test files.
 - **Only test pure functions.** Never write a test that calls `supabase` directly.
@@ -244,3 +244,20 @@ Ask before: large structural changes, adding dependencies, deleting files.
 Always use `@/` for imports: `import { foo } from '@/services/fooService'`. Never use relative `../../` paths.
 
 ---
+
+<!--VITE PLUS START-->
+
+# Using Vite+, the Unified Toolchain for the Web
+
+This project is using Vite+, a unified toolchain built on top of Vite, Rolldown, Vitest, tsdown, Oxlint, Oxfmt, and Vite Task. Vite+ wraps runtime management, package management, and frontend tooling in a single global CLI called `vp`. Vite+ is distinct from Vite, and it invokes Vite through `vp dev` and `vp build`. Run `vp help` to print a list of commands and `vp <command> --help` for information about a specific command.
+
+Docs are local at `node_modules/vite-plus/docs` or online at https://viteplus.dev/guide/.
+
+## Review Checklist
+
+- [ ] Run `vp install` after pulling remote changes and before getting started.
+- [ ] Run `vp check` and `vp test` to format, lint, type check and test changes.
+- [ ] Check if there are `vite.config.ts` tasks or `package.json` scripts necessary for validation, run via `vp run <script>`.
+- [ ] If setup, runtime, or package-manager behavior looks wrong, run `vp env doctor` and include its output when asking for help.
+
+<!--VITE PLUS END-->

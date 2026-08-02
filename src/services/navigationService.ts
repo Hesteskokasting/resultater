@@ -1,4 +1,4 @@
-import { Capacitor } from '@capacitor/core'
+import { Capacitor } from "@capacitor/core";
 
 /**
  * Open an internal route in a new browser tab on web. The native app's WebView
@@ -7,13 +7,13 @@ import { Capacitor } from '@capacitor/core'
  */
 export function openInNewTab(url: string): void {
   if (Capacitor.isNativePlatform()) {
-    location.href = url
-    return
+    location.href = url;
+    return;
   }
-  window.open(url, '_blank')
+  window.open(url, "_blank");
 }
 
 /** Anchor attributes matching openInNewTab: new tab on web, in-place navigation natively. */
 export function newTabAnchorAttrs(): string {
-  return Capacitor.isNativePlatform() ? '' : ' target="_blank" rel="noopener"'
+  return Capacitor.isNativePlatform() ? "" : ' target="_blank" rel="noopener"';
 }

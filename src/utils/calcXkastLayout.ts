@@ -1,7 +1,7 @@
-import { calcPuljeSizes } from '@/utils/calcPuljeSizes'
-import { calcXkastCourtSizes } from '@/utils/calcXkastCourtSizes'
+import { calcPuljeSizes } from "@/utils/calcPuljeSizes";
+import { calcXkastCourtSizes } from "@/utils/calcXkastCourtSizes";
 
-const MAX_PLAYERS_PER_COURT = 3
+const MAX_PLAYERS_PER_COURT = 3;
 
 /**
  * Full X-kast court layout: one array of court sizes per pulje.
@@ -14,16 +14,16 @@ const MAX_PLAYERS_PER_COURT = 3
  */
 export function calcXkastLayout(participantCount: number, lanes: number | null): number[][] {
   if (lanes == null) {
-    const sizes = calcXkastCourtSizes(participantCount, false)
-    return sizes.length ? [sizes] : []
+    const sizes = calcXkastCourtSizes(participantCount, false);
+    return sizes.length ? [sizes] : [];
   }
   if (!Number.isInteger(lanes) || lanes < 1) {
-    throw new Error(`lanes must be a positive integer, got ${lanes}`)
+    throw new Error(`lanes must be a positive integer, got ${lanes}`);
   }
 
-  return calcPuljeSizes(participantCount, lanes * MAX_PLAYERS_PER_COURT).map(puljeSize =>
+  return calcPuljeSizes(participantCount, lanes * MAX_PLAYERS_PER_COURT).map((puljeSize) =>
     puljeSize <= lanes * 2
       ? calcXkastCourtSizes(puljeSize, true)
       : calcPuljeSizes(puljeSize, MAX_PLAYERS_PER_COURT),
-  )
+  );
 }

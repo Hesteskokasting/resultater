@@ -18,84 +18,104 @@
 // an InnledendeVariant and exports `createInnledendeRenderer(variant)`.
 // See gloppen.ts (no-Swiss) and nordhordland.ts (Swiss) for examples.
 //
-import { showScoreEditor } from '@/organizer/scoreEditor'
-import { showToast } from '@/components/Toast'
-import { confirmDialog } from '@/components/ConfirmDialog'
-import { getMatchSides, groupStandingsByPair, scoreForPlayer, type MatchSide } from '@/utils/kamp'
-import { autoCompleteInitialRoundMatches } from '@/services/testDataService'
+import { showScoreEditor } from "@/organizer/scoreEditor";
+import { showToast } from "@/components/Toast";
+import { confirmDialog } from "@/components/ConfirmDialog";
+import { getMatchSides, groupStandingsByPair, scoreForPlayer, type MatchSide } from "@/utils/kamp";
+import { autoCompleteInitialRoundMatches } from "@/services/testDataService";
 import {
-  buildInitialPlayerMap, sortStandings, renderInitialButtons, createChangeHandler,
-  bindStandingDetails, renderMainContent, bindTabToggle, getActiveTab, setActiveTab, renderStandingTable, canConfirmMatch,
-  sideNameHtml, bindScoreboardClicks,
+  buildInitialPlayerMap,
+  sortStandings,
+  renderInitialButtons,
+  createChangeHandler,
+  bindStandingDetails,
+  renderMainContent,
+  bindTabToggle,
+  getActiveTab,
+  setActiveTab,
+  renderStandingTable,
+  canConfirmMatch,
+  sideNameHtml,
+  bindScoreboardClicks,
   type StandingRow,
-} from '@/organizer/org-shared'
-import { createLoadingState } from '@/components/LoadingState'
-import { createErrorBanner } from '@/components/ErrorBanner'
-import { errorMessage } from '@/utils/errorMessage'
-import { logError } from '@/utils/logError'
-import type { RealtimeChannel } from '@supabase/supabase-js'
+} from "@/organizer/org-shared";
+import { createLoadingState } from "@/components/LoadingState";
+import { createErrorBanner } from "@/components/ErrorBanner";
+import { errorMessage } from "@/utils/errorMessage";
+import { logError } from "@/utils/logError";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import {
-  getInitialRoundMatches, hasMatchRounds,
-  updateMatchPlayerScoreFast, confirmInitialMatch, subscribeToMatchChanges, unconfirmMatch,
-  type InitialMatchRow, type InitialMatchPlayerRow,
-} from '@/services/kampService'
+  getInitialRoundMatches,
+  hasMatchRounds,
+  updateMatchPlayerScoreFast,
+  confirmInitialMatch,
+  subscribeToMatchChanges,
+  unconfirmMatch,
+  type InitialMatchRow,
+  type InitialMatchPlayerRow,
+} from "@/services/kampService";
 import {
-  getInitialPhaseTournament, setTournamentCompleted,
+  getInitialPhaseTournament,
+  setTournamentCompleted,
   type InitialPhaseTournamentRow,
-} from '@/services/stevneService'
-import { unsubscribeChannel } from '@/utils/realtime'
-import { livePillHtml } from '@/components/LivePill'
+} from "@/services/stevneService";
+import { unsubscribeChannel } from "@/utils/realtime";
+import { livePillHtml } from "@/components/LivePill";
 import {
-  getResultsForInitialRound, writePlacements,
+  getResultsForInitialRound,
+  writePlacements,
   type InitialResultRow,
-} from '@/services/resultatService'
+} from "@/services/resultatService";
 
 // ── Variant API ───────────────────────────────────────────────────────────────
 
 export interface InnledendeContext {
-  container: HTMLElement
-  stevneid: number
-  stevne: InitialPhaseTournamentRow
-  allMatches: InitialMatchRow[]
-  roundMap: Map<number, InitialMatchRow[]>
-  startNumberMap: Record<number, number>
-  standing: StandingRow[]
-  isAdmin: boolean
-  allMatchesConfirmed: boolean
-  reload: () => Promise<void>
+  container: HTMLElement;
+  stevneid: number;
+  stevne: InitialPhaseTournamentRow;
+  allMatches: InitialMatchRow[];
+  roundMap: Map<number, InitialMatchRow[]>;
+  startNumberMap: Record<number, number>;
+  standing: StandingRow[];
+  isAdmin: boolean;
+  allMatchesConfirmed: boolean;
+  reload: () => Promise<void>;
 }
 
 export interface InnledendeVariant {
-  channelName: (stevneid: number) => string
-  logPrefix: string
-  isSwiss: boolean
-  onReset?: () => void
-  getBannerExtra: (ctx: InnledendeContext) => string
-  bindBannerExtra: (bannerSlot: HTMLElement, ctx: InnledendeContext) => void
-  filterRounds?: (roundMap: Map<number, InitialMatchRow[]>) => Map<number, InitialMatchRow[]>
+  channelName: (stevneid: number) => string;
+  logPrefix: string;
+  isSwiss: boolean;
+  onReset?: () => void;
+  getBannerExtra: (ctx: InnledendeContext) => string;
+  bindBannerExtra: (bannerSlot: HTMLElement, ctx: InnledendeContext) => void;
+  filterRounds?: (roundMap: Map<number, InitialMatchRow[]>) => Map<number, InitialMatchRow[]>;
 }
 
 // ── Factory ───────────────────────────────────────────────────────────────────
 
 export function createInnledendeRenderer(variant: InnledendeVariant) {
-  let channel: RealtimeChannel | null = null
-  let bannerSlot: HTMLElement | null = null
-  let isAdmin = false
-  const standingExpandedIds = new Set<string>()
-  let prevConfirmedIds: Set<number> | null = null
-  let pendingAnimationIds = new Set<number>()
+  let channel: RealtimeChannel | null = null;
+  let bannerSlot: HTMLElement | null = null;
+  let isAdmin = false;
+  const standingExpandedIds = new Set<string>();
+  let prevConfirmedIds: Set<number> | null = null;
+  let pendingAnimationIds = new Set<number>();
 
   async function render(
     container: HTMLElement,
     { id, isAdmin: _isAdmin = false }: { id: number; isAdmin?: boolean },
     _bannerSlot: HTMLElement | null = null,
   ): Promise<void> {
-    bannerSlot = _bannerSlot
-    isAdmin = _isAdmin
-    variant.onReset?.()
-    if (channel) { await unsubscribeChannel(channel); channel = null }
-    container.replaceChildren(createLoadingState('Laster…'))
-    await loadAndRender(container, id)
+    bannerSlot = _bannerSlot;
+    isAdmin = _isAdmin;
+    variant.onReset?.();
+    if (channel) {
+      await unsubscribeChannel(channel);
+      channel = null;
+    }
+    container.replaceChildren(createLoadingState("Laster…"));
+    await loadAndRender(container, id);
   }
 
   async function loadAndRender(container: HTMLElement, stevneid: number): Promise<void> {
@@ -104,20 +124,20 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
         getInitialPhaseTournament(stevneid),
         getInitialRoundMatches(stevneid),
         getResultsForInitialRound(stevneid),
-      ])
+      ]);
 
       if (!stevne) {
-        container.replaceChildren(createErrorBanner('Stevne ikkje funne.'))
-        return
+        container.replaceChildren(createErrorBanner("Stevne ikkje funne."));
+        return;
       }
 
-      const { startNumberMap, hcpMap, positionMap, isTeam } = buildParticipantMaps(resultat)
-      const roundMap = buildRoundMap(allMatches)
-      const standing = buildStanding(allMatches, resultat, startNumberMap, positionMap, isTeam)
-      const idsToFlash = calcFlashIds(allMatches)
+      const { startNumberMap, hcpMap, positionMap, isTeam } = buildParticipantMaps(resultat);
+      const roundMap = buildRoundMap(allMatches);
+      const standing = buildStanding(allMatches, resultat, startNumberMap, positionMap, isTeam);
+      const idsToFlash = calcFlashIds(allMatches);
 
-      const allMatchesConfirmed = allMatches.length > 0 && allMatches.every(k => k.er_bekreftet)
-      const canEditMatches = isAdmin && stevne.stevne_fase !== 'avsluttende'
+      const allMatchesConfirmed = allMatches.length > 0 && allMatches.every((k) => k.er_bekreftet);
+      const canEditMatches = isAdmin && stevne.stevne_fase !== "avsluttende";
 
       const ctx: InnledendeContext = {
         container,
@@ -130,74 +150,106 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
         isAdmin,
         allMatchesConfirmed,
         reload: () => loadAndRender(container, stevneid),
-      }
+      };
 
-      setupBanner(ctx)
+      setupBanner(ctx);
 
-      const roundsToShow = (variant.filterRounds ?? (m => m))(roundMap)
-      const matchesHtml = [...roundsToShow.entries()]
-        .map(([nr, roundMatches]) => renderRound(nr, roundMatches, startNumberMap, canEditMatches, hcpMap, positionMap))
-        .join('') + renderMatchLegend()
+      const roundsToShow = (variant.filterRounds ?? ((m) => m))(roundMap);
+      const matchesHtml =
+        [...roundsToShow.entries()]
+          .map(([nr, roundMatches]) =>
+            renderRound(nr, roundMatches, startNumberMap, canEditMatches, hcpMap, positionMap),
+          )
+          .join("") + renderMatchLegend();
       const standingHtml = renderStandingTable(standing, allMatches, startNumberMap, {
-        tableId: 'standing-initial',
+        tableId: "standing-initial",
         hasMatchCount: true,
         positionMap,
-        unitLabel: isTeam ? 'par' : 'spelarar',
-      })
+        unitLabel: isTeam ? "par" : "spelarar",
+      });
 
-      const activeTab = getActiveTab(container)
-      container.innerHTML = renderMainContent(matchesHtml, standingHtml)
-      bindTabToggle(container)
-      if (activeTab === 'standing') setActiveTab(container, 'standing')
-      bindStandingDetails(container, 'standing-initial', standingExpandedIds)
+      const activeTab = getActiveTab(container);
+      container.innerHTML = renderMainContent(matchesHtml, standingHtml);
+      bindTabToggle(container);
+      if (activeTab === "standing") setActiveTab(container, "standing");
+      bindStandingDetails(container, "standing-initial", standingExpandedIds);
 
-      applyFlashClasses(container, idsToFlash, allMatches)
+      applyFlashClasses(container, idsToFlash, allMatches);
 
-      bindScoreboardClicks(container)
+      bindScoreboardClicks(container);
       for (const kamp of allMatches) {
-        bindMatchEvents(container, stevneid, kamp, startNumberMap, hcpMap, positionMap, canEditMatches)
+        bindMatchEvents(
+          container,
+          stevneid,
+          kamp,
+          startNumberMap,
+          hcpMap,
+          positionMap,
+          canEditMatches,
+        );
       }
 
-      subscribeToChanges(container, stevneid)
+      subscribeToChanges(container, stevneid);
     } catch (err) {
-      logError(`${variant.logPrefix}.loadAndRender`, err)
-      container.replaceChildren(createErrorBanner('Kunne ikkje laste innleiande fase.'))
+      logError(`${variant.logPrefix}.loadAndRender`, err);
+      container.replaceChildren(createErrorBanner("Kunne ikkje laste innleiande fase."));
     }
   }
 
   /** Tracks confirmed-match ids across renders so the newly-confirmed rows flash once. */
   function calcFlashIds(allMatches: InitialMatchRow[]): Set<number> {
-    const currentConfirmedIds = new Set(allMatches.filter(k => k.er_bekreftet).map(k => k.id))
+    const currentConfirmedIds = new Set(allMatches.filter((k) => k.er_bekreftet).map((k) => k.id));
     const newlyConfirmedIds = prevConfirmedIds
-      ? new Set([...currentConfirmedIds].filter(id => !prevConfirmedIds!.has(id)))
-      : new Set<number>()
-    const idsToFlash = new Set([...newlyConfirmedIds, ...pendingAnimationIds])
-    pendingAnimationIds = new Set(newlyConfirmedIds)
-    prevConfirmedIds = currentConfirmedIds
-    return idsToFlash
+      ? new Set([...currentConfirmedIds].filter((id) => !prevConfirmedIds!.has(id)))
+      : new Set<number>();
+    const idsToFlash = new Set([...newlyConfirmedIds, ...pendingAnimationIds]);
+    pendingAnimationIds = new Set(newlyConfirmedIds);
+    prevConfirmedIds = currentConfirmedIds;
+    return idsToFlash;
   }
 
   function setupBanner(ctx: InnledendeContext): void {
-    if (!bannerSlot) return
-    bannerSlot.innerHTML = (isAdmin ? renderInitialButtons(ctx.stevne, variant.isSwiss) : '') + variant.getBannerExtra(ctx)
-    variant.bindBannerExtra(bannerSlot, ctx)
+    if (!bannerSlot) return;
+    bannerSlot.innerHTML =
+      (isAdmin ? renderInitialButtons(ctx.stevne, variant.isSwiss) : "") +
+      variant.getBannerExtra(ctx);
+    variant.bindBannerExtra(bannerSlot, ctx);
 
-    bannerSlot.querySelector('#complete-tournament-btn')?.addEventListener('click', async () => {
-      if (!await confirmDialog({ title: 'Fullfør turnering', message: 'Vil du fullføre turneringa? Dette kan ikkje angrast.', danger: true })) return
-      const { error: plErr } = await writePlacements(ctx.stevneid, ctx.standing)
-      if (plErr) { showToast('Feil ved lagring av plasseringar', 'error'); return }
-      const { error } = await setTournamentCompleted(ctx.stevneid)
-      if (error) { showToast('Feil ved lagring', 'error'); return }
-      await ctx.reload()
-    })
+    bannerSlot.querySelector("#complete-tournament-btn")?.addEventListener("click", async () => {
+      if (
+        !(await confirmDialog({
+          title: "Fullfør turnering",
+          message: "Vil du fullføre turneringa? Dette kan ikkje angrast.",
+          danger: true,
+        }))
+      )
+        return;
+      const { error: plErr } = await writePlacements(ctx.stevneid, ctx.standing);
+      if (plErr) {
+        showToast("Feil ved lagring av plasseringar", "error");
+        return;
+      }
+      const { error } = await setTournamentCompleted(ctx.stevneid);
+      if (error) {
+        showToast("Feil ved lagring", "error");
+        return;
+      }
+      await ctx.reload();
+    });
 
-    bannerSlot.querySelector('#test-auto-complete-btn')?.addEventListener('click', async (e) => {
-      const btn = e.currentTarget as HTMLButtonElement
-      if (!await confirmDialog({ title: 'Autofullfør kampar', message: 'Autofullfør alle ubekreftede innleiande kampar?' })) return
-      btn.disabled = true
-      await autoCompleteInitialRoundMatches(ctx.stevneid)
-      await ctx.reload()
-    })
+    bannerSlot.querySelector("#test-auto-complete-btn")?.addEventListener("click", async (e) => {
+      const btn = e.currentTarget as HTMLButtonElement;
+      if (
+        !(await confirmDialog({
+          title: "Autofullfør kampar",
+          message: "Autofullfør alle ubekreftede innleiande kampar?",
+        }))
+      )
+        return;
+      btn.disabled = true;
+      await autoCompleteInitialRoundMatches(ctx.stevneid);
+      await ctx.reload();
+    });
   }
 
   function bindScoreEdit(
@@ -207,13 +259,13 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
     startNumberMap: Record<number, number>,
     positionMap: Record<number, number>,
   ): void {
-    const [side1, side2] = getMatchSides(kamp.spelarar, startNumberMap, positionMap)
-    const p1 = side1?.rep ?? null
-    const p2 = side2?.rep ?? null
-    const playerIds = [...(side1?.members ?? []), ...(side2?.members ?? [])].map(m => m.id)
+    const [side1, side2] = getMatchSides(kamp.spelarar, startNumberMap, positionMap);
+    const p1 = side1?.rep ?? null;
+    const p2 = side2?.rep ?? null;
+    const playerIds = [...(side1?.members ?? []), ...(side2?.members ?? [])].map((m) => m.id);
 
     const onScoreClick = async () => {
-      const hasRounds = playerIds.length ? await hasMatchRounds(playerIds) : false
+      const hasRounds = playerIds.length ? await hasMatchRounds(playerIds) : false;
       await showScoreEditor({
         side1Name: sideNavn(side1, false),
         side2Name: sideNavn(side2, false),
@@ -227,18 +279,20 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
             p1 ? updateMatchPlayerScoreFast(p1.id, newS1) : Promise.resolve({ error: null }),
             p2 ? updateMatchPlayerScoreFast(p2.id, newS2) : Promise.resolve({ error: null }),
             ...(kamp.er_bekreftet ? [unconfirmMatch(kamp.id)] : []),
-          ])
-          return null
+          ]);
+          return null;
         },
         onSaved: () => loadAndRender(container, stevneid),
-      })
-    }
+      });
+    };
 
-    container.querySelectorAll(`[data-endre-score="${kamp.id}"]`).forEach(el => el.addEventListener('click', onScoreClick))
-    container.querySelector(`#m-score-${kamp.id}`)?.addEventListener('click', (e) => {
-      e.stopPropagation()
-      void onScoreClick()
-    })
+    container
+      .querySelectorAll(`[data-endre-score="${kamp.id}"]`)
+      .forEach((el) => el.addEventListener("click", onScoreClick));
+    container.querySelector(`#m-score-${kamp.id}`)?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      void onScoreClick();
+    });
   }
 
   function createConfirmHandler(
@@ -251,18 +305,28 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
     stopProp: boolean,
   ): (e: Event) => Promise<void> {
     return async (e: Event) => {
-      if (stopProp) e.stopPropagation()
-      const btn = e.currentTarget as HTMLButtonElement
-      btn.disabled = true
-      btn.textContent = 'Lagrer…'
+      if (stopProp) e.stopPropagation();
+      const btn = e.currentTarget as HTMLButtonElement;
+      btn.disabled = true;
+      btn.textContent = "Lagrer…";
       try {
-        const ok = await confirmMatch(container, stevneid, kamp, startNumberMap, hcpMap, positionMap)
-        if (!ok) { btn.disabled = false; btn.textContent = 'Bekreft' }
+        const ok = await confirmMatch(
+          container,
+          stevneid,
+          kamp,
+          startNumberMap,
+          hcpMap,
+          positionMap,
+        );
+        if (!ok) {
+          btn.disabled = false;
+          btn.textContent = "Bekreft";
+        }
       } catch {
-        btn.disabled = false
-        btn.textContent = 'Bekreft'
+        btn.disabled = false;
+        btn.textContent = "Bekreft";
       }
-    }
+    };
   }
 
   function bindMobileRow(
@@ -273,24 +337,32 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
     hcpMap: Record<number, number>,
     positionMap: Record<number, number>,
   ): void {
-    const mobileRow = container.querySelector<HTMLElement>(`.match-row-mobile[data-kamp-id="${kamp.id}"]`)
-    if (!mobileRow) return
+    const mobileRow = container.querySelector<HTMLElement>(
+      `.match-row-mobile[data-kamp-id="${kamp.id}"]`,
+    );
+    if (!mobileRow) return;
 
     // Viewer rows navigate via their data-scoreboard-kamp-id (delegated in
     // bindScoreboardClicks); only admin rows have expand/confirm interactions.
-    if (!isAdmin) return
+    if (!isAdmin) return;
 
-    mobileRow.querySelector('.match-row-mobile__header')?.addEventListener('click', () => {
-      const expanded = mobileRow.dataset.expanded === 'true'
-      container.querySelectorAll<HTMLElement>('.match-row-mobile[data-expanded="true"]').forEach(r => {
-        r.dataset.expanded = 'false'
-        r.setAttribute('aria-expanded', 'false')
-      })
-      mobileRow.dataset.expanded = expanded ? 'false' : 'true'
-      mobileRow.setAttribute('aria-expanded', String(!expanded))
-    })
-    container.querySelector(`#m-bekrft-${kamp.id}`)?.addEventListener('click',
-      createConfirmHandler(container, stevneid, kamp, startNumberMap, hcpMap, positionMap, true))
+    mobileRow.querySelector(".match-row-mobile__header")?.addEventListener("click", () => {
+      const expanded = mobileRow.dataset.expanded === "true";
+      container
+        .querySelectorAll<HTMLElement>('.match-row-mobile[data-expanded="true"]')
+        .forEach((r) => {
+          r.dataset.expanded = "false";
+          r.setAttribute("aria-expanded", "false");
+        });
+      mobileRow.dataset.expanded = expanded ? "false" : "true";
+      mobileRow.setAttribute("aria-expanded", String(!expanded));
+    });
+    container
+      .querySelector(`#m-bekrft-${kamp.id}`)
+      ?.addEventListener(
+        "click",
+        createConfirmHandler(container, stevneid, kamp, startNumberMap, hcpMap, positionMap, true),
+      );
   }
 
   function bindMatchEvents(
@@ -302,20 +374,27 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
     positionMap: Record<number, number>,
     canEditMatches: boolean,
   ): void {
-    if (canEditMatches) bindScoreEdit(container, stevneid, kamp, startNumberMap, positionMap)
+    if (canEditMatches) bindScoreEdit(container, stevneid, kamp, startNumberMap, positionMap);
 
-    container.querySelector(`#bekrft-${kamp.id}`)?.addEventListener('click',
-      createConfirmHandler(container, stevneid, kamp, startNumberMap, hcpMap, positionMap, false))
+    container
+      .querySelector(`#bekrft-${kamp.id}`)
+      ?.addEventListener(
+        "click",
+        createConfirmHandler(container, stevneid, kamp, startNumberMap, hcpMap, positionMap, false),
+      );
 
-    bindMobileRow(container, stevneid, kamp, startNumberMap, hcpMap, positionMap)
+    bindMobileRow(container, stevneid, kamp, startNumberMap, hcpMap, positionMap);
   }
 
   function subscribeToChanges(container: HTMLElement, stevneid: number): void {
-    if (channel) return
-    const onChange = createChangeHandler(stevneid, ['innledende'], container, loadAndRender, () => {
-      if (channel) { void unsubscribeChannel(channel); channel = null }
-    })
-    channel = subscribeToMatchChanges(stevneid, variant.channelName(stevneid), onChange)
+    if (channel) return;
+    const onChange = createChangeHandler(stevneid, ["innledende"], container, loadAndRender, () => {
+      if (channel) {
+        void unsubscribeChannel(channel);
+        channel = null;
+      }
+    });
+    channel = subscribeToMatchChanges(stevneid, variant.channelName(stevneid), onChange);
   }
 
   async function confirmMatch(
@@ -326,11 +405,11 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
     hcpMap: Record<number, number> = {},
     positionMap: Record<number, number> = {},
   ): Promise<boolean> {
-    const [side1, side2] = getMatchSides(kamp.spelarar, startNumberMap, positionMap)
-    const p1 = side1?.rep ?? null
-    const p2 = side2?.rep ?? null
-    const hcp1 = hcpMap[p1?.kasterid ?? -1] ?? 0
-    const hcp2 = hcpMap[p2?.kasterid ?? -1] ?? 0
+    const [side1, side2] = getMatchSides(kamp.spelarar, startNumberMap, positionMap);
+    const p1 = side1?.rep ?? null;
+    const p2 = side2?.rep ?? null;
+    const hcp1 = hcpMap[p1?.kasterid ?? -1] ?? 0;
+    const hcp2 = hcpMap[p2?.kasterid ?? -1] ?? 0;
 
     const { error } = await confirmInitialMatch({
       kampId: kamp.id,
@@ -341,50 +420,57 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
       erWalkover: kamp.er_walkover,
       p1PartnerId: side1?.members[1]?.id ?? null,
       p2PartnerId: side2?.members[1]?.id ?? null,
-    })
-    if (error) { showToast('DB-feil ved bekreft: ' + errorMessage(error), 'error'); return false }
-    await loadAndRender(container, stevneid)
-    return true
+    });
+    if (error) {
+      showToast("DB-feil ved bekreft: " + errorMessage(error), "error");
+      return false;
+    }
+    await loadAndRender(container, stevneid);
+    return true;
   }
 
-  return render
+  return render;
 }
 
 // ── Data-bygging (pure — no closure state) ────────────────────────────────────
 
 interface ParticipantMaps {
-  startNumberMap: Record<number, number>
-  hcpMap: Record<number, number>
-  positionMap: Record<number, number>
+  startNumberMap: Record<number, number>;
+  hcpMap: Record<number, number>;
+  positionMap: Record<number, number>;
   /** Par/Mix: two players share a startnummer */
-  isTeam: boolean
+  isTeam: boolean;
 }
 
 function buildParticipantMaps(resultat: InitialResultRow[]): ParticipantMaps {
   const startNumberMap: Record<number, number> = Object.fromEntries(
-    resultat.filter(r => r.kasterid != null).map(r => [r.kasterid!, r.startnummer ?? 0]),
-  )
+    resultat.filter((r) => r.kasterid != null).map((r) => [r.kasterid!, r.startnummer ?? 0]),
+  );
   const hcpMap: Record<number, number> = Object.fromEntries(
-    resultat.filter(r => r.kasterid != null && (r.hcp ?? 0) > 0).map(r => [r.kasterid!, r.hcp ?? 0]),
-  )
+    resultat
+      .filter((r) => r.kasterid != null && (r.hcp ?? 0) > 0)
+      .map((r) => [r.kasterid!, r.hcp ?? 0]),
+  );
   const positionMap: Record<number, number> = Object.fromEntries(
-    resultat.filter(r => r.kasterid != null && r.posisjon != null).map(r => [r.kasterid!, r.posisjon!]),
-  )
-  const snrCount = new Map<number, number>()
+    resultat
+      .filter((r) => r.kasterid != null && r.posisjon != null)
+      .map((r) => [r.kasterid!, r.posisjon!]),
+  );
+  const snrCount = new Map<number, number>();
   for (const r of resultat) {
-    if (r.kasterid == null || r.startnummer == null) continue
-    snrCount.set(r.startnummer, (snrCount.get(r.startnummer) ?? 0) + 1)
+    if (r.kasterid == null || r.startnummer == null) continue;
+    snrCount.set(r.startnummer, (snrCount.get(r.startnummer) ?? 0) + 1);
   }
-  return { startNumberMap, hcpMap, positionMap, isTeam: [...snrCount.values()].some(c => c > 1) }
+  return { startNumberMap, hcpMap, positionMap, isTeam: [...snrCount.values()].some((c) => c > 1) };
 }
 
 function buildRoundMap(allMatches: InitialMatchRow[]): Map<number, InitialMatchRow[]> {
-  const roundMap = new Map<number, InitialMatchRow[]>()
+  const roundMap = new Map<number, InitialMatchRow[]>();
   for (const kamp of allMatches) {
-    if (!roundMap.has(kamp.runde_nummer)) roundMap.set(kamp.runde_nummer, [])
-    roundMap.get(kamp.runde_nummer)!.push(kamp)
+    if (!roundMap.has(kamp.runde_nummer)) roundMap.set(kamp.runde_nummer, []);
+    roundMap.get(kamp.runde_nummer)!.push(kamp);
   }
-  return roundMap
+  return roundMap;
 }
 
 function buildStanding(
@@ -394,24 +480,34 @@ function buildStanding(
   positionMap: Record<number, number>,
   isTeam: boolean,
 ): StandingRow[] {
-  const { playerMap, realThrowerIds } = buildInitialPlayerMap(allMatches, startNumberMap)
+  const { playerMap, realThrowerIds } = buildInitialPlayerMap(allMatches, startNumberMap);
   const standingRows = Object.values(playerMap)
-    .filter(s => realThrowerIds.has(s.kasterid))
-    .map(s => ({ ...s, hcp: resultat.find(r => r.kasterid === s.kasterid)?.hcp ?? 0 }))
+    .filter((s) => realThrowerIds.has(s.kasterid))
+    .map((s) => ({ ...s, hcp: resultat.find((r) => r.kasterid === s.kasterid)?.hcp ?? 0 }));
   return sortStandings(
     isTeam ? groupStandingsByPair(standingRows, positionMap) : standingRows,
     allMatches,
-  )
+  );
 }
 
 /** Adds the one-shot flash class to rows whose match was just confirmed. */
-function applyFlashClasses(container: HTMLElement, idsToFlash: Set<number>, allMatches: InitialMatchRow[]): void {
+function applyFlashClasses(
+  container: HTMLElement,
+  idsToFlash: Set<number>,
+  allMatches: InitialMatchRow[],
+): void {
   for (const matchId of idsToFlash) {
-    container.querySelectorAll(`[data-kamp-id="${matchId}"]`).forEach(el => el.classList.add('match-newly-confirmed'))
-    const kamp = allMatches.find(k => k.id === matchId)
-    if (!kamp) continue
+    container
+      .querySelectorAll(`[data-kamp-id="${matchId}"]`)
+      .forEach((el) => el.classList.add("match-newly-confirmed"));
+    const kamp = allMatches.find((k) => k.id === matchId);
+    if (!kamp) continue;
     for (const sp of kamp.spelarar) {
-      container.querySelectorAll(`#standing-initial tr.standing-player-row[data-kasterid="${sp.kasterid}"] td`).forEach(el => el.classList.add('standing-new-confirmed'))
+      container
+        .querySelectorAll(
+          `#standing-initial tr.standing-player-row[data-kasterid="${sp.kasterid}"] td`,
+        )
+        .forEach((el) => el.classList.add("standing-new-confirmed"));
     }
   }
 }
@@ -420,23 +516,30 @@ function applyFlashClasses(container: HTMLElement, idsToFlash: Set<number>, allM
 
 /** Any member of the side has omgang rows (pair members alternate omgangar). */
 function sideHasRounds(side: MatchSide<InitialMatchPlayerRow> | null): boolean {
-  return side?.members.some(m => (m.omgangar?.length ?? 0) > 0) ?? false
+  return side?.members.some((m) => (m.omgangar?.length ?? 0) > 0) ?? false;
 }
 
 /** Side total: each member carries only the omgangar they threw themselves. */
 function sideScore(side: MatchSide<InitialMatchPlayerRow> | null, isConfirmed: boolean): number {
-  if (!side) return 0
-  return side.members.reduce((sum, m) => sum + (isConfirmed ? (m.score_poeng ?? 0) : scoreForPlayer(m)), 0)
+  if (!side) return 0;
+  return side.members.reduce(
+    (sum, m) => sum + (isConfirmed ? (m.score_poeng ?? 0) : scoreForPlayer(m)),
+    0,
+  );
 }
 
-const sideNavn = sideNameHtml
+const sideNavn = sideNameHtml;
 
-type MatchStatus = 'done' | 'in-progress' | 'not-started'
+type MatchStatus = "done" | "in-progress" | "not-started";
 
-function resolveMatchStatus(kamp: InitialMatchRow, hasPoints: boolean, hasRounds: boolean): MatchStatus {
-  if (kamp.er_bekreftet) return 'done'
-  if (hasRounds || hasPoints) return 'in-progress'
-  return 'not-started'
+function resolveMatchStatus(
+  kamp: InitialMatchRow,
+  hasPoints: boolean,
+  hasRounds: boolean,
+): MatchStatus {
+  if (kamp.er_bekreftet) return "done";
+  if (hasRounds || hasPoints) return "in-progress";
+  return "not-started";
 }
 
 function renderMatchLegend(): string {
@@ -445,7 +548,7 @@ function renderMatchLegend(): string {
       <div class="match-legend__item"><div class="match-legend__stripe match-legend__stripe--not-started"></div> Ikke startet</div>
       <div class="match-legend__item"><div class="match-legend__stripe match-legend__stripe--in-progress"></div> Pågår</div>
       <div class="match-legend__item"><div class="match-legend__stripe match-legend__stripe--done"></div> Ferdig</div>
-    </div>`
+    </div>`;
 }
 
 function renderRound(
@@ -456,8 +559,12 @@ function renderRound(
   hcpMap: Record<number, number> = {},
   positionMap: Record<number, number> = {},
 ): string {
-  const desktopRows = matches.map(k => matchRow(k, startNumberMap, admin, hcpMap, positionMap)).join('')
-  const mobileRows  = matches.map(k => matchRowMobile(k, startNumberMap, admin, hcpMap, positionMap)).join('')
+  const desktopRows = matches
+    .map((k) => matchRow(k, startNumberMap, admin, hcpMap, positionMap))
+    .join("");
+  const mobileRows = matches
+    .map((k) => matchRowMobile(k, startNumberMap, admin, hcpMap, positionMap))
+    .join("");
 
   return `
     <div class="mb-3">
@@ -475,13 +582,18 @@ function renderRound(
         <tbody>${desktopRows}</tbody>
       </table>
       <ul class="match-list-mobile list-unstyled mb-0">${mobileRows}</ul>
-    </div>`
+    </div>`;
 }
 
 /** A side's raw score: confirmed total, or live omgang sum plus handicap. */
-function sideRawScore(side: MatchSide<InitialMatchPlayerRow> | null, isConfirmed: boolean, hasRounds: boolean, hcp: number): number {
-  if (isConfirmed) return sideScore(side, true)
-  return sideScore(side, false) + (hasRounds ? hcp : 0)
+function sideRawScore(
+  side: MatchSide<InitialMatchPlayerRow> | null,
+  isConfirmed: boolean,
+  hasRounds: boolean,
+  hcp: number,
+): number {
+  if (isConfirmed) return sideScore(side, true);
+  return sideScore(side, false) + (hasRounds ? hcp : 0);
 }
 
 /** Displayed scores: an unconfirmed walkover shows 21–0; otherwise the raw side totals. */
@@ -494,15 +606,16 @@ function calcRowScores(
   hcp1: number,
   hcp2: number,
 ): { s1: number; s2: number; hasPoints: boolean } {
-  const s1Raw = sideRawScore(side1, kamp.er_bekreftet, hasRounds1, hcp1)
-  const s2Raw = sideRawScore(side2, kamp.er_bekreftet, hasRounds2, hcp2)
-  const isUnconfirmedWalkover = kamp.er_walkover && !kamp.er_bekreftet
-  const hasPoints = kamp.er_bekreftet || kamp.er_walkover || hasRounds1 || hasRounds2 || s1Raw > 0 || s2Raw > 0
+  const s1Raw = sideRawScore(side1, kamp.er_bekreftet, hasRounds1, hcp1);
+  const s2Raw = sideRawScore(side2, kamp.er_bekreftet, hasRounds2, hcp2);
+  const isUnconfirmedWalkover = kamp.er_walkover && !kamp.er_bekreftet;
+  const hasPoints =
+    kamp.er_bekreftet || kamp.er_walkover || hasRounds1 || hasRounds2 || s1Raw > 0 || s2Raw > 0;
   return {
     s1: isUnconfirmedWalkover ? 21 : s1Raw,
     s2: isUnconfirmedWalkover ? 0 : s2Raw,
     hasPoints,
-  }
+  };
 }
 
 /** Per-match view state shared by the desktop and mobile row renderers. */
@@ -512,56 +625,78 @@ function calcMatchRowState(
   hcpMap: Record<number, number>,
   positionMap: Record<number, number>,
 ) {
-  const [side1, side2] = getMatchSides(kamp.spelarar, startNumberMap, positionMap)
-  const p1 = side1?.rep ?? null
-  const p2 = side2?.rep ?? null
-  const p2IsBye = kamp.er_walkover && !p2?.kaster
+  const [side1, side2] = getMatchSides(kamp.spelarar, startNumberMap, positionMap);
+  const p1 = side1?.rep ?? null;
+  const p2 = side2?.rep ?? null;
+  const p2IsBye = kamp.er_walkover && !p2?.kaster;
 
-  const hasRounds1 = sideHasRounds(side1)
-  const hasRounds2 = sideHasRounds(side2)
-  const hasRounds = hasRounds1 || hasRounds2
-  const hcp1 = hcpMap[p1?.kasterid ?? -1] ?? 0
-  const hcp2 = hcpMap[p2?.kasterid ?? -1] ?? 0
+  const hasRounds1 = sideHasRounds(side1);
+  const hasRounds2 = sideHasRounds(side2);
+  const hasRounds = hasRounds1 || hasRounds2;
+  const hcp1 = hcpMap[p1?.kasterid ?? -1] ?? 0;
+  const hcp2 = hcpMap[p2?.kasterid ?? -1] ?? 0;
 
-  const { s1, s2, hasPoints } = calcRowScores(kamp, side1, side2, hasRounds1, hasRounds2, hcp1, hcp2)
+  const { s1, s2, hasPoints } = calcRowScores(
+    kamp,
+    side1,
+    side2,
+    hasRounds1,
+    hasRounds2,
+    hcp1,
+    hcp2,
+  );
 
-  const sp = [p1, p2].filter((s): s is InitialMatchPlayerRow => s != null)
+  const sp = [p1, p2].filter((s): s is InitialMatchPlayerRow => s != null);
   return {
-    side1, side2, p1, p2, p2IsBye, hasRounds, s1, s2, hasPoints,
+    side1,
+    side2,
+    p1,
+    p2,
+    p2IsBye,
+    hasRounds,
+    s1,
+    s2,
+    hasPoints,
     status: resolveMatchStatus(kamp, hasPoints, hasRounds),
     canConfirm: canConfirmMatch(kamp, sp, hasRounds, hcpMap),
     isLive: hasRounds && !kamp.er_bekreftet,
-  }
+  };
 }
 
-function scoreInnerHtml(s1: number | string, s2: number | string, sep = '–'): string {
-  return `<span class="initial-score-inner"><span class="initial-s1">${s1}</span><span class="initial-sep">${sep}</span><span class="initial-s2">${s2}</span></span>`
+function scoreInnerHtml(s1: number | string, s2: number | string, sep = "–"): string {
+  return `<span class="initial-score-inner"><span class="initial-s1">${s1}</span><span class="initial-sep">${sep}</span><span class="initial-s2">${s2}</span></span>`;
 }
 
 /** Prefixes the startnummer in parentheses when present. */
 function withStartNumber(name: string, nr: number | string): string {
-  return nr ? `${name} (${nr})` : name
+  return nr ? `${name} (${nr})` : name;
 }
 
 /** The right-hand action cell for a desktop match row. */
-function matchRowButtonTd(kamp: InitialMatchRow, admin: boolean, hasRounds: boolean, canConfirm: boolean, isLive: boolean): string {
+function matchRowButtonTd(
+  kamp: InitialMatchRow,
+  admin: boolean,
+  hasRounds: boolean,
+  canConfirm: boolean,
+  isLive: boolean,
+): string {
   if (kamp.er_bekreftet) {
-    return `<td class="text-end pe-2"><span class="match-confirmed-indicator">✓ Bekreftet</span></td>`
+    return `<td class="text-end pe-2"><span class="match-confirmed-indicator">✓ Bekreftet</span></td>`;
   }
-  const pill = isLive ? livePillHtml() : ''
+  const pill = isLive ? livePillHtml() : "";
   if (!admin) {
     return `<td class="text-end pe-2 text-nowrap">
         ${pill}
         <button class="match-button" data-scoreboard-kamp-id="${kamp.id}" title="Scoreboard">Scoreboard</button>
-      </td>`
+      </td>`;
   }
-  const scoreCss = `match-button${hasRounds ? ' match-button-primary' : ''}`
-  const confirmCss = `match-button${canConfirm ? ' match-button-success' : ''}`
+  const scoreCss = `match-button${hasRounds ? " match-button-primary" : ""}`;
+  const confirmCss = `match-button${canConfirm ? " match-button-success" : ""}`;
   return `<td class="text-end pe-2 text-nowrap">
         ${pill}
         <button class="${scoreCss}" data-scoreboard-kamp-id="${kamp.id}" title="Scoreboard">Scoreboard</button>
-        <button class="${confirmCss}" id="bekrft-${kamp.id}"${!canConfirm ? ' disabled' : ''}>Bekreft</button>
-      </td>`
+        <button class="${confirmCss}" id="bekrft-${kamp.id}"${!canConfirm ? " disabled" : ""}>Bekreft</button>
+      </td>`;
 }
 
 function matchRow(
@@ -571,26 +706,38 @@ function matchRow(
   hcpMap: Record<number, number> = {},
   positionMap: Record<number, number> = {},
 ): string {
-  const { side1, side2, p1, p2, p2IsBye, hasRounds, s1, s2, hasPoints, status, canConfirm, isLive } =
-    calcMatchRowState(kamp, startNumberMap, hcpMap, positionMap)
+  const {
+    side1,
+    side2,
+    p1,
+    p2,
+    p2IsBye,
+    hasRounds,
+    s1,
+    s2,
+    hasPoints,
+    status,
+    canConfirm,
+    isLive,
+  } = calcMatchRowState(kamp, startNumberMap, hcpMap, positionMap);
 
-  const p1Nr = p1?.kasterid ? (startNumberMap[p1.kasterid] ?? '') : ''
-  const p2Nr = p2?.kasterid ? (startNumberMap[p2.kasterid] ?? '') : ''
-  const p1Display = withStartNumber(sideNavn(side1, false), p1Nr)
-  const p2Display = withStartNumber(p2IsBye ? 'Walkover' : sideNavn(side2, false), p2Nr)
+  const p1Nr = p1?.kasterid ? (startNumberMap[p1.kasterid] ?? "") : "";
+  const p2Nr = p2?.kasterid ? (startNumberMap[p2.kasterid] ?? "") : "";
+  const p1Display = withStartNumber(sideNavn(side1, false), p1Nr);
+  const p2Display = withStartNumber(p2IsBye ? "Walkover" : sideNavn(side2, false), p2Nr);
 
-  const canEditScore = admin && !kamp.er_walkover
-  const scoreCss = `text-center initial-score-cell${canEditScore ? ' score-editable' : ''}`
-  const scoreAttr = canEditScore ? ` data-endre-score="${kamp.id}"` : ''
+  const canEditScore = admin && !kamp.er_walkover;
+  const scoreCss = `text-center initial-score-cell${canEditScore ? " score-editable" : ""}`;
+  const scoreAttr = canEditScore ? ` data-endre-score="${kamp.id}"` : "";
 
   return `
     <tr class="match-row-desktop" data-kamp-id="${kamp.id}" data-status="${status}">
-      <td class="text-center">${kamp.bane_nummer ?? ''}</td>
+      <td class="text-center">${kamp.bane_nummer ?? ""}</td>
       <td>${p1Display}</td>
-      <td class="${scoreCss}"${scoreAttr}>${hasPoints ? scoreInnerHtml(s1, s2) : '—'}</td>
+      <td class="${scoreCss}"${scoreAttr}>${hasPoints ? scoreInnerHtml(s1, s2) : "—"}</td>
       <td>${p2Display}</td>
       ${matchRowButtonTd(kamp, admin, hasRounds, canConfirm, isLive)}
-    </tr>`
+    </tr>`;
 }
 
 function matchRowMobile(
@@ -601,37 +748,37 @@ function matchRowMobile(
   positionMap: Record<number, number> = {},
 ): string {
   const { side1, side2, p2IsBye, s1, s2, hasPoints, status, canConfirm, isLive } =
-    calcMatchRowState(kamp, startNumberMap, hcpMap, positionMap)
+    calcMatchRowState(kamp, startNumberMap, hcpMap, positionMap);
 
-  const p1NameShort = sideNavn(side1, true)
-  const p2NameShort = p2IsBye ? 'Walkover' : sideNavn(side2, true)
-  const resultText = hasPoints ? scoreInnerHtml(s1, s2) : scoreInnerHtml('', '', '—')
+  const p1NameShort = sideNavn(side1, true);
+  const p2NameShort = p2IsBye ? "Walkover" : sideNavn(side2, true);
+  const resultText = hasPoints ? scoreInnerHtml(s1, s2) : scoreInnerHtml("", "", "—");
 
-  const canEditScore = admin && !kamp.er_walkover
-  const resultAttr = canEditScore ? ` id="m-score-${kamp.id}"` : ''
-  const resultCss = canEditScore ? ' score-editable' : ''
-  const roleCss = admin ? '' : ' match-row-mobile--viewer'
+  const canEditScore = admin && !kamp.er_walkover;
+  const resultAttr = canEditScore ? ` id="m-score-${kamp.id}"` : "";
+  const resultCss = canEditScore ? " score-editable" : "";
+  const roleCss = admin ? "" : " match-row-mobile--viewer";
 
   return `
-    <li class="match-row-mobile${roleCss}" data-kamp-id="${kamp.id}"${admin ? '' : ` data-scoreboard-kamp-id="${kamp.id}"`} data-status="${status}" role="button" tabindex="0">
+    <li class="match-row-mobile${roleCss}" data-kamp-id="${kamp.id}"${admin ? "" : ` data-scoreboard-kamp-id="${kamp.id}"`} data-status="${status}" role="button" tabindex="0">
       <div class="match-row-mobile__header">
-        <span class="match-mobile-lane">${kamp.bane_nummer ?? ''}</span>
+        <span class="match-mobile-lane">${kamp.bane_nummer ?? ""}</span>
         <span class="match-mobile-name"><span class="match-mobile-name__p1">${p1NameShort}</span><span class="match-mobile-name__p2"><span class="match-mobile-vs">vs</span> ${p2NameShort}</span></span>
-        <span class="match-mobile-pill-slot">${isLive ? livePillHtml() : ''}</span>
+        <span class="match-mobile-pill-slot">${isLive ? livePillHtml() : ""}</span>
         <span class="match-mobile-result${resultCss}"${resultAttr}>${resultText}</span>
       </div>
-      ${admin ? matchRowMobileButtons(kamp, canConfirm) : ''}
-    </li>`
+      ${admin ? matchRowMobileButtons(kamp, canConfirm) : ""}
+    </li>`;
 }
 
 /** The mobile score/confirm button row, shown only to admins. */
 function matchRowMobileButtons(kamp: InitialMatchRow, canConfirm: boolean): string {
   const confirmCell = kamp.er_bekreftet
     ? `<span class="match-confirmed-mobile">✓ Bekreftet</span>`
-    : `<button class="match-button-mobile match-button-confirm-mobile" id="m-bekrft-${kamp.id}"${!canConfirm ? ' disabled' : ''}>Bekreft</button>`
+    : `<button class="match-button-mobile match-button-confirm-mobile" id="m-bekrft-${kamp.id}"${!canConfirm ? " disabled" : ""}>Bekreft</button>`;
   return `
       <div class="match-mobile-buttons">
         <button class="match-button-mobile" data-scoreboard-kamp-id="${kamp.id}">Scoreboard</button>
         ${confirmCell}
-      </div>`
+      </div>`;
 }

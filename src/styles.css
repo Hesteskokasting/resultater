@@ -177,12 +177,20 @@
   height: 2px;
   background: var(--tekst);
   border-radius: 2px;
-  transition: transform 0.25s, opacity 0.25s;
+  transition:
+    transform 0.25s,
+    opacity 0.25s;
 }
 
-.meny-knapp.aktiv span:nth-child(1) { transform: translateY(9px) rotate(45deg); }
-.meny-knapp.aktiv span:nth-child(2) { opacity: 0; }
-.meny-knapp.aktiv span:nth-child(3) { transform: translateY(-9px) rotate(-45deg); }
+.meny-knapp.aktiv span:nth-child(1) {
+  transform: translateY(9px) rotate(45deg);
+}
+.meny-knapp.aktiv span:nth-child(2) {
+  opacity: 0;
+}
+.meny-knapp.aktiv span:nth-child(3) {
+  transform: translateY(-9px) rotate(-45deg);
+}
 
 /* ── Slideout-meny ── */
 
@@ -196,7 +204,9 @@
 }
 
 .meny-bakgrunn.aktiv,
-.tl-sheet-backdrop.active { display: block; }
+.tl-sheet-backdrop.active {
+  display: block;
+}
 
 .sidepanel {
   position: fixed;
@@ -215,7 +225,9 @@
   padding-right: env(safe-area-inset-right, 0px);
 }
 
-.sidepanel.aktiv { transform: translateX(0); }
+.sidepanel.aktiv {
+  transform: translateX(0);
+}
 
 .meny-liste {
   list-style: none;
@@ -230,7 +242,9 @@
   text-decoration: none;
 }
 
-.meny-liste li a:hover { background: var(--primaer-hover); }
+.meny-liste li a:hover {
+  background: var(--primaer-hover);
+}
 
 .meny-skillelinje {
   border-top: 1px solid var(--kant);
@@ -255,7 +269,9 @@
   cursor: pointer;
 }
 
-.meny-dropdown-knapp:hover { background: var(--primaer-hover); }
+.meny-dropdown-knapp:hover {
+  background: var(--primaer-hover);
+}
 
 .meny-chevron {
   float: right;
@@ -269,19 +285,25 @@
   margin: 0;
 }
 
-.meny-undermeny li a { padding-left: 36px; }
+.meny-undermeny li a {
+  padding-left: 36px;
+}
 
 /* ── Fremsiden ── */
 
 .homepage,
 .terminliste,
 .res-side,
-.content-page { padding-bottom: 40px; }
+.content-page {
+  padding-bottom: 40px;
+}
 
 /* Live tournaments render as StevneCard now (home.ts + admin.ts), same as
    everywhere else; #live-section just needs its old bottom margin preserved
    when populated. */
-#live-section:not(:empty) { margin-bottom: 24px; }
+#live-section:not(:empty) {
+  margin-bottom: 24px;
+}
 
 .live-prikk {
   position: relative;
@@ -293,7 +315,7 @@
 }
 
 .live-prikk::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: -4px;
   border-radius: 50%;
@@ -302,8 +324,14 @@
 }
 
 @keyframes live-pulse {
-  0%   { transform: scale(0.8); opacity: 1; }
-  100% { transform: scale(2.2); opacity: 0; }
+  0% {
+    transform: scale(0.8);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
 }
 
 .homepage-grid {
@@ -314,7 +342,9 @@
 }
 
 @media (max-width: 900px) {
-  .homepage-grid { grid-template-columns: 1fr; }
+  .homepage-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .homepage-section-title {
@@ -333,7 +363,9 @@
   text-decoration: none;
 }
 
-.homepage-more-link:hover { text-decoration: underline; }
+.homepage-more-link:hover {
+  text-decoration: underline;
+}
 
 /* ── Terminliste ── */
 
@@ -352,7 +384,9 @@
   gap: 6px;
 }
 
-.tl-filter-row { margin-bottom: 12px; }
+.tl-filter-row {
+  margin-bottom: 12px;
+}
 
 .tl-select {
   flex: 1 1 120px;
@@ -365,7 +399,9 @@
 }
 
 /* Live search input (SearchInput component) — capped so it doesn't span the container */
-.search-input { max-width: 300px; }
+.search-input {
+  max-width: 300px;
+}
 
 .tl-mobile-row {
   display: none;
@@ -391,7 +427,9 @@
 }
 
 .tl-filter-button:hover,
-.tl-excel-button:hover { background: var(--primaer-hover); }
+.tl-excel-button:hover {
+  background: var(--primaer-hover);
+}
 
 /* Icon-only, Excel-brand-tinted (the icon reuses .tl-filter-button's border/hover shape). */
 .tl-excel-button {
@@ -415,7 +453,7 @@
   right: 0;
   background: var(--flate);
   border-radius: 12px 12px 0 0;
-  box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
   transform: translateY(100%);
   transition: transform 0.3s ease;
   z-index: 300;
@@ -423,7 +461,9 @@
   overflow-y: auto;
 }
 
-.tl-sheet.active { transform: translateY(0); }
+.tl-sheet.active {
+  transform: translateY(0);
+}
 
 .tl-sheet-content {
   padding: 20px 16px 32px;
@@ -496,9 +536,13 @@
   color: var(--tekst);
 }
 
-.tl-th:last-child { cursor: default; }
+.tl-th:last-child {
+  cursor: default;
+}
 
-.tl-th:not(:last-child):hover { background: var(--primaer-hover); }
+.tl-th:not(:last-child):hover {
+  background: var(--primaer-hover);
+}
 
 .tl-sort-icon {
   margin-left: 4px;
@@ -511,11 +555,15 @@
   color: var(--lenke);
 }
 
-.tl-table tbody .tl-tr:hover { background: var(--primaer-hover); }
+.tl-table tbody .tl-tr:hover {
+  background: var(--primaer-hover);
+}
 
 /* The whole row navigates (JS-driven — see terminliste.ts), so it needs its own
    pointer affordance and a visible focus ring since there's no <a> to carry one. */
-.tl-tr { cursor: pointer; }
+.tl-tr {
+  cursor: pointer;
+}
 
 .tl-tr:focus-visible {
   outline: 2px solid var(--primaer);
@@ -541,7 +589,9 @@
   margin: 20px 0 8px;
 }
 
-.tl-section-head:first-child { margin-top: 0; }
+.tl-section-head:first-child {
+  margin-top: 0;
+}
 
 .tl-section-title {
   font-weight: 600;
@@ -577,7 +627,9 @@
   cursor: pointer;
 }
 
-.tl-toggle-text-btn:hover { text-decoration: underline; }
+.tl-toggle-text-btn:hover {
+  text-decoration: underline;
+}
 
 .tl-toggle-icon {
   font-size: 0.7rem;
@@ -676,9 +728,15 @@
 }
 
 @media (max-width: 600px) {
-  .tl-filter-row { display: none; }
-  .tl-mobile-row { display: flex; }
-  .tl-mobile-row .search-input { flex: 1; }
+  .tl-filter-row {
+    display: none;
+  }
+  .tl-mobile-row {
+    display: flex;
+  }
+  .tl-mobile-row .search-input {
+    flex: 1;
+  }
 }
 
 /* ── Resultatside ── */
@@ -706,14 +764,18 @@
   margin-bottom: 6px;
 }
 
-.res-pdf-lenke:hover { text-decoration: underline; }
+.res-pdf-lenke:hover {
+  text-decoration: underline;
+}
 
 .res-antall {
   font-size: 0.95rem;
   margin-bottom: 14px;
 }
 
-.res-felles { margin: 12px 0; }
+.res-felles {
+  margin: 12px 0;
+}
 
 /* Group (mobile) */
 
@@ -734,7 +796,9 @@
   border-bottom: 1px solid var(--kant);
 }
 
-.res-group-rows { overflow: hidden; }
+.res-group-rows {
+  overflow: hidden;
+}
 
 .res-row {
   display: flex;
@@ -745,7 +809,9 @@
   gap: 12px;
 }
 
-.res-row:last-child { border-bottom: none; }
+.res-row:last-child {
+  border-bottom: none;
+}
 
 .res-pl {
   font-size: 1rem;
@@ -798,7 +864,9 @@
 
 /* Desktop result table */
 
-.res-table-section { margin-bottom: 20px; }
+.res-table-section {
+  margin-bottom: 20px;
+}
 
 .res-table,
 .app-table {
@@ -830,14 +898,18 @@
   background: var(--flate);
 }
 
-.res-table tbody tr:nth-child(even) { background: var(--flate-2); }
+.res-table tbody tr:nth-child(even) {
+  background: var(--flate-2);
+}
 
 .res-table td {
   padding: 5px 10px;
   color: var(--tekst);
 }
 
-.res-td-pl { width: 40px; }
+.res-td-pl {
+  width: 40px;
+}
 
 .res-td-nc {
   width: 60px;
@@ -849,16 +921,26 @@
   text-decoration: none;
 }
 
-.res-kaster-lenke:hover { text-decoration: underline; }
+.res-kaster-lenke:hover {
+  text-decoration: underline;
+}
 
 /* Responsiv: vis/skjul blokker */
 
-.res-mobil-blokk { display: block; }
-.res-desktop-blokk { display: none; }
+.res-mobil-blokk {
+  display: block;
+}
+.res-desktop-blokk {
+  display: none;
+}
 
 @media (min-width: 700px) {
-  .res-mobil-blokk { display: none; }
-  .res-desktop-blokk { display: block; }
+  .res-mobil-blokk {
+    display: none;
+  }
+  .res-desktop-blokk {
+    display: block;
+  }
 }
 
 /* ── Loading / error ── */
@@ -891,9 +973,17 @@
   background: var(--standing-kp-th);
 }
 
-.org-max-480 { max-width: 480px; }
-.org-tab-buttons  { display: none; }
-.org-standing-col { width: 100%; max-width: 500px; flex-shrink: 0; }
+.org-max-480 {
+  max-width: 480px;
+}
+.org-tab-buttons {
+  display: none;
+}
+.org-standing-col {
+  width: 100%;
+  max-width: 500px;
+  flex-shrink: 0;
+}
 
 @media (min-width: 1200px) {
   .org-standing-col {
@@ -903,43 +993,89 @@
     overflow-y: auto;
     scrollbar-width: none;
   }
-  .org-standing-col::-webkit-scrollbar { display: none; }
+  .org-standing-col::-webkit-scrollbar {
+    display: none;
+  }
 }
-.org-matches-panel { min-width: 0; }
-.btn-confirm      { min-width: 5rem; }
+.org-matches-panel {
+  min-width: 0;
+}
+.btn-confirm {
+  min-width: 5rem;
+}
 
-.stevne-nav                   { font-size: 0.875rem; }
-.stevne-nav .nav-link         { color: var(--tekst-2); }
+.stevne-nav {
+  font-size: 0.875rem;
+}
+.stevne-nav .nav-link {
+  color: var(--tekst-2);
+}
 .stevne-nav .nav-link:hover,
-.stevne-nav .nav-link:focus   { color: var(--tekst); }
-.stevne-nav .nav-link.active  { color: var(--lenke); }
+.stevne-nav .nav-link:focus {
+  color: var(--tekst);
+}
+.stevne-nav .nav-link.active {
+  color: var(--lenke);
+}
 
 @media (max-width: 1199px) {
-  .org-tab-buttons  { display: flex; margin-bottom: 0.75rem; }
-  .org-tab-btn      { flex: 1; }
-  .org-standing-col { width: 100%; }
-  .org-main-content .org-standing-col                    { display: none; }
-  .org-main-content.org-show-standing .org-matches-panel   { display: none !important; }
-  .org-main-content.org-show-standing .org-standing-col   { display: block; }
+  .org-tab-buttons {
+    display: flex;
+    margin-bottom: 0.75rem;
+  }
+  .org-tab-btn {
+    flex: 1;
+  }
+  .org-standing-col {
+    width: 100%;
+  }
+  .org-main-content .org-standing-col {
+    display: none;
+  }
+  .org-main-content.org-show-standing .org-matches-panel {
+    display: none !important;
+  }
+  .org-main-content.org-show-standing .org-standing-col {
+    display: block;
+  }
 }
 
-.match-advancing td    { background: var(--match-advancing-bg) !important; }
-.match-eliminated td { background: var(--match-eliminated-bg) !important; }
+.match-advancing td {
+  background: var(--match-advancing-bg) !important;
+}
+.match-eliminated td {
+  background: var(--match-eliminated-bg) !important;
+}
 
-.standing-player-row { cursor: pointer; }
-.standing-player-row:hover td { background-color: var(--primaer-aktiv) !important; }
-.standing-active td { background-color: var(--primaer-selektert) !important; }
-.standing-detail-table { font-size: 0.85em; }
-.standing-detail > td { border-top: 2px solid var(--primaer) !important; border-bottom: 2px solid var(--primaer) !important; }
+.standing-player-row {
+  cursor: pointer;
+}
+.standing-player-row:hover td {
+  background-color: var(--primaer-aktiv) !important;
+}
+.standing-active td {
+  background-color: var(--primaer-selektert) !important;
+}
+.standing-detail-table {
+  font-size: 0.85em;
+}
+.standing-detail > td {
+  border-top: 2px solid var(--primaer) !important;
+  border-bottom: 2px solid var(--primaer) !important;
+}
 
 /* ── Kampliste - felles ─────────────────────────────────────────────────────── */
 
 /* Responsive show/hide */
 @media (max-width: 699px) {
-  .match-table--desktop { display: none !important; }
+  .match-table--desktop {
+    display: none !important;
+  }
 }
 @media (min-width: 700px) {
-  .match-list-mobile { display: none !important; }
+  .match-list-mobile {
+    display: none !important;
+  }
 }
 
 /* Table shared styles (match table + stilling table) */
@@ -956,7 +1092,9 @@
      to the plain surface, so the standing table stays untinted. */
   background: var(--rad-bg, var(--flate));
 }
-.match-table tbody tr:last-child td { border-bottom: none; }
+.match-table tbody tr:last-child td {
+  border-bottom: none;
+}
 
 .org-thead th {
   background: var(--flate-2) !important;
@@ -973,9 +1111,15 @@
   border-left: 3px solid var(--kamp-stripe-ikke);
   padding-left: 9px;
 }
-.match-row-desktop[data-status="in-progress"] > td:first-child { border-left-color: var(--kamp-stripe-pagaar); }
-.match-row-desktop[data-status="done"] > td:first-child        { border-left-color: var(--kamp-stripe-ferdig); }
-.match-row-desktop > td:nth-child(2) { text-align: right; }
+.match-row-desktop[data-status="in-progress"] > td:first-child {
+  border-left-color: var(--kamp-stripe-pagaar);
+}
+.match-row-desktop[data-status="done"] > td:first-child {
+  border-left-color: var(--kamp-stripe-ferdig);
+}
+.match-row-desktop > td:nth-child(2) {
+  text-align: right;
+}
 
 /* Status legend */
 .match-legend {
@@ -997,9 +1141,15 @@
   border-radius: 1px;
   flex-shrink: 0;
 }
-.match-legend__stripe--not-started { background: var(--kamp-stripe-ikke); }
-.match-legend__stripe--in-progress { background: var(--kamp-stripe-pagaar); }
-.match-legend__stripe--done        { background: var(--kamp-stripe-ferdig); }
+.match-legend__stripe--not-started {
+  background: var(--kamp-stripe-ikke);
+}
+.match-legend__stripe--in-progress {
+  background: var(--kamp-stripe-pagaar);
+}
+.match-legend__stripe--done {
+  background: var(--kamp-stripe-ferdig);
+}
 
 /* ── Desktop buttons ── */
 
@@ -1014,8 +1164,13 @@
   white-space: nowrap;
   line-height: 1.4;
 }
-.match-button + .match-button { margin-left: 4px; }
-.match-button:disabled { opacity: 0.4; cursor: not-allowed; }
+.match-button + .match-button {
+  margin-left: 4px;
+}
+.match-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 .match-button-primary {
   background: var(--primaer);
   color: var(--primaer-text);
@@ -1034,18 +1189,36 @@
 }
 
 @keyframes confirm-flash {
-  0%      { background-color: rgba(76, 175, 80, 0.35); }
-  62.5%   { background-color: rgba(76, 175, 80, 0.35); }
-  100%    { background-color: transparent; }
+  0% {
+    background-color: rgba(76, 175, 80, 0.35);
+  }
+  62.5% {
+    background-color: rgba(76, 175, 80, 0.35);
+  }
+  100% {
+    background-color: transparent;
+  }
 }
 @keyframes standing-confirm-flash {
-  0%      { box-shadow: inset 0 0 0 100vw rgba(76, 175, 80, 0.35); }
-  62.5%   { box-shadow: inset 0 0 0 100vw rgba(76, 175, 80, 0.35); }
-  100%    { box-shadow: inset 0 0 0 100vw rgba(76, 175, 80, 0); }
+  0% {
+    box-shadow: inset 0 0 0 100vw rgba(76, 175, 80, 0.35);
+  }
+  62.5% {
+    box-shadow: inset 0 0 0 100vw rgba(76, 175, 80, 0.35);
+  }
+  100% {
+    box-shadow: inset 0 0 0 100vw rgba(76, 175, 80, 0);
+  }
 }
-.match-newly-confirmed td { animation: confirm-flash 8s linear forwards; }
-.match-row-mobile.match-newly-confirmed { animation: confirm-flash 8s linear forwards; }
-.standing-new-confirmed { animation: standing-confirm-flash 8s linear forwards; }
+.match-newly-confirmed td {
+  animation: confirm-flash 8s linear forwards;
+}
+.match-row-mobile.match-newly-confirmed {
+  animation: confirm-flash 8s linear forwards;
+}
+.standing-new-confirmed {
+  animation: standing-confirm-flash 8s linear forwards;
+}
 
 /* ── Match list — mobile ── */
 
@@ -1062,11 +1235,13 @@
   position: relative;
   border-bottom: 0.5px solid var(--kant);
 }
-.match-row-mobile:last-child { border-bottom: none; }
+.match-row-mobile:last-child {
+  border-bottom: none;
+}
 
 /* Status stripe via pseudo-element */
 .match-row-mobile::before {
-  content: '';
+  content: "";
   position: absolute;
   left: 0;
   top: 0;
@@ -1074,8 +1249,12 @@
   width: 3px;
   background: var(--kamp-stripe-ikke);
 }
-.match-row-mobile[data-status="in-progress"]::before { background: var(--kamp-stripe-pagaar); }
-.match-row-mobile[data-status="done"]::before        { background: var(--kamp-stripe-ferdig); }
+.match-row-mobile[data-status="in-progress"]::before {
+  background: var(--kamp-stripe-pagaar);
+}
+.match-row-mobile[data-status="done"]::before {
+  background: var(--kamp-stripe-ferdig);
+}
 
 .match-row-mobile__header {
   display: grid;
@@ -1091,7 +1270,9 @@
   display: flex;
   align-items: center;
 }
-.match-row-mobile--viewer .match-row-mobile__header { cursor: pointer; }
+.match-row-mobile--viewer .match-row-mobile__header {
+  cursor: pointer;
+}
 
 .match-mobile-lane {
   font-size: 13px;
@@ -1138,7 +1319,9 @@
   padding: 8px 12px 12px;
   border-top: 0.5px solid var(--kant);
 }
-.match-row-mobile[data-expanded="true"] .match-mobile-buttons { display: grid; }
+.match-row-mobile[data-expanded="true"] .match-mobile-buttons {
+  display: grid;
+}
 
 .match-button-mobile {
   background: transparent;
@@ -1151,7 +1334,10 @@
   text-align: center;
   white-space: nowrap;
 }
-.match-button-mobile:disabled { opacity: 0.4; cursor: not-allowed; }
+.match-button-mobile:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 .match-button-confirm-mobile {
   border-color: var(--kamp-stripe-ferdig);
   color: var(--kamp-stripe-ferdig);
@@ -1173,29 +1359,64 @@
 
 /* Stilling table — KP/SP visual hierarchy */
 /* th prefix needed to match .org-thead th specificity (0,1,1) and win by source order */
-th.standing-kp-th  { background: var(--standing-kp-th) !important; color: #fff !important; }
-th.standing-sp-th  { background: var(--standing-sp-th) !important; color: #fff !important; }
-.standing-kp-cell { background: var(--standing-kp-bg) !important; font-weight: 600; }
-.standing-sp-cell { background: var(--standing-sp-bg) !important; font-weight: 600; }
+th.standing-kp-th {
+  background: var(--standing-kp-th) !important;
+  color: #fff !important;
+}
+th.standing-sp-th {
+  background: var(--standing-sp-th) !important;
+  color: #fff !important;
+}
+.standing-kp-cell {
+  background: var(--standing-kp-bg) !important;
+  font-weight: 600;
+}
+.standing-sp-cell {
+  background: var(--standing-sp-bg) !important;
+  font-weight: 600;
+}
 
 /* Standing table — deemphasise position and match-count columns */
-.standing-dim-cell { font-size: 0.82em; color: var(--tekst-3); text-align: center; }
+.standing-dim-cell {
+  font-size: 0.82em;
+  color: var(--tekst-3);
+  text-align: center;
+}
 
 @media (max-width: 480px) {
-  .standing-table-wrap table { font-size: 0.88em; }
+  .standing-table-wrap table {
+    font-size: 0.88em;
+  }
 }
 
 /* ── Participants page ── */
 
-.participant-table-wrapper { height: 500px; overflow: auto; }
-.participant-table-wrapper .table { --bs-table-bg: transparent; }
-.participant-search-spacer { visibility: hidden; pointer-events: none; }
-.participant-row { cursor: pointer; }
-.participant-column { max-width: 450px; }
+.participant-table-wrapper {
+  height: 500px;
+  overflow: auto;
+}
+.participant-table-wrapper .table {
+  --bs-table-bg: transparent;
+}
+.participant-search-spacer {
+  visibility: hidden;
+  pointer-events: none;
+}
+.participant-row {
+  cursor: pointer;
+}
+.participant-column {
+  max-width: 450px;
+}
 
 /* Draggable rows (pair tab) — inside a Bootstrap .table, so grab cursor is set on the row */
-.participant-table-wrapper tr[draggable="true"] { cursor: grab; user-select: none; }
-.participant-table-wrapper tr[draggable="true"]:active { cursor: grabbing; }
+.participant-table-wrapper tr[draggable="true"] {
+  cursor: grab;
+  user-select: none;
+}
+.participant-table-wrapper tr[draggable="true"]:active {
+  cursor: grabbing;
+}
 
 /* Remove button — colors set as real properties (not Bootstrap's --bs-btn-* vars)
    so the Bootstrap .table cell cascade can't bleed into it inside a <td> */
@@ -1215,22 +1436,50 @@ th.standing-sp-th  { background: var(--standing-sp-th) !important; color: #fff !
 
 /* ── Pair/Mix tab ── */
 
-.pair-slot { min-height: 40px; background: var(--bg-2); cursor: default; transition: background 0.1s; }
-.pair-cell { background: var(--bg-2); font-size: 0.9rem; min-width: 0; }
+.pair-slot {
+  min-height: 40px;
+  background: var(--bg-2);
+  cursor: default;
+  transition: background 0.1s;
+}
+.pair-cell {
+  background: var(--bg-2);
+  font-size: 0.9rem;
+  min-width: 0;
+}
 /* Grid (not flex) so the two cells are content-independent equal tracks; the
    22px track lines up the remove button with the slot above it. Shared by the
    slots row and every pair row, guaranteeing column alignment between them. */
-.pair-grid-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 22px; gap: 8px; align-items: center; }
-.pair-slot--filled { background: var(--bg-3); font-weight: 500; }
-.pair-slot--hover { background: var(--bs-primary-bg-subtle); border-color: var(--bs-primary) !important; }
-.pair-row { background: var(--bg-2); }
+.pair-grid-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 22px;
+  gap: 8px;
+  align-items: center;
+}
+.pair-slot--filled {
+  background: var(--bg-3);
+  font-weight: 500;
+}
+.pair-slot--hover {
+  background: var(--bs-primary-bg-subtle);
+  border-color: var(--bs-primary) !important;
+}
+.pair-row {
+  background: var(--bg-2);
+}
 
 /* ── Norgescupen ── */
 
-.nc-filter-rad { margin-bottom: 16px; }
+.nc-filter-rad {
+  margin-bottom: 16px;
+}
 
-#nc-singel-seksjon { margin-bottom: 32px; }
-#nc-lag-seksjon { margin-bottom: 32px; }
+#nc-singel-seksjon {
+  margin-bottom: 32px;
+}
+#nc-lag-seksjon {
+  margin-bottom: 32px;
+}
 
 .nc-section-title {
   text-align: center;
@@ -1260,7 +1509,9 @@ th.standing-sp-th  { background: var(--standing-sp-th) !important; color: #fff !
   gap: 4px;
 }
 
-.nc-view-tabs { margin-bottom: 12px; }
+.nc-view-tabs {
+  margin-bottom: 12px;
+}
 
 .nc-class-tab {
   padding: 4px 12px;
@@ -1288,8 +1539,12 @@ th.standing-sp-th  { background: var(--standing-sp-th) !important; color: #fff !
   margin-top: 20px;
 }
 
-.app-table tbody tr { background: var(--flate); }
-.app-table tbody tr:nth-child(4n+3) { background: var(--flate-2); }
+.app-table tbody tr {
+  background: var(--flate);
+}
+.app-table tbody tr:nth-child(4n + 3) {
+  background: var(--flate-2);
+}
 
 .app-table td {
   padding: 5px 10px;
@@ -1297,7 +1552,9 @@ th.standing-sp-th  { background: var(--standing-sp-th) !important; color: #fff !
   border-bottom: 1px solid var(--kant);
 }
 
-.nc-td-pl { width: 36px; }
+.nc-td-pl {
+  width: 36px;
+}
 
 .nc-td-points {
   width: 80px;
@@ -1314,13 +1571,19 @@ th.standing-sp-th  { background: var(--standing-sp-th) !important; color: #fff !
 }
 
 .nc-points-cell,
-.nc-team-points-cell { user-select: none; }
+.nc-team-points-cell {
+  user-select: none;
+}
 
 .nc-points-cell:hover,
 .nc-team-points-cell:hover,
-.record-points-cell:hover { text-decoration: underline; }
+.record-points-cell:hover {
+  text-decoration: underline;
+}
 
-.nc-chevron { font-size: 0.7rem; }
+.nc-chevron {
+  font-size: 0.7rem;
+}
 
 .nc-detail-row td,
 .nc-team-detail-row td {
@@ -1347,17 +1610,33 @@ th.standing-sp-th  { background: var(--standing-sp-th) !important; color: #fff !
   color: var(--tekst);
 }
 
-.nc-row--invalid { color: var(--feil); }
+.nc-row--invalid {
+  color: var(--feil);
+}
 
-.nc-td-center { text-align: center; }
+.nc-td-center {
+  text-align: center;
+}
 
-.nc-info-button-row { text-align: center; margin-bottom: 8px; }
+.nc-info-button-row {
+  text-align: center;
+  margin-bottom: 8px;
+}
 
-.nc-click-hint-row { text-align: right; margin-bottom: 4px; }
+.nc-click-hint-row {
+  text-align: right;
+  margin-bottom: 4px;
+}
 
-.nc-info-text { text-align: center; margin-bottom: 4px; }
+.nc-info-text {
+  text-align: center;
+  margin-bottom: 4px;
+}
 
-.nc-info-text--warning { color: var(--feil); margin-bottom: 0; }
+.nc-info-text--warning {
+  color: var(--feil);
+  margin-bottom: 0;
+}
 
 /* ── NM-vinnere ── */
 
@@ -1382,26 +1661,52 @@ th.standing-sp-th  { background: var(--standing-sp-th) !important; color: #fff !
   margin-bottom: 12px;
 }
 
-.nm-table-wrapper { overflow-x: auto; }
+.nm-table-wrapper {
+  overflow-x: auto;
+}
 
-.nm-td-ar { width: 60px; }
+.nm-td-ar {
+  width: 60px;
+}
 
 /* ── Påmelding ── */
 
-.pm-side { max-width: 720px; }
+.pm-side {
+  max-width: 720px;
+}
 
 /* ── Rekorder ── */
 
-.record-title { text-align: center; font-size: 1.4rem; font-weight: bold; margin-bottom: 4px; }
-.record-max-text { text-align: center; font-size: 0.85rem; color: var(--tekst-3); margin-bottom: 14px; }
-.record-table-wrapper { overflow-x: auto; }
-.record-th-placement { width: 40px; }
-.record-th-points     { width: 80px; }
-.record-th-year       { width: 55px; }
+.record-title {
+  text-align: center;
+  font-size: 1.4rem;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+.record-max-text {
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--tekst-3);
+  margin-bottom: 14px;
+}
+.record-table-wrapper {
+  overflow-x: auto;
+}
+.record-th-placement {
+  width: 40px;
+}
+.record-th-points {
+  width: 80px;
+}
+.record-th-year {
+  width: 55px;
+}
 
 /* ── Kastere: liste ── */
 
-.thrower-list-controls { margin-bottom: 12px; }
+.thrower-list-controls {
+  margin-bottom: 12px;
+}
 
 .thrower-checkbox-label {
   display: inline-flex;
@@ -1431,7 +1736,9 @@ th.standing-sp-th  { background: var(--standing-sp-th) !important; color: #fff !
   transition: box-shadow 0.15s;
 }
 
-.thrower-card:hover { box-shadow: 0 2px 10px rgba(49,82,126,0.3); }
+.thrower-card:hover {
+  box-shadow: 0 2px 10px rgba(49, 82, 126, 0.3);
+}
 
 .thrower-card img {
   width: 100%;
@@ -1490,8 +1797,12 @@ th.standing-sp-th  { background: var(--standing-sp-th) !important; color: #fff !
   color: var(--primaer-text);
 }
 
-.kd-tab { display: block; }
-.kd-hidden { display: none; }
+.kd-tab {
+  display: block;
+}
+.kd-hidden {
+  display: none;
+}
 
 .thrower-detail-title {
   font-size: 1.8rem;
@@ -1529,21 +1840,28 @@ th.standing-sp-th  { background: var(--standing-sp-th) !important; color: #fff !
   align-items: flex-start;
 }
 
-.thrower-previous-clubs { margin-top: 20px; }
+.thrower-previous-clubs {
+  margin-top: 20px;
+}
 
-.thrower-previous-title { color: var(--lenke); }
+.thrower-previous-title {
+  color: var(--lenke);
+}
 
 .tl-link {
   color: var(--lenke);
   text-decoration: none;
 }
 
-.tl-link:hover { text-decoration: underline; }
+.tl-link:hover {
+  text-decoration: underline;
+}
 
 /* ── Rekorder ── */
 
-.record-female-row { background-color: rgba(220, 80, 100, 0.12) !important; }
-
+.record-female-row {
+  background-color: rgba(220, 80, 100, 0.12) !important;
+}
 
 .score-editable {
   cursor: pointer;
@@ -1569,9 +1887,17 @@ th.initial-score-th {
   grid-template-columns: 36px 20px 36px !important;
   align-items: center;
 }
-.initial-s1  { font-variant-numeric: tabular-nums; }
-.initial-sep { text-align: center; font-weight: 400; color: var(--tekst-2); }
-.initial-s2  { font-variant-numeric: tabular-nums; }
+.initial-s1 {
+  font-variant-numeric: tabular-nums;
+}
+.initial-sep {
+  text-align: center;
+  font-weight: 400;
+  color: var(--tekst-2);
+}
+.initial-s2 {
+  font-variant-numeric: tabular-nums;
+}
 
 /* ── Nummerpad ── */
 
@@ -1663,7 +1989,9 @@ th.initial-score-th {
   font-size: 0.85rem;
 }
 
-.np-reset-btn:disabled { opacity: 0.4; }
+.np-reset-btn:disabled {
+  opacity: 0.4;
+}
 
 .np-grid {
   display: grid;
@@ -1761,7 +2089,9 @@ th.initial-score-th {
   background: var(--onp-seg-inaktiv);
 }
 
-.onp-progress-seg.active { background: var(--onp-aksent); }
+.onp-progress-seg.active {
+  background: var(--onp-aksent);
+}
 
 .onp-back {
   align-self: flex-start;
@@ -1895,11 +2225,18 @@ th.initial-score-th {
   letter-spacing: 0.08em;
 }
 
-.onp-ring-btn:disabled { opacity: 0.35; cursor: default; }
-.onp-ring-btn.selected { border-color: var(--onp-valgt); }
+.onp-ring-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.onp-ring-btn.selected {
+  border-color: var(--onp-valgt);
+}
 
 .onp-ring-btn.selected .onp-ring-value,
-.onp-ring-btn.selected .onp-ring-label { color: var(--onp-valgt); }
+.onp-ring-btn.selected .onp-ring-label {
+  color: var(--onp-valgt);
+}
 
 .onp-register {
   margin-top: 4px;
@@ -1913,35 +2250,51 @@ th.initial-score-th {
   cursor: pointer;
 }
 
-.onp-register:disabled { opacity: 0.45; cursor: default; }
+.onp-register:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
 
 /* ── X-kast/Kongelag: zebra tint per bane group ── */
 /* Parity is set on every <tr> of a court by the render logic (court index
    within its pulje), NOT via :nth-child — a solo bane would otherwise desync
    the stripe. The left-border status accent is a separate channel. */
-.match-table tbody tr.bane-group    { --rad-bg: var(--bane-tint-a); }
-.match-table tbody tr.bane-group--b { --rad-bg: var(--bane-tint-b); }
+.match-table tbody tr.bane-group {
+  --rad-bg: var(--bane-tint-a);
+}
+.match-table tbody tr.bane-group--b {
+  --rad-bg: var(--bane-tint-b);
+}
 
 /* Each bane group's lane cell spans the whole court; forcing a min block
    height on a solo bane gives a lone kastar the visual weight of a pair. */
-.bane-lane-cell--solo { height: 3.75rem; }
+.bane-lane-cell--solo {
+  height: 3.75rem;
+}
 
 /* The bane boundary uses a per-theme divider colour so its weight matches
    across themes (--kant reads heavier on the light surface). */
-.match-table tbody tr.bane-group > td { border-bottom-color: var(--bane-divider); }
+.match-table tbody tr.bane-group > td {
+  border-bottom-color: var(--bane-divider);
+}
 
 /* No intra-bane row separator: both kastar of a bane share the tint, so the
    line between them is redundant. Drop it from the first row's non-spanned
    cells when a second kastar (or drill-down) row follows; the rowspanned lane
    and action cells still draw the boundary at the court's base. A solo bane has
    no following in-group row, so its boundary is left intact. */
-.match-table tbody tr.match-row-desktop.bane-group:has(+ tr:not(.match-row-desktop)) > td:not([rowspan]) {
+.match-table
+  tbody
+  tr.match-row-desktop.bane-group:has(+ tr:not(.match-row-desktop))
+  > td:not([rowspan]) {
   border-bottom: none;
 }
 
 /* ── X-kast: byte spelarar mellom banar (tap–tap) ── */
 
-.court-swap-cell { cursor: pointer; }
+.court-swap-cell {
+  cursor: pointer;
+}
 
 .court-swap-selected {
   background: var(--primaer-aktiv);
@@ -1951,13 +2304,19 @@ th.initial-score-th {
 
 /* ── X-kast/Kongelag: admin score editing ── */
 
-.xk-editable-cell { cursor: pointer; }
-.xk-editable-cell:hover { background: var(--primaer-hover); }
+.xk-editable-cell {
+  cursor: pointer;
+}
+.xk-editable-cell:hover {
+  background: var(--primaer-hover);
+}
 
 /* ── X-kast: per-player omgang detail (row-level toggle) ── */
 
 /* Chevron in the name cell; rotates to point down when the table is open. */
-.bane-name-cell { padding-block: 4px; }
+.bane-name-cell {
+  padding-block: 4px;
+}
 
 .bane-detail-toggle,
 .bane-name-toggle {
@@ -1983,11 +2342,16 @@ th.initial-score-th {
   transition: transform 0.15s ease;
   flex-shrink: 0;
 }
-[aria-expanded="true"] .bane-detail-chevron { transform: rotate(90deg); }
+[aria-expanded="true"] .bane-detail-chevron {
+  transform: rotate(90deg);
+}
 
 /* The detail row's own <td> shows the court's zebra tint (via --rad-bg) as a
    frame; the panel inside sits recessed so it reads as nested. */
-.xk-detail-row > td { padding: 6px 10px; border-bottom: 0.5px solid var(--bane-divider); }
+.xk-detail-row > td {
+  padding: 6px 10px;
+  border-bottom: 0.5px solid var(--bane-divider);
+}
 
 .bane-detail-panel {
   background: var(--bane-detail-bg);
@@ -2017,25 +2381,50 @@ th.initial-score-th {
   color: var(--tekst-2);
 }
 .bane-detail-table tbody tr + tr th,
-.bane-detail-table tbody tr + tr td { border-top: 0.5px solid var(--bane-divider); }
+.bane-detail-table tbody tr + tr td {
+  border-top: 0.5px solid var(--bane-divider);
+}
 
 .bane-detail-runde,
-.bane-detail-runde-head { text-align: left; }
-.bane-detail-runde { font-weight: 700; color: var(--tekst); }
+.bane-detail-runde-head {
+  text-align: left;
+}
+.bane-detail-runde {
+  font-weight: 700;
+  color: var(--tekst);
+}
 
 .bane-detail-sum,
-.bane-detail-sum-head { text-align: center; }
-.bane-detail-sum { font-weight: 700; color: var(--tekst); }
+.bane-detail-sum-head {
+  text-align: center;
+}
+.bane-detail-sum {
+  font-weight: 700;
+  color: var(--tekst);
+}
 
 /* Round ringer total — secondary to the poeng SUM, still readable. */
-.bane-detail-ringer-sum { color: var(--tekst); }
+.bane-detail-ringer-sum {
+  color: var(--tekst);
+}
 
-.bane-detail-poeng { font-weight: 600; color: var(--tekst); }
-.bane-detail-ringer { margin-left: 3px; font-size: 0.8em; color: var(--tekst-2); }
-.bane-detail-dash { color: var(--tekst-3); }
+.bane-detail-poeng {
+  font-weight: 600;
+  color: var(--tekst);
+}
+.bane-detail-ringer {
+  margin-left: 3px;
+  font-size: 0.8em;
+  color: var(--tekst-2);
+}
+.bane-detail-dash {
+  color: var(--tekst-3);
+}
 
 /* Per-player total ringers in the main court row (left of TOT). */
-.bane-ringer-col { color: var(--tekst-2); }
+.bane-ringer-col {
+  color: var(--tekst-2);
+}
 
 .bane-detail-cell-btn {
   min-width: 32px;
@@ -2047,7 +2436,9 @@ th.initial-score-th {
   font: inherit;
   cursor: pointer;
 }
-.bane-detail-cell-btn:hover { background: var(--primaer-hover); }
+.bane-detail-cell-btn:hover {
+  background: var(--primaer-hover);
+}
 
 /* ===================== SCOREBOARD ===================== */
 
@@ -2128,17 +2519,33 @@ th.initial-score-th {
   white-space: nowrap;
 }
 
-.sb-kamp-info-full { display: inline; }
-.sb-kamp-info-kort { display: none; }
-
-@media (max-width: 420px) {
-  .sb-kamp-info-full { display: none; }
-  .sb-kamp-info-kort { display: inline; }
+.sb-kamp-info-full {
+  display: inline;
+}
+.sb-kamp-info-kort {
+  display: none;
 }
 
-.sb-waiting-content { padding: 20px; }
-.sb-waiting-text { font-size: 1.4rem; }
-.sb-waiting-refresh { margin-top: 12px; font-size: 1.2rem; padding: 14px; }
+@media (max-width: 420px) {
+  .sb-kamp-info-full {
+    display: none;
+  }
+  .sb-kamp-info-kort {
+    display: inline;
+  }
+}
+
+.sb-waiting-content {
+  padding: 20px;
+}
+.sb-waiting-text {
+  font-size: 1.4rem;
+}
+.sb-waiting-refresh {
+  margin-top: 12px;
+  font-size: 1.2rem;
+  padding: 14px;
+}
 
 /* ── Felles scoreboard ── */
 
@@ -2202,7 +2609,7 @@ th.initial-score-th {
 /* Invisible right mirror keeps text optically centered when dot is present */
 .sb-spelar-navn--starter::before,
 .sb-spelar-navn--starter::after {
-  content: '';
+  content: "";
   display: block;
   flex-shrink: 0;
   width: 0.5em;
@@ -2342,31 +2749,51 @@ th.initial-score-th {
   background: var(--sb-bekreft-hover);
 }
 
-.sb-positiv { color: var(--sb-positiv); }
-.sb-negativ { color: var(--sb-negativ); }
+.sb-positiv {
+  color: var(--sb-positiv);
+}
+.sb-negativ {
+  color: var(--sb-negativ);
+}
 
 @media (min-width: 801px) {
-  .sb-score { font-size: min(clamp(8rem, 20vw, 26rem), 38vh); }
+  .sb-score {
+    font-size: min(clamp(8rem, 20vw, 26rem), 38vh);
+  }
   .sb-poeng-btn {
     width: min(clamp(70px, 8vw, 120px), 13vh);
     height: min(clamp(70px, 8vw, 120px), 13vh);
     font-size: min(clamp(1.8rem, 3.5vw, 3.5rem), 5vh);
   }
-  .sb-spelar-navn { font-size: min(clamp(2rem, 4vw, 5rem), 8vh); }
-  .sb-spelar-navn--par { font-size: min(clamp(1.6rem, 2.2vw, 2.8rem), 6vh); }
-  .sb-ringer-info { font-size: min(clamp(1rem, 2vw, 2rem), 4vh); }
+  .sb-spelar-navn {
+    font-size: min(clamp(2rem, 4vw, 5rem), 8vh);
+  }
+  .sb-spelar-navn--par {
+    font-size: min(clamp(1.6rem, 2.2vw, 2.8rem), 6vh);
+  }
+  .sb-ringer-info {
+    font-size: min(clamp(1rem, 2vw, 2rem), 4vh);
+  }
 }
 
 @media (min-width: 1500px) {
-  .sb-score { font-size: min(clamp(14rem, 22vw, 32rem), 40vh); }
+  .sb-score {
+    font-size: min(clamp(14rem, 22vw, 32rem), 40vh);
+  }
   .sb-poeng-btn {
     width: min(clamp(100px, 9vw, 160px), 14vh);
     height: min(clamp(100px, 9vw, 160px), 14vh);
     font-size: min(clamp(2.5rem, 4vw, 5rem), 5vh);
   }
-  .sb-spelar-navn { font-size: min(clamp(3rem, 5vw, 7rem), 8vh); }
-  .sb-spelar-navn--par { font-size: min(clamp(2rem, 2.6vw, 3.8rem), 6vh); }
-  .sb-ringer-info { font-size: min(clamp(1.5rem, 2.5vw, 3rem), 4vh); }
+  .sb-spelar-navn {
+    font-size: min(clamp(3rem, 5vw, 7rem), 8vh);
+  }
+  .sb-spelar-navn--par {
+    font-size: min(clamp(2rem, 2.6vw, 3.8rem), 6vh);
+  }
+  .sb-ringer-info {
+    font-size: min(clamp(1.5rem, 2.5vw, 3rem), 4vh);
+  }
 }
 
 @media (max-width: 800px) {
@@ -2389,11 +2816,21 @@ th.initial-score-th {
     border-right: 1px solid var(--sb-border-subtle);
     border-bottom: none;
   }
-  .sb-spelar-panel:last-child { border-right: none; }
-  .sb-spelar-navn { font-size: clamp(1.5rem, 8vh, 3rem); }
-  .sb-spelar-navn--par { font-size: clamp(1.1rem, 5vh, 1.8rem); }
-  .sb-score { font-size: clamp(4rem, 32vh, 12rem); }
-  .sb-ringer-info { display: none; }
+  .sb-spelar-panel:last-child {
+    border-right: none;
+  }
+  .sb-spelar-navn {
+    font-size: clamp(1.5rem, 8vh, 3rem);
+  }
+  .sb-spelar-navn--par {
+    font-size: clamp(1.1rem, 5vh, 1.8rem);
+  }
+  .sb-score {
+    font-size: clamp(4rem, 32vh, 12rem);
+  }
+  .sb-ringer-info {
+    display: none;
+  }
   .sb-knappar {
     width: 90%;
     gap: 4px;
@@ -2405,7 +2842,9 @@ th.initial-score-th {
     height: clamp(44px, 13vh, 80px);
     font-size: clamp(1.1rem, 5vh, 1.8rem);
   }
-  .sb-angre-rad { padding: 2px 8px; }
+  .sb-angre-rad {
+    padding: 2px 8px;
+  }
   .sb-neste-btn {
     padding: clamp(6px, 1.5vh, 10px);
     font-size: clamp(0.9rem, 2.5vh, 1.1rem);
@@ -2431,9 +2870,16 @@ th.initial-score-th {
 }
 
 @media (max-width: 800px) {
-  .sb-wrap--3p { flex-direction: row !important; }
-  .sb-wrap--3p .sb-spelar-panel { border-right: 1px solid var(--sb-border-subtle); border-bottom: none; }
-  .sb-wrap--3p .sb-spelar-panel:last-child { border-right: none; }
+  .sb-wrap--3p {
+    flex-direction: row !important;
+  }
+  .sb-wrap--3p .sb-spelar-panel {
+    border-right: 1px solid var(--sb-border-subtle);
+    border-bottom: none;
+  }
+  .sb-wrap--3p .sb-spelar-panel:last-child {
+    border-right: none;
+  }
 }
 
 .sb-wrap--3p .sb-poeng-btn {
@@ -2499,22 +2945,50 @@ th.initial-score-th {
 
 /* ── Tabellkolonne-breidder (delt) ── */
 
-.th-28  { width: 28px; }
-.th-32  { width: 32px; }
-.th-36  { width: 36px; }
-.th-40  { width: 40px; }
-.th-44  { width: 44px; }
-.th-48  { width: 48px; }
-.th-50  { width: 50px; }
-.th-80  { width: 80px; }
-.th-96  { width: 96px; }
-.th-120 { width: 120px; }
-.th-148 { width: 148px; }
+.th-28 {
+  width: 28px;
+}
+.th-32 {
+  width: 32px;
+}
+.th-36 {
+  width: 36px;
+}
+.th-40 {
+  width: 40px;
+}
+.th-44 {
+  width: 44px;
+}
+.th-48 {
+  width: 48px;
+}
+.th-50 {
+  width: 50px;
+}
+.th-80 {
+  width: 80px;
+}
+.th-96 {
+  width: 96px;
+}
+.th-120 {
+  width: 120px;
+}
+.th-148 {
+  width: 148px;
+}
 
 /* ── Avsluttande fase ── */
 
-.final-group-col  { flex: 1 1 0; min-width: 0; }
-.final-group-col + .final-group-col { border-left: 1px solid var(--kant); padding-left: 1rem; }
+.final-group-col {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.final-group-col + .final-group-col {
+  border-left: 1px solid var(--kant);
+  padding-left: 1rem;
+}
 
 .confirm-banner {
   position: sticky;
@@ -2525,11 +2999,19 @@ th.initial-score-th {
   z-index: 10;
 }
 
-.group-layout { flex-direction: column; }
-@media (min-width: 800px) {
-  .group-layout { flex-direction: row; }
+.group-layout {
+  flex-direction: column;
 }
-#group-panels .final-group-col { min-width: 400px; max-width: 400px; flex: 1 1 0; }
+@media (min-width: 800px) {
+  .group-layout {
+    flex-direction: row;
+  }
+}
+#group-panels .final-group-col {
+  min-width: 400px;
+  max-width: 400px;
+  flex: 1 1 0;
+}
 #group-panels .final-group-col + .final-group-col {
   border-left: 1px solid var(--kant);
   border-top: none;
@@ -2549,8 +3031,13 @@ th.initial-score-th {
   margin: 0;
   flex-shrink: 0;
 }
-#group-assignment-wrapper .btn-check:checked + .btn::before { content: '✓ '; }
-.final-match-block  { width: calc(50% - 0.5rem); min-width: 220px; }
+#group-assignment-wrapper .btn-check:checked + .btn::before {
+  content: "✓ ";
+}
+.final-match-block {
+  width: calc(50% - 0.5rem);
+  min-width: 220px;
+}
 .final-match-header {
   display: flex;
   align-items: center;
@@ -2577,7 +3064,9 @@ th.initial-score-th {
   padding: 2px 8px;
 }
 @media (max-width: 1199px) {
-  .final-group-col { flex: 0 0 100%; }
+  .final-group-col {
+    flex: 0 0 100%;
+  }
   .final-group-col + .final-group-col {
     border-left: none;
     padding-left: 0;
@@ -2586,11 +3075,21 @@ th.initial-score-th {
   }
 }
 @media (max-width: 499px) {
-  .final-match-block { width: 100%; }
+  .final-match-block {
+    width: 100%;
+  }
 }
-.final-score-cell { font-variant-numeric: tabular-nums; background: var(--avsl-score-bg) !important; }
-.avsl-stilling-einzel { max-width: 500px; }
-.avsl-maks-600 { max-width: 600px; margin-inline: auto; }
+.final-score-cell {
+  font-variant-numeric: tabular-nums;
+  background: var(--avsl-score-bg) !important;
+}
+.avsl-stilling-einzel {
+  max-width: 500px;
+}
+.avsl-maks-600 {
+  max-width: 600px;
+  margin-inline: auto;
+}
 
 .final-elim-position {
   background: var(--match-eliminated-bg) !important;
@@ -2658,7 +3157,9 @@ th.initial-score-th {
 
 /* ── Logg inn / Konto ────────────────────────────────────────────────────────── */
 
-.account-container { max-width: 480px; }
+.account-container {
+  max-width: 480px;
+}
 
 .btn-google,
 .btn-apple {
@@ -2667,7 +3168,9 @@ th.initial-score-th {
   border: 1px solid var(--kant);
 }
 .btn-google:hover,
-.btn-apple:hover { background: var(--primaer-hover); }
+.btn-apple:hover {
+  background: var(--primaer-hover);
+}
 
 .account-divider {
   display: flex;
@@ -2682,12 +3185,18 @@ th.initial-score-th {
   flex: 1;
   border-bottom: 1px solid var(--kant);
 }
-.account-divider::before { margin-right: 0.75rem; }
-.account-divider::after { margin-left: 0.75rem; }
+.account-divider::before {
+  margin-right: 0.75rem;
+}
+.account-divider::after {
+  margin-left: 0.75rem;
+}
 
 /* ── Min side ── */
 
-.mypage-container { max-width: 640px; }
+.mypage-container {
+  max-width: 640px;
+}
 
 /* ── Klubbar ─────────────────────────────────────────────────────────────────── */
 
@@ -2714,32 +3223,59 @@ th.initial-score-th {
 }
 
 /* ── Admin form widths ────────────────────────────────────────────────────── */
-.admin-form-sm { max-width: 520px; }
-.admin-form-md { max-width: 560px; }
-.admin-form-lg { max-width: 640px; }
-.admin-form-xl { max-width: 860px; }
-.sel-auto { width: auto; }
-.btn-close-xs { font-size: 0.6rem; }
+.admin-form-sm {
+  max-width: 520px;
+}
+.admin-form-md {
+  max-width: 560px;
+}
+.admin-form-lg {
+  max-width: 640px;
+}
+.admin-form-xl {
+  max-width: 860px;
+}
+.sel-auto {
+  width: auto;
+}
+.btn-close-xs {
+  font-size: 0.6rem;
+}
 
 /* ── Skeleton-plasshaldrar ────────────────────────────────────────────────── */
 .skeleton-block {
-  background: linear-gradient(90deg, var(--kant-2, #2a2a2a) 25%, var(--bg, #1a1a1a) 50%, var(--kant-2, #2a2a2a) 75%);
+  background: linear-gradient(
+    90deg,
+    var(--kant-2, #2a2a2a) 25%,
+    var(--bg, #1a1a1a) 50%,
+    var(--kant-2, #2a2a2a) 75%
+  );
   background-size: 200% 100%;
   animation: skeleton-shimmer 1.5s infinite;
   border-radius: 4px;
 }
 
-.skeleton-block--list { min-height: 320px; }
-.skeleton-block--card { min-height: 140px; }
+.skeleton-block--list {
+  min-height: 320px;
+}
+.skeleton-block--card {
+  min-height: 140px;
+}
 
 @keyframes skeleton-shimmer {
-  0%   { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 /* ── Stevne-statistikk ────────────────────────────────────────────────────── */
 
-.stats-side { padding-bottom: 40px; }
+.stats-side {
+  padding-bottom: 40px;
+}
 
 .stats-table-wrap {
   overflow-x: auto;
@@ -2749,11 +3285,15 @@ th.initial-score-th {
   max-width: 650px;
 }
 
-.stats-table-wrap.is-grabbing { cursor: grabbing; }
+.stats-table-wrap.is-grabbing {
+  cursor: grabbing;
+}
 
 @media (min-width: 650px) {
   .stats-table-wrap,
-  .stats-table-wrap.is-grabbing { cursor: default; }
+  .stats-table-wrap.is-grabbing {
+    cursor: default;
+  }
 }
 
 .stats-table {
@@ -2778,9 +3318,13 @@ th.initial-score-th {
   border-bottom: 2px solid var(--kant);
 }
 
-.stats-table tbody tr { background: var(--flate); }
+.stats-table tbody tr {
+  background: var(--flate);
+}
 
-.stats-table tbody tr:nth-child(even) { background: var(--flate-2); }
+.stats-table tbody tr:nth-child(even) {
+  background: var(--flate-2);
+}
 
 .stats-table td {
   padding: 5px 10px;
@@ -2789,16 +3333,26 @@ th.initial-score-th {
 }
 
 .stats-th-name,
-.stats-td-name { text-align: left; min-width: 120px; }
+.stats-td-name {
+  text-align: left;
+  min-width: 120px;
+}
 
 .stats-th-num,
-.stats-td-num { text-align: right; }
+.stats-td-num {
+  text-align: right;
+}
 
 .stats-th-diff,
-.stats-td-diff { text-align: right; font-weight: 600; }
+.stats-td-diff {
+  text-align: right;
+  font-weight: 600;
+}
 
 .stats-th-ringer,
-.stats-td-ringer { font-weight: 700; }
+.stats-td-ringer {
+  font-weight: 700;
+}
 
 .stats-col-sticky {
   position: sticky;
@@ -2811,16 +3365,24 @@ th.initial-score-th {
   z-index: 2;
 }
 
-.stats-table tbody tr:nth-child(odd) .stats-col-sticky  { background: var(--flate); }
-.stats-table tbody tr:nth-child(even) .stats-col-sticky { background: var(--flate-2); }
+.stats-table tbody tr:nth-child(odd) .stats-col-sticky {
+  background: var(--flate);
+}
+.stats-table tbody tr:nth-child(even) .stats-col-sticky {
+  background: var(--flate-2);
+}
 
 .stats-col-sticky-last {
   border-right: 2px solid var(--kant-2);
   box-shadow: 3px 0 6px -2px rgba(0, 0, 0, 0.35);
 }
 
-.stats-td-pos { color: var(--suksess, #2ecc71); }
-.stats-td-neg { color: var(--feil, #e74c3c); }
+.stats-td-pos {
+  color: var(--suksess, #2ecc71);
+}
+.stats-td-neg {
+  color: var(--feil, #e74c3c);
+}
 
 /* Linked login accounts table (min side -> konto).
    The email is one unbreakable token; without `anywhere` it dictates the
@@ -2874,7 +3436,9 @@ th.initial-score-th {
   overflow: hidden;
 }
 
-.stevne-kort:hover { background: var(--primaer-hover); }
+.stevne-kort:hover {
+  background: var(--primaer-hover);
+}
 
 /* 3px inner colored stripe as the leftmost flex item (a single-sided border on
    a rounded card looks off; overflow:hidden clips this child to the radius). */
@@ -2883,7 +3447,9 @@ th.initial-score-th {
   align-self: stretch;
   background: var(--kant-2);
 }
-.stevne-kort--live .stevne-kort__stripe { background: var(--live-prikk); }
+.stevne-kort--live .stevne-kort__stripe {
+  background: var(--live-prikk);
+}
 
 /* Empty stretched link: covers the whole card, sits above the body text
    (z-index 1) so the entire card navigates, but below interactive siblings. */
@@ -3052,10 +3618,18 @@ th.initial-score-th {
   letter-spacing: 0;
   color: var(--tekst-2);
 }
-.kd-res-head__label--name  { grid-area: name; }
-.kd-res-head__label--type  { grid-area: type; }
-.kd-res-head__label--klubb { grid-area: klubb; }
-.kd-res-head__label--chips { grid-area: chips; }
+.kd-res-head__label--name {
+  grid-area: name;
+}
+.kd-res-head__label--type {
+  grid-area: type;
+}
+.kd-res-head__label--klubb {
+  grid-area: klubb;
+}
+.kd-res-head__label--chips {
+  grid-area: chips;
+}
 .kd-res-head__pl {
   grid-area: pl;
   justify-self: end;
@@ -3074,15 +3648,24 @@ th.initial-score-th {
   color: var(--tekst-2);
   cursor: pointer;
 }
-.kd-sort-btn--active { color: var(--tekst); font-weight: 600; }
-.kd-sort-icon { color: var(--tekst-3); }
-.kd-sort-icon--active { color: var(--lenke); }
+.kd-sort-btn--active {
+  color: var(--tekst);
+  font-weight: 600;
+}
+.kd-sort-icon {
+  color: var(--tekst-3);
+}
+.kd-sort-icon--active {
+  color: var(--lenke);
+}
 
 .kd-res-row {
   padding: 10px 12px;
   border-bottom: 1px solid var(--kant);
 }
-.kd-res-row:hover { background: var(--primaer-hover); }
+.kd-res-row:hover {
+  background: var(--primaer-hover);
+}
 
 .kd-res-row__name {
   grid-area: name;
@@ -3095,12 +3678,25 @@ th.initial-score-th {
   font-size: 0.94rem;
   text-decoration: none;
 }
-a.kd-res-row__name:hover { text-decoration: underline; }
+a.kd-res-row__name:hover {
+  text-decoration: underline;
+}
 
 /* Desktop: meta dissolves so date/type/klubb become their own grid columns. */
-.kd-res-row__meta { display: contents; }
-.kd-res-row__date  { grid-area: date; white-space: nowrap; color: var(--tekst-2); font-size: 0.8rem; }
-.kd-res-row__type  { grid-area: type; color: var(--tekst-2); font-size: 0.8rem; }
+.kd-res-row__meta {
+  display: contents;
+}
+.kd-res-row__date {
+  grid-area: date;
+  white-space: nowrap;
+  color: var(--tekst-2);
+  font-size: 0.8rem;
+}
+.kd-res-row__type {
+  grid-area: type;
+  color: var(--tekst-2);
+  font-size: 0.8rem;
+}
 .kd-res-row__klubb {
   grid-area: klubb;
   overflow: hidden;
@@ -3116,7 +3712,9 @@ a.kd-res-row__name:hover { text-decoration: underline; }
   flex-wrap: wrap;
   gap: 6px;
 }
-.kd-res-row__chips:empty { display: none; }
+.kd-res-row__chips:empty {
+  display: none;
+}
 
 .kd-round-chip {
   display: inline-block;
@@ -3136,14 +3734,19 @@ a.kd-res-row__name:hover { text-decoration: underline; }
   color: var(--tekst);
   font-variant-numeric: tabular-nums;
 }
-.kd-res-row__pl--empty { color: var(--tekst-3); font-weight: 400; }
+.kd-res-row__pl--empty {
+  color: var(--tekst-3);
+  font-weight: 400;
+}
 
 @media (max-width: 699px) {
   .kd-res-head {
     grid-template-columns: 1fr auto;
     grid-template-areas: "date pl";
   }
-  .kd-res-head__label { display: none; }
+  .kd-res-head__label {
+    display: none;
+  }
 
   .kd-res-row {
     grid-template-columns: 1fr auto;
@@ -3154,7 +3757,9 @@ a.kd-res-row__name:hover { text-decoration: underline; }
     align-items: baseline;
     gap: 2px 12px;
   }
-  .kd-res-row__name { white-space: normal; }
+  .kd-res-row__name {
+    white-space: normal;
+  }
 
   /* Back to normal flow: date · type · klubb on one line. */
   .kd-res-row__meta {
@@ -3167,5 +3772,7 @@ a.kd-res-row__name:hover { text-decoration: underline; }
     content: "· ";
     color: var(--tekst-3);
   }
-  .kd-res-row__chips { margin-top: 4px; }
+  .kd-res-row__chips {
+    margin-top: 4px;
+  }
 }

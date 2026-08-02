@@ -1,12 +1,12 @@
-import type { PageRenderFn } from '@/types'
-import { renderList } from './_kastereListe'
-import { renderDetail, destroyChart } from './_kastereDetalj'
+import type { PageRenderFn } from "@/types";
+import { renderList } from "./_kastereListe";
+import { renderDetail, destroyChart } from "./_kastereDetalj";
 
 export const render: PageRenderFn = async (container, params) => {
-  destroyChart()
+  destroyChart();
   if (params.id) {
-    await renderDetail(container, Number(params.id))
+    await renderDetail(container, Number(params.id));
   } else {
-    await renderList(container)
+    await renderList(container);
   }
-}
+};

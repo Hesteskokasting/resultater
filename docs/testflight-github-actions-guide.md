@@ -2,7 +2,7 @@
 
 Guide for å bygge og distribuere Hesteskokasting-appen (`no.hesteskokasting.app`) til TestFlight uten fysisk Mac, ved bruk av GitHub Actions macOS-runner.
 
-**Tilnærming:** Ren `xcodebuild` med *cloud signing* (`-allowProvisioningUpdates` + App Store Connect API-nøkkel). Apple oppretter og vedlikeholder sertifikater og provisioning profiles automatisk i skyen. Ingen Fastlane, ingen Match, ingen eget certs-repo, ingen Ruby — færre bevegelige deler og færre secrets.
+**Tilnærming:** Ren `xcodebuild` med _cloud signing_ (`-allowProvisioningUpdates` + App Store Connect API-nøkkel). Apple oppretter og vedlikeholder sertifikater og provisioning profiles automatisk i skyen. Ingen Fastlane, ingen Match, ingen eget certs-repo, ingen Ruby — færre bevegelige deler og færre secrets.
 
 **Forutsetning:** Apple Developer-tilgang er godkjent av styret. Capacitor iOS-plattformen (`ios/`) er allerede lagt til og committet (bruker Swift Package Manager, ikke CocoaPods).
 
@@ -43,12 +43,12 @@ Noter også **Team ID**: finnes på [developer.apple.com/account](https://develo
 
 ## Steg 2: App Store Connect API-nøkkel
 
-Dette er nøkkelen CI-systemet bruker for å signere og laste opp builds *uten* at du logger inn med Apple ID og 2FA hver gang. Med cloud signing brukes den også til å opprette sertifikat og provisioning profile automatisk.
+Dette er nøkkelen CI-systemet bruker for å signere og laste opp builds _uten_ at du logger inn med Apple ID og 2FA hver gang. Med cloud signing brukes den også til å opprette sertifikat og provisioning profile automatisk.
 
 1. **Users and Access → Integrations (fanen i toppen) → App Store Connect API**.
 2. Klikk **Generate API Key** (eller "+").
 3. Navn: f.eks. "GitHub Actions CI".
-4. Access: **App Manager**. *(Hvis første build feiler med en rettighetsfeil ved oppretting av distribusjonssertifikat, oppgrader nøkkelen til **Admin** — cloud signing trenger det i noen tilfeller første gang.)*
+4. Access: **App Manager**. _(Hvis første build feiler med en rettighetsfeil ved oppretting av distribusjonssertifikat, oppgrader nøkkelen til **Admin** — cloud signing trenger det i noen tilfeller første gang.)_
 5. Klikk **Generate**.
 6. **Last ned `.p8`-filen umiddelbart** — Apple lar deg kun laste den ned ÉN gang. Lagre den trygt lokalt (passordmanager e.l., IKKE i git-repoet).
 7. Noter ned:
@@ -59,18 +59,18 @@ Dette er nøkkelen CI-systemet bruker for å signere og laste opp builds *uten* 
 
 ## Steg 3: GitHub Secrets
 
-Workflowen (`.github/workflows/ios-testflight.yml`) bruker `environment: testflight`. Opprett først miljøet: **Settings → Environments → New environment** → navn `testflight`. Legg deretter secrets inn *i miljøet* (Environment secrets), ikke som vanlige repository secrets — med mindre de allerede finnes som repository secrets (de fire `VITE_*`-verdiene brukes også av deploy-workflowene).
+Workflowen (`.github/workflows/ios-testflight.yml`) bruker `environment: testflight`. Opprett først miljøet: **Settings → Environments → New environment** → navn `testflight`. Legg deretter secrets inn _i miljøet_ (Environment secrets), ikke som vanlige repository secrets — med mindre de allerede finnes som repository secrets (de fire `VITE_*`-verdiene brukes også av deploy-workflowene).
 
-| Secret navn | Verdi |
-|---|---|
-| `APP_STORE_CONNECT_KEY_ID` | Key ID fra steg 2 |
-| `APP_STORE_CONNECT_ISSUER_ID` | Issuer ID fra steg 2 |
-| `APP_STORE_CONNECT_PRIVATE_KEY` | **Rå tekstinnhold** av `.p8`-filen (åpne i editor, kopier alt inkl. `-----BEGIN PRIVATE KEY-----`/`-----END PRIVATE KEY-----`). *Ikke* base64. |
-| `APPLE_TEAM_ID` | Team ID fra steg 1 |
-| `VITE_SUPABASE_URL` | Samme som i deploy-workflowene |
-| `VITE_SUPABASE_ANON_KEY` | Samme som i deploy-workflowene |
-| `VITE_GOOGLE_WEB_CLIENT_ID` | Samme som i deploy-workflowene |
-| `VITE_ONESIGNAL_APP_ID` | Samme som i deploy-workflowene |
+| Secret navn                     | Verdi                                                                                                                                          |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `APP_STORE_CONNECT_KEY_ID`      | Key ID fra steg 2                                                                                                                              |
+| `APP_STORE_CONNECT_ISSUER_ID`   | Issuer ID fra steg 2                                                                                                                           |
+| `APP_STORE_CONNECT_PRIVATE_KEY` | **Rå tekstinnhold** av `.p8`-filen (åpne i editor, kopier alt inkl. `-----BEGIN PRIVATE KEY-----`/`-----END PRIVATE KEY-----`). _Ikke_ base64. |
+| `APPLE_TEAM_ID`                 | Team ID fra steg 1                                                                                                                             |
+| `VITE_SUPABASE_URL`             | Samme som i deploy-workflowene                                                                                                                 |
+| `VITE_SUPABASE_ANON_KEY`        | Samme som i deploy-workflowene                                                                                                                 |
+| `VITE_GOOGLE_WEB_CLIENT_ID`     | Samme som i deploy-workflowene                                                                                                                 |
+| `VITE_ONESIGNAL_APP_ID`         | Samme som i deploy-workflowene                                                                                                                 |
 
 ---
 

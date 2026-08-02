@@ -1,11 +1,11 @@
-import { escHtml } from '@/utils/escHtml'
-import { renderLinkGate } from './_linkState'
-import type { MinSideContext } from './_linkState'
+import { escHtml } from "@/utils/escHtml";
+import { renderLinkGate } from "./_linkState";
+import type { MinSideContext } from "./_linkState";
 
 export interface SectionCardShell {
-  throwerId: number
+  throwerId: number;
   /** Content area that starts as a loading skeleton — fill it once data arrives. */
-  slot: HTMLElement
+  slot: HTMLElement;
 }
 
 /**
@@ -13,9 +13,13 @@ export interface SectionCardShell {
  * loading skeleton. Returns null when the user has no approved thrower link
  * (the gate rendered its own UI instead).
  */
-export function renderSectionCard(container: HTMLElement, ctx: MinSideContext, title: string): SectionCardShell | null {
-  const throwerId = renderLinkGate(container, ctx)
-  if (throwerId == null) return null
+export function renderSectionCard(
+  container: HTMLElement,
+  ctx: MinSideContext,
+  title: string,
+): SectionCardShell | null {
+  const throwerId = renderLinkGate(container, ctx);
+  if (throwerId == null) return null;
 
   container.innerHTML = `
     <div class="card mb-4">
@@ -23,6 +27,6 @@ export function renderSectionCard(container: HTMLElement, ctx: MinSideContext, t
         <h5 class="card-title">${escHtml(title)}</h5>
         <div data-slot="content"><div class="skeleton-block skeleton-block--card"></div></div>
       </div>
-    </div>`
-  return { throwerId, slot: container.querySelector<HTMLElement>('[data-slot="content"]')! }
+    </div>`;
+  return { throwerId, slot: container.querySelector<HTMLElement>('[data-slot="content"]')! };
 }

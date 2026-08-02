@@ -44,6 +44,7 @@ Line 1: Stevne name (--tekst, 500, 15px)        placement (right, 17px, 500; "�
 Line 2: {date} · {type}[ · {klubb}]             (--tekst-2, 12px)
 Line 3 (conditional): [X-kast chip] [Kongelag chip]   — omitted if neither value exists
 ```
+
 Desktop reflows these into aligned columns: `date · name · type · klubb · rundar(chips) · Pl`.
 Chip order: **X-kast first, then Kongelag** (X-kast = innledande, Kongelag = avsluttande).
 Chip text unchanged: `X-kast {poeng} ({ringar})`, `Kongelag {poeng} ({ringar})`; parens only
@@ -57,7 +58,7 @@ when the ring count exists; a chip renders only when its poeng value exists.
    plain literals — no `any`, no casts). Add `tests/kasterDetaljLogikk.sort.test.ts` covering
    dato asc/desc, plassering asc/desc with nulls-last, realistic values.
 2. **Render function.** Rewrite `resultsTableHtml` → `resultsListHtml(results, year, type,
-   sort)`: keep the info bar; add the sort header (`Sortér:` + Dato button, STEVNE/TYPE/
+sort)`: keep the info bar; add the sort header (`Sortér:` + Dato button, STEVNE/TYPE/
    KLUBB/RUNDAR labels, Pl. button, aria-pressed/aria-sort); render `.kd-res-row`s with name
    link, meta, chips (X-kast→Kongelag), placement. Apply filters then `sortResults`.
 3. **Wire `renderDetail`.** Add `resultSort` to `filterDetail` + reset on entry; pass it to
@@ -70,7 +71,10 @@ when the ring count exists; a chip renders only when its poeng value exists.
    `@media (max-width: 699px)` re-template + hide the middle header labels. Drop the
    `.table-responsive` wrapper for this tab (`.app-table` stays — shared elsewhere).
 5. **Verify.** `npm run typecheck && npm run typecheck:test && npm run test:run` + `npm run
-   build`. Manual: no h-scroll at 390px/1040px, sort toggles flip and show the arrow only on
+build`. Manual: no h-scroll at 390px/1040px, sort toggles flip and show the arrow only on
    the active field, filters+sort persist across each other, chips X-kast before Kongelag,
    missing placements sink to the bottom.
+
+```
+
 ```

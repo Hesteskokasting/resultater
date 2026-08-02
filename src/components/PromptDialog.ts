@@ -1,22 +1,22 @@
-import { createModalEl, createModalLifecycle } from '@/components/ModalBase'
+import { createModalEl, createModalLifecycle } from "@/components/ModalBase";
 
 export interface PromptDialogProps {
-  title: string
-  message: string
-  defaultValue?: string
-  inputType?: string
+  title: string;
+  message: string;
+  defaultValue?: string;
+  inputType?: string;
 }
 
-let _el: HTMLElement | null = null
-let _resolve: ((value: string | null) => void) | null = null
-const _modal = createModalLifecycle()
+let _el: HTMLElement | null = null;
+let _resolve: ((value: string | null) => void) | null = null;
+const _modal = createModalLifecycle();
 
 function getEl(): HTMLElement {
-  if (_el) return _el
+  if (_el) return _el;
 
   _el = createModalEl({
-    role: 'dialog',
-    labelledBy: 'pd-title',
+    role: "dialog",
+    labelledBy: "pd-title",
     html: `
     <div class="modal-dialog modal-dialog-centered modal-sm">
       <div class="modal-content">
@@ -34,40 +34,52 @@ function getEl(): HTMLElement {
       </div>
     </div>
   `,
-  })
-  _el.querySelector('#pd-cancel')!.addEventListener('click', () => { dismiss(null) })
-  _el.querySelector('#pd-confirm')!.addEventListener('click', () => { confirm() })
-  _el.querySelector('#pd-input')!.addEventListener('keydown', (e) => {
-    if ((e as KeyboardEvent).key === 'Enter') { e.preventDefault(); confirm() }
-  })
-  return _el
+  });
+  _el.querySelector("#pd-cancel")!.addEventListener("click", () => {
+    dismiss(null);
+  });
+  _el.querySelector("#pd-confirm")!.addEventListener("click", () => {
+    confirm();
+  });
+  _el.querySelector("#pd-input")!.addEventListener("keydown", (e) => {
+    if ((e as KeyboardEvent).key === "Enter") {
+      e.preventDefault();
+      confirm();
+    }
+  });
+  return _el;
 }
 
 function confirm(): void {
-  const value = _el?.querySelector<HTMLInputElement>('#pd-input')?.value ?? ''
-  dismiss(value)
+  const value = _el?.querySelector<HTMLInputElement>("#pd-input")?.value ?? "";
+  dismiss(value);
 }
 
 function dismiss(value: string | null): void {
-  if (!_el || !_resolve) return
-  const resolve = _resolve
-  _resolve = null
-  _modal.close(_el)
-  resolve(value)
+  if (!_el || !_resolve) return;
+  const resolve = _resolve;
+  _resolve = null;
+  _modal.close(_el);
+  resolve(value);
 }
 
 export function promptDialog(props: PromptDialogProps): Promise<string | null> {
-  const { title, message, defaultValue = '', inputType = 'text' } = props
-  const el = getEl()
+  const { title, message, defaultValue = "", inputType = "text" } = props;
+  const el = getEl();
 
-  el.querySelector<HTMLElement>('#pd-title')!.textContent = title
-  el.querySelector<HTMLElement>('#pd-message')!.textContent = message
-  const input = el.querySelector<HTMLInputElement>('#pd-input')!
-  input.type = inputType
-  input.value = defaultValue
+  el.querySelector<HTMLElement>("#pd-title")!.textContent = title;
+  el.querySelector<HTMLElement>("#pd-message")!.textContent = message;
+  const input = el.querySelector<HTMLInputElement>("#pd-input")!;
+  input.type = inputType;
+  input.value = defaultValue;
 
-  return new Promise(resolve => {
-    _resolve = resolve
-    _modal.open(el, { focus: '#pd-input', onEscape: () => { dismiss(null) } })
-  })
+  return new Promise((resolve) => {
+    _resolve = resolve;
+    _modal.open(el, {
+      focus: "#pd-input",
+      onEscape: () => {
+        dismiss(null);
+      },
+    });
+  });
 }

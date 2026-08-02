@@ -4,8 +4,8 @@ export function createEl<K extends keyof HTMLElementTagNameMap>(
   tekst: string | null,
   klasse?: string,
 ): HTMLElementTagNameMap[K] {
-  const el = document.createElement(tag)
-  if (tekst != null) el.textContent = tekst
-  if (klasse) el.className = klasse
-  return el
+  const el = document.createElement(tag);
+  if (tekst != null) el.textContent = tekst;
+  if (klasse) el.className = klasse;
+  return el;
 }

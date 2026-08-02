@@ -1,15 +1,15 @@
-type RefetchFn = () => void | Promise<void>
+type RefetchFn = () => void | Promise<void>;
 
-let current: RefetchFn | null = null
+let current: RefetchFn | null = null;
 
 export function registerRefetch(fn: RefetchFn | null): void {
-  current = fn
+  current = fn;
 }
 
 export function hasRefetch(): boolean {
-  return current !== null
+  return current !== null;
 }
 
 export function runRefetch(): void | Promise<void> {
-  return current?.()
+  return current?.();
 }

@@ -13,8 +13,8 @@ body {
 
 /* Startkort-stil for to A5 stående per A4 liggende */
 .startcard {
-  width: 48%;      /* Litt mindre enn halvparten for margin */
-  height: 90%;     /* Juster etter behov */
+  width: 48%; /* Litt mindre enn halvparten for margin */
+  height: 90%; /* Juster etter behov */
   display: inline-block;
   vertical-align: top;
   box-sizing: border-box;
@@ -64,7 +64,8 @@ body {
   margin-bottom: 10px;
   font-size: 0.95em;
 }
-.rounds-table th, .rounds-table td {
+.rounds-table th,
+.rounds-table td {
   border: 1px solid #000;
   text-align: center;
   height: 36px;
@@ -82,20 +83,21 @@ body {
   white-space: pre-line;
 }
 
-
 .rounds-table td {
   white-space: nowrap;
 }
 
 /* Small columns: BANE, RUNDE, KAMP POENG, SKÅR, NR., SKÅR (opponent) */
-.rounds-table th.small, .rounds-table td.small {
+.rounds-table th.small,
+.rounds-table td.small {
   width: 30px;
   min-width: 24px;
   max-width: 40px;
 }
 
 /* Wider column for NAVN */
-.rounds-table th.wide, .rounds-table td.wide {
+.rounds-table th.wide,
+.rounds-table td.wide {
   width: 260px;
   min-width: 140px;
   white-space: normal;
@@ -109,7 +111,6 @@ body {
   font-weight: bold;
   border-top: 2px solid #000;
 }
-
 
 @media (max-width: 700px) {
   .rounds-table th,

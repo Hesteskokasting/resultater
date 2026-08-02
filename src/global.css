@@ -1,4 +1,4 @@
-@import 'bootstrap/dist/css/bootstrap.min.css';
+@import "bootstrap/dist/css/bootstrap.min.css";
 
 /* CSS-variablar — :root er mørk modus; lys modus (standard, satt via
    data-theme="light" på <html>) overstyrer under */
@@ -12,7 +12,7 @@
   --tekst: #e2e4e9;
   --tekst-2: #9299a8;
   --tekst-3: #666c7d;
-  --primaer: #31527E;
+  --primaer: #31527e;
   --primaer-hover: rgba(49, 82, 126, 0.18);
   --primaer-aktiv: rgba(49, 82, 126, 0.45);
   --primaer-selektert: rgba(49, 82, 126, 0.65);
@@ -21,7 +21,7 @@
   --header-bg: #0d0f14;
   --input-bg: #1c1f2a;
   --feil: #ff6b6b;
-  --match-advancing-bg: color-mix(in srgb, #4CAF50 22%, var(--flate));
+  --match-advancing-bg: color-mix(in srgb, #4caf50 22%, var(--flate));
   --match-eliminated-bg: color-mix(in srgb, #ff6b6b 22%, var(--flate));
   --kamp-stripe-ikke: var(--tekst-3);
   --kamp-stripe-pagaar: #d4860a;
@@ -35,11 +35,11 @@
   /* Omgang detail panel — recessed below the row's zebra tint (toward the page
      colour in dark) so it reads as nested. */
   --bane-detail-bg: color-mix(in srgb, var(--flate) 58%, var(--bg) 42%);
-  --standing-kp-bg:  color-mix(in srgb, var(--primaer) 40%, var(--flate));
-  --standing-kp-th:  var(--primaer);
-  --standing-sp-bg:  color-mix(in srgb, #4CAF50 22%, var(--flate));
-  --standing-sp-th:  #2e7d32;
-  --avsl-score-bg:   color-mix(in srgb, var(--primaer) 25%, var(--flate));
+  --standing-kp-bg: color-mix(in srgb, var(--primaer) 40%, var(--flate));
+  --standing-kp-th: var(--primaer);
+  --standing-sp-bg: color-mix(in srgb, #4caf50 22%, var(--flate));
+  --standing-sp-th: #2e7d32;
+  --avsl-score-bg: color-mix(in srgb, var(--primaer) 25%, var(--flate));
 
   /* Intentionally fixed in both themes */
   --live-prikk: #e74c3c;
@@ -94,25 +94,25 @@
 }
 
 [data-theme="light"] {
-  --bg:               #ffffff;
-  --flate:            #f0f0f0;
-  --flate-2:          #e0e0e0;
-  --kant:             #555555;
-  --kant-2:           #333333;
-  --tekst:            #000000;
-  --tekst-2:          #111111;
-  --tekst-3:          #444444;
-  --primaer:          #003a7a;
-  --primaer-hover:    #cce0ff;
-  --primaer-aktiv:    #99c0ff;
-  --primaer-selektert:#4a90d9;
-  --primaer-text:     #ffffff;
-  --lenke:            #003a7a;
-  --header-bg:        #e8e8e8;
-  --input-bg:         #ffffff;
-  --feil:             #b30000;
-  --match-advancing-bg:   #c8f0c8;
-  --match-eliminated-bg:#f8d0d0;
+  --bg: #ffffff;
+  --flate: #f0f0f0;
+  --flate-2: #e0e0e0;
+  --kant: #555555;
+  --kant-2: #333333;
+  --tekst: #000000;
+  --tekst-2: #111111;
+  --tekst-3: #444444;
+  --primaer: #003a7a;
+  --primaer-hover: #cce0ff;
+  --primaer-aktiv: #99c0ff;
+  --primaer-selektert: #4a90d9;
+  --primaer-text: #ffffff;
+  --lenke: #003a7a;
+  --header-bg: #e8e8e8;
+  --input-bg: #ffffff;
+  --feil: #b30000;
+  --match-advancing-bg: #c8f0c8;
+  --match-eliminated-bg: #f8d0d0;
   --kamp-stripe-pagaar: #b36000;
   --kamp-stripe-ferdig: #2e7d32;
   /* Subtler step in light mode — high-contrast surfaces need less. */
@@ -123,28 +123,28 @@
   /* Light: --bg is lighter than the surface, so recess toward the text colour
      (a touch below the zebra tint step) instead. */
   --bane-detail-bg: color-mix(in srgb, var(--flate) 88%, var(--tekst) 12%);
-  --standing-kp-bg:  #d0e4f7;
-  --standing-kp-th:  #2563eb;
-  --standing-sp-bg:  #c8f0c8;
-  --standing-sp-th:  #16a34a;
-  --avsl-score-bg:   #d0e4f7;
+  --standing-kp-bg: #d0e4f7;
+  --standing-kp-th: #2563eb;
+  --standing-sp-bg: #c8f0c8;
+  --standing-sp-th: #16a34a;
+  --avsl-score-bg: #d0e4f7;
 
   /* Scoreboard — white bg + pure black for outdoor sun readability */
-  --sb-bg:              #ffffff;
-  --sb-topbar-bg:       #eeeeee;
-  --sb-border:          #000000;
-  --sb-border-subtle:   #444444;
-  --sb-border-btn:      #000000;
-  --sb-tekst:           #000000;
-  --sb-tekst-subtil:    #222222;
-  --sb-tekst-subtil-2:  #555555;
-  --sb-positiv:         #005500;
-  --sb-negativ:         #b30000;
-  --sb-knapp-bg:        #000000;
-  --sb-knapp-tekst:     #ffffff;
-  --sb-knapp-dis-bg:    #cccccc;
+  --sb-bg: #ffffff;
+  --sb-topbar-bg: #eeeeee;
+  --sb-border: #000000;
+  --sb-border-subtle: #444444;
+  --sb-border-btn: #000000;
+  --sb-tekst: #000000;
+  --sb-tekst-subtil: #222222;
+  --sb-tekst-subtil-2: #555555;
+  --sb-positiv: #005500;
+  --sb-negativ: #b30000;
+  --sb-knapp-bg: #000000;
+  --sb-knapp-tekst: #ffffff;
+  --sb-knapp-dis-bg: #cccccc;
   --sb-knapp-slett-hover: #7a0000;
-  --sb-vann-bg:         rgba(0, 80, 0, 0.9);
+  --sb-vann-bg: rgba(0, 80, 0, 0.9);
 }
 
 body {
@@ -192,15 +192,25 @@ body {
 }
 
 /* Dark (default): thumb right with moon */
-.theme-switch__icon--sun { display: none; }
+.theme-switch__icon--sun {
+  display: none;
+}
 
 /* Light: thumb left with sun */
-[data-theme="light"] .theme-switch__thumb { transform: translateX(0); }
-[data-theme="light"] .theme-switch__icon--sun { display: block; }
-[data-theme="light"] .theme-switch__icon--moon { display: none; }
+[data-theme="light"] .theme-switch__thumb {
+  transform: translateX(0);
+}
+[data-theme="light"] .theme-switch__icon--sun {
+  display: block;
+}
+[data-theme="light"] .theme-switch__icon--moon {
+  display: none;
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .theme-switch__thumb { transition: none; }
+  .theme-switch__thumb {
+    transition: none;
+  }
 }
 
 /* Generelle input/select i mørk modus */
@@ -241,8 +251,14 @@ textarea:focus {
   animation: toast-in 0.2s ease;
 }
 @keyframes toast-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 .toast-error {
   background: color-mix(in srgb, #ff6b6b 15%, var(--flate));

@@ -73,7 +73,7 @@ the extension target in `project.pbxproj` — riskier, but verifiable via the CI
 
 - [ ] Install the build from TestFlight on an iPhone, log in.
 - [ ] Min side → innstillingar: enable a notification toggle → accept the iOS permission prompt.
-- [ ] In OneSignal **Audience → Subscriptions**: verify the device appears as *Subscribed* with
+- [ ] In OneSignal **Audience → Subscriptions**: verify the device appears as _Subscribed_ with
       external id = the Supabase user id.
 - [ ] Send a test push from the OneSignal dashboard (Messages → New Push → target that user)
       and confirm it arrives with the app in background/killed state.

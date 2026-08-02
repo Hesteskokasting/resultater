@@ -9,7 +9,7 @@ only row rendering differs.
 
 - **Sort scope (user-confirmed):** keep the existing single shared `sort` state
   (default `{ column: 'dato', direction: 'asc' }`). It's applied uniformly to the
-  rows *within every month group, in both sections*. We drop the literal spec
+  rows _within every month group, in both sections_. We drop the literal spec
   nuance of "Ferdige rows default to descending" — before any header click,
   Ferdige's rows within a month are ascending too, same as Kommande. Only the
   **month order** is fixed regardless of the column sort: Kommande months
@@ -44,9 +44,9 @@ only row rendering differs.
    the page file), and add `groupSchedule<T>(rows: T[], todayIso: string)`
    constrained to `{ dato: string; stevne_fase: string | null }`, returning
    `{ upcoming: MonthGroup<T>[]; past: MonthGroup<T>[] }` where `MonthGroup<T> =
-   { key: string; label: string; rows: T[] }` (key `'YYYY-MM'`, label e.g.
+{ key: string; label: string; rows: T[] }` (key `'YYYY-MM'`, label e.g.
    `'JULI 2026'` via `Intl.DateTimeFormat('nb-NO', { month: 'long', year:
-   'numeric' })`, upper-cased). Add `tests/terminlisteLogikk.test.ts`: bucketing
+'numeric' })`, upper-cased). Add `tests/terminlisteLogikk.test.ts`: bucketing
    (future date, past date, today-not-started → Kommande, today-live/today-done
    → Ferdige), month ordering (Kommande asc, Ferdige desc), multiple rows per
    month, empty input → empty arrays.
@@ -72,7 +72,7 @@ only row rendering differs.
    block variant), new trailing table column. Verify no horizontal scroll at
    390px/1040px with the extra column.
 6. **Verify.** `npm run typecheck && npm run typecheck:test && npm run
-   test:run`, then `npm run build`. Manual pass through the acceptance list
+test:run`, then `npm run build`. Manual pass through the acceptance list
    (top-of-Kommande landing, month order both directions, today-dated edge
    case, search/filter/expand survive each other, registration still works
    in place, no h-scroll).

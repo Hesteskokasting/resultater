@@ -1,28 +1,28 @@
-import { throwerName } from '@/utils/kaster'
-import { escHtml } from '@/utils/escHtml'
-import { logError } from '@/utils/logError'
-import { createLoadingState } from '@/components/LoadingState'
-import { createErrorBanner } from '@/components/ErrorBanner'
-import { createEmptyState } from '@/components/EmptyState'
-import { getMatchesForStats, getPositionForTournament } from '@/services/stevneStatsService'
-import type { StatsMatchRow } from '@/services/stevneStatsService'
+import { throwerName } from "@/utils/kaster";
+import { escHtml } from "@/utils/escHtml";
+import { logError } from "@/utils/logError";
+import { createLoadingState } from "@/components/LoadingState";
+import { createErrorBanner } from "@/components/ErrorBanner";
+import { createEmptyState } from "@/components/EmptyState";
+import { getMatchesForStats, getPositionForTournament } from "@/services/stevneStatsService";
+import type { StatsMatchRow } from "@/services/stevneStatsService";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 interface PlayerStats {
-  kasterid: number
-  navn: string
-  matchCount: number
-  shoesThrown: number
-  ringers: number
-  ringerPct: number
-  doubleRingers: number
-  score4: number
-  score3: number
-  score2: number
-  score1: number
-  score0: number
-  scoreDiff: number
+  kasterid: number;
+  navn: string;
+  matchCount: number;
+  shoesThrown: number;
+  ringers: number;
+  ringerPct: number;
+  doubleRingers: number;
+  score4: number;
+  score3: number;
+  score2: number;
+  score1: number;
+  score0: number;
+  scoreDiff: number;
 }
 
 // ── Aggregation ───────────────────────────────────────────────────────────────
@@ -39,21 +39,21 @@ export function sumOpponentScore(
   spelarar: { kasterid: number; score_poeng: number }[],
   posisjonMap: Map<number, number>,
 ): number {
-  const spPos = posisjonMap.get(sp.kasterid) ?? null
+  const spPos = posisjonMap.get(sp.kasterid) ?? null;
   return spelarar
-    .filter(o => o.kasterid !== sp.kasterid && (posisjonMap.get(o.kasterid) ?? null) === spPos)
-    .reduce((sum, o) => sum + o.score_poeng, 0)
+    .filter((o) => o.kasterid !== sp.kasterid && (posisjonMap.get(o.kasterid) ?? null) === spPos)
+    .reduce((sum, o) => sum + o.score_poeng, 0);
 }
 
 function aggregateStats(matches: StatsMatchRow[], posisjonMap: Map<number, number>): PlayerStats[] {
-  const map = new Map<number, PlayerStats>()
+  const map = new Map<number, PlayerStats>();
 
   for (const match of matches) {
-    if (match.er_walkover) continue
-    const players = match.spelarar
+    if (match.er_walkover) continue;
+    const players = match.spelarar;
 
     for (const sp of players) {
-      const opponentScore = sumOpponentScore(sp, players, posisjonMap)
+      const opponentScore = sumOpponentScore(sp, players, posisjonMap);
 
       if (!map.has(sp.kasterid)) {
         map.set(sp.kasterid, {
@@ -70,43 +70,45 @@ function aggregateStats(matches: StatsMatchRow[], posisjonMap: Map<number, numbe
           score1: 0,
           score0: 0,
           scoreDiff: 0,
-        })
+        });
       }
 
-      const stats = map.get(sp.kasterid)!
-      if (sp.omgangar.length > 0) stats.matchCount++
-      stats.scoreDiff += sp.score_poeng - opponentScore
+      const stats = map.get(sp.kasterid)!;
+      if (sp.omgangar.length > 0) stats.matchCount++;
+      stats.scoreDiff += sp.score_poeng - opponentScore;
 
       for (const o of sp.omgangar) {
-        stats.shoesThrown += 2
-        if (o.antall_ringer != null) stats.ringers += o.antall_ringer
-        if (o.antall_ringer === 2) stats.doubleRingers++
-        if (o.score === 4) stats.score4++
-        else if (o.score === 3) stats.score3++
-        else if (o.score === 2) stats.score2++
-        else if (o.score === 1) stats.score1++
-        else if (o.score === 0) stats.score0++
+        stats.shoesThrown += 2;
+        if (o.antall_ringer != null) stats.ringers += o.antall_ringer;
+        if (o.antall_ringer === 2) stats.doubleRingers++;
+        if (o.score === 4) stats.score4++;
+        else if (o.score === 3) stats.score3++;
+        else if (o.score === 2) stats.score2++;
+        else if (o.score === 1) stats.score1++;
+        else if (o.score === 0) stats.score0++;
       }
     }
   }
 
-  const result = [...map.values()].filter(s => s.shoesThrown > 0)
+  const result = [...map.values()].filter((s) => s.shoesThrown > 0);
 
   for (const s of result) {
-    s.ringerPct = s.shoesThrown > 0 ? (s.ringers / s.shoesThrown) * 100 : 0
+    s.ringerPct = s.shoesThrown > 0 ? (s.ringers / s.shoesThrown) * 100 : 0;
   }
 
-  return result.sort((a, b) => b.ringerPct - a.ringerPct)
+  return result.sort((a, b) => b.ringerPct - a.ringerPct);
 }
 
 // ── HTML builder ──────────────────────────────────────────────────────────────
 
 function fmtDiff(n: number): string {
-  return n > 0 ? `+${n}` : String(n)
+  return n > 0 ? `+${n}` : String(n);
 }
 
 function statsTableHtml(players: PlayerStats[]): string {
-  const rows = players.map(s => `
+  const rows = players
+    .map(
+      (s) => `
     <tr>
       <td class="stats-td-name">${escHtml(s.navn)}</td>
       <td class="stats-td-num">${s.matchCount}</td>
@@ -119,8 +121,10 @@ function statsTableHtml(players: PlayerStats[]): string {
       <td class="stats-td-num">${s.score2}</td>
       <td class="stats-td-num">${s.score1}</td>
       <td class="stats-td-num">${s.score0}</td>
-      <td class="stats-td-diff ${s.scoreDiff >= 0 ? 'stats-td-pos' : 'stats-td-neg'}">${fmtDiff(s.scoreDiff)}</td>
-    </tr>`).join('')
+      <td class="stats-td-diff ${s.scoreDiff >= 0 ? "stats-td-pos" : "stats-td-neg"}">${fmtDiff(s.scoreDiff)}</td>
+    </tr>`,
+    )
+    .join("");
 
   return `
     <div class="stats-table-wrap">
@@ -143,48 +147,54 @@ function statsTableHtml(players: PlayerStats[]): string {
         </thead>
         <tbody>${rows}</tbody>
       </table>
-    </div>`
+    </div>`;
 }
 
 // ── Drag-scroll ───────────────────────────────────────────────────────────────
 
 function bindDragScroll(el: HTMLElement): void {
-  let isDown = false
-  let startX = 0
-  let scrollLeft = 0
+  let isDown = false;
+  let startX = 0;
+  let scrollLeft = 0;
 
-  el.addEventListener('mousedown', e => {
-    isDown = true
-    el.classList.add('is-grabbing')
-    startX = e.pageX - el.offsetLeft
-    scrollLeft = el.scrollLeft
-  })
-  el.addEventListener('mouseleave', () => { isDown = false; el.classList.remove('is-grabbing') })
-  el.addEventListener('mouseup',    () => { isDown = false; el.classList.remove('is-grabbing') })
-  el.addEventListener('mousemove', e => {
-    if (!isDown) return
-    e.preventDefault()
-    el.scrollLeft = scrollLeft - (e.pageX - el.offsetLeft - startX)
-  })
+  el.addEventListener("mousedown", (e) => {
+    isDown = true;
+    el.classList.add("is-grabbing");
+    startX = e.pageX - el.offsetLeft;
+    scrollLeft = el.scrollLeft;
+  });
+  el.addEventListener("mouseleave", () => {
+    isDown = false;
+    el.classList.remove("is-grabbing");
+  });
+  el.addEventListener("mouseup", () => {
+    isDown = false;
+    el.classList.remove("is-grabbing");
+  });
+  el.addEventListener("mousemove", (e) => {
+    if (!isDown) return;
+    e.preventDefault();
+    el.scrollLeft = scrollLeft - (e.pageX - el.offsetLeft - startX);
+  });
 }
 
 // ── Sticky columns ────────────────────────────────────────────────────────────
 
 function bindStickyColumns(table: HTMLTableElement, count: number): void {
-  const rows = [...table.querySelectorAll<HTMLTableRowElement>('tr')]
-  const firstRow = rows[0]
-  if (!firstRow) return
+  const rows = [...table.querySelectorAll<HTMLTableRowElement>("tr")];
+  const firstRow = rows[0];
+  if (!firstRow) return;
   // Measure widths from the first row before mutating anything
-  const widths = [...firstRow.cells].slice(0, count).map(c => c.offsetWidth)
+  const widths = [...firstRow.cells].slice(0, count).map((c) => c.offsetWidth);
   for (const row of rows) {
-    let offset = 0
+    let offset = 0;
     for (let i = 0; i < count && i < row.cells.length; i++) {
-      const cell = row.cells[i]
-      if (!cell) continue
-      cell.classList.add('stats-col-sticky')
-      if (i === count - 1) cell.classList.add('stats-col-sticky-last')
-      cell.style.setProperty('--col-left', `${offset}px`)
-      offset += widths[i] ?? 0
+      const cell = row.cells[i];
+      if (!cell) continue;
+      cell.classList.add("stats-col-sticky");
+      if (i === count - 1) cell.classList.add("stats-col-sticky-last");
+      cell.style.setProperty("--col-left", `${offset}px`);
+      offset += widths[i] ?? 0;
     }
   }
 }
@@ -195,34 +205,34 @@ export async function render(
   container: HTMLElement,
   { id }: { id: number; isAdmin?: boolean },
 ): Promise<void> {
-  container.replaceChildren(createLoadingState('Laster statistikk…'))
+  container.replaceChildren(createLoadingState("Laster statistikk…"));
 
   try {
     const [{ data, error }, posisjonMap] = await Promise.all([
       getMatchesForStats(id),
       getPositionForTournament(id),
-    ])
+    ]);
 
     if (error) {
-      container.replaceChildren(createErrorBanner('Kunne ikkje laste statistikk.'))
-      return
+      container.replaceChildren(createErrorBanner("Kunne ikkje laste statistikk."));
+      return;
     }
 
-    const players = aggregateStats(data, posisjonMap)
+    const players = aggregateStats(data, posisjonMap);
 
     if (!players.length) {
-      container.replaceChildren(createEmptyState('Ingen statistikk registrert.'))
-      return
+      container.replaceChildren(createEmptyState("Ingen statistikk registrert."));
+      return;
     }
 
-    container.innerHTML = `<div class="stats-side">${statsTableHtml(players)}</div>`
+    container.innerHTML = `<div class="stats-side">${statsTableHtml(players)}</div>`;
 
-    const wrap  = container.querySelector<HTMLElement>('.stats-table-wrap')
-    const table = container.querySelector<HTMLTableElement>('.stats-table')
-    if (wrap) bindDragScroll(wrap)
-    if (table) bindStickyColumns(table, 1) // name column only
+    const wrap = container.querySelector<HTMLElement>(".stats-table-wrap");
+    const table = container.querySelector<HTMLTableElement>(".stats-table");
+    if (wrap) bindDragScroll(wrap);
+    if (table) bindStickyColumns(table, 1); // name column only
   } catch (err) {
-    logError('stevne-stats.render', err)
-    container.replaceChildren(createErrorBanner('Kunne ikkje laste statistikk.'))
+    logError("stevne-stats.render", err);
+    container.replaceChildren(createErrorBanner("Kunne ikkje laste statistikk."));
   }
 }
