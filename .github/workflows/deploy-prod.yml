@@ -19,12 +19,17 @@ jobs:
     environment: github-pages
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      # vp version is auto-detected from the vite-plus devDependency + lockfile.
+      - uses: voidzero-dev/setup-vp@v1
         with:
           node-version: "24"
-          cache: "npm"
-      - run: npm ci
-      - run: npm run build -- --base /
+          cache: true
+          run-install: false
+      - run: vp install --frozen-lockfile
+      # Replaces the `tsc --noEmit` gate that `npm run build` used to provide;
+      # also covers fmt and lint (lint.options.typeCheck is on in vite.config.js).
+      - run: vp check
+      - run: vp build --base /
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}

@@ -57,7 +57,7 @@
     "packageManager": {
       "name": "npm",
       "version": "12.0.2",
-      "onFail": "download"
+      "onFail": "warn"
     }
   },
   "buildNumber": 3
