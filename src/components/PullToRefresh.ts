@@ -90,7 +90,7 @@ export function initPullToRefresh(onRefresh: RefreshFn): void {
     indicator.style.height = `${PULL_THRESHOLD}px`;
     spinner.style.opacity = "1";
 
-    Promise.resolve(onRefresh()).finally(() => {
+    void Promise.resolve(onRefresh()).finally(() => {
       refreshing = false;
       reset();
     });

@@ -21,7 +21,7 @@ export function createExcelButton({ slot, onClick }: ExcelButtonProps): HTMLButt
   btn.title = "Last ned Excel";
   btn.innerHTML = EXCEL_SVG;
   btn.addEventListener("click", () => {
-    onClick();
+    void onClick();
   });
   slot.replaceWith(btn);
   return btn;

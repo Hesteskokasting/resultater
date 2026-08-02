@@ -85,7 +85,7 @@ export async function render(container: HTMLElement): Promise<void> {
 
   container.querySelector("#admin-tabs")!.addEventListener("click", (e) => {
     const button = (e.target as HTMLElement).closest<HTMLElement>("[data-tab]");
-    if (button?.dataset.tab) showTab(button.dataset.tab as Tab);
+    if (button?.dataset.tab) void showTab(button.dataset.tab as Tab);
   });
 
   const [, { data: liveTournamentsData }] = await Promise.all([
@@ -163,7 +163,7 @@ async function _renderLinks(el: HTMLElement): Promise<void> {
         el.innerHTML = `<div class="alert alert-danger">${escHtml(errMsg(error))}</div>`;
         return;
       }
-      _renderLinks(el);
+      void _renderLinks(el);
     });
   });
   el.querySelectorAll<HTMLButtonElement>(".reject-button").forEach((button) => {
@@ -174,7 +174,7 @@ async function _renderLinks(el: HTMLElement): Promise<void> {
         el.innerHTML = `<div class="alert alert-danger">${escHtml(errMsg(error))}</div>`;
         return;
       }
-      _renderLinks(el);
+      void _renderLinks(el);
     });
   });
 }
@@ -338,7 +338,7 @@ async function _renderClubAdmin(el: HTMLElement): Promise<void> {
         errorEl.classList.remove("d-none");
         return;
       }
-      _renderClubAdmin(el);
+      void _renderClubAdmin(el);
     });
   });
 
@@ -358,7 +358,7 @@ async function _renderClubAdmin(el: HTMLElement): Promise<void> {
         errorEl.classList.remove("d-none");
         return;
       }
-      _renderClubAdmin(el);
+      void _renderClubAdmin(el);
     });
   });
 }

@@ -176,7 +176,7 @@ function bindEventHandlers(
       errorEl.classList.remove("d-none");
       return;
     }
-    render(container, params);
+    void render(container, params);
   });
 
   const adminRegistrationForm = container.querySelector<HTMLFormElement>(
@@ -199,7 +199,7 @@ function bindEventHandlers(
       errorEl.classList.remove("d-none");
       return;
     }
-    render(container, params);
+    void render(container, params);
   });
 
   container
@@ -214,7 +214,7 @@ function bindEventHandlers(
         showToast("Kunne ikkje melde av: " + errorMessage(error), "error");
         return;
       }
-      render(container, params);
+      void render(container, params);
     });
 
   container.querySelectorAll<HTMLButtonElement>(".remove-registration").forEach((button) => {
@@ -227,7 +227,7 @@ function bindEventHandlers(
         showToast("Kunne ikkje fjerne påmelding: " + errorMessage(error), "error");
         return;
       }
-      render(container, params);
+      void render(container, params);
     });
   });
 }

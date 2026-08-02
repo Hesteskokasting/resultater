@@ -192,7 +192,7 @@ export async function render(container: HTMLElement, params: Params = {}): Promi
       }
       showSuccess(container, "Stevnet er fullført.");
       setTimeout(() => {
-        render(container, params);
+        void render(container, params);
       }, 1500);
     });
 
@@ -213,7 +213,7 @@ export async function render(container: HTMLElement, params: Params = {}): Promi
       }
       showSuccess(container, "Stevnet er gjenåpna.");
       setTimeout(() => {
-        render(container, params);
+        void render(container, params);
       }, 1500);
     });
 }

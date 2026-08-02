@@ -320,7 +320,7 @@ async function drawChart(canvas: HTMLCanvasElement, results: ResultDetailRow[]):
               const idx = items[0]?.dataIndex;
               return idx != null ? (stevneNamn[idx] ?? labels[idx] ?? "") : "";
             },
-            label: (items) => `${yLabel}: ${items.raw}`,
+            label: (items) => `${yLabel}: ${String(items.raw)}`,
           },
         },
       },

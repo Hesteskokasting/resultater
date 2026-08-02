@@ -285,7 +285,7 @@ async function updateAuthMenu(): Promise<void> {
 
 window.addEventListener("hashchange", navigate);
 
-App.addListener("resume", runRefetch);
+void App.addListener("resume", runRefetch);
 
 initPullToRefresh(refreshCurrent);
 
@@ -297,9 +297,9 @@ document.addEventListener("DOMContentLoaded", () => {
     location.hash = "#/";
   });
 
-  updateAuthMenu();
-  navigate();
-  initPushNotifications();
+  void updateAuthMenu();
+  void navigate();
+  void initPushNotifications();
 });
 
 document.addEventListener("authStateChanged", (e) => {
@@ -307,7 +307,7 @@ document.addEventListener("authStateChanged", (e) => {
     e as CustomEvent<{ event: string; intentional: boolean; hadSession: boolean }>
   ).detail;
   if (event === "SIGNED_IN" || event === "SIGNED_OUT") {
-    updateAuthMenu();
+    void updateAuthMenu();
   }
   // On a genuine authenticated → signed-out transition (not restoring a dead token on
   // load), let the operator re-authenticate in place instead of being bounced to the
