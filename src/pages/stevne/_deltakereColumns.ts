@@ -11,6 +11,7 @@ import {
   removeRegistrationForThrower,
 } from "@/services/pameldingService";
 import type { PrinterBanner } from "@/pages/stevne/PrinterBanner";
+import { createNewPlayerForm } from "@/pages/stevne/_nySpelarForm";
 
 // ── Available (left) column ────────────────────────────────────────────────────
 
@@ -27,10 +28,15 @@ export interface AvailableColumnProps {
   onRegistered: (kasterid: number) => void;
   /** Re-render both tables after a change */
   refreshLists: () => void;
+  /**
+   * A thrower was created inline. `registered` is false when the registry insert
+   * succeeded but the enrollment did not, so the caller can leave them available.
+   */
+  onCreated: (player: ThrowerListRow, registered: boolean) => void;
 }
 
 export function createAvailableColumn(props: AvailableColumnProps): AvailableColumnHandle {
-  const { canEdit, tournamentId, onRegistered, refreshLists } = props;
+  const { canEdit, tournamentId, onRegistered, refreshLists, onCreated } = props;
 
   const leftWrapper = document.createElement("div");
   leftWrapper.className = "col-md-6 d-flex flex-column participant-column";
@@ -58,7 +64,17 @@ export function createAvailableColumn(props: AvailableColumnProps): AvailableCol
   });
 
   leftWrapper.appendChild(searchInput);
-  leftWrapper.appendChild(table.element);
+
+  // Inline create — admins only, and only while the tournament can still be edited.
+  if (canEdit) {
+    const newPlayerForm = createNewPlayerForm({ tournamentId, onCreated });
+    leftWrapper.appendChild(newPlayerForm.element);
+    leftWrapper.appendChild(table.element);
+    leftWrapper.appendChild(newPlayerForm.toggle);
+  } else {
+    leftWrapper.appendChild(table.element);
+  }
+
   return { element: leftWrapper, searchInput, table };
 }
 

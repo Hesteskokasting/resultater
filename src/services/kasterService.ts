@@ -210,11 +210,21 @@ export async function getThrowerForAdmin(
   return { data, error };
 }
 
+/**
+ * Drop the cached thrower lists so the next read hits the database.
+ * Called after every write below; export it for callers that mutate `kaster` by other means.
+ */
+export function invalidateThrowerListCache(): void {
+  _kasterListeAktivCache = null;
+  _kasterListeAlleCache = null;
+}
+
 export async function createThrower(
   payload: ThrowerAdminPayload,
 ): Promise<{ data: { id: number } | null; error: unknown }> {
   const { data, error } = await supabase.from("kaster").insert(payload).select("id").single();
   if (error) logError("createThrower", error);
+  else invalidateThrowerListCache();
   return { data, error };
 }
 
@@ -229,11 +239,13 @@ export async function updateThrower(
     .select("id")
     .single();
   if (error) logError("updateThrower", error);
+  else invalidateThrowerListCache();
   return { data, error };
 }
 
 export async function deleteThrower(id: number): Promise<{ error: unknown }> {
   const { error } = await supabase.from("kaster").delete().eq("id", id);
   if (error) logError("deleteThrower", error);
+  else invalidateThrowerListCache();
   return { error };
 }

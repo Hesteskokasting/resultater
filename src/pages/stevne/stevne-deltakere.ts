@@ -148,6 +148,16 @@ export async function render(
           renderRegisteredList();
           renderAvailableList();
         },
+        onCreated: (player, registered) => {
+          allThrowers.push(player);
+          if (registered) {
+            registeredMap.set(player.id, false);
+            pairTabDirty = true;
+            printerBanner?.invalidateMatchData();
+          }
+          renderRegisteredList();
+          renderAvailableList();
+        },
       });
       layout.appendChild(leftColumn.element);
     }
