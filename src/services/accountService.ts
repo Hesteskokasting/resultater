@@ -14,7 +14,14 @@ export async function getLinkedAccounts(): Promise<{ data: LinkedAccountRow[]; e
   return { data: data ?? [], error };
 }
 
-/** Deletes the caller's own login account (targetId must be the caller's id). Thrower data is untouched. */
+/**
+ * Deletes a login account: `bruker_profil` plus the `auth.users` row. The
+ * thrower profile (`kaster`) and everything keyed by kasterid — results,
+ * registrations, match history — is deliberately left in place.
+ *
+ * The RPC allows the caller's own id, or any account when the caller is an
+ * admin. The last remaining admin account is refused either way.
+ */
 export async function deleteUserAccount(targetId: string): Promise<{ error: unknown }> {
   const { error } = await supabase.rpc("slett_brukarkonto", { target_id: targetId });
   if (error) logError("deleteUserAccount", error);

@@ -21,6 +21,9 @@ const mocks = vi.hoisted(() => ({
   updateLinkStatus: vi.fn(),
   getPendingLinkCount: vi.fn(),
   getUser: vi.fn(),
+  deleteUserAccount: vi.fn(),
+  confirmDialog: vi.fn(),
+  showToast: vi.fn(),
   openTournamentEditor: vi.fn(),
   openThrowerEditor: vi.fn(),
   openClubEditor: vi.fn(),
@@ -55,6 +58,9 @@ vi.mock("@/services/adminService", () => ({
   removeClubAdminAccess: vi.fn(),
 }));
 vi.mock("@/services/authService", () => ({ getUser: mocks.getUser }));
+vi.mock("@/services/accountService", () => ({ deleteUserAccount: mocks.deleteUserAccount }));
+vi.mock("@/components/ConfirmDialog", () => ({ confirmDialog: mocks.confirmDialog }));
+vi.mock("@/components/Toast", () => ({ showToast: mocks.showToast }));
 vi.mock("@/admin/_adminCharts", () => ({
   drawBarChart: vi.fn(),
   drawLineChart: vi.fn(),
@@ -82,6 +88,8 @@ const {
   updateLinkStatus,
   getPendingLinkCount,
   getUser,
+  deleteUserAccount,
+  confirmDialog,
   openTournamentEditor,
   openThrowerEditor,
   openClubEditor,
@@ -142,7 +150,11 @@ beforeEach(() => {
   vi.clearAllMocks();
   getLiveTournaments.mockResolvedValue({ data: [], error: null });
   getPendingLinkCount.mockResolvedValue(0);
-  getUser.mockResolvedValue({ user: { email: "sjef@example.com" }, profil: null, clubs: [] });
+  getUser.mockResolvedValue({
+    user: { id: "u2", email: "sjef@example.com" },
+    profil: null,
+    clubs: [],
+  });
   getRegistrationCountsForTournaments.mockResolvedValue(new Map());
   getThrowerAdminList.mockResolvedValue({ data: [], error: null });
   getScheduleTournaments.mockResolvedValue({ data: [], error: null });
@@ -584,6 +596,62 @@ describe("brukarar panel", () => {
 
     choose(selectByLabel(el, "Filtrer på rolle"), "admin");
     expect(rowTitles(el)).toEqual(["sjef@example.com"]);
+  });
+
+  it("deletes an account after confirmation, keeping the thrower", async () => {
+    confirmDialog.mockResolvedValue(true);
+    deleteUserAccount.mockResolvedValue({ error: null });
+    const el = host();
+    await renderUsers(el);
+    choose(selectByLabel(el, "Filtrer på rolle"), "alle");
+
+    clickAction(el, 0, "Slett");
+    await vi.waitFor(() => expect(deleteUserAccount).toHaveBeenCalledWith("u1"));
+
+    const prompt = confirmDialog.mock.calls[0]?.[0] as { message: string } | undefined;
+    expect(prompt?.message).toContain("ola@example.com");
+    expect(prompt?.message).toContain("Ola Nordmann");
+    expect(prompt?.message).toContain("blir verande");
+  });
+
+  it("does not delete when the confirmation is declined", async () => {
+    confirmDialog.mockResolvedValue(false);
+    const el = host();
+    await renderUsers(el);
+
+    clickAction(el, 0, "Slett");
+    await vi.waitFor(() => expect(confirmDialog).toHaveBeenCalled());
+    expect(deleteUserAccount).not.toHaveBeenCalled();
+  });
+
+  it("offers no delete on the signed-in admin's own row", async () => {
+    const el = host();
+    await renderUsers(el);
+
+    const rows = [...el.querySelectorAll<HTMLElement>(".admin-row")];
+    const labels = (row: HTMLElement) =>
+      [...row.querySelectorAll(".admin-row__actions button")].map((b) => b.textContent);
+
+    expect(labels(rows[0]!)).toEqual(["Lagre", "Slett"]);
+    expect(labels(rows[1]!)).toEqual(["Lagre"]);
+    expect(rows[1]!.textContent).toContain("Deg");
+  });
+
+  it("shows the server's refusal (e.g. the last admin) without dropping the list", async () => {
+    confirmDialog.mockResolvedValue(true);
+    deleteUserAccount.mockResolvedValue({
+      error: { message: "Cannot delete the last admin account" },
+    });
+    const el = host();
+    await renderUsers(el);
+
+    clickAction(el, 0, "Slett");
+    await vi.waitFor(() => {
+      expect(el.querySelector(".alert-danger")?.textContent).toBe(
+        "Cannot delete the last admin account",
+      );
+    });
+    expect(rowTitles(el)).toHaveLength(2);
   });
 
   it("surfaces a write failure without losing the list", async () => {
