@@ -1,0 +1,1 @@
+import{n as e,t}from"./logError-BO7RC_Nh.js";async function n(){let{data:n,error:r}=await e.rpc(`hent_kobla_kontoar`);return r&&t(`getLinkedAccounts`,r),{data:n??[],error:r}}async function r(n){let{error:r}=await e.rpc(`slett_brukarkonto`,{target_id:n});return r&&t(`deleteUserAccount`,r),{error:r}}export{n,r as t};
