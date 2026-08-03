@@ -11,6 +11,10 @@ const mocks = vi.hoisted(() => ({
   completeSncParent: vi.fn(),
   reopenSncParent: vi.fn(),
   getSncConsolidatedResults: vi.fn(),
+  getTournamentSettings: vi.fn(),
+  getActiveThrowingMethods: vi.fn(),
+  updateTournamentSettings: vi.fn(),
+  resetTournament: vi.fn(),
   getRegistrationsAcrossTournaments: vi.fn(),
   registerForTournament: vi.fn(),
   removeRegistration: vi.fn(),
@@ -25,7 +29,11 @@ vi.mock("@/services/stevneService", () => ({
   getSncLocalTournaments: mocks.getSncLocalTournaments,
   completeSncParent: mocks.completeSncParent,
   reopenSncParent: mocks.reopenSncParent,
+  getTournamentSettings: mocks.getTournamentSettings,
+  getActiveThrowingMethods: mocks.getActiveThrowingMethods,
+  updateTournamentSettings: mocks.updateTournamentSettings,
 }));
+vi.mock("@/services/testDataService", () => ({ resetTournament: mocks.resetTournament }));
 vi.mock("@/services/resultatService", () => ({
   getSncConsolidatedResults: mocks.getSncConsolidatedResults,
 }));
@@ -44,6 +52,8 @@ const {
   completeSncParent,
   reopenSncParent,
   getSncConsolidatedResults,
+  getTournamentSettings,
+  getActiveThrowingMethods,
   getRegistrationsAcrossTournaments,
   registerForTournament,
   removeRegistration,
@@ -52,6 +62,7 @@ const {
 } = mocks;
 
 import { render as renderSncInfo } from "@/pages/stevne/snc-info";
+import { render as renderSettings } from "@/pages/stevne/stevne-innstillinger";
 import { render as renderSncResults } from "@/pages/stevne/snc-resultat";
 
 function host(): HTMLElement {
@@ -344,5 +355,91 @@ describe("SNC consolidated result", () => {
     await renderSncResults(el, { id: 10 });
 
     expect(el.querySelectorAll(".res-desktop-blokk tbody tr")).toHaveLength(2);
+  });
+});
+
+describe("settings tab on an SNC umbrella", () => {
+  const METHODS = [
+    { id: 1, navn: "Gloppen", er_innledende: true, er_avsluttende: false },
+    { id: 3, navn: "Minimatch X-kast", er_innledende: true, er_avsluttende: false },
+    { id: 6, navn: "Kongelag", er_innledende: false, er_avsluttende: true },
+    { id: 7, navn: "Cup", er_innledende: false, er_avsluttende: true },
+  ];
+
+  function settings(overrides: Record<string, unknown> = {}) {
+    return {
+      id: 10,
+      stevne_fase: null,
+      antall_runder_innl: null,
+      innledendekastemetodeid: 3,
+      avsluttendekastemetodeid: 6,
+      tilgjengelige_baner: null,
+      er_snc_hovudstevne: true,
+      ...overrides,
+    };
+  }
+
+  function optionLabels(el: HTMLElement, selectId: string): string[] {
+    return [...el.querySelectorAll<HTMLOptionElement>(`#${selectId} option`)]
+      .map((o) => o.textContent ?? "")
+      .filter((label) => !label.startsWith("—"));
+  }
+
+  beforeEach(() => {
+    getActiveThrowingMethods.mockResolvedValue({ data: METHODS, error: null });
+    getTournamentSettings.mockResolvedValue({ data: settings(), error: null });
+  });
+
+  it("keeps the edit link, so date and time stay reachable", async () => {
+    const el = host();
+    await renderSettings(el, { id: 10 });
+
+    expect(el.querySelector('a[href="#/stevne/10/rediger"]')).not.toBeNull();
+  });
+
+  it("offers only X-kast and Kongelag as methods", async () => {
+    const el = host();
+    await renderSettings(el, { id: 10 });
+
+    expect(optionLabels(el, "innl-metode")).toEqual(["Minimatch X-kast"]);
+    expect(optionLabels(el, "avsl-metode")).toEqual(["Kongelag"]);
+  });
+
+  it("drops the lane field and the reset button, which belong to a local stevne", async () => {
+    const el = host();
+    await renderSettings(el, { id: 10 });
+
+    expect(el.querySelector("#tilgjengelege-banar")).toBeNull();
+    expect(el.querySelector("#nullstill-btn")).toBeNull();
+  });
+
+  it("saves without a lane value", async () => {
+    mocks.updateTournamentSettings.mockResolvedValue({ error: null });
+    const el = host();
+    await renderSettings(el, { id: 10 });
+
+    el.querySelector<HTMLFormElement>("#innstillingar-form")!.dispatchEvent(
+      new Event("submit", { cancelable: true }),
+    );
+    await vi.waitFor(() => expect(mocks.updateTournamentSettings).toHaveBeenCalled());
+    expect(mocks.updateTournamentSettings).toHaveBeenCalledWith(10, {
+      innledendekastemetodeid: 3,
+      avsluttendekastemetodeid: 6,
+      antall_runder_innl: null,
+      tilgjengelige_baner: null,
+    });
+  });
+
+  it("leaves an ordinary tournament's lane field and reset button in place", async () => {
+    getTournamentSettings.mockResolvedValue({
+      data: settings({ er_snc_hovudstevne: false, innledendekastemetodeid: 1 }),
+      error: null,
+    });
+    const el = host();
+    await renderSettings(el, { id: 10 });
+
+    expect(el.querySelector("#tilgjengelege-banar")).not.toBeNull();
+    expect(el.querySelector("#nullstill-btn")).not.toBeNull();
+    expect(optionLabels(el, "innl-metode")).toEqual(["Gloppen", "Minimatch X-kast"]);
   });
 });

@@ -38,15 +38,9 @@ const TABS = [
 
 type TabKey = (typeof TABS)[number]["key"];
 
-// An SNC umbrella has no participants, matches, settings or match stats of its
-// own — those live on the local stevner. Only Info and Sluttresultat have content.
-const SNC_PARENT_HIDDEN_TABS = new Set<TabKey>([
-  "deltakere",
-  "innledende",
-  "avsluttende",
-  "innstillinger",
-  "stats",
-]);
+// An SNC umbrella has no participants, matches or match stats of its own — those
+// live on the local stevner.
+const SNC_PARENT_HIDDEN_TABS = new Set<TabKey>(["deltakere", "innledende", "avsluttende", "stats"]);
 
 const TAB_RENDER: Record<TabKey, TabRender> = {
   info: renderInfo,
@@ -59,6 +53,7 @@ const TAB_RENDER: Record<TabKey, TabRender> = {
 };
 
 // Same tabs, SNC content: Info lists the local stevner, Sluttresultat merges them.
+// Anything not listed keeps the ordinary tab (Innstillingar handles SNC itself).
 const SNC_PARENT_RENDER: Partial<Record<TabKey, TabRender>> = {
   info: renderSncInfo as TabRender,
   resultat: renderSncResults as TabRender,
@@ -133,7 +128,7 @@ export async function render(container: HTMLElement, params: Params): Promise<vo
     const bannerSlot = container.querySelector<HTMLElement>("#org-banner-buttons");
     const subpage = container.querySelector<HTMLElement>("#org-subpage")!;
     const renderFn = isSncParent
-      ? (SNC_PARENT_RENDER[activeTab] ?? renderSncInfo)
+      ? (SNC_PARENT_RENDER[activeTab] ?? TAB_RENDER[activeTab] ?? renderSncInfo)
       : (TAB_RENDER[activeTab] ?? renderInfo);
 
     await renderFn(subpage, { id, isAdmin: userIsAdmin }, bannerSlot);

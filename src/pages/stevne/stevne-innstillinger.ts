@@ -12,7 +12,7 @@ import {
 } from "@/services/stevneService";
 import type { ActiveThrowingMethodRow } from "@/services/stevneService";
 import { resetTournament } from "@/services/testDataService";
-import { usesInitialRoundCount } from "@/utils/kastemetode";
+import { isXkastMethodName, usesInitialRoundCount } from "@/utils/kastemetode";
 import { registerRefetch } from "@/utils/refetchRegistry";
 
 // ── Render ────────────────────────────────────────────────────────────────────
@@ -37,8 +37,14 @@ export async function render(
 
     const stevne = tournamentRes.data;
     const methods = methodsRes.data;
-    const initialMethods = methods.filter((m) => m.er_innledende);
-    const finalMethods = methods.filter((m) => m.er_avsluttende);
+
+    const isSncParent = stevne.er_snc_hovudstevne === true;
+    const initialMethods = methods.filter(
+      (m) => m.er_innledende && (!isSncParent || isXkastMethodName(m.navn)),
+    );
+    const finalMethods = methods.filter(
+      (m) => m.er_avsluttende && (!isSncParent || m.navn.toLowerCase().includes("kongelag")),
+    );
 
     function optionsHtml(list: ActiveThrowingMethodRow[], selectedId: number | null): string {
       return list
@@ -75,19 +81,27 @@ export async function render(
             <input id="antall-rundar" type="number" min="1" class="form-control"
               value="${stevne.antall_runder_innl ?? ""}" placeholder="t.d. 6">
           </div>
-          <div class="mb-4">
+          ${
+            isSncParent
+              ? `<p class="form-text mb-4">Kastemetoden gjeld heile SNC-runden og blir arva av alle lokalstevna. Banar blir sette på kvart lokalstevne.</p>`
+              : `<div class="mb-4">
             <label class="form-label fw-semibold">Tilgjengelege banar (X-kast/Kongelag)</label>
             <input id="tilgjengelege-banar" type="number" min="1" class="form-control"
               value="${stevne.tilgjengelige_baner ?? ""}" placeholder="Valfritt — utan verdi blir det éi pulje">
-          </div>
+          </div>`
+          }
           <button type="submit" class="btn btn-primary">Lagre</button>
           <span id="lagre-status" class="ms-3 text-success d-none">Lagra ✓</span>
-          <hr class="my-4">
+          ${
+            isSncParent
+              ? ""
+              : `<hr class="my-4">
           <div class="border border-danger rounded p-3">
             <h6 class="text-danger mb-2">Farleg sone</h6>
             <p class="text-muted small mb-2">Slettar alle kampar og resultat, og set stevnet tilbake til starttilstanden.</p>
             <button type="button" id="nullstill-btn" class="btn btn-danger">Start på nytt!</button>
-          </div>
+          </div>`
+          }
         </form>
       </div>`;
 
@@ -113,13 +127,13 @@ export async function render(
         const initialId = container.querySelector<HTMLSelectElement>("#innl-metode")!.value || null;
         const finalId = container.querySelector<HTMLSelectElement>("#avsl-metode")!.value || null;
         const rounds = container.querySelector<HTMLInputElement>("#antall-rundar")!.value;
-        const lanes = container.querySelector<HTMLInputElement>("#tilgjengelege-banar")!.value;
+        const lanesInput = container.querySelector<HTMLInputElement>("#tilgjengelege-banar");
 
         const { error } = await updateTournamentSettings(id, {
           innledendekastemetodeid: initialId ? Number(initialId) : null,
           avsluttendekastemetodeid: finalId ? Number(finalId) : null,
           antall_runder_innl: rounds ? Number(rounds) : null,
-          tilgjengelige_baner: lanes ? Number(lanes) : null,
+          tilgjengelige_baner: lanesInput?.value ? Number(lanesInput.value) : null,
         });
 
         if (error) {
@@ -136,8 +150,8 @@ export async function render(
       });
 
     container
-      .querySelector<HTMLButtonElement>("#nullstill-btn")!
-      .addEventListener("click", async (e) => {
+      .querySelector<HTMLButtonElement>("#nullstill-btn")
+      ?.addEventListener("click", async (e) => {
         const btn = e.currentTarget as HTMLButtonElement;
         if (
           !(await confirmDialog({

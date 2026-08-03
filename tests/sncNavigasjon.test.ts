@@ -127,12 +127,12 @@ describe("stevne tabs", () => {
     const el = host();
     await renderTournamentPage(el, { id: 10, tab: "info" });
 
-    expect(tabLabels(el)).toEqual(["Info"]);
+    expect(tabLabels(el)).toEqual(["Info"]); // not admin: Innstillingar is admin-only
     expect(renderSncInfo).toHaveBeenCalled();
     expect(renderInfo).not.toHaveBeenCalled();
   });
 
-  it("hides deltakere, innstillingar and stats from an admin on a hovudstevne", async () => {
+  it("keeps Innstillingar but drops the match tabs for an admin on a hovudstevne", async () => {
     isAdmin.mockResolvedValue(true);
     getTournamentHeader.mockResolvedValue({
       data: header({ er_snc_hovudstevne: true, erfullfort: true }),
@@ -141,7 +141,20 @@ describe("stevne tabs", () => {
     const el = host();
     await renderTournamentPage(el, { id: 10, tab: "info" });
 
-    expect(tabLabels(el)).toEqual(["Info", "Sluttresultat"]);
+    expect(tabLabels(el)).toEqual(["Info", "Sluttresultat", "Innstillingar"]);
+  });
+
+  it("serves the ordinary settings tab on a hovudstevne", async () => {
+    isAdmin.mockResolvedValue(true);
+    getTournamentHeader.mockResolvedValue({
+      data: header({ er_snc_hovudstevne: true }),
+      error: null,
+    });
+    const el = host();
+    await renderTournamentPage(el, { id: 10, tab: "innstillinger" });
+
+    expect(mocks.renderSettings).toHaveBeenCalled();
+    expect(renderSncInfo).not.toHaveBeenCalled();
   });
 
   it("still gives an admin every tab on an ordinary tournament", async () => {

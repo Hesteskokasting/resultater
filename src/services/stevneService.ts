@@ -504,6 +504,7 @@ export type TournamentSettingsRow = Pick<
   | "innledendekastemetodeid"
   | "avsluttendekastemetodeid"
   | "tilgjengelige_baner"
+  | "er_snc_hovudstevne"
 >;
 export type ActiveThrowingMethodRow = Pick<
   Tables<"kastemetode">,
@@ -523,7 +524,7 @@ export async function getTournamentSettings(
   const { data, error } = await supabase
     .from("stevne")
     .select(
-      "id, stevne_fase, antall_runder_innl, innledendekastemetodeid, avsluttendekastemetodeid, tilgjengelige_baner",
+      "id, stevne_fase, antall_runder_innl, innledendekastemetodeid, avsluttendekastemetodeid, tilgjengelige_baner, er_snc_hovudstevne",
     )
     .eq("id", id)
     .single();
