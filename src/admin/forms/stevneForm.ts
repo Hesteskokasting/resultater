@@ -25,7 +25,7 @@ import {
   type SncParentOptionRow,
 } from "@/services/stevneService";
 import { getClubs } from "@/services/klubbService";
-import { isXkastMethodName } from "@/utils/kastemetode";
+import { isKongelagMethodName, isXkastMethodName } from "@/utils/kastemetode";
 import { formatDate } from "@/utils/shared";
 import { formShell } from "./_formHost";
 import type { AdminFormHost } from "./_formHost";
@@ -38,12 +38,24 @@ function sncParentFromHash(): number | null {
   return Number.isFinite(id) && id > 0 ? id : null;
 }
 
-function sncParentOptionsHtml(parents: SncParentOptionRow[], selected: number | null): string {
+/**
+ * A consolidated umbrella is shown but not selectable — the DB refuses new local
+ * stevner on it (gjenopne it first), so offering the choice would only produce an
+ * error on save. The stevne being edited is never listed as its own parent.
+ */
+function sncParentOptionsHtml(
+  parents: SncParentOptionRow[],
+  selected: number | null,
+  selfId?: number,
+): string {
   let html = `<option value="">— ikkje eit lokalt SNC-stevne —</option>`;
   for (const parent of parents) {
-    const isSelected = parent.id === selected ? " selected" : "";
+    if (parent.id === selfId) continue;
+    const isSelected = parent.id === selected;
     const date = parent.dato ? ` (${formatDate(parent.dato)})` : "";
-    html += `<option value="${parent.id}"${isSelected}>${escHtml(parent.navn + date)}</option>`;
+    const locked = parent.erfullfort && !isSelected;
+    const suffix = parent.erfullfort ? " — konsolidert" : "";
+    html += `<option value="${parent.id}"${isSelected ? " selected" : ""}${locked ? " disabled" : ""}>${escHtml(parent.navn + date + suffix)}</option>`;
   }
   return html;
 }
@@ -109,7 +121,7 @@ export async function mountTournamentForm(host: AdminFormHost, id?: number): Pro
   const initialOpt = buildDropdownOptions(initialMethods, v.innledendekastemetodeid);
   const finalOpt = buildDropdownOptions(finalMethods, v.avsluttendekastemetodeid);
   const categoryOpt = buildDropdownOptions(categories, defaultCategory);
-  const sncParentOpt = sncParentOptionsHtml(sncParents, sncParentValue);
+  const sncParentOpt = sncParentOptionsHtml(sncParents, sncParentValue, id);
 
   const { wrapper, headingHtml } = formShell(host);
   wrapper.innerHTML = `
@@ -148,6 +160,10 @@ export async function mountTournamentForm(host: AdminFormHost, id?: number): Pro
           resultatlista. Eit lokalt stevne arvar stevnetype, kategori og kastemetodar frå
           hovudstevnet. SNC må vere X-kast, Kongelag eller begge.
         </p>
+        <p id="snc-arva-note" class="form-text mb-0 d-none">
+          Stevnetype, kategori, kastemetodar og norgesranking er låste her — dei blir arva frå
+          hovudstevnet og kan berre endrast der.
+        </p>
       </fieldset>
       ${
         id
@@ -182,6 +198,8 @@ export async function mountTournamentForm(host: AdminFormHost, id?: number): Pro
   const categorySelect = select("kategoriid");
   const initialSelect = select("innledendekastemetodeid");
   const finalSelect = select("avsluttendekastemetodeid");
+  const rankingCheckbox = wrapper.querySelector<HTMLInputElement>("#ernr")!;
+  const inheritedNote = wrapper.querySelector<HTMLElement>("#snc-arva-note")!;
 
   /** Replaces the options, keeping the current value if it is still listed. */
   function setOptions(target: HTMLSelectElement, items: { id: number; navn: string }[]): void {
@@ -203,7 +221,7 @@ export async function mountTournamentForm(host: AdminFormHost, id?: number): Pro
     );
     setOptions(
       finalSelect,
-      isSnc ? finalMethods.filter((m) => m.navn.toLowerCase().includes("kongelag")) : finalMethods,
+      isSnc ? finalMethods.filter((m) => isKongelagMethodName(m.navn)) : finalMethods,
     );
 
     if (sncParentCheckbox.checked) {
@@ -211,10 +229,13 @@ export async function mountTournamentForm(host: AdminFormHost, id?: number): Pro
       if (sncType) typeSelect.value = String(sncType.id);
     }
 
-    // The umbrella owns the format; locals inherit it.
-    for (const field of [typeSelect, categorySelect, initialSelect, finalSelect]) {
+    // The umbrella owns the format and the ranking flag; locals inherit both, and
+    // trg_stevne_snc_invariantar coerces them back on write — so an editable
+    // control here would silently do nothing.
+    for (const field of [typeSelect, categorySelect, initialSelect, finalSelect, rankingCheckbox]) {
       field.disabled = isLocal;
     }
+    inheritedNote.classList.toggle("d-none", !isLocal);
   }
   sncParentCheckbox.addEventListener("change", syncSncFields);
   sncParentSelect.addEventListener("change", syncSncFields);
@@ -225,18 +246,28 @@ export async function mountTournamentForm(host: AdminFormHost, id?: number): Pro
     .addEventListener("submit", async (e) => {
       e.preventDefault();
       const fd = new FormData(e.target as HTMLFormElement);
+      // The inherited fields are disabled for a local stevne, so FormData omits
+      // them. Send the values the form was rendered with instead of nulls — the
+      // DB would coerce them anyway, but the payload should say what it means.
+      const isLocal = sncParentSelect.value !== "";
       const payload = {
         navn: (fd.get("navn") as string).trim(),
         sted: (fd.get("sted") as string).trim() || null,
         dato: fd.get("dato") as string,
         tid: (fd.get("tid") as string) || null,
         klubbid: formNum(fd.get("klubbid")),
-        stevnetypeid: formNum(fd.get("stevnetypeid")),
-        innledendekastemetodeid: formNum(fd.get("innledendekastemetodeid")),
-        avsluttendekastemetodeid: formNum(fd.get("avsluttendekastemetodeid")),
-        kategoriid: formNum(fd.get("kategoriid")),
+        stevnetypeid: isLocal ? (v.stevnetypeid ?? null) : formNum(fd.get("stevnetypeid")),
+        innledendekastemetodeid: isLocal
+          ? (v.innledendekastemetodeid ?? null)
+          : formNum(fd.get("innledendekastemetodeid")),
+        avsluttendekastemetodeid: isLocal
+          ? (v.avsluttendekastemetodeid ?? null)
+          : formNum(fd.get("avsluttendekastemetodeid")),
+        kategoriid: isLocal ? (v.kategoriid ?? null) : formNum(fd.get("kategoriid")),
         ernm: fd.get("ernm") === "on",
-        ernorgesranking: fd.get("ernorgesranking") === "on",
+        ernorgesranking: isLocal
+          ? (v.ernorgesranking ?? false)
+          : fd.get("ernorgesranking") === "on",
         erekskludertfrarekorder: fd.get("erekskludertfrarekorder") === "on",
         resultaturl: (fd.get("resultaturl") as string).trim() || null,
         er_snc_hovudstevne: fd.get("er_snc_hovudstevne") === "on",
