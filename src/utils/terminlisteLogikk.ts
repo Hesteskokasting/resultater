@@ -63,6 +63,7 @@ export interface ScheduleGroups<T> {
 interface GroupableScheduleRow {
   dato: string;
   stevne_fase: string | null;
+  erfullfort: boolean;
 }
 
 const monthLabelFmt = new Intl.DateTimeFormat("nb-NO", { month: "long", year: "numeric" });
@@ -103,6 +104,10 @@ function buildMonthGroups<T extends GroupableScheduleRow>(
  * A stevne dated today only counts as upcoming while it hasn't started yet
  * (`stevne_fase` null/'ikke_startet') — live or finished today's events fall
  * into the past bucket alongside everything actually before `todayIso`.
+ *
+ * `erfullfort` overrides the phase entirely: an arrangør can close a stevne
+ * without it ever leaving 'ikke_startet' (cancelled, or results imported from
+ * elsewhere), and a closed stevne is never upcoming no matter its date.
  */
 export function groupSchedule<T extends GroupableScheduleRow>(
   rows: T[],
@@ -111,7 +116,8 @@ export function groupSchedule<T extends GroupableScheduleRow>(
   const upcomingRows: T[] = [];
   const pastRows: T[] = [];
   for (const row of rows) {
-    if (row.dato >= todayIso && isNotStarted(row.stevne_fase)) upcomingRows.push(row);
+    if (row.dato >= todayIso && isNotStarted(row.stevne_fase) && !row.erfullfort)
+      upcomingRows.push(row);
     else pastRows.push(row);
   }
   return {

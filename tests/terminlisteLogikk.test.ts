@@ -6,8 +6,8 @@ import {
 } from "@/utils/terminlisteLogikk";
 
 // Minimal rows matching the shape each function needs.
-function groupRow(dato: string, stevneFase: string | null = null) {
-  return { dato, stevne_fase: stevneFase };
+function groupRow(dato: string, stevneFase: string | null = null, erfullfort = false) {
+  return { dato, stevne_fase: stevneFase, erfullfort };
 }
 
 function sortRow(
@@ -57,6 +57,18 @@ describe("groupSchedule", () => {
 
   it("buckets a stevne dated today but already finished as past", () => {
     const groups = groupSchedule([groupRow(today, "avsluttende")], today);
+    expect(groups.upcoming).toHaveLength(0);
+    expect(groups.past[0]!.rows).toHaveLength(1);
+  });
+
+  it("buckets a future, not-started but erfullfort stevne as past", () => {
+    const groups = groupSchedule([groupRow("2026-08-01", "ikke_startet", true)], today);
+    expect(groups.upcoming).toHaveLength(0);
+    expect(groups.past[0]!.rows).toHaveLength(1);
+  });
+
+  it("buckets a stevne dated today, not started but erfullfort, as past", () => {
+    const groups = groupSchedule([groupRow(today, null, true)], today);
     expect(groups.upcoming).toHaveLength(0);
     expect(groups.past[0]!.rows).toHaveLength(1);
   });

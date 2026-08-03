@@ -343,7 +343,7 @@ function buildView(
 function cardNode(s: TournamentRow, nearestLabel: string | undefined): HTMLElement {
   const isLive =
     (s.stevne_fase === "innledende" || s.stevne_fase === "avsluttende") && !s.erfullfort;
-  const isUpcoming = new Date(s.dato + "T12:00:00") > new Date();
+  const isUpcoming = !s.erfullfort && new Date(s.dato + "T12:00:00") > new Date();
 
   const localCount = sncLocalCountLabel(s);
   const stedArrangor = [localCount ?? s.sted, s.klubb?.navn]

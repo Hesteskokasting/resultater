@@ -118,6 +118,7 @@ export async function getUpcomingTournaments(): Promise<{
     .from("stevne")
     .select("id, navn, dato, stevne_fase, erfullfort, er_snc_hovudstevne")
     .gte("dato", today)
+    .eq("erfullfort", false)
     .is("snc_hovudstevne_id", null)
     .or("stevne_fase.is.null,stevne_fase.eq.ikke_startet")
     .order("dato", { ascending: true })
