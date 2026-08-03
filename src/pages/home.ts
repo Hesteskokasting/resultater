@@ -118,7 +118,11 @@ export async function render(container: HTMLElement): Promise<void> {
     ];
     const { data: sncParents } = await getTournamentsByIds(sncParentIds);
     if (!isCurrent()) return;
-    const live = [...ongoing.filter((s) => s.snc_hovudstevne_id == null), ...sncParents];
+    // Re-sorted: concatenating the umbrellas onto the plain stevner would
+    // otherwise drop the date order the query established.
+    const live = [...ongoing.filter((s) => s.snc_hovudstevne_id == null), ...sncParents].sort(
+      (a, b) => (a.dato ?? "").localeCompare(b.dato ?? ""),
+    );
 
     const throwerId = auth?.profil?.kasterid ?? null;
     const showSlot = throwerId !== null && auth?.profil?.kobling_status === "godkjent";
