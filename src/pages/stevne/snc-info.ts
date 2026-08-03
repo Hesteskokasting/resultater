@@ -1,7 +1,6 @@
-// SNC-hovudstevnet si landingsside: kvar runden blir arrangert, kor mange som
-// er påmelde kvar stad, og — for ein innlogga utøvar — kva stad han deltar på.
-// SNC tillet berre éin stad per runde (trigger pamelding_snc_ein_stad), så
-// «meld på» ein annan stad er alltid eit byte: meld av først, så på.
+// Info tab for an SNC umbrella: the round's local stevner and where the thrower
+// is entered. Only one local stevne per round (trigger pamelding_snc_ein_stad),
+// so picking another is always a switch — unregister first, then register.
 
 import { getUser } from "@/services/authService";
 import { confirmDialog } from "@/components/ConfirmDialog";
@@ -42,8 +41,7 @@ function localStatus(local: SncLocalTournamentRow): string {
   return "Ikkje starta";
 }
 
-/** Staden ein utøvar kjenner lokalstevnet att på: klubb, stad, eller begge. */
-function venueLabel(local: SncLocalTournamentRow): string {
+function localTournamentLabel(local: SncLocalTournamentRow): string {
   const parts = [local.klubb?.navn, local.sted].filter((value): value is string => Boolean(value));
   const unique = [...new Set(parts)];
   return unique.length ? unique.join(" · ") : local.navn;
@@ -65,8 +63,8 @@ function overviewHtml(
   const status = parent.erfullfort
     ? "Samla resultat er klart"
     : locals.length
-      ? `${completed} av ${locals.length} lokalstevne fullført`
-      : "Ingen lokalstevne registrerte";
+      ? `${completed} av ${locals.length} lokale stevne fullført`
+      : "Ingen lokale stevne registrerte";
 
   return `
     <div class="card mb-3 org-max-480">
@@ -78,7 +76,7 @@ function overviewHtml(
             <tr><th>Tid</th><td>${parent.tid ? formatTime(parent.tid) : "—"}</td></tr>
             <tr><th>Kategori</th><td>${escHtml(parent.kategori?.navn ?? "—")}</td></tr>
             <tr><th>Kastemetode</th><td>${escHtml(methodSummary(parent))}</td></tr>
-            <tr><th>Lokalstevne</th><td>${locals.length}</td></tr>
+            <tr><th>Lokale stevne</th><td>${locals.length}</td></tr>
             <tr><th>Påmelde i alt</th><td>${totalRegistrations}</td></tr>
           </tbody>
         </table>
@@ -95,16 +93,16 @@ function ownRegistrationNoticeHtml(
 ): string {
   if (!isLoggedIn) {
     return `<div class="alert alert-info">
-      <a href="#/logginn?redirect=/stevne/${parentId}/lokalstevne">Logg inn</a> for å melde deg på ein av stadene.
+      <a href="#/logginn?redirect=/stevne/${parentId}/info">Logg inn</a> for å melde deg på eitt av dei lokale stevna.
     </div>`;
   }
   if (!canRegister) return "";
   if (summary.ownStevneId == null) {
-    return `<div class="alert alert-info">Vel kva stad du vil delta på. Du kan berre stå på éin stad per SNC-runde.</div>`;
+    return `<div class="alert alert-info">Vel kva lokalt stevne du vil delta på. Du kan berre stå på eitt per SNC-runde.</div>`;
   }
   const own = locals.find((l) => l.id === summary.ownStevneId);
   return `<div class="alert alert-success">
-    Du er påmeld <strong>${escHtml(own ? venueLabel(own) : "eit lokalstevne")}</strong>.
+    Du er påmeld <strong>${escHtml(own ? localTournamentLabel(own) : "eit lokalt stevne")}</strong>.
   </div>`;
 }
 
@@ -137,7 +135,7 @@ function localsListHtml(
       const time = local.tid ? formatTime(local.tid) : "";
       return `<tr${isOwn ? ' class="table-success"' : ""}>
         <td>
-          <a href="#/stevne/${local.id}/info">${escHtml(venueLabel(local))}</a>
+          <a href="#/stevne/${local.id}/info">${escHtml(localTournamentLabel(local))}</a>
           <div class="text-muted small">${escHtml(local.navn)}${time ? ` · ${time}` : ""}</div>
         </td>
         <td>${localStatus(local)}</td>
@@ -150,7 +148,7 @@ function localsListHtml(
   return `<div class="table-responsive">
     <table class="table table-sm align-middle">
       <thead>
-        <tr><th>Stad</th><th>Status</th><th class="text-center">Påmelde</th><th></th></tr>
+        <tr><th>Lokalt stevne</th><th>Status</th><th class="text-center">Påmelde</th><th></th></tr>
       </thead>
       <tbody>${rows}</tbody>
     </table>
@@ -166,7 +164,7 @@ export async function render(
 ): Promise<void> {
   const rerender = (): Promise<void> => render(container, { id, isAdmin }, bannerSlot);
   registerRefetch(rerender);
-  container.replaceChildren(createLoadingState("Laster lokalstevne…"));
+  container.replaceChildren(createLoadingState("Laster lokale stevne…"));
 
   try {
     const [parentResult, localsResult, auth] = await Promise.all([
@@ -195,7 +193,7 @@ export async function render(
     container.innerHTML = `
       ${overviewHtml(parent, locals, totalRegistrations)}
       ${ownRegistrationNoticeHtml(locals, summary, canRegister, auth != null, id)}
-      <h6 class="mb-2">Stader (${locals.length})</h6>
+      <h6 class="mb-2">Lokale stevne (${locals.length})</h6>
       <div id="snc-locals"></div>
       ${
         isAdmin
@@ -206,15 +204,15 @@ export async function render(
     const listSlot = container.querySelector<HTMLElement>("#snc-locals")!;
     if (!locals.length) {
       listSlot.replaceChildren(
-        createEmptyState("Ingen lokalstevne er kopla til denne SNC-runden enno."),
+        createEmptyState("Ingen lokale stevne er kopla til denne SNC-runden enno."),
       );
     } else {
       listSlot.innerHTML = localsListHtml(locals, summary, canRegister);
       if (kasterid != null) bindRegistrationActions(listSlot, kasterid, summary, rerender);
     }
   } catch (err) {
-    logError("snc-lokalstevne.render", err);
-    container.replaceChildren(createErrorBanner("Kunne ikkje laste lokalstevna."));
+    logError("snc-info.render", err);
+    container.replaceChildren(createErrorBanner("Kunne ikkje laste dei lokale stevna."));
   }
 }
 
@@ -244,9 +242,9 @@ function bindRegistrationActions(
     button.addEventListener("click", async () => {
       if (
         !(await confirmDialog({
-          title: "Byt stad",
+          title: "Byt lokalt stevne",
           message:
-            "Du blir meldt av den staden du står på no, og påmeld denne i staden. Fortsette?",
+            "Du blir meldt av det lokale stevnet du står på no, og påmeld dette i staden. Fortsette?",
         }))
       )
         return;
@@ -254,23 +252,23 @@ function bindRegistrationActions(
       if (summary.ownRegistrationId != null) {
         const { error } = await removeRegistration(summary.ownRegistrationId);
         if (error) {
-          showToast("Kunne ikkje melde av den gamle staden: " + errorMessage(error), "error");
+          showToast("Kunne ikkje melde av det gamle lokalstevnet: " + errorMessage(error), "error");
           button.disabled = false;
           return;
         }
       }
       const { error } = await registerForTournament(Number(button.dataset.stevneid), kasterid);
       if (error) {
-        // Avmeldinga gjekk gjennom, påmeldinga ikkje — sei det rett ut, elles
-        // trur utøvaren han står på den nye staden.
+        // Unregistered but not re-registered: say so, or the thrower assumes
+        // they are entered at the new local stevne.
         showToast(
-          "Du er meldt av den gamle staden, men påmeldinga feila: " + errorMessage(error),
+          "Du er meldt av det gamle lokalstevnet, men påmeldinga feila: " + errorMessage(error),
           "error",
         );
         await rerender();
         return;
       }
-      showToast("Du er meldt på den nye staden.", "success");
+      showToast("Du er meldt på det nye lokalstevnet.", "success");
       await rerender();
     });
   });
@@ -291,7 +289,7 @@ function bindRegistrationActions(
   });
 }
 
-// ── Banner (konsolidering) ────────────────────────────────────────────────────
+// ── Banner (consolidation) ────────────────────────────────────────────────────
 
 function renderBanner(
   bannerSlot: HTMLElement | null,

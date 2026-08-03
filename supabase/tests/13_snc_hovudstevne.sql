@@ -1,10 +1,10 @@
 BEGIN;
 
-SELECT plan(27);
+SELECT plan(28);
 
--- ── Seed (postgres superuser — bypasses RLS) ──────────────────────────────────
--- Ein SNC-runde: hovudstevne 9970 med to lokalstevne (9971 Førde, 9972 Bergen),
--- X-kast (Minimatch, 15 omganger) innleiande + Kongelag avsluttande.
+-- ── Seed (postgres superuser - bypasses RLS) ─────────────────────────────────
+-- One SNC round: umbrella 9970 with two local stevner (9971 Forde, 9972
+-- Bergen), X-kast (Minimatch, 15 omganger) plus Kongelag.
 
 INSERT INTO auth.users (id, email, aud, role, encrypted_password, created_at, updated_at)
 VALUES
@@ -32,12 +32,18 @@ INSERT INTO public.kaster (id, fornavn, etternavn, kjonnid, klubbid) VALUES
   (9973, 'Cato', 'Bergen', 9970, 9972),
   (9974, 'Dina', 'Bergen', 9970, 9972);
 
+-- pgTAP runs inside a rolled-back transaction, so the test can clear point
+-- rows that would otherwise compete with its own: without this, whatever
+-- seed data happens to be present decides what a placement is worth.
+DELETE FROM public.norgescuppoeng
+WHERE gjelderfraaar <= 2026 AND (gjeldertilaar IS NULL OR gjeldertilaar >= 2026);
+
 INSERT INTO public.norgescuppoeng (id, plassering, poengnc, poengdnc, gjelderfraaar, gjeldertilaar) VALUES
   (9970, 1, 100, 75, 2020, NULL),
   (9971, 2,  85, 60, 2020, NULL),
   (9972, 3,  70, 50, 2020, NULL);
 
--- ── Case 1: invariantar på hovudstevnet ──────────────────────────────────────
+-- ── Case 1: umbrella invariants ──────────────────────────────────────────────
 
 SELECT throws_ok(
   $$ INSERT INTO public.stevne (id, navn, dato, stevnetypeid, er_snc_hovudstevne,
@@ -69,7 +75,7 @@ SELECT lives_ok(
   'X-kast + Kongelag er lovleg for eit SNC-hovudstevne'
 );
 
--- ── Case 2: lokalstevne arvar formatet frå hovudstevnet ──────────────────────
+-- ── Case 2: a local stevne inherits the format ───────────────────────────────
 
 INSERT INTO public.stevne (id, navn, sted, dato, klubbid, stevnetypeid, kategoriid,
   snc_hovudstevne_id, innledendekastemetodeid, avsluttendekastemetodeid)
@@ -90,7 +96,7 @@ SELECT throws_ok(
   'eit lokalstevne kan ikkje peike på eit anna lokalstevne'
 );
 
--- Rankingflagget gjeld heile runden: sett på hovudstevnet, følgjer stadene med.
+-- The ranking flag is per round: set on the umbrella, it follows the locals.
 UPDATE public.stevne SET ernorgesranking = true WHERE id = 9970;
 
 SELECT is(
@@ -105,7 +111,7 @@ SELECT throws_ok(
   'eit lokalstevne kan ikkje samtidig vere hovudstevne'
 );
 
--- ── Case 3: påmelding — berre éin stad per SNC-runde ─────────────────────────
+-- ── Case 3: pamelding - one local stevne per thrower ─────────────────────────
 
 INSERT INTO public.pamelding (stevneid, kasterid, registrert_av)
 VALUES (9971, 9971, '00000000-0000-0000-0000-000000000302');
@@ -123,11 +129,19 @@ SELECT lives_ok(
   'ein annan utøvar kan melde seg på det andre lokalstevnet'
 );
 
--- ── Resultat: Førde og Bergen, kongelagpoeng + X-kast-overføring (15 × 20 → ⅓)
---   Ada  : kongelag 60, xkast 120 → 60 + round(40) = 100
---   Cato : kongelag 55, xkast 150 → 55 + round(50) = 105  ← samla vinnar
---   Dina : kongelag 55, xkast 120 → 55 + round(40) =  95
---   Bo   : kongelag 40, xkast  90 → 40 + round(30) =  70
+SELECT throws_ok(
+  $$ INSERT INTO public.pamelding (stevneid, kasterid, registrert_av)
+     VALUES (9970, 9974, '00000000-0000-0000-0000-000000000302') $$,
+  'P0001', NULL,
+  'ingen kan melde seg på sjølve hovudstevnet'
+);
+
+-- Results from both venues. Kongelag points plus carried-over X-kast
+-- (15 x 20 -> a third):
+--   Ada  : kongelag 60, xkast 120 -> 60 + 40 = 100
+--   Cato : kongelag 55, xkast 150 -> 55 + 50 = 105  <- overall winner
+--   Dina : kongelag 55, xkast 120 -> 55 + 40 =  95
+--   Bo   : kongelag 40, xkast  90 -> 40 + 30 =  70
 
 INSERT INTO public.resultat (id, stevneid, kasterid, klubbid, plassering, hcp,
   poeng_xkast, antall_ring_xkast, poeng_kongelag, antall_ring_kongelag)
@@ -137,7 +151,7 @@ VALUES
   (9973, 9972, 9973, 9972, 1, 0, 150, 15, 55, 5),
   (9974, 9972, 9974, 9972, 2, 0, 120, 11, 55, 5);
 
--- ── Case 4: hovudstevnet kan ikkje fullførast som eit vanleg stevne ──────────
+-- ── Case 4: the umbrella is not an ordinary stevne ───────────────────────────
 
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000301","role":"authenticated"}', true);
@@ -160,7 +174,7 @@ SELECT throws_ok(
   'kan ikkje konsolidere før alle lokalstevna er fullførte'
 );
 
--- ── Case 5: lokalstevne blir fullført utan å få NC-poeng ────────────────────
+-- ── Case 5: a local stevne completes without NC points ───────────────────────
 
 SELECT lives_ok(
   $$ SELECT public.complete_stevne(9971) $$,
@@ -178,7 +192,7 @@ SELECT lives_ok(
   'det andre lokalstevnet kan fullførast'
 );
 
--- ── Case 6: konsolidering ────────────────────────────────────────────────────
+-- ── Case 6: consolidation ────────────────────────────────────────────────────
 
 SELECT lives_ok(
   $$ SELECT public.complete_snc_hovudstevne(9970) $$,
@@ -191,7 +205,7 @@ SELECT results_eq(
   $$ SELECT kasterid, snc_plassering FROM public.resultat
      WHERE stevneid IN (9971, 9972) ORDER BY snc_plassering, kasterid $$,
   $$ VALUES (9973, 1), (9971, 2), (9974, 3), (9972, 4) $$,
-  'samla plassering blir rangert på tvers av stadene (Kongelag + X-kast-overføring)'
+  'samla plassering blir rangert på tvers av lokalstevna (Kongelag + X-kast-overføring)'
 );
 
 SELECT results_eq(
@@ -207,7 +221,7 @@ SELECT is(
   'hovudstevnet er markert fullført etter konsolidering'
 );
 
--- Den lokale plasseringa er urørt — lokale premiar står ved lag.
+-- Local placement is untouched, so local prizes still stand.
 SELECT results_eq(
   $$ SELECT kasterid, plassering FROM public.resultat
      WHERE stevneid IN (9971, 9972) ORDER BY kasterid $$,
@@ -228,7 +242,7 @@ SELECT throws_ok(
   'eit lokalstevne kan ikkje løysast frå ein konsolidert SNC-runde'
 );
 
--- ── Case 7: låsen held igjen etter konsolidering ────────────────────────────
+-- ── Case 7: the lock still holds after consolidation ─────────────────────────
 
 SELECT throws_ok(
   $$ UPDATE public.resultat SET poeng_kongelag = 99 WHERE id = 9971 $$,
@@ -245,7 +259,7 @@ SELECT throws_ok(
   'lokalstevnet kan ikkje gjenopnast mens SNC-runden er konsolidert'
 );
 
--- ── Case 8: gjenopning nullstiller den samla lista ──────────────────────────
+-- ── Case 8: reopening clears the merged list ─────────────────────────────────
 
 SELECT lives_ok(
   $$ SELECT public.reopen_snc_hovudstevne(9970) $$,

@@ -47,11 +47,17 @@ export type InfoTournamentRow = QueryData<typeof _infoStevneQuery>[number];
 export type LatestResultRow = Pick<Tables<"stevne">, "id" | "navn" | "dato">;
 export type LiveTournamentRow = Pick<
   Tables<"stevne">,
-  "id" | "navn" | "dato" | "stevne_fase" | "erfullfort"
+  | "id"
+  | "navn"
+  | "dato"
+  | "stevne_fase"
+  | "erfullfort"
+  | "er_snc_hovudstevne"
+  | "snc_hovudstevne_id"
 >;
 export type UpcomingTournamentRow = Pick<
   Tables<"stevne">,
-  "id" | "navn" | "dato" | "stevne_fase" | "erfullfort"
+  "id" | "navn" | "dato" | "stevne_fase" | "erfullfort" | "er_snc_hovudstevne"
 >;
 const _pameldingStevneQuery = supabase
   .from("stevne")
@@ -62,6 +68,8 @@ const _pameldingStevneQuery = supabase
 export type RegistrationTournamentRow = QueryData<typeof _pameldingStevneQuery>[number];
 export type RelatedTournamentRow = Pick<Tables<"stevne">, "id" | "navn" | "dato">;
 
+// The home page shows an SNC round as one event. Local stevner are filtered out
+// in the query, not the client, because limit(5) would otherwise fill up with them.
 export async function getLatestResults(): Promise<{ data: LatestResultRow[]; error: unknown }> {
   const today = new Date().toISOString().slice(0, 10);
   const { data, error } = await supabase
@@ -69,19 +77,35 @@ export async function getLatestResults(): Promise<{ data: LatestResultRow[]; err
     .select("id, navn, dato")
     .lte("dato", today)
     .eq("erfullfort", true)
+    .is("snc_hovudstevne_id", null)
     .order("dato", { ascending: false })
     .limit(5);
   if (error) logError("getLatestResults", error);
   return { data: data ?? [], error };
 }
 
+/** Includes SNC local stevner — the admin overview needs them. */
 export async function getLiveTournaments(): Promise<{ data: LiveTournamentRow[]; error: unknown }> {
   const { data, error } = await supabase
     .from("stevne")
-    .select("id, navn, dato, stevne_fase, erfullfort")
+    .select("id, navn, dato, stevne_fase, erfullfort, er_snc_hovudstevne, snc_hovudstevne_id")
     .in("stevne_fase", ["innledende", "avsluttende"])
     .order("dato", { ascending: true });
   if (error) logError("getLiveTournaments", error);
+  return { data: data ?? [], error };
+}
+
+/** Used by the home page to swap live local stevner for their umbrella. */
+export async function getTournamentsByIds(
+  ids: number[],
+): Promise<{ data: LiveTournamentRow[]; error: unknown }> {
+  if (!ids.length) return { data: [], error: null };
+  const { data, error } = await supabase
+    .from("stevne")
+    .select("id, navn, dato, stevne_fase, erfullfort, er_snc_hovudstevne, snc_hovudstevne_id")
+    .in("id", ids)
+    .order("dato", { ascending: true });
+  if (error) logError("getTournamentsByIds", error);
   return { data: data ?? [], error };
 }
 
@@ -92,8 +116,9 @@ export async function getUpcomingTournaments(): Promise<{
   const today = new Date().toISOString().slice(0, 10);
   const { data, error } = await supabase
     .from("stevne")
-    .select("id, navn, dato, stevne_fase, erfullfort")
+    .select("id, navn, dato, stevne_fase, erfullfort, er_snc_hovudstevne")
     .gte("dato", today)
+    .is("snc_hovudstevne_id", null)
     .or("stevne_fase.is.null,stevne_fase.eq.ikke_startet")
     .order("dato", { ascending: true })
     .limit(5);
@@ -141,7 +166,7 @@ export async function getInfoTournament(
     .from("stevne")
     .select(`
       id, navn, dato, tid, sted, stevne_fase, antall_runder_innl, erfullfort, klubbid, tilgjengelige_baner,
-    snc_hovudstevne_id,
+      snc_hovudstevne_id,
       kastemetodeInnl:kastemetode!stevne_innledendekastemetodeid_fkey(id, navn),
       kastemetodeAvsl:kastemetode!stevne_avsluttendekastemetodeid_fkey(id, navn),
       kategori:kategoriid(erlagbasert, navn)
@@ -251,7 +276,7 @@ export async function deleteTournament(id: number): Promise<{ error: unknown }> 
   return { error };
 }
 
-// ── SNC: hovudstevne + lokalstevne ────────────────────────────────────────────
+// ── SNC: umbrella + local stevner ─────────────────────────────────────────────
 
 const _sncLokalstevneQuery = supabase
   .from("stevne")
@@ -259,7 +284,7 @@ const _sncLokalstevneQuery = supabase
     "id, navn, sted, dato, tid, erfullfort, stevne_fase, klubbid, klubb:klubbid(id, navn, logourl)",
   );
 
-/** Eit lokalstevne i ein SNC-runde: staden ein utøvar kan velje å delta på. */
+/** One local stevne in an SNC round — a venue the thrower can pick. */
 export type SncLocalTournamentRow = QueryData<typeof _sncLokalstevneQuery>[number];
 
 const _sncHovudstevneQuery = supabase
@@ -302,7 +327,7 @@ export async function getSncLocalTournaments(
   return { data: data ?? [], error };
 }
 
-/** Hovudstevne ein kan knyte eit lokalstevne til, nyaste først. */
+/** Umbrellas a local stevne can be attached to, newest first. */
 export async function getSncParentOptions(): Promise<{
   data: SncParentOptionRow[];
   error: unknown;
@@ -316,14 +341,14 @@ export async function getSncParentOptions(): Promise<{
   return { data: data ?? [], error };
 }
 
-/** Reknar ut den samla lista og set hovudstevnet som fullført. */
+/** Computes the merged list and marks the umbrella completed. */
 export async function completeSncParent(hovudstevneId: number): Promise<{ error: unknown }> {
   const { error } = await supabase.rpc("complete_snc_hovudstevne", { p_stevneid: hovudstevneId });
   if (error) logError("completeSncParent", error);
   return { error };
 }
 
-/** Nullstiller den samla lista (og NC-poenga) og opnar hovudstevnet igjen. */
+/** Clears the merged list and NC points, and reopens the umbrella. */
 export async function reopenSncParent(hovudstevneId: number): Promise<{ error: unknown }> {
   const { error } = await supabase.rpc("reopen_snc_hovudstevne", { p_stevneid: hovudstevneId });
   if (error) logError("reopenSncParent", error);

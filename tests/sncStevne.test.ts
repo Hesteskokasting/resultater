@@ -1,8 +1,8 @@
 /**
- * Renders the two SNC-hovudstevne tabs against mocked services and asserts what
- * lands in the DOM: stad-lista med påmeldingsteljing, kva knapp kvar utøvar får
- * (meld på / byt / meld av), konsolideringsbanneret for admin, og den samla
- * resultatlista. Supabase-klienten blir mocka ut — han virkar ikkje under happy-dom.
+ * Renders the two SNC umbrella tabs against mocked services and asserts what
+ * lands in the DOM: the local-stevne list with its registration counts, which
+ * button each thrower gets, the admin consolidation banner, and the merged
+ * result list. The Supabase client is mocked out - it does not work under happy-dom.
  */
 
 const mocks = vi.hoisted(() => ({
@@ -51,7 +51,7 @@ const {
   confirmDialog,
 } = mocks;
 
-import { render as renderLocals } from "@/pages/stevne/snc-lokalstevne";
+import { render as renderSncInfo } from "@/pages/stevne/snc-info";
 import { render as renderSncResults } from "@/pages/stevne/snc-resultat";
 
 function host(): HTMLElement {
@@ -141,27 +141,27 @@ beforeEach(() => {
   reopenSncParent.mockResolvedValue({ error: null });
 });
 
-describe("SNC lokalstevne-tab", () => {
+describe("SNC umbrella info tab", () => {
   it("lists every venue with its own registration count and total", async () => {
     const el = host();
-    await renderLocals(el, { id: 10 });
+    await renderSncInfo(el, { id: 10 });
 
     const text = el.textContent ?? "";
     expect(text).toContain("Førde");
     expect(text).toContain("Bergen");
-    expect(text).toContain("0 av 2 lokalstevne fullført");
+    expect(text).toContain("0 av 2 lokale stevne fullført");
 
     const venueRows = [...el.querySelectorAll("#snc-locals tbody tr")];
     expect(venueRows).toHaveLength(2);
     expect(venueRows[0]!.textContent).toContain("3");
     expect(venueRows[1]!.textContent).toContain("2");
-    // 3 + 2 påmelde på tvers av stadene
+    // 3 + 2 registrations across the local stevner
     expect(el.querySelector(".card")?.textContent).toContain("5");
   });
 
   it("asks an anonymous visitor to log in rather than offering a venue", async () => {
     const el = host();
-    await renderLocals(el, { id: 10 });
+    await renderSncInfo(el, { id: 10 });
 
     expect(el.querySelector('a[href*="logginn"]')).not.toBeNull();
     expect(buttonWithText(el, "Meld på")).toBeUndefined();
@@ -170,7 +170,7 @@ describe("SNC lokalstevne-tab", () => {
   it("offers a linked thrower one Meld på button per venue", async () => {
     getUser.mockResolvedValue(linkedUser());
     const el = host();
-    await renderLocals(el, { id: 10 });
+    await renderSncInfo(el, { id: 10 });
 
     expect(el.querySelectorAll(".snc-meldpa")).toHaveLength(2);
     expect(buttonWithText(el, "Byt hit")).toBeUndefined();
@@ -179,7 +179,7 @@ describe("SNC lokalstevne-tab", () => {
   it("registers the thrower on the venue whose button was clicked", async () => {
     getUser.mockResolvedValue(linkedUser());
     const el = host();
-    await renderLocals(el, { id: 10 });
+    await renderSncInfo(el, { id: 10 });
 
     el.querySelectorAll<HTMLButtonElement>(".snc-meldpa")[1]!.click();
     await vi.waitFor(() => expect(registerForTournament).toHaveBeenCalled());
@@ -192,7 +192,7 @@ describe("SNC lokalstevne-tab", () => {
       summary({ ownStevneId: 11, ownRegistrationId: 500 }),
     );
     const el = host();
-    await renderLocals(el, { id: 10 });
+    await renderSncInfo(el, { id: 10 });
 
     expect(el.textContent).toContain("Du er påmeld");
     expect(el.querySelectorAll(".snc-avmeld")).toHaveLength(1);
@@ -205,7 +205,7 @@ describe("SNC lokalstevne-tab", () => {
       summary({ ownStevneId: 11, ownRegistrationId: 500 }),
     );
     const el = host();
-    await renderLocals(el, { id: 10 });
+    await renderSncInfo(el, { id: 10 });
 
     el.querySelector<HTMLButtonElement>(".snc-byt")!.click();
     await vi.waitFor(() => expect(registerForTournament).toHaveBeenCalled());
@@ -220,7 +220,7 @@ describe("SNC lokalstevne-tab", () => {
       error: null,
     });
     const el = host();
-    await renderLocals(el, { id: 10 });
+    await renderSncInfo(el, { id: 10 });
 
     expect(el.querySelectorAll(".snc-meldpa")).toHaveLength(1);
     expect(el.textContent).toContain("Stengt");
@@ -229,7 +229,7 @@ describe("SNC lokalstevne-tab", () => {
   it("keeps the consolidate button disabled until every venue is finished", async () => {
     const el = host();
     const banner = document.createElement("div");
-    await renderLocals(el, { id: 10, isAdmin: true }, banner);
+    await renderSncInfo(el, { id: 10, isAdmin: true }, banner);
 
     const button = banner.querySelector<HTMLButtonElement>("#snc-complete-btn")!;
     expect(button.disabled).toBe(true);
@@ -245,7 +245,7 @@ describe("SNC lokalstevne-tab", () => {
     });
     const el = host();
     const banner = document.createElement("div");
-    await renderLocals(el, { id: 10, isAdmin: true }, banner);
+    await renderSncInfo(el, { id: 10, isAdmin: true }, banner);
 
     const button = banner.querySelector<HTMLButtonElement>("#snc-complete-btn")!;
     expect(button.disabled).toBe(false);
@@ -260,7 +260,7 @@ describe("SNC lokalstevne-tab", () => {
     });
     const el = host();
     const banner = document.createElement("div");
-    await renderLocals(el, { id: 10, isAdmin: true }, banner);
+    await renderSncInfo(el, { id: 10, isAdmin: true }, banner);
 
     expect(banner.querySelector("#snc-complete-btn")).toBeNull();
     banner.querySelector<HTMLButtonElement>("#snc-reopen-btn")!.click();
@@ -270,13 +270,13 @@ describe("SNC lokalstevne-tab", () => {
   it("hides the admin banner from ordinary visitors", async () => {
     const el = host();
     const banner = document.createElement("div");
-    await renderLocals(el, { id: 10 }, banner);
+    await renderSncInfo(el, { id: 10 }, banner);
 
     expect(banner.innerHTML).toBe("");
   });
 });
 
-describe("SNC samla resultat", () => {
+describe("SNC consolidated result", () => {
   const consolidated = [
     {
       snc_plassering: 1,
@@ -324,8 +324,8 @@ describe("SNC samla resultat", () => {
 
     const rows = [...el.querySelectorAll(".res-desktop-blokk tbody tr")];
     expect(rows).toHaveLength(2);
-    expect(el.textContent).toContain("2 deltakarar frå 2 stader");
-    // Kongelag 55 + overført X-kast (150 / 3) = 105 for vinnaren, 60 + 40 = 100 for nr. 2
+    expect(el.textContent).toContain("2 deltakarar frå 2 lokale stevne");
+    // Kongelag 55 + carried-over X-kast (150 / 3) = 105 for the winner, 100 for 2nd
     expect(rows[0]!.textContent).toContain("105");
     expect(rows[1]!.textContent).toContain("100");
     expect(rows[0]!.textContent).toContain("Bergen");

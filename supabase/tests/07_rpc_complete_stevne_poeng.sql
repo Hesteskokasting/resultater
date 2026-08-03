@@ -37,6 +37,12 @@ INSERT INTO public.stevnetype (id, navn) VALUES
 
 -- Valid window (2020 → open-ended) for plassering 1 and 2; plassering 3 only
 -- has a row in an expired window (2000–2010) so it must not apply in 2026.
+-- pgTAP runs inside a rolled-back transaction, so the test can clear point
+-- rows that would otherwise compete with its own: without this, whatever
+-- seed data happens to be present decides what a placement is worth.
+DELETE FROM public.norgescuppoeng
+WHERE gjelderfraaar <= 2026 AND (gjeldertilaar IS NULL OR gjeldertilaar >= 2026);
+
 INSERT INTO public.norgescuppoeng (id, plassering, poengnc, poengdnc, gjelderfraaar, gjeldertilaar) VALUES
   (9950, 1, 100, 75, 2020, NULL),
   (9951, 2,  85, 60, 2020, NULL),

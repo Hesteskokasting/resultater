@@ -18,7 +18,7 @@ interface ColFlags {
   isParMix: boolean;
   showKpSp: boolean;
   showNc: boolean;
-  /** Lokalstevne i ein konsolidert SNC-runde: vis plasseringa i den samla lista. */
+  /** Local stevne in a consolidated SNC round: show the merged placement too. */
   showSnc: boolean;
 }
 
@@ -238,7 +238,7 @@ export async function render(
     const sncHtml =
       stevne.snc_hovudstevne_id != null
         ? `<p class="res-klassifisering">
-             <a href="#/stevne/${stevne.snc_hovudstevne_id}/resultat">Samla SNC-resultat for alle stadene →</a>
+             <a href="#/stevne/${stevne.snc_hovudstevne_id}/resultat">Samla SNC-resultat for alle lokale stevne →</a>
            </p>`
         : "";
 

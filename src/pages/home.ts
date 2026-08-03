@@ -3,6 +3,7 @@ import { createErrorBanner } from "@/components/ErrorBanner";
 import {
   getLatestResults,
   getLiveTournaments,
+  getTournamentsByIds,
   getUpcomingTournaments,
 } from "@/services/stevneService";
 import type {
@@ -24,7 +25,7 @@ function liveCard(s: LiveTournamentRow): HTMLElement {
   const tab = s.stevne_fase === "avsluttende" ? "avsluttende" : "innledende";
   return createStevneCard({
     title: s.navn,
-    href: `#/stevne/${s.id}/${tab}`,
+    href: `#/stevne/${s.id}/${s.er_snc_hovudstevne ? "info" : tab}`,
     date: formatDateLong(s.dato),
     status: "live",
   });
@@ -47,7 +48,12 @@ function upcomingCard(s: UpcomingTournamentRow, showSlot: boolean): HTMLElement 
     href: `#/stevne/${s.id}/info`,
     date: formatDateLong(s.dato),
     status: "upcoming",
-    registrationSlotId: canRegister ? s.id : undefined,
+    // SNC: the thrower must pick a local stevne first, so the button navigates.
+    registrationSlotId: canRegister && !s.er_snc_hovudstevne ? s.id : undefined,
+    actionLink:
+      canRegister && s.er_snc_hovudstevne
+        ? { href: `#/stevne/${s.id}/info`, label: "Meld på" }
+        : undefined,
   });
 }
 
@@ -101,7 +107,19 @@ export async function render(container: HTMLElement): Promise<void> {
       return;
     }
 
-    const live = r5.filter((s) => !s.erfullfort);
+    // Show a running SNC round once, as the umbrella, not once per local stevne.
+    const ongoing = r5.filter((s) => !s.erfullfort);
+    const sncParentIds = [
+      ...new Set(
+        ongoing
+          .map((s) => s.snc_hovudstevne_id)
+          .filter((parentId): parentId is number => parentId != null),
+      ),
+    ];
+    const { data: sncParents } = await getTournamentsByIds(sncParentIds);
+    if (!isCurrent()) return;
+    const live = [...ongoing.filter((s) => s.snc_hovudstevne_id == null), ...sncParents];
+
     const throwerId = auth?.profil?.kasterid ?? null;
     const showSlot = throwerId !== null && auth?.profil?.kobling_status === "godkjent";
 

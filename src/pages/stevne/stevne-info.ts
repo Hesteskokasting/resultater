@@ -168,7 +168,7 @@ export async function render(
               <tr><th>Påmelde ${isTeamOrMix ? "par" : "spelarar"}</th><td>${isTeamOrMix ? pairCount : count}</td></tr>
               ${
                 stevne.snc_hovudstevne_id != null
-                  ? `<tr><th>SNC-runde</th><td><a href="#/stevne/${stevne.snc_hovudstevne_id}/lokalstevne">Sjå alle stadene</a></td></tr>`
+                  ? `<tr><th>SNC-runde</th><td><a href="#/stevne/${stevne.snc_hovudstevne_id}/info">Sjå alle lokale stevne</a></td></tr>`
                   : ""
               }
             </tbody>

@@ -100,14 +100,14 @@ export async function removeRegistration(pameldingId: number): Promise<{ error: 
 export interface TournamentRegistrationSummary {
   /** Påmeldingar per stevne. */
   counts: Map<number, number>;
-  /** Stevnet utøvaren alt står på, av dei spurde — SNC tillet berre éin stad. */
+  /** Which of the queried stevner the thrower is already entered in. */
   ownStevneId: number | null;
   ownRegistrationId: number | null;
 }
 
 /**
- * Påmeldingsteljing for fleire stevne i eitt kall, pluss kvar utøvaren sjølv står.
- * Brukt av SNC-lokalstevnelista, der alle stadene blir viste side om side.
+ * Registration counts for several stevner in one round trip, plus where the
+ * thrower is entered. Used by the SNC info tab, which lists them side by side.
  */
 export async function getRegistrationsAcrossTournaments(
   stevneIds: number[],

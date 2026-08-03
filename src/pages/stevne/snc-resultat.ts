@@ -1,7 +1,6 @@
-// Den samla SNC-lista: alle lokalstevna slåtte saman til éi resultatliste.
-// Plasseringa og NC-poenga kjem frå complete_snc_hovudstevne; totalen blir vist
-// etter same formel som den lokale standen (Kongelag + overført X-kast), slik
-// at rekkjefølgja i lista alltid kan lesast ut av tala ved sida av.
+// The consolidated SNC list. Placement and NC points come from
+// complete_snc_hovudstevne; the total is recomputed with the same formula as the
+// local standing (Kongelag + carried-over X-kast) so the order is readable.
 
 import { throwerName, buildThrowerSlug } from "@/utils/kaster";
 import { createErrorBanner } from "@/components/ErrorBanner";
@@ -20,7 +19,7 @@ interface ColFlags {
   carryFactor: number | null;
 }
 
-function venueLabel(row: SncResultRow): string {
+function localTournamentLabel(row: SncResultRow): string {
   const stevne = row.stevne;
   return stevne.klubb?.navn ?? stevne.sted ?? stevne.navn;
 }
@@ -42,7 +41,7 @@ function rowHtml(row: SncResultRow, cols: ColFlags): string {
       <td class="res-td-pl">${row.snc_plassering ?? "–"}</td>
       <td class="res-td-navn">${nameHtml}</td>
       <td class="res-td-klubb">${escHtml(row.klubb?.navn ?? "–")}</td>
-      <td class="res-td-klubb">${escHtml(venueLabel(row))}</td>
+      <td class="res-td-klubb">${escHtml(localTournamentLabel(row))}</td>
       ${cols.showXkast ? `<td class="res-td-kp">${row.poeng_xkast ?? ""}</td>` : ""}
       ${cols.showKongelag ? `<td class="res-td-sp">${row.poeng_kongelag ?? ""}</td>` : ""}
       <td class="res-td-sp">${totalFor(row, cols)}</td>
@@ -60,7 +59,7 @@ function mobileRowHtml(row: SncResultRow, cols: ColFlags): string {
       <span class="res-pl">${row.snc_plassering ?? "–"}.</span>
       <div class="res-info">
         <span class="res-navn">${escHtml(throwerName(row.kaster) || "–")}</span>
-        <span class="res-klubb">${escHtml(row.klubb?.navn ?? "–")} · ${escHtml(venueLabel(row))}</span>
+        <span class="res-klubb">${escHtml(row.klubb?.navn ?? "–")} · ${escHtml(localTournamentLabel(row))}</span>
         <span class="res-meta">${meta.join("  ")}</span>
       </div>
     </div>`;
@@ -93,7 +92,7 @@ export async function render(
     if (!parent.erfullfort || !rows.length) {
       container.replaceChildren(
         createEmptyState(
-          "Den samla lista blir klar når alle lokalstevna er fullførte og runden er konsolidert.",
+          "Den samla lista blir klar når alle dei lokale stevna er fullførte og runden er konsolidert.",
         ),
       );
       return;
@@ -108,7 +107,7 @@ export async function render(
       carryFactor: showXkast && showKongelag && omganger ? xkastCarryOverFactor(omganger) : null,
     };
 
-    const venues = new Set(resultsResult.data.map((r) => r.stevne.id)).size;
+    const localCount = new Set(resultsResult.data.map((r) => r.stevne.id)).size;
     const carryNote =
       cols.carryFactor != null && omganger
         ? ` · overføring frå X-kast ${xkastCarryOverPercent(omganger)} %`
@@ -117,7 +116,7 @@ export async function render(
     container.innerHTML = `
       <div class="res-side">
         <div class="res-felles">
-          <p class="res-antall"><strong>${rows.length} deltakarar frå ${venues} stader</strong>${escHtml(carryNote)}</p>
+          <p class="res-antall"><strong>${rows.length} deltakarar frå ${localCount} lokale stevne</strong>${escHtml(carryNote)}</p>
         </div>
         <div class="res-mobil-blokk">
           <div class="res-group">
@@ -132,12 +131,12 @@ export async function render(
                   <th class="res-td-pl">Pl</th>
                   <th class="res-td-navn">NAVN</th>
                   <th class="res-td-klubb">KLUBB</th>
-                  <th class="res-td-klubb">STAD</th>
+                  <th class="res-td-klubb">LOKALT STEVNE</th>
                   ${cols.showXkast ? '<th class="res-td-kp">X</th>' : ""}
                   ${cols.showKongelag ? '<th class="res-td-sp">K</th>' : ""}
                   <th class="res-td-sp">TOT</th>
                   <th class="res-td-nc">NC</th>
-                  <th class="res-td-pl">LOKAL</th>
+                  <th class="res-td-pl">LOKAL PL</th>
                 </tr>
               </thead>
               <tbody>${rows.map((r) => rowHtml(r, cols)).join("")}</tbody>

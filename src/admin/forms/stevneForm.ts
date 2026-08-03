@@ -31,7 +31,7 @@ import { formShell } from "./_formHost";
 import type { AdminFormHost } from "./_formHost";
 import { bindCancelButton, bindDeleteButton } from "./_formButtons";
 
-/** `#/stevne/ny?snc=<id>` — «+ Nytt lokalstevne» frå SNC-sida forvel hovudstevnet. */
+/** `#/stevne/ny?snc=<id>` preselects the umbrella when added from the SNC page. */
 function sncParentFromHash(): number | null {
   const raw = new URLSearchParams(location.hash.split("?")[1] ?? "").get("snc");
   const id = raw ? Number(raw) : NaN;
@@ -39,7 +39,7 @@ function sncParentFromHash(): number | null {
 }
 
 function sncParentOptionsHtml(parents: SncParentOptionRow[], selected: number | null): string {
-  let html = `<option value="">— ikkje eit SNC-lokalstevne —</option>`;
+  let html = `<option value="">— ikkje eit lokalt SNC-stevne —</option>`;
   for (const parent of parents) {
     const isSelected = parent.id === selected ? " selected" : "";
     const date = parent.dato ? ` (${formatDate(parent.dato)})` : "";
@@ -145,7 +145,7 @@ export async function mountTournamentForm(host: AdminFormHost, id?: number): Pro
         ${formRowHtml("Del av SNC-hovudstevne", `<select class="form-select" name="snc_hovudstevne_id" id="snc-parent">${sncParentOpt}</select>`)}
         <p class="form-text mb-0">
           Eit hovudstevne har ingen eigne kampar — det bind saman lokalstevna og eig den samla
-          resultatlista. Eit lokalstevne arvar stevnetype, kategori og kastemetodar frå
+          resultatlista. Eit lokalt stevne arvar stevnetype, kategori og kastemetodar frå
           hovudstevnet. SNC må vere X-kast, Kongelag eller begge.
         </p>
       </fieldset>
@@ -172,9 +172,8 @@ export async function mountTournamentForm(host: AdminFormHost, id?: number): Pro
 
   container.replaceChildren(wrapper);
 
-  // Eit stevne er anten paraplyen eller ein av stadene — aldri begge (CHECK
-  // stevne_snc_ikkje_nesta). Hald dei to felta gjensidig utelukkande i skjemaet
-  // òg, så feilen aldri rekk fram til lagringa.
+  // A stevne is either the umbrella or one of the locals, never both (CHECK
+  // stevne_snc_ikkje_nesta) — keep the two fields mutually exclusive here too.
   const sncParentCheckbox = wrapper.querySelector<HTMLInputElement>("#snc-hovud")!;
   const sncParentSelect = wrapper.querySelector<HTMLSelectElement>("#snc-parent")!;
   const select = (name: string): HTMLSelectElement =>
@@ -184,7 +183,7 @@ export async function mountTournamentForm(host: AdminFormHost, id?: number): Pro
   const initialSelect = select("innledendekastemetodeid");
   const finalSelect = select("avsluttendekastemetodeid");
 
-  /** Byter ut alternativa, men held valet om det framleis finst i lista. */
+  /** Replaces the options, keeping the current value if it is still listed. */
   function setOptions(target: HTMLSelectElement, items: { id: number; navn: string }[]): void {
     const current = target.value;
     const stillValid = items.some((item) => String(item.id) === current);
@@ -197,7 +196,7 @@ export async function mountTournamentForm(host: AdminFormHost, id?: number): Pro
     const isLocal = sncParentSelect.value !== "";
     const isSnc = isLocal || sncParentCheckbox.checked;
 
-    // SNC er alltid X-kast, Kongelag eller begge — aldri Gloppen, NHM eller cup.
+    // SNC is always X-kast, Kongelag or both — never Gloppen, NHM or cup.
     setOptions(
       initialSelect,
       isSnc ? initialMethods.filter((m) => isXkastMethodName(m.navn)) : initialMethods,
@@ -212,7 +211,7 @@ export async function mountTournamentForm(host: AdminFormHost, id?: number): Pro
       if (sncType) typeSelect.value = String(sncType.id);
     }
 
-    // Hovudstevnet eig formatet: lokalstevna arvar det, så felta er ikkje deira å setje.
+    // The umbrella owns the format; locals inherit it.
     for (const field of [typeSelect, categorySelect, initialSelect, finalSelect]) {
       field.disabled = isLocal;
     }

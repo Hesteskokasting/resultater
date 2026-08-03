@@ -198,7 +198,7 @@ export async function clearGroupAssignment(stevneid: number): Promise<{ error: u
 
 // ── Resultat-side ─────────────────────────────────────────────────────────────
 
-// ── SNC: samla resultatliste ──────────────────────────────────────────────────
+// ── SNC: consolidated result list ─────────────────────────────────────────────
 
 const _sncResultatQuery = supabase.from("resultat").select(`
     snc_plassering, plassering, nc_poeng,
@@ -211,8 +211,8 @@ const _sncResultatQuery = supabase.from("resultat").select(`
 export type SncResultRow = QueryData<typeof _sncResultatQuery>[number];
 
 /**
- * Alle resultatradene i ein SNC-runde, på tvers av lokalstevna, sorterte etter
- * den samla plasseringa som complete_snc_hovudstevne har rekna ut.
+ * Every result row in an SNC round, across all local stevner, ordered by the
+ * merged placement that complete_snc_hovudstevne computed.
  */
 export async function getSncConsolidatedResults(
   hovudstevneId: number,

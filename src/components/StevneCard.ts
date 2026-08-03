@@ -36,6 +36,11 @@ export interface StevneCardProps {
    * (hydrated later by `bindRegistrationSlots`) instead of the chevron.
    */
   registrationSlotId?: number;
+  /**
+   * A link rendered as a button in the trailing slot, for actions that navigate
+   * rather than write. Ignored when `registrationSlotId` is set.
+   */
+  actionLink?: { href: string; label: string };
 }
 
 // Bootstrap Icons is not loaded in this app; use an inline SVG chevron (matches the
@@ -74,7 +79,9 @@ export function createStevneCard(props: StevneCardProps): HTMLElement {
   const trailing =
     props.registrationSlotId !== undefined
       ? `<div class="stevne-kort__trailing stevne-kort__trailing--action"><span data-registration-slot="${props.registrationSlotId}"></span></div>`
-      : `<div class="stevne-kort__trailing">${CHEVRON_SVG}</div>`;
+      : props.actionLink
+        ? `<div class="stevne-kort__trailing stevne-kort__trailing--action"><a class="btn btn-sm btn-primary" href="${escHtml(props.actionLink.href)}">${escHtml(props.actionLink.label)}</a></div>`
+        : `<div class="stevne-kort__trailing">${CHEVRON_SVG}</div>`;
 
   const dateA11yText = props.dateFull ?? props.date;
   const dateIsoAttr = props.dateIso ? ` datetime="${escHtml(props.dateIso)}"` : "";
