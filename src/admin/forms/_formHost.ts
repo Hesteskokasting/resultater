@@ -1,3 +1,5 @@
+import { escHtml } from "@/utils/escHtml";
+
 /**
  * Contract shared by the three admin entity forms. Each form renders into
  * `container` and reports back through the callbacks, so the very same form
@@ -23,12 +25,6 @@ export function formShell(host: AdminFormHost): { wrapper: HTMLElement; headingH
   wrapper.className = host.wrapperClass ?? "admin-form-modal";
   return {
     wrapper,
-    headingHtml: host.heading ? `<h2 class="mb-4">${escapeHeading(host.heading)}</h2>` : "",
+    headingHtml: host.heading ? `<h2 class="mb-4">${escHtml(host.heading)}</h2>` : "",
   };
-}
-
-function escapeHeading(text: string): string {
-  const el = document.createElement("div");
-  el.textContent = text;
-  return el.innerHTML;
 }

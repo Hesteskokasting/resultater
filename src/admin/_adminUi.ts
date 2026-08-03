@@ -69,13 +69,13 @@ export function createSectionTitle(text: string): HTMLElement {
 
 // ── Badges ───────────────────────────────────────────────────────────────────
 
-export function createBadge({ text, tone = "muted" }: AdminBadge): HTMLElement {
+function createBadge({ text, tone = "muted" }: AdminBadge): HTMLElement {
   return createEl("span", text, `admin-badge admin-badge--${tone}`);
 }
 
 // ── Stat tiles ───────────────────────────────────────────────────────────────
 
-export function createStatTile(tile: StatTile): HTMLElement {
+function createStatTile(tile: StatTile): HTMLElement {
   const cls = `admin-stat${tile.tone ? ` admin-stat--${tile.tone}` : ""}`;
   const el = tile.href ? createEl("a", null, cls) : createEl("div", null, cls);
   if (tile.href && el instanceof HTMLAnchorElement) el.href = tile.href;

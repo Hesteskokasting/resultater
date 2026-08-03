@@ -1,4 +1,3 @@
-import { escHtml } from "@/utils/escHtml";
 import type { AdminFormHost } from "./_formHost";
 import type { Params } from "@/types";
 
@@ -59,5 +58,5 @@ export async function renderFormRoute(
     .join(" ")
     .trim();
   const title = container.querySelector("h2");
-  if (title && name) title.innerHTML = `${escHtml(props.heading(false))}: ${escHtml(name)}`;
+  if (title && name) title.textContent = `${props.heading(false)}: ${name}`;
 }

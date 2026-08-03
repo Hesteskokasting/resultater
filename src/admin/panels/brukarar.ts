@@ -89,7 +89,9 @@ export async function render(el: HTMLElement): Promise<void> {
    * person's history — so the confirm text says so plainly.
    */
   async function removeAccount(user: (typeof data)[number], email: string): Promise<void> {
-    const thrower = user.kasterid ? throwerMap.get(user.kasterid) : null;
+    // Same resolution as the row itself, so the dialog names the utøvar shown.
+    const linkedId = user.kasterid ?? user.kobling_kasterid;
+    const thrower = linkedId ? throwerMap.get(linkedId) : null;
     const kept = thrower
       ? `Utøvarprofilen «${throwerName(thrower)}» og alle resultat blir verande.`
       : "Utøvarprofilar og resultat blir ikkje rørte.";

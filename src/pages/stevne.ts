@@ -127,9 +127,10 @@ export async function render(container: HTMLElement, params: Params): Promise<vo
 
     const bannerSlot = container.querySelector<HTMLElement>("#org-banner-buttons");
     const subpage = container.querySelector<HTMLElement>("#org-subpage")!;
-    const renderFn = isSncParent
-      ? (SNC_PARENT_RENDER[activeTab] ?? TAB_RENDER[activeTab] ?? renderSncInfo)
-      : (TAB_RENDER[activeTab] ?? renderInfo);
+    const renderFn =
+      (isSncParent ? SNC_PARENT_RENDER[activeTab] : undefined) ??
+      TAB_RENDER[activeTab] ??
+      renderInfo;
 
     await renderFn(subpage, { id, isAdmin: userIsAdmin }, bannerSlot);
   } catch (err) {
