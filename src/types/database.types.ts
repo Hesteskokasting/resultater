@@ -1093,7 +1093,6 @@ export type Database = {
         Returns: undefined;
       };
       reopen_stevne: { Args: { p_stevneid: number }; Returns: undefined };
-      snc_kan_konsolidere: { Args: { p_stevneid: number }; Returns: boolean };
       set_xkast_kongelag_total: {
         Args: {
           p_antall_ringer: number;
@@ -1103,6 +1102,7 @@ export type Database = {
         Returns: undefined;
       };
       slett_brukarkonto: { Args: { target_id: string }; Returns: undefined };
+      snc_kan_konsolidere: { Args: { p_stevneid: number }; Returns: boolean };
       stevne_is_completed: { Args: { p_stevneid: number }; Returns: boolean };
       swap_xkast_kongelag_deltaker: {
         Args: { p_deltaker_a: number; p_deltaker_b: number };
