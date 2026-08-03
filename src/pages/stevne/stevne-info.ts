@@ -19,6 +19,7 @@ import { createRegistrationButton } from "@/components/PameldingKnapp";
 import { generateInitialRoundMatches } from "@/services/kampGenereringInnledendeService";
 import { generateKongelagCourts } from "@/services/xkastKongelagService";
 import { registerRefetch } from "@/utils/refetchRegistry";
+import { isKongelagMethodName } from "@/utils/kastemetode";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -66,8 +67,7 @@ export async function render(
     // No innleiande metode + Kongelag avsluttande = standalone Kongelag:
     // the stevne starts directly in the avsluttende phase.
     const isStandaloneKongelag =
-      !stevne.kastemetodeInnl &&
-      (stevne.kastemetodeAvsl?.navn ?? "").toLowerCase().includes("kongelag");
+      !stevne.kastemetodeInnl && isKongelagMethodName(stevne.kastemetodeAvsl?.navn ?? "");
 
     if (bannerSlot && isNotStarted && isAdmin) {
       bannerSlot.innerHTML = `<button id="start-stevne-btn" class="btn btn-sm btn-success">Start stevne</button>`;

@@ -12,7 +12,11 @@ import {
 } from "@/services/stevneService";
 import type { ActiveThrowingMethodRow } from "@/services/stevneService";
 import { resetTournament } from "@/services/testDataService";
-import { isXkastMethodName, usesInitialRoundCount } from "@/utils/kastemetode";
+import {
+  isKongelagMethodName,
+  isXkastMethodName,
+  usesInitialRoundCount,
+} from "@/utils/kastemetode";
 import { registerRefetch } from "@/utils/refetchRegistry";
 
 // ── Render ────────────────────────────────────────────────────────────────────
@@ -48,7 +52,7 @@ export async function render(
       (m) => m.er_innledende && (!isSncParent || isXkastMethodName(m.navn)),
     );
     const finalMethods = methods.filter(
-      (m) => m.er_avsluttende && (!isSncParent || m.navn.toLowerCase().includes("kongelag")),
+      (m) => m.er_avsluttende && (!isSncParent || isKongelagMethodName(m.navn)),
     );
 
     function optionsHtml(list: ActiveThrowingMethodRow[], selectedId: number | null): string {
