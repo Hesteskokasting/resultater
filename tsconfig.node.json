@@ -8,7 +8,8 @@
     "types": ["node"],
     "composite": true,
     "declaration": true,
-    "outDir": "./node_modules/.tsbuildinfo/node"
+    "outDir": "./node_modules/.tsbuildinfo/node",
+    "tsBuildInfoFile": "./node_modules/.tsbuildinfo/node.tsbuildinfo"
   },
   "include": ["capacitor.config.ts"]
 }

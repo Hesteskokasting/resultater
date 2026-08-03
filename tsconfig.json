@@ -20,7 +20,8 @@
     "noUncheckedIndexedAccess": true,
     "erasableSyntaxOnly": true,
     "noImplicitOverride": true,
-    "ignoreDeprecations": "6.0"
+    "ignoreDeprecations": "6.0",
+    "tsBuildInfoFile": "./node_modules/.tsbuildinfo/app.tsbuildinfo"
   },
   "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }]

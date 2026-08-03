@@ -9,8 +9,8 @@
   },
   "scripts": {
     "dev": "vp dev",
-    "build": "tsc --noEmit && vp build",
-    "typecheck": "tsc --noEmit",
+    "build": "tsc -b && vp build",
+    "typecheck": "tsc -b",
     "typecheck:test": "tsc --noEmit -p tsconfig.test.json",
     "test": "vp test",
     "test:run": "vp test run",
