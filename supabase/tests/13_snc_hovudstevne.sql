@@ -1,6 +1,6 @@
 BEGIN;
 
-SELECT plan(28);
+SELECT plan(29);
 
 -- ── Seed (postgres superuser - bypasses RLS) ─────────────────────────────────
 -- One SNC round: umbrella 9970 with two local stevner (9971 Forde, 9972
@@ -240,6 +240,12 @@ SELECT throws_ok(
   $$ UPDATE public.stevne SET snc_hovudstevne_id = NULL WHERE id = 9971 $$,
   'P0001', NULL,
   'eit lokalstevne kan ikkje løysast frå ein konsolidert SNC-runde'
+);
+
+SELECT throws_ok(
+  $$ UPDATE public.stevne SET erfullfort = false WHERE id = 9971 $$,
+  'P0001', NULL,
+  'eit lokalstevne kan ikkje gjenopnast med rå UPDATE mens runden er konsolidert'
 );
 
 -- ── Case 7: the lock still holds after consolidation ─────────────────────────

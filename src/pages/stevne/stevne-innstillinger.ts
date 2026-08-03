@@ -39,6 +39,11 @@ export async function render(
     const methods = methodsRes.data;
 
     const isSncParent = stevne.er_snc_hovudstevne === true;
+    // A local stevne inherits the format from its umbrella — the DB coerces it
+    // back on write, so an editable field here would silently do nothing.
+    const sncParentId = stevne.snc_hovudstevne_id;
+    const isSncLocal = sncParentId != null;
+    const methodsLocked = isSncLocal ? " disabled" : "";
     const initialMethods = methods.filter(
       (m) => m.er_innledende && (!isSncParent || isXkastMethodName(m.navn)),
     );
@@ -64,18 +69,25 @@ export async function render(
         <form id="innstillingar-form" class="org-max-480">
           <div class="mb-3">
             <label class="form-label fw-semibold">Kastemetode innleiande</label>
-            <select id="innl-metode" class="form-select">
+            <select id="innl-metode" class="form-select"${methodsLocked}>
               <option value="">— Ikkje vald —</option>
               ${optionsHtml(initialMethods, stevne.innledendekastemetodeid)}
             </select>
           </div>
           <div class="mb-3">
             <label class="form-label fw-semibold">Kastemetode avsluttande</label>
-            <select id="avsl-metode" class="form-select">
+            <select id="avsl-metode" class="form-select"${methodsLocked}>
               <option value="">— Ikkje vald —</option>
               ${optionsHtml(finalMethods, stevne.avsluttendekastemetodeid)}
             </select>
           </div>
+          ${
+            isSncLocal
+              ? `<p class="form-text mb-3">Kastemetoden kjem frå
+                   <a href="#/stevne/${sncParentId}/innstillinger">SNC-hovudstevnet</a>
+                   og kan berre endrast der.</p>`
+              : ""
+          }
           <div class="mb-3">
             <label class="form-label fw-semibold">Antal rundar innleiande</label>
             <input id="antall-rundar" type="number" min="1" class="form-control"
@@ -130,8 +142,16 @@ export async function render(
         const lanesInput = container.querySelector<HTMLInputElement>("#tilgjengelege-banar");
 
         const { error } = await updateTournamentSettings(id, {
-          innledendekastemetodeid: initialId ? Number(initialId) : null,
-          avsluttendekastemetodeid: finalId ? Number(finalId) : null,
+          innledendekastemetodeid: isSncLocal
+            ? stevne.innledendekastemetodeid
+            : initialId
+              ? Number(initialId)
+              : null,
+          avsluttendekastemetodeid: isSncLocal
+            ? stevne.avsluttendekastemetodeid
+            : finalId
+              ? Number(finalId)
+              : null,
           antall_runder_innl: rounds ? Number(rounds) : null,
           tilgjengelige_baner: lanesInput?.value ? Number(lanesInput.value) : null,
         });

@@ -110,6 +110,14 @@ BEGIN
         NEW.snc_hovudstevne_id;
     END IF;
 
+    -- Reopening a local stevne under a consolidated round would let results the
+    -- merged list was computed from change. reopen_stevne refuses it; this also
+    -- catches raw table updates, such as the reset in the settings tab.
+    IF TG_OP = 'UPDATE' AND OLD.erfullfort AND NOT NEW.erfullfort AND v_hovud.erfullfort THEN
+      RAISE EXCEPTION 'SNC-hovudstevne % er konsolidert — gjenopne det først',
+        NEW.snc_hovudstevne_id;
+    END IF;
+
     -- The umbrella owns the format: scores from different venues must be
     -- comparable in the merged list, so type, category and both kastemetoder
     -- follow it. Ranking follows too - the throws happen locally, but the

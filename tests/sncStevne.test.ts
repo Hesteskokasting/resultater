@@ -375,6 +375,7 @@ describe("settings tab on an SNC umbrella", () => {
       avsluttendekastemetodeid: 6,
       tilgjengelige_baner: null,
       er_snc_hovudstevne: true,
+      snc_hovudstevne_id: null,
       ...overrides,
     };
   }
@@ -427,6 +428,43 @@ describe("settings tab on an SNC umbrella", () => {
       avsluttendekastemetodeid: 6,
       antall_runder_innl: null,
       tilgjengelige_baner: null,
+    });
+  });
+
+  it("locks the method fields on a local stevne, pointing at the umbrella", async () => {
+    getTournamentSettings.mockResolvedValue({
+      data: settings({ er_snc_hovudstevne: false, snc_hovudstevne_id: 10 }),
+      error: null,
+    });
+    const el = host();
+    await renderSettings(el, { id: 11 });
+
+    expect(el.querySelector<HTMLSelectElement>("#innl-metode")!.disabled).toBe(true);
+    expect(el.querySelector<HTMLSelectElement>("#avsl-metode")!.disabled).toBe(true);
+    expect(el.querySelector('a[href="#/stevne/10/innstillinger"]')).not.toBeNull();
+    // Lanes stay editable: courts are generated per local stevne.
+    expect(el.querySelector("#tilgjengelege-banar")).not.toBeNull();
+  });
+
+  it("keeps the inherited methods when a local stevne saves", async () => {
+    mocks.updateTournamentSettings.mockResolvedValue({ error: null });
+    getTournamentSettings.mockResolvedValue({
+      data: settings({ er_snc_hovudstevne: false, snc_hovudstevne_id: 10 }),
+      error: null,
+    });
+    const el = host();
+    await renderSettings(el, { id: 11 });
+
+    el.querySelector<HTMLInputElement>("#tilgjengelege-banar")!.value = "4";
+    el.querySelector<HTMLFormElement>("#innstillingar-form")!.dispatchEvent(
+      new Event("submit", { cancelable: true }),
+    );
+    await vi.waitFor(() => expect(mocks.updateTournamentSettings).toHaveBeenCalled());
+    expect(mocks.updateTournamentSettings).toHaveBeenCalledWith(11, {
+      innledendekastemetodeid: 3,
+      avsluttendekastemetodeid: 6,
+      antall_runder_innl: null,
+      tilgjengelige_baner: 4,
     });
   });
 
