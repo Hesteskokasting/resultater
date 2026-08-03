@@ -278,20 +278,20 @@ export async function deleteTournament(id: number): Promise<{ error: unknown }> 
 
 // ── SNC: umbrella + local stevner ─────────────────────────────────────────────
 
-const _sncLokalstevneQuery = supabase
-  .from("stevne")
-  .select(
-    "id, navn, sted, dato, tid, erfullfort, stevne_fase, klubbid, klubb:klubbid(id, navn, logourl)",
-  );
+// One string per query, used both to derive the row type and to run it, so the
+// two cannot drift apart.
+const SNC_LOKALSTEVNE_SELECT =
+  "id, navn, sted, dato, tid, erfullfort, stevne_fase, klubbid, klubb:klubbid(id, navn, logourl)" as const;
+
+const _sncLokalstevneQuery = supabase.from("stevne").select(SNC_LOKALSTEVNE_SELECT);
 
 /** One local stevne in an SNC round — a venue the thrower can pick. */
 export type SncLocalTournamentRow = QueryData<typeof _sncLokalstevneQuery>[number];
 
-const _sncHovudstevneQuery = supabase
-  .from("stevne")
-  .select(
-    "id, navn, sted, dato, tid, erfullfort, klubbid, innledendekastemetodeid, avsluttendekastemetodeid, kastemetodeInnl:kastemetode!stevne_innledendekastemetodeid_fkey(id, navn, antall_omganger), kastemetodeAvsl:kastemetode!stevne_avsluttendekastemetodeid_fkey(id, navn), kategori:kategoriid(navn, erlagbasert), klubb:klubbid(id, navn)",
-  );
+const SNC_HOVUDSTEVNE_SELECT =
+  "id, navn, sted, dato, tid, erfullfort, klubbid, innledendekastemetodeid, avsluttendekastemetodeid, kastemetodeInnl:kastemetode!stevne_innledendekastemetodeid_fkey(id, navn, antall_omganger), kastemetodeAvsl:kastemetode!stevne_avsluttendekastemetodeid_fkey(id, navn), kategori:kategoriid(navn, erlagbasert), klubb:klubbid(id, navn)" as const;
+
+const _sncHovudstevneQuery = supabase.from("stevne").select(SNC_HOVUDSTEVNE_SELECT);
 
 export type SncParentTournamentRow = QueryData<typeof _sncHovudstevneQuery>[number];
 
@@ -302,9 +302,7 @@ export async function getSncParentTournament(
 ): Promise<{ data: SncParentTournamentRow | null; error: unknown }> {
   const { data, error } = await supabase
     .from("stevne")
-    .select(
-      "id, navn, sted, dato, tid, erfullfort, klubbid, innledendekastemetodeid, avsluttendekastemetodeid, kastemetodeInnl:kastemetode!stevne_innledendekastemetodeid_fkey(id, navn, antall_omganger), kastemetodeAvsl:kastemetode!stevne_avsluttendekastemetodeid_fkey(id, navn), kategori:kategoriid(navn, erlagbasert), klubb:klubbid(id, navn)",
-    )
+    .select(SNC_HOVUDSTEVNE_SELECT)
     .eq("id", id)
     .eq("er_snc_hovudstevne", true)
     .maybeSingle();
@@ -317,9 +315,7 @@ export async function getSncLocalTournaments(
 ): Promise<{ data: SncLocalTournamentRow[]; error: unknown }> {
   const { data, error } = await supabase
     .from("stevne")
-    .select(
-      "id, navn, sted, dato, tid, erfullfort, stevne_fase, klubbid, klubb:klubbid(id, navn, logourl)",
-    )
+    .select(SNC_LOKALSTEVNE_SELECT)
     .eq("snc_hovudstevne_id", hovudstevneId)
     .order("dato")
     .order("navn");

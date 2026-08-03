@@ -9,6 +9,7 @@ import { createEmptyState } from "@/components/EmptyState";
 import { escHtml } from "@/utils/escHtml";
 import { logError } from "@/utils/logError";
 import { xkastCarryOverFactor, xkastCarryOverPercent } from "@/utils/kongelagStilling";
+import { sncLocalLabel } from "@/utils/sncLabel";
 import { getSncParentTournament } from "@/services/stevneService";
 import { getSncConsolidatedResults } from "@/services/resultatService";
 import type { SncResultRow } from "@/services/resultatService";
@@ -17,11 +18,6 @@ interface ColFlags {
   showXkast: boolean;
   showKongelag: boolean;
   carryFactor: number | null;
-}
-
-function localTournamentLabel(row: SncResultRow): string {
-  const stevne = row.stevne;
-  return stevne.klubb?.navn ?? stevne.sted ?? stevne.navn;
 }
 
 function totalFor(row: SncResultRow, cols: ColFlags): number {
@@ -41,7 +37,7 @@ function rowHtml(row: SncResultRow, cols: ColFlags): string {
       <td class="res-td-pl">${row.snc_plassering ?? "–"}</td>
       <td class="res-td-navn">${nameHtml}</td>
       <td class="res-td-klubb">${escHtml(row.klubb?.navn ?? "–")}</td>
-      <td class="res-td-klubb">${escHtml(localTournamentLabel(row))}</td>
+      <td class="res-td-klubb">${escHtml(sncLocalLabel(row.stevne))}</td>
       ${cols.showXkast ? `<td class="res-td-kp">${row.poeng_xkast ?? ""}</td>` : ""}
       ${cols.showKongelag ? `<td class="res-td-sp">${row.poeng_kongelag ?? ""}</td>` : ""}
       <td class="res-td-sp">${totalFor(row, cols)}</td>
@@ -59,7 +55,7 @@ function mobileRowHtml(row: SncResultRow, cols: ColFlags): string {
       <span class="res-pl">${row.snc_plassering ?? "–"}.</span>
       <div class="res-info">
         <span class="res-navn">${escHtml(throwerName(row.kaster) || "–")}</span>
-        <span class="res-klubb">${escHtml(row.klubb?.navn ?? "–")} · ${escHtml(localTournamentLabel(row))}</span>
+        <span class="res-klubb">${escHtml(row.klubb?.navn ?? "–")} · ${escHtml(sncLocalLabel(row.stevne))}</span>
         <span class="res-meta">${meta.join("  ")}</span>
       </div>
     </div>`;

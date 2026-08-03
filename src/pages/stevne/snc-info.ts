@@ -21,6 +21,7 @@ import {
   formatWeekdayShort,
 } from "@/utils/shared";
 import { registerRefetch } from "@/utils/refetchRegistry";
+import { sncLocalLabel } from "@/utils/sncLabel";
 import {
   getSncParentTournament,
   getSncLocalTournaments,
@@ -48,12 +49,6 @@ function cardStatus(local: SncLocalTournamentRow): "live" | "done" | "upcoming" 
 
 function registrationOpen(local: SncLocalTournamentRow): boolean {
   return isNotStarted(local) && !local.erfullfort;
-}
-
-function localTournamentLabel(local: SncLocalTournamentRow): string {
-  const parts = [local.klubb?.navn, local.sted].filter((value): value is string => Boolean(value));
-  const unique = [...new Set(parts)];
-  return unique.length ? unique.join(" · ") : local.navn;
 }
 
 function methodSummary(parent: SncParentTournamentRow): string {
@@ -111,7 +106,7 @@ function ownRegistrationNoticeHtml(
   }
   const own = locals.find((l) => l.id === summary.ownStevneId);
   return `<div class="alert alert-success">
-    Du er påmeld <strong>${escHtml(own ? localTournamentLabel(own) : "eit lokalt stevne")}</strong>.
+    Du er påmeld <strong>${escHtml(own ? sncLocalLabel(own) : "eit lokalt stevne")}</strong>.
   </div>`;
 }
 
@@ -127,7 +122,7 @@ function localCard(
     .join(" · ");
 
   return createStevneCard({
-    title: localTournamentLabel(local),
+    title: sncLocalLabel(local),
     href: `#/stevne/${local.id}/${local.erfullfort ? "resultat" : "info"}`,
     date: formatDateWeekday(local.dato),
     dateIso: local.dato,

@@ -200,13 +200,16 @@ export async function clearGroupAssignment(stevneid: number): Promise<{ error: u
 
 // ── SNC: consolidated result list ─────────────────────────────────────────────
 
-const _sncResultatQuery = supabase.from("resultat").select(`
-    snc_plassering, plassering, nc_poeng,
-    poeng_xkast, antall_ring_xkast, poeng_kongelag, antall_ring_kongelag,
-    kaster:kasterid(id, fornavn, etternavn),
-    klubb:klubbid(navn),
-    stevne:stevneid!inner(id, navn, sted, klubb:klubbid(navn))
-  `);
+// One string, used both to derive the row type and to run the query, so the two
+// cannot drift apart.
+const SNC_RESULTAT_SELECT = `
+  snc_plassering, plassering, nc_poeng, poeng_xkast, poeng_kongelag,
+  kaster:kasterid(id, fornavn, etternavn),
+  klubb:klubbid(navn),
+  stevne:stevneid!inner(id, navn, sted, klubb:klubbid(navn))
+` as const;
+
+const _sncResultatQuery = supabase.from("resultat").select(SNC_RESULTAT_SELECT);
 
 export type SncResultRow = QueryData<typeof _sncResultatQuery>[number];
 
@@ -219,13 +222,7 @@ export async function getSncConsolidatedResults(
 ): Promise<{ data: SncResultRow[]; error: unknown }> {
   const { data, error } = await supabase
     .from("resultat")
-    .select(`
-      snc_plassering, plassering, nc_poeng,
-      poeng_xkast, antall_ring_xkast, poeng_kongelag, antall_ring_kongelag,
-      kaster:kasterid(id, fornavn, etternavn),
-      klubb:klubbid(navn),
-      stevne:stevneid!inner(id, navn, sted, klubb:klubbid(navn))
-    `)
+    .select(SNC_RESULTAT_SELECT)
     .eq("stevne.snc_hovudstevne_id", hovudstevneId)
     .order("snc_plassering", { nullsFirst: false });
   if (error) logError("getSncConsolidatedResults", error);
