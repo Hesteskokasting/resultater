@@ -162,10 +162,10 @@ describe("SNC umbrella info tab", () => {
     expect(text).toContain("Bergen");
     expect(text).toContain("0 av 2 lokale stevne fullført");
 
-    const venueRows = [...el.querySelectorAll("#snc-locals tbody tr")];
-    expect(venueRows).toHaveLength(2);
-    expect(venueRows[0]!.textContent).toContain("3");
-    expect(venueRows[1]!.textContent).toContain("2");
+    const cards = [...el.querySelectorAll("#snc-locals .stevne-kort")];
+    expect(cards).toHaveLength(2);
+    expect(cards[0]!.textContent).toContain("3 påmelde");
+    expect(cards[1]!.textContent).toContain("2 påmelde");
     // 3 + 2 registrations across the local stevner
     expect(el.querySelector(".card")?.textContent).toContain("5");
   });
@@ -208,6 +208,8 @@ describe("SNC umbrella info tab", () => {
     expect(el.textContent).toContain("Du er påmeld");
     expect(el.querySelectorAll(".snc-avmeld")).toHaveLength(1);
     expect(el.querySelectorAll(".snc-byt")).toHaveLength(1);
+    const own = el.querySelector("#snc-locals .stevne-kort")!;
+    expect(own.querySelector(".stevne-kort__nearest-merke")?.textContent).toBe("PÅMELD");
   });
 
   it("switches venue by unregistering the old one first", async () => {
@@ -233,8 +235,11 @@ describe("SNC umbrella info tab", () => {
     const el = host();
     await renderSncInfo(el, { id: 10 });
 
+    const cards = [...el.querySelectorAll("#snc-locals .stevne-kort")];
+    expect(cards[0]!.classList.contains("stevne-kort--live")).toBe(true);
+    expect(cards[0]!.querySelector("button")).toBeNull();
+    expect(cards[1]!.querySelector(".snc-meldpa")).not.toBeNull();
     expect(el.querySelectorAll(".snc-meldpa")).toHaveLength(1);
-    expect(el.textContent).toContain("Stengt");
   });
 
   it("keeps the consolidate button disabled until every venue is finished", async () => {

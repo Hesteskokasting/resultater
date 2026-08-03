@@ -41,6 +41,11 @@ export interface StevneCardProps {
    * rather than write. Ignored when `registrationSlotId` is set.
    */
   actionLink?: { href: string; label: string };
+  /**
+   * Emits `<span data-action-slot>` in the trailing slot for the caller to swap
+   * for its own control. Ignored when `registrationSlotId` or `actionLink` is set.
+   */
+  actionSlot?: boolean;
 }
 
 // Bootstrap Icons is not loaded in this app; use an inline SVG chevron (matches the
@@ -81,7 +86,9 @@ export function createStevneCard(props: StevneCardProps): HTMLElement {
       ? `<div class="stevne-kort__trailing stevne-kort__trailing--action"><span data-registration-slot="${props.registrationSlotId}"></span></div>`
       : props.actionLink
         ? `<div class="stevne-kort__trailing stevne-kort__trailing--action"><a class="btn btn-sm btn-primary" href="${escHtml(props.actionLink.href)}">${escHtml(props.actionLink.label)}</a></div>`
-        : `<div class="stevne-kort__trailing">${CHEVRON_SVG}</div>`;
+        : props.actionSlot
+          ? `<div class="stevne-kort__trailing stevne-kort__trailing--action"><span data-action-slot></span></div>`
+          : `<div class="stevne-kort__trailing">${CHEVRON_SVG}</div>`;
 
   const dateA11yText = props.dateFull ?? props.date;
   const dateIsoAttr = props.dateIso ? ` datetime="${escHtml(props.dateIso)}"` : "";

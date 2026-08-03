@@ -7,12 +7,19 @@ import { confirmDialog } from "@/components/ConfirmDialog";
 import { createErrorBanner } from "@/components/ErrorBanner";
 import { createLoadingState } from "@/components/LoadingState";
 import { createEmptyState } from "@/components/EmptyState";
-import { livePillHtml } from "@/components/LivePill";
+import { createStevneCard } from "@/components/StevneCard";
 import { showToast } from "@/components/Toast";
 import { errorMessage } from "@/utils/errorMessage";
 import { escHtml } from "@/utils/escHtml";
 import { logError } from "@/utils/logError";
-import { formatDateNumeric, formatTime } from "@/utils/shared";
+import {
+  formatDateLong,
+  formatDateNumeric,
+  formatDateWeekday,
+  formatDayOfMonth,
+  formatTime,
+  formatWeekdayShort,
+} from "@/utils/shared";
 import { registerRefetch } from "@/utils/refetchRegistry";
 import {
   getSncParentTournament,
@@ -34,11 +41,13 @@ function isNotStarted(local: SncLocalTournamentRow): boolean {
   return local.stevne_fase === null || local.stevne_fase === "ikke_startet";
 }
 
-function localStatus(local: SncLocalTournamentRow): string {
-  if (local.erfullfort) return "Fullført";
-  if (local.stevne_fase === "avsluttende") return `Avsluttande ${livePillHtml()}`;
-  if (local.stevne_fase === "innledende") return `Innleiande ${livePillHtml()}`;
-  return "Ikkje starta";
+function cardStatus(local: SncLocalTournamentRow): "live" | "done" | "upcoming" {
+  if (local.erfullfort) return "done";
+  return isNotStarted(local) ? "upcoming" : "live";
+}
+
+function registrationOpen(local: SncLocalTournamentRow): boolean {
+  return isNotStarted(local) && !local.erfullfort;
 }
 
 function localTournamentLabel(local: SncLocalTournamentRow): string {
@@ -67,7 +76,7 @@ function overviewHtml(
       : "Ingen lokale stevne registrerte";
 
   return `
-    <div class="card mb-3 org-max-480">
+    <div class="card mb-3">
       <div class="card-body">
         <table class="table table-sm mb-0">
           <tbody>
@@ -106,53 +115,30 @@ function ownRegistrationNoticeHtml(
   </div>`;
 }
 
-function actionCellHtml(
+/** Same card as terminliste, with the SNC registration action in the trailing slot. */
+function localCard(
   local: SncLocalTournamentRow,
   summary: TournamentRegistrationSummary,
   canRegister: boolean,
-): string {
-  if (!canRegister) return "";
-  if (!isNotStarted(local) || local.erfullfort) {
-    return '<span class="text-muted small">Stengt</span>';
-  }
-  if (summary.ownStevneId === local.id) {
-    return `<button class="btn btn-sm btn-outline-danger snc-avmeld">Meld av</button>`;
-  }
-  if (summary.ownStevneId != null) {
-    return `<button class="btn btn-sm btn-outline-primary snc-byt" data-stevneid="${local.id}">Byt hit</button>`;
-  }
-  return `<button class="btn btn-sm btn-primary snc-meldpa" data-stevneid="${local.id}">Meld på</button>`;
-}
+): HTMLElement {
+  const count = summary.counts.get(local.id) ?? 0;
+  const meta = [local.tid ? formatTime(local.tid) : "", `${count} påmelde`]
+    .filter(Boolean)
+    .join(" · ");
 
-function localsListHtml(
-  locals: SncLocalTournamentRow[],
-  summary: TournamentRegistrationSummary,
-  canRegister: boolean,
-): string {
-  const rows = locals
-    .map((local) => {
-      const isOwn = summary.ownStevneId === local.id;
-      const time = local.tid ? formatTime(local.tid) : "";
-      return `<tr${isOwn ? ' class="table-success"' : ""}>
-        <td>
-          <a href="#/stevne/${local.id}/info">${escHtml(localTournamentLabel(local))}</a>
-          <div class="text-muted small">${escHtml(local.navn)}${time ? ` · ${time}` : ""}</div>
-        </td>
-        <td>${localStatus(local)}</td>
-        <td class="text-center">${summary.counts.get(local.id) ?? 0}</td>
-        <td class="text-end">${actionCellHtml(local, summary, canRegister)}</td>
-      </tr>`;
-    })
-    .join("");
-
-  return `<div class="table-responsive">
-    <table class="table table-sm align-middle">
-      <thead>
-        <tr><th>Lokalt stevne</th><th>Status</th><th class="text-center">Påmelde</th><th></th></tr>
-      </thead>
-      <tbody>${rows}</tbody>
-    </table>
-  </div>`;
+  return createStevneCard({
+    title: localTournamentLabel(local),
+    href: `#/stevne/${local.id}/${local.erfullfort ? "resultat" : "info"}`,
+    date: formatDateWeekday(local.dato),
+    dateIso: local.dato,
+    dateFull: formatDateLong(local.dato),
+    dateWeekday: formatWeekdayShort(local.dato),
+    dateDay: formatDayOfMonth(local.dato),
+    status: cardStatus(local),
+    meta: [meta],
+    nearestLabel: summary.ownStevneId === local.id ? "PÅMELD" : undefined,
+    actionSlot: canRegister && registrationOpen(local),
+  });
 }
 
 // ── Render ────────────────────────────────────────────────────────────────────
@@ -191,24 +177,33 @@ export async function render(
     renderBanner(bannerSlot, parent, locals, isAdmin, rerender);
 
     container.innerHTML = `
-      ${overviewHtml(parent, locals, totalRegistrations)}
-      ${ownRegistrationNoticeHtml(locals, summary, canRegister, auth != null, id)}
-      <h6 class="mb-2">Lokale stevne (${locals.length})</h6>
-      <div id="snc-locals"></div>
-      ${
-        isAdmin
-          ? `<div class="mt-3"><a class="btn btn-sm btn-outline-success" href="#/stevne/ny?snc=${id}">+ Nytt lokalstevne</a></div>`
-          : ""
-      }`;
+      <div class="org-max-480">
+        ${overviewHtml(parent, locals, totalRegistrations)}
+        ${ownRegistrationNoticeHtml(locals, summary, canRegister, auth != null, id)}
+        <h6 class="mb-2">Lokale stevne (${locals.length})</h6>
+        <div id="snc-locals" class="stevne-kort-liste"></div>
+        ${
+          isAdmin
+            ? `<div class="mt-3"><a class="btn btn-sm btn-outline-success" href="#/stevne/ny?snc=${id}">+ Nytt lokalt stevne</a></div>`
+            : ""
+        }
+      </div>`;
 
     const listSlot = container.querySelector<HTMLElement>("#snc-locals")!;
     if (!locals.length) {
       listSlot.replaceChildren(
         createEmptyState("Ingen lokale stevne er kopla til denne SNC-runden enno."),
       );
-    } else {
-      listSlot.innerHTML = localsListHtml(locals, summary, canRegister);
-      if (kasterid != null) bindRegistrationActions(listSlot, kasterid, summary, rerender);
+      return;
+    }
+
+    for (const local of locals) {
+      const card = localCard(local, summary, canRegister);
+      const slot = card.querySelector("[data-action-slot]");
+      if (slot && kasterid != null) {
+        slot.replaceWith(actionButton(local, summary, kasterid, rerender));
+      }
+      listSlot.appendChild(card);
     }
   } catch (err) {
     logError("snc-info.render", err);
@@ -216,30 +211,46 @@ export async function render(
   }
 }
 
-// ── Event binding ─────────────────────────────────────────────────────────────
+// ── Registration action ──────────────────────────────────────────────────────
 
-function bindRegistrationActions(
-  root: HTMLElement,
-  kasterid: number,
+function actionButton(
+  local: SncLocalTournamentRow,
   summary: TournamentRegistrationSummary,
+  kasterid: number,
   rerender: () => Promise<void>,
-): void {
-  root.querySelectorAll<HTMLButtonElement>(".snc-meldpa").forEach((button) => {
-    button.addEventListener("click", async () => {
+): HTMLButtonElement {
+  const isOwn = summary.ownStevneId === local.id;
+  const isSwitch = !isOwn && summary.ownStevneId != null;
+
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = isOwn
+    ? "btn btn-sm btn-outline-danger snc-avmeld"
+    : isSwitch
+      ? "btn btn-sm btn-outline-primary snc-byt"
+      : "btn btn-sm btn-primary snc-meldpa";
+  button.textContent = isOwn ? "Meld av" : isSwitch ? "Byt hit" : "Meld på";
+
+  button.addEventListener("click", async () => {
+    if (isOwn) {
+      if (
+        summary.ownRegistrationId == null ||
+        !(await confirmDialog({ title: "Meld av", message: "Vil du melde deg av SNC-runden?" }))
+      )
+        return;
       button.disabled = true;
-      const { error } = await registerForTournament(Number(button.dataset.stevneid), kasterid);
+      const { error } = await removeRegistration(summary.ownRegistrationId);
       if (error) {
-        showToast("Kunne ikkje melde på: " + errorMessage(error), "error");
+        showToast("Kunne ikkje melde av: " + errorMessage(error), "error");
         button.disabled = false;
         return;
       }
-      showToast("Du er meldt på.", "success");
+      showToast("Du er meldt av.", "success");
       await rerender();
-    });
-  });
+      return;
+    }
 
-  root.querySelectorAll<HTMLButtonElement>(".snc-byt").forEach((button) => {
-    button.addEventListener("click", async () => {
+    if (isSwitch) {
       if (
         !(await confirmDialog({
           title: "Byt lokalt stevne",
@@ -257,7 +268,7 @@ function bindRegistrationActions(
           return;
         }
       }
-      const { error } = await registerForTournament(Number(button.dataset.stevneid), kasterid);
+      const { error } = await registerForTournament(local.id, kasterid);
       if (error) {
         // Unregistered but not re-registered: say so, or the thrower assumes
         // they are entered at the new local stevne.
@@ -270,23 +281,21 @@ function bindRegistrationActions(
       }
       showToast("Du er meldt på det nye lokalstevnet.", "success");
       await rerender();
-    });
-  });
-
-  root.querySelector<HTMLButtonElement>(".snc-avmeld")?.addEventListener("click", async () => {
-    if (
-      summary.ownRegistrationId == null ||
-      !(await confirmDialog({ title: "Meld av", message: "Vil du melde deg av SNC-runden?" }))
-    )
-      return;
-    const { error } = await removeRegistration(summary.ownRegistrationId);
-    if (error) {
-      showToast("Kunne ikkje melde av: " + errorMessage(error), "error");
       return;
     }
-    showToast("Du er meldt av.", "success");
+
+    button.disabled = true;
+    const { error } = await registerForTournament(local.id, kasterid);
+    if (error) {
+      showToast("Kunne ikkje melde på: " + errorMessage(error), "error");
+      button.disabled = false;
+      return;
+    }
+    showToast("Du er meldt på.", "success");
     await rerender();
   });
+
+  return button;
 }
 
 // ── Banner (consolidation) ────────────────────────────────────────────────────
