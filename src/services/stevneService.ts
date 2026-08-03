@@ -23,6 +23,8 @@ export type TournamentAdminRow = Pick<
   | "erfullfort"
   | "erekskludertfrarekorder"
   | "resultaturl"
+  | "er_snc_hovudstevne"
+  | "snc_hovudstevne_id"
 >;
 export type TournamentAdminPayload = Omit<TournamentAdminRow, "id" | "erfullfort">;
 
@@ -34,6 +36,7 @@ export type CategoryRow = Pick<Tables<"kategori">, "id" | "navn">;
 
 const _infoStevneQuery = supabase.from("stevne").select(`
     id, navn, dato, tid, sted, stevne_fase, antall_runder_innl, erfullfort, klubbid, tilgjengelige_baner,
+    snc_hovudstevne_id,
     kastemetodeInnl:kastemetode!stevne_innledendekastemetodeid_fkey(id, navn),
     kastemetodeAvsl:kastemetode!stevne_avsluttendekastemetodeid_fkey(id, navn),
     kategori:kategoriid(erlagbasert, navn)
@@ -52,7 +55,9 @@ export type UpcomingTournamentRow = Pick<
 >;
 const _pameldingStevneQuery = supabase
   .from("stevne")
-  .select("id, navn, dato, tid, sted, erfullfort, klubbid, kategori:kategoriid(navn)");
+  .select(
+    "id, navn, dato, tid, sted, erfullfort, klubbid, er_snc_hovudstevne, snc_hovudstevne_id, kategori:kategoriid(navn)",
+  );
 
 export type RegistrationTournamentRow = QueryData<typeof _pameldingStevneQuery>[number];
 export type RelatedTournamentRow = Pick<Tables<"stevne">, "id" | "navn" | "dato">;
@@ -101,7 +106,9 @@ export async function getTournamentForRegistration(
 ): Promise<{ data: RegistrationTournamentRow | null; error: unknown }> {
   const { data, error } = await supabase
     .from("stevne")
-    .select("id, navn, dato, tid, sted, erfullfort, klubbid, kategori:kategoriid(navn)")
+    .select(
+      "id, navn, dato, tid, sted, erfullfort, klubbid, er_snc_hovudstevne, snc_hovudstevne_id, kategori:kategoriid(navn)",
+    )
     .eq("id", id)
     .maybeSingle();
   if (error) logError("getTournamentForRegistration", error);
@@ -134,6 +141,7 @@ export async function getInfoTournament(
     .from("stevne")
     .select(`
       id, navn, dato, tid, sted, stevne_fase, antall_runder_innl, erfullfort, klubbid, tilgjengelige_baner,
+    snc_hovudstevne_id,
       kastemetodeInnl:kastemetode!stevne_innledendekastemetodeid_fkey(id, navn),
       kastemetodeAvsl:kastemetode!stevne_avsluttendekastemetodeid_fkey(id, navn),
       kategori:kategoriid(erlagbasert, navn)
@@ -207,7 +215,7 @@ export async function getTournamentForAdmin(
   const { data, error } = await supabase
     .from("stevne")
     .select(
-      "id, navn, sted, dato, tid, klubbid, stevnetypeid, innledendekastemetodeid, avsluttendekastemetodeid, kategoriid, ernm, ernorgesranking, erfullfort, erekskludertfrarekorder, resultaturl",
+      "id, navn, sted, dato, tid, klubbid, stevnetypeid, innledendekastemetodeid, avsluttendekastemetodeid, kategoriid, ernm, ernorgesranking, erfullfort, erekskludertfrarekorder, resultaturl, er_snc_hovudstevne, snc_hovudstevne_id",
     )
     .eq("id", id)
     .single();
@@ -243,6 +251,85 @@ export async function deleteTournament(id: number): Promise<{ error: unknown }> 
   return { error };
 }
 
+// ── SNC: hovudstevne + lokalstevne ────────────────────────────────────────────
+
+const _sncLokalstevneQuery = supabase
+  .from("stevne")
+  .select(
+    "id, navn, sted, dato, tid, erfullfort, stevne_fase, klubbid, klubb:klubbid(id, navn, logourl)",
+  );
+
+/** Eit lokalstevne i ein SNC-runde: staden ein utøvar kan velje å delta på. */
+export type SncLocalTournamentRow = QueryData<typeof _sncLokalstevneQuery>[number];
+
+const _sncHovudstevneQuery = supabase
+  .from("stevne")
+  .select(
+    "id, navn, sted, dato, tid, erfullfort, klubbid, innledendekastemetodeid, avsluttendekastemetodeid, kastemetodeInnl:kastemetode!stevne_innledendekastemetodeid_fkey(id, navn, antall_omganger), kastemetodeAvsl:kastemetode!stevne_avsluttendekastemetodeid_fkey(id, navn), kategori:kategoriid(navn, erlagbasert), klubb:klubbid(id, navn)",
+  );
+
+export type SncParentTournamentRow = QueryData<typeof _sncHovudstevneQuery>[number];
+
+export type SncParentOptionRow = Pick<Tables<"stevne">, "id" | "navn" | "dato" | "erfullfort">;
+
+export async function getSncParentTournament(
+  id: number,
+): Promise<{ data: SncParentTournamentRow | null; error: unknown }> {
+  const { data, error } = await supabase
+    .from("stevne")
+    .select(
+      "id, navn, sted, dato, tid, erfullfort, klubbid, innledendekastemetodeid, avsluttendekastemetodeid, kastemetodeInnl:kastemetode!stevne_innledendekastemetodeid_fkey(id, navn, antall_omganger), kastemetodeAvsl:kastemetode!stevne_avsluttendekastemetodeid_fkey(id, navn), kategori:kategoriid(navn, erlagbasert), klubb:klubbid(id, navn)",
+    )
+    .eq("id", id)
+    .eq("er_snc_hovudstevne", true)
+    .maybeSingle();
+  if (error) logError("getSncParentTournament", error);
+  return { data, error };
+}
+
+export async function getSncLocalTournaments(
+  hovudstevneId: number,
+): Promise<{ data: SncLocalTournamentRow[]; error: unknown }> {
+  const { data, error } = await supabase
+    .from("stevne")
+    .select(
+      "id, navn, sted, dato, tid, erfullfort, stevne_fase, klubbid, klubb:klubbid(id, navn, logourl)",
+    )
+    .eq("snc_hovudstevne_id", hovudstevneId)
+    .order("dato")
+    .order("navn");
+  if (error) logError("getSncLocalTournaments", error);
+  return { data: data ?? [], error };
+}
+
+/** Hovudstevne ein kan knyte eit lokalstevne til, nyaste først. */
+export async function getSncParentOptions(): Promise<{
+  data: SncParentOptionRow[];
+  error: unknown;
+}> {
+  const { data, error } = await supabase
+    .from("stevne")
+    .select("id, navn, dato, erfullfort")
+    .eq("er_snc_hovudstevne", true)
+    .order("dato", { ascending: false });
+  if (error) logError("getSncParentOptions", error);
+  return { data: data ?? [], error };
+}
+
+/** Reknar ut den samla lista og set hovudstevnet som fullført. */
+export async function completeSncParent(hovudstevneId: number): Promise<{ error: unknown }> {
+  const { error } = await supabase.rpc("complete_snc_hovudstevne", { p_stevneid: hovudstevneId });
+  if (error) logError("completeSncParent", error);
+  return { error };
+}
+
+/** Nullstiller den samla lista (og NC-poenga) og opnar hovudstevnet igjen. */
+export async function reopenSncParent(hovudstevneId: number): Promise<{ error: unknown }> {
+  const { error } = await supabase.rpc("reopen_snc_hovudstevne", { p_stevneid: hovudstevneId });
+  if (error) logError("reopenSncParent", error);
+  return { error };
+}
+
 // ── Terminliste ───────────────────────────────────────────────────────────────
 
 export type ClubRow = Pick<Tables<"klubb">, "id" | "navn">;
@@ -256,6 +343,7 @@ export interface FilterOptions {
 
 const _terminlisteStevneQuery = supabase.from("stevne").select(`
     id, navn, sted, dato, tid, ernm, erfullfort, stevne_fase, resultaturl,
+    er_snc_hovudstevne, snc_hovudstevne_id,
     klubb:klubbid(id, navn),
     stevnetype:stevnetypeid(id, navn),
     innledende:kastemetode!innledendekastemetodeid(id, navn),
@@ -272,6 +360,7 @@ export async function getScheduleTournaments(
     .from("stevne")
     .select(`
       id, navn, sted, dato, tid, ernm, erfullfort, stevne_fase, resultaturl,
+      er_snc_hovudstevne, snc_hovudstevne_id,
       klubb:klubbid(id, navn),
       stevnetype:stevnetypeid(id, navn),
       innledende:kastemetode!innledendekastemetodeid(id, navn),
@@ -310,7 +399,7 @@ export async function getFilterOptions(): Promise<{ data: FilterOptions; error: 
 const _stevneHeaderQuery = supabase
   .from("stevne")
   .select(
-    "id, navn, stevne_fase, erfullfort, avsluttendekastemetodeid, kategori:kategoriid(id, navn, erlagbasert)",
+    "id, navn, stevne_fase, erfullfort, avsluttendekastemetodeid, er_snc_hovudstevne, snc_hovudstevne_id, kategori:kategoriid(id, navn, erlagbasert)",
   );
 
 export type TournamentHeaderRow = QueryData<typeof _stevneHeaderQuery>[number];
@@ -321,7 +410,7 @@ export async function getTournamentHeader(
   const { data, error } = await supabase
     .from("stevne")
     .select(
-      "id, navn, stevne_fase, erfullfort, avsluttendekastemetodeid, kategori:kategoriid(id, navn, erlagbasert)",
+      "id, navn, stevne_fase, erfullfort, avsluttendekastemetodeid, er_snc_hovudstevne, snc_hovudstevne_id, kategori:kategoriid(id, navn, erlagbasert)",
     )
     .eq("id", id)
     .single();

@@ -257,6 +257,13 @@ export async function render(container: HTMLElement, params: Params = {}): Promi
     }
     const tournament = tournamentResult.data;
 
+    // Eit SNC-hovudstevne har ingen eigne påmeldingar: utøvaren må velje stad.
+    // Stad-lista på hovudstevnet er den påmeldingssida.
+    if (tournament.er_snc_hovudstevne) {
+      location.hash = `#/stevne/${tournamentId}/lokalstevne`;
+      return;
+    }
+
     setPageTitle(`Påmelding – ${tournament.navn}`);
 
     const isAdminRole = auth?.profil?.role === "admin";

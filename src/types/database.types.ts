@@ -615,6 +615,7 @@ export type Database = {
           posisjon: number | null;
           runde_eliminert: number | null;
           score_poeng_innl: number | null;
+          snc_plassering: number | null;
           startnummer: number | null;
           stevneid: number | null;
         };
@@ -637,6 +638,7 @@ export type Database = {
           posisjon?: number | null;
           runde_eliminert?: number | null;
           score_poeng_innl?: number | null;
+          snc_plassering?: number | null;
           startnummer?: number | null;
           stevneid?: number | null;
         };
@@ -659,6 +661,7 @@ export type Database = {
           posisjon?: number | null;
           runde_eliminert?: number | null;
           score_poeng_innl?: number | null;
+          snc_plassering?: number | null;
           startnummer?: number | null;
           stevneid?: number | null;
         };
@@ -706,6 +709,7 @@ export type Database = {
           antall_runder_innl: number | null;
           avsluttendekastemetodeid: number | null;
           dato: string;
+          er_snc_hovudstevne: boolean;
           erekskludertfrarekorder: boolean;
           erfullfort: boolean;
           ernm: boolean;
@@ -720,6 +724,7 @@ export type Database = {
           navn: string;
           resultaturl: string | null;
           runde1_format: Json | null;
+          snc_hovudstevne_id: number | null;
           sted: string | null;
           stevne_fase: string | null;
           stevnetypeid: number | null;
@@ -731,6 +736,7 @@ export type Database = {
           antall_runder_innl?: number | null;
           avsluttendekastemetodeid?: number | null;
           dato: string;
+          er_snc_hovudstevne?: boolean;
           erekskludertfrarekorder?: boolean;
           erfullfort?: boolean;
           ernm?: boolean;
@@ -745,6 +751,7 @@ export type Database = {
           navn: string;
           resultaturl?: string | null;
           runde1_format?: Json | null;
+          snc_hovudstevne_id?: number | null;
           sted?: string | null;
           stevne_fase?: string | null;
           stevnetypeid?: number | null;
@@ -756,6 +763,7 @@ export type Database = {
           antall_runder_innl?: number | null;
           avsluttendekastemetodeid?: number | null;
           dato?: string;
+          er_snc_hovudstevne?: boolean;
           erekskludertfrarekorder?: boolean;
           erfullfort?: boolean;
           ernm?: boolean;
@@ -770,6 +778,7 @@ export type Database = {
           navn?: string;
           resultaturl?: string | null;
           runde1_format?: Json | null;
+          snc_hovudstevne_id?: number | null;
           sted?: string | null;
           stevne_fase?: string | null;
           stevnetypeid?: number | null;
@@ -810,6 +819,13 @@ export type Database = {
             columns: ["kontaktkasterid"];
             isOneToOne: false;
             referencedRelation: "kaster";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "stevne_snc_hovudstevne_id_fkey";
+            columns: ["snc_hovudstevne_id"];
+            isOneToOne: false;
+            referencedRelation: "stevne";
             referencedColumns: ["id"];
           },
           {
@@ -1010,6 +1026,10 @@ export type Database = {
         Args: { p_eliminert_kasterid?: number; p_kamp_id: number };
         Returns: undefined;
       };
+      complete_snc_hovudstevne: {
+        Args: { p_stevneid: number };
+        Returns: undefined;
+      };
       complete_stevne: { Args: { p_stevneid: number }; Returns: undefined };
       confirm_xkast_kongelag: {
         Args: { p_xkast_kongelag_id: number };
@@ -1027,6 +1047,14 @@ export type Database = {
           p_poeng: number;
         };
         Returns: undefined;
+      };
+      er_kongelag_kastemetode: {
+        Args: { p_kastemetodeid: number };
+        Returns: boolean;
+      };
+      er_xkast_kastemetode: {
+        Args: { p_kastemetodeid: number };
+        Returns: boolean;
       };
       hent_bruker_epost: {
         Args: { bruker_ids: string[] };
@@ -1060,7 +1088,12 @@ export type Database = {
         }[];
       };
       min_rolle: { Args: never; Returns: string };
+      reopen_snc_hovudstevne: {
+        Args: { p_stevneid: number };
+        Returns: undefined;
+      };
       reopen_stevne: { Args: { p_stevneid: number }; Returns: undefined };
+      snc_kan_konsolidere: { Args: { p_stevneid: number }; Returns: boolean };
       set_xkast_kongelag_total: {
         Args: {
           p_antall_ringer: number;

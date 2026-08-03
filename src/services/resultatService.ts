@@ -7,7 +7,7 @@ import type { KongelagSeedingRow } from "@/utils/kongelagSeeding";
 // ── Typar ─────────────────────────────────────────────────────────────────────
 
 const _stevneDetaljerQuery = supabase.from("stevne").select(`
-    id, navn, sted, dato, erfullfort, resultaturl, juryleder, klubbid,
+    id, navn, sted, dato, erfullfort, resultaturl, juryleder, klubbid, snc_hovudstevne_id,
     stevnetype:stevnetypeid(navn),
     kategori:kategoriid(navn, erlagbasert),
     kontakt:kontaktkasterid(fornavn, etternavn),
@@ -18,7 +18,7 @@ const _stevneDetaljerQuery = supabase.from("stevne").select(`
 export type TournamentDetailsRow = QueryData<typeof _stevneDetaljerQuery>[number];
 
 const _resultatRadQuery = supabase.from("resultat").select(`
-    plassering, nc_poeng, startnummer, kamp_poeng_innl, score_poeng_innl,
+    plassering, nc_poeng, snc_plassering, startnummer, kamp_poeng_innl, score_poeng_innl,
     kaster:kasterid(id, fornavn, etternavn),
     klubb:klubbid(navn),
     klasse:klasseid(navn),
@@ -35,7 +35,7 @@ export async function getTournamentWithDetails(
   const { data, error } = await supabase
     .from("stevne")
     .select(`
-      id, navn, sted, dato, erfullfort, resultaturl, juryleder, klubbid,
+      id, navn, sted, dato, erfullfort, resultaturl, juryleder, klubbid, snc_hovudstevne_id,
       stevnetype:stevnetypeid(navn),
       kategori:kategoriid(navn, erlagbasert),
       kontakt:kontaktkasterid(fornavn, etternavn),
@@ -198,13 +198,47 @@ export async function clearGroupAssignment(stevneid: number): Promise<{ error: u
 
 // ── Resultat-side ─────────────────────────────────────────────────────────────
 
+// ── SNC: samla resultatliste ──────────────────────────────────────────────────
+
+const _sncResultatQuery = supabase.from("resultat").select(`
+    snc_plassering, plassering, nc_poeng,
+    poeng_xkast, antall_ring_xkast, poeng_kongelag, antall_ring_kongelag,
+    kaster:kasterid(id, fornavn, etternavn),
+    klubb:klubbid(navn),
+    stevne:stevneid!inner(id, navn, sted, klubb:klubbid(navn))
+  `);
+
+export type SncResultRow = QueryData<typeof _sncResultatQuery>[number];
+
+/**
+ * Alle resultatradene i ein SNC-runde, på tvers av lokalstevna, sorterte etter
+ * den samla plasseringa som complete_snc_hovudstevne har rekna ut.
+ */
+export async function getSncConsolidatedResults(
+  hovudstevneId: number,
+): Promise<{ data: SncResultRow[]; error: unknown }> {
+  const { data, error } = await supabase
+    .from("resultat")
+    .select(`
+      snc_plassering, plassering, nc_poeng,
+      poeng_xkast, antall_ring_xkast, poeng_kongelag, antall_ring_kongelag,
+      kaster:kasterid(id, fornavn, etternavn),
+      klubb:klubbid(navn),
+      stevne:stevneid!inner(id, navn, sted, klubb:klubbid(navn))
+    `)
+    .eq("stevne.snc_hovudstevne_id", hovudstevneId)
+    .order("snc_plassering", { nullsFirst: false });
+  if (error) logError("getSncConsolidatedResults", error);
+  return { data: data ?? [], error };
+}
+
 export async function getResultsForTournament(
   stevneId: number,
 ): Promise<{ data: ResultRow[]; error: unknown }> {
   const { data, error } = await supabase
     .from("resultat")
     .select(`
-      plassering, nc_poeng, startnummer, kamp_poeng_innl, score_poeng_innl,
+      plassering, nc_poeng, snc_plassering, startnummer, kamp_poeng_innl, score_poeng_innl,
       kaster:kasterid(id, fornavn, etternavn),
       klubb:klubbid(navn),
       klasse:klasseid(navn),

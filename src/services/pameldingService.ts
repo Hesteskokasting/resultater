@@ -97,6 +97,48 @@ export async function removeRegistration(pameldingId: number): Promise<{ error: 
   return { error };
 }
 
+export interface TournamentRegistrationSummary {
+  /** Påmeldingar per stevne. */
+  counts: Map<number, number>;
+  /** Stevnet utøvaren alt står på, av dei spurde — SNC tillet berre éin stad. */
+  ownStevneId: number | null;
+  ownRegistrationId: number | null;
+}
+
+/**
+ * Påmeldingsteljing for fleire stevne i eitt kall, pluss kvar utøvaren sjølv står.
+ * Brukt av SNC-lokalstevnelista, der alle stadene blir viste side om side.
+ */
+export async function getRegistrationsAcrossTournaments(
+  stevneIds: number[],
+  kasterid: number | null,
+): Promise<TournamentRegistrationSummary> {
+  const summary: TournamentRegistrationSummary = {
+    counts: new Map(),
+    ownStevneId: null,
+    ownRegistrationId: null,
+  };
+  if (!stevneIds.length) return summary;
+
+  const { data, error } = await supabase
+    .from("pamelding")
+    .select("id, stevneid, kasterid")
+    .in("stevneid", stevneIds);
+  if (error) {
+    logError("getRegistrationsAcrossTournaments", error);
+    return summary;
+  }
+
+  for (const row of data ?? []) {
+    summary.counts.set(row.stevneid, (summary.counts.get(row.stevneid) ?? 0) + 1);
+    if (kasterid != null && row.kasterid === kasterid) {
+      summary.ownStevneId = row.stevneid;
+      summary.ownRegistrationId = row.id;
+    }
+  }
+  return summary;
+}
+
 export async function getRegistrationCount(stevneId: number): Promise<number> {
   const { count, error } = await supabase
     .from("pamelding")

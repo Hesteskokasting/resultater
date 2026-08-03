@@ -18,6 +18,8 @@ interface ColFlags {
   isParMix: boolean;
   showKpSp: boolean;
   showNc: boolean;
+  /** Lokalstevne i ein konsolidert SNC-runde: vis plasseringa i den samla lista. */
+  showSnc: boolean;
 }
 
 const NC_STEVNETYPER = new Set(["NC", "SNC", "DNC"]);
@@ -74,6 +76,7 @@ function mobileMetaHtml(rep: ResultRow, cols: ColFlags): string {
   const parts: string[] = [];
   if (cols.showKpSp)
     parts.push(`KP ${rep.kamp_poeng_innl ?? "–"}`, `SP ${rep.score_poeng_innl ?? "–"}`);
+  if (cols.showSnc) parts.push(`SNC ${rep.snc_plassering ?? "–"}.`);
   if (cols.showNc) parts.push(`NC ${rep.nc_poeng ?? "–"}`);
   return parts.length ? `<span class="res-meta">${parts.join("  ")}</span>` : "";
 }
@@ -137,6 +140,7 @@ function desktopRowHtml(
       <td class="res-td-navn">${namesHtml}</td>
       <td class="res-td-klubb">${clubHtml}</td>
       ${cols.showKpSp ? `<td class="res-td-kp">${rep.kamp_poeng_innl ?? ""}</td><td class="res-td-sp">${rep.score_poeng_innl ?? ""}</td>` : ""}
+      ${cols.showSnc ? `<td class="res-td-pl">${rep.snc_plassering ?? ""}</td>` : ""}
       ${cols.showNc ? `<td class="res-td-nc">${rep.nc_poeng ?? ""}</td>` : ""}
     </tr>`;
 }
@@ -163,7 +167,7 @@ function desktopGroupHtml(group: GroupEntry, cols: ColFlags): string {
     (r) => desktopRowHtml(r.plassering, throwerLinkHtml(r), escHtml(r.klubb?.navn ?? "–"), r, cols),
   ).join("");
 
-  const colspan = 3 + (cols.showKpSp ? 2 : 0) + (cols.showNc ? 1 : 0);
+  const colspan = 3 + (cols.showKpSp ? 2 : 0) + (cols.showSnc ? 1 : 0) + (cols.showNc ? 1 : 0);
 
   return `
     <div class="res-table-section">
@@ -177,6 +181,7 @@ function desktopGroupHtml(group: GroupEntry, cols: ColFlags): string {
             <th class="res-td-navn">NAVN</th>
             <th class="res-td-klubb">KLUBB</th>
             ${cols.showKpSp ? '<th class="res-td-kp">KP</th><th class="res-td-sp">SP</th>' : ""}
+            ${cols.showSnc ? '<th class="res-td-pl">SNC</th>' : ""}
             ${cols.showNc ? '<th class="res-td-nc">NC</th>' : ""}
           </tr>
         </thead>
@@ -227,7 +232,15 @@ export async function render(
       isParMix: stevne.kategori?.erlagbasert ?? false,
       showNc: NC_STEVNETYPER.has(stevne.stevnetype?.navn ?? ""),
       showKpSp: KP_SP_INNLEDENDE.has(stevne.innledende?.navn ?? ""),
+      showSnc: stevne.snc_hovudstevne_id != null && results.some((r) => r.snc_plassering != null),
     };
+
+    const sncHtml =
+      stevne.snc_hovudstevne_id != null
+        ? `<p class="res-klassifisering">
+             <a href="#/stevne/${stevne.snc_hovudstevne_id}/resultat">Samla SNC-resultat for alle stadene →</a>
+           </p>`
+        : "";
 
     const pdfHtml = stevne.resultaturl?.startsWith("http")
       ? `<a class="res-pdf-lenke" href="${escHtml(stevne.resultaturl)}" target="_blank" rel="noopener">Resultat som pdf 📄</a>`
@@ -241,6 +254,7 @@ export async function render(
       <div class="res-side">
         <div class="res-felles">
           ${pdfHtml}
+          ${sncHtml}
           ${juryHtml}
           <p class="res-antall"><strong>Antall deltakarar: ${count}</strong></p>
         </div>

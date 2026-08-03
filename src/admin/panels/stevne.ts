@@ -53,9 +53,18 @@ function buildItem(
   onChanged: () => void,
 ): AdminListItem {
   const phaseTab = row.stevne_fase === "avsluttende" ? "avsluttende" : "innledende";
-  const openTab = row.erfullfort ? "resultat" : row.stevne_fase ? phaseTab : "info";
+  const isSncParent = row.er_snc_hovudstevne === true;
+  const openTab = isSncParent
+    ? "lokalstevne"
+    : row.erfullfort
+      ? "resultat"
+      : row.stevne_fase
+        ? phaseTab
+        : "info";
 
   const badges = [statusBadge(row)];
+  if (isSncParent) badges.push({ text: "SNC-samlestevne", tone: "warn" });
+  if (row.snc_hovudstevne_id != null) badges.push({ text: "SNC-lokalstevne", tone: "muted" });
   if (row.ernm) badges.push({ text: "NM", tone: "warn" });
   if (row.resultaturl) badges.push({ text: "PDF", tone: "muted" });
 
@@ -76,7 +85,8 @@ function buildItem(
     stripe: row.erfullfort ? "ok" : isOngoing(row) ? "live" : undefined,
     actions: [
       { label: "Opne", href: `#/stevne/${row.id}/${openTab}` },
-      { label: "Deltakarar", href: `#/stevne/${row.id}/deltakere` },
+      // Eit SNC-samlestevne har ingen eigne deltakarar — dei står på lokalstevna.
+      ...(isSncParent ? [] : [{ label: "Deltakarar", href: `#/stevne/${row.id}/deltakere` }]),
       {
         label: "Rediger",
         variant: "outline-primary",

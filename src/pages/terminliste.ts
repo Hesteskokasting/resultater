@@ -59,7 +59,8 @@ function canRegisterRow(s: TournamentRow, auth: AuthUser | null): boolean {
   const isUpcoming = new Date(s.dato + "T12:00:00") > new Date();
   const notStarted = s.stevne_fase === null || s.stevne_fase === "ikke_startet";
   const hasAccess = auth?.profil?.kobling_status === "godkjent";
-  return hasAccess === true && isUpcoming && notStarted && !s.erfullfort;
+  // Eit SNC-hovudstevne har ingen eigen påmelding: utøvaren må velje stad først.
+  return hasAccess === true && isUpcoming && notStarted && !s.erfullfort && !s.er_snc_hovudstevne;
 }
 
 function countRows(groups: MonthGroup<TournamentRow>[]): number {
@@ -82,11 +83,32 @@ let _auth: AuthUser | null = null;
 let _registeredMap: Map<number, number> = new Map();
 // "NM" is one of the stevnetype options, but ernm is the authoritative NM flag
 let _nmTypeId: number | undefined;
+// Lokalstevne per SNC-hovudstevne. Lokalstevna er skjulte i terminlista — dei
+// er stader i same arrangement, og stadvalet skjer på hovudstevnet si side.
+let _sncVenueCounts: Map<number, number> = new Map();
+
+function countSncVenues(data: TournamentRow[]): Map<number, number> {
+  const counts = new Map<number, number>();
+  for (const s of data) {
+    if (s.snc_hovudstevne_id != null) {
+      counts.set(s.snc_hovudstevne_id, (counts.get(s.snc_hovudstevne_id) ?? 0) + 1);
+    }
+  }
+  return counts;
+}
+
+function sncVenueLabel(s: TournamentRow): string | null {
+  if (!s.er_snc_hovudstevne) return null;
+  const count = _sncVenueCounts.get(s.id) ?? 0;
+  return count === 1 ? "1 stad" : `${count} stader`;
+}
 
 // ── Client-side filtering ─────────────────────────────────────────────────────
 
 function filterData(data: TournamentRow[]): TournamentRow[] {
   return data.filter((s) => {
+    if (s.snc_hovudstevne_id != null) return false;
+
     if (filter.searchText) {
       const search = filter.searchText.toLowerCase();
       const matched = [
@@ -185,12 +207,13 @@ function tableRowHtml(s: TournamentRow, nearestLabel: string | undefined): strin
     ? `<span class="tl-nm-medalje" role="img" aria-label="${NM_LABEL}" title="${NM_LABEL}">🥇</span> `
     : "";
   const trailing = canRegisterRow(s, _auth) ? `<span data-registration-slot="${s.id}"></span>` : "";
+  const venues = sncVenueLabel(s);
   return `<tr class="tl-tr" tabindex="0" data-href="#/stevne/${s.id}/resultat" aria-label="Gå til ${escHtml(s.navn ?? "")}, ${date}">
     <td>${date}</td>
     <td>${nearestPill}${medal}${escHtml(s.navn ?? "")}</td>
     <td>${typeBadgeCellHtml(s)}</td>
     <td>${escHtml([s.innledende?.navn, s.avsluttende?.navn].filter((v): v is string => Boolean(v)).join(" \\ "))}</td>
-    <td>${escHtml(s.sted ?? "")}</td>
+    <td>${venues ? escHtml(venues) : escHtml(s.sted ?? "")}</td>
     <td>${escHtml(s.klubb?.navn ?? "")}</td>
     <td class="tl-td-trailing">${trailing}</td>
   </tr>`;
@@ -302,7 +325,10 @@ function cardNode(s: TournamentRow, nearestLabel: string | undefined): HTMLEleme
     (s.stevne_fase === "innledende" || s.stevne_fase === "avsluttende") && !s.erfullfort;
   const isUpcoming = new Date(s.dato + "T12:00:00") > new Date();
 
-  const stedArrangor = [s.sted, s.klubb?.navn].filter((v): v is string => Boolean(v)).join(" · ");
+  const venues = sncVenueLabel(s);
+  const stedArrangor = [venues ?? s.sted, s.klubb?.navn]
+    .filter((v): v is string => Boolean(v))
+    .join(" · ");
   const meta = stedArrangor ? [stedArrangor] : [];
 
   const typeBadge: StevneCardTypeBadge | undefined = s.stevnetype?.navn
@@ -433,6 +459,7 @@ export async function render(container: HTMLElement): Promise<void> {
     }
 
     allData = data ?? [];
+    _sncVenueCounts = countSncVenues(allData);
 
     const isNative = Capacitor.isNativePlatform();
     const excelSlotHtml = isNative ? "" : '<span id="tl-excel-slot"></span>';
@@ -634,6 +661,7 @@ export async function render(container: HTMLElement): Promise<void> {
         return false;
       }
       allData = newData ?? [];
+      _sncVenueCounts = countSncVenues(allData);
       return true;
     }
 

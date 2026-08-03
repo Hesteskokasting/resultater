@@ -166,6 +166,11 @@ export async function render(
               <tr><th>Kastemetode avsluttande</th><td>${escHtml(stevne.kastemetodeAvsl?.navn ?? "—")}</td></tr>
               <tr><th>Antal rundar innleiande</th><td>${stevne.antall_runder_innl ?? "—"}</td></tr>
               <tr><th>Påmelde ${isTeamOrMix ? "par" : "spelarar"}</th><td>${isTeamOrMix ? pairCount : count}</td></tr>
+              ${
+                stevne.snc_hovudstevne_id != null
+                  ? `<tr><th>SNC-runde</th><td><a href="#/stevne/${stevne.snc_hovudstevne_id}/lokalstevne">Sjå alle stadene</a></td></tr>`
+                  : ""
+              }
             </tbody>
           </table>
         </div>
