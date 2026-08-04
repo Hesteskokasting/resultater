@@ -1078,21 +1078,6 @@ export type Database = {
         }[]
       }
       insert_avsluttende_matches: { Args: { p_matches: Json }; Returns: number }
-      is_match_participant: { Args: { p_kampid: number }; Returns: boolean }
-      kamp_spelar_original: {
-        Args: { p_id: number }
-        Returns: {
-          kampid: number
-          kasterid: number
-        }[]
-      }
-      min_kobling_original: {
-        Args: never
-        Returns: {
-          kasterid: number
-          kobling_status: string
-        }[]
-      }
       min_rolle: { Args: never; Returns: string }
       reopen_snc_hovudstevne: {
         Args: { p_stevneid: number }
