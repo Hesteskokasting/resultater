@@ -1,0 +1,1 @@
+async function e(e,t=`Ingen rader blei endra (ikkje funne eller ikkje tillatt).`){let{data:n,error:r}=await e;return r?{error:r}:!n||n.length===0?{error:Error(t)}:{error:null}}export{e as t};

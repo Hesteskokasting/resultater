@@ -1,0 +1,1 @@
+function e(e){let t=e.toLowerCase();return t.includes(`x-kast`)||t.includes(`minimatch`)||t.includes(`halvmatch`)||t.includes(`heilmatch`)}function t(e){return e.toLowerCase().includes(`kongelag`)}function n(e){let t=e.toLowerCase();return t.includes(`gloppen`)||t.includes(`nordhordland`)}export{e as n,n as r,t};
