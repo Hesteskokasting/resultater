@@ -6,7 +6,9 @@ export default defineConfig({
   staged: {
     "*": "vp check --fix",
   },
-  fmt: {},
+  fmt: {
+    ignorePatterns: ["src/types/database.types.ts"],
+  },
   lint: {
     ignorePatterns: ["supabase/functions/**", "src/types/database.types.ts"],
     jsPlugins: [{ name: "vite-plus", specifier: "vite-plus/oxlint-plugin" }],

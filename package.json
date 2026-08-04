@@ -16,6 +16,8 @@
     "test:run": "vp test run",
     "preview": "vp preview --host",
     "test:db": "supabase test db",
+    "types:gen": "node scripts/gen-types.mjs --linked",
+    "types:gen:local": "node scripts/gen-types.mjs --local",
     "android:sync": "cap sync android",
     "android:sync:dev": "cross-env CAPACITOR_SERVER_URL=https://res.hesteskokasting.no/dev cap sync android",
     "android:sync:local": "cross-env CAPACITOR_SERVER_URL=http://10.0.2.2:5173 cap sync android",
