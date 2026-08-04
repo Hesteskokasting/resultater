@@ -439,7 +439,6 @@ export async function confirmCourt(xkastKongelagId: number): Promise<{ error: un
 
 // ── Realtime ──────────────────────────────────────────────────────────────────
 
-/** Fires onChange for court/omgang writes in this stevne (omgang events are unfiltered — payload lacks stevneid — matching subscribeToMatchChanges). */
 /**
  * xkast_kongelag_omgang carries no stevneid, so its events cannot be filtered
  * server-side. `ownsDeltaker` lets the view drop events for other stevner's

@@ -123,6 +123,8 @@ export function createFinalPhaseRenderer(variant: FinalPhaseVariant) {
   let bannerSlot: HTMLElement | null = null;
   let isAdmin = false;
   const standingExpandedIds = new Set<string>();
+  /** kamp_spelar ids in view — scopes the unfiltered kamp_omgang subscription. */
+  const ownedSpelarIds = new Set<number>();
 
   async function render(
     container: HTMLElement,
@@ -159,6 +161,9 @@ export function createFinalPhaseRenderer(variant: FinalPhaseVariant) {
         container.replaceChildren(createErrorBanner("Stevne ikkje funne."));
         return;
       }
+
+      ownedSpelarIds.clear();
+      for (const kamp of rawMatches) for (const sp of kamp.spelarar) ownedSpelarIds.add(sp.id);
 
       const typedResults = rawResults.filter((r): r is FinalResultKnown => r.kasterid != null);
       const initialMatches = rawMatches.filter((k) => k.fase === "innledende");
@@ -326,7 +331,9 @@ export function createFinalPhaseRenderer(variant: FinalPhaseVariant) {
         }
       },
     );
-    channel = subscribeToMatchChanges(stevneid, variant.channelName(stevneid), onChange);
+    channel = subscribeToMatchChanges(stevneid, variant.channelName(stevneid), onChange, (id) =>
+      ownedSpelarIds.has(id),
+    );
   }
 
   return render;

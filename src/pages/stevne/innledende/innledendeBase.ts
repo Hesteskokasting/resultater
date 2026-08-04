@@ -101,6 +101,8 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
   const standingExpandedIds = new Set<string>();
   let prevConfirmedIds: Set<number> | null = null;
   let pendingAnimationIds = new Set<number>();
+  /** kamp_spelar ids in view — scopes the unfiltered kamp_omgang subscription. */
+  const ownedSpelarIds = new Set<number>();
 
   async function render(
     container: HTMLElement,
@@ -130,6 +132,9 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
         container.replaceChildren(createErrorBanner("Stevne ikkje funne."));
         return;
       }
+
+      ownedSpelarIds.clear();
+      for (const kamp of allMatches) for (const sp of kamp.spelarar) ownedSpelarIds.add(sp.id);
 
       const { startNumberMap, hcpMap, positionMap, isTeam } = buildParticipantMaps(resultat);
       const roundMap = buildRoundMap(allMatches);
@@ -394,7 +399,9 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
         channel = null;
       }
     });
-    channel = subscribeToMatchChanges(stevneid, variant.channelName(stevneid), onChange);
+    channel = subscribeToMatchChanges(stevneid, variant.channelName(stevneid), onChange, (id) =>
+      ownedSpelarIds.has(id),
+    );
   }
 
   async function confirmMatch(

@@ -867,14 +867,28 @@ export function subscribeToNextMatch(
     .subscribe();
 }
 
+/**
+ * kamp_omgang carries no stevneid, so its events cannot be filtered
+ * server-side. `ownsKampSpelar` lets the view drop events for other stevner's
+ * matches; unknown ids (DELETE only ships the primary key) fall through to a
+ * reload. New kamper are still picked up — the kamp INSERT below is scoped to
+ * this stevne and its reload refreshes the caller's id set.
+ */
 export function subscribeToMatchChanges(
   stevneid: number,
   channelName: string,
   onChange: () => void,
+  ownsKampSpelar?: (kampSpelarId: number) => boolean,
 ): RealtimeChannel {
   return supabase
     .channel(channelName)
-    .on("postgres_changes", { event: "*", schema: "public", table: "kamp_omgang" }, onChange)
+    .on("postgres_changes", { event: "*", schema: "public", table: "kamp_omgang" }, (payload) => {
+      const spelarId =
+        (payload.new as { kamp_spelar_id?: number })?.kamp_spelar_id ??
+        (payload.old as { kamp_spelar_id?: number })?.kamp_spelar_id;
+      if (spelarId != null && ownsKampSpelar && !ownsKampSpelar(spelarId)) return;
+      onChange();
+    })
     .on("postgres_changes", { event: "*", schema: "public", table: "kamp" }, (payload) => {
       const sid =
         (payload.new as { stevneid?: number })?.stevneid ??
