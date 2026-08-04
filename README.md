@@ -9,7 +9,8 @@ Nettapplikasjon for Norges Hesteskokastingsforbund. Viser resultat, terminliste,
 
 ## Krav
 
-- [Node.js](https://nodejs.org/) v20 eller nyare
+- [Vite+](https://viteplus.dev) (`vp`) — verktøykjeda til prosjektet, og den einaste kommandoen du treng i det daglege
+- [Node.js](https://nodejs.org/) v20 eller nyare — `vp` styrer Node-versjonen sjølv (`vp env install`), så du treng ikkje installere Node manuelt
 - [WSL 2](https://learn.microsoft.com/en-us/windows/wsl/install) (Windows Subsystem for Linux) — påkravd av Docker Desktop
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) — påkravd for lokal Supabase-stack og integrasjonstesting
 - [GitHub CLI](https://cli.github.com/) (`gh`) — for å opprette issues og PR-ar frå terminalen, m.a. brukt av Claude Code til å registrere tech-debt-funn (sjå `CLAUDE.md`)
@@ -52,14 +53,30 @@ docker context ls      # den aktive contexten (merka med *) skal vere desktop-li
 
 Viss `docker version`/`docker info` ikkje viser eit `Server`-svar, er ikkje WSL-integrasjonen slått på for distroen din — gå tilbake til Docker Desktop-innstillinga over.
 
-**Viktig:** Den lokale Supabase-stacken (`npx supabase start`, `npm run test:db`) må køyrast **frå ein WSL-shell**, ikkje frå PowerShell/CMD. Supabase CLI-en oppdagar at han køyrer på Windows-verten og krev då at Docker-daemonen er eksponert på `tcp://localhost:2375` — noko som gjer at `analytics`- og `realtime`-containerane feilar helsesjekken (`unhealthy`) og stacken aldri startar. Køyrer CLI-en frå WSL i staden, går han den vanlege Linux-vegen mot Docker-daemonen, og problemet forsvinn heilt. Sjå steg-for-steg i [Integrasjonstesting (pgTAP)](#integrasjonstesting-pgtap).
+**Viktig:** Den lokale Supabase-stacken (`vp exec supabase start`, `vp run test:db`) må køyrast **frå ein WSL-shell**, ikkje frå PowerShell/CMD. Supabase CLI-en oppdagar at køyringa skjer på Windows-verten og krev då at Docker-daemonen er eksponert på `tcp://localhost:2375` — noko som gjer at `analytics`- og `realtime`-containerane feilar helsesjekken (`unhealthy`) og stacken aldri startar. Køyrer CLI-en frå WSL i staden, går CLI-en den vanlege Linux-vegen mot Docker-daemonen, og problemet forsvinn heilt. Sjå steg-for-steg i [Integrasjonstesting (pgTAP)](#integrasjonstesting-pgtap).
 
-### 2. Klon og installer avhengigheiter
+### 2. Installer Vite+ (`vp`)
+
+`vp` er eit globalt verktøy og ligg ikkje i prosjektet — det må installerast éin gong per maskin. I PowerShell:
+
+```powershell
+irm https://vite.plus/ps1 | iex
+```
+
+I ein WSL-/Linux-shell:
+
+```bash
+curl -fsSL https://vite.plus | bash
+```
+
+Opne ein ny terminal etterpå og stadfest med `vp help`. `vp env current` viser kva Node- og npm-versjon Vite+ løyser for prosjektet.
+
+### 3. Klon og installer avhengigheiter
 
 ```bash
 git clone https://github.com/hesteskokasting/resultater.git
 cd resultater
-npm install
+vp install
 ```
 
 Opprett `.env.local` i rota med Supabase-nøklar for **dev**-prosjektet:
@@ -72,12 +89,12 @@ VITE_SUPABASE_ANON_KEY=<dev-anon-nøkkel>
 Start dev-server:
 
 ```bash
-npm run dev
+vp run dev
 ```
 
 Appen er tilgjengeleg på `http://localhost:5173`.
 
-### 3. GitHub CLI
+### 4. GitHub CLI
 
 ```bash
 winget install --id GitHub.cli   # opne ein ny terminal etterpå (PATH vert oppdatert ved oppstart)
@@ -90,22 +107,33 @@ Stadfest med `gh auth status`. CLI-en vert brukt til issues og PR-ar frå termin
 
 ## Kommandoar
 
-| Kommando                 | Når du brukar det                                                                                       |
-| ------------------------ | ------------------------------------------------------------------------------------------------------- |
-| `npm run dev`            | Under utvikling — startar lokal Vite-dev-server med hot reload                                          |
-| `npm run build`          | For å sjekke at prod-bygget fungerer lokalt før du pushar                                               |
-| `npm run preview`        | Køyrer det ferdige `dist/`-bygget lokalt, nyttig for å teste prod-åtferd                                |
-| `npm run test`           | Køyrer Vitest i watch-modus — re-køyrer testar ved kvar filendring                                      |
-| `npm run test:run`       | Eingongskøyring av alle testar — bruk dette før commit og i CI                                          |
-| `npm run typecheck:test` | Typesjekkjer testfilene (Vitest brukar esbuild, ikkje tsc — dette er einaste typesjekkinga av `tests/`) |
-| `npm run test:db`        | Køyrer pgTAP-integrasjonstestane mot lokal Supabase-stack (krev `npx supabase start` fyrst)             |
+Prosjektet brukar [Vite+](https://viteplus.dev) som verktøykjede, og `vp` er inngangen til alt — også pakkehandtering. Vite+ erstattar ikkje npm, men les kva pakkehandterar prosjektet brukar (`devEngines.packageManager` her), lastar ned rett versjon og køyrer npm under panseret. Difor treng du aldri skrive `npm` eller `npx` sjølv:
+
+| I staden for          | Bruk                                        |
+| --------------------- | ------------------------------------------- |
+| `npm install`         | `vp install`                                |
+| `npm install <pakke>` | `vp add <pakke>` (`-D` for devDependencies) |
+| `npm run <skript>`    | `vp run <skript>`                           |
+| `npx <cli>`           | `vp exec <cli>`                             |
+
+Vite+ legg eigne shims for `node`, `npm` og `npx` i `~/.vite-plus/bin`, og desse plukkar den Node- og npm-versjonen prosjektet krev. Får du `npm warn EBADDEVENGINES`-åtvaringar — som ser ut som feil, men ikkje har noko å gjere med kommandoen du køyrde — tyder det på at ein systeminstallert `npm` vinn over shimen i `PATH`. Sjekk med `vp env current` (viser kva `node`/`npm` som faktisk vert brukt) og `vp env doctor`. Køyrer du alt gjennom `vp`, er problemet uansett borte.
+
+| Kommando                | Når du brukar det                                                                                       |
+| ----------------------- | ------------------------------------------------------------------------------------------------------- |
+| `vp run dev`            | Under utvikling — startar lokal Vite-dev-server med hot reload                                          |
+| `vp run build`          | For å sjekke at prod-bygget fungerer lokalt før du pushar                                               |
+| `vp run preview`        | Køyrer det ferdige `dist/`-bygget lokalt, nyttig for å teste prod-åtferd                                |
+| `vp run test`           | Køyrer Vitest i watch-modus — re-køyrer testar ved kvar filendring                                      |
+| `vp run test:run`       | Eingongskøyring av alle testar — bruk dette før commit og i CI                                          |
+| `vp run typecheck:test` | Typesjekkjer testfilene (Vitest brukar esbuild, ikkje tsc — dette er einaste typesjekkinga av `tests/`) |
+| `vp run test:db`        | Køyrer pgTAP-integrasjonstestane mot lokal Supabase-stack (krev `vp exec supabase start` fyrst)         |
 
 **Du treng ikkje køyre `build` eller `dev` før du pushar.** GitHub Actions byggjer automatisk når du pushar:
 
 - Push til `dev` → GitHub Actions byggjer og deployer til `res.hesteskokasting.no/dev`
 - Push til `main` → GitHub Actions byggjer, ventar på manuell godkjenning, deployer til `res.hesteskokasting.no`
 
-`npm run build` lokalt er berre nyttig viss du vil stadfeste at koden kompilerer utan å pushe, eller feilsøke byggfeil.
+`vp run build` lokalt er berre nyttig viss du vil stadfeste at koden kompilerer utan å pushe, eller feilsøke byggfeil.
 
 ---
 
@@ -118,7 +146,7 @@ Testfiler ligg i `tests/` og importerer frå `@/`-aliaset. Testane dekker berre 
 Tre kommandoar skal køyrast og vere grøne før kvar commit:
 
 ```bash
-npm run typecheck && npm run typecheck:test && npm run test:run
+vp run typecheck && vp run typecheck:test && vp run test:run
 ```
 
 Konfigurasjon: `vite.config.js` (test-blokk) og `tsconfig.test.json`.
@@ -127,35 +155,35 @@ Konfigurasjon: `vite.config.js` (test-blokk) og `tsconfig.test.json`.
 
 Integrasjonstestane verifiserer databaselaget: RLS-politikkar og `SECURITY DEFINER`-funksjonar. Testfilene ligg i `supabase/tests/` og køyrer mot ein lokal Supabase-stack.
 
-**Krav:** WSL 2 og Docker Desktop må vere installert og køyrande (sjå [Oppsett på ny maskin](#oppsett-på-ny-maskin)), og kommandoane nedanfor må køyrast **frå ein WSL-shell** — ikkje PowerShell/CMD. Grunn: Supabase CLI-en krev at Docker-daemonen er TCP-eksponert når han oppdagar at han køyrer direkte på Windows, og utan det feilar `analytics`/`realtime`-containerane helsesjekken. Frå WSL går CLI-en Linux-vegen og treng ikkje denne omvegen.
+**Krav:** WSL 2 og Docker Desktop må vere installert og køyrande (sjå [Oppsett på ny maskin](#oppsett-på-ny-maskin)), og kommandoane nedanfor må køyrast **frå ein WSL-shell** — ikkje PowerShell/CMD. Grunn: Supabase CLI-en krev at Docker-daemonen er TCP-eksponert når CLI-en oppdagar at køyringa skjer direkte på Windows, og utan det feilar `analytics`/`realtime`-containerane helsesjekken. Frå WSL går CLI-en Linux-vegen og treng ikkje denne omvegen.
 
 #### Fyrste gong: sett opp prosjektet inni WSL
 
-1. Opne ein WSL-shell (`wsl` i PowerShell/Windows Terminal, eller opne distroen din direkte). **Stadfest at du faktisk er inne i WSL** — promptet skal sjå ut som `bruker@maskin:~$` (eit vanleg Linux-prompt), ikkje `C:\...>`. Viss du opnar prosjektmappa via Windows Utforskar/VS Code og hamnar i eit `cmd.exe`/PowerShell-vindauge som berre viser stien via `\\wsl.localhost\...`, er du **ikkje** i WSL — kommandoar som `npx supabase` feilar då med noko slikt som `'supabase' is not recognized`, sidan `cmd.exe` ikkje støttar UNC-stiar som arbeidsmappe og hoppar attende til ei Windows-mappe. I VS Code: bruk `∨`-menyen ved sida av `+` i terminalpanelet og vel **Ubuntu (WSL)**-profilen.
+1. Opne ein WSL-shell (`wsl` i PowerShell/Windows Terminal, eller opne distroen din direkte). **Stadfest at du faktisk er inne i WSL** — promptet skal sjå ut som `bruker@maskin:~$` (eit vanleg Linux-prompt), ikkje `C:\...>`. Viss du opnar prosjektmappa via Windows Utforskar/VS Code og hamnar i eit `cmd.exe`/PowerShell-vindauge som berre viser stien via `\\wsl.localhost\...`, er du **ikkje** i WSL — kommandoar som `vp exec supabase start` feilar då med at `supabase` ikkje vert funnen, sidan `cmd.exe` ikkje støttar UNC-stiar som arbeidsmappe og hoppar attende til ei Windows-mappe. I VS Code: bruk `∨`-menyen ved sida av `+` i terminalpanelet og vel **Ubuntu (WSL)**-profilen.
 
 2. Gå til det **same** prosjektet du allereie har på `D:\repos\resultater` — WSL ser Windows-diskane dine under `/mnt/`:
    ```bash
    cd /mnt/d/repos/resultater
    ```
    Bruk **ikkje** ein separat klone/kopi her. Du vil teste migrasjonar og RLS-endringar _før_ du committar dei, og ein separat kopi ville kravd at du committa + pusha + pulla berre for å køyre ein lokal test — det gir ingen meining under aktiv utvikling. `/mnt/d/...` er noko tregare enn WSL sitt eige filsystem for filtunge operasjonar, men det merkast lite for `supabase start`/`test db`, og du slepp all synkronisering.
-3. Installer Node (viss det ikkje finst frå før i WSL — Windows-installasjonen er ikkje synleg her):
+3. Installer Vite+ og Node inni WSL — Windows-installasjonane er ikkje synlege her:
    ```bash
-   node -v   # viss denne feilar:
-   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/master/install.sh | bash
-   nvm install --lts
+   curl -fsSL https://vite.plus | bash   # installerer vp
+   vp env install                        # installerer Node-versjonen prosjektet krev
+   vp env current                        # stadfestar kva node/npm som vert brukt
    ```
 4. Installer avhengigheiter (hentar Linux-bygg av `supabase`-CLI-en m.m.):
    ```bash
-   npm install
+   vp install
    ```
-   **Merk:** `node_modules` inneheld plattform-spesifikke binærfiler (`supabase`-CLI-en, `esbuild`). Sidan du no køyrer `npm install` mot den same mappa som Windows-checkoutet, overskriv dette dei Windows-bygde versjonane. Skal du tilbake til `npm run dev`/`npm run build` frå PowerShell etterpå, må du berre køyre `npm install` derifrå på nytt fyrst — éin kommando, tar nokre sekund. Ein grei bytte-kostnad mot å slepp separat klone + synkronisering.
+   **Merk:** `node_modules` inneheld plattform-spesifikke binærfiler (`supabase`-CLI-en, `esbuild`). Sidan du no køyrer `vp install` mot den same mappa som Windows-checkoutet, overskriv dette dei Windows-bygde versjonane. Skal du tilbake til `vp run dev`/`vp run build` frå PowerShell etterpå, må du berre køyre `vp install` derifrå på nytt fyrst — éin kommando, tar nokre sekund. Ein grei bytte-kostnad mot å slepp separat klone + synkronisering.
 
 #### Kvar gong: køyr stacken og testane
 
 ```bash
-npx supabase start   # startar lokal Postgres og køyrer alle migreringsfiler
-npm run test:db      # køyrer alle pgTAP-testar i supabase/tests/
-npx supabase stop    # stoppar lokal stack når du er ferdig
+vp exec supabase start   # startar lokal Postgres og køyrer alle migreringsfiler
+vp run test:db      # køyrer alle pgTAP-testar i supabase/tests/
+vp exec supabase stop    # stoppar lokal stack når du er ferdig
 ```
 
 Køyr integrasjonstestane når du endrar migreringsfiler, RLS-politikkar eller `SECURITY DEFINER`-funksjonar. Dei er ikkje ein del av den raske pre-commit-sjekkanen (Vitest).
@@ -187,8 +215,8 @@ Prosjektet brukar Supabase CLI for databasemigrering. Migreringsfiler ligg i `su
 ### Koble til eit prosjekt
 
 ```bash
-npx supabase login
-npx supabase link --project-ref <PROJECT_REF>
+vp exec supabase login
+vp exec supabase link --project-ref <PROJECT_REF>
 ```
 
 Project ref finn du på [supabase.com](https://supabase.com) → prosjektet → Settings → General.
@@ -198,53 +226,56 @@ Project ref finn du på [supabase.com](https://supabase.com) → prosjektet → 
 Når du gjer endringar i databaseskjemaet, regenerer `src/types/database.types.ts`:
 
 ```bash
-npx supabase gen types typescript --project-id abcdefghijkl123456 > src/types/database.types.ts
+vp run types:gen          # frå det linka prosjektet
+vp run types:gen:local    # frå den lokale dev-databasen
 ```
 
-**Viktig:** Bruk `>` og ikkje `2>&1`. Supabase MCP-pluginen kan injisere ein `<claude-code-hint>`-tag på slutten av fila viss stderr vert omdirigert — denne taggen gjer fila ugyldig TypeScript.
+Skripta køyrer `vp exec supabase gen types typescript` og lagrar utdataen akkurat slik Supabase-CLI-en skriv den ut. Denne autogenererte fila er difor unnateken både `vp fmt` (`fmt.ignorePatterns`) og `vp lint` (`lint.ignorePatterns`) i `vite.config.js` — formatering gjev heile fila som endring i diffen ved neste regenerering.
+
+**Ikkje omdiriger sjølv med `>`/`2>&1`:** ved feil ville `>` tømt den innsjekka fila, og Supabase MCP-pluginen kan injisere ein `<claude-code-hint>`-tag på slutten viss stderr vert omdirigert. Skriptet fangar stdout og skriv til fila berre når utdataen ser rett ut.
 
 ---
 
 ### Lag ein ny migrasjon
 
 ```bash
-npx supabase migration new <namn_på_migrasjon>
+vp exec supabase migration new <namn_på_migrasjon>
 ```
 
 Rediger den nye `.sql`-fila i `supabase/migrations/`, køyr deretter:
 
 ```bash
-npx supabase db push
+vp exec supabase db push
 ```
 
 ### Miljø
 
-- **Dev:** koble til dev-prosjektet og køyr `npx supabase db push`
+- **Dev:** koble til dev-prosjektet og køyr `vp exec supabase db push`
 - **Prod:** same prosedyre, men koble til prod-prosjektet (bytt `--project-ref`)
 
 ---
 
 ## Supabase Edge Functions
 
-Edge Functions ligg i `supabase/functions/` og deployerast separat frå database-migreringar. Krev at prosjektet er linka (`npx supabase link`, sjå [Koble til eit prosjekt](#koble-til-eit-prosjekt)).
+Edge Functions ligg i `supabase/functions/` og deployerast separat frå database-migreringar. Krev at prosjektet er linka (`vp exec supabase link`, sjå [Koble til eit prosjekt](#koble-til-eit-prosjekt)).
 
 ### Deploy
 
 ```bash
-npx supabase functions deploy <namn>
+vp exec supabase functions deploy <namn>
 ```
 
 ### Sjå deployerte funksjonar
 
 ```bash
-npx supabase functions list
+vp exec supabase functions list
 ```
 
 ### Loggar
 
 ```bash
-npx supabase functions logs <namn>
-npx supabase functions logs <namn> --follow   # streamer nye loggar live — nyttig medan du testar
+vp exec supabase functions logs <namn>
+vp exec supabase functions logs <namn> --follow   # streamer nye loggar live — nyttig medan du testar
 ```
 
 ### Secrets
@@ -252,9 +283,9 @@ npx supabase functions logs <namn> --follow   # streamer nye loggar live — nyt
 Secrets til Edge Functions (API-nøklar o.l.) er separate frå GitHub-secrets og frå `.env.local` — dei set du direkte på Supabase-prosjektet, og dei er berre tilgjengelege server-side (aldri i klientkoden):
 
 ```bash
-npx supabase secrets set NØKKEL=verdi ANNAN_NØKKEL=verdi2
-npx supabase secrets list
-npx supabase secrets unset NØKKEL
+vp exec supabase secrets set NØKKEL=verdi ANNAN_NØKKEL=verdi2
+vp exec supabase secrets list
+vp exec supabase secrets unset NØKKEL
 ```
 
 **Viktig:** `secrets list` viser berre namn, ikkje verdiar — ein secret kan settast, men aldri lesast tilbake via CLI-en. Noter verdiane i ein passordhandterar når du set dei.
@@ -306,19 +337,19 @@ Appen er pakka med [Capacitor](https://capacitorjs.com) for å køyre nativt på
 
 ### Bygg og synk
 
-Appen lastar sida live via `server.url` i staden for å pakke `dist/` inn i appen. Vanlege web-endringar treng difor **ikkje** ny native-bygg — dei blir tilgjengelege med det same via GitHub Pages-deployen. `npm run build` trengst framleis lokalt sidan Capacitor-CLI-en krev at `webDir` finst når han synkroniserer, sjølv om innhaldet ikkje blir brukt ved køyretid.
+Appen lastar sida live via `server.url` i staden for å pakke `dist/` inn i appen. Vanlege web-endringar treng difor **ikkje** ny native-bygg — dei blir tilgjengelege med det same via GitHub Pages-deployen. `vp run build` trengst framleis lokalt sidan Capacitor-CLI-en krev at `webDir` finst ved synkronisering, sjølv om innhaldet ikkje blir brukt ved køyretid.
 
 ```bash
-npm run build
-npm run android:sync      # synkroniserer mot produksjon (res.hesteskokasting.no)
-npx cap open android
+vp run build
+vp run android:sync      # synkroniserer mot produksjon (res.hesteskokasting.no)
+vp exec cap open android
 ```
 
 For å teste mot dev-miljøet eller ein lokal Vite-dev-server i staden:
 
 ```bash
-npm run android:sync:dev      # res.hesteskokasting.no/dev
-npm run android:sync:local    # lokal Vite-server (npm run dev) via 10.0.2.2 — berre Android-emulator
+vp run android:sync:dev      # res.hesteskokasting.no/dev
+vp run android:sync:local    # lokal Vite-server (vp run dev) via 10.0.2.2 — berre Android-emulator
 ```
 
 `android:sync:local` peikar på `10.0.2.2`, Android-emulatorens alias for verts-maskina sin `localhost` — det fungerer ikkje på ei fysisk USB-tilkopla eining. For fysisk eining, bruk anten det automatiserte scriptet eller dei manuelle stega:
@@ -326,7 +357,7 @@ npm run android:sync:local    # lokal Vite-server (npm run dev) via 10.0.2.2 —
 #### Automatisert (anbefalt)
 
 ```bash
-npm run android:dev
+vp run android:dev
 ```
 
 Set opp heile flyten i eitt steg: startar Vite bunde til `127.0.0.1`, set opp `adb reverse tcp:5173 tcp:5173`, synkroniserer Capacitor mot `http://localhost:5173` og opnar Android Studio. Held seg køyrande og set opp `adb reverse` på nytt automatisk viss eininga koplar frå/til USB — vanlege kodeendringar treng då ingen ny sync/bygg, Vite HMR pushar dei direkte til WebView-en. Trykk Ctrl+C for å avslutte (stoppar Vite). Sjå [`scripts/android-dev.ps1`](scripts/android-dev.ps1).
@@ -334,17 +365,17 @@ Set opp heile flyten i eitt steg: startar Vite bunde til `127.0.0.1`, set opp `a
 #### Manuelt
 
 ```bash
-npm run dev -- --host 127.0.0.1               # Vite bind seg elles berre til IPv6 (::1)
+vp run dev -- --host 127.0.0.1               # Vite bind seg elles berre til IPv6 (::1)
 ```
 
 ```powershell
 adb reverse tcp:5173 tcp:5173                                       # gjer om i ny terminal ved kvar USB-tilkopling
-$env:CAPACITOR_SERVER_URL = "http://localhost:5173"; npx cap sync android
+$env:CAPACITOR_SERVER_URL = "http://localhost:5173"; vp exec cap sync android
 ```
 
-`adb reverse` videresender til verts-maskina sin `127.0.0.1` (IPv4) — viss Vite berre lyttar på `[::1]` (standard ved reint `npm run dev`), får du ei tilkoplingsfeil sjølv om tunnelen er sett opp riktig. Tunnelen forsvinn når eininga koplar frå/til på nytt.
+`adb reverse` videresender til verts-maskina sin `127.0.0.1` (IPv4) — viss Vite berre lyttar på `[::1]` (standard ved reint `vp run dev`), får du ei tilkoplingsfeil sjølv om tunnelen er sett opp riktig. Tunnelen forsvinn når eininga koplar frå/til på nytt.
 
-`CAPACITOR_SERVER_URL` fell alltid attende til produksjons-URL-en viss han ikkje er sett — dette hindrar at ein gløymd lokal override hamnar i eit Play Store-opplasta bygg. `npx cap open android` opnar Android Studio. Køyr frå ei tilkopla enhet (USB-debugging på) eller emulator med ▶ i verktøylinja.
+`CAPACITOR_SERVER_URL` fell alltid attende til produksjons-URL-en viss variabelen ikkje er sett — dette hindrar at ein gløymd lokal override hamnar i eit Play Store-opplasta bygg. `vp exec cap open android` opnar Android Studio. Køyr frå ei tilkopla enhet (USB-debugging på) eller emulator med ▶ i verktøylinja.
 
 Har WebView-en ikkje nettverkstilkopling ved oppstart, viser appen ein enkel innebygd feilskjerm (`android/app/src/main/assets/error.html`, handtert i `MainActivity.java`) i staden for ein blank eller øydelagd skjerm.
 
@@ -399,7 +430,7 @@ Appen er òg pakka med [Capacitor](https://capacitorjs.com) for iOS. iOS-bygget 
 ### Sette opp signering (eingongsoppsett)
 
 1. Logg inn på [App Store Connect](https://appstoreconnect.apple.com) → **Users and Access → Integrations → App Store Connect API**
-2. Lag ein ny nøkkel med rolla **App Manager**. Last ned `.p8`-fila — du kan berre laste ho ned éin gong.
+2. Lag ein ny nøkkel med rolla **App Manager**. Last ned `.p8`-fila — nedlasting er berre mogleg éin gong.
 3. Finn desse tre verdiane:
    - **Key ID** — vist i tabellen etter at nøkkelen er oppretta
    - **Issuer ID** — øvst på same side
@@ -418,7 +449,7 @@ I tillegg treng `testflight`-miljøet dei same `VITE_*`-secrets som `github-page
 
 ### Køyre ein TestFlight-bygg
 
-Workflowen triggar **ikkje** automatisk — han må startast manuelt:
+Workflowen triggar **ikkje** automatisk — workflowen må startast manuelt:
 
 1. Gå til **GitHub → Actions → iOS TestFlight**
 2. Klikk **Run workflow**
