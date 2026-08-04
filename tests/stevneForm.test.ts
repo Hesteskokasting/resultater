@@ -116,6 +116,7 @@ beforeEach(() => {
     data: [
       { id: 30, navn: "Trening" },
       { id: 31, navn: "SNC" },
+      { id: 32, navn: "NM" },
     ],
     error: null,
   });
@@ -200,6 +201,30 @@ describe("stevneForm, ordinary tournament", () => {
       5,
       expect.objectContaining({ kontaktkasterid: 61 }),
     );
+  });
+
+  it("ticks Er NM when stevnetype NM is chosen, and leaves it be otherwise", async () => {
+    mocks.createTournament.mockResolvedValue({ data: { id: 7 }, error: null });
+    const onSaved = vi.fn();
+    const h = host({ onSaved });
+    await mountTournamentForm(h);
+
+    const type = field<HTMLSelectElement>(h.container, "stevnetypeid");
+    const nm = field<HTMLInputElement>(h.container, "ernm");
+    type.value = "32";
+    type.dispatchEvent(new Event("change"));
+    expect(nm.checked).toBe(true);
+
+    // Moving away from NM does not silently undo the flag.
+    type.value = "30";
+    type.dispatchEvent(new Event("change"));
+    expect(nm.checked).toBe(true);
+
+    field<HTMLInputElement>(h.container, "navn").value = "NM 2026";
+    field<HTMLInputElement>(h.container, "dato").value = "2026-08-01";
+    submit(h.container);
+    await vi.waitFor(() => expect(onSaved).toHaveBeenCalledWith(7, true));
+    expect(mocks.createTournament).toHaveBeenCalledWith(expect.objectContaining({ ernm: true }));
   });
 
   it("clears the kontaktperson when set to none", async () => {

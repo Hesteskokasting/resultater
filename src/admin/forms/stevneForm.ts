@@ -217,7 +217,15 @@ export async function mountTournamentForm(host: AdminFormHost, id?: number): Pro
   const initialSelect = select("innledendekastemetodeid");
   const finalSelect = select("avsluttendekastemetodeid");
   const rankingCheckbox = wrapper.querySelector<HTMLInputElement>("#ernr")!;
+  const nmCheckbox = wrapper.querySelector<HTMLInputElement>("#ernm")!;
   const inheritedNote = wrapper.querySelector<HTMLElement>("#snc-arva-note")!;
+
+  // ernm is the authoritative NM flag, so stevnetype NM ticks it. Only on an
+  // explicit type change, and never unticked — a saved ernm stays the admin's.
+  const nmTypeId = tournamentTypes.find((t) => t.navn === "NM")?.id;
+  typeSelect.addEventListener("change", () => {
+    if (nmTypeId != null && typeSelect.value === String(nmTypeId)) nmCheckbox.checked = true;
+  });
 
   /** Replaces the options, keeping the current value if it is still listed. */
   function setOptions(target: HTMLSelectElement, items: { id: number; navn: string }[]): void {
