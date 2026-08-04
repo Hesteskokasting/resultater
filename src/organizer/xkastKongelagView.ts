@@ -18,6 +18,7 @@ import { escHtml } from "@/utils/escHtml";
 import { throwerName } from "@/utils/kaster";
 import { logError } from "@/utils/logError";
 import { unsubscribeChannel } from "@/utils/realtime";
+import { coalesceReload } from "@/utils/coalesceReload";
 import {
   renderMainContent,
   bindTabToggle,
@@ -916,9 +917,13 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
       };
       renderView(container);
       bindActions(container);
-      channel = subscribeToCourtChanges(id, variant.channelName(id), () => {
-        void reload(container);
-      });
+      channel = subscribeToCourtChanges(
+        id,
+        variant.channelName(id),
+        coalesceReload(() => reload(container)),
+        (deltakerId) =>
+          (state?.courts ?? []).some((c) => c.deltakarar.some((p) => p.id === deltakerId)),
+      );
     } catch (err) {
       logError("xkastKongelagView.render", err);
       container.replaceChildren(createErrorBanner("Kunne ikkje laste data."));

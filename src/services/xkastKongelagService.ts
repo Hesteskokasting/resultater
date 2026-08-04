@@ -440,17 +440,30 @@ export async function confirmCourt(xkastKongelagId: number): Promise<{ error: un
 // ── Realtime ──────────────────────────────────────────────────────────────────
 
 /** Fires onChange for court/omgang writes in this stevne (omgang events are unfiltered — payload lacks stevneid — matching subscribeToMatchChanges). */
+/**
+ * xkast_kongelag_omgang carries no stevneid, so its events cannot be filtered
+ * server-side. `ownsDeltaker` lets the view drop events for other stevner's
+ * courts; unknown ids (DELETE only ships the primary key) fall through to a
+ * reload.
+ */
 export function subscribeToCourtChanges(
   stevneid: number,
   channelName: string,
   onChange: () => void,
+  ownsDeltaker?: (deltakerId: number) => boolean,
 ): RealtimeChannel {
   return supabase
     .channel(channelName)
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "xkast_kongelag_omgang" },
-      onChange,
+      (payload) => {
+        const deltakerId =
+          (payload.new as { xkast_kongelag_deltaker_id?: number })?.xkast_kongelag_deltaker_id ??
+          (payload.old as { xkast_kongelag_deltaker_id?: number })?.xkast_kongelag_deltaker_id;
+        if (deltakerId != null && ownsDeltaker && !ownsDeltaker(deltakerId)) return;
+        onChange();
+      },
     )
     .on(
       "postgres_changes",

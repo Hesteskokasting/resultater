@@ -1,6 +1,7 @@
 import { scoreForPlayer, getMatchSides, groupStandingsByPair, type MatchSide } from "@/utils/kamp";
 import { throwerNameShort } from "@/utils/kaster";
 import { escHtml } from "@/utils/escHtml";
+import { coalesceReload } from "@/utils/coalesceReload";
 import type { Tables } from "@/types";
 import { createTable, type ColumnDef } from "@/components/Table";
 import { openInNewTab } from "@/services/navigationService";
@@ -430,14 +431,17 @@ export function createChangeHandler(
   tournamentId: number,
   tabs: string[],
   container: HTMLElement,
-  fetchAndRenderFn: (container: HTMLElement, tournamentId: number) => void,
+  fetchAndRenderFn: (container: HTMLElement, tournamentId: number) => void | Promise<void>,
   stopFn: () => void,
 ): () => void {
+  // Coalesced: a bulk write emits one realtime event per row, and one refetch
+  // per event exhausts the browser connection pool.
+  const refetch = coalesceReload(() => fetchAndRenderFn(container, tournamentId));
   return function onChange() {
     const hash = location.hash;
     const isOnPage = tabs.some((f) => hash === `#/stevne/${tournamentId}/${f}`);
     if (isOnPage) {
-      fetchAndRenderFn(container, tournamentId);
+      refetch();
     } else {
       stopFn();
     }
