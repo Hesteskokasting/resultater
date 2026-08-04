@@ -18,6 +18,7 @@ export type TournamentAdminRow = Pick<
   | "innledendekastemetodeid"
   | "avsluttendekastemetodeid"
   | "kategoriid"
+  | "kontaktkasterid"
   | "ernm"
   | "ernorgesranking"
   | "erfullfort"
@@ -241,7 +242,7 @@ export async function getTournamentForAdmin(
   const { data, error } = await supabase
     .from("stevne")
     .select(
-      "id, navn, sted, dato, tid, klubbid, stevnetypeid, innledendekastemetodeid, avsluttendekastemetodeid, kategoriid, ernm, ernorgesranking, erfullfort, erekskludertfrarekorder, resultaturl, er_snc_hovudstevne, snc_hovudstevne_id",
+      "id, navn, sted, dato, tid, klubbid, stevnetypeid, innledendekastemetodeid, avsluttendekastemetodeid, kategoriid, kontaktkasterid, ernm, ernorgesranking, erfullfort, erekskludertfrarekorder, resultaturl, er_snc_hovudstevne, snc_hovudstevne_id",
     )
     .eq("id", id)
     .single();

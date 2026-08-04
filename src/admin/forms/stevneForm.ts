@@ -25,6 +25,8 @@ import {
   type SncParentOptionRow,
 } from "@/services/stevneService";
 import { getClubs } from "@/services/klubbService";
+import { getAllThrowerList, type ThrowerListRow } from "@/services/kasterService";
+import { throwerName } from "@/utils/kaster";
 import { isKongelagMethodName, isXkastMethodName } from "@/utils/kastemetode";
 import { formatDate } from "@/utils/shared";
 import { formShell } from "./_formHost";
@@ -71,6 +73,7 @@ export async function mountTournamentForm(host: AdminFormHost, id?: number): Pro
   let finalMethods: { id: number; navn: string }[] = [];
   let categories: { id: number; navn: string }[] = [];
   let sncParents: SncParentOptionRow[] = [];
+  let throwers: ThrowerListRow[] = [];
 
   try {
     const results = await Promise.all([
@@ -80,6 +83,7 @@ export async function mountTournamentForm(host: AdminFormHost, id?: number): Pro
       getFinalThrowingMethods(),
       getCategories(),
       getSncParentOptions(),
+      getAllThrowerList(),
     ]);
     clubs = results[0].data;
     tournamentTypes = results[1].data;
@@ -87,6 +91,7 @@ export async function mountTournamentForm(host: AdminFormHost, id?: number): Pro
     finalMethods = results[3].data;
     categories = results[4].data;
     sncParents = results[5].data;
+    throwers = results[6].data;
   } catch (err) {
     logError("stevneForm.mount", err);
     container.replaceChildren(createErrorBanner("Kunne ikkje laste skjema."));
@@ -121,6 +126,16 @@ export async function mountTournamentForm(host: AdminFormHost, id?: number): Pro
   const initialOpt = buildDropdownOptions(initialMethods, v.innledendekastemetodeid);
   const finalOpt = buildDropdownOptions(finalMethods, v.avsluttendekastemetodeid);
   const categoryOpt = buildDropdownOptions(categories, defaultCategory);
+  // Inactive throwers are listed too, so an existing contact never falls out of
+  // the dropdown and gets nulled on save.
+  const contactOpt = buildDropdownOptions(
+    throwers.map((k) => ({
+      id: k.id,
+      navn: throwerName(k) + (k.eraktiv ? "" : " (inaktiv)"),
+    })),
+    v.kontaktkasterid,
+    "— ingen kontaktperson —",
+  );
   const sncParentOpt = sncParentOptionsHtml(sncParents, sncParentValue, id);
 
   const { wrapper, headingHtml } = formShell(host);
@@ -133,7 +148,10 @@ export async function mountTournamentForm(host: AdminFormHost, id?: number): Pro
         ${formRowHtml("Dato", `<input type="date" class="form-control" name="dato" value="${dateValue}" required>`)}
         ${formRowHtml("Tid", `<input type="time" class="form-control" name="tid" value="${timeValue}">`)}
       </div>
-      ${formRowHtml("Arrangørklubb", `<select class="form-select" name="klubbid">${clubOpt}</select>`)}
+      <div class="admin-form-grid">
+        ${formRowHtml("Arrangørklubb", `<select class="form-select" name="klubbid">${clubOpt}</select>`)}
+        ${formRowHtml("Kontaktperson", `<select class="form-select" name="kontaktkasterid">${contactOpt}</select>`)}
+      </div>
       <div class="admin-form-grid">
         ${formRowHtml("Stevnetype", `<select class="form-select" name="stevnetypeid">${typeOpt}</select>`)}
         ${formRowHtml("Kategori", `<select class="form-select" name="kategoriid">${categoryOpt}</select>`)}
@@ -264,6 +282,7 @@ export async function mountTournamentForm(host: AdminFormHost, id?: number): Pro
           ? (v.avsluttendekastemetodeid ?? null)
           : formNum(fd.get("avsluttendekastemetodeid")),
         kategoriid: isLocal ? (v.kategoriid ?? null) : formNum(fd.get("kategoriid")),
+        kontaktkasterid: formNum(fd.get("kontaktkasterid")),
         ernm: fd.get("ernm") === "on",
         ernorgesranking: isLocal
           ? (v.ernorgesranking ?? false)

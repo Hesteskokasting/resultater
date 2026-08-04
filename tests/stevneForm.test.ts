@@ -20,6 +20,7 @@ const mocks = vi.hoisted(() => ({
   completeSncParent: vi.fn(),
   reopenSncParent: vi.fn(),
   getClubs: vi.fn(),
+  getAllThrowerList: vi.fn(),
   isAdmin: vi.fn(),
   isClubAdmin: vi.fn(),
   confirmDialog: vi.fn(),
@@ -42,6 +43,7 @@ vi.mock("@/services/stevneService", () => ({
   reopenSncParent: mocks.reopenSncParent,
 }));
 vi.mock("@/services/klubbService", () => ({ getClubs: mocks.getClubs }));
+vi.mock("@/services/kasterService", () => ({ getAllThrowerList: mocks.getAllThrowerList }));
 vi.mock("@/services/authService", () => ({
   isAdmin: mocks.isAdmin,
   isClubAdmin: mocks.isClubAdmin,
@@ -89,6 +91,7 @@ function row(extra: Record<string, unknown> = {}) {
     innledendekastemetodeid: XKAST.id,
     avsluttendekastemetodeid: KONGELAG.id,
     kategoriid: 40,
+    kontaktkasterid: 61,
     ernm: false,
     ernorgesranking: true,
     erfullfort: false,
@@ -120,6 +123,13 @@ beforeEach(() => {
   mocks.getFinalThrowingMethods.mockResolvedValue({ data: [KONGELAG, CUP], error: null });
   mocks.getCategories.mockResolvedValue({ data: [{ id: 40, navn: "Singel" }], error: null });
   mocks.getSncParentOptions.mockResolvedValue({ data: [], error: null });
+  mocks.getAllThrowerList.mockResolvedValue({
+    data: [
+      { id: 61, fornavn: "Kari", etternavn: "Nordmann", eraktiv: true },
+      { id: 62, fornavn: "Ola", etternavn: "Slutta", eraktiv: false },
+    ],
+    error: null,
+  });
 });
 
 describe("stevneForm, ordinary tournament", () => {
@@ -153,6 +163,59 @@ describe("stevneForm, ordinary tournament", () => {
         er_snc_hovudstevne: false,
         snc_hovudstevne_id: null,
       }),
+    );
+  });
+
+  it("sends the chosen kontaktperson on create", async () => {
+    mocks.createTournament.mockResolvedValue({ data: { id: 7 }, error: null });
+    const onSaved = vi.fn();
+    const h = host({ onSaved });
+
+    await mountTournamentForm(h);
+    field<HTMLInputElement>(h.container, "navn").value = "Nytt stevne";
+    field<HTMLInputElement>(h.container, "dato").value = "2026-08-01";
+    field<HTMLSelectElement>(h.container, "kontaktkasterid").value = "61";
+    submit(h.container);
+
+    await vi.waitFor(() => expect(onSaved).toHaveBeenCalledWith(7, true));
+    expect(mocks.createTournament).toHaveBeenCalledWith(
+      expect.objectContaining({ kontaktkasterid: 61 }),
+    );
+  });
+
+  it("preselects the saved kontaktperson and keeps it on save", async () => {
+    mocks.getTournamentForAdmin.mockResolvedValue({ data: row(), error: null });
+    mocks.updateTournament.mockResolvedValue({ data: { id: 5 }, error: null });
+    const onSaved = vi.fn();
+    const h = host({ onSaved });
+
+    await mountTournamentForm(h, 5);
+    expect(field<HTMLSelectElement>(h.container, "kontaktkasterid").value).toBe("61");
+    // Inactive throwers stay listed so an existing contact is never dropped.
+    expect(optionValues(h.container, "kontaktkasterid")).toContain("62");
+
+    submit(h.container);
+    await vi.waitFor(() => expect(onSaved).toHaveBeenCalledWith(5, false));
+    expect(mocks.updateTournament).toHaveBeenCalledWith(
+      5,
+      expect.objectContaining({ kontaktkasterid: 61 }),
+    );
+  });
+
+  it("clears the kontaktperson when set to none", async () => {
+    mocks.getTournamentForAdmin.mockResolvedValue({ data: row(), error: null });
+    mocks.updateTournament.mockResolvedValue({ data: { id: 5 }, error: null });
+    const onSaved = vi.fn();
+    const h = host({ onSaved });
+
+    await mountTournamentForm(h, 5);
+    field<HTMLSelectElement>(h.container, "kontaktkasterid").value = "";
+    submit(h.container);
+
+    await vi.waitFor(() => expect(onSaved).toHaveBeenCalledWith(5, false));
+    expect(mocks.updateTournament).toHaveBeenCalledWith(
+      5,
+      expect.objectContaining({ kontaktkasterid: null }),
     );
   });
 });
