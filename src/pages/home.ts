@@ -136,9 +136,11 @@ export async function render(container: HTMLElement): Promise<void> {
     if (!isCurrent()) return;
     // Re-sorted: concatenating the umbrellas onto the plain stevner would
     // otherwise drop the date order the query established.
-    const live = [...ongoing.filter((s) => s.snc_hovudstevne_id == null), ...sncParents].sort(
-      (a, b) => (a.dato ?? "").localeCompare(b.dato ?? ""),
-    );
+    const live = [
+      ...ongoing.filter((s) => s.snc_hovudstevne_id == null),
+      // A finished umbrella must not reappear as live just because a local is still running.
+      ...sncParents.filter((s) => !s.erfullfort),
+    ].sort((a, b) => (a.dato ?? "").localeCompare(b.dato ?? ""));
 
     // Update sections in-place to avoid layout shift
     if (live.length) {
@@ -155,7 +157,8 @@ export async function render(container: HTMLElement): Promise<void> {
       .querySelector<HTMLElement>("#upcoming-content")!
       .replaceWith(cardList(r2.map((s) => upcomingCard(s, showSlot, registrations))));
 
-    if (throwerId !== null && auth?.user.id) {
+    // Same gate as the slots themselves — binding must not outlive what upcomingCard rendered.
+    if (showSlot && throwerId !== null && auth) {
       bindRegistrationSlots(upcomingSection, throwerId, auth.user.id, registrations.byTournament);
     }
   } catch (err) {
