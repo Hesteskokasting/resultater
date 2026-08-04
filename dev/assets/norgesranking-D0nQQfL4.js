@@ -1,0 +1,41 @@
+import{n as e,t}from"./logError-BO7RC_Nh.js";import{It as n,Jt as r,Kt as i,Lt as a,Rt as o,Ut as s}from"./index-D57jhPR5.js";import{t as c}from"./LoadingState-C6NB62Ct.js";import{t as l}from"./EmptyState-CCNgsnix.js";import{t as u}from"./SearchInput-BwD50MFz.js";import{r as d}from"./kaster-CGWDYFbf.js";import{t as f}from"./Table-B_UMcRWp.js";import{n as p,t as m}from"./tildelPlassering-CKwrflzG.js";import{t as h}from"./ExcelButton-BRhR_DRj.js";e.from(`stevne`).select(`id, navn, dato, stevnetype:stevnetypeid(id, navn), innledendekastemetode:kastemetode!innledendekastemetodeid(navn), avsluttendekastemetode:kastemetode!avsluttendekastemetodeid(navn)`),e.from(`resultat`).select(`
+    id, kasterid, klubbid, stevneid,
+    antall_ring_xkast, antall_ring_kongelag,
+    kaster:kasterid(id, fornavn, etternavn),
+    klubb:klubbid(id, navn)
+  `);async function g(n){let{data:r,error:i}=await e.from(`stevne`).select(`id, navn, dato, stevnetype:stevnetypeid(id, navn), innledendekastemetode:kastemetode!innledendekastemetodeid(navn), avsluttendekastemetode:kastemetode!avsluttendekastemetodeid(navn)`).eq(`ernorgesranking`,!0).gte(`dato`,`${n}-01-01`).lte(`dato`,`${n}-12-31`);if(i)return t(`getTournamentsAndResults.stevner`,i),{stevner:[],resultater:[],error:i};let a=r??[],o=a.map(e=>e.id);if(o.length===0)return{stevner:a,resultater:[],error:null};let{data:s,error:c}=await e.from(`resultat`).select(`
+      id, kasterid, klubbid, stevneid,
+      antall_ring_xkast, antall_ring_kongelag,
+      kaster:kasterid(id, fornavn, etternavn),
+      klubb:klubbid(id, navn)
+    `).in(`stevneid`,o);return c?(t(`getTournamentsAndResults.resultater`,c),{stevner:a,resultater:[],error:c}):{stevner:a,resultater:(s??[]).filter(e=>e.antall_ring_xkast!=null||e.antall_ring_kongelag!=null),error:null}}function _(e){let t=new Map;for(let n of e)t.set(n.id,{navn:n.navn,dato:n.dato,typeNamn:n.stevnetype?.navn??``,innledMetode:n.innledendekastemetode?.navn??null,avslMetode:n.avsluttendekastemetode?.navn??null});return t}function v(e,t){let n=(t?.innledMetode??``).toLowerCase(),r=(t?.avslMetode??``).toLowerCase(),i=e=>n===e||r===e,a={_stevne:t},o=[];return e.antall_ring_xkast!=null&&(i(`minimatch`)?o.push({...a,prosent:e.antall_ring_xkast/60*100,metodeNamn:`Minimatch`,antallRing:e.antall_ring_xkast}):i(`halvmatch`)?o.push({...a,prosent:e.antall_ring_xkast,metodeNamn:`Halvmatch`,antallRing:e.antall_ring_xkast}):i(`heilmatch`)&&o.push({...a,prosent:e.antall_ring_xkast/200*100,metodeNamn:`Heilmatch`,antallRing:e.antall_ring_xkast})),e.antall_ring_kongelag!=null&&o.push({...a,prosent:e.antall_ring_kongelag/40*100,metodeNamn:`Kongelag`,antallRing:e.antall_ring_kongelag}),o}function y(e,t){let n=new Map;for(let r of e){if(r.kasterid==null)continue;let e=v(r,r.stevneid==null?void 0:t.get(r.stevneid));if(e.length){n.has(r.kasterid)||n.set(r.kasterid,{kaster:r.kaster,klubb:r.klubb,rader:[]});for(let t of e)n.get(r.kasterid).rader.push(t)}}let r=[],i=[];for(let[,e]of n){let{rader:t}=e,n=[...t].sort((e,t)=>t.prosent-e.prosent),a=n.slice(0,5),o=Math.round(a.reduce((e,t)=>e+t.prosent,0)/a.length*100)/100,s=t.length,c=s>=5,l={navn:d(e.kaster),klubb:e.klubb?.navn??`–`,antallStevner:s,snittProsent:o,erGyldig:c,detaljRader:n};c?r.push(l):i.push(l)}return r.sort((e,t)=>t.snittProsent-e.snittProsent||e.navn.localeCompare(t.navn)),i.sort((e,t)=>t.snittProsent-e.snittProsent||e.navn.localeCompare(t.navn)),m(r,e=>e.snittProsent),[...r,...i]}var b=2018,x={year:new Date().getFullYear(),searchText:``,infoVisible:!1},S={year:null,tournaments:[],results:[]};async function C(e){if(S.year===e)return!0;try{let{stevner:t,resultater:n,error:r}=await g(e);return r?!1:(S.year=e,S.tournaments=t,S.results=n,!0)}catch(e){return t(`fetchAndBufferData`,e),!1}}async function w(){let e=_(S.tournaments);await a(y(S.results,e).map(e=>({Plass:e.erGyldig?e.plassering:`–`,Kaster:e.navn,Klubb:e.klubb,"Snitt %":e.snittProsent,"Antal stevner":e.antallStevner})),`norgesranking-${x.year}.xlsx`,`Norgesranking`)}function T(e){return`
+    <div id="nr-info-section"${e?``:` class="d-none"`}>
+      <p class="nc-info-text">
+        Norgesranking er ein konkurranse som pågår innanfor eit kalenderår, dvs. 1. januar – 31. desember.
+        <strong>Dei 5 beste prosentane er teljande.</strong>
+      </p>
+      <p class="nc-info-text">
+        For å få eit gyldig årsresultat skal kasteren minst ha vore gjennom 5 rankingrunder.
+      </p>
+      <p class="nc-info-text nc-info-text--warning">
+        Resultater merket med rødt er ikkje gyldig (mindre enn 5 runder).
+      </p>
+    </div>`}function E(e,t){let n=t.trim().toLowerCase(),r=n?e.filter(e=>e.navn.toLowerCase().includes(n)||e.klubb.toLowerCase().includes(n)):e;return r.length===0?l(`Ingen resultater funnet.`):f({rows:r,rowClass:e=>e.erGyldig?`nc-single-row`:`nc-single-row nc-row--invalid`,rowAttrs:(e,t)=>({"data-idx":String(t)}),detailRowClass:`nc-detail-row d-none`,detailRow:e=>f({rows:e.detaljRader,tableClass:`detalj-tabell`,theadClass:``,columns:[{label:`Dato`,render:e=>o(e._stevne?.dato)},{label:`Type`,render:e=>e._stevne?.typeNamn??`–`},{label:`Stevne`,render:e=>e._stevne?.navn??`–`},{label:`Metode`,render:e=>e.metodeNamn},{label:`Ring`,render:e=>String(e.antallRing)},{label:`%Ring`,render:e=>s(e.prosent)}]}),columns:[{label:`Pl.`,thClass:`nc-td-pl`,cellClass:`nc-td-pl`,render:e=>e.erGyldig?String(e.plassering??`–`):`–`},{label:`Navn`,render:e=>e.navn},{label:`Klubb`,render:e=>e.klubb},{label:`Stevner`,thClass:`nc-td-center`,cellClass:`nc-td-center`,render:e=>String(e.antallStevner)},{label:`%Snitt`,thClass:`nc-td-points`,cellClass:`nc-td-points nc-points-cell`,cellAttrs:(e,t)=>({"data-idx":String(t)}),render:e=>{let t=document.createDocumentFragment();t.appendChild(document.createTextNode(s(e.snittProsent)));let n=document.createElement(`span`);return n.className=`nc-chevron`,n.textContent=` ▼`,t.appendChild(n),t}}]})}function D(e,t){return`
+    <div class="content-page">
+      <h1 class="nc-main-title">Norgesranking ${e}</h1>
+      <div class="nc-info-button-row">
+        <button id="nr-info-button" class="btn btn-sm btn-outline-secondary">Vis info</button>
+      </div>
+      <hr>
+      ${T(!1)}
+      <hr>
+      <div class="nc-filter-rad">
+        <select id="nr-year" class="tl-select">${i(e,b)}</select>
+        <span id="nr-search-slot"></span>
+        ${t?``:`<span id="nr-excel-slot"></span>`}
+      </div>
+      <div class="nc-click-hint-row">
+        <span class="nc-click-hint">Klikk prosent for å vise detaljer</span>
+      </div>
+      <div id="nr-table-container"></div>
+    </div>`}async function O(e){x.year=new Date().getFullYear(),x.searchText=``,x.infoVisible=!1,S={year:null,tournaments:[],results:[]},e.replaceChildren(c(`Laster Norgesranking…`));try{if(!await C(x.year)){e.replaceChildren(n(`Kunne ikkje laste data for Norgesranking.`));return}let i=r.isNativePlatform();e.innerHTML=D(x.year,i);function a(){let t=_(S.tournaments),n=y(S.results,t),r=e.querySelector(`#nr-table-container`),i=document.createElement(`div`);i.id=`nr-table-inner`,i.appendChild(E(n,x.searchText)),r.replaceChildren(i),p(i,{triggerSel:`.nc-points-cell`,idAttr:`idx`,detailSel:`.nc-detail-row`})}a(),u({slot:e.querySelector(`#nr-search-slot`),placeholder:`Søk på navn/klubb...`,state:x,onInput:a});let o=e.querySelector(`#nr-year`),s=e.querySelector(`#nr-info-button`);o.addEventListener(`change`,async()=>{x.year=Number(o.value),e.querySelector(`.nc-main-title`).textContent=`Norgesranking ${x.year}`,e.querySelector(`#nr-table-container`).replaceChildren(c(`Laster...`));try{if(!await C(x.year)){e.querySelector(`#nr-table-container`).replaceChildren(n(`Feil ved henting av data.`));return}a()}catch(r){t(`norgesranking.yearChange`,r),e.querySelector(`#nr-table-container`).replaceChildren(n(`Feil ved henting av data.`))}}),i||h({slot:e.querySelector(`#nr-excel-slot`),onClick:w}),s.addEventListener(`click`,()=>{x.infoVisible=!x.infoVisible,e.querySelector(`#nr-info-section`).classList.toggle(`d-none`,!x.infoVisible),s.textContent=x.infoVisible?`Skjul info`:`Vis info`})}catch(r){t(`norgesranking.render`,r),e.replaceChildren(n(`Kunne ikkje laste Norgesranking.`))}}export{O as render};
