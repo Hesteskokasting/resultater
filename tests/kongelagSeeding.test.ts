@@ -50,13 +50,38 @@ describe("orderKongelagSeeding", () => {
 });
 
 describe("buildKongelagCourts", () => {
-  it("puts everyone in one pulje when lanes is null", () => {
+  it("splits into two waves when lanes is null — half the field scores for the other half", () => {
     const courts = buildKongelagCourts([5, 3, 8], null);
     expect(courts).toEqual([
       { pulje: 1, baneNummer: 1, kasterids: [5] },
-      { pulje: 1, baneNummer: 2, kasterids: [3] },
-      { pulje: 1, baneNummer: 3, kasterids: [8] },
+      { pulje: 2, baneNummer: 1, kasterids: [3] },
+      { pulje: 2, baneNummer: 2, kasterids: [8] },
     ]);
+  });
+
+  it("splits into two waves even when the lanes fit the whole field", () => {
+    const kasterids = [1, 2, 3, 4, 5, 6, 7, 8];
+    const courts = buildKongelagCourts(kasterids, 8);
+    expect(courts.map((c) => c.pulje)).toEqual([1, 1, 1, 1, 2, 2, 2, 2]);
+    expect(courts.flatMap((c) => c.kasterids)).toEqual(kasterids);
+  });
+
+  it("keeps at least two puljer for an odd field", () => {
+    const puljer = new Set(buildKongelagCourts([1, 2, 3, 4, 5], null).map((c) => c.pulje));
+    expect([...puljer]).toEqual([1, 2]);
+  });
+
+  it("still honours a lane cap stricter than half the field", () => {
+    const courts = buildKongelagCourts([1, 2, 3, 4, 5, 6], 2);
+    expect(courts.map((c) => c.pulje)).toEqual([1, 1, 2, 2, 3, 3]);
+  });
+
+  it("leaves a single-player field in one pulje — nobody is left to score", () => {
+    expect(buildKongelagCourts([7], null)).toEqual([{ pulje: 1, baneNummer: 1, kasterids: [7] }]);
+  });
+
+  it("splits two players into one pulje each", () => {
+    expect(buildKongelagCourts([1, 2], null).map((c) => c.pulje)).toEqual([1, 2]);
   });
 
   it("splits into fair puljer capped by lanes, best players in pulje 1", () => {

@@ -34,13 +34,25 @@ export function orderKongelagSeeding(rows: KongelagSeedingRow[]): number[] {
 }
 
 /**
- * Assigns seeded kasterids to Kongelag courts: puljer sized by calcPuljeSizes
- * (cap = available lanes; null = one pulje), one player per court. Best
- * players fill pulje 1, bane 1.
+ * Kongelag is thrown in waves: half the field throws while the other half
+ * scores for them, so the field is always split across at least this many
+ * puljer — independent of the lane count.
+ */
+export const KONGELAG_MIN_PULJER = 2;
+
+/**
+ * Assigns seeded kasterids to Kongelag courts: puljer sized by calcPuljeSizes,
+ * one player per court. Best players fill pulje 1, bane 1.
+ *
+ * The pulje cap is the stricter of the available lanes and half the field, so a
+ * venue with lanes to spare (or no lane count at all) still gets the two waves
+ * Kongelag needs. A single-player field is the one exception — nobody is left
+ * to score, so it stays one pulje.
  */
 export function buildKongelagCourts(kasterids: number[], lanes: number | null): KongelagCourt[] {
   if (!kasterids.length) return [];
-  const cap = lanes ?? kasterids.length;
+  const waveCap = Math.max(1, Math.ceil(kasterids.length / KONGELAG_MIN_PULJER));
+  const cap = Math.min(lanes ?? kasterids.length, waveCap);
   const courts: KongelagCourt[] = [];
   let next = 0;
   calcPuljeSizes(kasterids.length, cap).forEach((puljeSize, puljeIdx) => {

@@ -103,7 +103,8 @@ export async function render(
               : `<div class="mb-4">
             <label class="form-label fw-semibold">Tilgjengelege banar (X-kast/Kongelag)</label>
             <input id="tilgjengelege-banar" type="number" min="1" class="form-control"
-              value="${stevne.tilgjengelige_baner ?? ""}" placeholder="Valfritt — utan verdi blir det éi pulje">
+              value="${stevne.tilgjengelige_baner ?? ""}" placeholder="Valfritt">
+            <p class="form-text">Utan verdi blir X-kast éi pulje. Kongelag blir alltid delt i minst to puljer.</p>
           </div>`
           }
           <button type="submit" class="btn btn-primary">Lagre</button>
