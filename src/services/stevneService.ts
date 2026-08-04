@@ -297,7 +297,21 @@ const _sncHovudstevneQuery = supabase.from("stevne").select(SNC_HOVUDSTEVNE_SELE
 
 export type SncParentTournamentRow = QueryData<typeof _sncHovudstevneQuery>[number];
 
-export type SncParentOptionRow = Pick<Tables<"stevne">, "id" | "navn" | "dato" | "erfullfort">;
+// The format fields ride along so the admin form can show a new local stevne the
+// values trg_stevne_snc_invariantar will coerce it to anyway.
+export type SncParentOptionRow = Pick<
+  Tables<"stevne">,
+  | "id"
+  | "navn"
+  | "dato"
+  | "tid"
+  | "erfullfort"
+  | "stevnetypeid"
+  | "kategoriid"
+  | "innledendekastemetodeid"
+  | "avsluttendekastemetodeid"
+  | "ernorgesranking"
+>;
 
 export async function getSncParentTournament(
   id: number,
@@ -332,7 +346,9 @@ export async function getSncParentOptions(): Promise<{
 }> {
   const { data, error } = await supabase
     .from("stevne")
-    .select("id, navn, dato, erfullfort")
+    .select(
+      "id, navn, dato, tid, erfullfort, stevnetypeid, kategoriid, innledendekastemetodeid, avsluttendekastemetodeid, ernorgesranking",
+    )
     .eq("er_snc_hovudstevne", true)
     .order("dato", { ascending: false });
   if (error) logError("getSncParentOptions", error);

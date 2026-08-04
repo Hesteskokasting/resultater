@@ -306,9 +306,25 @@ describe("stevneForm, SNC umbrella", () => {
 });
 
 describe("stevneForm, local SNC stevne", () => {
+  /** An umbrella carries the format its locals inherit. */
+  function parent(extra: Record<string, unknown> = {}) {
+    return {
+      id: 9,
+      navn: "SNC runde 1",
+      dato: "2026-07-01",
+      tid: "12:30:00",
+      erfullfort: false,
+      stevnetypeid: 31,
+      kategoriid: 40,
+      innledendekastemetodeid: XKAST.id,
+      avsluttendekastemetodeid: KONGELAG.id,
+      ernorgesranking: true,
+      ...extra,
+    };
+  }
   const parents = [
-    { id: 9, navn: "SNC runde 1", dato: "2026-07-01", erfullfort: false },
-    { id: 8, navn: "SNC runde 0", dato: "2026-06-01", erfullfort: true },
+    parent(),
+    parent({ id: 8, navn: "SNC runde 0", dato: "2026-06-01", erfullfort: true }),
   ];
 
   it("locks every field the umbrella owns and explains why", async () => {
@@ -397,5 +413,105 @@ describe("stevneForm, local SNC stevne", () => {
 
     expect(field<HTMLSelectElement>(h.container, "snc_hovudstevne_id").value).toBe("9");
     expect(field<HTMLSelectElement>(h.container, "innledendekastemetodeid").disabled).toBe(true);
+  });
+
+  it("locks the umbrella when added from the SNC page and still saves it", async () => {
+    mocks.getSncParentOptions.mockResolvedValue({ data: parents, error: null });
+    mocks.createTournament.mockResolvedValue({ data: { id: 7 }, error: null });
+    location.hash = "#/stevne/ny?snc=9";
+    const onSaved = vi.fn();
+    const h = host({ onSaved });
+    await mountTournamentForm(h);
+
+    // Locked, so FormData omits it — the payload has to read the select itself.
+    expect(field<HTMLSelectElement>(h.container, "snc_hovudstevne_id").disabled).toBe(true);
+    field<HTMLInputElement>(h.container, "navn").value = "Lokalt i Førde";
+    submit(h.container);
+
+    await vi.waitFor(() => expect(onSaved).toHaveBeenCalledWith(7, true));
+    expect(mocks.createTournament).toHaveBeenCalledWith(
+      expect.objectContaining({ snc_hovudstevne_id: 9 }),
+    );
+  });
+
+  it("fills date, time and the inherited format from the umbrella on a new local", async () => {
+    mocks.getSncParentOptions.mockResolvedValue({ data: parents, error: null });
+    mocks.createTournament.mockResolvedValue({ data: { id: 7 }, error: null });
+    location.hash = "#/stevne/ny?snc=9";
+    const onSaved = vi.fn();
+    const h = host({ onSaved });
+    await mountTournamentForm(h);
+
+    expect(field<HTMLInputElement>(h.container, "dato").value).toBe("2026-07-01");
+    expect(field<HTMLInputElement>(h.container, "tid").value).toBe("12:30");
+    expect(field<HTMLSelectElement>(h.container, "stevnetypeid").value).toBe("31");
+    expect(field<HTMLSelectElement>(h.container, "kategoriid").value).toBe("40");
+    expect(field<HTMLSelectElement>(h.container, "innledendekastemetodeid").value).toBe(
+      String(XKAST.id),
+    );
+    expect(field<HTMLSelectElement>(h.container, "avsluttendekastemetodeid").value).toBe(
+      String(KONGELAG.id),
+    );
+    expect(field<HTMLInputElement>(h.container, "ernorgesranking").checked).toBe(true);
+
+    field<HTMLInputElement>(h.container, "navn").value = "Lokalt i Førde";
+    submit(h.container);
+    await vi.waitFor(() => expect(onSaved).toHaveBeenCalledWith(7, true));
+    expect(mocks.createTournament).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dato: "2026-07-01",
+        tid: "12:30",
+        stevnetypeid: 31,
+        kategoriid: 40,
+        innledendekastemetodeid: XKAST.id,
+        avsluttendekastemetodeid: KONGELAG.id,
+        ernorgesranking: true,
+      }),
+    );
+  });
+
+  it("keeps the local's own date when editing", async () => {
+    mocks.getSncParentOptions.mockResolvedValue({ data: parents, error: null });
+    mocks.getTournamentForAdmin.mockResolvedValue({
+      data: row({ snc_hovudstevne_id: 9, stevnetypeid: 31, dato: "2026-07-02", tid: "09:00:00" }),
+      error: null,
+    });
+    const h = host();
+    await mountTournamentForm(h, 5);
+
+    expect(field<HTMLInputElement>(h.container, "dato").value).toBe("2026-07-02");
+    expect(field<HTMLInputElement>(h.container, "tid").value).toBe("09:00");
+    // An existing local may still be moved to another umbrella.
+    expect(field<HTMLSelectElement>(h.container, "snc_hovudstevne_id").disabled).toBe(false);
+  });
+
+  it("refuses NM and the record exemption on a local, and saves them false", async () => {
+    mocks.getSncParentOptions.mockResolvedValue({ data: parents, error: null });
+    mocks.getTournamentForAdmin.mockResolvedValue({
+      data: row({
+        snc_hovudstevne_id: 9,
+        stevnetypeid: 31,
+        ernm: true,
+        erekskludertfrarekorder: true,
+      }),
+      error: null,
+    });
+    mocks.updateTournament.mockResolvedValue({ data: { id: 5 }, error: null });
+    const onSaved = vi.fn();
+    const h = host({ onSaved });
+    await mountTournamentForm(h, 5);
+
+    for (const name of ["ernm", "erekskludertfrarekorder"]) {
+      const flag = field<HTMLInputElement>(h.container, name);
+      expect(flag.disabled, name).toBe(true);
+      expect(flag.checked, name).toBe(false);
+    }
+
+    submit(h.container);
+    await vi.waitFor(() => expect(onSaved).toHaveBeenCalledWith(5, false));
+    expect(mocks.updateTournament).toHaveBeenCalledWith(
+      5,
+      expect.objectContaining({ ernm: false, erekskludertfrarekorder: false }),
+    );
   });
 });
