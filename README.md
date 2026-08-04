@@ -109,12 +109,14 @@ Stadfest med `gh auth status`. CLI-en vert brukt til issues og PR-ar frå termin
 
 Prosjektet brukar [Vite+](https://viteplus.dev) som verktøykjede, og `vp` er inngangen til alt — også pakkehandtering. Vite+ erstattar ikkje npm, men les kva pakkehandterar prosjektet brukar (`devEngines.packageManager` her), lastar ned rett versjon og køyrer npm under panseret. Difor treng du aldri skrive `npm` eller `npx` sjølv:
 
-| I staden for          | Bruk                                        |
-| --------------------- | ------------------------------------------- |
-| `npm install`         | `vp install`                                |
-| `npm install <pakke>` | `vp add <pakke>` (`-D` for devDependencies) |
-| `npm run <skript>`    | `vp run <skript>`                           |
-| `npx <cli>`           | `vp exec <cli>`                             |
+| I staden for            | Bruk                                                                                                 |
+| ----------------------- | ---------------------------------------------------------------------------------------------------- |
+| `npm install`           | `vp install`                                                                                         |
+| `npm install <pakke>`   | `vp add <pakke>` (`-D` for devDependencies)                                                          |
+| `npm run <skript>`      | `vp run <skript>`                                                                                    |
+| `npx <cli>`             | `vp exec <cli>` — CLI som ligg i `node_modules`                                                      |
+| `npx <pakke>`           | `vp dlx <pakke>` — eingongskøyring av ein pakke som ikkje er installert (t.d. `vp dlx fallow dupes`) |
+| `npm uninstall <pakke>` | `vp remove <pakke>`                                                                                  |
 
 Vite+ legg eigne shims for `node`, `npm` og `npx` i `~/.vite-plus/bin`, og desse plukkar den Node- og npm-versjonen prosjektet krev. Får du `npm warn EBADDEVENGINES`-åtvaringar — som ser ut som feil, men ikkje har noko å gjere med kommandoen du køyrde — tyder det på at ein systeminstallert `npm` vinn over shimen i `PATH`. Sjekk med `vp env current` (viser kva `node`/`npm` som faktisk vert brukt) og `vp env doctor`. Køyrer du alt gjennom `vp`, er problemet uansett borte.
 
