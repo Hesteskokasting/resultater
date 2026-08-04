@@ -13,9 +13,11 @@ import type {
 } from "@/services/stevneService";
 import { logError } from "@/utils/logError";
 import { getUser } from "@/services/authService";
-import { getRegistrationsForThrower } from "@/services/stevneService";
+import { getRegistrationsForThrower, emptyThrowerRegistrations } from "@/services/stevneService";
+import type { ThrowerRegistrations } from "@/services/stevneService";
 import { bindRegistrationSlots } from "@/components/PameldingKnapp";
 import { createStevneCard } from "@/components/StevneCard";
+import { sncUmbrellaActionLink } from "@/utils/sncRegistration";
 
 // ── HTML builders ─────────────────────────────────────────────────────────────
 
@@ -40,7 +42,11 @@ function resultCard(s: LatestResultRow): HTMLElement {
   });
 }
 
-function upcomingCard(s: UpcomingTournamentRow, showSlot: boolean): HTMLElement {
+function upcomingCard(
+  s: UpcomingTournamentRow,
+  showSlot: boolean,
+  registrations: ThrowerRegistrations,
+): HTMLElement {
   const notStarted = s.stevne_fase === null || s.stevne_fase === "ikke_startet";
   const canRegister = showSlot && notStarted && !s.erfullfort;
   return createStevneCard({
@@ -52,7 +58,7 @@ function upcomingCard(s: UpcomingTournamentRow, showSlot: boolean): HTMLElement 
     registrationSlotId: canRegister && !s.er_snc_hovudstevne ? s.id : undefined,
     actionLink:
       canRegister && s.er_snc_hovudstevne
-        ? { href: `#/stevne/${s.id}/info`, label: "Meld på" }
+        ? sncUmbrellaActionLink(s.id, registrations.sncParentIds.has(s.id))
         : undefined,
   });
 }
@@ -116,16 +122,23 @@ export async function render(container: HTMLElement): Promise<void> {
           .filter((parentId): parentId is number => parentId != null),
       ),
     ];
-    const { data: sncParents } = await getTournamentsByIds(sncParentIds);
+    const throwerId = auth?.profil?.kasterid ?? null;
+    const showSlot = throwerId !== null && auth?.profil?.kobling_status === "godkjent";
+
+    // Both depend only on data already in hand, so they run together rather than
+    // adding a second serial round-trip before the upcoming list can paint.
+    const [{ data: sncParents }, registrations] = await Promise.all([
+      getTournamentsByIds(sncParentIds),
+      throwerId !== null
+        ? getRegistrationsForThrower(throwerId)
+        : Promise.resolve(emptyThrowerRegistrations()),
+    ]);
     if (!isCurrent()) return;
     // Re-sorted: concatenating the umbrellas onto the plain stevner would
     // otherwise drop the date order the query established.
     const live = [...ongoing.filter((s) => s.snc_hovudstevne_id == null), ...sncParents].sort(
       (a, b) => (a.dato ?? "").localeCompare(b.dato ?? ""),
     );
-
-    const throwerId = auth?.profil?.kasterid ?? null;
-    const showSlot = throwerId !== null && auth?.profil?.kobling_status === "godkjent";
 
     // Update sections in-place to avoid layout shift
     if (live.length) {
@@ -140,12 +153,10 @@ export async function render(container: HTMLElement): Promise<void> {
     const upcomingSection = container.querySelector<HTMLElement>(".homepage-upcoming")!;
     container
       .querySelector<HTMLElement>("#upcoming-content")!
-      .replaceWith(cardList(r2.map((s) => upcomingCard(s, showSlot))));
+      .replaceWith(cardList(r2.map((s) => upcomingCard(s, showSlot, registrations))));
 
     if (throwerId !== null && auth?.user.id) {
-      const registeredMap = await getRegistrationsForThrower(throwerId);
-      if (!isCurrent()) return;
-      bindRegistrationSlots(upcomingSection, throwerId, auth.user.id, registeredMap);
+      bindRegistrationSlots(upcomingSection, throwerId, auth.user.id, registrations.byTournament);
     }
   } catch (err) {
     logError("home.render", err);

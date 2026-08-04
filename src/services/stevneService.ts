@@ -554,17 +554,34 @@ export async function updateTournamentSettings(
   return { error };
 }
 
-export async function getRegistrationsForThrower(kasterid: number): Promise<Map<number, number>> {
+export interface ThrowerRegistrations {
+  /** stevneid → pameldingid, for stevner the thrower is registered to directly. */
+  byTournament: Map<number, number>;
+  /**
+   * SNC umbrellas the thrower is in through one of their local stevner. A pamelding
+   * row never names the umbrella itself, so `byTournament` cannot answer this.
+   */
+  sncParentIds: Set<number>;
+}
+
+export function emptyThrowerRegistrations(): ThrowerRegistrations {
+  return { byTournament: new Map(), sncParentIds: new Set() };
+}
+
+export async function getRegistrationsForThrower(kasterid: number): Promise<ThrowerRegistrations> {
   const { data, error } = await supabase
     .from("pamelding")
-    .select("id, stevneid")
+    .select("id, stevneid, stevne:stevneid(snc_hovudstevne_id)")
     .eq("kasterid", kasterid);
   if (error) logError("getRegistrationsForThrower", error);
-  const map = new Map<number, number>();
+  const registrations = emptyThrowerRegistrations();
   for (const row of data ?? []) {
-    if (row.stevneid != null) map.set(row.stevneid, row.id);
+    if (row.stevneid == null) continue;
+    registrations.byTournament.set(row.stevneid, row.id);
+    const parentId = row.stevne?.snc_hovudstevne_id;
+    if (parentId != null) registrations.sncParentIds.add(parentId);
   }
-  return map;
+  return registrations;
 }
 
 // ── Dispatcher-hjelparar ──────────────────────────────────────────────────────

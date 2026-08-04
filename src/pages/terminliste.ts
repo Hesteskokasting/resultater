@@ -5,8 +5,9 @@ import {
   getScheduleTournaments,
   getFilterOptions,
   getRegistrationsForThrower,
+  emptyThrowerRegistrations,
 } from "@/services/stevneService";
-import type { ScheduleTournamentRow } from "@/services/stevneService";
+import type { ScheduleTournamentRow, ThrowerRegistrations } from "@/services/stevneService";
 import {
   formatDateLong,
   formatDateWeekday,
@@ -19,7 +20,13 @@ import { buildDropdownOptions } from "@/utils/buildDropdownOptions";
 import { createErrorBanner } from "@/components/ErrorBanner";
 import { createLoadingState } from "@/components/LoadingState";
 import { createEmptyState } from "@/components/EmptyState";
-import { createStevneCard, type StevneCardTypeBadge } from "@/components/StevneCard";
+import {
+  createStevneCard,
+  actionLinkHtml,
+  type StevneCardTypeBadge,
+  type StevneCardActionLink,
+} from "@/components/StevneCard";
+import { sncUmbrellaActionLink } from "@/utils/sncRegistration";
 import { createExcelButton } from "@/components/ExcelButton";
 import { createFilterButton } from "@/components/FilterButton";
 import { escHtml } from "@/utils/escHtml";
@@ -63,9 +70,9 @@ function canRegisterRow(s: TournamentRow, auth: AuthUser | null): boolean {
 }
 
 /** SNC: the thrower must pick a local stevne first, so the button navigates. */
-function sncRegistrationLink(s: TournamentRow): { href: string; label: string } | undefined {
+function sncRegistrationLink(s: TournamentRow): StevneCardActionLink | undefined {
   if (!s.er_snc_hovudstevne || !canRegisterRow(s, _auth)) return undefined;
-  return { href: `#/stevne/${s.id}/info`, label: "Meld på" };
+  return sncUmbrellaActionLink(s.id, _registrations.sncParentIds.has(s.id));
 }
 
 /** Without results there is no resultat tab to open. */
@@ -75,9 +82,7 @@ function rowHref(s: TournamentRow): string {
 
 function trailingActionHtml(s: TournamentRow): string {
   const sncLink = sncRegistrationLink(s);
-  if (sncLink) {
-    return `<a class="btn btn-sm btn-primary" href="${escHtml(sncLink.href)}">${escHtml(sncLink.label)}</a>`;
-  }
+  if (sncLink) return actionLinkHtml(sncLink);
   return canRegisterRow(s, _auth) && !s.er_snc_hovudstevne
     ? `<span data-registration-slot="${s.id}"></span>`
     : "";
@@ -100,7 +105,7 @@ const filter = {
 
 let allData: TournamentRow[] = [];
 let _auth: AuthUser | null = null;
-let _registeredMap: Map<number, number> = new Map();
+let _registrations: ThrowerRegistrations = emptyThrowerRegistrations();
 // "NM" is one of the stevnetype options, but ernm is the authoritative NM flag
 let _nmTypeId: number | undefined;
 // Local stevner are hidden from the schedule — they are parts of one event, and
@@ -468,10 +473,10 @@ export async function render(container: HTMLElement): Promise<void> {
     ]);
     _nmTypeId = filterOptions.stevnetyper.find((t) => t.navn === "NM")?.id;
     _auth = auth;
-    _registeredMap =
+    _registrations =
       auth?.profil?.kasterid != null
         ? await getRegistrationsForThrower(auth.profil.kasterid)
-        : new Map();
+        : emptyThrowerRegistrations();
 
     if (error) {
       logError("terminliste.render", error);
@@ -570,7 +575,7 @@ export async function render(container: HTMLElement): Promise<void> {
       const throwerId = _auth?.profil?.kasterid;
       const userId = _auth?.user.id;
       if (throwerId != null && userId)
-        bindRegistrationSlots(listEl, throwerId, userId, _registeredMap);
+        bindRegistrationSlots(listEl, throwerId, userId, _registrations.byTournament);
       return filtered;
     }
 

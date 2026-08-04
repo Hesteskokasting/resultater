@@ -27,6 +27,18 @@ const mocks = vi.hoisted(() => ({
   renderSncResults: vi.fn(),
 }));
 
+function noRegistrations() {
+  return { byTournament: new Map<number, number>(), sncParentIds: new Set<number>() };
+}
+
+/** Registered to a local stevne under `parentId`, never to the umbrella itself. */
+function registeredUnder(parentId: number, localId: number, registrationId = 1) {
+  return {
+    byTournament: new Map<number, number>([[localId, registrationId]]),
+    sncParentIds: new Set<number>([parentId]),
+  };
+}
+
 vi.mock("@/supabase", () => ({ supabase: {} }));
 vi.mock("@/services/stevneService", () => ({
   getTournamentHeader: mocks.getTournamentHeader,
@@ -35,6 +47,7 @@ vi.mock("@/services/stevneService", () => ({
   getTournamentsByIds: mocks.getTournamentsByIds,
   getUpcomingTournaments: mocks.getUpcomingTournaments,
   getRegistrationsForThrower: mocks.getRegistrationsForThrower,
+  emptyThrowerRegistrations: () => noRegistrations(),
 }));
 vi.mock("@/services/authService", () => ({
   isAdmin: mocks.isAdmin,
@@ -107,7 +120,7 @@ beforeEach(() => {
   getLiveTournaments.mockResolvedValue({ data: [], error: null });
   getTournamentsByIds.mockResolvedValue({ data: [], error: null });
   getUpcomingTournaments.mockResolvedValue({ data: [], error: null });
-  getRegistrationsForThrower.mockResolvedValue(new Map());
+  getRegistrationsForThrower.mockResolvedValue(noRegistrations());
 });
 
 describe("stevne tabs", () => {
@@ -279,6 +292,23 @@ describe("home page and SNC", () => {
     expect(action.textContent).toBe("Meld på");
     expect(action.getAttribute("href")).toBe("#/stevne/100/info");
     expect(el.querySelector("[data-registration-slot]")).toBeNull();
+  });
+
+  it("reports Påmeldt on an SNC round the thrower already joined through a local stevne", async () => {
+    getUser.mockResolvedValue(linkedUser);
+    getUpcomingTournaments.mockResolvedValue({
+      data: [upcoming({ er_snc_hovudstevne: true })],
+      error: null,
+    });
+    getRegistrationsForThrower.mockResolvedValue(registeredUnder(100, 101));
+    const el = host();
+    await renderHome(el);
+
+    const action = el.querySelector<HTMLAnchorElement>(".homepage-upcoming a.btn")!;
+    expect(action.textContent).toBe("Påmeldt");
+    expect(action.className).toContain("btn-outline-secondary");
+    // Still reachable: the umbrella page is where they switch local stevne or withdraw.
+    expect(action.getAttribute("href")).toBe("#/stevne/100/info");
   });
 
   it("keeps the ordinary registration button on a non-SNC tournament", async () => {

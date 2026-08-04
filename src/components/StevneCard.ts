@@ -8,6 +8,19 @@ export interface StevneCardTypeBadge {
   kategori?: string;
 }
 
+export interface StevneCardActionLink {
+  href: string;
+  label: string;
+  /** "secondary" reports a state the thrower is already in; "primary" (default) invites the action. */
+  variant?: "primary" | "secondary";
+}
+
+/** Shared by the card's trailing slot and terminliste's desktop table cell. */
+export function actionLinkHtml(link: StevneCardActionLink): string {
+  const variantClass = link.variant === "secondary" ? "btn-outline-secondary" : "btn-primary";
+  return `<a class="btn btn-sm ${variantClass}" href="${escHtml(link.href)}">${escHtml(link.label)}</a>`;
+}
+
 export interface StevneCardProps {
   title: string;
   /** Navigation target, e.g. "#/stevne/2310/resultat". The whole card links here. */
@@ -40,7 +53,7 @@ export interface StevneCardProps {
    * A link rendered as a button in the trailing slot, for actions that navigate
    * rather than write. Ignored when `registrationSlotId` is set.
    */
-  actionLink?: { href: string; label: string };
+  actionLink?: StevneCardActionLink;
   /**
    * Emits `<span data-action-slot>` in the trailing slot for the caller to swap
    * for its own control. Ignored when `registrationSlotId` or `actionLink` is set.
@@ -85,7 +98,7 @@ export function createStevneCard(props: StevneCardProps): HTMLElement {
     props.registrationSlotId !== undefined
       ? `<div class="stevne-kort__trailing stevne-kort__trailing--action"><span data-registration-slot="${props.registrationSlotId}"></span></div>`
       : props.actionLink
-        ? `<div class="stevne-kort__trailing stevne-kort__trailing--action"><a class="btn btn-sm btn-primary" href="${escHtml(props.actionLink.href)}">${escHtml(props.actionLink.label)}</a></div>`
+        ? `<div class="stevne-kort__trailing stevne-kort__trailing--action">${actionLinkHtml(props.actionLink)}</div>`
         : props.actionSlot
           ? `<div class="stevne-kort__trailing stevne-kort__trailing--action"><span data-action-slot></span></div>`
           : `<div class="stevne-kort__trailing">${CHEVRON_SVG}</div>`;
