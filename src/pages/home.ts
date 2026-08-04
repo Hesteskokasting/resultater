@@ -47,8 +47,8 @@ function upcomingCard(
   showSlot: boolean,
   registrations: ThrowerRegistrations,
 ): HTMLElement {
-  const notStarted = s.stevne_fase === null || s.stevne_fase === "ikke_startet";
-  const canRegister = showSlot && notStarted && !s.erfullfort;
+  // getUpcomingTournaments already constrains erfullfort and stevne_fase, so showSlot is the only gate left.
+  const canRegister = showSlot;
   return createStevneCard({
     title: s.navn,
     href: `#/stevne/${s.id}/info`,
@@ -136,10 +136,13 @@ export async function render(container: HTMLElement): Promise<void> {
     if (!isCurrent()) return;
     // Re-sorted: concatenating the umbrellas onto the plain stevner would
     // otherwise drop the date order the query established.
+    const plainLive = ongoing.filter((s) => s.snc_hovudstevne_id == null);
+    const plainLiveIds = new Set(plainLive.map((s) => s.id));
     const live = [
-      ...ongoing.filter((s) => s.snc_hovudstevne_id == null),
-      // A finished umbrella must not reappear as live just because a local is still running.
-      ...sncParents.filter((s) => !s.erfullfort),
+      ...plainLive,
+      // A finished umbrella must not reappear as live just because a local is still running,
+      // and one with its own live phase is already in plainLive.
+      ...sncParents.filter((s) => !s.erfullfort && !plainLiveIds.has(s.id)),
     ].sort((a, b) => (a.dato ?? "").localeCompare(b.dato ?? ""));
 
     // Update sections in-place to avoid layout shift
@@ -159,7 +162,12 @@ export async function render(container: HTMLElement): Promise<void> {
 
     // Same gate as the slots themselves — binding must not outlive what upcomingCard rendered.
     if (showSlot && throwerId !== null && auth) {
-      bindRegistrationSlots(upcomingSection, throwerId, auth.user.id, registrations.byTournament);
+      // The page has already painted; a binding failure must not replace it with an error.
+      try {
+        bindRegistrationSlots(upcomingSection, throwerId, auth.user.id, registrations.byTournament);
+      } catch (err) {
+        logError("home.bindRegistrationSlots", err);
+      }
     }
   } catch (err) {
     logError("home.render", err);
