@@ -2421,9 +2421,16 @@ th.initial-score-th {
   color: var(--tekst-3);
 }
 
-/* Per-player total ringers in the main court row (left of TOT). */
+/* Per-player total ringers and ringer percentage in the main court row. */
 .bane-ringer-col {
   color: var(--tekst-2);
+}
+
+/* Divider opening the summary columns (R/%/… ) in the court and standing
+   tables. th prefix needed to win over .org-thead th on specificity. */
+.match-table td.table-summary-start,
+.match-table th.table-summary-start {
+  border-left: 1px solid var(--kant-2);
 }
 
 .bane-detail-cell-btn {

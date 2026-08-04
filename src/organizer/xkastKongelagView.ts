@@ -19,6 +19,7 @@ import { throwerName } from "@/utils/kaster";
 import { logError } from "@/utils/logError";
 import { unsubscribeChannel } from "@/utils/realtime";
 import { coalesceReload } from "@/utils/coalesceReload";
+import { ringerPercent } from "@/utils/omgangValidation";
 import {
   renderMainContent,
   bindTabToggle,
@@ -319,9 +320,9 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
       .join("");
 
     // Lane + action columns are rowspanned over this row; span the middle ones
-    // (NAMN + score columns + R + TOT). The tint class frames the recessed
+    // (NAMN + score columns + R + % + TOT). The tint class frames the recessed
     // panel with the court's zebra tint.
-    return `<tr class="xk-detail-row ${tintClass}"><td colspan="${headers.length + 3}">
+    return `<tr class="xk-detail-row ${tintClass}"><td colspan="${headers.length + 4}">
         <div class="bane-detail-panel">
           <table class="bane-detail-table">
             <thead>
@@ -417,7 +418,8 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
         ${firstCells}
         ${nameCellHtml(court, participant, hasDetail, isExpanded)}
         ${scoreCells}
-        <td class="text-center bane-ringer-col">${ringerSum(participant)}</td>
+        <td class="text-center bane-ringer-col table-summary-start">${ringerSum(participant)}</td>
+        <td class="text-center bane-ringer-col">${participantPercentHtml(participant)}</td>
         <td class="${totCls}"${totAttr}>${totalSum(participant)}</td>
         ${i === 0 ? courtActionTd(court) : ""}
       </tr>`;
@@ -451,7 +453,8 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
               <th class="th-36 text-center">B</th>
               <th>NAMN</th>
               ${scoreHeaders}
-              <th class="text-center th-44">R</th>
+              <th class="text-center th-44 table-summary-start">R</th>
+              <th class="text-center th-50">%</th>
               <th class="text-center th-44">TOT</th>
               ${actionTh}
             </tr>
@@ -494,7 +497,8 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
       <td class="standing-dim-cell">${row.plassering}</td>
       <td>${escHtml(row.navn)}</td>
       <td class="standing-number standing-dim-cell">${row.antallOmganger}</td>
-      <td class="standing-number standing-kp-cell">${row.antallRinger}</td>
+      <td class="standing-number standing-kp-cell table-summary-start">${row.antallRinger}</td>
+      <td class="standing-number standing-dim-cell">${percentCellHtml(row.antallRinger, row.antallOmganger)}</td>
       ${carryCells}
     </tr>`;
   }
@@ -524,7 +528,8 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
               <th class="th-32">#</th>
               <th>NAMN</th>
               <th class="th-50 standing-number">O</th>
-              <th class="th-44 standing-number standing-kp-th">R</th>
+              <th class="th-44 standing-number standing-kp-th table-summary-start">R</th>
+              <th class="th-50 standing-number">%</th>
               ${scoreHeaders}
             </tr>
           </thead>
@@ -698,6 +703,23 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
   function ringerSum(participant: CourtParticipantRow): number {
     if (participant.totalsum_manuelt) return participant.antall_ringer;
     return participant.omgangar.reduce((sum, o) => sum + (o.antall_ringer ?? 0), 0);
+  }
+
+  /**
+   * Ringer percentage cell content, one decimal. Counted over the omganger
+   * actually thrown so the figure stays honest mid-match; a manual total has no
+   * partial progress, so it counts the full configured distance.
+   */
+  function percentCellHtml(antallRinger: number, antallOmganger: number): string {
+    const percent = ringerPercent(antallRinger, antallOmganger);
+    if (percent == null) return '<span class="bane-detail-dash">—</span>';
+    return percent.toFixed(1);
+  }
+
+  function participantPercentHtml(participant: CourtParticipantRow): string {
+    const s = state!;
+    const omganger = participant.totalsum_manuelt ? s.antallOmganger : participant.omgangar.length;
+    return percentCellHtml(ringerSum(participant), omganger);
   }
 
   function openOmgangEdit(deltakerId: number, omgang: number): void {

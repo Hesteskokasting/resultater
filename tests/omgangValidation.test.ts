@@ -5,6 +5,7 @@ import {
   ringOptions,
   totalMaxPoeng,
   totalMaxRinger,
+  ringerPercent,
   validRingerRange,
 } from "@/utils/omgangValidation";
 
@@ -116,5 +117,24 @@ describe("isValidOmgangEntry", () => {
         expect(isValidOmgangEntry(poeng, ringere)).toBe(possible.has(`${poeng}:${ringere}`));
       }
     }
+  });
+});
+
+describe("ringerPercent", () => {
+  it("counts 4 sko per omgang — Minimatch 15 omganger is 60 sko", () => {
+    expect(ringerPercent(30, 15)).toBe(50);
+    expect(ringerPercent(32, 15)).toBeCloseTo(53.333, 3);
+  });
+
+  it("is measured over the omganger given, not the full match", () => {
+    expect(ringerPercent(8, 3)).toBeCloseTo(66.667, 3);
+  });
+
+  it("returns null when nothing is thrown", () => {
+    expect(ringerPercent(0, 0)).toBeNull();
+  });
+
+  it("reaches 100 for an all-ringer total", () => {
+    expect(ringerPercent(totalMaxRinger(25), 25)).toBe(100);
   });
 });

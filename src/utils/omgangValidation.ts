@@ -62,6 +62,16 @@ export function totalMaxRinger(antallOmganger: number): number {
   return totalShoes(antallOmganger);
 }
 
+/**
+ * Ringer share of the sko thrown over `antallOmganger` (Minimatch 15 → 60 sko).
+ * Null when nothing is thrown yet, so the caller renders a dash rather than 0 %.
+ */
+export function ringerPercent(antallRinger: number, antallOmganger: number): number | null {
+  const shoes = totalShoes(antallOmganger);
+  if (shoes <= 0) return null;
+  return (antallRinger / shoes) * 100;
+}
+
 /** Aggregate-level validity for a directly-entered total, same shoe model at total scale. */
 export function isValidTotalEntry(
   poeng: number,
