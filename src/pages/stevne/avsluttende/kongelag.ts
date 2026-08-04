@@ -84,7 +84,7 @@ function renderStartPanel(ctx: CourtPhaseContext): HTMLElement | null {
     const ok = await confirmDialog({
       title: "Start Kongelag",
       message: ctx.config.hasInitialPhase
-        ? "Generere Kongelag-banar frå innleiande resultat? Dei beste spelarane hamnar i pulje 1."
+        ? "Generere Kongelag-banar frå innleiande resultat? Dei beste spelarane hamnar i siste pulje og kastar sist."
         : "Generere Kongelag-banar med tilfeldig trekt startrekkjefølgje?",
     });
     if (!ok) return;

@@ -248,10 +248,11 @@ async function _seedStandaloneKongelag(
 }
 
 /**
- * Seeds Kongelag courts best-first (pulje 1, bane 1), puljer capped by
- * stevne.tilgjengelige_baner, one player per court. Order comes from
- * innledende results; a standalone Kongelag draws randomly from enrollment
- * (and creates the resultat rows) instead.
+ * Seeds Kongelag courts with the best players in the last pulje (they throw
+ * last), puljer capped by stevne.tilgjengelige_baner and by the two-wave
+ * minimum, one player per court. Order comes from innledende results; a
+ * standalone Kongelag draws randomly from enrollment (and creates the resultat
+ * rows) instead.
  */
 export async function generateKongelagCourts(stevneid: number): Promise<{ error: unknown }> {
   const { data: config, error: configError } = await getKongelagConfig(stevneid);

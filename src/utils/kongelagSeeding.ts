@@ -42,7 +42,11 @@ export const KONGELAG_MIN_PULJER = 2;
 
 /**
  * Assigns seeded kasterids to Kongelag courts: puljer sized by calcPuljeSizes,
- * one player per court. Best players fill pulje 1, bane 1.
+ * one player per court.
+ *
+ * The best players throw last, so the puljer are filled from the last one
+ * backwards — the top seeds land in the highest pulje number, and pulje 1 holds
+ * the weakest. Within a pulje the seeding still runs best-first from bane 1.
  *
  * The pulje cap is the stricter of the available lanes and half the field, so a
  * venue with lanes to spare (or no lane count at all) still gets the two waves
@@ -53,10 +57,13 @@ export function buildKongelagCourts(kasterids: number[], lanes: number | null): 
   if (!kasterids.length) return [];
   const waveCap = Math.max(1, Math.ceil(kasterids.length / KONGELAG_MIN_PULJER));
   const cap = Math.min(lanes ?? kasterids.length, waveCap);
+  const puljeSizes = calcPuljeSizes(kasterids.length, cap);
   const courts: KongelagCourt[] = [];
   let next = 0;
-  calcPuljeSizes(kasterids.length, cap).forEach((puljeSize, puljeIdx) => {
-    for (let i = 0; i < puljeSize; i++) {
+  // Reverse iteration keeps each size bound to its own pulje number; only the
+  // fill order flips, so the best seeds go into the last pulje.
+  for (let puljeIdx = puljeSizes.length - 1; puljeIdx >= 0; puljeIdx--) {
+    for (let i = 0; i < puljeSizes[puljeIdx]!; i++) {
       courts.push({
         pulje: puljeIdx + 1,
         baneNummer: i + 1,
@@ -64,6 +71,7 @@ export function buildKongelagCourts(kasterids: number[], lanes: number | null): 
       });
       next++;
     }
-  });
-  return courts;
+  }
+  // Returned in display order (pulje 1 first) — generation order is the reverse.
+  return courts.sort((a, b) => a.pulje - b.pulje || a.baneNummer - b.baneNummer);
 }

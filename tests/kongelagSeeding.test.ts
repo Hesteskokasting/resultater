@@ -51,19 +51,29 @@ describe("orderKongelagSeeding", () => {
 
 describe("buildKongelagCourts", () => {
   it("splits into two waves when lanes is null — half the field scores for the other half", () => {
+    // [5, 3, 8] is seeded best-first: 5 is the top seed, so it throws last.
+    // An odd field sizes the puljer [1, 2], so the last (strongest) wave is the
+    // larger one.
     const courts = buildKongelagCourts([5, 3, 8], null);
     expect(courts).toEqual([
-      { pulje: 1, baneNummer: 1, kasterids: [5] },
-      { pulje: 2, baneNummer: 1, kasterids: [3] },
-      { pulje: 2, baneNummer: 2, kasterids: [8] },
+      { pulje: 1, baneNummer: 1, kasterids: [8] },
+      { pulje: 2, baneNummer: 1, kasterids: [5] },
+      { pulje: 2, baneNummer: 2, kasterids: [3] },
     ]);
   });
 
   it("splits into two waves even when the lanes fit the whole field", () => {
-    const kasterids = [1, 2, 3, 4, 5, 6, 7, 8];
-    const courts = buildKongelagCourts(kasterids, 8);
+    const courts = buildKongelagCourts([1, 2, 3, 4, 5, 6, 7, 8], 8);
     expect(courts.map((c) => c.pulje)).toEqual([1, 1, 1, 1, 2, 2, 2, 2]);
-    expect(courts.flatMap((c) => c.kasterids)).toEqual(kasterids);
+    // Weakest half throws first; the top four seeds fill the last pulje.
+    expect(courts.flatMap((c) => c.kasterids)).toEqual([5, 6, 7, 8, 1, 2, 3, 4]);
+  });
+
+  it("puts the best players in the last pulje, best-first within it", () => {
+    const courts = buildKongelagCourts([1, 2, 3, 4, 5, 6], 3);
+    const lastPulje = courts.filter((c) => c.pulje === 2);
+    expect(lastPulje.flatMap((c) => c.kasterids)).toEqual([1, 2, 3]);
+    expect(lastPulje.map((c) => c.baneNummer)).toEqual([1, 2, 3]);
   });
 
   it("keeps at least two puljer for an odd field", () => {
@@ -84,12 +94,12 @@ describe("buildKongelagCourts", () => {
     expect(buildKongelagCourts([1, 2], null).map((c) => c.pulje)).toEqual([1, 2]);
   });
 
-  it("splits into fair puljer capped by lanes, best players in pulje 1", () => {
-    const kasterids = [1, 2, 3, 4, 5, 6, 7];
-    const courts = buildKongelagCourts(kasterids, 4);
+  it("splits into fair puljer capped by lanes, best players in the last pulje", () => {
+    const courts = buildKongelagCourts([1, 2, 3, 4, 5, 6, 7], 4);
     expect(courts.map((c) => c.pulje)).toEqual([1, 1, 1, 2, 2, 2, 2]);
     expect(courts.map((c) => c.baneNummer)).toEqual([1, 2, 3, 1, 2, 3, 4]);
-    expect(courts.flatMap((c) => c.kasterids)).toEqual(kasterids);
+    // Pulje sizes stay bound to their pulje number ([3, 4]); only the fill order flips.
+    expect(courts.flatMap((c) => c.kasterids)).toEqual([5, 6, 7, 1, 2, 3, 4]);
   });
 
   it("gives every court exactly one player", () => {
