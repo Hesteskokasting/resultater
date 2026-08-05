@@ -40,7 +40,10 @@ const _infoStevneQuery = supabase.from("stevne").select(`
     snc_hovudstevne_id,
     kastemetodeInnl:kastemetode!stevne_innledendekastemetodeid_fkey(id, navn),
     kastemetodeAvsl:kastemetode!stevne_avsluttendekastemetodeid_fkey(id, navn),
-    kategori:kategoriid(erlagbasert, navn)
+    kategori:kategoriid(erlagbasert, navn),
+    stevnetype:stevnetypeid(id, navn),
+    klubb:klubbid(id, navn),
+    kontakt:kontaktkasterid(fornavn, etternavn)
   `);
 
 export type InfoTournamentRow = QueryData<typeof _infoStevneQuery>[number];
@@ -171,7 +174,10 @@ export async function getInfoTournament(
       snc_hovudstevne_id,
       kastemetodeInnl:kastemetode!stevne_innledendekastemetodeid_fkey(id, navn),
       kastemetodeAvsl:kastemetode!stevne_avsluttendekastemetodeid_fkey(id, navn),
-      kategori:kategoriid(erlagbasert, navn)
+      kategori:kategoriid(erlagbasert, navn),
+      stevnetype:stevnetypeid(id, navn),
+      klubb:klubbid(id, navn),
+      kontakt:kontaktkasterid(fornavn, etternavn)
     `)
     .eq("id", id)
     .maybeSingle();

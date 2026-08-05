@@ -62,6 +62,12 @@ export async function render(
     const categoryName = (stevne.kategori?.navn ?? "").toLowerCase();
     const isTeamOrMix = categoryName.includes("par") || categoryName.includes("mix");
 
+    const typeAndCategory =
+      [stevne.stevnetype?.navn, stevne.kategori?.navn].filter(Boolean).join(" ") || "—";
+    const contactName = stevne.kontakt
+      ? `${stevne.kontakt.fornavn} ${stevne.kontakt.etternavn}`.trim()
+      : "";
+
     // ── Start-tournament button (admin, not started) ──────────────────────────
 
     // No innleiande metode + Kongelag avsluttande = standalone Kongelag:
@@ -161,7 +167,9 @@ export async function render(
               <tr><th>Stad</th><td>${escHtml(stevne.sted ?? "—")}</td></tr>
               <tr><th>Dato</th><td>${stevne.dato ? formatDateNumeric(stevne.dato) : "—"}</td></tr>
               <tr><th>Tid</th><td>${stevne.tid ? formatTime(stevne.tid) : "—"}</td></tr>
-              <tr><th>Kategori</th><td>${escHtml(stevne.kategori?.navn ?? "—")}</td></tr>
+              <tr><th>Type / Kategori</th><td>${escHtml(typeAndCategory)}</td></tr>
+              <tr><th>Arrangør</th><td>${escHtml(stevne.klubb?.navn ?? "—")}</td></tr>
+              <tr><th>Kontaktperson</th><td>${escHtml(contactName || "—")}</td></tr>
               <tr><th>Kastemetode innleiande</th><td>${escHtml(methodName)}</td></tr>
               <tr><th>Kastemetode avsluttande</th><td>${escHtml(stevne.kastemetodeAvsl?.navn ?? "—")}</td></tr>
               <tr><th>Antal rundar innleiande</th><td>${stevne.antall_runder_innl ?? "—"}</td></tr>
