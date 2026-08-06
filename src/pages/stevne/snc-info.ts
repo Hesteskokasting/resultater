@@ -8,13 +8,13 @@ import { createErrorBanner } from "@/components/ErrorBanner";
 import { createLoadingState } from "@/components/LoadingState";
 import { createEmptyState } from "@/components/EmptyState";
 import { createStevneCard } from "@/components/StevneCard";
+import { stevneInfoCardHtml, stevneInfoRows } from "@/components/StevneInfoTabell";
 import { showToast } from "@/components/Toast";
 import { errorMessage } from "@/utils/errorMessage";
 import { escHtml } from "@/utils/escHtml";
 import { logError } from "@/utils/logError";
 import {
   formatDateLong,
-  formatDateNumeric,
   formatDateWeekday,
   formatDayOfMonth,
   formatTime,
@@ -51,13 +51,9 @@ function registrationOpen(local: SncLocalTournamentRow): boolean {
   return isNotStarted(local) && !local.erfullfort;
 }
 
-function methodSummary(parent: SncParentTournamentRow): string {
-  const parts = [parent.kastemetodeInnl?.navn, parent.kastemetodeAvsl?.navn].filter(Boolean);
-  return parts.length ? parts.join(" → ") : "—";
-}
-
 // ── HTML builders ─────────────────────────────────────────────────────────────
 
+/** The ordinary stevne table, with the round's own counts in place of påmelde. */
 function overviewHtml(
   parent: SncParentTournamentRow,
   locals: SncLocalTournamentRow[],
@@ -70,22 +66,12 @@ function overviewHtml(
       ? `${completed} av ${locals.length} lokale stevne fullført`
       : "Ingen lokale stevne registrerte";
 
-  return `
-    <div class="card mb-3">
-      <div class="card-body">
-        <table class="table table-sm mb-0">
-          <tbody>
-            <tr><th>Status</th><td>${escHtml(status)}</td></tr>
-            <tr><th>Dato</th><td>${parent.dato ? formatDateNumeric(parent.dato) : "—"}</td></tr>
-            <tr><th>Tid</th><td>${parent.tid ? formatTime(parent.tid) : "—"}</td></tr>
-            <tr><th>Kategori</th><td>${escHtml(parent.kategori?.navn ?? "—")}</td></tr>
-            <tr><th>Kastemetode</th><td>${escHtml(methodSummary(parent))}</td></tr>
-            <tr><th>Lokale stevne</th><td>${locals.length}</td></tr>
-            <tr><th>Påmelde i alt</th><td>${totalRegistrations}</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>`;
+  return stevneInfoCardHtml([
+    { label: "Status", html: escHtml(status) },
+    ...stevneInfoRows(parent),
+    { label: "Lokale stevne", html: String(locals.length) },
+    { label: "Påmelde i alt", html: String(totalRegistrations) },
+  ]);
 }
 
 function ownRegistrationNoticeHtml(
@@ -102,7 +88,7 @@ function ownRegistrationNoticeHtml(
   }
   if (!canRegister) return "";
   if (summary.ownStevneId == null) {
-    return `<div class="alert alert-info">Vel kva lokalt stevne du vil delta på. Du kan berre stå på eitt per SNC-runde.</div>`;
+    return `<div class="alert alert-info">Vel kva lokalt stevne du vil delta på.</div>`;
   }
   const own = locals.find((l) => l.id === summary.ownStevneId);
   return `<div class="alert alert-success">
@@ -335,8 +321,7 @@ function renderBanner(
     if (
       !(await confirmDialog({
         title: "Konsolider SNC-runden",
-        message:
-          "Alle lokalresultata blir slåtte saman til éi liste, og NC-poenga blir rekna ut frå den samla plasseringa. Fortsette?",
+        message: "Alle lokalresultata blir slått saman til éi liste. Fortsette?",
         danger: true,
       }))
     )

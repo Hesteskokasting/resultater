@@ -1,8 +1,7 @@
 import { getUser } from "@/services/authService";
-import { formatDateNumeric, formatTime } from "@/utils/shared";
 import { createErrorBanner } from "@/components/ErrorBanner";
 import { createLoadingState } from "@/components/LoadingState";
-import { escHtml } from "@/utils/escHtml";
+import { stevneInfoCardHtml, stevneInfoRows } from "@/components/StevneInfoTabell";
 import { logError } from "@/utils/logError";
 import { errorMessage } from "@/utils/errorMessage";
 import { showToast } from "@/components/Toast";
@@ -61,12 +60,6 @@ export async function render(
     const isTeam = stevne.kategori?.erlagbasert ?? false;
     const categoryName = (stevne.kategori?.navn ?? "").toLowerCase();
     const isTeamOrMix = categoryName.includes("par") || categoryName.includes("mix");
-
-    const typeAndCategory =
-      [stevne.stevnetype?.navn, stevne.kategori?.navn].filter(Boolean).join(" ") || "—";
-    const contactName = stevne.kontakt
-      ? `${stevne.kontakt.fornavn} ${stevne.kontakt.etternavn}`.trim()
-      : "";
 
     // ── Start-tournament button (admin, not started) ──────────────────────────
 
@@ -159,30 +152,23 @@ export async function render(
     // ── Info card ─────────────────────────────────────────────────────────────
 
     container.innerHTML = `
-      <div class="card mb-3 org-max-480">
-        <div class="card-body">
-          <table class="table table-sm mb-0">
-            <tbody>
-              <tr><th>Status</th><td>${statusBadge(stevne.stevne_fase, stevne.erfullfort)}</td></tr>
-              <tr><th>Stad</th><td>${escHtml(stevne.sted ?? "—")}</td></tr>
-              <tr><th>Dato</th><td>${stevne.dato ? formatDateNumeric(stevne.dato) : "—"}</td></tr>
-              <tr><th>Tid</th><td>${stevne.tid ? formatTime(stevne.tid) : "—"}</td></tr>
-              <tr><th>Type / Kategori</th><td>${escHtml(typeAndCategory)}</td></tr>
-              <tr><th>Arrangør</th><td>${escHtml(stevne.klubb?.navn ?? "—")}</td></tr>
-              <tr><th>Kontaktperson</th><td>${escHtml(contactName || "—")}</td></tr>
-              <tr><th>Kastemetode innleiande</th><td>${escHtml(methodName)}</td></tr>
-              <tr><th>Kastemetode avsluttande</th><td>${escHtml(stevne.kastemetodeAvsl?.navn ?? "—")}</td></tr>
-              <tr><th>Antal rundar innleiande</th><td>${stevne.antall_runder_innl ?? "—"}</td></tr>
-              <tr><th>Påmelde ${isTeamOrMix ? "par" : "spelarar"}</th><td>${isTeamOrMix ? pairCount : count}</td></tr>
-              ${
-                stevne.snc_hovudstevne_id != null
-                  ? `<tr><th>SNC-runde</th><td><a href="#/stevne/${stevne.snc_hovudstevne_id}/info">Sjå alle lokale stevne</a></td></tr>`
-                  : ""
-              }
-            </tbody>
-          </table>
-        </div>
-      </div>
+      ${stevneInfoCardHtml([
+        { label: "Status", html: statusBadge(stevne.stevne_fase, stevne.erfullfort) },
+        ...stevneInfoRows(stevne),
+        { label: "Antal rundar innleiande", html: String(stevne.antall_runder_innl ?? "—") },
+        {
+          label: `Påmelde ${isTeamOrMix ? "par" : "spelarar"}`,
+          html: String(isTeamOrMix ? pairCount : count),
+        },
+        ...(stevne.snc_hovudstevne_id != null
+          ? [
+              {
+                label: "SNC-runde",
+                html: `<a href="#/stevne/${stevne.snc_hovudstevne_id}/info">Sjå alle lokale stevne</a>`,
+              },
+            ]
+          : []),
+      ])}
       <div id="info-handling-knapper" class="mb-3 d-flex gap-2 flex-wrap"></div>`;
 
     // ── Action buttons ────────────────────────────────────────────────────────

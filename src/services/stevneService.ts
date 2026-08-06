@@ -297,7 +297,7 @@ const _sncLokalstevneQuery = supabase.from("stevne").select(SNC_LOKALSTEVNE_SELE
 export type SncLocalTournamentRow = QueryData<typeof _sncLokalstevneQuery>[number];
 
 const SNC_HOVUDSTEVNE_SELECT =
-  "id, navn, sted, dato, tid, erfullfort, klubbid, innledendekastemetodeid, avsluttendekastemetodeid, kastemetodeInnl:kastemetode!stevne_innledendekastemetodeid_fkey(id, navn, antall_omganger), kastemetodeAvsl:kastemetode!stevne_avsluttendekastemetodeid_fkey(id, navn), kategori:kategoriid(navn, erlagbasert), klubb:klubbid(id, navn)" as const;
+  "id, navn, sted, dato, tid, erfullfort, klubbid, innledendekastemetodeid, avsluttendekastemetodeid, kastemetodeInnl:kastemetode!stevne_innledendekastemetodeid_fkey(id, navn, antall_omganger), kastemetodeAvsl:kastemetode!stevne_avsluttendekastemetodeid_fkey(id, navn), kategori:kategoriid(navn, erlagbasert), stevnetype:stevnetypeid(id, navn), klubb:klubbid(id, navn), kontakt:kontaktkasterid(fornavn, etternavn)" as const;
 
 const _sncHovudstevneQuery = supabase.from("stevne").select(SNC_HOVUDSTEVNE_SELECT);
 
