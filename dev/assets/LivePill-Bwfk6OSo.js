@@ -1,1 +1,0 @@
-function e(){return`<span class="live-pill"><span class="live-prikk"></span></span>`}export{e as t};
