@@ -127,7 +127,11 @@ async function signInWithProviderNative(
         iOSClientId: import.meta.env.VITE_GOOGLE_IOS_CLIENT_ID,
         mode: "online",
       },
-      apple: {},
+      // Only iOS: on Android the plugin's Apple provider is a Custom Tabs web flow
+      // that rejects initialize() outright unless it gets a Services ID and a
+      // redirect URL — which would break the Google button too, since one
+      // initialize() call covers every provider.
+      ...(Capacitor.getPlatform() === "ios" ? { apple: {} } : {}),
     });
 
     let idToken: string | null;
