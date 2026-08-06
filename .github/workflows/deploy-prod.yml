@@ -45,3 +45,11 @@ jobs:
           branch: gh-pages
           clean: true
           clean-exclude: dev/
+
+  publish:
+    needs: build-and-deploy
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/publish-pages.yml

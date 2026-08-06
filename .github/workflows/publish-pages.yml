@@ -1,0 +1,39 @@
+name: Publish Pages
+
+# Publishes the whole gh-pages branch (prod at /, dev at /dev/) as a Pages
+# artifact. Replaces GitHub's legacy branch build, whose Jekyll step kept failing
+# with a bare "Page build failed" and left the deployment stuck in
+# deployment_queued until deploy-pages timed out. See issue #28.
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Serialise instead of cancelling: a dev and a prod deploy can land close
+# together, and each publish uploads the full site.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: gh-pages
+      # Uploads the branch as-is. .git/.github and dotfiles are excluded by the
+      # action, so .nojekyll never reaches the artifact — nothing runs Jekyll on
+      # this path anyway, and the custom domain comes from the Pages settings.
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: .
+      - id: deploy
+        uses: actions/deploy-pages@v5
