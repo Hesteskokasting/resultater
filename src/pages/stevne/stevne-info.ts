@@ -1,13 +1,20 @@
 import { getUser } from "@/services/authService";
 import { createErrorBanner } from "@/components/ErrorBanner";
 import { createLoadingState } from "@/components/LoadingState";
-import { stevneInfoCardHtml, stevneInfoRows } from "@/components/StevneInfoTabell";
+import {
+  heroActionSlot,
+  stevneDetails,
+  stevneHeroHtml,
+  stevneKeyFacts,
+  stevneMethodFacts,
+  stevneSubtitle,
+  type StevneHeroOptions,
+} from "@/components/StevneHero";
 import { logError } from "@/utils/logError";
 import { errorMessage } from "@/utils/errorMessage";
 import { showToast } from "@/components/Toast";
 import { confirmDialog } from "@/components/ConfirmDialog";
 import { getInfoTournament, updateTournamentPhase } from "@/services/stevneService";
-import { livePillHtml } from "@/components/LivePill";
 import {
   getRegistrationCount,
   getPairCount,
@@ -22,11 +29,11 @@ import { isKongelagMethodName } from "@/utils/kastemetode";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function statusBadge(fase: string | null, erfullfort: boolean | null): string {
-  if (erfullfort) return "Fullført";
-  if (fase === "avsluttende") return `Avsluttande fase ${livePillHtml()}`;
-  if (fase === "innledende") return `Innleiande fase ${livePillHtml()}`;
-  return "Ikkje starta";
+function statusBadge(fase: string | null, erfullfort: boolean | null): StevneHeroOptions["status"] {
+  if (erfullfort) return { text: "Fullført", variant: "ok" };
+  if (fase === "avsluttende") return { text: "Avsluttande fase", variant: "live" };
+  if (fase === "innledende") return { text: "Innleiande fase", variant: "live" };
+  return { text: "Ikkje starta", variant: "warn" };
 }
 
 // ── Render ────────────────────────────────────────────────────────────────────
@@ -34,9 +41,8 @@ function statusBadge(fase: string | null, erfullfort: boolean | null): string {
 export async function render(
   container: HTMLElement,
   { id, isAdmin = false }: { id: number; isAdmin?: boolean },
-  bannerSlot: HTMLElement | null = null,
 ): Promise<void> {
-  registerRefetch(() => render(container, { id, isAdmin }, bannerSlot));
+  registerRefetch(() => render(container, { id, isAdmin }));
   container.replaceChildren(createLoadingState());
 
   try {
@@ -61,6 +67,41 @@ export async function render(
     const categoryName = (stevne.kategori?.navn ?? "").toLowerCase();
     const isTeamOrMix = categoryName.includes("par") || categoryName.includes("mix");
 
+    // ── Hero ──────────────────────────────────────────────────────────────────
+
+    const registrationLabel = `Påmelde ${isTeamOrMix ? "par" : "spelarar"}`;
+    container.innerHTML = `
+      ${stevneHeroHtml({
+        title: stevne.navn,
+        status: statusBadge(stevne.stevne_fase, stevne.erfullfort),
+        subtitle: stevneSubtitle(stevne),
+        facts: stevneKeyFacts(stevne),
+        methods: stevneMethodFacts(stevne),
+        details: [
+          ...stevneDetails(stevne),
+          { label: registrationLabel, html: String(isTeamOrMix ? pairCount : count) },
+          ...(stevne.antall_runder_innl != null
+            ? [
+                {
+                  label: "Antal rundar innleiande",
+                  html: String(stevne.antall_runder_innl),
+                },
+              ]
+            : []),
+          ...(stevne.snc_hovudstevne_id != null
+            ? [
+                {
+                  label: "SNC-runde",
+                  html: `<a href="#/stevne/${stevne.snc_hovudstevne_id}/info">Sjå alle lokale stevne</a>`,
+                },
+              ]
+            : []),
+        ],
+      })}
+      <div id="info-handling-knapper" class="mb-3 d-flex gap-2 flex-wrap"></div>`;
+
+    const actionSlot = heroActionSlot(container);
+
     // ── Start-tournament button (admin, not started) ──────────────────────────
 
     // No innleiande metode + Kongelag avsluttande = standalone Kongelag:
@@ -68,9 +109,10 @@ export async function render(
     const isStandaloneKongelag =
       !stevne.kastemetodeInnl && isKongelagMethodName(stevne.kastemetodeAvsl?.navn ?? "");
 
-    if (bannerSlot && isNotStarted && isAdmin) {
-      bannerSlot.innerHTML = `<button id="start-stevne-btn" class="btn btn-sm btn-success">Start stevne</button>`;
-      const startBtn = bannerSlot.querySelector<HTMLButtonElement>("#start-stevne-btn")!;
+    const showStartButton = isNotStarted && isAdmin;
+    if (showStartButton) {
+      actionSlot.innerHTML = `<button id="start-stevne-btn" class="btn btn-sm btn-success">Start stevne</button>`;
+      const startBtn = actionSlot.querySelector<HTMLButtonElement>("#start-stevne-btn")!;
       startBtn.addEventListener("click", async () => {
         if (!stevne.kastemetodeInnl && !isStandaloneKongelag) {
           showToast(
@@ -149,28 +191,6 @@ export async function render(
       });
     }
 
-    // ── Info card ─────────────────────────────────────────────────────────────
-
-    container.innerHTML = `
-      ${stevneInfoCardHtml([
-        { label: "Status", html: statusBadge(stevne.stevne_fase, stevne.erfullfort) },
-        ...stevneInfoRows(stevne),
-        { label: "Antal rundar innleiande", html: String(stevne.antall_runder_innl ?? "—") },
-        {
-          label: `Påmelde ${isTeamOrMix ? "par" : "spelarar"}`,
-          html: String(isTeamOrMix ? pairCount : count),
-        },
-        ...(stevne.snc_hovudstevne_id != null
-          ? [
-              {
-                label: "SNC-runde",
-                html: `<a href="#/stevne/${stevne.snc_hovudstevne_id}/info">Sjå alle lokale stevne</a>`,
-              },
-            ]
-          : []),
-      ])}
-      <div id="info-handling-knapper" class="mb-3 d-flex gap-2 flex-wrap"></div>`;
-
     // ── Action buttons ────────────────────────────────────────────────────────
 
     const actionButtons = container.querySelector<HTMLElement>("#info-handling-knapper")!;
@@ -180,7 +200,9 @@ export async function render(
 
       const myRegistration = (await getMyRegistrationForTournament(id, kasterid)).data;
 
-      actionButtons.appendChild(
+      // The hero slot is the primary action; an admin already fills it with
+      // Start stevne, so their own registration button joins the row below.
+      (showStartButton ? actionButtons : actionSlot).appendChild(
         createRegistrationButton({
           tournamentId: id,
           throwerId: kasterid,
@@ -188,7 +210,7 @@ export async function render(
           isRegistered: myRegistration !== null,
           registrationId: myRegistration?.id,
           onAction: () => {
-            void render(container, { id, isAdmin }, bannerSlot);
+            void render(container, { id, isAdmin });
           },
         }),
       );
@@ -205,7 +227,7 @@ export async function render(
     refreshButton.className = "btn btn-sm btn-outline-secondary";
     refreshButton.textContent = "Oppdater";
     refreshButton.addEventListener("click", () => {
-      void render(container, { id, isAdmin }, bannerSlot);
+      void render(container, { id, isAdmin });
     });
     actionButtons.appendChild(refreshButton);
   } catch (err) {

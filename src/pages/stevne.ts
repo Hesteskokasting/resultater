@@ -115,14 +115,22 @@ export async function render(container: HTMLElement, params: Params): Promise<vo
     const tabs = visibleTabs(userIsAdmin, hasFinal, isCompleted, isSncParent);
     const activeTab: TabKey = tabs.some((f) => f.key === tab) ? (tab as TabKey) : "info";
 
+    // The info tab leads with its own hero, which carries the name and the
+    // primary action — a second header above it would only repeat them.
+    const ownsHeader = activeTab === "info";
+
     container.innerHTML = `
       <div class="org-shell pb-3 pt-1">
         ${renderNav(id, activeTab, tabs)}
-        <div class="org-fase-header d-flex align-items-center gap-2 mb-3">
+        ${
+          ownsHeader
+            ? ""
+            : `<div class="org-fase-header d-flex align-items-center gap-2 mb-3">
           <h5 class="mb-0">${escHtml(tournament.navn)}</h5>
           <div id="org-banner-buttons"></div>
-        </div>
-        <div id="org-subpage" class="px-3"></div>
+        </div>`
+        }
+        <div id="org-subpage" class="px-3${ownsHeader ? " pt-3" : ""}"></div>
       </div>`;
 
     const bannerSlot = container.querySelector<HTMLElement>("#org-banner-buttons");

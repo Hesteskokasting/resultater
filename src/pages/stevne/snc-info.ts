@@ -8,7 +8,14 @@ import { createErrorBanner } from "@/components/ErrorBanner";
 import { createLoadingState } from "@/components/LoadingState";
 import { createEmptyState } from "@/components/EmptyState";
 import { createStevneCard } from "@/components/StevneCard";
-import { stevneInfoCardHtml, stevneInfoRows } from "@/components/StevneInfoTabell";
+import {
+  heroActionSlot,
+  stevneDetails,
+  stevneHeroHtml,
+  stevneKeyFacts,
+  stevneMethodFacts,
+  stevneSubtitle,
+} from "@/components/StevneHero";
 import { showToast } from "@/components/Toast";
 import { errorMessage } from "@/utils/errorMessage";
 import { escHtml } from "@/utils/escHtml";
@@ -53,25 +60,31 @@ function registrationOpen(local: SncLocalTournamentRow): boolean {
 
 // ── HTML builders ─────────────────────────────────────────────────────────────
 
-/** The ordinary stevne table, with the round's own counts in place of påmelde. */
+/** The ordinary stevne hero, with the round's own progress in place of påmelde. */
 function overviewHtml(
   parent: SncParentTournamentRow,
   locals: SncLocalTournamentRow[],
   totalRegistrations: number,
 ): string {
   const completed = locals.filter((l) => l.erfullfort).length;
-  const status = parent.erfullfort
-    ? "Samla resultat er klart"
-    : locals.length
-      ? `${completed} av ${locals.length} lokale stevne fullført`
-      : "Ingen lokale stevne registrerte";
+  const progress = locals.length
+    ? `${completed} av ${locals.length} fullført`
+    : "Ingen lokale stevne registrerte";
 
-  return stevneInfoCardHtml([
-    { label: "Status", html: escHtml(status) },
-    ...stevneInfoRows(parent),
-    { label: "Lokale stevne", html: String(locals.length) },
-    { label: "Påmelde i alt", html: String(totalRegistrations) },
-  ]);
+  return stevneHeroHtml({
+    title: parent.navn,
+    status: parent.erfullfort
+      ? { text: "Konsolidert", variant: "ok" }
+      : { text: "Ikkje konsolidert", variant: "warn" },
+    subtitle: stevneSubtitle(parent),
+    facts: stevneKeyFacts(parent),
+    methods: stevneMethodFacts(parent),
+    details: [
+      ...stevneDetails(parent),
+      { label: "Lokale stevne", html: escHtml(progress) },
+      { label: "Påmelde i alt", html: String(totalRegistrations) },
+    ],
+  });
 }
 
 function ownRegistrationNoticeHtml(
@@ -127,9 +140,8 @@ function localCard(
 export async function render(
   container: HTMLElement,
   { id, isAdmin = false }: { id: number; isAdmin?: boolean },
-  bannerSlot: HTMLElement | null = null,
 ): Promise<void> {
-  const rerender = (): Promise<void> => render(container, { id, isAdmin }, bannerSlot);
+  const rerender = (): Promise<void> => render(container, { id, isAdmin });
   registerRefetch(rerender);
   container.replaceChildren(createLoadingState("Laster lokale stevne…"));
 
@@ -155,11 +167,9 @@ export async function render(
     const totalRegistrations = [...summary.counts.values()].reduce((sum, n) => sum + n, 0);
     const canRegister = kasterid != null && !parent.erfullfort;
 
-    renderBanner(bannerSlot, parent, locals, isAdmin, rerender);
-
     container.innerHTML = `
+      ${overviewHtml(parent, locals, totalRegistrations)}
       <div class="org-max-480">
-        ${overviewHtml(parent, locals, totalRegistrations)}
         ${ownRegistrationNoticeHtml(locals, summary, canRegister, auth != null, id)}
         <h6 class="mb-2">Lokale stevne (${locals.length})</h6>
         <div id="snc-locals" class="stevne-kort-liste"></div>
@@ -169,6 +179,8 @@ export async function render(
             : ""
         }
       </div>`;
+
+    renderConsolidationAction(heroActionSlot(container), parent, locals, isAdmin, rerender);
 
     const listSlot = container.querySelector<HTMLElement>("#snc-locals")!;
     if (!locals.length) {
@@ -277,26 +289,25 @@ function actionButton(
   return button;
 }
 
-// ── Banner (consolidation) ────────────────────────────────────────────────────
+// ── Consolidation action (hero slot) ──────────────────────────────────────────
 
-function renderBanner(
-  bannerSlot: HTMLElement | null,
+function renderConsolidationAction(
+  slot: HTMLElement,
   parent: SncParentTournamentRow,
   locals: SncLocalTournamentRow[],
   isAdmin: boolean,
   rerender: () => Promise<void>,
 ): void {
-  if (!bannerSlot) return;
   if (!isAdmin) {
-    bannerSlot.innerHTML = "";
+    slot.innerHTML = "";
     return;
   }
 
   const allCompleted = locals.length > 0 && locals.every((l) => l.erfullfort);
 
   if (parent.erfullfort) {
-    bannerSlot.innerHTML = `<button id="snc-reopen-btn" class="btn btn-sm btn-outline-warning">Gjenopne SNC-runden</button>`;
-    bannerSlot.querySelector("#snc-reopen-btn")?.addEventListener("click", async () => {
+    slot.innerHTML = `<button id="snc-reopen-btn" class="btn btn-sm btn-outline-warning">Gjenopne SNC-runden</button>`;
+    slot.querySelector("#snc-reopen-btn")?.addEventListener("click", async () => {
       if (
         !(await confirmDialog({
           title: "Gjenopne SNC-runden",
@@ -316,8 +327,8 @@ function renderBanner(
     return;
   }
 
-  bannerSlot.innerHTML = `<button id="snc-complete-btn" class="btn btn-sm btn-success"${allCompleted ? "" : " disabled"}>Konsolider SNC-runden</button>`;
-  bannerSlot.querySelector("#snc-complete-btn")?.addEventListener("click", async () => {
+  slot.innerHTML = `<button id="snc-complete-btn" class="btn btn-sm btn-success"${allCompleted ? "" : " disabled"}>Konsolider SNC-runden</button>`;
+  slot.querySelector("#snc-complete-btn")?.addEventListener("click", async () => {
     if (
       !(await confirmDialog({
         title: "Konsolider SNC-runden",

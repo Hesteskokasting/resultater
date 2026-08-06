@@ -160,14 +160,14 @@ describe("SNC umbrella info tab", () => {
     const text = el.textContent ?? "";
     expect(text).toContain("Førde");
     expect(text).toContain("Bergen");
-    expect(text).toContain("0 av 2 lokale stevne fullført");
+    expect(text).toContain("0 av 2 fullført");
 
     const cards = [...el.querySelectorAll("#snc-locals .stevne-kort")];
     expect(cards).toHaveLength(2);
     expect(cards[0]!.textContent).toContain("3 påmelde");
     expect(cards[1]!.textContent).toContain("2 påmelde");
     // 3 + 2 registrations across the local stevner
-    expect(el.querySelector(".card")?.textContent).toContain("5");
+    expect(el.querySelector(".stevne-hero__detaljar")?.textContent).toContain("5");
   });
 
   it("asks an anonymous visitor to log in rather than offering a venue", async () => {
@@ -244,10 +244,9 @@ describe("SNC umbrella info tab", () => {
 
   it("keeps the consolidate button disabled until every venue is finished", async () => {
     const el = host();
-    const banner = document.createElement("div");
-    await renderSncInfo(el, { id: 10, isAdmin: true }, banner);
+    await renderSncInfo(el, { id: 10, isAdmin: true });
 
-    const button = banner.querySelector<HTMLButtonElement>("#snc-complete-btn")!;
+    const button = el.querySelector<HTMLButtonElement>("#snc-complete-btn")!;
     expect(button.disabled).toBe(true);
   });
 
@@ -260,10 +259,9 @@ describe("SNC umbrella info tab", () => {
       error: null,
     });
     const el = host();
-    const banner = document.createElement("div");
-    await renderSncInfo(el, { id: 10, isAdmin: true }, banner);
+    await renderSncInfo(el, { id: 10, isAdmin: true });
 
-    const button = banner.querySelector<HTMLButtonElement>("#snc-complete-btn")!;
+    const button = el.querySelector<HTMLButtonElement>("#snc-complete-btn")!;
     expect(button.disabled).toBe(false);
     button.click();
     await vi.waitFor(() => expect(completeSncParent).toHaveBeenCalledWith(10));
@@ -275,20 +273,18 @@ describe("SNC umbrella info tab", () => {
       error: null,
     });
     const el = host();
-    const banner = document.createElement("div");
-    await renderSncInfo(el, { id: 10, isAdmin: true }, banner);
+    await renderSncInfo(el, { id: 10, isAdmin: true });
 
-    expect(banner.querySelector("#snc-complete-btn")).toBeNull();
-    banner.querySelector<HTMLButtonElement>("#snc-reopen-btn")!.click();
+    expect(el.querySelector("#snc-complete-btn")).toBeNull();
+    el.querySelector<HTMLButtonElement>("#snc-reopen-btn")!.click();
     await vi.waitFor(() => expect(reopenSncParent).toHaveBeenCalledWith(10));
   });
 
-  it("hides the admin banner from ordinary visitors", async () => {
+  it("hides the consolidation action from ordinary visitors", async () => {
     const el = host();
-    const banner = document.createElement("div");
-    await renderSncInfo(el, { id: 10 }, banner);
+    await renderSncInfo(el, { id: 10 });
 
-    expect(banner.innerHTML).toBe("");
+    expect(el.querySelector("#stevne-hero-handling")!.innerHTML).toBe("");
   });
 });
 
