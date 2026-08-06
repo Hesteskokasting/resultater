@@ -98,7 +98,7 @@ export async function render(
             : []),
         ],
       })}
-      <div id="info-handling-knapper" class="mb-3 d-flex gap-2 flex-wrap"></div>`;
+      <div id="info-handling-knapper" class="mb-3 d-flex gap-2 flex-wrap org-max-480"></div>`;
 
     const actionSlot = heroActionSlot(container);
 

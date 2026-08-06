@@ -2,9 +2,9 @@
 // the rest as a quiet detail row. An SNC-hovudstevne is still a stevne, so it
 // gets the same hero — only the status text and the trailing details differ.
 //
-// The action slot (Start stevne / Meld på / Konsolider) is placed by CSS grid:
-// top right on desktop, full width under the tiles on mobile. Fill it via
-// heroActionSlot() after the html is in the DOM.
+// One narrow column at every width — the page is a single stack that a map can
+// join later. The action slot (Start stevne / Meld på / Konsolider) sits under
+// the tiles; fill it via heroActionSlot() once the html is in the DOM.
 
 import { escHtml } from "@/utils/escHtml";
 import { formatDateNumeric, formatTime } from "@/utils/shared";

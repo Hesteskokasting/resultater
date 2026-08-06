@@ -4373,34 +4373,30 @@ body:has(.modal.show) {
 }
 
 /* ============================================================================
-   StevneHero — the info tab's header. One grid; the action slot moves from the
-   top right to under the tiles on a phone, so admin and thrower buttons keep
-   their thumb position without a second markup variant.
+   StevneHero — the info tab's header. A single column at every width, capped
+   to the same 480px as the content below it, so the page stays one narrow
+   readable strip and a map can join the stack later.
    ========================================================================== */
 .stevne-hero {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 10px;
-  max-width: 46rem;
-  grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-areas:
-    "topp handling"
-    "ruter ruter"
-    "breie breie"
-    "detaljar detaljar";
+  max-width: 480px;
   margin-bottom: 16px;
 }
 
 .stevne-hero__topp {
-  grid-area: topp;
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
   gap: 4px 10px;
 }
 
+/* Own line: the badge and the summary share the line below it. */
 .stevne-hero__tittel {
+  flex: 1 0 100%;
   margin: 0;
-  font-size: 1.9rem;
+  font-size: 1.6rem;
   font-weight: 700;
   line-height: 1.1;
   overflow-wrap: anywhere;
@@ -4411,34 +4407,31 @@ body:has(.modal.show) {
   letter-spacing: 0.04em;
 }
 
-/* Own line on a wide screen, so the title and badge sit together above it. */
 .stevne-hero__undertittel {
-  flex: 1 0 100%;
   margin: 0;
   color: var(--tekst-2);
   font-size: 0.9rem;
 }
 
 .stevne-hero__handling {
-  grid-area: handling;
   display: flex;
-  align-items: start;
   gap: 8px;
 }
 .stevne-hero__handling:empty {
   display: none;
 }
+.stevne-hero__handling .btn {
+  width: 100%;
+}
 
 .stevne-hero__ruter {
-  grid-area: ruter;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 
 .stevne-hero__ruter--brei {
-  grid-area: breie;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .stevne-hero__rute {
@@ -4467,22 +4460,17 @@ body:has(.modal.show) {
   overflow-wrap: anywhere;
 }
 
-/* Secondary facts: an inline run on a wide screen, label/value rows on a phone. */
+/* Secondary facts: label left, value right, one per line. */
 .stevne-hero__detaljar {
-  grid-area: detaljar;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 20px;
-  margin: 4px 0 0;
-  padding-top: 10px;
-  border-top: 1px solid var(--kant);
+  margin: 0;
   font-size: 0.85rem;
 }
 
 .stevne-hero__detalj {
   display: flex;
-  gap: 6px;
-  min-width: 0;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 1px 0;
 }
 
 .stevne-hero__detalj dt {
@@ -4494,45 +4482,6 @@ body:has(.modal.show) {
   margin: 0;
   color: var(--tekst);
   font-weight: 500;
+  text-align: right;
   overflow-wrap: anywhere;
-}
-
-@media (max-width: 991px) {
-  .stevne-hero {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas:
-      "topp"
-      "ruter"
-      "breie"
-      "handling"
-      "detaljar";
-  }
-
-  .stevne-hero__tittel {
-    flex: 1 0 100%;
-    font-size: 1.6rem;
-  }
-
-  /* Badge and summary share the line under the title. */
-  .stevne-hero__undertittel {
-    flex: 0 1 auto;
-  }
-
-  .stevne-hero__ruter {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .stevne-hero__ruter--brei {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .stevne-hero__handling .btn {
-    width: 100%;
-  }
-
-  .stevne-hero__detalj {
-    flex: 1 0 100%;
-    justify-content: space-between;
-    gap: 12px;
-  }
 }
