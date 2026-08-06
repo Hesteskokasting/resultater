@@ -40,28 +40,6 @@ function sncParentFromHash(): number | null {
   return Number.isFinite(id) && id > 0 ? id : null;
 }
 
-/**
- * A consolidated umbrella is shown but not selectable — the DB refuses new local
- * stevner on it (gjenopne it first), so offering the choice would only produce an
- * error on save. The stevne being edited is never listed as its own parent.
- */
-function sncParentOptionsHtml(
-  parents: SncParentOptionRow[],
-  selected: number | null,
-  selfId?: number,
-): string {
-  let html = `<option value="">— ikkje eit lokalt SNC-stevne —</option>`;
-  for (const parent of parents) {
-    if (parent.id === selfId) continue;
-    const isSelected = parent.id === selected;
-    const date = parent.dato ? ` (${formatDate(parent.dato)})` : "";
-    const locked = parent.erfullfort && !isSelected;
-    const suffix = parent.erfullfort ? " — konsolidert" : "";
-    html += `<option value="${parent.id}"${isSelected ? " selected" : ""}${locked ? " disabled" : ""}>${escHtml(parent.navn + date + suffix)}</option>`;
-  }
-  return html;
-}
-
 /** Create/edit form for a tournament. Used by `#/stevne/ny` and by the dashboard overlay. */
 export async function mountTournamentForm(host: AdminFormHost, id?: number): Promise<void> {
   const { container } = host;
@@ -114,16 +92,25 @@ export async function mountTournamentForm(host: AdminFormHost, id?: number): Pro
   }
 
   const v = tournament ?? ({} as Partial<TournamentAdminRow>);
-  const dateValue = v.dato ?? "";
-  const timeValue = v.tid ? v.tid.slice(0, 5) : id ? "" : "11:00";
   const defaultCategory = v.kategoriid ?? categories.find((k) => k.navn === "Singel")?.id;
 
-  const sncParentValue = v.snc_hovudstevne_id ?? (id ? null : sncParentFromHash());
+  // A local stevne is only ever created from the umbrella's own page.
+  const sncParentValue = id ? (v.snc_hovudstevne_id ?? null) : sncParentFromHash();
+  const sncParent = sncParents.find((p) => p.id === sncParentValue) ?? null;
+  const isLocal = id ? v.snc_hovudstevne_id != null : sncParent !== null;
+  const localParentId = isLocal ? sncParentValue : null;
   const isSncParent = v.er_snc_hovudstevne === true;
-  // Added from the umbrella's page: the round is the point of the form, so it is
-  // shown but not switchable. Editing an existing local still allows a move, and
-  // a stale ?snc= id locks nothing — the admin has to be able to pick a real one.
-  const parentLocked = !id && sncParents.some((p) => p.id === sncParentValue);
+
+  const newLocal = isLocal && !id;
+  const nameValue = v.navn ?? (newLocal ? (sncParent?.navn ?? "") : "");
+  const dateValue = v.dato ?? (newLocal ? (sncParent?.dato ?? "") : "");
+  const timeValue = v.tid
+    ? v.tid.slice(0, 5)
+    : id
+      ? ""
+      : newLocal
+        ? (sncParent?.tid?.slice(0, 5) ?? "")
+        : "11:00";
 
   const clubOpt = buildDropdownOptions(clubs, v.klubbid);
   const typeOpt = buildDropdownOptions(tournamentTypes, v.stevnetypeid);
@@ -140,13 +127,22 @@ export async function mountTournamentForm(host: AdminFormHost, id?: number): Pro
     v.kontaktkasterid,
     "— ingen kontaktperson —",
   );
-  const sncParentOpt = sncParentOptionsHtml(sncParents, sncParentValue, id);
+  const sncParentLabel = sncParent
+    ? escHtml(sncParent.navn) + (sncParent.dato ? ` (${formatDate(sncParent.dato)})` : "")
+    : "";
 
   const { wrapper, headingHtml } = formShell(host);
   wrapper.innerHTML = `
     ${headingHtml}
     <form id="tournament-form">
-      ${formRowHtml("Namn*", `<input type="text" class="form-control" name="navn" value="${escHtml(v.navn)}" required>`)}
+      ${
+        isLocal
+          ? `<div class="alert alert-info py-2">
+          <div class="fw-semibold">Hovudstevne:${sncParentLabel ? ` ${sncParentLabel}` : ""}.</div>
+        </div>`
+          : ""
+      }
+      ${formRowHtml("Namn*", `<input type="text" class="form-control" name="navn" value="${escHtml(nameValue)}" required>`)}
       ${formRowHtml("Stad", `<input type="text" class="form-control" name="sted" value="${escHtml(v.sted)}">`)}
       <div class="admin-form-grid">
         ${formRowHtml("Dato", `<input type="date" class="form-control" name="dato" value="${dateValue}" required>`)}
@@ -170,28 +166,15 @@ export async function mountTournamentForm(host: AdminFormHost, id?: number): Pro
         <div class="form-check"><input class="form-check-input" type="checkbox" name="erekskludertfrarekorder" id="ekskl"${v.erekskludertfrarekorder ? " checked" : ""}><label class="form-check-label" for="ekskl">Ekskl. frå rekorder</label></div>
       </div>
       ${formRowHtml("Resultat-URL", `<input type="url" class="form-control" name="resultaturl" value="${escHtml(v.resultaturl)}">`)}
-      <fieldset class="mb-3 border rounded p-3">
+      <fieldset class="mb-3 border rounded p-3 d-none" id="snc-fieldset">
         <legend class="form-label fw-semibold float-none w-auto px-1 mb-2">SNC</legend>
         <div class="form-check mb-2">
           <input class="form-check-input" type="checkbox" name="er_snc_hovudstevne" id="snc-hovud"${isSncParent ? " checked" : ""}>
-          <label class="form-check-label" for="snc-hovud">Er SNC-hovudstevne (samlar lokalstevna)</label>
+          <label class="form-check-label" for="snc-hovud">Er SNC-hovudstevne</label>
         </div>
-        ${formRowHtml("Del av SNC-hovudstevne", `<select class="form-select" name="snc_hovudstevne_id" id="snc-parent">${sncParentOpt}</select>`)}
         <p class="form-text mb-0">
-          Eit hovudstevne har ingen eigne kampar — det bind saman lokalstevna og eig den samla
-          resultatlista. Eit lokalt stevne arvar stevnetype, kategori og kastemetodar frå
-          hovudstevnet. SNC må vere X-kast, Kongelag eller begge.
+
         </p>
-        <p id="snc-arva-note" class="form-text mb-0 d-none">
-          Stevnetype, kategori, kastemetodar og norgesranking er låste her — dei blir arva frå
-          hovudstevnet og kan berre endrast der. Dato og tid er fylte ut frå hovudstevnet og kan
-          justerast. Eit lokalstevne kan ikkje vere NM eller ekskluderast frå rekorder.
-        </p>
-        ${
-          parentLocked
-            ? `<p class="form-text mb-0">Hovudstevnet er valt frå SNC-sida og kan ikkje endrast her.</p>`
-            : ""
-        }
       </fieldset>
       ${
         id
@@ -216,10 +199,8 @@ export async function mountTournamentForm(host: AdminFormHost, id?: number): Pro
 
   container.replaceChildren(wrapper);
 
-  // A stevne is either the umbrella or one of the locals, never both (CHECK
-  // stevne_snc_ikkje_nesta) — keep the two fields mutually exclusive here too.
   const sncParentCheckbox = wrapper.querySelector<HTMLInputElement>("#snc-hovud")!;
-  const sncParentSelect = wrapper.querySelector<HTMLSelectElement>("#snc-parent")!;
+  const sncFieldset = wrapper.querySelector<HTMLElement>("#snc-fieldset")!;
   const select = (name: string): HTMLSelectElement =>
     wrapper.querySelector<HTMLSelectElement>(`[name="${name}"]`)!;
   const typeSelect = select("stevnetypeid");
@@ -229,18 +210,21 @@ export async function mountTournamentForm(host: AdminFormHost, id?: number): Pro
   const rankingCheckbox = wrapper.querySelector<HTMLInputElement>("#ernr")!;
   const nmCheckbox = wrapper.querySelector<HTMLInputElement>("#ernm")!;
   const excludeCheckbox = wrapper.querySelector<HTMLInputElement>("#ekskl")!;
-  const dateInput = wrapper.querySelector<HTMLInputElement>(`[name="dato"]`)!;
-  const timeInput = wrapper.querySelector<HTMLInputElement>(`[name="tid"]`)!;
-  const inheritedNote = wrapper.querySelector<HTMLElement>("#snc-arva-note")!;
 
-  const selectedSncParent = (): SncParentOptionRow | null =>
-    sncParents.find((p) => String(p.id) === sncParentSelect.value) ?? null;
-
-  // ernm is the authoritative NM flag, so stevnetype NM ticks it. Only on an
-  // explicit type change, and never unticked — a saved ernm stays the admin's.
+  // ernm is the authoritative NM flag, so stevnetype NM ticks it.
   const nmTypeId = tournamentTypes.find((t) => t.navn === "NM")?.id;
+  const sncTypeId = tournamentTypes.find((t) => t.navn === "SNC")?.id;
+  // The SNC block keys off the chosen type, so the saved one has to be the
+  // select's value and not just a `selected` attribute in the markup.
+  if (v.stevnetypeid != null) typeSelect.value = String(v.stevnetypeid);
+  const isSncType = (): boolean => sncTypeId != null && typeSelect.value === String(sncTypeId);
+
   typeSelect.addEventListener("change", () => {
     if (nmTypeId != null && typeSelect.value === String(nmTypeId)) nmCheckbox.checked = true;
+    // Stevnetype SNC only makes sense as an umbrella here — locals are added
+    // from the SNC page and never reach this branch.
+    if (isSncType()) sncParentCheckbox.checked = true;
+    syncSncFields();
   });
 
   /** Replaces the options, keeping the current value if it is still listed. */
@@ -251,9 +235,10 @@ export async function mountTournamentForm(host: AdminFormHost, id?: number): Pro
   }
 
   function syncSncFields(): void {
-    sncParentSelect.disabled = parentLocked || sncParentCheckbox.checked;
-    sncParentCheckbox.disabled = sncParentSelect.value !== "";
-    const isLocal = sncParentSelect.value !== "";
+    // The umbrella flag is only offered on stevnetype SNC — the DB rejects it on
+    // anything else — and never on a local, which is one of the umbrella's own.
+    if (!isSncType()) sncParentCheckbox.checked = false;
+    sncFieldset.classList.toggle("d-none", isLocal || !isSncType());
     const isSnc = isLocal || sncParentCheckbox.checked;
 
     // SNC is always X-kast, Kongelag or both — never Gloppen, NHM or cup.
@@ -266,28 +251,17 @@ export async function mountTournamentForm(host: AdminFormHost, id?: number): Pro
       isSnc ? finalMethods.filter((m) => isKongelagMethodName(m.navn)) : finalMethods,
     );
 
-    if (sncParentCheckbox.checked) {
-      const sncType = tournamentTypes.find((t) => t.navn === "SNC");
-      if (sncType) typeSelect.value = String(sncType.id);
-    }
-
     // Show the values the local stevne will actually be saved with instead of
     // "— velg —": the trigger coerces them to the umbrella's on write anyway.
-    const parent = selectedSncParent();
-    if (parent) {
+    if (isLocal && sncParent) {
       const setValue = (target: HTMLSelectElement, value: number | null): void => {
         target.value = value == null ? "" : String(value);
       };
-      setValue(typeSelect, parent.stevnetypeid);
-      setValue(categorySelect, parent.kategoriid);
-      setValue(initialSelect, parent.innledendekastemetodeid);
-      setValue(finalSelect, parent.avsluttendekastemetodeid);
-      rankingCheckbox.checked = parent.ernorgesranking;
-      // A new local runs on the round's day; an existing one keeps what it has.
-      if (!id) {
-        dateInput.value = parent.dato;
-        timeInput.value = parent.tid ? parent.tid.slice(0, 5) : "";
-      }
+      setValue(typeSelect, sncParent.stevnetypeid);
+      setValue(categorySelect, sncParent.kategoriid);
+      setValue(initialSelect, sncParent.innledendekastemetodeid);
+      setValue(finalSelect, sncParent.avsluttendekastemetodeid);
+      rankingCheckbox.checked = sncParent.ernorgesranking;
     }
 
     // NM and the record exemption belong to the round as a whole, never to one
@@ -303,10 +277,8 @@ export async function mountTournamentForm(host: AdminFormHost, id?: number): Pro
     for (const field of [typeSelect, categorySelect, initialSelect, finalSelect, rankingCheckbox]) {
       field.disabled = isLocal;
     }
-    inheritedNote.classList.toggle("d-none", !isLocal);
   }
   sncParentCheckbox.addEventListener("change", syncSncFields);
-  sncParentSelect.addEventListener("change", syncSncFields);
   syncSncFields();
 
   wrapper
@@ -316,10 +288,8 @@ export async function mountTournamentForm(host: AdminFormHost, id?: number): Pro
       const fd = new FormData(e.target as HTMLFormElement);
       // The inherited fields are disabled for a local stevne, so FormData omits
       // them. Send the umbrella's values instead of nulls — the DB would coerce
-      // them anyway, but the payload should say what it means. The umbrella
-      // itself is read off the select, which is disabled when locked.
-      const isLocal = sncParentSelect.value !== "";
-      const parent = selectedSncParent();
+      // them anyway, but the payload should say what it means.
+      const parent = sncParent;
       const payload = {
         navn: (fd.get("navn") as string).trim(),
         sted: (fd.get("sted") as string).trim() || null,
@@ -345,8 +315,8 @@ export async function mountTournamentForm(host: AdminFormHost, id?: number): Pro
           : fd.get("ernorgesranking") === "on",
         erekskludertfrarekorder: isLocal ? false : fd.get("erekskludertfrarekorder") === "on",
         resultaturl: (fd.get("resultaturl") as string).trim() || null,
-        er_snc_hovudstevne: fd.get("er_snc_hovudstevne") === "on",
-        snc_hovudstevne_id: formNum(sncParentSelect.value),
+        er_snc_hovudstevne: !isLocal && sncParentCheckbox.checked,
+        snc_hovudstevne_id: localParentId,
       };
 
       const { data: saved, error } = id

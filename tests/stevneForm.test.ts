@@ -246,16 +246,47 @@ describe("stevneForm, ordinary tournament", () => {
 });
 
 describe("stevneForm, SNC umbrella", () => {
-  it("narrows the methods to X-kast and Kongelag and forces stevnetype SNC", async () => {
+  const fieldset = (container: HTMLElement): HTMLElement =>
+    container.querySelector<HTMLElement>("#snc-fieldset")!;
+
+  it("hides the SNC block until stevnetype SNC is chosen, then ticks the umbrella flag", async () => {
     const h = host();
     await mountTournamentForm(h);
 
-    field<HTMLInputElement>(h.container, "er_snc_hovudstevne").checked = true;
-    field<HTMLInputElement>(h.container, "er_snc_hovudstevne").dispatchEvent(new Event("change"));
+    expect(fieldset(h.container).classList.contains("d-none")).toBe(true);
 
+    const type = field<HTMLSelectElement>(h.container, "stevnetypeid");
+    type.value = "31";
+    type.dispatchEvent(new Event("change"));
+
+    expect(fieldset(h.container).classList.contains("d-none")).toBe(false);
+    expect(field<HTMLInputElement>(h.container, "er_snc_hovudstevne").checked).toBe(true);
     expect(optionValues(h.container, "innledendekastemetodeid")).toEqual([String(XKAST.id)]);
     expect(optionValues(h.container, "avsluttendekastemetodeid")).toEqual([String(KONGELAG.id)]);
-    expect(field<HTMLSelectElement>(h.container, "stevnetypeid").value).toBe("31");
+  });
+
+  it("hides the block and drops the umbrella flag when the type moves away from SNC", async () => {
+    mocks.createTournament.mockResolvedValue({ data: { id: 7 }, error: null });
+    const onSaved = vi.fn();
+    const h = host({ onSaved });
+    await mountTournamentForm(h);
+
+    const type = field<HTMLSelectElement>(h.container, "stevnetypeid");
+    type.value = "31";
+    type.dispatchEvent(new Event("change"));
+    type.value = "30";
+    type.dispatchEvent(new Event("change"));
+
+    expect(fieldset(h.container).classList.contains("d-none")).toBe(true);
+    expect(field<HTMLInputElement>(h.container, "er_snc_hovudstevne").checked).toBe(false);
+
+    field<HTMLInputElement>(h.container, "navn").value = "Vårstevnet";
+    field<HTMLInputElement>(h.container, "dato").value = "2026-08-01";
+    submit(h.container);
+    await vi.waitFor(() => expect(onSaved).toHaveBeenCalledWith(7, true));
+    expect(mocks.createTournament).toHaveBeenCalledWith(
+      expect.objectContaining({ er_snc_hovudstevne: false, snc_hovudstevne_id: null }),
+    );
   });
 
   it("keeps the umbrella's own format and ranking editable", async () => {
@@ -266,10 +297,9 @@ describe("stevneForm, SNC umbrella", () => {
     const h = host();
     await mountTournamentForm(h, 5);
 
+    expect(fieldset(h.container).classList.contains("d-none")).toBe(false);
     expect(field<HTMLSelectElement>(h.container, "innledendekastemetodeid").disabled).toBe(false);
     expect(field<HTMLInputElement>(h.container, "ernorgesranking").disabled).toBe(false);
-    // The umbrella cannot also be a local stevne.
-    expect(field<HTMLSelectElement>(h.container, "snc_hovudstevne_id").disabled).toBe(true);
   });
 
   it("consolidates through the SNC rpc rather than complete_stevne", async () => {
@@ -345,9 +375,9 @@ describe("stevneForm, local SNC stevne", () => {
     ]) {
       expect(field<HTMLInputElement>(h.container, name).disabled, name).toBe(true);
     }
-    // A local stevne cannot also be the umbrella.
-    expect(field<HTMLInputElement>(h.container, "er_snc_hovudstevne").disabled).toBe(true);
-    expect(h.container.querySelector("#snc-arva-note")!.classList.contains("d-none")).toBe(false);
+    // A local stevne cannot also be the umbrella, so the block is not offered.
+    expect(h.container.querySelector("#snc-fieldset")!.classList.contains("d-none")).toBe(true);
+    expect(h.container.querySelector(".alert-info")!.textContent).toContain("SNC runde 1");
   });
 
   it("saves the inherited values instead of the nulls a disabled field would submit", async () => {
@@ -378,44 +408,18 @@ describe("stevneForm, local SNC stevne", () => {
     );
   });
 
-  it("shows a consolidated umbrella but refuses to attach to it", async () => {
-    mocks.getSncParentOptions.mockResolvedValue({ data: parents, error: null });
-    const h = host();
-    await mountTournamentForm(h);
-
-    const options = [...field<HTMLSelectElement>(h.container, "snc_hovudstevne_id").options];
-    const consolidated = options.find((o) => o.value === "8")!;
-    expect(consolidated.disabled).toBe(true);
-    expect(consolidated.textContent).toContain("konsolidert");
-    expect(options.find((o) => o.value === "9")!.disabled).toBe(false);
-  });
-
-  it("never lists the stevne being edited as its own umbrella", async () => {
-    mocks.getSncParentOptions.mockResolvedValue({
-      data: [{ id: 5, navn: "Seg sjølv", dato: "2026-07-01", erfullfort: false }, ...parents],
-      error: null,
-    });
-    mocks.getTournamentForAdmin.mockResolvedValue({
-      data: row({ er_snc_hovudstevne: true, stevnetypeid: 31 }),
-      error: null,
-    });
-    const h = host();
-    await mountTournamentForm(h, 5);
-
-    expect(optionValues(h.container, "snc_hovudstevne_id")).not.toContain("5");
-  });
-
-  it("preselects the umbrella when added from the SNC page", async () => {
+  it("names the umbrella and prefills the name when added from the SNC page", async () => {
     mocks.getSncParentOptions.mockResolvedValue({ data: parents, error: null });
     location.hash = "#/stevne/ny?snc=9";
     const h = host();
     await mountTournamentForm(h);
 
-    expect(field<HTMLSelectElement>(h.container, "snc_hovudstevne_id").value).toBe("9");
+    expect(h.container.querySelector(".alert-info")!.textContent).toContain("SNC runde 1");
+    expect(field<HTMLInputElement>(h.container, "navn").value).toBe("SNC runde 1");
     expect(field<HTMLSelectElement>(h.container, "innledendekastemetodeid").disabled).toBe(true);
   });
 
-  it("locks the umbrella when added from the SNC page and still saves it", async () => {
+  it("saves the umbrella from the hash even though no control carries it", async () => {
     mocks.getSncParentOptions.mockResolvedValue({ data: parents, error: null });
     mocks.createTournament.mockResolvedValue({ data: { id: 7 }, error: null });
     location.hash = "#/stevne/ny?snc=9";
@@ -423,15 +427,23 @@ describe("stevneForm, local SNC stevne", () => {
     const h = host({ onSaved });
     await mountTournamentForm(h);
 
-    // Locked, so FormData omits it — the payload has to read the select itself.
-    expect(field<HTMLSelectElement>(h.container, "snc_hovudstevne_id").disabled).toBe(true);
     field<HTMLInputElement>(h.container, "navn").value = "Lokalt i Førde";
     submit(h.container);
 
     await vi.waitFor(() => expect(onSaved).toHaveBeenCalledWith(7, true));
     expect(mocks.createTournament).toHaveBeenCalledWith(
-      expect.objectContaining({ snc_hovudstevne_id: 9 }),
+      expect.objectContaining({ snc_hovudstevne_id: 9, er_snc_hovudstevne: false }),
     );
+  });
+
+  it("falls back to an ordinary stevne when the hash points at no known umbrella", async () => {
+    mocks.getSncParentOptions.mockResolvedValue({ data: parents, error: null });
+    location.hash = "#/stevne/ny?snc=999";
+    const h = host();
+    await mountTournamentForm(h);
+
+    expect(h.container.querySelector(".alert-info")).toBeNull();
+    expect(field<HTMLSelectElement>(h.container, "stevnetypeid").disabled).toBe(false);
   });
 
   it("fills date, time and the inherited format from the umbrella on a new local", async () => {
@@ -481,8 +493,6 @@ describe("stevneForm, local SNC stevne", () => {
 
     expect(field<HTMLInputElement>(h.container, "dato").value).toBe("2026-07-02");
     expect(field<HTMLInputElement>(h.container, "tid").value).toBe("09:00");
-    // An existing local may still be moved to another umbrella.
-    expect(field<HTMLSelectElement>(h.container, "snc_hovudstevne_id").disabled).toBe(false);
   });
 
   it("refuses NM and the record exemption on a local, and saves them false", async () => {

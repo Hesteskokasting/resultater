@@ -99,9 +99,9 @@ export async function render(
           </div>
           ${
             isSncParent
-              ? `<p class="form-text mb-4">Kastemetoden gjeld heile SNC-runden og blir arva av alle lokalstevna. Banar blir sette på kvart lokalstevne.</p>`
+              ? `<p class="form-text mb-4">Kastemetoden gjeld heile SNC-runden og blir arva av alle lokalstevna.</p>`
               : `<div class="mb-4">
-            <label class="form-label fw-semibold">Tilgjengelege banar (X-kast/Kongelag)</label>
+            <label class="form-label fw-semibold">Tilgjengelege baner (X-kast/Kongelag)</label>
             <input id="tilgjengelege-banar" type="number" min="1" class="form-control"
               value="${stevne.tilgjengelige_baner ?? ""}" placeholder="Valfritt">
             <p class="form-text">Utan verdi blir X-kast éi pulje. Kongelag blir alltid delt i minst to puljer.</p>

@@ -186,9 +186,7 @@ export async function render(
 
     const listSlot = container.querySelector<HTMLElement>("#snc-locals")!;
     if (!locals.length) {
-      listSlot.replaceChildren(
-        createEmptyState("Ingen lokale stevne er kopla til denne SNC-runden enno."),
-      );
+      listSlot.replaceChildren(createEmptyState("Ingen lokale stevne er oppretta enno."));
       return;
     }
 
