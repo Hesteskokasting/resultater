@@ -1,4 +1,5 @@
 import { getXkastConfig, type CourtRow } from "@/services/xkastKongelagService";
+import type { OmgangPadHeader } from "@/components/OmgangNumberpad";
 import {
   createCourtPhaseRenderer,
   sortedParticipants,
@@ -23,6 +24,29 @@ function totalRunder(antallOmganger: number): number {
   return Math.ceil(antallOmganger / OMGANGER_PER_RUNDE);
 }
 
+/** Pad header for one omgang: the runde it belongs to, with that runde's strip. */
+function padHeader(
+  court: CourtRow,
+  participant: CourtRow["deltakarar"][number],
+  omgang: number,
+  antallOmganger: number,
+): OmgangPadHeader {
+  const runde = Math.ceil(omgang / OMGANGER_PER_RUNDE);
+  const from = (runde - 1) * OMGANGER_PER_RUNDE + 1;
+  const to = Math.min(runde * OMGANGER_PER_RUNDE, antallOmganger);
+  const omganger = Array.from({ length: to - from + 1 }, (_, i) => from + i);
+  return {
+    baneLabel: `Bane ${court.bane_nummer ?? "?"}`,
+    rundeLabel: `Runde ${runde} av ${totalRunder(antallOmganger)}`,
+    cellLabels: omganger.map((o) => String(o - from + 1)),
+    cellPoeng: omganger.map((o) => participant.omgangar.find((r) => r.omgang === o)?.poeng ?? null),
+    cellIndex: omgang - from,
+    totalPoeng: participant.omgangar.reduce((sum, o) => sum + o.poeng, 0),
+    playerKey: `p${participant.id}`,
+    rundeKey: `p${participant.id}-r${runde}`,
+  };
+}
+
 /**
  * X-kast entry order: within one court, a player throws a full runde
  * (5 omganger) before the pad switches to the next player, runde by runde.
@@ -39,7 +63,7 @@ function entryOrder(courts: CourtRow[], antallOmganger: number): EntrySlot[] {
           slots.push({
             participant,
             omgang,
-            contextLabel: `Bane ${court.bane_nummer ?? "?"} · Runde ${runde} · Omgang ${omgang - from + 1}`,
+            header: padHeader(court, participant, omgang, antallOmganger),
           });
         }
       }
@@ -60,6 +84,7 @@ const xkastVariant: CourtPhaseVariant = {
     ),
   registerScope: "court",
   entryOrder,
+  padHeader,
   omgangerForScoreCell: (cellIndex, antallOmganger) => {
     const from = cellIndex * OMGANGER_PER_RUNDE + 1;
     const to = Math.min((cellIndex + 1) * OMGANGER_PER_RUNDE, antallOmganger);

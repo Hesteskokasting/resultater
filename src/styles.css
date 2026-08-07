@@ -2049,10 +2049,25 @@ th.initial-score-th {
   border-radius: 20px;
   padding: 14px 20px 20px;
   width: 100%;
-  max-width: 420px;
+  max-width: 700px;
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+/* Phones: the pad owns the whole screen instead of floating in a card. */
+@media (max-width: 560px) {
+  .onp-overlay {
+    padding: 0;
+    align-items: stretch;
+  }
+
+  .onp-card {
+    border-radius: 0;
+    min-height: 100%;
+    padding: 12px 14px 16px;
+    justify-content: flex-start;
+  }
 }
 
 .onp-handle {
@@ -2115,6 +2130,95 @@ th.initial-score-th {
   margin: 0;
   font-size: 1.5rem;
   font-weight: 700;
+}
+
+.onp-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.onp-total {
+  flex: none;
+  min-width: 62px;
+  padding: 6px 12px;
+  background: var(--onp-flate);
+  border: 1px solid var(--onp-kant);
+  border-radius: 10px;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.1;
+  text-align: center;
+}
+
+.onp-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.onp-bane {
+  padding: 3px 10px;
+  border: 1px solid var(--onp-aksent);
+  border-radius: 999px;
+  color: var(--onp-aksent);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+}
+
+.onp-runde {
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.onp-strip {
+  display: grid;
+  grid-auto-flow: row;
+  align-items: center;
+  gap: 4px 4px;
+  padding: 6px 10px 8px;
+  background: var(--onp-flate);
+  border: 1px solid var(--onp-kant);
+  border-radius: 12px;
+}
+
+.onp-strip-head {
+  color: var(--onp-tekst-2);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+
+.onp-strip-head.current {
+  color: var(--onp-aksent);
+}
+
+.onp-strip-cell {
+  padding: 4px 2px;
+  border: 1px dashed transparent;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.onp-strip-cell.empty {
+  color: var(--onp-tekst-2);
+}
+
+.onp-strip-cell.current {
+  border-color: var(--onp-aksent);
+  color: var(--onp-aksent);
+}
+
+.onp-strip-sum {
+  padding-left: 10px;
+  text-align: right;
 }
 
 .onp-display {

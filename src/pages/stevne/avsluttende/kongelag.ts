@@ -1,5 +1,6 @@
 import { createEl } from "@/utils/createEl";
 import { showToast } from "@/components/Toast";
+import type { OmgangPadHeader } from "@/components/OmgangNumberpad";
 import { confirmDialog } from "@/components/ConfirmDialog";
 import { updateTournamentPhase } from "@/services/stevneService";
 import { getRegistrationCount } from "@/services/pameldingService";
@@ -19,6 +20,29 @@ import {
 } from "@/organizer/xkastKongelagView";
 
 /**
+ * Pad header for one Kongelag omgang. There are no runder here, so the strip
+ * spans every omgang in the match and the line reads "Omgang x av y".
+ */
+function padHeader(
+  court: CourtRow,
+  participant: CourtRow["deltakarar"][number],
+  omgang: number,
+  antallOmganger: number,
+): OmgangPadHeader {
+  const omganger = Array.from({ length: antallOmganger }, (_, i) => i + 1);
+  return {
+    baneLabel: `Bane ${court.bane_nummer ?? "?"}`,
+    rundeLabel: `Omgang ${omgang} av ${antallOmganger}`,
+    cellLabels: omganger.map(String),
+    cellPoeng: omganger.map((o) => participant.omgangar.find((r) => r.omgang === o)?.poeng ?? null),
+    cellIndex: omgang - 1,
+    totalPoeng: participant.omgangar.reduce((sum, o) => sum + o.poeng, 0),
+    playerKey: `p${participant.id}`,
+    rundeKey: `p${participant.id}`,
+  };
+}
+
+/**
  * Kongelag entry order: one omgang at a time, court by court — the admin
  * enters omgang N for bane 1, the pad switches to bane 2, and so on through
  * the pulje. When every court has omgang N, the pad closes so the omgang's
@@ -34,7 +58,7 @@ function entryOrder(courts: CourtRow[], antallOmganger: number): EntrySlot[] {
         slots.push({
           participant,
           omgang,
-          contextLabel: `Bane ${court.bane_nummer ?? "?"} · Omgang ${omgang}`,
+          header: padHeader(court, participant, omgang, antallOmganger),
         });
       }
     }
@@ -130,6 +154,7 @@ const kongelagVariant: CourtPhaseVariant = {
     ),
   registerScope: "pulje",
   entryOrder,
+  padHeader,
   omgangerForScoreCell: (cellIndex) => [cellIndex + 1],
   emptyHint: () => "Kongelag er ikkje starta enno.",
   renderNoCourts: renderStartPanel,

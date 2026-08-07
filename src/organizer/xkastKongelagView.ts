@@ -12,7 +12,11 @@ import { createLoadingState } from "@/components/LoadingState";
 import { createEmptyState } from "@/components/EmptyState";
 import { showToast } from "@/components/Toast";
 import { confirmDialog } from "@/components/ConfirmDialog";
-import { showOmgangNumberpad, type OmgangEntryStep } from "@/components/OmgangNumberpad";
+import {
+  showOmgangNumberpad,
+  type OmgangEntryStep,
+  type OmgangPadHeader,
+} from "@/components/OmgangNumberpad";
 import { showTotalNumberpad } from "@/components/TotalNumberpad";
 import { escHtml } from "@/utils/escHtml";
 import { throwerName } from "@/utils/kaster";
@@ -52,8 +56,8 @@ import { buildKongelagStanding, type KongelagStandingRow } from "@/utils/kongela
 export interface EntrySlot {
   participant: CourtParticipantRow;
   omgang: number;
-  /** Context line above the player name in the pad, e.g. "Bane 1 · Runde 2". */
-  contextLabel: string;
+  /** Bane/runde context and the round strip shown above the pad. */
+  header: OmgangPadHeader;
 }
 
 export interface CourtPhaseContext {
@@ -77,6 +81,17 @@ export interface CourtPhaseVariant {
   registerScope: "court" | "pulje";
   /** Numberpad entry order over the given courts (recorded omganger are filtered out later). */
   entryOrder: (courts: CourtRow[], antallOmganger: number) => EntrySlot[];
+  /**
+   * Header for one omgang in the numberpad: bane pill, "Runde x av y" line and
+   * the strip of omganger the round covers. Shared by the entry wizard and the
+   * single-omgang edit pad so both show the same context.
+   */
+  padHeader: (
+    court: CourtRow,
+    participant: CourtParticipantRow,
+    omgang: number,
+    antallOmganger: number,
+  ) => OmgangPadHeader;
   /**
    * The omgang number(s) a score cell represents. Kongelag: one omgang per
    * cell → click edits it directly. X-kast: a round of ≤5 omganger → click
@@ -167,7 +182,7 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
             !slot.participant.omgangar.some((o) => o.omgang === slot.omgang),
         )
         .map((slot) => ({
-          contextLabel: slot.contextLabel,
+          header: slot.header,
           playerName: throwerName(slot.participant.kaster),
           onSave: async (poeng, antallRinger) => {
             const { error } = await saveOmgang(
@@ -723,13 +738,15 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
   }
 
   function openOmgangEdit(deltakerId: number, omgang: number): void {
+    const s = state;
+    if (!s) return;
     const found = findParticipant(deltakerId);
     if (!found) return;
     const { court, participant } = found;
     const existing = participant.omgangar.find((o) => o.omgang === omgang);
     showOmgangNumberpad([
       {
-        contextLabel: `Bane ${court.bane_nummer ?? "?"} · Omgang ${omgang}`,
+        header: variant.padHeader(court, participant, omgang, s.antallOmganger),
         playerName: throwerName(participant.kaster),
         initialPoeng: existing?.poeng,
         initialRinger: existing?.antall_ringer ?? undefined,

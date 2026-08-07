@@ -8,9 +8,28 @@ import {
   OMGANG_MAX_RINGER,
 } from "@/utils/omgangValidation";
 
+export interface OmgangPadHeader {
+  /** Pill left of the round line, e.g. "Bane 2". */
+  baneLabel: string;
+  /** Round line, e.g. "Runde 2 av 3" (X-kast) or "Omgang 3 av 10" (Kongelag). */
+  rundeLabel: string;
+  /** Column labels of the round strip — omgang numbers within the round. */
+  cellLabels: string[];
+  /** Poeng per strip cell as known when the pad opened; null = not entered. */
+  cellPoeng: (number | null)[];
+  /** Index in cellLabels of the omgang this step enters. */
+  cellIndex: number;
+  /** Player total across all omganger as known when the pad opened. */
+  totalPoeng: number;
+  /** Identity used to overlay saves made in this pad session. */
+  playerKey: string;
+  /** Identity of the strip (player + round) for the same overlay. */
+  rundeKey: string;
+}
+
 export interface OmgangEntryStep {
-  /** Small teal context line above the name, e.g. "Bane 1 · Runde 2". */
-  contextLabel: string;
+  /** Bane, round and strip context shown above the display box. */
+  header: OmgangPadHeader;
   /** Player throwing this omgang. */
   playerName: string;
   /** Prefilled poeng when editing an existing omgang (omit for a fresh entry). */
@@ -52,6 +71,8 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
     selectedRinger: null,
     isSaving: false,
   };
+  /** Poeng saved during this pad session, so the strip and total stay live. */
+  const savedPoeng = new Map<number, number>();
   const { overlay, close } = createNumberpadOverlay("onp-overlay");
 
   /** Resets the two-stage state for the current step, prefilling when editing. */
@@ -109,6 +130,7 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
     render();
     const saved = await step.onSave(poeng, ringer);
     if (saved) {
+      savedPoeng.set(state.stepIdx, poeng);
       advance();
     } else {
       state.isSaving = false;
@@ -116,10 +138,90 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
     }
   }
 
+  // ── Live header figures ─────────────────────────────────────────────────────
+
+  /** Poeng for a step: saved value, or the typed value while it is the open step. */
+  function effectivePoeng(idx: number): number | null {
+    const saved = savedPoeng.get(idx);
+    if (saved != null) return saved;
+    if (idx !== state.stepIdx) return null;
+    if (state.poengInput === "") return steps[idx]?.initialPoeng ?? null;
+    return currentPoeng();
+  }
+
+  /** Total for the player, adjusted by what this session has entered so far. */
+  function liveTotal(): number {
+    const header = steps[state.stepIdx]!.header;
+    let total = header.totalPoeng;
+    steps.forEach((step, idx) => {
+      if (step.header.playerKey !== header.playerKey) return;
+      const poeng = effectivePoeng(idx);
+      if (poeng == null) return;
+      total += poeng - (step.initialPoeng ?? 0);
+    });
+    return total;
+  }
+
+  /** Strip cells for the current round, overlaid with this session's entries. */
+  function liveCells(): (number | null)[] {
+    const header = steps[state.stepIdx]!.header;
+    const cells = [...header.cellPoeng];
+    steps.forEach((step, idx) => {
+      if (step.header.rundeKey !== header.rundeKey) return;
+      const poeng = effectivePoeng(idx);
+      if (poeng != null) cells[step.header.cellIndex] = poeng;
+    });
+    return cells;
+  }
+
   // ── Render ──────────────────────────────────────────────────────────────────
 
-  function headerEls(): HTMLElement[] {
+  function titleEl(): HTMLElement {
     const step = steps[state.stepIdx]!;
+    const row = createEl("div", null, "onp-title");
+    row.appendChild(createEl("h3", step.playerName, "onp-name"));
+    row.appendChild(createEl("div", String(liveTotal()), "onp-total"));
+    return row;
+  }
+
+  function metaEl(): HTMLElement {
+    const header = steps[state.stepIdx]!.header;
+    const row = createEl("div", null, "onp-meta");
+    row.appendChild(createEl("span", header.baneLabel, "onp-bane"));
+    row.appendChild(createEl("span", header.rundeLabel, "onp-runde"));
+    return row;
+  }
+
+  function stripEl(): HTMLElement {
+    const header = steps[state.stepIdx]!.header;
+    const cells = liveCells();
+
+    const strip = createEl("div", null, "onp-strip");
+    strip.style.gridTemplateColumns = `repeat(${header.cellLabels.length}, minmax(0, 1fr)) auto`;
+
+    header.cellLabels.forEach((label, i) => {
+      strip.appendChild(
+        createEl("div", label, `onp-strip-head${i === header.cellIndex ? " current" : ""}`),
+      );
+    });
+    strip.appendChild(createEl("div", "SUM", "onp-strip-head onp-strip-sum"));
+
+    header.cellLabels.forEach((_, i) => {
+      const poeng = cells[i];
+      const value = createEl(
+        "div",
+        poeng != null ? String(poeng) : "–",
+        `onp-strip-cell${i === header.cellIndex ? " current" : ""}${poeng == null ? " empty" : ""}`,
+      );
+      strip.appendChild(value);
+    });
+    const sum = cells.reduce<number>((acc, p) => acc + (p ?? 0), 0);
+    strip.appendChild(createEl("div", String(sum), "onp-strip-cell onp-strip-sum"));
+
+    return strip;
+  }
+
+  function headerEls(): HTMLElement[] {
     const handle = createEl("div", null, "onp-handle");
 
     const closeBtn = createEl("button", "×", "onp-close");
@@ -131,7 +233,7 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
       createEl("div", null, `onp-progress-seg${state.stage === "ringer" ? " active" : ""}`),
     );
 
-    const els = [handle, closeBtn, progress];
+    const els: HTMLElement[] = [handle, closeBtn, progress];
 
     if (state.stage === "ringer") {
       const back = createEl("button", "← Poeng", "onp-back");
@@ -143,8 +245,7 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
       els.push(back);
     }
 
-    els.push(createEl("div", step.contextLabel, "onp-context"));
-    els.push(createEl("h3", step.playerName, "onp-name"));
+    els.push(titleEl(), metaEl(), stripEl());
     return els;
   }
 
