@@ -19,6 +19,9 @@ import {
   type EntrySlot,
 } from "@/organizer/xkastKongelagView";
 
+/** Omganger per line in the main-row grid and per row in the breakdown. */
+const OMGANGER_PER_ROW = 5;
+
 /**
  * Pad header for one Kongelag omgang. There are no runder here, so the strip
  * spans every omgang in the match and the line reads "Omgang x av y".
@@ -145,17 +148,21 @@ const kongelagVariant: CourtPhaseVariant = {
   fase: "avsluttende",
   channelName: (stevneid) => `kongelag-avsluttende-${stevneid}`,
   loadConfig: getKongelagConfig,
-  scoreColumnHeaders: (antallOmganger) =>
-    Array.from({ length: antallOmganger }, (_, i) => String(i + 1)),
-  scoreCellValues: (participant, antallOmganger) =>
-    Array.from(
-      { length: antallOmganger },
-      (_, i) => participant.omgangar.find((o) => o.omgang === i + 1)?.poeng ?? null,
-    ),
+  // No runder in Kongelag — the flat omgang list is chunked five at a time so
+  // the breakdown reads as rows of five, matching the grid in the main row.
+  detailRows: (antallOmganger) =>
+    Array.from({ length: Math.ceil(antallOmganger / OMGANGER_PER_ROW) }, (_, i) => {
+      const from = i * OMGANGER_PER_ROW + 1;
+      const to = Math.min((i + 1) * OMGANGER_PER_ROW, antallOmganger);
+      return {
+        label: from === to ? String(from) : `${from}–${to}`,
+        omganger: Array.from({ length: to - from + 1 }, (_, j) => from + j),
+      };
+    }),
+  mainScore: "omganger",
   registerScope: "pulje",
   entryOrder,
   padHeader,
-  omgangerForScoreCell: (cellIndex) => [cellIndex + 1],
   emptyHint: () => "Kongelag er ikkje starta enno.",
   renderNoCourts: renderStartPanel,
   loadCarryOver: getKongelagCarryOver,

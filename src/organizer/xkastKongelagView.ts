@@ -52,6 +52,12 @@ import { buildKongelagStanding, type KongelagStandingRow } from "@/utils/kongela
 
 // ── Variant contract ──────────────────────────────────────────────────────────
 
+/** One row of the omgang breakdown: a label and the omganger it covers. */
+export interface DetailRow {
+  label: string;
+  omganger: number[];
+}
+
 /** One numberpad step before recorded-omgang filtering: who throws which omgang. */
 export interface EntrySlot {
   participant: CourtParticipantRow;
@@ -73,10 +79,17 @@ export interface CourtPhaseVariant {
   fase: CourtFase;
   channelName: (stevneid: number) => string;
   loadConfig: (stevneid: number) => Promise<{ data: CourtPhaseConfig | null; error: unknown }>;
-  /** Header labels for the score columns between NAMN and TOT (e.g. R1–R3, or 1–10). */
-  scoreColumnHeaders: (antallOmganger: number) => string[];
-  /** One value per score column for a participant; null renders as "—". */
-  scoreCellValues: (participant: CourtParticipantRow, antallOmganger: number) => (number | null)[];
+  /**
+   * Rows of the omgang breakdown, at most five omganger each. X-kast groups by
+   * runde (R1, R2 …); Kongelag chunks the flat omgang list (1–5, 6–10).
+   */
+  detailRows: (antallOmganger: number) => DetailRow[];
+  /**
+   * Score area of the main row. "runder" gives one column per detail row,
+   * holding its sum (X-kast). "omganger" gives a single cell holding every
+   * omgang as a five-wide grid (Kongelag), so ten omganger read as two rows.
+   */
+  mainScore: "runder" | "omganger";
   /** 'court': Registrer per court (X-kast). 'pulje': one Registrer per pulje (Kongelag). */
   registerScope: "court" | "pulje";
   /** Numberpad entry order over the given courts (recorded omganger are filtered out later). */
@@ -92,12 +105,6 @@ export interface CourtPhaseVariant {
     omgang: number,
     antallOmganger: number,
   ) => OmgangPadHeader;
-  /**
-   * The omgang number(s) a score cell represents. Kongelag: one omgang per
-   * cell → click edits it directly. X-kast: a round of ≤5 omganger → click
-   * expands an inline drill-down of those omganger.
-   */
-  omgangerForScoreCell: (cellIndex: number, antallOmganger: number) => number[];
   emptyHint: (isAdmin: boolean) => string;
   /**
    * Lets admins swap two players between courts (tap one, tap the other) as
@@ -215,22 +222,15 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
 
   // ── Rendering (same structure/classes as the kamp views) ───────────────────
 
-  /**
-   * True when a score column stands for more than one omgang (X-kast rounds),
-   * so a per-player omgang breakdown exists to open. Kongelag has one omgang
-   * per column, so there is nothing to drill into and no chevron is shown.
-   */
-  function hasOmgangDetail(): boolean {
+  /** Score columns between NAMN and TOT: one per runde, or one grid cell. */
+  function scoreColumnCount(): number {
     const s = state!;
-    return variant
-      .scoreColumnHeaders(s.antallOmganger)
-      .some((_, i) => variant.omgangerForScoreCell(i, s.antallOmganger).length > 1);
+    return variant.mainScore === "runder" ? variant.detailRows(s.antallOmganger).length : 1;
   }
 
-  /** Count of this court's players with their detail table currently open. */
+  /** Count of this court's players with their detail panel currently open. */
   function expandedCountInCourt(court: CourtRow): number {
     const s = state!;
-    if (!hasOmgangDetail()) return 0;
     return court.deltakarar.filter((p) => s.expandedDeltakerIds.has(p.id)).length;
   }
 
@@ -238,24 +238,24 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
     return court.deltakarar.length + expandedCountInCourt(court);
   }
 
-  function courtActionTd(court: CourtRow): string {
+  /**
+   * Bane-level actions, shown inside every expanded player of the court: both
+   * Registrer and Bekreft act on the whole bane, and neither fits the main row
+   * on a phone.
+   */
+  function courtActionsHtml(court: CourtRow): string {
     const s = state!;
-    const rowspan = courtRowspan(court);
     if (court.er_bekreftet) {
-      return `<td class="text-end pe-2" rowspan="${rowspan}"><span class="match-confirmed-indicator">✓ Bekreftet</span></td>`;
+      return '<span class="match-confirmed-indicator">✓ Bekreftet</span>';
     }
-    if (!s.isAdmin) {
-      return `<td rowspan="${rowspan}"></td>`;
-    }
+    if (!s.isAdmin) return "";
     const canConfirm = isCourtComplete(court, s.antallOmganger);
+    const bane = court.bane_nummer ?? "?";
     const registerBtn =
       variant.registerScope === "court"
-        ? `<button class="match-button match-button-primary" data-xk-register="${court.id}">Registrer</button>
-      `
+        ? `<button class="match-button match-button-primary" data-xk-register="${court.id}">Registrer bane ${bane}</button>`
         : "";
-    return `<td class="text-end pe-2 text-nowrap" rowspan="${rowspan}">
-        ${registerBtn}<button class="match-button${canConfirm ? " match-button-success" : ""}" data-xk-confirm="${court.id}"${canConfirm ? "" : " disabled"}>Bekreft</button>
-      </td>`;
+    return `${registerBtn}<button class="match-button${canConfirm ? " match-button-success" : ""}" data-xk-confirm="${court.id}"${canConfirm ? "" : " disabled"}>Bekreft bane ${bane}</button>`;
   }
 
   function canSwapParticipant(court: CourtRow, participant: CourtParticipantRow): boolean {
@@ -285,29 +285,30 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
   }
 
   /**
-   * Drill-down table for one player: every round at once (one row per round,
-   * one column per omgang within the round) plus the round sum. Admins edit an
-   * omgang by tapping its cell; the tap reuses the data-xk-omgang-edit handler.
+   * Everything the main row no longer carries, for one player: ringere, ringer
+   * percentage, the bane-level actions, and the omgang breakdown (one row per
+   * detail row, one column per omgang within it). Admins edit an omgang by
+   * tapping its cell; the tap reuses the data-xk-omgang-edit handler.
    */
-  function detailTableHtml(participant: CourtParticipantRow, tintClass: string): string {
+  function detailPanelHtml(
+    court: CourtRow,
+    participant: CourtParticipantRow,
+    tintClass: string,
+  ): string {
     const s = state!;
-    const headers = variant.scoreColumnHeaders(s.antallOmganger);
-    const rounds = headers.map((label, i) => ({
-      label,
-      omganger: variant.omgangerForScoreCell(i, s.antallOmganger),
-    }));
-    const maxPerRound = rounds.reduce((max, r) => Math.max(max, r.omganger.length), 0);
+    const rows = variant.detailRows(s.antallOmganger);
+    const maxPerRow = rows.reduce((max, r) => Math.max(max, r.omganger.length), 0);
     const editable = canEditScores(participant);
 
     const omgangHeaders = Array.from(
-      { length: maxPerRound },
+      { length: maxPerRow },
       (_, j) => `<th class="text-center">${j + 1}</th>`,
     ).join("");
 
-    const bodyRows = rounds
-      .map((round) => {
-        const cells = Array.from({ length: maxPerRound }, (_, j) => {
-          const omgang = round.omganger[j];
+    const bodyRows = rows
+      .map((row) => {
+        const cells = Array.from({ length: maxPerRow }, (_, j) => {
+          const omgang = row.omganger[j];
           if (omgang == null) return '<td class="bane-detail-empty"></td>';
           const rec = participant.omgangar.find((o) => o.omgang === omgang);
           const inner = omgangValueHtml(rec);
@@ -315,7 +316,7 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
             ? `<td class="text-center"><button type="button" class="bane-detail-cell-btn" data-xk-omgang-edit="${participant.id}:${omgang}" aria-label="Rediger omgang ${omgang}">${inner}</button></td>`
             : `<td class="text-center bane-detail-value">${inner}</td>`;
         }).join("");
-        const totals = round.omganger.reduce(
+        const totals = row.omganger.reduce(
           (acc, o) => {
             const rec = participant.omgangar.find((r) => r.omgang === o);
             return {
@@ -326,7 +327,7 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
           { poeng: 0, ringer: 0 },
         );
         return `<tr>
-          <th scope="row" class="bane-detail-runde">${escHtml(round.label)}</th>
+          <th scope="row" class="bane-detail-runde">${escHtml(row.label)}</th>
           ${cells}
           <td class="text-center bane-detail-ringer-sum">${totals.ringer}</td>
           <td class="bane-detail-sum">${totals.poeng}</td>
@@ -334,15 +335,20 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
       })
       .join("");
 
-    // Lane + action columns are rowspanned over this row; span the middle ones
-    // (NAMN + score columns + R + % + TOT). The tint class frames the recessed
-    // panel with the court's zebra tint.
-    return `<tr class="xk-detail-row ${tintClass}"><td colspan="${headers.length + 4}">
+    // The lane column is rowspanned over this row; span the rest (NAMN + score
+    // columns + TOT). The tint class frames the recessed panel with the court's
+    // zebra tint.
+    return `<tr class="xk-detail-row ${tintClass}"><td colspan="${scoreColumnCount() + 2}">
         <div class="bane-detail-panel">
+          <div class="bane-detail-meta">
+            <span class="bane-detail-stat"><span class="bane-detail-stat-key">R</span>${ringerSum(participant)}</span>
+            <span class="bane-detail-stat"><span class="bane-detail-stat-key">%</span>${participantPercentHtml(participant)}</span>
+            <span class="bane-detail-actions">${courtActionsHtml(court)}</span>
+          </div>
           <table class="bane-detail-table">
             <thead>
               <tr>
-                <th class="bane-detail-runde-head">RUNDE</th>
+                <th class="bane-detail-runde-head">RD</th>
                 ${omgangHeaders}
                 <th class="text-center bane-detail-ringer-head">R</th>
                 <th class="bane-detail-sum-head">SUM</th>
@@ -362,19 +368,16 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
   function nameCellHtml(
     court: CourtRow,
     participant: CourtParticipantRow,
-    hasDetail: boolean,
     isExpanded: boolean,
   ): string {
     const s = state!;
     const name = escHtml(throwerName(participant.kaster));
     const isSwappable = canSwapParticipant(court, participant);
     const swapSelected = s.swapSelectedId === participant.id ? " court-swap-selected" : "";
-
-    if (!hasDetail) {
-      const swapClasses = isSwappable ? ` court-swap-cell${swapSelected}` : "";
-      const swapAttr = isSwappable ? ` data-xk-swap="${participant.id}"` : "";
-      return `<td class="text-start${swapClasses}"${swapAttr}>${name}</td>`;
-    }
+    // Confirmation is per bane, so every player of a confirmed bane is marked.
+    const confirmedMark = court.er_bekreftet
+      ? '<span class="bane-name-confirmed" aria-label="Bekrefta">✓</span>'
+      : "";
 
     const chevron = '<span class="bane-detail-chevron" aria-hidden="true"></span>';
     if (isSwappable) {
@@ -384,13 +387,52 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
         </td>`;
     }
     return `<td class="text-start bane-name-cell">
-        <button type="button" class="bane-name-toggle" data-xk-toggle-detail="${participant.id}" aria-expanded="${isExpanded}">${chevron}<span>${name}</span></button>
+        <button type="button" class="bane-name-toggle" data-xk-toggle-detail="${participant.id}" aria-expanded="${isExpanded}">${chevron}<span>${name}</span>${confirmedMark}</button>
+      </td>`;
+  }
+
+  /** X-kast main row: one read-only cell per runde, holding that runde's sum. */
+  function rundeCellsHtml(participant: CourtParticipantRow): string {
+    const s = state!;
+    return variant
+      .detailRows(s.antallOmganger)
+      .map((row) => {
+        const recorded = row.omganger
+          .map((o) => participant.omgangar.find((r) => r.omgang === o))
+          .filter((rec) => rec != null);
+        const value = recorded.length
+          ? String(recorded.reduce((sum, rec) => sum + rec.poeng, 0))
+          : "—";
+        return `<td class="text-center">${value}</td>`;
+      })
+      .join("");
+  }
+
+  /**
+   * Kongelag main row: every omgang in one cell, five per line — ten omganger
+   * read as two rows instead of ten columns nothing narrow can hold. Each chip
+   * is the edit target for its omgang.
+   */
+  function omgangGridCellHtml(participant: CourtParticipantRow): string {
+    const s = state!;
+    const editable = canEditScores(participant);
+    const columns = Math.min(5, s.antallOmganger);
+    const chips = Array.from({ length: s.antallOmganger }, (_, i) => {
+      const omgang = i + 1;
+      const rec = participant.omgangar.find((o) => o.omgang === omgang);
+      const value = rec ? String(rec.poeng) : "–";
+      const emptyClass = rec ? "" : " is-empty";
+      return editable
+        ? `<button type="button" class="bane-omgang-chip${emptyClass}" data-xk-omgang-edit="${participant.id}:${omgang}" aria-label="Rediger omgang ${omgang}">${value}</button>`
+        : `<span class="bane-omgang-chip${emptyClass}">${value}</span>`;
+    }).join("");
+    return `<td class="bane-omgang-cell">
+        <div class="bane-omgang-grid" style="grid-template-columns: repeat(${columns}, minmax(0, 1fr))">${chips}</div>
       </td>`;
   }
 
   function courtRowsHtml(court: CourtRow, courtIndex: number): string {
     const s = state!;
-    const hasDetail = hasOmgangDetail();
     // Zebra tint alternates per bane group (court order within the pulje), not
     // per row — so both kastar rows of a bane share one tint and a solo bane
     // never desyncs the stripe. Status accent is handled separately below.
@@ -400,19 +442,13 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
       courtRowspan(court) === 1 ? "bane-lane-cell bane-lane-cell--solo" : "bane-lane-cell";
     return sortedParticipants(court)
       .map((participant, i) => {
-        const isExpanded = hasDetail && s.expandedDeltakerIds.has(participant.id);
-        // X-kast round columns are read-only summaries — editing happens in the
-        // detail table, and a click on a round total would be ambiguous. Kongelag
-        // has one omgang per column, so the cell stays directly editable.
-        const cellEditable = canEditScores(participant) && !hasDetail;
-        const scoreCells = variant
-          .scoreCellValues(participant, s.antallOmganger)
-          .map((value, cellIndex) => {
-            const cls = `text-center${cellEditable ? " xk-editable-cell" : ""}`;
-            const attr = cellEditable ? ` data-xk-score="${participant.id}:${cellIndex}"` : "";
-            return `<td class="${cls}"${attr}>${value ?? "—"}</td>`;
-          })
-          .join("");
+        const isExpanded = s.expandedDeltakerIds.has(participant.id);
+        // Runde sums are read-only summaries — editing happens per omgang, and
+        // a click on a runde total would be ambiguous.
+        const scoreCells =
+          variant.mainScore === "runder"
+            ? rundeCellsHtml(participant)
+            : omgangGridCellHtml(participant);
         const firstCells =
           i === 0
             ? `<td class="text-center align-middle fw-semibold ${laneCellClass}" rowspan="${courtRowspan(court)}">${court.bane_nummer ?? ""}</td>`
@@ -431,14 +467,11 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
         // column (td:nth-child(2)) for kamp rows; court names stay left-aligned.
         const row = `<tr${rowAttrs}>
         ${firstCells}
-        ${nameCellHtml(court, participant, hasDetail, isExpanded)}
+        ${nameCellHtml(court, participant, isExpanded)}
         ${scoreCells}
-        <td class="text-center bane-ringer-col table-summary-start">${ringerSum(participant)}</td>
-        <td class="text-center bane-ringer-col">${participantPercentHtml(participant)}</td>
         <td class="${totCls}"${totAttr}>${totalSum(participant)}</td>
-        ${i === 0 ? courtActionTd(court) : ""}
       </tr>`;
-        const detail = isExpanded ? detailTableHtml(participant, tintClass) : "";
+        const detail = isExpanded ? detailPanelHtml(court, participant, tintClass) : "";
         return row + detail;
       })
       .join("");
@@ -446,14 +479,15 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
 
   function puljeSectionHtml(pulje: number, courts: CourtRow[], puljeLabel: string): string {
     const s = state!;
-    const scoreHeaders = variant
-      .scoreColumnHeaders(s.antallOmganger)
-      .map((label) => `<th class="text-center th-36">${escHtml(label)}</th>`)
-      .join("");
-    const actionTh =
-      s.isAdmin && variant.registerScope === "court"
-        ? '<th class="th-148"></th>'
-        : '<th class="th-80"></th>';
+    // "runder": a labelled column per runde. "omganger": one unlabelled column
+    // holding the omgang grid.
+    const scoreHeaders =
+      variant.mainScore === "runder"
+        ? variant
+            .detailRows(s.antallOmganger)
+            .map((row) => `<th class="text-center th-36">${escHtml(row.label)}</th>`)
+            .join("")
+        : '<th class="bane-omgang-th"></th>';
     const puljeRegisterBtn =
       s.isAdmin && variant.registerScope === "pulje" && hasOpenEntries(courts, s.antallOmganger)
         ? ` <button class="match-button match-button-primary ms-2" data-xk-register-pulje="${pulje}">Registrer</button>`
@@ -469,10 +503,7 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
                 <th class="th-36 text-center">B</th>
                 <th>NAMN</th>
                 ${scoreHeaders}
-                <th class="text-center th-44 table-summary-start">R</th>
-                <th class="text-center th-50">%</th>
                 <th class="text-center th-44">TOT</th>
-                ${actionTh}
               </tr>
             </thead>
             <tbody>${courts.map((court, i) => courtRowsHtml(court, i)).join("")}</tbody>
@@ -805,15 +836,6 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
     }
   }
 
-  // Only single-omgang variants (Kongelag) render a clickable score cell; the
-  // click edits that omgang directly. X-kast edits via the detail table.
-  function handleScoreCellClick(deltakerId: number, cellIndex: number): void {
-    const s = state;
-    if (!s) return;
-    const omganger = variant.omgangerForScoreCell(cellIndex, s.antallOmganger);
-    if (omganger.length === 1) openOmgangEdit(deltakerId, omganger[0]!);
-  }
-
   function toggleDetail(container: HTMLElement, deltakerId: number): void {
     const s = state;
     if (!s) return;
@@ -868,13 +890,6 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
       if (omgangChip) {
         const [pid, omgang] = omgangChip.dataset.xkOmgangEdit!.split(":").map(Number);
         openOmgangEdit(pid!, omgang!);
-        return;
-      }
-
-      const scoreCell = target.closest<HTMLElement>("[data-xk-score]");
-      if (scoreCell) {
-        const [pid, cellIndex] = scoreCell.dataset.xkScore!.split(":").map(Number);
-        handleScoreCellClick(pid!, cellIndex!);
         return;
       }
 

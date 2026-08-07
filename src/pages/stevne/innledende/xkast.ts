@@ -9,17 +9,6 @@ import {
 
 const OMGANGER_PER_RUNDE = 5;
 
-function rundeSum(
-  omgangar: CourtRow["deltakarar"][number]["omgangar"],
-  runde: number,
-): number | null {
-  const from = (runde - 1) * OMGANGER_PER_RUNDE + 1;
-  const to = runde * OMGANGER_PER_RUNDE;
-  const rows = omgangar.filter((o) => o.omgang >= from && o.omgang <= to);
-  if (!rows.length) return null;
-  return rows.reduce((sum, o) => sum + o.poeng, 0);
-}
-
 function totalRunder(antallOmganger: number): number {
   return Math.ceil(antallOmganger / OMGANGER_PER_RUNDE);
 }
@@ -76,20 +65,19 @@ const xkastVariant: CourtPhaseVariant = {
   fase: "innledende",
   channelName: (stevneid) => `xkast-innledende-${stevneid}`,
   loadConfig: getXkastConfig,
-  scoreColumnHeaders: (antallOmganger) =>
-    Array.from({ length: totalRunder(antallOmganger) }, (_, i) => `R${i + 1}`),
-  scoreCellValues: (participant, antallOmganger) =>
-    Array.from({ length: totalRunder(antallOmganger) }, (_, i) =>
-      rundeSum(participant.omgangar, i + 1),
-    ),
+  detailRows: (antallOmganger) =>
+    Array.from({ length: totalRunder(antallOmganger) }, (_, i) => {
+      const from = i * OMGANGER_PER_RUNDE + 1;
+      const to = Math.min((i + 1) * OMGANGER_PER_RUNDE, antallOmganger);
+      return {
+        label: `R${i + 1}`,
+        omganger: Array.from({ length: to - from + 1 }, (_, j) => from + j),
+      };
+    }),
+  mainScore: "runder",
   registerScope: "court",
   entryOrder,
   padHeader,
-  omgangerForScoreCell: (cellIndex, antallOmganger) => {
-    const from = cellIndex * OMGANGER_PER_RUNDE + 1;
-    const to = Math.min((cellIndex + 1) * OMGANGER_PER_RUNDE, antallOmganger);
-    return Array.from({ length: to - from + 1 }, (_, i) => from + i);
-  },
   canSwapPlayers: true,
   emptyHint: (isAdmin) =>
     isAdmin

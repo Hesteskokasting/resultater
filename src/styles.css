@@ -2534,11 +2534,6 @@ th.initial-score-th {
   color: var(--tekst-3);
 }
 
-/* Per-player total ringers and ringer percentage in the main court row. */
-.bane-ringer-col {
-  color: var(--tekst-2);
-}
-
 /* Divider opening the summary columns (R/%/… ) in the court and standing
    tables. th prefix needed to win over .org-thead th on specificity. */
 .match-table td.table-summary-start,
@@ -2558,6 +2553,83 @@ th.initial-score-th {
 }
 .bane-detail-cell-btn:hover {
   background: var(--primaer-hover);
+}
+
+/* Ringere, ringer percentage and the bane-level actions — everything the main
+   row hands off to the expanded panel. */
+.bane-detail-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 2px 4px 6px;
+}
+
+.bane-detail-stat {
+  color: var(--tekst);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.bane-detail-stat-key {
+  margin-right: 4px;
+  color: var(--tekst-3);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.bane-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-left: auto;
+}
+
+/* ✓ after the name of every player on a confirmed bane. */
+.bane-name-confirmed {
+  margin-left: 6px;
+  color: var(--suksess, #2ecc71);
+  font-weight: 700;
+}
+
+/* Kongelag main row: all omganger in one cell, five per line. The header cell
+   claims half the row so the chips get the space the name column would eat. */
+.bane-omgang-cell {
+  padding: 4px 6px !important;
+}
+
+.bane-omgang-th {
+  width: 50%;
+}
+
+.bane-omgang-grid {
+  display: grid;
+  gap: 4px;
+}
+
+.bane-omgang-chip {
+  min-width: 0;
+  padding: 5px 2px;
+  font-size: 0.85rem;
+  background: var(--flate-2);
+  border: 1px solid var(--kant);
+  border-radius: 8px;
+  color: var(--tekst);
+  font: inherit;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+}
+
+button.bane-omgang-chip:hover {
+  border-color: var(--primaer);
+}
+
+.bane-omgang-chip.is-empty {
+  color: var(--tekst-3);
+  font-weight: 400;
 }
 
 /* ===================== SCOREBOARD ===================== */
