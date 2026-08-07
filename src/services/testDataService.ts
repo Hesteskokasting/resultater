@@ -69,6 +69,17 @@ export async function autoCompleteInitialRoundMatches(stevneid: number): Promise
     const [kp1, kp2] = calcMatchPoints(s1, s2);
 
     try {
+      // Drop any omgangar already registered on the scoreboard — the generated
+      // totals replace them, and a partial breakdown would contradict them.
+      const spelarIds = spelarar.map((s) => s.id);
+      if (spelarIds.length) {
+        const { error: omgErr } = await supabase
+          .from("kamp_omgang")
+          .delete()
+          .in("kamp_spelar_id", spelarIds);
+        if (omgErr) logError("autoCompleteInitialRoundMatches:omgang", omgErr);
+      }
+
       const updates: PromiseLike<unknown>[] = [
         supabase.from("kamp").update({ er_bekreftet: true }).eq("id", kamp.id),
       ];
