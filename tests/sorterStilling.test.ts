@@ -103,6 +103,7 @@ describe("sortStandings", () => {
     });
 
     it("ranks a three-way tie on h2h points within the tied group", () => {
+      // Deliberately stricter than the written rules, which drop h2h at 3+ tied.
       // 1 beat 2, 2 beat 3, 1 beat 3 → 4 h2h points to player 1, 2 to player 2, 0 to player 3
       const rows = [
         p(1, { kamp_poeng: 4, score_poeng: 50, startnummer: 3 }),

@@ -588,6 +588,11 @@ export function buildFinalStandings(
  * Deliberately one number per player rather than a pairwise comparison — A beats
  * B, B beats C, C beats A is an ordinary result, and a comparator that can
  * contradict itself lets Array.sort land on an order no ranking rule justifies.
+ *
+ * NB: the written rules drop head-to-head entirely once three or more are tied.
+ * We keep it as this mini round-robin instead, which stays decisive in the cases
+ * the rules leave to the scores alone. Deliberate — to follow the rules to the
+ * letter, skip the block when it holds more than two rows.
  */
 function headToHeadPoints(block: StandingRow[], confirmed: MatchForSorting[]): Map<number, number> {
   const points = new Map<number, number>(block.map((r) => [r.kasterid, 0]));
