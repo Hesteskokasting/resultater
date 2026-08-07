@@ -1398,6 +1398,69 @@ th.standing-sp-th {
   }
 }
 
+/* ── Oppmøte (self-service attendance, stevne info page) ── */
+
+.oppmote-btn {
+  width: 100%;
+  border-radius: 9px;
+  border: 1px solid transparent;
+  background: var(--kamp-stripe-ferdig);
+  color: #fff;
+  font-weight: 600;
+  padding: 0.6rem 1rem;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+.oppmote-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--kamp-stripe-ferdig) 85%, black);
+}
+/* Locked until the window opens — reads as a placeholder, not a broken button */
+.oppmote-btn-locked,
+.oppmote-btn:disabled {
+  background: var(--flate);
+  border-color: var(--kant);
+  color: var(--tekst-3);
+  cursor: default;
+}
+.oppmote-hint {
+  margin-top: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--tekst-3);
+}
+.oppmote-confirmed {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0.85rem;
+  border-radius: 9px;
+  border: 1px solid color-mix(in srgb, var(--kamp-stripe-ferdig) 45%, transparent);
+  background: color-mix(in srgb, var(--kamp-stripe-ferdig) 14%, transparent);
+}
+.oppmote-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--kamp-stripe-ferdig);
+  color: #fff;
+  font-size: 0.85rem;
+  line-height: 1;
+}
+.oppmote-undo {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--lenke);
+  font-size: 0.9rem;
+}
+.oppmote-undo:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
 /* ── Participants page ── */
 
 .participant-table-wrapper {

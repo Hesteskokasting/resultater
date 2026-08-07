@@ -1,7 +1,7 @@
 import type { QueryData, RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "@/supabase";
 import { logError } from "@/utils/logError";
-import { verifyRowsAffected } from "@/utils/verifiedWrite";
+import { verifyRowsAffected, verifyRowsAffectedReturning } from "@/utils/verifiedWrite";
 
 const _pameldingQuery = supabase
   .from("pamelding")
@@ -62,13 +62,19 @@ export async function getRegistrationsForTournament(
   return { data: data ?? [], error };
 }
 
+export interface MyRegistrationRow {
+  id: number;
+  er_bekreftet: boolean;
+  bekreftet_at: string | null;
+}
+
 export async function getMyRegistrationForTournament(
   stevneId: number,
   kasterid: number,
-): Promise<{ data: { id: number } | null; error: unknown }> {
+): Promise<{ data: MyRegistrationRow | null; error: unknown }> {
   const { data, error } = await supabase
     .from("pamelding")
-    .select("id")
+    .select("id, er_bekreftet, bekreftet_at")
     .eq("stevneid", stevneId)
     .eq("kasterid", kasterid)
     .maybeSingle();
@@ -206,21 +212,22 @@ export async function addRegistrationAdmin(
   return { error };
 }
 
+/** bekreftet_at is stamped by a trigger, so the new value is read back, never sent. */
 export async function setRegistrationConfirmedForThrower(
   stevneId: number,
   kasterid: number,
   confirmed: boolean,
-): Promise<{ error: unknown }> {
-  const { error } = await verifyRowsAffected(
+): Promise<{ bekreftetAt: string | null; error: unknown }> {
+  const { data, error } = await verifyRowsAffectedReturning<{ bekreftet_at: string | null }>(
     supabase
       .from("pamelding")
       .update({ er_bekreftet: confirmed })
       .eq("stevneid", stevneId)
       .eq("kasterid", kasterid)
-      .select("id"),
+      .select("bekreftet_at"),
   );
   if (error) logError("setRegistrationConfirmedForThrower", error);
-  return { error };
+  return { bekreftetAt: data?.bekreftet_at ?? null, error };
 }
 
 export async function removeRegistrationForThrower(

@@ -549,6 +549,7 @@ export type Database = {
       }
       pamelding: {
         Row: {
+          bekreftet_at: string | null
           er_bekreftet: boolean
           id: number
           kasterid: number
@@ -559,6 +560,7 @@ export type Database = {
           stevneid: number
         }
         Insert: {
+          bekreftet_at?: string | null
           er_bekreftet?: boolean
           id?: never
           kasterid: number
@@ -569,6 +571,7 @@ export type Database = {
           stevneid: number
         }
         Update: {
+          bekreftet_at?: string | null
           er_bekreftet?: boolean
           id?: never
           kasterid?: number

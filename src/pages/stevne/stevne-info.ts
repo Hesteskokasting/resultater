@@ -22,6 +22,7 @@ import {
   getMyRegistrationForTournament,
 } from "@/services/pameldingService";
 import { createRegistrationButton } from "@/components/PameldingKnapp";
+import { createOppmoteButton } from "@/components/OppmoteKnapp";
 import { generateInitialRoundMatches } from "@/services/kampGenereringInnledendeService";
 import { generateKongelagCourts } from "@/services/xkastKongelagService";
 import { registerRefetch } from "@/utils/refetchRegistry";
@@ -200,20 +201,39 @@ export async function render(
 
       const myRegistration = (await getMyRegistrationForTournament(id, kasterid)).data;
 
+      const registrationButton = createRegistrationButton({
+        tournamentId: id,
+        throwerId: kasterid,
+        userId: auth.user.id,
+        isRegistered: myRegistration !== null,
+        registrationId: myRegistration?.id,
+        onAction: () => {
+          void render(container, { id, isAdmin });
+        },
+      });
+
       // The hero slot is the primary action; an admin already fills it with
       // Start stevne, so their own registration button joins the row below.
-      (showStartButton ? actionButtons : actionSlot).appendChild(
-        createRegistrationButton({
+      const target = showStartButton ? actionButtons : actionSlot;
+
+      // Registered players confirm their own attendance from here; the button
+      // itself stays locked until two hours before start.
+      if (myRegistration) {
+        const attendance = createOppmoteButton({
           tournamentId: id,
           throwerId: kasterid,
-          userId: auth.user.id,
-          isRegistered: myRegistration !== null,
-          registrationId: myRegistration?.id,
-          onAction: () => {
-            void render(container, { id, isAdmin });
-          },
-        }),
-      );
+          dato: stevne.dato,
+          tid: stevne.tid,
+          confirmed: myRegistration.er_bekreftet,
+          confirmedAt: myRegistration.bekreftet_at,
+        });
+        const row = document.createElement("div");
+        row.className = "d-flex align-items-start gap-2 org-max-480";
+        row.append(attendance.element, registrationButton);
+        target.appendChild(row);
+      } else {
+        target.appendChild(registrationButton);
+      }
     }
 
     const viewLink = document.createElement("a");
