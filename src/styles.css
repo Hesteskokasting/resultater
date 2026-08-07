@@ -1424,20 +1424,106 @@ th.standing-sp-th {
   padding-bottom: 0.3rem;
   vertical-align: middle;
 }
-.participant-add-btn,
 .participant-print-btn,
 .participant-confirm-btn {
   width: 32px;
   height: 32px;
 }
 
-/* Column switcher — desktop shows both columns, so it only appears on phones */
-.participant-tab-buttons {
+/* Already-enrolled rows stay in the available list, tinted so the change is visible */
+.participant-registered-row {
+  --bs-table-bg: color-mix(in srgb, var(--kamp-stripe-ferdig) 14%, transparent);
+}
+.participant-registered-row.participant-row {
+  cursor: default;
+}
+
+/* Row action token — soft rounded square, not a hard-edged Bootstrap button */
+.participant-token {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  border: 1px solid var(--kant);
+  font-size: 1rem;
+  line-height: 1;
+  background: var(--flate-2);
+  color: var(--lenke);
+  padding: 0;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+.participant-token-add:hover,
+.participant-token-add:focus-visible {
+  background: var(--primaer-aktiv);
+  border-color: var(--primaer-selektert);
+}
+.participant-token-done {
+  background: color-mix(in srgb, var(--kamp-stripe-ferdig) 18%, transparent);
+  border-color: color-mix(in srgb, var(--kamp-stripe-ferdig) 45%, transparent);
+  color: var(--kamp-stripe-ferdig);
+}
+
+/* "Ny spelar" — same soft-pill language as the row tokens */
+.participant-new-btn {
+  border-radius: 9px;
+  border: 1px solid var(--primaer-selektert);
+  background: var(--primaer);
+  color: var(--primaer-text);
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 0.35rem 0.85rem;
+  transition: background 0.15s;
+}
+.participant-new-btn:hover,
+.participant-new-btn:focus-visible {
+  background: var(--primaer-selektert);
+}
+
+/* Column switcher — a segmented control, and only on phones since desktop
+   shows both columns side by side */
+.participant-switch {
   display: none;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--kant);
+  border-radius: 12px;
+  background: var(--flate);
+}
+.participant-switch-btn {
+  flex: 1;
+  border: none;
+  background: none;
+  border-radius: 9px;
+  padding: 0.45rem 0.5rem;
+  font-size: 0.9rem;
+  color: var(--tekst-2);
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+.participant-switch-btn.active {
+  background: var(--flate-2);
+  color: var(--tekst);
+  font-weight: 600;
+}
+.participant-switch-badge {
+  display: inline-block;
+  min-width: 1.4rem;
+  margin-left: 0.3rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  background: var(--kamp-stripe-ferdig);
+  color: var(--primaer-text);
+  font-size: 0.75rem;
+  font-weight: 600;
 }
 
 @media (max-width: 767.98px) {
-  .participant-tab-buttons {
+  .participant-switch {
     display: flex;
   }
   .participant-search-spacer {

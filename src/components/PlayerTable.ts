@@ -20,6 +20,10 @@ export interface PlayerTableProps {
   clubFallback?: string;
   /** Render the club as a small line under the name instead of its own column */
   stackClub?: boolean;
+  /** Extra class(es) for the row, e.g. to mark an already-registered player */
+  rowClass?: (player: ThrowerListRow) => string | undefined;
+  /** Extra text appended to the club line, e.g. "påmeld" */
+  clubSuffix?: (player: ThrowerListRow) => string | undefined;
 }
 
 export interface PlayerTableHandle {
@@ -41,6 +45,8 @@ export function createPlayerTable(props: PlayerTableProps): PlayerTableHandle {
     renderTrailing,
     clubFallback,
     stackClub,
+    rowClass,
+    clubSuffix,
   } = props;
 
   const hasLeading = renderLeading != null;
@@ -77,7 +83,9 @@ export function createPlayerTable(props: PlayerTableProps): PlayerTableHandle {
 
     if (hasLeading) row.appendChild(actionCell(renderLeading(player)));
 
-    const club = player.klubb?.navn ?? clubFallback ?? "";
+    const suffix = clubSuffix?.(player);
+    const clubName = player.klubb?.navn ?? clubFallback ?? "";
+    const club = suffix ? `${clubName} · ${suffix}` : clubName;
 
     const nameCell = document.createElement("td");
     if (stackClub) {
@@ -98,6 +106,9 @@ export function createPlayerTable(props: PlayerTableProps): PlayerTableHandle {
     }
 
     for (const render of trailing) row.appendChild(actionCell(render(player)));
+
+    const extraClass = rowClass?.(player);
+    if (extraClass) row.className = extraClass;
 
     if (onRowClick) {
       row.classList.add("participant-row");

@@ -27,10 +27,12 @@ export interface AvailableColumnProps {
   onRegistered: (kasterid: number) => void;
   /** Re-render both tables after a change */
   refreshLists: () => void;
+  /** Already enrolled — the row stays in the list, marked instead of clickable */
+  isRegistered: (kasterid: number) => boolean;
 }
 
 export function createAvailableColumn(props: AvailableColumnProps): AvailableColumnHandle {
-  const { canEdit, tournamentId, onRegistered, refreshLists } = props;
+  const { canEdit, tournamentId, onRegistered, refreshLists, isRegistered } = props;
 
   const leftWrapper = document.createElement("div");
   leftWrapper.className =
@@ -42,6 +44,7 @@ export function createAvailableColumn(props: AvailableColumnProps): AvailableCol
   });
 
   async function register(player: ThrowerListRow): Promise<void> {
+    if (isRegistered(player.id)) return;
     const { error } = await addRegistrationAdmin(tournamentId, player.id);
     if (error) {
       showToast("Feil ved innmelding: " + errorMessage(error), "error");
@@ -57,23 +60,31 @@ export function createAvailableColumn(props: AvailableColumnProps): AvailableCol
     clubFallback: "Ingen klubb",
     stackClub: true,
     onRowClick: canEdit ? (player) => void register(player) : undefined,
-    // Visible add affordance — the row click alone is invisible on touch devices.
-    renderTrailing: canEdit
-      ? [
-          (player) => {
-            const addBtn = document.createElement("button");
-            addBtn.type = "button";
-            addBtn.textContent = "+";
-            addBtn.className = "btn btn-outline-primary btn-sm p-0 lh-1 participant-add-btn";
-            addBtn.title = "Meld på spelar";
-            addBtn.addEventListener("click", (e) => {
-              e.stopPropagation();
-              void register(player);
-            });
-            return addBtn;
-          },
-        ]
-      : undefined,
+    // Enrolled players stay in the list so the admin can see the change land.
+    rowClass: (player) => (isRegistered(player.id) ? "participant-registered-row" : undefined),
+    clubSuffix: (player) => (isRegistered(player.id) ? "påmeld" : undefined),
+    renderTrailing: [
+      (player) => {
+        if (isRegistered(player.id)) {
+          const done = document.createElement("span");
+          done.className = "participant-token participant-token-done";
+          done.textContent = "✓";
+          done.title = "Påmeld";
+          return done;
+        }
+        if (!canEdit) return null;
+        const addBtn = document.createElement("button");
+        addBtn.type = "button";
+        addBtn.className = "participant-token participant-token-add";
+        addBtn.textContent = "+";
+        addBtn.title = "Meld på spelar";
+        addBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          void register(player);
+        });
+        return addBtn;
+      },
+    ],
   });
 
   leftWrapper.append(searchInput, table.element);

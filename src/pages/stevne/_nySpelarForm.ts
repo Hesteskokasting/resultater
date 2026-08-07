@@ -44,7 +44,7 @@ export function createNewPlayerForm(props: NewPlayerFormProps): NewPlayerFormHan
 
   const toggle = document.createElement("button");
   toggle.type = "button";
-  toggle.className = "btn btn-primary btn-sm flex-shrink-0";
+  toggle.className = "participant-new-btn flex-shrink-0";
   toggle.textContent = "+ Ny spelar";
 
   // ── Panel ───────────────────────────────────────────────────────────────────

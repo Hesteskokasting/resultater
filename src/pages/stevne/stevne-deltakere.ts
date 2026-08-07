@@ -36,20 +36,13 @@ function sortThrowers(throwers: ThrowerListRow[]): ThrowerListRow[] {
   });
 }
 
-function filterAvailable(
-  throwers: ThrowerListRow[],
-  search: string,
-  registeredMap: Map<number, boolean>,
-): ThrowerListRow[] {
+function filterAvailable(throwers: ThrowerListRow[], search: string): ThrowerListRow[] {
   const q = search.toLowerCase();
-  return throwers.filter((p) => {
-    if (registeredMap.has(p.id)) return false;
-    return (
-      !q ||
-      throwerName(p).toLowerCase().includes(q) ||
-      (p.klubb?.navn ?? "").toLowerCase().includes(q)
-    );
-  });
+  if (!q) return throwers;
+  return throwers.filter(
+    (p) =>
+      throwerName(p).toLowerCase().includes(q) || (p.klubb?.navn ?? "").toLowerCase().includes(q),
+  );
 }
 
 // ── Data loading ──────────────────────────────────────────────────────────────
@@ -180,6 +173,7 @@ export async function render(
           renderRegisteredList();
           renderAvailableList();
         },
+        isRegistered: (kasterid) => registeredMap.has(kasterid),
       });
       layout.appendChild(leftColumn.element);
     }
@@ -212,25 +206,25 @@ export async function render(
     let registeredBadge: HTMLElement | null = null;
     if (!isStarted) {
       const switcher = document.createElement("div");
-      switcher.className = "btn-group w-100 mb-2 participant-tab-buttons";
+      switcher.className = "participant-switch mb-2";
 
       const availableBtn = document.createElement("button");
       availableBtn.type = "button";
-      availableBtn.className = "btn btn-primary btn-sm";
+      availableBtn.className = "participant-switch-btn active";
       availableBtn.textContent = "Tilgjengelege";
 
       const registeredBtn = document.createElement("button");
       registeredBtn.type = "button";
-      registeredBtn.className = "btn btn-outline-primary btn-sm";
+      registeredBtn.className = "participant-switch-btn";
       registeredBtn.textContent = "Påmelde ";
       registeredBadge = document.createElement("span");
-      registeredBadge.className = "badge bg-success";
+      registeredBadge.className = "participant-switch-badge";
       registeredBtn.appendChild(registeredBadge);
 
       const showRegistered = (show: boolean): void => {
         layout.classList.toggle("participant-show-registered", show);
-        availableBtn.className = `btn btn-sm ${show ? "btn-outline-primary" : "btn-primary"}`;
-        registeredBtn.className = `btn btn-sm ${show ? "btn-primary" : "btn-outline-primary"}`;
+        availableBtn.classList.toggle("active", !show);
+        registeredBtn.classList.toggle("active", show);
       };
 
       availableBtn.addEventListener("click", () => showRegistered(false));
@@ -253,7 +247,7 @@ export async function render(
     function renderAvailableList(): void {
       if (!leftColumn) return;
       leftColumn.table.setPlayers(
-        sortThrowers(filterAvailable(allThrowers, leftColumn.searchInput.value, registeredMap)),
+        sortThrowers(filterAvailable(allThrowers, leftColumn.searchInput.value)),
       );
     }
 
