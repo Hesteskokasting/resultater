@@ -2626,6 +2626,14 @@ button.bane-omgang-chip {
   cursor: pointer;
 }
 
+/* Dark only: on the darker zebra row the shared border colour disappears into
+   the tint, so the chip borrows the other row's background to keep its edge
+   visible. In light mode that background is near-white and would erase the
+   border instead, so --kant stays. */
+:root:not([data-theme="light"]) .bane-group--b .bane-omgang-chip {
+  border-color: var(--bane-tint-a);
+}
+
 button.bane-omgang-chip:hover {
   border-color: var(--primaer);
 }
