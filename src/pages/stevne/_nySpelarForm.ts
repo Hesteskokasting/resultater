@@ -185,9 +185,6 @@ export function createNewPlayerForm(props: NewPlayerFormProps): NewPlayerFormHan
       kjonnid,
       klubbid,
       klasseid: null,
-      epost: null,
-      telefon: null,
-      medlemsnummer: null,
       eraktiv: true,
     });
 

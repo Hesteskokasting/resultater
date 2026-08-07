@@ -140,16 +140,10 @@ describe("tournamentStatusShare", () => {
 
 describe("summarizeThrowers", () => {
   const rows = [
-    {
-      eraktiv: true,
-      epost: "a@b.no",
-      telefon: null,
-      medlemsnummer: 1,
-      klubb: { navn: "Oslo HK" },
-    },
-    { eraktiv: true, epost: null, telefon: "999", medlemsnummer: null, klubb: { navn: "Oslo HK" } },
-    { eraktiv: false, epost: null, telefon: null, medlemsnummer: null, klubb: null },
-    { eraktiv: true, epost: "  ", telefon: null, medlemsnummer: null, klubb: { navn: " " } },
+    { eraktiv: true, medlemsnummer: 1, klubb: { navn: "Oslo HK" } },
+    { eraktiv: true, medlemsnummer: null, klubb: { navn: "Oslo HK" } },
+    { eraktiv: false, medlemsnummer: null, klubb: null },
+    { eraktiv: true, medlemsnummer: null, klubb: { navn: " " } },
   ];
 
   it("counts activity, club coverage and data completeness", () => {
@@ -159,7 +153,6 @@ describe("summarizeThrowers", () => {
       inactive: 1,
       withClub: 2,
       withoutClub: 2,
-      withContact: 2,
       withMemberNumber: 1,
       clubCount: 1,
     });

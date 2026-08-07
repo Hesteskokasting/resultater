@@ -349,8 +349,6 @@ describe("utovarar panel", () => {
       etternavn: "Nordmann",
       eraktiv: true,
       medlemsnummer: 1234,
-      epost: "ola@example.com",
-      telefon: null,
       klubbid: 1,
       klubb: { id: 1, navn: "Oslo HK" },
       klasse: { id: 1, navn: "Senior" },
@@ -362,8 +360,6 @@ describe("utovarar panel", () => {
       etternavn: "Vik",
       eraktiv: true,
       medlemsnummer: null,
-      epost: null,
-      telefon: null,
       klubbid: 2,
       klubb: { id: 2, navn: "Bergen HK" },
       klasse: { id: 2, navn: "Junior" },
@@ -375,8 +371,6 @@ describe("utovarar panel", () => {
       etternavn: "Utan",
       eraktiv: false,
       medlemsnummer: null,
-      epost: null,
-      telefon: null,
       klubbid: null,
       klubb: null,
       klasse: null,
@@ -396,11 +390,10 @@ describe("utovarar panel", () => {
     expect(tileValue(el, "Inaktive")).toBe("1");
     expect(tileValue(el, "Klubbar representert")).toBe("2");
     expect(tileValue(el, "Utan klubb")).toBe("1");
-    expect(tileValue(el, "Med kontaktinfo")).toBe("1");
     expect(tileValue(el, "Med medlemsnr.")).toBe("1");
   });
 
-  it("shows class, gender, member number and contact per row", async () => {
+  it("shows class, gender and member number per row", async () => {
     const el = host();
     await renderThrowers(el);
 
@@ -410,7 +403,6 @@ describe("utovarar panel", () => {
     expect(meta).toContain("Oslo HK");
     expect(meta).toContain("Mann");
     expect(meta).toContain("Medlemsnr. 1234");
-    expect(meta).toContain("ola@example.com");
   });
 
   it("scopes to active by default and can show only inactive", async () => {

@@ -159,9 +159,6 @@ describe("kasterForm", () => {
     kjonnid: 1,
     klasseid: 1,
     klubbid: 1,
-    epost: "ola@example.com",
-    telefon: null,
-    medlemsnummer: 12,
     eraktiv: true,
   };
 

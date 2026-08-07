@@ -134,8 +134,6 @@ export function tournamentStatusShare(rows: TournamentRowLike[]): LabelCount[] {
 
 export interface ThrowerRowLike {
   eraktiv: boolean | null;
-  epost: string | null;
-  telefon: string | null;
   medlemsnummer: number | null;
   klubb?: { navn: string | null } | null;
   klasse?: { navn: string | null } | null;
@@ -148,7 +146,6 @@ export interface ThrowerDashboard {
   inactive: number;
   withClub: number;
   withoutClub: number;
-  withContact: number;
   withMemberNumber: number;
   clubCount: number;
 }
@@ -157,7 +154,6 @@ export function summarizeThrowers(rows: ThrowerRowLike[]): ThrowerDashboard {
   const clubs = new Set<string>();
   let active = 0;
   let withClub = 0;
-  let withContact = 0;
   let withMemberNumber = 0;
 
   for (const row of rows) {
@@ -167,7 +163,6 @@ export function summarizeThrowers(rows: ThrowerRowLike[]): ThrowerDashboard {
       withClub++;
       clubs.add(club);
     }
-    if (row.epost?.trim() || row.telefon?.trim()) withContact++;
     if (row.medlemsnummer != null) withMemberNumber++;
   }
 
@@ -177,7 +172,6 @@ export function summarizeThrowers(rows: ThrowerRowLike[]): ThrowerDashboard {
     inactive: rows.length - active,
     withClub,
     withoutClub: rows.length - withClub,
-    withContact,
     withMemberNumber,
     clubCount: clubs.size,
   };

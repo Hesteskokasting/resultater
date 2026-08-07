@@ -76,11 +76,6 @@ export async function mountThrowerForm(host: AdminFormHost, id?: number): Promis
         ${formRowHtml("Klasse", `<select class="form-select" name="klasseid">${buildDropdownOptions(classes, v.klasseid)}</select>`)}
       </div>
       ${formRowHtml("Klubb", `<select class="form-select" name="klubbid"><option value="">— vel —</option>${clubOptions}</select>`)}
-      <div class="admin-form-grid">
-        ${formRowHtml("E-post", `<input type="email" class="form-control" name="epost" value="${escHtml(v.epost)}">`)}
-        ${formRowHtml("Telefon", `<input type="tel" class="form-control" name="telefon" value="${escHtml(v.telefon)}">`)}
-      </div>
-      ${formRowHtml("Medlemsnummer", `<input type="number" class="form-control" name="medlemsnummer" value="${v.medlemsnummer ?? ""}">`)}
       <div class="mb-3 form-check">
         <input class="form-check-input" type="checkbox" name="eraktiv" id="eraktiv"${v.eraktiv !== false ? " checked" : ""}>
         <label class="form-check-label" for="eraktiv">Er aktiv</label>
@@ -103,9 +98,6 @@ export async function mountThrowerForm(host: AdminFormHost, id?: number): Promis
       kjonnid: formNum(fd.get("kjonnid"))!,
       klubbid: formNum(fd.get("klubbid")),
       klasseid: formNum(fd.get("klasseid")),
-      epost: (fd.get("epost") as string).trim() || null,
-      telefon: (fd.get("telefon") as string).trim() || null,
-      medlemsnummer: fd.get("medlemsnummer") ? Number(fd.get("medlemsnummer")) : null,
       eraktiv: fd.get("eraktiv") === "on",
     };
 

@@ -32,15 +32,12 @@ function buildItem(thrower: ThrowerAdminListRow, onChanged: () => void): AdminLi
   if (!thrower.eraktiv) badges.push({ text: "Inaktiv", tone: "muted" });
   if (thrower.klasse?.navn) badges.push({ text: thrower.klasse.navn, tone: "muted" });
 
-  const contact = [thrower.epost, thrower.telefon].filter(Boolean).join(" · ");
-
   return {
     title: throwerName(thrower),
     meta: [
       thrower.klubb?.navn ?? "Utan klubb",
       thrower.kjonn?.navn,
       thrower.medlemsnummer != null ? `Medlemsnr. ${thrower.medlemsnummer}` : "Utan medlemsnr.",
-      contact || "Ingen kontaktinfo",
     ],
     badges,
     stripe: thrower.eraktiv ? undefined : "muted",
@@ -74,14 +71,13 @@ function tiles(summary: ReturnType<typeof summarizeThrowers>): StatTile[] {
       sub: summary.withoutClub ? "Bør knytast til ein klubb" : "Alle har klubb",
       tone: summary.withoutClub ? "warn" : undefined,
     },
-    { label: "Med kontaktinfo", value: summary.withContact, sub: "E-post eller telefon" },
     { label: "Med medlemsnr.", value: summary.withMemberNumber, sub: "Registrert i NHF" },
   ];
 }
 
 export async function render(el: HTMLElement): Promise<void> {
   const statsSlot = createEl("div", null);
-  statsSlot.appendChild(createStatGridSkeleton(6));
+  statsSlot.appendChild(createStatGridSkeleton(5));
 
   const clubChart = createChartCard("Utøvarar per klubb", "Dei ti største klubbane");
   const classChart = createChartCard("Fordeling per klasse", "Alle utøvarar");
@@ -114,7 +110,7 @@ export async function render(el: HTMLElement): Promise<void> {
   );
 
   const search = createSearchInput({
-    placeholder: "Søk på namn, klubb, e-post eller medlemsnr.",
+    placeholder: "Søk på namn, klubb eller medlemsnr.",
     state: filter,
     onInput: () => {
       filter.shown = PAGE_SIZE;
@@ -139,7 +135,6 @@ export async function render(el: HTMLElement): Promise<void> {
       return [
         throwerName(row),
         row.klubb?.navn,
-        row.epost,
         row.medlemsnummer != null ? String(row.medlemsnummer) : null,
       ]
         .filter(Boolean)

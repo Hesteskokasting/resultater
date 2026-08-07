@@ -23,7 +23,7 @@ const _kasterForKoblingQuery = supabase
 const _kasterAdminListeQuery = supabase
   .from("kaster")
   .select(
-    "id, fornavn, etternavn, eraktiv, medlemsnummer, epost, telefon, klubbid, klubb:klubbid(id, navn), klasse:klasseid(id, navn), kjonn:kjonnid(id, navn)",
+    "id, fornavn, etternavn, eraktiv, medlemsnummer, klubbid, klubb:klubbid(id, navn), klasse:klasseid(id, navn), kjonn:kjonnid(id, navn)",
   );
 const _resultatDetaljQuery = supabase.from("resultat").select(`
   id, plassering, poeng_kongelag, poeng_xkast, antall_ring_kongelag, antall_ring_xkast,
@@ -168,16 +168,7 @@ export type GenderRow = Pick<Tables<"kjonn">, "id" | "navn">;
 
 export type ThrowerAdminRow = Pick<
   Tables<"kaster">,
-  | "id"
-  | "fornavn"
-  | "etternavn"
-  | "kjonnid"
-  | "klasseid"
-  | "klubbid"
-  | "epost"
-  | "telefon"
-  | "medlemsnummer"
-  | "eraktiv"
+  "id" | "fornavn" | "etternavn" | "kjonnid" | "klasseid" | "klubbid" | "eraktiv"
 >;
 export type ThrowerAdminPayload = Omit<ThrowerAdminRow, "id">;
 
@@ -210,9 +201,7 @@ export async function getThrowerForAdmin(
 ): Promise<{ data: ThrowerAdminRow | null; error: unknown }> {
   const { data, error } = await supabase
     .from("kaster")
-    .select(
-      "id, fornavn, etternavn, kjonnid, klasseid, klubbid, epost, telefon, medlemsnummer, eraktiv",
-    )
+    .select("id, fornavn, etternavn, kjonnid, klasseid, klubbid, eraktiv")
     .eq("id", id)
     .single();
   if (error) logError("getThrowerForAdmin", error);
@@ -243,7 +232,7 @@ export async function getThrowerAdminList(): Promise<{
   const { data, error } = await supabase
     .from("kaster")
     .select(
-      "id, fornavn, etternavn, eraktiv, medlemsnummer, epost, telefon, klubbid, klubb:klubbid(id, navn), klasse:klasseid(id, navn), kjonn:kjonnid(id, navn)",
+      "id, fornavn, etternavn, eraktiv, medlemsnummer, klubbid, klubb:klubbid(id, navn), klasse:klasseid(id, navn), kjonn:kjonnid(id, navn)",
     )
     .order("etternavn")
     .order("fornavn");

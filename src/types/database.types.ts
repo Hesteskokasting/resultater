@@ -307,7 +307,6 @@ export type Database = {
       kaster: {
         Row: {
           avatarurl: string | null
-          epost: string | null
           eraktiv: boolean
           etternavn: string
           fornavn: string
@@ -316,11 +315,9 @@ export type Database = {
           klasseid: number | null
           klubbid: number | null
           medlemsnummer: number | null
-          telefon: string | null
         }
         Insert: {
           avatarurl?: string | null
-          epost?: string | null
           eraktiv?: boolean
           etternavn: string
           fornavn: string
@@ -329,11 +326,9 @@ export type Database = {
           klasseid?: number | null
           klubbid?: number | null
           medlemsnummer?: number | null
-          telefon?: string | null
         }
         Update: {
           avatarurl?: string | null
-          epost?: string | null
           eraktiv?: boolean
           etternavn?: string
           fornavn?: string
@@ -342,7 +337,6 @@ export type Database = {
           klasseid?: number | null
           klubbid?: number | null
           medlemsnummer?: number | null
-          telefon?: string | null
         }
         Relationships: [
           {
