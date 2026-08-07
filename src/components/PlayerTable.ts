@@ -4,7 +4,7 @@ import type { ThrowerListRow } from "@/services/kasterService";
 export interface PlayerTableProps {
   /** Builds the heading text from the current row count (callers decide whether to show the count) */
   formatTitle: (count: number) => string;
-  /** Muted status text on the right of the heading, e.g. "1 av 4 innsjekka" */
+  /** Muted status text on the right of the heading, e.g. "1 av 4 bekreftet" */
   formatMeta?: (players: ThrowerListRow[]) => string;
   /** Shown when there are no rows */
   emptyText: string;

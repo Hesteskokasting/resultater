@@ -172,7 +172,7 @@ export function createRegisteredColumn(props: RegisteredColumnProps): Registered
     formatTitle: (n) => `Påmelde spelarar: ${n}`,
     formatMeta: (players) => {
       const checkedIn = players.filter((sp) => registeredMap.get(sp.id) ?? false).length;
-      return `${checkedIn} av ${players.length} innsjekka`;
+      return `${checkedIn} av ${players.length} bekreftet`;
     },
     emptyText: "Ingen spelarar påmelde",
     stackClub: true,
@@ -182,7 +182,7 @@ export function createRegisteredColumn(props: RegisteredColumnProps): Registered
       const circle = document.createElement("span");
       circle.className = `participant-check${checkedIn ? " participant-check-on" : ""}`;
       circle.textContent = checkedIn ? "✓" : "";
-      circle.title = checkedIn ? "Innsjekka" : "Ikkje innsjekka";
+      circle.title = checkedIn ? "Bekreftet" : "Ikkje bekreftet";
       return circle;
     },
     renderTrailing: [
