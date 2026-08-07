@@ -228,7 +228,7 @@ export async function render(
           confirmedAt: myRegistration.bekreftet_at,
         });
         const row = document.createElement("div");
-        row.className = "d-flex align-items-start gap-2 org-max-480";
+        row.className = "oppmote-row";
         row.append(attendance.element, registrationButton);
         target.appendChild(row);
       } else {

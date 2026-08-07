@@ -29,7 +29,7 @@ export function createOppmoteButton(props: OppmoteButtonProps): OppmoteButtonHan
   const opensAt = attendanceOpensAt(dato, tid);
 
   const element = document.createElement("div");
-  element.className = "oppmote-panel flex-grow-1";
+  element.className = "oppmote-panel";
 
   async function setConfirmed(next: boolean): Promise<void> {
     if (busy) return;
