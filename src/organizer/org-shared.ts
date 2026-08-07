@@ -627,11 +627,12 @@ export function sortStandings(standings: StandingRow[], matches: MatchForSorting
     }
     if (kpA !== kpB) return kpB - kpA;
 
-    // Highest score in a single match
+    // Highest score in a single match — stored score_poeng, matching the SP column.
+    // Omgang rows can be incomplete or miss HCP on a confirmed match.
     const scoresFor = (kid: number) =>
       confirmed
         .flatMap((k) => k.spelarar?.filter((s) => s.kasterid === kid) ?? [])
-        .map((s) => scoreForPlayer(s))
+        .map((s) => s.score_poeng ?? 0)
         .sort((x, y) => y - x);
     const sA = scoresFor(a.kasterid);
     const sB = scoresFor(b.kasterid);

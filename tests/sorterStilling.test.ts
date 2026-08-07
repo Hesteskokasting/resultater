@@ -117,6 +117,19 @@ describe("sortStandings", () => {
       const matchB = confirmedMatch([{ kasterid: 2, kamp_poeng: 2, score_poeng: 20 }]);
       expect(ids(sortStandings([b, a], [h2h, matchA, matchB]))).toEqual([1, 2]);
     });
+
+    it("uses stored score_poeng, not partial omgang rows, on a confirmed match", () => {
+      // player 1's match holds only omgang 1 (3) while the confirmed total is 21
+      const a = p(1, { kamp_poeng: 2, score_poeng: 21, startnummer: 1 });
+      const b = p(2, { kamp_poeng: 2, score_poeng: 21, startnummer: 11 });
+      const matchA: MatchForSorting = {
+        er_bekreftet: true,
+        spelarar: [{ kasterid: 1, kamp_poeng: 2, score_poeng: 21, omgangar: [{ score: 3 }] }],
+      };
+      const matchB = confirmedMatch([{ kasterid: 2, kamp_poeng: 2, score_poeng: 21 }]);
+      // fully tied → start number decides
+      expect(ids(sortStandings([b, a], [matchA, matchB]))).toEqual([1, 2]);
+    });
   });
 
   describe("start number tiebreak", () => {
