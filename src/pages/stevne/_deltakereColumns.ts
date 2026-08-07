@@ -7,7 +7,7 @@ import type { PlayerTableHandle } from "@/components/PlayerTable";
 import type { ThrowerListRow } from "@/services/kasterService";
 import {
   addRegistrationAdmin,
-  confirmRegistrationForThrower,
+  setRegistrationConfirmedForThrower,
   removeRegistrationForThrower,
 } from "@/services/pameldingService";
 import type { PrinterBanner } from "@/pages/stevne/PrinterBanner";
@@ -106,7 +106,8 @@ export interface RegisteredColumnProps {
   registeredMap: Map<number, boolean>;
   pairedIds: Set<number>;
   printerBanner: PrinterBanner | undefined;
-  onConfirmed: (kasterid: number) => void;
+  /** Check-in was toggled — the caller owns the registeredMap bookkeeping */
+  onConfirmedChange: (kasterid: number, confirmed: boolean) => void;
   onRemoved: (kasterid: number) => void;
   refreshRegisteredList: () => void;
   refreshBothLists: () => void;
@@ -120,7 +121,7 @@ export function createRegisteredColumn(props: RegisteredColumnProps): Registered
     registeredMap,
     pairedIds,
     printerBanner,
-    onConfirmed,
+    onConfirmedChange,
     onRemoved,
     refreshRegisteredList,
     refreshBothLists,
@@ -156,40 +157,40 @@ export function createRegisteredColumn(props: RegisteredColumnProps): Registered
       }
     : null;
 
+  async function toggleCheckIn(sp: ThrowerListRow): Promise<void> {
+    const next = !(registeredMap.get(sp.id) ?? false);
+    const { error } = await setRegistrationConfirmedForThrower(tournamentId, sp.id, next);
+    if (error) {
+      showToast("Feil ved innsjekking: " + errorMessage(error), "error");
+      return;
+    }
+    onConfirmedChange(sp.id, next);
+    refreshRegisteredList();
+  }
+
   const table = createPlayerTable({
     formatTitle: (n) => `Påmelde spelarar: ${n}`,
+    formatMeta: (players) => {
+      const checkedIn = players.filter((sp) => registeredMap.get(sp.id) ?? false).length;
+      return `${checkedIn} av ${players.length} innsjekka`;
+    },
     emptyText: "Ingen spelarar påmelde",
     stackClub: true,
+    onRowClick: canEdit ? (sp) => void toggleCheckIn(sp) : undefined,
     renderLeading: (sp) => {
-      if (registeredMap.get(sp.id) ?? false) {
-        const checkmark = document.createElement("span");
-        checkmark.className = "text-success fw-bold";
-        checkmark.textContent = "✓";
-        return checkmark;
-      }
-      if (!canEdit) return null;
-      const confirmBtn = document.createElement("button");
-      confirmBtn.textContent = "✓";
-      confirmBtn.className =
-        "btn btn-outline-danger btn-sm rounded-circle p-0 lh-1 participant-confirm-btn";
-      confirmBtn.title = "Bekreft spelar";
-      confirmBtn.addEventListener("click", async (e) => {
-        e.stopPropagation();
-        const { error } = await confirmRegistrationForThrower(tournamentId, sp.id);
-        if (error) {
-          showToast("Feil ved bekreftelse: " + errorMessage(error), "error");
-          return;
-        }
-        onConfirmed(sp.id);
-        refreshRegisteredList();
-      });
-      return confirmBtn;
+      const checkedIn = registeredMap.get(sp.id) ?? false;
+      const circle = document.createElement("span");
+      circle.className = `participant-check${checkedIn ? " participant-check-on" : ""}`;
+      circle.textContent = checkedIn ? "✓" : "";
+      circle.title = checkedIn ? "Innsjekka" : "Ikkje innsjekka";
+      return circle;
     },
     renderTrailing: [
       (sp) =>
         canEdit
           ? createRemoveButton({
               title: "Fjern spelar",
+              variant: "quiet",
               onClick: async () => {
                 if (pairedIds.has(sp.id)) {
                   showToast(

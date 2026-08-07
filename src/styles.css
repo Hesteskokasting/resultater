@@ -1424,10 +1424,32 @@ th.standing-sp-th {
   padding-bottom: 0.3rem;
   vertical-align: middle;
 }
-.participant-print-btn,
-.participant-confirm-btn {
+.participant-print-btn {
   width: 32px;
   height: 32px;
+}
+
+/* Check-in circle — the row toggles it, so this is state, not a button */
+.participant-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1.5px dashed var(--kant-2);
+  font-size: 0.85rem;
+  line-height: 1;
+  color: transparent;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+.participant-check-on {
+  background: var(--kamp-stripe-ferdig);
+  border-style: solid;
+  border-color: var(--kamp-stripe-ferdig);
+  color: #fff;
 }
 
 /* Already-enrolled rows stay in the available list, tinted so the change is visible */
@@ -1567,6 +1589,21 @@ th.standing-sp-th {
   background-color: color-mix(in srgb, var(--bs-danger) 85%, black);
   border-color: color-mix(in srgb, var(--bs-danger) 85%, black);
   color: #fff;
+}
+
+/* Quiet variant — stays out of the way in a long list until you reach for it */
+.remove-btn-quiet {
+  width: 26px;
+  height: 26px;
+  font-size: 18px;
+  background: none;
+  border: none;
+  color: var(--tekst-3);
+  transition: color 0.15s;
+}
+.remove-btn-quiet:hover,
+.remove-btn-quiet:focus-visible {
+  color: var(--feil);
 }
 
 /* ── Pair/Mix tab ── */

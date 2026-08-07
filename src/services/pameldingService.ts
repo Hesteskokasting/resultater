@@ -206,19 +206,20 @@ export async function addRegistrationAdmin(
   return { error };
 }
 
-export async function confirmRegistrationForThrower(
+export async function setRegistrationConfirmedForThrower(
   stevneId: number,
   kasterid: number,
+  confirmed: boolean,
 ): Promise<{ error: unknown }> {
   const { error } = await verifyRowsAffected(
     supabase
       .from("pamelding")
-      .update({ er_bekreftet: true })
+      .update({ er_bekreftet: confirmed })
       .eq("stevneid", stevneId)
       .eq("kasterid", kasterid)
       .select("id"),
   );
-  if (error) logError("confirmRegistrationForThrower", error);
+  if (error) logError("setRegistrationConfirmedForThrower", error);
   return { error };
 }
 

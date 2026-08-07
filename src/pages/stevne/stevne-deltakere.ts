@@ -187,7 +187,7 @@ export async function render(
       registeredMap,
       pairedIds,
       printerBanner,
-      onConfirmed: (kasterid) => registeredMap.set(kasterid, true),
+      onConfirmedChange: (kasterid, confirmed) => registeredMap.set(kasterid, confirmed),
       onRemoved: (kasterid) => {
         registeredMap.delete(kasterid);
         pairTabDirty = true;

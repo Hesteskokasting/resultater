@@ -4,6 +4,8 @@ import type { ThrowerListRow } from "@/services/kasterService";
 export interface PlayerTableProps {
   /** Builds the heading text from the current row count (callers decide whether to show the count) */
   formatTitle: (count: number) => string;
+  /** Muted status text on the right of the heading, e.g. "1 av 4 innsjekka" */
+  formatMeta?: (players: ThrowerListRow[]) => string;
   /** Shown when there are no rows */
   emptyText: string;
   /** Optional click handler on the whole row (e.g. add to enrollment) */
@@ -36,6 +38,7 @@ export interface PlayerTableHandle {
 export function createPlayerTable(props: PlayerTableProps): PlayerTableHandle {
   const {
     formatTitle,
+    formatMeta,
     emptyText,
     onRowClick,
     isDraggable,
@@ -56,8 +59,19 @@ export function createPlayerTable(props: PlayerTableProps): PlayerTableHandle {
   const column = document.createElement("div");
   column.className = "d-flex flex-column flex-grow-1";
 
+  const titleRow = document.createElement("div");
+  titleRow.className = "d-flex justify-content-between align-items-baseline gap-2 mb-1";
+
   const titleEl = document.createElement("h6");
-  titleEl.className = "fw-bold mb-1";
+  titleEl.className = "fw-bold mb-0";
+  titleRow.appendChild(titleEl);
+
+  let metaEl: HTMLElement | null = null;
+  if (formatMeta) {
+    metaEl = document.createElement("span");
+    metaEl.className = "small text-muted";
+    titleRow.appendChild(metaEl);
+  }
 
   const wrapper = document.createElement("div");
   wrapper.className = "participant-table-wrapper border rounded overflow-auto";
@@ -68,7 +82,7 @@ export function createPlayerTable(props: PlayerTableProps): PlayerTableHandle {
   table.appendChild(tbody);
 
   wrapper.appendChild(table);
-  column.appendChild(titleEl);
+  column.appendChild(titleRow);
   column.appendChild(wrapper);
 
   function actionCell(child: HTMLElement | null): HTMLTableCellElement {
@@ -130,6 +144,7 @@ export function createPlayerTable(props: PlayerTableProps): PlayerTableHandle {
 
   function setPlayers(players: ThrowerListRow[]): void {
     titleEl.textContent = formatTitle(players.length);
+    if (metaEl && formatMeta) metaEl.textContent = formatMeta(players);
     tbody.replaceChildren();
 
     if (!players.length) {
