@@ -125,7 +125,10 @@ export async function render(
 
     // ── Players panel: header, inline create form, mobile switcher, columns ───
 
+    // Capped to the width the columns actually occupy, so the header sits over
+    // the lists rather than stretching to the window edge on wide screens.
     const playersPanel = document.createElement("div");
+    playersPanel.className = `participant-panel${isStarted ? " participant-panel-single" : ""}`;
 
     const header = document.createElement("div");
     header.className = "d-flex justify-content-between align-items-center gap-2 mb-2";

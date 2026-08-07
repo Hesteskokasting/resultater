@@ -1507,8 +1507,20 @@ th.standing-sp-th {
 .participant-row {
   cursor: pointer;
 }
+/* Shared by the columns and the panel that frames them, so the header, the
+   switcher and the lists all end on the same right edge. */
+:root {
+  --participant-kolonne: 450px;
+}
 .participant-column {
-  max-width: 450px;
+  max-width: var(--participant-kolonne);
+}
+/* Two capped columns plus the row gutter between them */
+.participant-panel {
+  max-width: calc(var(--participant-kolonne) * 2 + 1rem);
+}
+.participant-panel-single {
+  max-width: var(--participant-kolonne);
 }
 
 /* Compact rows: name + club stack in one cell, so trim the vertical padding */
@@ -1644,7 +1656,8 @@ th.standing-sp-th {
   .participant-search-spacer {
     display: none;
   }
-  .participant-column {
+  .participant-column,
+  .participant-panel {
     max-width: none;
   }
   .participant-layout-split > .participant-column-registered,
