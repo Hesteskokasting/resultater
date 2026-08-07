@@ -1,4 +1,11 @@
-import { calcMatchPoints, scoreForPlayer, ringsForPlayer, calcRingCount } from "@/utils/kamp";
+import {
+  calcMatchPoints,
+  scoreForPlayer,
+  matchScoreForPlayer,
+  sideScore,
+  ringsForPlayer,
+  calcRingCount,
+} from "@/utils/kamp";
 
 describe("calcMatchPoints", () => {
   describe("tie", () => {
@@ -87,6 +94,41 @@ describe("scoreForPlayer", () => {
 
   it("falls back to score_poeng when omgangar is an empty array", () => {
     expect(scoreForPlayer({ score_poeng: 21, omgangar: [] })).toBe(21);
+  });
+});
+
+describe("matchScoreForPlayer", () => {
+  it("uses omgangar while the match is unconfirmed", () => {
+    expect(matchScoreForPlayer({ score_poeng: 0, omgangar: [{ score: 6 }] }, false)).toBe(6);
+  });
+
+  it("uses stored score_poeng once the match is confirmed", () => {
+    // half-finished omgangar left behind by an interrupted scoreboard
+    expect(matchScoreForPlayer({ score_poeng: 21, omgangar: [{ score: 3 }] }, true)).toBe(21);
+  });
+
+  it("returns 0 for null", () => {
+    expect(matchScoreForPlayer(null, true)).toBe(0);
+    expect(matchScoreForPlayer(null, false)).toBe(0);
+  });
+});
+
+describe("sideScore", () => {
+  const pair = {
+    rep: { score_poeng: 12, omgangar: [{ score: 3 }] },
+    members: [
+      { score_poeng: 12, omgangar: [{ score: 3 }] },
+      { score_poeng: 9, omgangar: [{ score: 2 }] },
+    ],
+  };
+
+  it("sums both pair members", () => {
+    expect(sideScore(pair, true)).toBe(21);
+    expect(sideScore(pair, false)).toBe(5);
+  });
+
+  it("returns 0 for a missing side", () => {
+    expect(sideScore(null, true)).toBe(0);
   });
 });
 

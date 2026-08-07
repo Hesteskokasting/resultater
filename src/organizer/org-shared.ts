@@ -1,4 +1,11 @@
-import { scoreForPlayer, getMatchSides, groupStandingsByPair, type MatchSide } from "@/utils/kamp";
+import {
+  scoreForPlayer,
+  matchScoreForPlayer,
+  sideScore,
+  getMatchSides,
+  groupStandingsByPair,
+  type MatchSide,
+} from "@/utils/kamp";
 import { throwerNameShort } from "@/utils/kaster";
 import { escHtml } from "@/utils/escHtml";
 import { coalesceReload } from "@/utils/coalesceReload";
@@ -134,11 +141,8 @@ function renderPlayerMatchDetails(
           : "";
       const opponentDisplay = opponentNumber ? `${opponentName} (${opponentNumber})` : opponentName;
 
-      // Side total: pair members alternate omgangar, so sum both members' rows
-      const sideSum = (side: typeof mySide) =>
-        side ? side.members.reduce((sum, m) => sum + scoreForPlayer(m), 0) : 0;
-      const myScore = isWalkoverWin ? 21 : sideSum(mySide);
-      const oppScore = isWalkoverWin ? 0 : sideSum(oppSide);
+      const myScore = isWalkoverWin ? 21 : sideScore(mySide, match.er_bekreftet);
+      const oppScore = isWalkoverWin ? 0 : sideScore(oppSide, match.er_bekreftet);
       const scoreDisplay = `${myScore} - ${oppScore}`;
 
       return `<tr>
@@ -627,12 +631,12 @@ export function sortStandings(standings: StandingRow[], matches: MatchForSorting
     }
     if (kpA !== kpB) return kpB - kpA;
 
-    // Highest score in a single match — stored score_poeng, matching the SP column.
-    // Omgang rows can be incomplete or miss HCP on a confirmed match.
+    // Highest score in a single match — every match here is confirmed, so this
+    // reads the stored totals the SP column adds up.
     const scoresFor = (kid: number) =>
       confirmed
         .flatMap((k) => k.spelarar?.filter((s) => s.kasterid === kid) ?? [])
-        .map((s) => s.score_poeng ?? 0)
+        .map((s) => matchScoreForPlayer(s, true))
         .sort((x, y) => y - x);
     const sA = scoresFor(a.kasterid);
     const sB = scoresFor(b.kasterid);

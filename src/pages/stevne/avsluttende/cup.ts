@@ -9,7 +9,7 @@ import { generateFinaleAndBronzeFinal } from "@/services/kampGenereringCupServic
 import { openGenerateRoundDialog } from "./_avslCupGenererRundeDialog";
 import { openThreeSideConfirmDialog } from "./_avslCupTreSpelarDialog";
 import { showNumberpad } from "@/components/ScoreNumberpad";
-import { scoreForPlayer, getAllMatchSides, type MatchSide } from "@/utils/kamp";
+import { matchScoreForPlayer, sideScore, getAllMatchSides, type MatchSide } from "@/utils/kamp";
 import { livePillHtml } from "@/components/LivePill";
 import {
   bindScoreboardClicks,
@@ -53,8 +53,8 @@ function matchSides(
   return getAllMatchSides(rows, startNumberMap, positionMap);
 }
 
-function sideSum(side: MatchSide<FinalMatchPlayerKnown> | null): number {
-  return side?.members.reduce((sum, m) => sum + scoreForPlayer(m), 0) ?? 0;
+function sideSum(side: MatchSide<FinalMatchPlayerKnown> | null, kamp: FinalMatchRow): number {
+  return sideScore(side, kamp.er_bekreftet);
 }
 
 // ── Cup variant ───────────────────────────────────────────────────────────────
@@ -455,7 +455,7 @@ function sideRowHtml(
   nSides: number,
   flags: MatchBlockFlags,
 ): string {
-  const tot = sideSum(side);
+  const tot = sideSum(side, kamp);
   const score =
     tot > 0 || (flags.isConfirmed && !flags.isThreeSides) || flags.hasRounds ? tot : "—";
   const matchPlacement = side.rep.kamp_plassering;
@@ -613,8 +613,8 @@ function bindMatchEventsLocal(
       void showScoreEditor({
         side1Name: p1Name,
         side2Name: p2Name,
-        currentS1: sideSum(side1),
-        currentS2: sideSum(side2),
+        currentS1: sideSum(side1, kamp),
+        currentS2: sideSum(side2, kamp),
         playerIds,
         hasRounds: kamp.spelarar.some((s) => (s.omgangar?.length ?? 0) > 0),
         logPrefix: "cup",
@@ -648,8 +648,8 @@ function bindMatchEventsLocal(
       const handler = (): void => {
         showNumberpad(
           [
-            { name: p1Name, score: sideSum(side1) },
-            { name: p2Name, score: sideSum(side2) },
+            { name: p1Name, score: sideSum(side1, kamp) },
+            { name: p2Name, score: sideSum(side2, kamp) },
           ],
           async ([newS1 = 0, newS2 = 0]) => {
             if (playerIds.length) {
@@ -707,12 +707,13 @@ async function confirmCupMatch2Sides(
   const side1 = sides[0] ?? null;
   const side2 = sides[1] ?? null;
 
-  // Re-fetch fresh scores — the rendered rows may be stale
+  // Re-fetch fresh scores — the rendered rows may be stale. The match is still
+  // unconfirmed here, so the live omgangar decide the result.
   const { data: currentPlayers } = await getMatchPlayers(kamp.id);
   const freshSideSum = (side: MatchSide<FinalMatchPlayerKnown> | null): number =>
     side?.members.reduce((sum, m) => {
       const fresh = currentPlayers.find((s) => s.id === m.id);
-      return sum + scoreForPlayer(fresh ?? m);
+      return sum + matchScoreForPlayer(fresh ?? m, false);
     }, 0) ?? 0;
 
   const s1 = freshSideSum(side1);

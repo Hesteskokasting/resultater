@@ -21,7 +21,7 @@
 import { showScoreEditor } from "@/organizer/scoreEditor";
 import { showToast } from "@/components/Toast";
 import { confirmDialog } from "@/components/ConfirmDialog";
-import { getMatchSides, groupStandingsByPair, scoreForPlayer, type MatchSide } from "@/utils/kamp";
+import { getMatchSides, groupStandingsByPair, sideScore, type MatchSide } from "@/utils/kamp";
 import { autoCompleteInitialRoundMatches } from "@/services/testDataService";
 import {
   buildInitialPlayerMap,
@@ -524,15 +524,6 @@ function applyFlashClasses(
 /** Any member of the side has omgang rows (pair members alternate omgangar). */
 function sideHasRounds(side: MatchSide<InitialMatchPlayerRow> | null): boolean {
   return side?.members.some((m) => (m.omgangar?.length ?? 0) > 0) ?? false;
-}
-
-/** Side total: each member carries only the omgangar they threw themselves. */
-function sideScore(side: MatchSide<InitialMatchPlayerRow> | null, isConfirmed: boolean): number {
-  if (!side) return 0;
-  return side.members.reduce(
-    (sum, m) => sum + (isConfirmed ? (m.score_poeng ?? 0) : scoreForPlayer(m)),
-    0,
-  );
 }
 
 const sideNavn = sideNameHtml;

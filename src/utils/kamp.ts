@@ -125,9 +125,34 @@ export function groupStandingsByPair<T extends PairableStandingRow>(
   });
 }
 
+/**
+ * Live score of a match still being played: the omgang rows are the truth while
+ * they are being registered, with the directly entered score_poeng as fallback.
+ * Confirmed matches must use matchScoreForPlayer/sideScore instead.
+ */
 export function scoreForPlayer(sp: PlayerScore | null | undefined): number {
   if (sp?.omgangar?.length) return sp.omgangar.reduce((sum, o) => sum + (o.score ?? 0), 0);
   return sp?.score_poeng ?? 0;
+}
+
+/**
+ * A player's score in one match. Once the match is confirmed the stored
+ * score_poeng is authoritative — it includes HCP and survives omgang rows that
+ * were left behind half-finished. Before that, the omgangar are the live truth.
+ */
+export function matchScoreForPlayer(
+  sp: PlayerScore | null | undefined,
+  isConfirmed: boolean,
+): number {
+  return isConfirmed ? (sp?.score_poeng ?? 0) : scoreForPlayer(sp);
+}
+
+/** Side total: each member carries only the omgangar they threw themselves. */
+export function sideScore<T extends PlayerScore>(
+  side: MatchSide<T> | null | undefined,
+  isConfirmed: boolean,
+): number {
+  return side?.members.reduce((sum, m) => sum + matchScoreForPlayer(m, isConfirmed), 0) ?? 0;
 }
 
 export function ringsForPlayer(sp: PlayerRings | null | undefined): number {
