@@ -101,6 +101,59 @@ describe("sortStandings", () => {
       // falls through to start number → a (startnummer 1) wins
       expect(ids(sortStandings([b, a], [unconfirmed]))).toEqual([1, 2]);
     });
+
+    it("ranks a three-way tie on h2h points within the tied group", () => {
+      // 1 beat 2, 2 beat 3, 1 beat 3 → 4 h2h points to player 1, 2 to player 2, 0 to player 3
+      const rows = [
+        p(1, { kamp_poeng: 4, score_poeng: 50, startnummer: 3 }),
+        p(2, { kamp_poeng: 4, score_poeng: 50, startnummer: 2 }),
+        p(3, { kamp_poeng: 4, score_poeng: 50, startnummer: 1 }),
+      ];
+      const matches = [
+        confirmedMatch([
+          { kasterid: 1, kamp_poeng: 2, score_poeng: 21 },
+          { kasterid: 2, kamp_poeng: 0, score_poeng: 8 },
+        ]),
+        confirmedMatch([
+          { kasterid: 2, kamp_poeng: 2, score_poeng: 21 },
+          { kasterid: 3, kamp_poeng: 0, score_poeng: 8 },
+        ]),
+        confirmedMatch([
+          { kasterid: 1, kamp_poeng: 2, score_poeng: 21 },
+          { kasterid: 3, kamp_poeng: 0, score_poeng: 8 },
+        ]),
+      ];
+      expect(ids(sortStandings(rows, matches))).toEqual([1, 2, 3]);
+    });
+
+    it("gives a circular three-way tie the same order whatever the input order", () => {
+      // 1 beat 2, 2 beat 3, 3 beat 1 — h2h is level at 2 points each, so the
+      // criteria below it decide and no input order may change the result
+      const rows = [
+        p(1, { kamp_poeng: 4, score_poeng: 50, startnummer: 3 }),
+        p(2, { kamp_poeng: 4, score_poeng: 50, startnummer: 2 }),
+        p(3, { kamp_poeng: 4, score_poeng: 50, startnummer: 1 }),
+      ];
+      const matches = [
+        confirmedMatch([
+          { kasterid: 1, kamp_poeng: 2, score_poeng: 21 },
+          { kasterid: 2, kamp_poeng: 0, score_poeng: 8 },
+        ]),
+        confirmedMatch([
+          { kasterid: 2, kamp_poeng: 2, score_poeng: 21 },
+          { kasterid: 3, kamp_poeng: 0, score_poeng: 8 },
+        ]),
+        confirmedMatch([
+          { kasterid: 3, kamp_poeng: 2, score_poeng: 21 },
+          { kasterid: 1, kamp_poeng: 0, score_poeng: 8 },
+        ]),
+      ];
+      // all three peak at 21, so start number decides: 3 (1), 2 (2), 1 (3)
+      const expected = [3, 2, 1];
+      expect(ids(sortStandings(rows, matches))).toEqual(expected);
+      expect(ids(sortStandings([...rows].reverse(), matches))).toEqual(expected);
+      expect(ids(sortStandings([rows[1]!, rows[2]!, rows[0]!], matches))).toEqual(expected);
+    });
   });
 
   describe("max single-match score tiebreak", () => {
