@@ -372,14 +372,18 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
     const isSwappable = canSwapParticipant(court, participant);
     const swapSelected = s.swapSelectedId === participant.id ? " court-swap-selected" : "";
 
+    // text-start: the reused match-row-desktop styling right-aligns the P1
+    // column (td:nth-child(2)) for kamp rows; court names stay left-aligned.
+    // align-middle lines the name up with the bane number when the chip grid
+    // makes the row two lines tall.
     const chevron = '<span class="bane-detail-chevron" aria-hidden="true"></span>';
     if (isSwappable) {
-      return `<td class="text-start bane-name-cell">
+      return `<td class="text-start align-middle bane-name-cell">
           <button type="button" class="bane-detail-toggle" data-xk-toggle-detail="${participant.id}" aria-expanded="${isExpanded}" aria-label="Vis omgangar for ${name}">${chevron}</button>
           <span class="court-swap-cell${swapSelected}" data-xk-swap="${participant.id}">${name}</span>
         </td>`;
     }
-    return `<td class="text-start bane-name-cell">
+    return `<td class="text-start align-middle bane-name-cell">
         <button type="button" class="bane-name-toggle" data-xk-toggle-detail="${participant.id}" aria-expanded="${isExpanded}">${chevron}<span>${name}</span></button>
       </td>`;
   }
@@ -452,10 +456,8 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
             ? ` class="${rowClass}" data-status="${courtStatus(court)}"`
             : ` class="${rowClass}"`;
         const canEditTotal = s.isAdmin && !s.config.erfullfort;
-        const totCls = `text-center bane-tot-cell${canEditTotal ? " xk-editable-cell" : ""}`;
+        const totCls = `text-center align-middle bane-tot-cell${canEditTotal ? " xk-editable-cell" : ""}`;
         const totAttr = canEditTotal ? ` data-xk-total="${participant.id}"` : "";
-        // text-start: the reused match-row-desktop styling right-aligns the P1
-        // column (td:nth-child(2)) for kamp rows; court names stay left-aligned.
         const row = `<tr${rowAttrs}>
         ${firstCells}
         ${nameCellHtml(court, participant, isExpanded)}

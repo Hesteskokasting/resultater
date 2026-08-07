@@ -2610,9 +2610,11 @@ th.initial-score-th {
   padding: 4px 6px !important;
 }
 
+/* Right-aligned so the chips sit next to the total instead of drifting away
+   from it; the slack a wide screen leaves lands before them, not after. */
 .bane-omgang-grid {
   display: grid;
-  justify-content: start;
+  justify-content: end;
   gap: 4px;
 }
 
