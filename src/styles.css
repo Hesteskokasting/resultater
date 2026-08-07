@@ -2385,6 +2385,20 @@ th.initial-score-th {
   height: 3.75rem;
 }
 
+/* The status stripe runs the height of the whole bane group here, not a single
+   row as in the kamp tables, so it carries more weight. */
+.match-row-desktop > td.bane-lane-cell {
+  border-left-width: 5px;
+  padding-left: 7px;
+}
+
+/* Bane total: the row's headline figure, centred in its own column. */
+.bane-tot-cell {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
 /* The bane boundary uses a per-theme divider colour so its weight matches
    across themes (--kant reads heavier on the light surface). */
 .match-table tbody tr.bane-group > td {
@@ -2585,13 +2599,6 @@ th.initial-score-th {
   justify-content: flex-end;
   gap: 6px;
   margin-left: auto;
-}
-
-/* ✓ after the name of every player on a confirmed bane. */
-.bane-name-confirmed {
-  margin-left: 6px;
-  color: var(--suksess, #2ecc71);
-  font-weight: 700;
 }
 
 /* Main-row score chips (X-kast runder, Kongelag omganger): five per line, so
@@ -3168,6 +3175,9 @@ button.bane-omgang-chip:hover {
 }
 .th-50 {
   width: 50px;
+}
+.th-56 {
+  width: 56px;
 }
 .th-80 {
   width: 80px;

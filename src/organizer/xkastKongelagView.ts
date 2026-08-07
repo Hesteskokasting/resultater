@@ -358,9 +358,9 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
   }
 
   /**
-   * The player-name cell. In X-kast it doubles as the row-level detail toggle
-   * (chevron); in Kongelag it stays a plain cell. Admins can still swap a
-   * not-yet-scored player via the name; there the chevron alone toggles detail.
+   * The player-name cell, in both variants the row-level detail toggle. Admins
+   * can still swap a not-yet-scored player via the name; there the chevron
+   * alone toggles the detail.
    */
   function nameCellHtml(
     court: CourtRow,
@@ -371,10 +371,6 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
     const name = escHtml(throwerName(participant.kaster));
     const isSwappable = canSwapParticipant(court, participant);
     const swapSelected = s.swapSelectedId === participant.id ? " court-swap-selected" : "";
-    // Confirmation is per bane, so every player of a confirmed bane is marked.
-    const confirmedMark = court.er_bekreftet
-      ? '<span class="bane-name-confirmed" aria-label="Bekrefta">✓</span>'
-      : "";
 
     const chevron = '<span class="bane-detail-chevron" aria-hidden="true"></span>';
     if (isSwappable) {
@@ -384,7 +380,7 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
         </td>`;
     }
     return `<td class="text-start bane-name-cell">
-        <button type="button" class="bane-name-toggle" data-xk-toggle-detail="${participant.id}" aria-expanded="${isExpanded}">${chevron}<span>${name}</span>${confirmedMark}</button>
+        <button type="button" class="bane-name-toggle" data-xk-toggle-detail="${participant.id}" aria-expanded="${isExpanded}">${chevron}<span>${name}</span></button>
       </td>`;
   }
 
@@ -456,7 +452,7 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
             ? ` class="${rowClass}" data-status="${courtStatus(court)}"`
             : ` class="${rowClass}"`;
         const canEditTotal = s.isAdmin && !s.config.erfullfort;
-        const totCls = `text-center fw-semibold${canEditTotal ? " xk-editable-cell" : ""}`;
+        const totCls = `text-center bane-tot-cell${canEditTotal ? " xk-editable-cell" : ""}`;
         const totAttr = canEditTotal ? ` data-xk-total="${participant.id}"` : "";
         // text-start: the reused match-row-desktop styling right-aligns the P1
         // column (td:nth-child(2)) for kamp rows; court names stay left-aligned.
@@ -489,7 +485,7 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
                 <th class="th-36 text-center">B</th>
                 <th>NAMN</th>
                 <th></th>
-                <th class="text-center th-44">TOT</th>
+                <th class="text-center th-56">TOT</th>
               </tr>
             </thead>
             <tbody>${courts.map((court, i) => courtRowsHtml(court, i)).join("")}</tbody>
