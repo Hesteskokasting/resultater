@@ -462,20 +462,22 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
     return `
       <div class="mb-3">
         <h6 class="text-center fw-bold mb-1">${escHtml(puljeLabel)}${puljeRegisterBtn}</h6>
-        <table class="table table-sm match-table mb-0">
-          <thead class="org-thead">
-            <tr>
-              <th class="th-36 text-center">B</th>
-              <th>NAMN</th>
-              ${scoreHeaders}
-              <th class="text-center th-44 table-summary-start">R</th>
-              <th class="text-center th-50">%</th>
-              <th class="text-center th-44">TOT</th>
-              ${actionTh}
-            </tr>
-          </thead>
-          <tbody>${courts.map((court, i) => courtRowsHtml(court, i)).join("")}</tbody>
-        </table>
+        <div class="table-scroll">
+          <table class="table table-sm match-table mb-0">
+            <thead class="org-thead">
+              <tr>
+                <th class="th-36 text-center">B</th>
+                <th>NAMN</th>
+                ${scoreHeaders}
+                <th class="text-center th-44 table-summary-start">R</th>
+                <th class="text-center th-50">%</th>
+                <th class="text-center th-44">TOT</th>
+                ${actionTh}
+              </tr>
+            </thead>
+            <tbody>${courts.map((court, i) => courtRowsHtml(court, i)).join("")}</tbody>
+          </table>
+        </div>
       </div>`;
   }
 
@@ -537,19 +539,21 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
     return `
       <div class="standing-table-wrap">
         <h6 class="text-center fw-bold mb-1">${standing.length} spelarar${percentSuffix}</h6>
-        <table class="table table-sm match-table mb-0">
-          <thead class="org-thead">
-            <tr>
-              <th class="th-32">#</th>
-              <th>NAMN</th>
-              <th class="th-50 standing-number">O</th>
-              <th class="th-44 standing-number standing-kp-th table-summary-start">R</th>
-              <th class="th-50 standing-number">%</th>
-              ${scoreHeaders}
-            </tr>
-          </thead>
-          <tbody>${standing.map((row) => standingRowHtml(row)).join("")}</tbody>
-        </table>
+        <div class="table-scroll">
+          <table class="table table-sm match-table mb-0">
+            <thead class="org-thead">
+              <tr>
+                <th class="th-32">#</th>
+                <th>NAMN</th>
+                <th class="th-50 standing-number">O</th>
+                <th class="th-44 standing-number standing-kp-th table-summary-start">R</th>
+                <th class="th-50 standing-number">%</th>
+                ${scoreHeaders}
+              </tr>
+            </thead>
+            <tbody>${standing.map((row) => standingRowHtml(row)).join("")}</tbody>
+          </table>
+        </div>
       </div>`;
   }
 

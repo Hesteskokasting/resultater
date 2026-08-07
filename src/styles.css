@@ -1078,6 +1078,15 @@
   }
 }
 
+/* A wide table (many omgang columns) scrolls inside its own box instead of
+   widening the document — a horizontally scrolled page drags the sticky header
+   and every fixed overlay off-screen with it. */
+.table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 /* Table shared styles (match table + stilling table) */
 .match-table {
   border-collapse: collapse;

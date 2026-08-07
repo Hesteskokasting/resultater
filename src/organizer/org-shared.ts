@@ -365,7 +365,10 @@ export function renderStandingTable(
   h6.className = "text-center fw-bold mb-1";
   h6.textContent = title;
   wrapper.appendChild(h6);
-  wrapper.appendChild(table);
+  const scroller = document.createElement("div");
+  scroller.className = "table-scroll";
+  scroller.appendChild(table);
+  wrapper.appendChild(scroller);
 
   return wrapper.outerHTML;
 }
