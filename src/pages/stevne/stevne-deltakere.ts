@@ -18,6 +18,7 @@ import type { AvailableColumnHandle } from "@/pages/stevne/_deltakereColumns";
 import { createLoadingState } from "@/components/LoadingState";
 import { createTabs } from "@/components/Tabs";
 import { createPairTab } from "@/pages/stevne/parTab";
+import { createNewPlayerForm } from "@/pages/stevne/_nySpelarForm";
 import { buildRegistrationLookup } from "@/utils/registrationLookup";
 import { unsubscribeChannel } from "@/utils/realtime";
 import { onNavigateAway } from "@/utils/navigation";
@@ -129,8 +130,39 @@ export async function render(
       wrapper.appendChild(printerBanner.element);
     }
 
+    // ── Players panel: header, inline create form, mobile switcher, columns ───
+
+    const playersPanel = document.createElement("div");
+
+    const header = document.createElement("div");
+    header.className = "d-flex justify-content-between align-items-center gap-2 mb-2";
+    const heading = document.createElement("h5");
+    heading.className = "fw-bold mb-0";
+    heading.textContent = "Deltakarar";
+    header.appendChild(heading);
+    playersPanel.appendChild(header);
+
+    // Inline create — admins only, and only while the tournament can still be edited.
+    if (canEdit) {
+      const newPlayerForm = createNewPlayerForm({
+        tournamentId: id,
+        onCreated: (player, registered) => {
+          allThrowers.push(player);
+          if (registered) {
+            registeredMap.set(player.id, false);
+            pairTabDirty = true;
+            printerBanner?.invalidateMatchData();
+          }
+          renderRegisteredList();
+          renderAvailableList();
+        },
+      });
+      header.appendChild(newPlayerForm.toggle);
+      playersPanel.appendChild(newPlayerForm.element);
+    }
+
     const layout = document.createElement("div");
-    layout.className = "row g-3";
+    layout.className = `row g-3${isStarted ? "" : " participant-layout-split"}`;
 
     // ── Left column: available throwers (only when tournament not started) ──
 
@@ -145,16 +177,6 @@ export async function render(
           printerBanner?.invalidateMatchData();
         },
         refreshLists: () => {
-          renderRegisteredList();
-          renderAvailableList();
-        },
-        onCreated: (player, registered) => {
-          allThrowers.push(player);
-          if (registered) {
-            registeredMap.set(player.id, false);
-            pairTabDirty = true;
-            printerBanner?.invalidateMatchData();
-          }
           renderRegisteredList();
           renderAvailableList();
         },
@@ -185,12 +207,47 @@ export async function render(
     });
     layout.appendChild(registeredColumn.element);
 
+    // ── Mobile switcher: only one column fits on a phone ──────────────────────
+
+    let registeredBadge: HTMLElement | null = null;
+    if (!isStarted) {
+      const switcher = document.createElement("div");
+      switcher.className = "btn-group w-100 mb-2 participant-tab-buttons";
+
+      const availableBtn = document.createElement("button");
+      availableBtn.type = "button";
+      availableBtn.className = "btn btn-primary btn-sm";
+      availableBtn.textContent = "Tilgjengelege";
+
+      const registeredBtn = document.createElement("button");
+      registeredBtn.type = "button";
+      registeredBtn.className = "btn btn-outline-primary btn-sm";
+      registeredBtn.textContent = "Påmelde ";
+      registeredBadge = document.createElement("span");
+      registeredBadge.className = "badge bg-success";
+      registeredBtn.appendChild(registeredBadge);
+
+      const showRegistered = (show: boolean): void => {
+        layout.classList.toggle("participant-show-registered", show);
+        availableBtn.className = `btn btn-sm ${show ? "btn-outline-primary" : "btn-primary"}`;
+        registeredBtn.className = `btn btn-sm ${show ? "btn-primary" : "btn-outline-primary"}`;
+      };
+
+      availableBtn.addEventListener("click", () => showRegistered(false));
+      registeredBtn.addEventListener("click", () => showRegistered(true));
+
+      switcher.append(availableBtn, registeredBtn);
+      playersPanel.appendChild(switcher);
+    }
+
+    playersPanel.appendChild(layout);
+
     // ── Render helpers ────────────────────────────────────────────────────────
 
     function renderRegisteredList(): void {
-      registeredColumn.table.setPlayers(
-        sortThrowers(allThrowers.filter((p) => registeredMap.has(p.id))),
-      );
+      const registered = sortThrowers(allThrowers.filter((p) => registeredMap.has(p.id)));
+      registeredColumn.table.setPlayers(registered);
+      if (registeredBadge) registeredBadge.textContent = String(registered.length);
     }
 
     function renderAvailableList(): void {
@@ -215,7 +272,7 @@ export async function render(
       wrapper.appendChild(
         createTabs({
           tabs: [
-            { id: "players", label: "Spelarar", panel: layout },
+            { id: "players", label: "Spelarar", panel: playersPanel },
             { id: "pairs", label: "Administrer par", panel: pairTab.element },
           ],
           onChange: (tabId) => {
@@ -227,7 +284,7 @@ export async function render(
         }),
       );
     } else {
-      wrapper.appendChild(layout);
+      wrapper.appendChild(playersPanel);
     }
 
     container.replaceChildren(wrapper);

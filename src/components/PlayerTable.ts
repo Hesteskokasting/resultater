@@ -18,6 +18,8 @@ export interface PlayerTableProps {
   renderTrailing?: ((player: ThrowerListRow) => HTMLElement | null)[];
   /** Text shown when a player has no club */
   clubFallback?: string;
+  /** Render the club as a small line under the name instead of its own column */
+  stackClub?: boolean;
 }
 
 export interface PlayerTableHandle {
@@ -38,11 +40,12 @@ export function createPlayerTable(props: PlayerTableProps): PlayerTableHandle {
     renderLeading,
     renderTrailing,
     clubFallback,
+    stackClub,
   } = props;
 
   const hasLeading = renderLeading != null;
   const trailing = renderTrailing ?? [];
-  const colCount = (hasLeading ? 1 : 0) + 2 + trailing.length;
+  const colCount = (hasLeading ? 1 : 0) + (stackClub ? 1 : 2) + trailing.length;
 
   const column = document.createElement("div");
   column.className = "d-flex flex-column flex-grow-1";
@@ -74,13 +77,25 @@ export function createPlayerTable(props: PlayerTableProps): PlayerTableHandle {
 
     if (hasLeading) row.appendChild(actionCell(renderLeading(player)));
 
-    const nameCell = document.createElement("td");
-    nameCell.textContent = throwerName(player);
-    row.appendChild(nameCell);
+    const club = player.klubb?.navn ?? clubFallback ?? "";
 
-    const clubCell = document.createElement("td");
-    clubCell.textContent = player.klubb?.navn ?? clubFallback ?? "";
-    row.appendChild(clubCell);
+    const nameCell = document.createElement("td");
+    if (stackClub) {
+      const nameLine = document.createElement("div");
+      nameLine.textContent = throwerName(player);
+      const clubLine = document.createElement("div");
+      clubLine.className = "small text-muted";
+      clubLine.textContent = club;
+      nameCell.append(nameLine, clubLine);
+      row.appendChild(nameCell);
+    } else {
+      nameCell.textContent = throwerName(player);
+      row.appendChild(nameCell);
+
+      const clubCell = document.createElement("td");
+      clubCell.textContent = club;
+      row.appendChild(clubCell);
+    }
 
     for (const render of trailing) row.appendChild(actionCell(render(player)));
 

@@ -1418,6 +1418,46 @@ th.standing-sp-th {
   max-width: 450px;
 }
 
+/* Compact rows: name + club stack in one cell, so trim the vertical padding */
+.participant-table-wrapper .table > tbody > tr > td {
+  padding-top: 0.3rem;
+  padding-bottom: 0.3rem;
+  vertical-align: middle;
+}
+.participant-add-btn,
+.participant-print-btn,
+.participant-confirm-btn {
+  width: 32px;
+  height: 32px;
+}
+
+/* Column switcher — desktop shows both columns, so it only appears on phones */
+.participant-tab-buttons {
+  display: none;
+}
+
+@media (max-width: 767.98px) {
+  .participant-tab-buttons {
+    display: flex;
+  }
+  .participant-search-spacer {
+    display: none;
+  }
+  .participant-column {
+    max-width: none;
+  }
+  .participant-layout-split > .participant-column-registered,
+  .participant-layout-split.participant-show-registered > .participant-column-available {
+    display: none !important;
+  }
+  .participant-layout-split.participant-show-registered > .participant-column-registered {
+    display: flex !important;
+  }
+  .participant-table-wrapper {
+    height: 60vh;
+  }
+}
+
 /* Draggable rows (pair tab) — inside a Bootstrap .table, so grab cursor is set on the row */
 .participant-table-wrapper tr[draggable="true"] {
   cursor: grab;

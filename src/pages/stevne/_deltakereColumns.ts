@@ -11,7 +11,6 @@ import {
   removeRegistrationForThrower,
 } from "@/services/pameldingService";
 import type { PrinterBanner } from "@/pages/stevne/PrinterBanner";
-import { createNewPlayerForm } from "@/pages/stevne/_nySpelarForm";
 
 // ── Available (left) column ────────────────────────────────────────────────────
 
@@ -28,52 +27,56 @@ export interface AvailableColumnProps {
   onRegistered: (kasterid: number) => void;
   /** Re-render both tables after a change */
   refreshLists: () => void;
-  /**
-   * A thrower was created inline. `registered` is false when the registry insert
-   * succeeded but the enrollment did not, so the caller can leave them available.
-   */
-  onCreated: (player: ThrowerListRow, registered: boolean) => void;
 }
 
 export function createAvailableColumn(props: AvailableColumnProps): AvailableColumnHandle {
-  const { canEdit, tournamentId, onRegistered, refreshLists, onCreated } = props;
+  const { canEdit, tournamentId, onRegistered, refreshLists } = props;
 
   const leftWrapper = document.createElement("div");
-  leftWrapper.className = "col-md-6 d-flex flex-column participant-column";
+  leftWrapper.className =
+    "col-md-6 d-flex flex-column participant-column participant-column-available";
 
   const searchInput = createSearchInput({
     placeholder: "Søk etter navn eller klubb…",
     variant: "form",
   });
 
+  async function register(player: ThrowerListRow): Promise<void> {
+    const { error } = await addRegistrationAdmin(tournamentId, player.id);
+    if (error) {
+      showToast("Feil ved innmelding: " + errorMessage(error), "error");
+      return;
+    }
+    onRegistered(player.id);
+    refreshLists();
+  }
+
   const table = createPlayerTable({
     formatTitle: () => "Tilgjengelege spelarar",
     emptyText: "Ingen spelarar funne",
     clubFallback: "Ingen klubb",
-    onRowClick: canEdit
-      ? async (s) => {
-          const { error } = await addRegistrationAdmin(tournamentId, s.id);
-          if (error) {
-            showToast("Feil ved innmelding: " + errorMessage(error), "error");
-            return;
-          }
-          onRegistered(s.id);
-          refreshLists();
-        }
+    stackClub: true,
+    onRowClick: canEdit ? (player) => void register(player) : undefined,
+    // Visible add affordance — the row click alone is invisible on touch devices.
+    renderTrailing: canEdit
+      ? [
+          (player) => {
+            const addBtn = document.createElement("button");
+            addBtn.type = "button";
+            addBtn.textContent = "+";
+            addBtn.className = "btn btn-outline-primary btn-sm p-0 lh-1 participant-add-btn";
+            addBtn.title = "Meld på spelar";
+            addBtn.addEventListener("click", (e) => {
+              e.stopPropagation();
+              void register(player);
+            });
+            return addBtn;
+          },
+        ]
       : undefined,
   });
 
-  leftWrapper.appendChild(searchInput);
-
-  // Inline create — admins only, and only while the tournament can still be edited.
-  if (canEdit) {
-    const newPlayerForm = createNewPlayerForm({ tournamentId, onCreated });
-    leftWrapper.appendChild(newPlayerForm.element);
-    leftWrapper.appendChild(table.element);
-    leftWrapper.appendChild(newPlayerForm.toggle);
-  } else {
-    leftWrapper.appendChild(table.element);
-  }
+  leftWrapper.append(searchInput, table.element);
 
   return { element: leftWrapper, searchInput, table };
 }
@@ -113,7 +116,7 @@ export function createRegisteredColumn(props: RegisteredColumnProps): Registered
   } = props;
 
   const rightWrapper = document.createElement("div");
-  rightWrapper.className = `${isStarted ? "col-12" : "col-md-6"} d-flex flex-column participant-column`;
+  rightWrapper.className = `${isStarted ? "col-12" : "col-md-6"} d-flex flex-column participant-column participant-column-registered`;
 
   if (!isStarted) {
     const searchSpacer = document.createElement("input");
@@ -145,6 +148,7 @@ export function createRegisteredColumn(props: RegisteredColumnProps): Registered
   const table = createPlayerTable({
     formatTitle: (n) => `Påmelde spelarar: ${n}`,
     emptyText: "Ingen spelarar påmelde",
+    stackClub: true,
     renderLeading: (sp) => {
       if (registeredMap.get(sp.id) ?? false) {
         const checkmark = document.createElement("span");
