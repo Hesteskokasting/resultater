@@ -2594,32 +2594,35 @@ th.initial-score-th {
   font-weight: 700;
 }
 
-/* Kongelag main row: all omganger in one cell, five per line. The header cell
-   claims half the row so the chips get the space the name column would eat. */
+/* Main-row score chips (X-kast runder, Kongelag omganger): five per line, so
+   ten of them stack as two rows. The track is capped rather than fractional —
+   a wide screen gets more whitespace, not fatter chips — but may shrink on a
+   phone so five chips plus the name column still fit. */
 .bane-omgang-cell {
+  --chip-w: minmax(26px, 52px);
   padding: 4px 6px !important;
-}
-
-.bane-omgang-th {
-  width: 50%;
 }
 
 .bane-omgang-grid {
   display: grid;
+  justify-content: start;
   gap: 4px;
 }
 
 .bane-omgang-chip {
   min-width: 0;
   padding: 5px 2px;
-  font-size: 0.85rem;
   background: var(--flate-2);
   border: 1px solid var(--kant);
   border-radius: 8px;
   color: var(--tekst);
   font: inherit;
+  font-size: 0.85rem;
   font-weight: 600;
   text-align: center;
+}
+
+button.bane-omgang-chip {
   cursor: pointer;
 }
 

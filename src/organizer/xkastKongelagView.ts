@@ -125,6 +125,9 @@ export interface CourtPhaseVariant {
   ) => Promise<{ data: KongelagCarryOverInfo | null; error: unknown }>;
 }
 
+/** Score chips per line in the main row — ten units become two rows of five. */
+const CHIPS_PER_LINE = 5;
+
 // ── Shared pure helpers ───────────────────────────────────────────────────────
 
 export function sortedParticipants(court: CourtRow): CourtParticipantRow[] {
@@ -221,12 +224,6 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
   }
 
   // ── Rendering (same structure/classes as the kamp views) ───────────────────
-
-  /** Score columns between NAMN and TOT: one per runde, or one grid cell. */
-  function scoreColumnCount(): number {
-    const s = state!;
-    return variant.mainScore === "runder" ? variant.detailRows(s.antallOmganger).length : 1;
-  }
 
   /** Count of this court's players with their detail panel currently open. */
   function expandedCountInCourt(court: CourtRow): number {
@@ -335,10 +332,10 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
       })
       .join("");
 
-    // The lane column is rowspanned over this row; span the rest (NAMN + score
-    // columns + TOT). The tint class frames the recessed panel with the court's
-    // zebra tint.
-    return `<tr class="xk-detail-row ${tintClass}"><td colspan="${scoreColumnCount() + 2}">
+    // The lane column is rowspanned over this row; span the rest (NAMN + the
+    // chip cell + TOT). The tint class frames the recessed panel with the
+    // court's zebra tint.
+    return `<tr class="xk-detail-row ${tintClass}"><td colspan="3">
         <div class="bane-detail-panel">
           <div class="bane-detail-meta">
             <span class="bane-detail-stat"><span class="bane-detail-stat-key">R</span>${ringerSum(participant)}</span>
@@ -391,43 +388,46 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
       </td>`;
   }
 
-  /** X-kast main row: one read-only cell per runde, holding that runde's sum. */
-  function rundeCellsHtml(participant: CourtParticipantRow): string {
+  /**
+   * The score cell both variants share: one chip per unit, five per line, so
+   * ten of them read as two rows instead of ten columns nothing narrow can
+   * hold. Kongelag's unit is the omgang (tap a chip to edit it); X-kast's is
+   * the runde, whose chip holds a sum and is therefore read-only — editing
+   * happens per omgang in the expansion.
+   */
+  function chipGridCellHtml(participant: CourtParticipantRow): string {
     const s = state!;
-    return variant
-      .detailRows(s.antallOmganger)
-      .map((row) => {
-        const recorded = row.omganger
+    const editable = variant.mainScore === "omganger" && canEditScores(participant);
+
+    const units =
+      variant.mainScore === "omganger"
+        ? Array.from({ length: s.antallOmganger }, (_, i) => ({
+            omgang: i + 1,
+            omganger: [i + 1],
+          }))
+        : variant.detailRows(s.antallOmganger).map((row) => ({
+            omgang: null,
+            omganger: row.omganger,
+          }));
+
+    const chips = units
+      .map((unit) => {
+        const recorded = unit.omganger
           .map((o) => participant.omgangar.find((r) => r.omgang === o))
           .filter((rec) => rec != null);
         const value = recorded.length
           ? String(recorded.reduce((sum, rec) => sum + rec.poeng, 0))
-          : "—";
-        return `<td class="text-center">${value}</td>`;
+          : "–";
+        const emptyClass = recorded.length ? "" : " is-empty";
+        return editable && unit.omgang != null
+          ? `<button type="button" class="bane-omgang-chip${emptyClass}" data-xk-omgang-edit="${participant.id}:${unit.omgang}" aria-label="Rediger omgang ${unit.omgang}">${value}</button>`
+          : `<span class="bane-omgang-chip${emptyClass}">${value}</span>`;
       })
       .join("");
-  }
 
-  /**
-   * Kongelag main row: every omgang in one cell, five per line — ten omganger
-   * read as two rows instead of ten columns nothing narrow can hold. Each chip
-   * is the edit target for its omgang.
-   */
-  function omgangGridCellHtml(participant: CourtParticipantRow): string {
-    const s = state!;
-    const editable = canEditScores(participant);
-    const columns = Math.min(5, s.antallOmganger);
-    const chips = Array.from({ length: s.antallOmganger }, (_, i) => {
-      const omgang = i + 1;
-      const rec = participant.omgangar.find((o) => o.omgang === omgang);
-      const value = rec ? String(rec.poeng) : "–";
-      const emptyClass = rec ? "" : " is-empty";
-      return editable
-        ? `<button type="button" class="bane-omgang-chip${emptyClass}" data-xk-omgang-edit="${participant.id}:${omgang}" aria-label="Rediger omgang ${omgang}">${value}</button>`
-        : `<span class="bane-omgang-chip${emptyClass}">${value}</span>`;
-    }).join("");
+    const columns = Math.min(CHIPS_PER_LINE, units.length);
     return `<td class="bane-omgang-cell">
-        <div class="bane-omgang-grid" style="grid-template-columns: repeat(${columns}, minmax(0, 1fr))">${chips}</div>
+        <div class="bane-omgang-grid" style="grid-template-columns: repeat(${columns}, var(--chip-w))">${chips}</div>
       </td>`;
   }
 
@@ -443,12 +443,7 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
     return sortedParticipants(court)
       .map((participant, i) => {
         const isExpanded = s.expandedDeltakerIds.has(participant.id);
-        // Runde sums are read-only summaries — editing happens per omgang, and
-        // a click on a runde total would be ambiguous.
-        const scoreCells =
-          variant.mainScore === "runder"
-            ? rundeCellsHtml(participant)
-            : omgangGridCellHtml(participant);
+        const scoreCells = chipGridCellHtml(participant);
         const firstCells =
           i === 0
             ? `<td class="text-center align-middle fw-semibold ${laneCellClass}" rowspan="${courtRowspan(court)}">${court.bane_nummer ?? ""}</td>`
@@ -479,15 +474,6 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
 
   function puljeSectionHtml(pulje: number, courts: CourtRow[], puljeLabel: string): string {
     const s = state!;
-    // "runder": a labelled column per runde. "omganger": one unlabelled column
-    // holding the omgang grid.
-    const scoreHeaders =
-      variant.mainScore === "runder"
-        ? variant
-            .detailRows(s.antallOmganger)
-            .map((row) => `<th class="text-center th-36">${escHtml(row.label)}</th>`)
-            .join("")
-        : '<th class="bane-omgang-th"></th>';
     const puljeRegisterBtn =
       s.isAdmin && variant.registerScope === "pulje" && hasOpenEntries(courts, s.antallOmganger)
         ? ` <button class="match-button match-button-primary ms-2" data-xk-register-pulje="${pulje}">Registrer</button>`
@@ -502,7 +488,7 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
               <tr>
                 <th class="th-36 text-center">B</th>
                 <th>NAMN</th>
-                ${scoreHeaders}
+                <th></th>
                 <th class="text-center th-44">TOT</th>
               </tr>
             </thead>
