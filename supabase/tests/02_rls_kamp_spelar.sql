@@ -51,7 +51,7 @@ SELECT lives_ok(
 );
 
 -- ── Case 4b: participant edits the OPPONENT's kamp_spelar row ─────────────────
--- confirmInitialMatch writes BOTH sides' rows. The pre-20260714120000 policy
+-- confirmMatch writes BOTH sides' rows. The pre-20260714120000 policy
 -- was own-rows-only, so this update silently matched 0 rows and the client
 -- misreported "Kampen er allereie stadfesta av ein annan deltakar."
 -- lives_ok alone can't catch a silent no-op — assert the value persisted.

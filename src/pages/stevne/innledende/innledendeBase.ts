@@ -48,7 +48,8 @@ import {
   getInitialRoundMatches,
   hasMatchRounds,
   updateMatchPlayerScoreFast,
-  confirmInitialMatch,
+  confirmMatch as confirmMatchService,
+  toConfirmSide,
   subscribeToMatchChanges,
   unconfirmMatch,
   type InitialMatchRow,
@@ -418,15 +419,12 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
     const hcp1 = hcpMap[p1?.kasterid ?? -1] ?? 0;
     const hcp2 = hcpMap[p2?.kasterid ?? -1] ?? 0;
 
-    const { error } = await confirmInitialMatch({
+    const { error } = await confirmMatchService({
       kampId: kamp.id,
-      p1: p1 ? { playerId: p1.id, kasterid: p1.kasterid, scorePoints: p1.score_poeng } : null,
-      p2: p2 ? { playerId: p2.id, kasterid: p2.kasterid, scorePoints: p2.score_poeng } : null,
-      hcp1,
-      hcp2,
+      sides: [toConfirmSide(side1), toConfirmSide(side2)],
+      hcp: [hcp1, hcp2],
       erWalkover: kamp.er_walkover,
-      p1PartnerId: side1?.members[1]?.id ?? null,
-      p2PartnerId: side2?.members[1]?.id ?? null,
+      outcome: { type: "innledende" },
     });
     if (error) {
       showToast("DB-feil ved bekreft: " + errorMessage(error), "error");

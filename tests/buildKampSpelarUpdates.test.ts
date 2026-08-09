@@ -13,7 +13,7 @@ function row(spelarId: number, score: number | null, rings: number | null): Roun
 
 const side1: MatchSideConfirm = { playerIds: [P1_ID], baseScore: 0 };
 const side2: MatchSideConfirm = { playerIds: [P2_ID], baseScore: 0 };
-const NO_HCP = { hcp1: 0, hcp2: 0 };
+const NO_HCP = { hcp: [0, 0] };
 
 describe("buildMatchPlayerUpdates — Singel", () => {
   describe("omgang row accumulation", () => {
@@ -28,44 +28,44 @@ describe("buildMatchPlayerUpdates — Singel", () => {
       ];
       const res = buildMatchPlayerUpdates({
         roundData,
-        side1,
-        side2,
+        sides: [side1, side2],
         ...NO_HCP,
         erWalkover: false,
       });
-      expect(res.get(P1_ID)?.score_poeng).toBe(16); // 6 + 4 + 6
-      expect(res.get(P1_ID)?.antall_ringer).toBe(5); // 2 + 1 + 2
-      expect(res.get(P2_ID)?.score_poeng).toBe(9); // 3 + 4 + 2
-      expect(res.get(P2_ID)?.antall_ringer).toBe(2); // 1 + 1 + 0
+      expect(res.updates.get(P1_ID)?.score_poeng).toBe(16); // 6 + 4 + 6
+      expect(res.updates.get(P1_ID)?.antall_ringer).toBe(5); // 2 + 1 + 2
+      expect(res.updates.get(P2_ID)?.score_poeng).toBe(9); // 3 + 4 + 2
+      expect(res.updates.get(P2_ID)?.antall_ringer).toBe(2); // 1 + 1 + 0
     });
 
     it("treats null score and null antall_ringer as 0, not NaN", () => {
       const roundData = [row(P1_ID, null, null), row(P2_ID, null, null)];
       const res = buildMatchPlayerUpdates({
         roundData,
-        side1,
-        side2,
+        sides: [side1, side2],
         ...NO_HCP,
         erWalkover: false,
       });
-      expect(res.get(P1_ID)?.score_poeng).toBe(0);
-      expect(res.get(P1_ID)?.antall_ringer).toBe(0);
-      expect(Number.isNaN(res.get(P1_ID)?.score_poeng)).toBe(false);
-      expect(Number.isNaN(res.get(P1_ID)?.antall_ringer)).toBe(false);
+      expect(res.updates.get(P1_ID)?.score_poeng).toBe(0);
+      expect(res.updates.get(P1_ID)?.antall_ringer).toBe(0);
+      expect(Number.isNaN(res.updates.get(P1_ID)?.score_poeng)).toBe(false);
+      expect(Number.isNaN(res.updates.get(P1_ID)?.antall_ringer)).toBe(false);
     });
 
     it("falls back to baseScore when roundData is empty", () => {
       const res = buildMatchPlayerUpdates({
         roundData: [],
-        side1: { playerIds: [P1_ID], baseScore: 15 },
-        side2: { playerIds: [P2_ID], baseScore: 10 },
+        sides: [
+          { playerIds: [P1_ID], baseScore: 15 },
+          { playerIds: [P2_ID], baseScore: 10 },
+        ],
         ...NO_HCP,
         erWalkover: false,
       });
-      expect(res.get(P1_ID)?.score_poeng).toBe(15);
-      expect(res.get(P2_ID)?.score_poeng).toBe(10);
-      expect(res.get(P1_ID)?.antall_ringer).toBe(0);
-      expect(res.get(P2_ID)?.antall_ringer).toBe(0);
+      expect(res.updates.get(P1_ID)?.score_poeng).toBe(15);
+      expect(res.updates.get(P2_ID)?.score_poeng).toBe(10);
+      expect(res.updates.get(P1_ID)?.antall_ringer).toBe(0);
+      expect(res.updates.get(P2_ID)?.antall_ringer).toBe(0);
     });
 
     it("does NOT add HCP to a directly-entered baseScore — baseScore is already the final value", () => {
@@ -73,14 +73,15 @@ describe("buildMatchPlayerUpdates — Singel", () => {
       // when a score was set directly (no scoreboard rounds).
       const res = buildMatchPlayerUpdates({
         roundData: [],
-        side1: { playerIds: [P1_ID], baseScore: 23 },
-        side2: { playerIds: [P2_ID], baseScore: 10 },
-        hcp1: 8,
-        hcp2: 0,
+        sides: [
+          { playerIds: [P1_ID], baseScore: 23 },
+          { playerIds: [P2_ID], baseScore: 10 },
+        ],
+        hcp: [8, 0],
         erWalkover: false,
       });
-      expect(res.get(P1_ID)?.score_poeng).toBe(23); // NOT 31
-      expect(res.get(P2_ID)?.score_poeng).toBe(10);
+      expect(res.updates.get(P1_ID)?.score_poeng).toBe(23); // NOT 31
+      expect(res.updates.get(P2_ID)?.score_poeng).toBe(10);
     });
   });
 
@@ -89,16 +90,14 @@ describe("buildMatchPlayerUpdates — Singel", () => {
       const roundData = [row(P1_ID, 6, 2), row(P2_ID, 4, 1)];
       const res = buildMatchPlayerUpdates({
         roundData,
-        side1,
-        side2,
-        hcp1: 3,
-        hcp2: 5,
+        sides: [side1, side2],
+        hcp: [3, 5],
         erWalkover: false,
       });
-      expect(res.get(P1_ID)?.score_poeng).toBe(9); // 6 + 3
-      expect(res.get(P1_ID)?.antall_ringer).toBe(2); // unchanged
-      expect(res.get(P2_ID)?.score_poeng).toBe(9); // 4 + 5
-      expect(res.get(P2_ID)?.antall_ringer).toBe(1); // unchanged
+      expect(res.updates.get(P1_ID)?.score_poeng).toBe(9); // 6 + 3
+      expect(res.updates.get(P1_ID)?.antall_ringer).toBe(2); // unchanged
+      expect(res.updates.get(P2_ID)?.score_poeng).toBe(9); // 4 + 5
+      expect(res.updates.get(P2_ID)?.antall_ringer).toBe(1); // unchanged
     });
 
     it("HCP-boosted score determines kamp_poeng — lower raw score can still win", () => {
@@ -106,16 +105,14 @@ describe("buildMatchPlayerUpdates — Singel", () => {
       const roundData = [row(P1_ID, 4, 1), row(P2_ID, 6, 2)];
       const res = buildMatchPlayerUpdates({
         roundData,
-        side1,
-        side2,
-        hcp1: 5,
-        hcp2: 0,
+        sides: [side1, side2],
+        hcp: [5, 0],
         erWalkover: false,
       });
-      expect(res.get(P1_ID)?.score_poeng).toBe(9);
-      expect(res.get(P1_ID)?.kamp_poeng).toBe(2);
-      expect(res.get(P2_ID)?.score_poeng).toBe(6);
-      expect(res.get(P2_ID)?.kamp_poeng).toBe(0); // t2=6 < 11 → 0 pts
+      expect(res.updates.get(P1_ID)?.score_poeng).toBe(9);
+      expect(res.updates.get(P1_ID)?.kamp_poeng).toBe(2);
+      expect(res.updates.get(P2_ID)?.score_poeng).toBe(6);
+      expect(res.updates.get(P2_ID)?.kamp_poeng).toBe(0); // t2=6 < 11 → 0 pts
     });
   });
 
@@ -123,30 +120,33 @@ describe("buildMatchPlayerUpdates — Singel", () => {
     it("p1 gets score_poeng=21 kamp_poeng=2 antall_ringer=0", () => {
       const res = buildMatchPlayerUpdates({
         roundData: [],
-        side1,
-        side2,
+        sides: [side1, side2],
         ...NO_HCP,
         erWalkover: true,
       });
-      expect(res.get(P1_ID)).toEqual({ score_poeng: 21, kamp_poeng: 2, antall_ringer: 0 });
+      expect(res.updates.get(P1_ID)).toEqual({ score_poeng: 21, kamp_poeng: 2, antall_ringer: 0 });
     });
 
     it("p2 gets score_poeng=0 kamp_poeng=0 antall_ringer=0", () => {
       const res = buildMatchPlayerUpdates({
         roundData: [],
-        side1,
-        side2,
+        sides: [side1, side2],
         ...NO_HCP,
         erWalkover: true,
       });
-      expect(res.get(P2_ID)).toEqual({ score_poeng: 0, kamp_poeng: 0, antall_ringer: 0 });
+      expect(res.updates.get(P2_ID)).toEqual({ score_poeng: 0, kamp_poeng: 0, antall_ringer: 0 });
     });
 
     it("ignores roundData when erWalkover is true", () => {
       const roundData = [row(P1_ID, 3, 1), row(P2_ID, 4, 1)];
-      const res = buildMatchPlayerUpdates({ roundData, side1, side2, ...NO_HCP, erWalkover: true });
-      expect(res.get(P1_ID)?.score_poeng).toBe(21);
-      expect(res.get(P2_ID)?.score_poeng).toBe(0);
+      const res = buildMatchPlayerUpdates({
+        roundData,
+        sides: [side1, side2],
+        ...NO_HCP,
+        erWalkover: true,
+      });
+      expect(res.updates.get(P1_ID)?.score_poeng).toBe(21);
+      expect(res.updates.get(P2_ID)?.score_poeng).toBe(0);
     });
   });
 
@@ -162,13 +162,12 @@ describe("buildMatchPlayerUpdates — Singel", () => {
       ];
       const res = buildMatchPlayerUpdates({
         roundData,
-        side1,
-        side2,
+        sides: [side1, side2],
         ...NO_HCP,
         erWalkover: false,
       });
-      expect(res.get(P1_ID)?.kamp_poeng).toBe(2);
-      expect(res.get(P2_ID)?.kamp_poeng).toBe(1);
+      expect(res.updates.get(P1_ID)?.kamp_poeng).toBe(2);
+      expect(res.updates.get(P2_ID)?.kamp_poeng).toBe(1);
     });
 
     it("p1 wins: [2, 0] when loser score < 11", () => {
@@ -176,13 +175,12 @@ describe("buildMatchPlayerUpdates — Singel", () => {
       const roundData = [row(P1_ID, 6, 2), row(P2_ID, 4, 1), row(P1_ID, 6, 2), row(P2_ID, 4, 1)];
       const res = buildMatchPlayerUpdates({
         roundData,
-        side1,
-        side2,
+        sides: [side1, side2],
         ...NO_HCP,
         erWalkover: false,
       });
-      expect(res.get(P1_ID)?.kamp_poeng).toBe(2);
-      expect(res.get(P2_ID)?.kamp_poeng).toBe(0);
+      expect(res.updates.get(P1_ID)?.kamp_poeng).toBe(2);
+      expect(res.updates.get(P2_ID)?.kamp_poeng).toBe(0);
     });
 
     it("tie: both get kamp_poeng=1.5", () => {
@@ -190,13 +188,12 @@ describe("buildMatchPlayerUpdates — Singel", () => {
       const roundData = [row(P1_ID, 6, 2), row(P2_ID, 6, 2), row(P1_ID, 6, 2), row(P2_ID, 6, 2)];
       const res = buildMatchPlayerUpdates({
         roundData,
-        side1,
-        side2,
+        sides: [side1, side2],
         ...NO_HCP,
         erWalkover: false,
       });
-      expect(res.get(P1_ID)?.kamp_poeng).toBe(1.5);
-      expect(res.get(P2_ID)?.kamp_poeng).toBe(1.5);
+      expect(res.updates.get(P1_ID)?.kamp_poeng).toBe(1.5);
+      expect(res.updates.get(P2_ID)?.kamp_poeng).toBe(1.5);
     });
   });
 
@@ -204,13 +201,12 @@ describe("buildMatchPlayerUpdates — Singel", () => {
     it("produces no entries for the null side, entries for the other", () => {
       const res = buildMatchPlayerUpdates({
         roundData: [],
-        side1,
-        side2: null,
+        sides: [side1, null],
         ...NO_HCP,
         erWalkover: false,
       });
-      expect(res.has(P2_ID)).toBe(false);
-      expect(res.get(P1_ID)).not.toBeUndefined();
+      expect(res.updates.has(P2_ID)).toBe(false);
+      expect(res.updates.get(P1_ID)).not.toBeUndefined();
     });
   });
 });
@@ -245,77 +241,74 @@ describe("buildMatchPlayerUpdates — Par/Mix", () => {
   it("each player gets score_poeng and antall_ringer from their OWN omgangar only", () => {
     const res = buildMatchPlayerUpdates({
       roundData,
-      side1: parA,
-      side2: parB,
+      sides: [parA, parB],
       ...NO_HCP,
       erWalkover: false,
     });
-    expect(res.get(A1)?.score_poeng).toBe(12); // 6 + 4 + 2
-    expect(res.get(A1)?.antall_ringer).toBe(3); // 2 + 1 + 0
-    expect(res.get(A2)?.score_poeng).toBe(10); // 3 + 6 + 1
-    expect(res.get(A2)?.antall_ringer).toBe(3); // 1 + 2 + 0
-    expect(res.get(B1)?.score_poeng).toBe(12); // 4 + 2 + 6
-    expect(res.get(B1)?.antall_ringer).toBe(3); // 1 + 0 + 2
-    expect(res.get(B2)?.score_poeng).toBe(9); // 6 + 1 + 2
-    expect(res.get(B2)?.antall_ringer).toBe(2); // 2 + 0 + 0
+    expect(res.updates.get(A1)?.score_poeng).toBe(12); // 6 + 4 + 2
+    expect(res.updates.get(A1)?.antall_ringer).toBe(3); // 2 + 1 + 0
+    expect(res.updates.get(A2)?.score_poeng).toBe(10); // 3 + 6 + 1
+    expect(res.updates.get(A2)?.antall_ringer).toBe(3); // 1 + 2 + 0
+    expect(res.updates.get(B1)?.score_poeng).toBe(12); // 4 + 2 + 6
+    expect(res.updates.get(B1)?.antall_ringer).toBe(3); // 1 + 0 + 2
+    expect(res.updates.get(B2)?.score_poeng).toBe(9); // 6 + 1 + 2
+    expect(res.updates.get(B2)?.antall_ringer).toBe(2); // 2 + 0 + 0
   });
 
   it("kamp_poeng comes from SIDE totals and is identical for both members", () => {
     // 22 vs 21 → [2, 1] (loser >= 11)
     const res = buildMatchPlayerUpdates({
       roundData,
-      side1: parA,
-      side2: parB,
+      sides: [parA, parB],
       ...NO_HCP,
       erWalkover: false,
     });
-    expect(res.get(A1)?.kamp_poeng).toBe(2);
-    expect(res.get(A2)?.kamp_poeng).toBe(2);
-    expect(res.get(B1)?.kamp_poeng).toBe(1);
-    expect(res.get(B2)?.kamp_poeng).toBe(1);
+    expect(res.updates.get(A1)?.kamp_poeng).toBe(2);
+    expect(res.updates.get(A2)?.kamp_poeng).toBe(2);
+    expect(res.updates.get(B1)?.kamp_poeng).toBe(1);
+    expect(res.updates.get(B2)?.kamp_poeng).toBe(1);
   });
 
   it("side HCP lands on the rep only, so the side sum counts it exactly once", () => {
     const res = buildMatchPlayerUpdates({
       roundData,
-      side1: parA,
-      side2: parB,
-      hcp1: 3,
-      hcp2: 0,
+      sides: [parA, parB],
+      hcp: [3, 0],
       erWalkover: false,
     });
-    expect(res.get(A1)?.score_poeng).toBe(15); // 12 + 3
-    expect(res.get(A2)?.score_poeng).toBe(10); // unchanged
+    expect(res.updates.get(A1)?.score_poeng).toBe(15); // 12 + 3
+    expect(res.updates.get(A2)?.score_poeng).toBe(10); // unchanged
   });
 
   it("walkover: rep gets 21, partner 0, both get kamp_poeng=2", () => {
     const res = buildMatchPlayerUpdates({
       roundData: [],
-      side1: parA,
-      side2: null,
+      sides: [parA, null],
       ...NO_HCP,
       erWalkover: true,
     });
-    expect(res.get(A1)).toEqual({ score_poeng: 21, kamp_poeng: 2, antall_ringer: 0 });
-    expect(res.get(A2)).toEqual({ score_poeng: 0, kamp_poeng: 2, antall_ringer: 0 });
+    expect(res.updates.get(A1)).toEqual({ score_poeng: 21, kamp_poeng: 2, antall_ringer: 0 });
+    expect(res.updates.get(A2)).toEqual({ score_poeng: 0, kamp_poeng: 2, antall_ringer: 0 });
   });
 
   it("quick-score fallback: side total on the rep, partner 0, kamp_poeng for all", () => {
     const res = buildMatchPlayerUpdates({
       roundData: [],
-      side1: { playerIds: [A1, A2], baseScore: 23 },
-      side2: { playerIds: [B1, B2], baseScore: 12 },
+      sides: [
+        { playerIds: [A1, A2], baseScore: 23 },
+        { playerIds: [B1, B2], baseScore: 12 },
+      ],
       ...NO_HCP,
       erWalkover: false,
     });
-    expect(res.get(A1)?.score_poeng).toBe(23);
-    expect(res.get(A2)?.score_poeng).toBe(0);
-    expect(res.get(B1)?.score_poeng).toBe(12);
-    expect(res.get(B2)?.score_poeng).toBe(0);
-    expect(res.get(A1)?.kamp_poeng).toBe(2); // 23 vs 12
-    expect(res.get(A2)?.kamp_poeng).toBe(2);
-    expect(res.get(B1)?.kamp_poeng).toBe(1); // 12 >= 11
-    expect(res.get(B2)?.kamp_poeng).toBe(1);
+    expect(res.updates.get(A1)?.score_poeng).toBe(23);
+    expect(res.updates.get(A2)?.score_poeng).toBe(0);
+    expect(res.updates.get(B1)?.score_poeng).toBe(12);
+    expect(res.updates.get(B2)?.score_poeng).toBe(0);
+    expect(res.updates.get(A1)?.kamp_poeng).toBe(2); // 23 vs 12
+    expect(res.updates.get(A2)?.kamp_poeng).toBe(2);
+    expect(res.updates.get(B1)?.kamp_poeng).toBe(1); // 12 >= 11
+    expect(res.updates.get(B2)?.kamp_poeng).toBe(1);
   });
 
   it("a Par side draws against a Singel side on equal side totals", () => {
@@ -325,14 +318,13 @@ describe("buildMatchPlayerUpdates — Par/Mix", () => {
     const data = [row(A1, 6, 2), row(S1, 6, 2), row(A2, 6, 2), row(S1, 6, 2)];
     const res = buildMatchPlayerUpdates({
       roundData: data,
-      side1: parA,
-      side2: { playerIds: [S1], baseScore: 0 },
+      sides: [parA, { playerIds: [S1], baseScore: 0 }],
       ...NO_HCP,
       erWalkover: false,
     });
-    expect(res.get(A1)?.kamp_poeng).toBe(1.5);
-    expect(res.get(A2)?.kamp_poeng).toBe(1.5);
-    expect(res.get(S1)?.kamp_poeng).toBe(1.5);
-    expect(res.get(S1)?.score_poeng).toBe(12);
+    expect(res.updates.get(A1)?.kamp_poeng).toBe(1.5);
+    expect(res.updates.get(A2)?.kamp_poeng).toBe(1.5);
+    expect(res.updates.get(S1)?.kamp_poeng).toBe(1.5);
+    expect(res.updates.get(S1)?.score_poeng).toBe(12);
   });
 });

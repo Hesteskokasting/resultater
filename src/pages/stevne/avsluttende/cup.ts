@@ -25,7 +25,8 @@ import { showToast } from "@/components/Toast";
 import { confirmDialog } from "@/components/ConfirmDialog";
 import type { RoundSetup } from "@/types";
 import {
-  confirmCupMatch,
+  confirmMatch,
+  toConfirmSide,
   updateWinnerLoser,
   updateMatchPlayerScoreFast,
   deleteMatchRounds,
@@ -733,14 +734,18 @@ async function confirmCupMatch2Sides(
   const loser = s1 >= s2 ? side2 : side1;
   const allKasterids = sides.flatMap((s) => s.members.map((m) => m.kasterid));
 
-  const { error } = await confirmCupMatch({
+  const { error } = await confirmMatch({
     kampId: kamp.id,
-    stevneId: stevneid,
-    roundNumber: kamp.runde_nummer,
-    roundName: kamp.runde_navn,
-    allThrowerIds: allKasterids,
-    eliminatedIds: loser?.members.map((m) => m.kasterid) ?? [],
-    advancingSides: winner ? [winner.members.map((m) => m.kasterid)] : [],
+    sides: [toConfirmSide(side1), toConfirmSide(side2)],
+    outcome: {
+      type: "cup-arrangor",
+      stevneId: stevneid,
+      roundNumber: kamp.runde_nummer,
+      roundName: kamp.runde_navn,
+      allThrowerIds: allKasterids,
+      eliminatedIds: loser?.members.map((m) => m.kasterid) ?? [],
+      advancingSides: winner ? [winner.members.map((m) => m.kasterid)] : [],
+    },
   });
   if (error) {
     showToast("DB-feil ved bekreft", "error");

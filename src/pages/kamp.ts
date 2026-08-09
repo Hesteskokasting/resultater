@@ -12,8 +12,8 @@ import {
   getNextMatchForOrganizer,
   getNextMatchForParticipant,
   isParticipantInMatch,
-  confirmInitialMatch,
-  confirmFinalMatch,
+  confirmMatch as confirmMatchService,
+  toConfirmSide,
   subscribeToNextMatch,
 } from "@/services/kampService";
 import { getAllMatchSides, type MatchSide } from "@/utils/kamp";
@@ -209,38 +209,22 @@ async function confirmMatch(
   sides: SideState,
   orderedKasterids?: number[] | null,
 ): Promise<void> {
-  const { p1Side, p2Side, hcp1, hcp2 } = sides;
-  const p1ks = p1Side?.rep ?? null;
-  const p2ks = p2Side?.rep ?? null;
-  const confirmData = {
-    p1: p1ks ? { playerId: p1ks.id, kasterid: p1ks.kasterid, scorePoints: p1ks.score_poeng } : null,
-    p2: p2ks ? { playerId: p2ks.id, kasterid: p2ks.kasterid, scorePoints: p2ks.score_poeng } : null,
-    p1PartnerId: p1Side?.members[1]?.id ?? null,
-    p2PartnerId: p2Side?.members[1]?.id ?? null,
-  };
+  const { p1Side, p2Side, p3Side, hcp1, hcp2 } = sides;
+  const erCup = ctx.match.fase === "avsluttende";
+  const confirmSides = [p1Side, p2Side, ...(p3Side ? [p3Side] : [])].map(toConfirmSide);
 
-  if (ctx.match.fase === "avsluttende") {
-    const { error } = await confirmFinalMatch({
-      kampId: ctx.matchId,
-      ...confirmData,
-      orderedKasterids: orderedKasterids ?? null,
-    });
-    if (error) {
-      showMatchError(ctx.container, "Feil ved bekreftelse av kamp: " + errorMessage(error));
-      return;
-    }
-  } else {
-    const { error } = await confirmInitialMatch({
-      kampId: ctx.matchId,
-      ...confirmData,
-      hcp1,
-      hcp2,
-      erWalkover: ctx.match.er_walkover,
-    });
-    if (error) {
-      showMatchError(ctx.container, "Feil ved bekreftelse av kamp: " + errorMessage(error));
-      return;
-    }
+  const { error } = await confirmMatchService({
+    kampId: ctx.matchId,
+    sides: confirmSides,
+    hcp: [hcp1, hcp2],
+    erWalkover: ctx.match.er_walkover,
+    outcome: erCup
+      ? { type: "cup", orderedKasterids: orderedKasterids ?? null }
+      : { type: "innledende" },
+  });
+  if (error) {
+    showMatchError(ctx.container, "Feil ved bekreftelse av kamp: " + errorMessage(error));
+    return;
   }
 
   await navigateToNextMatch(ctx);

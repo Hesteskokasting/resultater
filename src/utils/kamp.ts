@@ -139,12 +139,18 @@ export function scoreForPlayer(sp: PlayerScore | null | undefined): number {
  * A player's score in one match. Once the match is confirmed the stored
  * score_poeng is authoritative — it includes HCP and survives omgang rows that
  * were left behind half-finished. Before that, the omgangar are the live truth.
+ *
+ * Falls back to the omgangar when a confirmed match has no stored score: cup
+ * matches confirmed before the score-persisting confirm path existed keep their
+ * score only in kamp_omgang.
  */
 export function matchScoreForPlayer(
   sp: PlayerScore | null | undefined,
   isConfirmed: boolean,
 ): number {
-  return isConfirmed ? (sp?.score_poeng ?? 0) : scoreForPlayer(sp);
+  if (!isConfirmed) return scoreForPlayer(sp);
+  const stored = sp?.score_poeng ?? 0;
+  return stored > 0 ? stored : scoreForPlayer(sp);
 }
 
 /** Side total: each member carries only the omgangar they threw themselves. */

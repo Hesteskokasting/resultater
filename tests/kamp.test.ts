@@ -107,6 +107,13 @@ describe("matchScoreForPlayer", () => {
     expect(matchScoreForPlayer({ score_poeng: 21, omgangar: [{ score: 3 }] }, true)).toBe(21);
   });
 
+  it("falls back to omgangar when a confirmed match has no stored score", () => {
+    // cup matches confirmed before the confirm path persisted score_poeng
+    const sp = { score_poeng: 0, omgangar: [{ score: 6 }, { score: 4 }] };
+    expect(matchScoreForPlayer(sp, true)).toBe(10);
+    expect(matchScoreForPlayer({ score_poeng: null, omgangar: [{ score: 21 }] }, true)).toBe(21);
+  });
+
   it("returns 0 for null", () => {
     expect(matchScoreForPlayer(null, true)).toBe(0);
     expect(matchScoreForPlayer(null, false)).toBe(0);

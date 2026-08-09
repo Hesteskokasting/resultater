@@ -1,7 +1,7 @@
 import type { QueryData, RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "@/supabase";
 import { logError } from "@/utils/logError";
-import { calcMatchPoints } from "@/utils/kamp";
+import { calcMatchPoints, type MatchSide } from "@/utils/kamp";
 import { verifyRowsAffected } from "@/utils/verifiedWrite";
 
 const _kampSpelarQuery = supabase.from("kamp_spelar").select(`
@@ -253,13 +253,7 @@ export async function isParticipantInMatch(kampId: number, kasterid: number): Pr
   return !!data;
 }
 
-// ── Scoreboard write ──────────────────────────────────────────────────────────
-
-export type MatchPlayerConfirmData = {
-  playerId: number; // kamp_spelar.id
-  kasterid: number;
-  scorePoints: number; // fallback if omgang data is missing
-};
+// ── Match confirm ─────────────────────────────────────────────────────────────
 
 export type RoundScoreRow = {
   kamp_spelar_id: number | null;
@@ -269,8 +263,31 @@ export type RoundScoreRow = {
 
 type MatchPlayerUpdateValues = { score_poeng: number; kamp_poeng: number; antall_ringer: number };
 
-/** One match side at confirmation: kamp_spelar ids ordered by posisjon (rep first). 1 id for Singel, 2 for Par/Mix. */
-export type MatchSideConfirm = { playerIds: number[]; baseScore: number };
+/**
+ * One match side at confirmation. playerIds are kamp_spelar ids ordered by
+ * posisjon (rep first): 1 for Singel, 2 for Par/Mix. baseScore is the directly
+ * entered side total, used when the match has no omgang rows. kasterid is the
+ * rep's, needed only when the losing side has to be reported to the RPC.
+ */
+export type MatchSideConfirm = { playerIds: number[]; baseScore: number; kasterid?: number };
+
+/** A grouped match side as the confirm needs it: members by posisjon, rep first. */
+export function toConfirmSide<
+  T extends { id: number; kasterid: number; score_poeng?: number | null },
+>(side: MatchSide<T> | null | undefined): MatchSideConfirm | null {
+  if (!side) return null;
+  return {
+    playerIds: side.members.map((m) => m.id),
+    kasterid: side.rep.kasterid,
+    baseScore: side.members.reduce((sum, m) => sum + (m.score_poeng ?? 0), 0),
+  };
+}
+
+export type MatchPlayerUpdates = {
+  updates: Map<number, MatchPlayerUpdateValues>;
+  /** Side totals in `sides` order — these decide the result of the match. */
+  totals: number[];
+};
 
 /**
  * Computes the kamp_spelar write per player. Each player's score_poeng and
@@ -278,102 +295,109 @@ export type MatchSideConfirm = { playerIds: number[]; baseScore: number };
  * omgangar), while kamp_poeng comes from the SIDE totals and is written to
  * every member of the side. Side HCP and walkover/fallback scores land on the
  * representative (playerIds[0]) so the side sum stays correct.
+ *
+ * kamp_poeng is only meaningful for two sides; a 3-side match ranks by
+ * placement instead and every player keeps kamp_poeng 0.
  */
 export function buildMatchPlayerUpdates(params: {
   roundData: RoundScoreRow[];
-  side1: MatchSideConfirm | null;
-  side2: MatchSideConfirm | null;
-  hcp1: number;
-  hcp2: number;
-  erWalkover: boolean;
-}): Map<number, MatchPlayerUpdateValues> {
-  const { roundData, side1, side2, hcp1, hcp2, erWalkover } = params;
+  sides: (MatchSideConfirm | null)[];
+  /** Per-side HCP, in `sides` order. */
+  hcp?: number[];
+  erWalkover?: boolean;
+}): MatchPlayerUpdates {
+  const { roundData, sides, hcp = [], erWalkover = false } = params;
 
   const updates = new Map<number, MatchPlayerUpdateValues>();
-  for (const side of [side1, side2]) {
+  for (const side of sides) {
     for (const id of side?.playerIds ?? []) {
       updates.set(id, { score_poeng: 0, kamp_poeng: 0, antall_ringer: 0 });
     }
   }
 
-  let t1 = 0,
-    t2 = 0;
-  const rep1 = side1?.playerIds[0];
-  const rep2 = side2?.playerIds[0];
+  const totals = sides.map(() => 0);
+  const repOf = (i: number): number | undefined => sides[i]?.playerIds[0];
 
   if (erWalkover) {
-    t1 = 21;
-    if (rep1 != null) updates.get(rep1)!.score_poeng = 21;
+    totals[0] = 21;
+    const rep = repOf(0);
+    if (rep != null) updates.get(rep)!.score_poeng = 21;
   } else if (roundData.length) {
     for (const row of roundData) {
-      if (row.kamp_spelar_id == null) continue;
-      const u = updates.get(row.kamp_spelar_id);
+      const id = row.kamp_spelar_id;
+      if (id == null) continue;
+      const u = updates.get(id);
       if (!u) continue;
       u.score_poeng += row.score ?? 0;
       u.antall_ringer += row.antall_ringer ?? 0;
-      if (side1?.playerIds.includes(row.kamp_spelar_id)) t1 += row.score ?? 0;
-      else t2 += row.score ?? 0;
+      const idx = sides.findIndex((side) => side?.playerIds.includes(id));
+      if (idx !== -1) totals[idx] = (totals[idx] ?? 0) + (row.score ?? 0);
     }
     // HCP applies only to scoreboard-round sums; direct scores are already final.
     // Stored on the rep so the side sum includes it exactly once.
-    t1 += hcp1;
-    t2 += hcp2;
-    if (hcp1 && rep1 != null) updates.get(rep1)!.score_poeng += hcp1;
-    if (hcp2 && rep2 != null) updates.get(rep2)!.score_poeng += hcp2;
+    sides.forEach((_, i) => {
+      const h = hcp[i] ?? 0;
+      if (!h) return;
+      totals[i] = (totals[i] ?? 0) + h;
+      const rep = repOf(i);
+      if (rep != null) updates.get(rep)!.score_poeng += h;
+    });
   } else {
     // Quick-score fallback: the directly-entered side total lives on the rep row
-    if (side1) {
-      t1 = side1.baseScore;
-      if (rep1 != null) updates.get(rep1)!.score_poeng = t1;
-    }
-    if (side2) {
-      t2 = side2.baseScore;
-      if (rep2 != null) updates.get(rep2)!.score_poeng = t2;
-    }
+    sides.forEach((side, i) => {
+      if (!side) return;
+      totals[i] = side.baseScore;
+      const rep = repOf(i);
+      if (rep != null) updates.get(rep)!.score_poeng = side.baseScore;
+    });
   }
 
-  const [kp1, kp2] = calcMatchPoints(t1, t2);
-  for (const id of side1?.playerIds ?? []) updates.get(id)!.kamp_poeng = kp1;
-  for (const id of side2?.playerIds ?? []) updates.get(id)!.kamp_poeng = kp2;
+  if (sides.filter(Boolean).length <= 2) {
+    const [kp1, kp2] = calcMatchPoints(totals[0] ?? 0, totals[1] ?? 0);
+    for (const id of sides[0]?.playerIds ?? []) updates.get(id)!.kamp_poeng = kp1;
+    for (const id of sides[1]?.playerIds ?? []) updates.get(id)!.kamp_poeng = kp2;
+  }
 
-  return updates;
+  return { updates, totals };
 }
 
-/** Par/Mix: a side's kamp_spelar ids include the rep and (when present) the partner. */
-function _sidePlayerIds(p: { playerId: number } | null, partnerId: number | null): number[] {
-  return p ? [p.playerId, ...(partnerId != null ? [partnerId] : [])] : [];
+/**
+ * The losing side's kasterid — any member works, the elimination RPC resolves
+ * the full side from resultat.startnummer. Equal totals eliminate the side
+ * listed last, matching how the scoreboard declares a winner.
+ */
+export function losingSideKasterid(
+  sides: (MatchSideConfirm | null)[],
+  totals: number[],
+): number | null {
+  const present = sides
+    .map((side, i) => ({ side, total: totals[i] ?? 0 }))
+    .filter((entry): entry is { side: MatchSideConfirm; total: number } => entry.side != null);
+  if (present.length < 2) return null;
+  const loser = present.reduce((worst, cand) => (cand.total <= worst.total ? cand : worst));
+  return loser.side.kasterid ?? null;
 }
 
-export async function confirmInitialMatch(params: {
-  kampId: number;
-  p1: MatchPlayerConfirmData | null;
-  p2: MatchPlayerConfirmData | null;
-  hcp1: number;
-  hcp2: number;
-  erWalkover?: boolean;
-  // Par/Mix: the partner kamp_spelar rows receive the same written values as
-  // their side's representative (omgangar and combined totals live on the rep).
-  p1PartnerId?: number | null;
-  p2PartnerId?: number | null;
-}): Promise<{ error: unknown }> {
-  const {
-    kampId,
-    p1,
-    p2,
-    hcp1,
-    hcp2,
-    erWalkover = false,
-    p1PartnerId = null,
-    p2PartnerId = null,
-  } = params;
+// RLS only allows participant updates while er_bekreftet = false, so a zero-row
+// write means the match was already confirmed (typically by the opponent).
+const ALREADY_CONFIRMED_MESSAGE = "Kampen er allereie stadfesta av ein annan deltakar.";
 
-  const side1Ids = _sidePlayerIds(p1, p1PartnerId);
-  const side2Ids = _sidePlayerIds(p2, p2PartnerId);
-  const allIds = [...side1Ids, ...side2Ids];
+/**
+ * Writes every player's score to kamp_spelar. Runs before er_bekreftet is set,
+ * which is what makes one implementation serve both phases: participants may
+ * write kamp_spelar right up until the match is confirmed.
+ */
+async function _persistMatchScores(params: {
+  sides: (MatchSideConfirm | null)[];
+  hcp?: number[];
+  erWalkover: boolean;
+}): Promise<{ error: unknown; totals: number[] }> {
+  const { sides, hcp, erWalkover } = params;
+  const allIds = sides.flatMap((side) => side?.playerIds ?? []);
+  if (!allIds.length) return { error: null, totals: sides.map(() => 0) };
 
   let roundData: RoundScoreRow[] = [];
-  let p1BaseScore = p1?.scorePoints ?? 0;
-  let p2BaseScore = p2?.scorePoints ?? 0;
+  let resolvedSides = sides;
 
   if (!erWalkover) {
     const { data: fetched, error: omgErr } = await supabase
@@ -381,130 +405,115 @@ export async function confirmInitialMatch(params: {
       .select("kamp_spelar_id, score, antall_ringer")
       .in("kamp_spelar_id", allIds);
     if (omgErr) {
-      logError("confirmInitialMatch:omgangar", omgErr);
-      return { error: omgErr };
+      logError("confirmMatch:omgangar", omgErr);
+      return { error: omgErr, totals: sides.map(() => 0) };
     }
     roundData = fetched ?? [];
 
     if (!roundData.length) {
-      // Re-fetch score_poeng fresh from DB — passed scorePoints may be stale (captured at render time)
-      const repIds = [p1?.playerId, p2?.playerId].filter((id): id is number => id != null);
-      const { data: freshScores } = await supabase
+      // Re-read the stored scores — a baseScore captured at render time may be stale
+      const { data: fresh } = await supabase
         .from("kamp_spelar")
         .select("id, score_poeng")
-        .in("id", repIds);
-      const scoreMap = Object.fromEntries(
-        (freshScores ?? []).map((s) => [s.id, s.score_poeng ?? 0]),
-      );
-      p1BaseScore = p1 ? (scoreMap[p1.playerId] ?? p1.scorePoints) : 0;
-      p2BaseScore = p2 ? (scoreMap[p2.playerId] ?? p2.scorePoints) : 0;
+        .in("id", allIds);
+      const scoreById = new Map((fresh ?? []).map((s) => [s.id, s.score_poeng ?? 0]));
+      resolvedSides = sides.map((side) => {
+        if (!side) return null;
+        const known = side.playerIds.filter((id) => scoreById.has(id));
+        if (!known.length) return side;
+        return { ...side, baseScore: known.reduce((sum, id) => sum + scoreById.get(id)!, 0) };
+      });
     }
   }
 
-  const updates = buildMatchPlayerUpdates({
+  const { updates, totals } = buildMatchPlayerUpdates({
     roundData,
-    side1: p1 ? { playerIds: side1Ids, baseScore: p1BaseScore } : null,
-    side2: p2 ? { playerIds: side2Ids, baseScore: p2BaseScore } : null,
-    hcp1,
-    hcp2,
+    sides: resolvedSides,
+    hcp,
     erWalkover,
   });
 
-  // RLS only allows updates while er_bekreftet = false, so a zero-row write
-  // here means the match was already confirmed (typically by the opponent).
-  const alreadyConfirmedMessage = "Kampen er allereie stadfesta av ein annan deltakar.";
-
-  const spelarUpdates = [...updates.entries()].map(([id, values]) =>
-    verifyRowsAffected(
-      supabase.from("kamp_spelar").update(values).eq("id", id).select("id"),
-      alreadyConfirmedMessage,
+  const results = await Promise.all(
+    [...updates.entries()].map(([id, values]) =>
+      verifyRowsAffected(
+        supabase.from("kamp_spelar").update(values).eq("id", id).select("id"),
+        ALREADY_CONFIRMED_MESSAGE,
+      ),
     ),
   );
-
-  if (spelarUpdates.length) {
-    const results = await Promise.all(spelarUpdates);
-    const spelarErr = results.find((r) => r.error)?.error;
-    if (spelarErr) {
-      logError("confirmInitialMatch:spelarar", spelarErr);
-      return { error: spelarErr };
-    }
-  }
-
-  const { error } = await verifyRowsAffected(
-    supabase.from("kamp").update({ er_bekreftet: true }).eq("id", kampId).select("id"),
-    alreadyConfirmedMessage,
-  );
-  if (error) logError("confirmInitialMatch:kamp", error);
-  return { error };
+  const error = results.find((r) => r.error)?.error ?? null;
+  if (error) logError("confirmMatch:spelarar", error);
+  return { error, totals };
 }
+
+/** What happens to a match beyond its scores, once those are stored. */
+export type MatchOutcome =
+  /** Innledende: only the confirm flag — the standings read kamp_poeng. */
+  | { type: "innledende" }
+  /**
+   * Cup confirmed from the scoreboard. Goes through the SECURITY DEFINER RPC
+   * because RLS blocks a participant from writing kamp_spelar and resultat once
+   * er_bekreftet is set. The losing side follows from the scores unless
+   * orderedKasterids ranks a 3-side match explicitly.
+   */
+  | { type: "cup"; orderedKasterids?: number[] | null }
+  /** Cup confirmed from the organizer view: explicit ranking, written directly. */
+  | {
+      type: "cup-arrangor";
+      stevneId: number;
+      roundNumber: number;
+      roundName: string | null;
+      allThrowerIds: number[];
+      /** All members of the eliminated side ([] = none). Singel: one kasterid. */
+      eliminatedIds: number[];
+      /** Advancing sides in rank order; every member of a side shares its kamp_plassering. */
+      advancingSides: number[][];
+    };
 
 /**
- * Decides which side lost by comparing SIDE totals: each side's omgang rows
- * are summed across all members (pair members alternate omgangar), falling
- * back to the rep's scorePoints when the side has no rows. Returns the losing
- * side's kasterid — any member works, the elimination RPC resolves the full
- * side from resultat.startnummer.
+ * Confirms one match: store the scores, then settle the outcome. Both steps are
+ * shared by every entry point — scoreboard and numberpad, innledende and cup —
+ * so a match always ends up with its score in kamp_spelar.score_poeng.
+ *
+ * A 3-side cup match confirmed from the organizer dialog carries no scores; the
+ * score step then simply writes back what is already stored.
  */
-export function buildEliminatedThrowerId(params: {
-  roundData: Array<{ kamp_spelar_id: number | null; score: number | null }>;
-  p1: { playerIds: number[]; kasterid: number; scorePoints: number } | null;
-  p2: { playerIds: number[]; kasterid: number; scorePoints: number } | null;
-}): number | null {
-  const { roundData, p1, p2 } = params;
-
-  const sideTotal = (side: { playerIds: number[]; scorePoints: number } | null): number => {
-    if (!side) return 0;
-    const rows = roundData.filter(
-      (o) => o.kamp_spelar_id != null && side.playerIds.includes(o.kamp_spelar_id),
-    );
-    if (!rows.length) return side.scorePoints;
-    return rows.reduce((sum, o) => sum + (o.score ?? 0), 0);
-  };
-
-  const t1 = sideTotal(p1);
-  const t2 = sideTotal(p2);
-  return t1 >= t2 ? (p2?.kasterid ?? null) : (p1?.kasterid ?? null);
-}
-
-export async function confirmFinalMatch(params: {
+export async function confirmMatch(params: {
   kampId: number;
-  p1: MatchPlayerConfirmData | null;
-  p2: MatchPlayerConfirmData | null;
-  orderedKasterids: number[] | null; // 3-unit: [1st, 2nd, 3rd] side-rep kasterids
-  // Par/Mix: partner kamp_spelar ids so side totals include both members
-  p1PartnerId?: number | null;
-  p2PartnerId?: number | null;
+  /** Sides in display order; a null entry is a side with no players (walkover). */
+  sides: (MatchSideConfirm | null)[];
+  hcp?: number[];
+  erWalkover?: boolean;
+  outcome: MatchOutcome;
 }): Promise<{ error: unknown }> {
-  const { kampId, p1, p2, orderedKasterids, p1PartnerId = null, p2PartnerId = null } = params;
+  const { kampId, sides, hcp, erWalkover = false, outcome } = params;
 
-  let eliminatedId: number | null = null;
-  if (orderedKasterids?.length === 3) {
-    eliminatedId = orderedKasterids[2] ?? null;
-  } else {
-    const side1Ids = _sidePlayerIds(p1, p1PartnerId);
-    const side2Ids = _sidePlayerIds(p2, p2PartnerId);
-    const { data: roundData } = await supabase
-      .from("kamp_omgang")
-      .select("kamp_spelar_id, score")
-      .in("kamp_spelar_id", [...side1Ids, ...side2Ids]);
+  const { error: scoreErr, totals } = await _persistMatchScores({ sides, hcp, erWalkover });
+  if (scoreErr) return { error: scoreErr };
 
-    eliminatedId = buildEliminatedThrowerId({
-      roundData: roundData ?? [],
-      p1: p1 ? { playerIds: side1Ids, kasterid: p1.kasterid, scorePoints: p1.scorePoints } : null,
-      p2: p2 ? { playerIds: side2Ids, kasterid: p2.kasterid, scorePoints: p2.scorePoints } : null,
-    });
-  }
-
-  const { error } = await supabase.rpc("bekreft_avsluttende_kamp_deltakar", {
-    p_kamp_id: kampId,
-    p_eliminert_kasterid: eliminatedId ?? undefined,
-  });
-  if (error) {
-    logError("confirmFinalMatch", error);
+  if (outcome.type === "innledende") {
+    const { error } = await verifyRowsAffected(
+      supabase.from("kamp").update({ er_bekreftet: true }).eq("id", kampId).select("id"),
+      ALREADY_CONFIRMED_MESSAGE,
+    );
+    if (error) logError("confirmMatch:kamp", error);
     return { error };
   }
 
-  return { error: null };
+  if (outcome.type === "cup") {
+    const eliminatedId =
+      outcome.orderedKasterids?.length === 3
+        ? (outcome.orderedKasterids[2] ?? null)
+        : losingSideKasterid(sides, totals);
+    const { error } = await supabase.rpc("bekreft_avsluttende_kamp_deltakar", {
+      p_kamp_id: kampId,
+      p_eliminert_kasterid: eliminatedId ?? undefined,
+    });
+    if (error) logError("confirmMatch:cup", error);
+    return { error };
+  }
+
+  return _finishCupAsOrganizer(kampId, outcome);
 }
 
 // ── Avsluttande fase ──────────────────────────────────────────────────────────
@@ -577,26 +586,19 @@ export async function setMatchPlayerPlacements(
   return { error: err };
 }
 
-export async function confirmCupMatch(params: {
-  kampId: number;
-  stevneId: number;
-  roundNumber: number;
-  roundName: string | null;
-  allThrowerIds: number[];
-  /** All members of the eliminated side ([] = none). Singel: one kasterid. */
-  eliminatedIds: number[];
-  /** Advancing sides in rank order; every member of a side shares its kamp_plassering. */
-  advancingSides: number[][];
-}): Promise<{ error: unknown }> {
-  const { kampId, stevneId, roundNumber, roundName, allThrowerIds, eliminatedIds, advancingSides } =
-    params;
+async function _finishCupAsOrganizer(
+  kampId: number,
+  outcome: Extract<MatchOutcome, { type: "cup-arrangor" }>,
+): Promise<{ error: unknown }> {
+  const { stevneId, roundNumber, roundName, allThrowerIds, eliminatedIds, advancingSides } =
+    outcome;
 
   const { error: kampErr } = await supabase
     .from("kamp")
     .update({ er_bekreftet: true })
     .eq("id", kampId);
   if (kampErr) {
-    logError("confirmCupMatch:kamp", kampErr);
+    logError("confirmMatch:cup-arrangor:kamp", kampErr);
     return { error: kampErr };
   }
 
@@ -621,7 +623,7 @@ export async function confirmCupMatch(params: {
       roundNumber,
       allThrowerIds,
       eliminatedIds,
-      "confirmCupMatch",
+      "confirmMatch:cup-arrangor",
     );
     if (error) return { error };
   }
@@ -635,7 +637,7 @@ export async function confirmCupMatch(params: {
       .eq("stevneid", stevneId)
       .in("kasterid", winnerIds);
     if (vErr) {
-      logError("confirmCupMatch:plassering-vinnar", vErr);
+      logError("confirmMatch:cup-arrangor:plassering-vinnar", vErr);
       return { error: vErr };
     }
     const { error: tErr } = await supabase
@@ -644,7 +646,7 @@ export async function confirmCupMatch(params: {
       .eq("stevneid", stevneId)
       .in("kasterid", eliminatedIds);
     if (tErr) {
-      logError("confirmCupMatch:plassering-tapar", tErr);
+      logError("confirmMatch:cup-arrangor:plassering-tapar", tErr);
       return { error: tErr };
     }
   } else if (roundName === "Bronsefinale" && winnerIds.length) {
@@ -654,7 +656,7 @@ export async function confirmCupMatch(params: {
       .eq("stevneid", stevneId)
       .in("kasterid", winnerIds);
     if (vErr) {
-      logError("confirmCupMatch:plassering-vinnar", vErr);
+      logError("confirmMatch:cup-arrangor:plassering-vinnar", vErr);
       return { error: vErr };
     }
     const { error: tErr } = await supabase
@@ -663,7 +665,7 @@ export async function confirmCupMatch(params: {
       .eq("stevneid", stevneId)
       .in("kasterid", eliminatedIds);
     if (tErr) {
-      logError("confirmCupMatch:plassering-tapar", tErr);
+      logError("confirmMatch:cup-arrangor:plassering-tapar", tErr);
       return { error: tErr };
     }
   }

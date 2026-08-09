@@ -1,5 +1,6 @@
 import {
-  confirmCupMatch,
+  confirmMatch,
+  toConfirmSide,
   type FinalMatchRow,
   type FinalMatchPlayerRow,
 } from "@/services/kampService";
@@ -83,14 +84,18 @@ export function openThreeSideConfirmDialog(
         .map((s) => s.members.map((m) => m.kasterid));
       const allThrowerIds = sides.flatMap((s) => s.members.map((m) => m.kasterid));
       modal.remove();
-      const { error } = await confirmCupMatch({
+      const { error } = await confirmMatch({
         kampId: kamp.id,
-        stevneId: stevneid,
-        roundNumber: kamp.runde_nummer,
-        roundName: kamp.runde_navn,
-        allThrowerIds,
-        eliminatedIds: eliminatedSide?.members.map((m) => m.kasterid) ?? [],
-        advancingSides,
+        sides: sides.map(toConfirmSide),
+        outcome: {
+          type: "cup-arrangor",
+          stevneId: stevneid,
+          roundNumber: kamp.runde_nummer,
+          roundName: kamp.runde_navn,
+          allThrowerIds,
+          eliminatedIds: eliminatedSide?.members.map((m) => m.kasterid) ?? [],
+          advancingSides,
+        },
       });
       if (error) {
         showToast("DB-feil ved bekreft", "error");
