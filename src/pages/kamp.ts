@@ -219,7 +219,7 @@ async function confirmMatch(
     hcp: [hcp1, hcp2],
     erWalkover: ctx.match.er_walkover,
     outcome: erCup
-      ? { type: "cup", orderedKasterids: orderedKasterids ?? null }
+      ? { type: "cup-derived", orderedKasterids: orderedKasterids ?? null }
       : { type: "innledende" },
   });
   if (error) {

@@ -88,7 +88,7 @@ export function openThreeSideConfirmDialog(
         kampId: kamp.id,
         sides: sides.map(toConfirmSide),
         outcome: {
-          type: "cup-arrangor",
+          type: "cup-ranked",
           stevneId: stevneid,
           roundNumber: kamp.runde_nummer,
           roundName: kamp.runde_navn,

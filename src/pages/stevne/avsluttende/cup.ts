@@ -738,7 +738,7 @@ async function confirmCupMatch2Sides(
     kampId: kamp.id,
     sides: [toConfirmSide(side1), toConfirmSide(side2)],
     outcome: {
-      type: "cup-arrangor",
+      type: "cup-ranked",
       stevneId: stevneid,
       roundNumber: kamp.runde_nummer,
       roundName: kamp.runde_navn,

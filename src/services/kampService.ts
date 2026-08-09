@@ -451,15 +451,18 @@ export type MatchOutcome =
   /** Innledende: only the confirm flag — the standings read kamp_poeng. */
   | { type: "innledende" }
   /**
-   * Cup confirmed from the scoreboard. Goes through the SECURITY DEFINER RPC
-   * because RLS blocks a participant from writing kamp_spelar and resultat once
-   * er_bekreftet is set. The losing side follows from the scores unless
-   * orderedKasterids ranks a 3-side match explicitly.
+   * Cup where the ranking is derived from the scores: the lowest side total is
+   * eliminated, unless orderedKasterids ranks a 3-side match explicitly. Goes
+   * through the SECURITY DEFINER RPC, because RLS blocks a participant from
+   * writing kamp_spelar and resultat once er_bekreftet is set.
    */
-  | { type: "cup"; orderedKasterids?: number[] | null }
-  /** Cup confirmed from the organizer view: explicit ranking, written directly. */
+  | { type: "cup-derived"; orderedKasterids?: number[] | null }
+  /**
+   * Cup where the caller supplies the ranking outright — who advances in what
+   * order, who is out — and it is written directly to kamp_spelar and resultat.
+   */
   | {
-      type: "cup-arrangor";
+      type: "cup-ranked";
       stevneId: number;
       roundNumber: number;
       roundName: string | null;
@@ -475,8 +478,8 @@ export type MatchOutcome =
  * shared by every entry point — scoreboard and numberpad, innledende and cup —
  * so a match always ends up with its score in kamp_spelar.score_poeng.
  *
- * A 3-side cup match confirmed from the organizer dialog carries no scores; the
- * score step then simply writes back what is already stored.
+ * A 3-side cup match ranked by hand carries no scores of its own; the score step
+ * then simply writes back what is already stored.
  */
 export async function confirmMatch(params: {
   kampId: number;
@@ -500,7 +503,7 @@ export async function confirmMatch(params: {
     return { error };
   }
 
-  if (outcome.type === "cup") {
+  if (outcome.type === "cup-derived") {
     const eliminatedId =
       outcome.orderedKasterids?.length === 3
         ? (outcome.orderedKasterids[2] ?? null)
@@ -509,11 +512,11 @@ export async function confirmMatch(params: {
       p_kamp_id: kampId,
       p_eliminert_kasterid: eliminatedId ?? undefined,
     });
-    if (error) logError("confirmMatch:cup", error);
+    if (error) logError("confirmMatch:cup-derived", error);
     return { error };
   }
 
-  return _finishCupAsOrganizer(kampId, outcome);
+  return _finishRankedCup(kampId, outcome);
 }
 
 // ── Avsluttande fase ──────────────────────────────────────────────────────────
@@ -586,9 +589,9 @@ export async function setMatchPlayerPlacements(
   return { error: err };
 }
 
-async function _finishCupAsOrganizer(
+async function _finishRankedCup(
   kampId: number,
-  outcome: Extract<MatchOutcome, { type: "cup-arrangor" }>,
+  outcome: Extract<MatchOutcome, { type: "cup-ranked" }>,
 ): Promise<{ error: unknown }> {
   const { stevneId, roundNumber, roundName, allThrowerIds, eliminatedIds, advancingSides } =
     outcome;
@@ -598,7 +601,7 @@ async function _finishCupAsOrganizer(
     .update({ er_bekreftet: true })
     .eq("id", kampId);
   if (kampErr) {
-    logError("confirmMatch:cup-arrangor:kamp", kampErr);
+    logError("confirmMatch:cup-ranked:kamp", kampErr);
     return { error: kampErr };
   }
 
@@ -623,7 +626,7 @@ async function _finishCupAsOrganizer(
       roundNumber,
       allThrowerIds,
       eliminatedIds,
-      "confirmMatch:cup-arrangor",
+      "confirmMatch:cup-ranked",
     );
     if (error) return { error };
   }
@@ -637,7 +640,7 @@ async function _finishCupAsOrganizer(
       .eq("stevneid", stevneId)
       .in("kasterid", winnerIds);
     if (vErr) {
-      logError("confirmMatch:cup-arrangor:plassering-vinnar", vErr);
+      logError("confirmMatch:cup-ranked:plassering-vinnar", vErr);
       return { error: vErr };
     }
     const { error: tErr } = await supabase
@@ -646,7 +649,7 @@ async function _finishCupAsOrganizer(
       .eq("stevneid", stevneId)
       .in("kasterid", eliminatedIds);
     if (tErr) {
-      logError("confirmMatch:cup-arrangor:plassering-tapar", tErr);
+      logError("confirmMatch:cup-ranked:plassering-tapar", tErr);
       return { error: tErr };
     }
   } else if (roundName === "Bronsefinale" && winnerIds.length) {
@@ -656,7 +659,7 @@ async function _finishCupAsOrganizer(
       .eq("stevneid", stevneId)
       .in("kasterid", winnerIds);
     if (vErr) {
-      logError("confirmMatch:cup-arrangor:plassering-vinnar", vErr);
+      logError("confirmMatch:cup-ranked:plassering-vinnar", vErr);
       return { error: vErr };
     }
     const { error: tErr } = await supabase
@@ -665,7 +668,7 @@ async function _finishCupAsOrganizer(
       .eq("stevneid", stevneId)
       .in("kasterid", eliminatedIds);
     if (tErr) {
-      logError("confirmMatch:cup-arrangor:plassering-tapar", tErr);
+      logError("confirmMatch:cup-ranked:plassering-tapar", tErr);
       return { error: tErr };
     }
   }
