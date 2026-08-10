@@ -125,7 +125,7 @@ export async function render(container: HTMLElement, params: Params): Promise<vo
         ${
           ownsHeader
             ? ""
-            : `<div class="org-fase-header d-flex align-items-center justify-content-between gap-2 mb-3">
+            : `<div class="org-fase-header d-flex align-items-center justify-content-between gap-2">
           <div class="org-fase-header__title">
             <h5 class="mb-0">${escHtml(tournament.navn)}</h5>
             <span class="org-fase-header__meta"></span>

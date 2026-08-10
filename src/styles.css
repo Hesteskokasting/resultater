@@ -969,11 +969,13 @@
 .org-fase-header {
   background: var(--flate);
   color: var(--tekst);
-  padding: 0.5rem 1rem;
+  padding: 0.3rem 1rem;
   border-left: 3px solid var(--primaer);
   border-bottom: 1px solid var(--kant);
+  margin-bottom: 0.75rem;
 }
 .org-fase-header h5 {
+  font-size: 1.05rem;
   font-weight: 600;
   overflow-wrap: anywhere;
 }
@@ -1157,9 +1159,13 @@
   .org-main-content {
     margin-inline: -1rem;
   }
+  /* Sits flush under the title strip — the negative top margin cancels the
+     header's own bottom margin, and the shared edge keeps a single border. */
   .org-tab-buttons {
     display: flex;
+    margin-top: -0.75rem;
     margin-bottom: 0.75rem;
+    border-top: 0;
     border-inline: 0;
     border-radius: 0;
   }
