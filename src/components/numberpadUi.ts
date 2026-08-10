@@ -200,6 +200,11 @@ export function padDigitGrid(opts: PadGridOptions): HTMLElement {
   return grid;
 }
 
+/** A single key outside the digit grid, drawn exactly like the digits. */
+export function padKey(key: PadKey, extraClass?: string): HTMLButtonElement {
+  return padKeyEl(key, extraClass ? `pad-key ${extraClass}` : "pad-key");
+}
+
 /** Full-width primary button below the keys. */
 export function padRegister(key: PadKey): HTMLButtonElement {
   return padKeyEl(key, "pad-register");

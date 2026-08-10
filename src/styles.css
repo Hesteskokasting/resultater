@@ -2684,48 +2684,14 @@ th.initial-score-th {
   gap: 10px;
 }
 
-.pad-ring-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  padding: 10px 0;
-  background: var(--pad-flate);
-  color: var(--pad-tekst);
-  border: 1px solid var(--pad-kant);
-  border-radius: 12px;
-  cursor: pointer;
-}
-
+/* The ring keys are digit keys (.pad-key) — only the 0 spanning the row and the
+   chosen-count accent are their own. */
 .pad-ring-zero {
   grid-column: 1 / -1;
-  flex-direction: row;
-  gap: 8px;
-  align-items: baseline;
-  justify-content: center;
 }
 
-.pad-ring-value {
-  font-size: 1.3rem;
-  font-weight: 700;
-}
-
-.pad-ring-label {
-  color: var(--pad-tekst-2);
-  font-size: 0.7rem;
-  letter-spacing: 0.08em;
-}
-
-.pad-ring-btn:disabled {
-  opacity: 0.35;
-  cursor: default;
-}
 .pad-ring-btn.selected {
   border-color: var(--pad-valgt);
-}
-
-.pad-ring-btn.selected .pad-ring-value,
-.pad-ring-btn.selected .pad-ring-label {
   color: var(--pad-valgt);
 }
 

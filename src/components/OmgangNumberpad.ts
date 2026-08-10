@@ -6,6 +6,7 @@ import {
   padColumns,
   padDigitGrid,
   padDisplay,
+  padKey,
   padMeta,
   padProgress,
   padRegister,
@@ -224,17 +225,21 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
     });
   }
 
+  /** Same key as a digit — the count alone, no unit spelled out beside it. */
   function ringButtonEl(count: number, isAllowed: boolean): HTMLButtonElement {
-    const label = count === 0 ? "ingen ringer" : count === 1 ? "ring" : "ringer";
-    const btn = createEl("button", null, `pad-ring-btn${count === 0 ? " pad-ring-zero" : ""}`);
-    btn.appendChild(createEl("span", String(count), "pad-ring-value"));
-    btn.appendChild(createEl("span", label, "pad-ring-label"));
-    btn.disabled = !isAllowed;
+    const btn = padKey(
+      {
+        label: String(count),
+        disabled: !isAllowed,
+        onClick: () => {
+          state.selectedRinger = count;
+          render();
+        },
+      },
+      `pad-ring-btn${count === 0 ? " pad-ring-zero" : ""}`,
+    );
+    btn.setAttribute("aria-label", count === 1 ? "1 ring" : `${count} ringar`);
     btn.classList.toggle("selected", state.selectedRinger === count);
-    btn.addEventListener("click", () => {
-      state.selectedRinger = count;
-      render();
-    });
     return btn;
   }
 
