@@ -8,10 +8,11 @@
 // InnledendeVariant config fields:
 //   channelName(stevneid)      — realtime channel name, must be unique per variant
 //   logPrefix                  — prepended to logError context strings
-//   isSwiss                    — whether to render the "Neste runde" button
+//   isSwiss                    — whether to offer "Generer neste runde" in the menu
 //   onReset?()                 — called on each render(); use to reset variant state
-//   getBannerExtra(ctx)        — returns HTML appended after the shared admin buttons
-//   bindBannerExtra(slot, ctx) — binds click handlers for the extra HTML above
+//   bannerMeta(ctx)            — meta line beside the stevne name in the banner
+//   getMenuItems(ctx)          — extra banner-menu entries for this variant
+//   bindBannerExtra(slot, ctx) — binds click handlers for the entries above
 //   filterRounds?(roundMap)    — optionally filter which rounds to display; default: all
 //
 // To add a new kastemetode: create a thin file (~30-50 lines) that defines
@@ -26,7 +27,8 @@ import { autoCompleteInitialRoundMatches } from "@/services/testDataService";
 import {
   buildInitialPlayerMap,
   sortStandings,
-  renderInitialButtons,
+  initialMenuItems,
+  setBannerMeta,
   createChangeHandler,
   bindStandingDetails,
   renderMainContent,
@@ -39,6 +41,7 @@ import {
   bindScoreboardClicks,
   type StandingRow,
 } from "@/organizer/org-shared";
+import { renderBannerMenu, bindBannerMenu, type BannerMenuItem } from "@/components/BannerMenu";
 import { createLoadingState } from "@/components/LoadingState";
 import { createErrorBanner } from "@/components/ErrorBanner";
 import { errorMessage } from "@/utils/errorMessage";
@@ -88,7 +91,9 @@ export interface InnledendeVariant {
   logPrefix: string;
   isSwiss: boolean;
   onReset?: () => void;
-  getBannerExtra: (ctx: InnledendeContext) => string;
+  /** Secondary meta line beside the stevne name, e.g. "NHM - 2 av 5 rundar". */
+  bannerMeta: (ctx: InnledendeContext) => string;
+  getMenuItems: (ctx: InnledendeContext) => BannerMenuItem[];
   bindBannerExtra: (bannerSlot: HTMLElement, ctx: InnledendeContext) => void;
   filterRounds?: (roundMap: Map<number, InitialMatchRow[]>) => Map<number, InitialMatchRow[]>;
 }
@@ -215,10 +220,13 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
   }
 
   function setupBanner(ctx: InnledendeContext): void {
+    setBannerMeta(bannerSlot, variant.bannerMeta(ctx));
     if (!bannerSlot) return;
-    bannerSlot.innerHTML =
-      (isAdmin ? renderInitialButtons(ctx.stevne, variant.isSwiss) : "") +
-      variant.getBannerExtra(ctx);
+    const extras = variant.getMenuItems(ctx);
+    bannerSlot.innerHTML = renderBannerMenu(
+      isAdmin ? initialMenuItems(ctx.stevne, variant.isSwiss, extras) : extras,
+    );
+    bindBannerMenu(bannerSlot);
     variant.bindBannerExtra(bannerSlot, ctx);
 
     bannerSlot.querySelector("#complete-tournament-btn")?.addEventListener("click", async () => {

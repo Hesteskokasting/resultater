@@ -87,6 +87,8 @@ export async function getMyCourts(
 
 /** Shared config for the X-kast/Kongelag court views (see @/organizer/xkastKongelagView). */
 export interface CourtPhaseConfig {
+  /** Kastemetode name for this fase — shown as the banner meta line. */
+  metodeNavn: string | null;
   antallOmganger: number | null;
   tilgjengeligeBaner: number | null;
   stevneFase: string | null;
@@ -104,8 +106,8 @@ async function loadCourtPhaseConfig(
     .from("stevne")
     .select(`
       tilgjengelige_baner, stevne_fase, erfullfort, innledendekastemetodeid, avsluttendekastemetodeid,
-      kastemetodeInnl:kastemetode!stevne_innledendekastemetodeid_fkey(antall_omganger),
-      kastemetodeAvsl:kastemetode!stevne_avsluttendekastemetodeid_fkey(antall_omganger)
+      kastemetodeInnl:kastemetode!stevne_innledendekastemetodeid_fkey(navn, antall_omganger),
+      kastemetodeAvsl:kastemetode!stevne_avsluttendekastemetodeid_fkey(navn, antall_omganger)
     `)
     .eq("id", stevneid)
     .maybeSingle();
@@ -114,6 +116,7 @@ async function loadCourtPhaseConfig(
   const kastemetode = fase === "innledende" ? data.kastemetodeInnl : data.kastemetodeAvsl;
   return {
     data: {
+      metodeNavn: kastemetode?.navn ?? null,
       antallOmganger: kastemetode?.antall_omganger ?? null,
       tilgjengeligeBaner: data.tilgjengelige_baner,
       stevneFase: data.stevne_fase,

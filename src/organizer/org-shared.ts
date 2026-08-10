@@ -11,6 +11,7 @@ import { escHtml } from "@/utils/escHtml";
 import { coalesceReload } from "@/utils/coalesceReload";
 import type { Tables } from "@/types";
 import { createTable, type ColumnDef } from "@/components/Table";
+import type { BannerMenuItem } from "@/components/BannerMenu";
 import { openInNewTab } from "@/services/navigationService";
 
 /**
@@ -449,16 +450,34 @@ export function createChangeHandler(
   };
 }
 
-export function renderInitialButtons(
+/** Writes the secondary meta line beside the stevne name in the banner. */
+export function setBannerMeta(bannerSlot: HTMLElement | null, text: string): void {
+  const meta = bannerSlot
+    ?.closest(".org-fase-header")
+    ?.querySelector<HTMLElement>(".org-fase-header__meta");
+  if (meta) meta.textContent = text;
+}
+
+/** Variant-specific entries land between "Generer neste runde" and the dev/complete entries. */
+export function initialMenuItems(
   tournament: Pick<Tables<"stevne">, "erfullfort" | "avsluttendekastemetodeid">,
   erSwiss: boolean,
-): string {
+  extras: BannerMenuItem[] = [],
+): BannerMenuItem[] {
   const hasFinalPhase = tournament.avsluttendekastemetodeid != null;
-  return `
-    ${erSwiss ? `<button id="neste-runde-btn" class="btn btn-sm btn-warning">Generer neste runde</button>` : ""}
-    ${!hasFinalPhase ? `<button id="complete-tournament-btn" class="btn btn-sm btn-success"${tournament.erfullfort ? " disabled" : ""}>Fullfør turnering</button>` : ""}
-    ${import.meta.env.VITE_ENV === "dev" ? `<button id="test-auto-complete-btn" class="btn btn-sm btn-outline-warning">TEST: Autofullfør</button>` : ""}
-  `;
+  const items: BannerMenuItem[] = [];
+  if (erSwiss) items.push({ id: "neste-runde-btn", label: "Generer neste runde" });
+  items.push(...extras);
+  if (import.meta.env.VITE_ENV === "dev")
+    items.push({ id: "test-auto-complete-btn", label: "TEST: Autofullfør" });
+  if (!hasFinalPhase)
+    items.push({
+      id: "complete-tournament-btn",
+      label: "Fullfør turnering",
+      tone: "success",
+      disabled: tournament.erfullfort === true,
+    });
+  return items;
 }
 
 interface FinalPhaseState {
@@ -468,34 +487,37 @@ interface FinalPhaseState {
   hasPreconfiguredFormat?: boolean;
 }
 
-export function renderFinalButtons(
+export function finalMenuItems(
   tournament: Pick<Tables<"stevne">, "erfullfort" | "stevne_fase">,
   state: FinalPhaseState,
-): string {
+): BannerMenuItem[] {
   const {
     allMatchesConfirmed,
     hasFinalMatches,
     hasGroupAssignment,
     hasPreconfiguredFormat = false,
   } = state;
-  const phase = tournament.stevne_fase;
+  const items: BannerMenuItem[] = [];
 
-  let actionsHtml = "";
-
-  if (phase !== "avsluttende") {
+  if (tournament.stevne_fase !== "avsluttende") {
     if (allMatchesConfirmed) {
-      actionsHtml = `
-        <button id="start-final-btn" class="btn btn-sm btn-success">Start avsluttande fase</button>
-        ${hasPreconfiguredFormat ? `<button id="edit-group-assignment-btn" class="btn btn-sm btn-outline-secondary">Endre gruppefordeling</button>` : ""}`;
+      items.push({ id: "start-final-btn", label: "Start avsluttande fase" });
+      if (hasPreconfiguredFormat)
+        items.push({ id: "edit-group-assignment-btn", label: "Endre gruppefordeling" });
     }
   } else if (hasGroupAssignment && !hasFinalMatches) {
-    actionsHtml = `<button id="edit-group-assignment-btn" class="btn btn-sm btn-outline-secondary">Endre gruppeinndeling</button>`;
+    items.push({ id: "edit-group-assignment-btn", label: "Endre gruppeinndeling" });
   }
 
-  return `
-    ${actionsHtml}
-    ${allMatchesConfirmed ? `<button id="complete-tournament-btn" class="btn btn-sm btn-success"${tournament.erfullfort ? " disabled" : ""}>Fullfør turnering</button>` : ""}
-  `;
+  if (allMatchesConfirmed)
+    items.push({
+      id: "complete-tournament-btn",
+      label: "Fullfør turnering",
+      tone: "success",
+      disabled: tournament.erfullfort === true,
+    });
+
+  return items;
 }
 
 export interface PlayerMapRow {

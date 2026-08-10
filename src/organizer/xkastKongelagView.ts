@@ -31,7 +31,9 @@ import {
   bindTabToggle,
   getActiveTab,
   setActiveTab,
+  setBannerMeta,
 } from "@/organizer/org-shared";
+import { renderBannerMenu, bindBannerMenu, type BannerMenuItem } from "@/components/BannerMenu";
 import {
   getCourts,
   saveOmgang,
@@ -639,6 +641,7 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
   function renderBanner(container: HTMLElement): void {
     const s = state;
     if (!bannerSlot || !s) return;
+    setBannerMeta(bannerSlot, s.config.metodeNavn ?? "");
     if (!s.isAdmin) {
       bannerSlot.innerHTML = "";
       return;
@@ -650,10 +653,17 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
     const showAutoComplete =
       import.meta.env.VITE_ENV === "dev" && s.courts.length > 0 && !allConfirmed;
 
-    bannerSlot.innerHTML = `
-      ${showComplete ? `<button id="complete-tournament-btn" class="btn btn-sm btn-success"${s.config.erfullfort ? " disabled" : ""}>Fullfør turnering</button>` : ""}
-      ${showAutoComplete ? '<button id="test-auto-complete-btn" class="btn btn-sm btn-outline-warning">TEST: Autofullfør</button>' : ""}
-    `;
+    const items: BannerMenuItem[] = [];
+    if (showAutoComplete) items.push({ id: "test-auto-complete-btn", label: "TEST: Autofullfør" });
+    if (showComplete)
+      items.push({
+        id: "complete-tournament-btn",
+        label: "Fullfør turnering",
+        tone: "success",
+        disabled: s.config.erfullfort,
+      });
+    bannerSlot.innerHTML = renderBannerMenu(items);
+    bindBannerMenu(bannerSlot);
 
     bannerSlot.querySelector("#test-auto-complete-btn")?.addEventListener("click", async (e) => {
       const btn = e.currentTarget as HTMLButtonElement;

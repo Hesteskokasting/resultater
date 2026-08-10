@@ -12,10 +12,16 @@ const variant: InnledendeVariant = {
   onReset: () => {
     showAllRounds = false;
   },
-  getBannerExtra: ({ roundMap }) => {
-    if (roundMap.size <= 1) return "";
+  bannerMeta: ({ roundMap, stevne }) => {
+    if (roundMap.size === 0) return "NHM";
+    const current = Math.max(...roundMap.keys());
+    const total = stevne.antall_runder_innl;
+    return total ? `NHM - ${current} av ${total} rundar` : `NHM - ${current} rundar`;
+  },
+  getMenuItems: ({ roundMap }) => {
+    if (roundMap.size <= 1) return [];
     const label = showAllRounds ? "Skjul tidlegare rundar" : `Vis alle rundar (${roundMap.size})`;
-    return `<button class="btn btn-sm btn-outline-secondary" id="toggle-rundar-btn">${label}</button>`;
+    return [{ id: "toggle-rundar-btn", label }];
   },
   bindBannerExtra: (slot, { stevneid, allMatchesConfirmed, reload }) => {
     slot.querySelector("#toggle-rundar-btn")?.addEventListener("click", () => {

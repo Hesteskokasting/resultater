@@ -152,6 +152,16 @@ const cupVariant: FinalPhaseVariant = {
     });
   },
 
+  bannerMeta: ({ standings, round1Format }) => {
+    const nA = standings.filter((r) => r.gruppe?.navn === "A").length;
+    const nB = standings.filter((r) => r.gruppe?.navn === "B").length;
+    if (nA || nB) return `Cup - A:${nA} - B:${nB}`;
+    // Not assigned yet — the configured split is the next best thing.
+    if (round1Format?.nA != null)
+      return `Cup - A:${round1Format.nA} - B:${standings.length - round1Format.nA}`;
+    return "Cup";
+  },
+
   bindHeaderEvents: (bannerSlot, ctx) => {
     const {
       container,

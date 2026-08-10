@@ -9,14 +9,16 @@
 //   renderMatchesHtml(ctx)        — HTML for the "Kampar" tab (shown when group assignment exists)
 //   bindMatchEvents(el, ctx)      — bind match interaction handlers
 //   renderSetupHtml(ctx)          — HTML shown before group assignment is set up
-//   bindHeaderEvents(slot, ctx)   — bind variant-specific banner button handlers
+//   bannerMeta(ctx)               — meta line beside the stevne name in the banner
+//   bindHeaderEvents(slot, ctx)   — bind variant-specific banner menu handlers
 //
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import {
   buildFinalStandings,
   renderStandingTable,
   renderMainContent,
-  renderFinalButtons,
+  finalMenuItems,
+  setBannerMeta,
   bindStandingDetails,
   bindTabToggle,
   getActiveTab,
@@ -25,6 +27,7 @@ import {
   type StandingRow,
   type OrgMatch,
 } from "@/organizer/org-shared";
+import { renderBannerMenu, bindBannerMenu } from "@/components/BannerMenu";
 import { createLoadingState } from "@/components/LoadingState";
 import { createErrorBanner } from "@/components/ErrorBanner";
 import { showToast } from "@/components/Toast";
@@ -85,6 +88,8 @@ export interface FinalPhaseVariant {
   renderMatchesHtml: (ctx: FinalPhaseContext) => string;
   bindMatchEvents: (container: HTMLElement, ctx: FinalPhaseContext) => void;
   renderSetupHtml: (ctx: FinalPhaseContext) => string;
+  /** Secondary meta line beside the stevne name, e.g. "Cup - A:13 - B:6". */
+  bannerMeta: (ctx: FinalPhaseContext) => string;
   bindHeaderEvents: (bannerSlot: HTMLElement | null, ctx: FinalPhaseContext) => void;
 }
 
@@ -252,13 +257,18 @@ export function createFinalPhaseRenderer(variant: FinalPhaseVariant) {
         reload: () => loadAndRender(container, stevneid),
       };
 
+      setBannerMeta(bannerSlot, variant.bannerMeta(ctx));
+
       if (isAdmin && bannerSlot) {
-        bannerSlot.innerHTML = renderFinalButtons(stevne, {
-          allMatchesConfirmed,
-          hasFinalMatches,
-          hasGroupAssignment,
-          hasPreconfiguredFormat: round1Format != null && stevne.stevne_fase !== "avsluttende",
-        });
+        bannerSlot.innerHTML = renderBannerMenu(
+          finalMenuItems(stevne, {
+            allMatchesConfirmed,
+            hasFinalMatches,
+            hasGroupAssignment,
+            hasPreconfiguredFormat: round1Format != null && stevne.stevne_fase !== "avsluttende",
+          }),
+        );
+        bindBannerMenu(bannerSlot);
       }
 
       const activeTab = getActiveTab(container);
