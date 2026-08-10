@@ -10,7 +10,6 @@ import { openGenerateRoundDialog } from "./_avslCupGenererRundeDialog";
 import { openThreeSideConfirmDialog } from "./_avslCupTreSpelarDialog";
 import { showNumberpad } from "@/components/ScoreNumberpad";
 import { matchScoreForPlayer, sideScore, getAllMatchSides, type MatchSide } from "@/utils/kamp";
-import { livePillHtml } from "@/components/LivePill";
 import { bindScoreboardClicks, sideNameHtml, type StandingRow } from "@/organizer/org-shared";
 import { showScoreEditor } from "@/organizer/scoreEditor";
 import { escHtml } from "@/utils/escHtml";
@@ -455,6 +454,19 @@ interface MatchBlockFlags {
   isThreeSides: boolean;
 }
 
+// Bootstrap Icons isn't loaded in this app — inline SVG, matching ExcelButton.
+const SCOREBOARD_SVG =
+  '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+  'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+  '<rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/>' +
+  '<line x1="12" y1="17" x2="12" y2="21"/>' +
+  "</svg>";
+
+/**
+ * One unit's row: name left, score in a fixed cell right. A confirmed match
+ * carries its result as colour — winner green, loser red — which is the only
+ * signal that the match is settled.
+ */
 function sideRowHtml(
   kamp: FinalMatchRow,
   side: MatchSide<FinalMatchPlayerKnown>,
@@ -467,13 +479,13 @@ function sideRowHtml(
   const matchPlacement = side.rep.kamp_plassering;
   const isEliminated = kamp.er_bekreftet && matchPlacement != null && matchPlacement >= nSides;
   const isAdvancing = kamp.er_bekreftet && matchPlacement != null && matchPlacement < nSides;
-  const rowCss = isEliminated ? "match-eliminated" : isAdvancing ? "match-advancing" : "";
-  const scoreCss = `text-center fw-semibold final-score-cell${flags.canEditScore ? " score-editable" : ""}`;
+  const rowCss = isEliminated ? " cup-row--tapar" : isAdvancing ? " cup-row--vinnar" : "";
+  const scoreCss = `cup-row__score${flags.canEditScore ? " score-editable" : ""}`;
   const scoreAttr = flags.canEditScore ? ` data-endre-score="${kamp.id}"` : "";
-  return `<tr${rowCss ? ` class="${rowCss}"` : ""}>
-    <td>${sideNameHtml(side, false)}</td>
-    <td class="${scoreCss}"${scoreAttr}>${score}</td>
-  </tr>`;
+  return `<div class="cup-row${rowCss}">
+      <span class="cup-row__name">${sideNameHtml(side, false)}</span>
+      <span class="${scoreCss}"${scoreAttr}>${score}</span>
+    </div>`;
 }
 
 function playerRowsHtml(
@@ -482,35 +494,12 @@ function playerRowsHtml(
   flags: MatchBlockFlags,
 ): string {
   if (kamp.er_walkover) {
-    return `<tr>
-        <td colspan="2">${sideNameHtml(sides[0] ?? null, false)} <span class="badge bg-secondary">Walkover</span></td>
-      </tr>`;
+    return `<div class="cup-row">
+        <span class="cup-row__name">${sideNameHtml(sides[0] ?? null, false)} <span class="badge bg-secondary">Walkover</span></span>
+        <span class="cup-row__score">—</span>
+      </div>`;
   }
   return sides.map((side) => sideRowHtml(kamp, side, sides.length, flags)).join("");
-}
-
-/**
- * Admin actions under a match. A two-side match is scored and settled by
- * clicking its score cell, so once confirmed there is nothing left to act on
- * and the row is dropped entirely.
- */
-function adminRowHtml(kamp: FinalMatchRow, isConfirmed: boolean): string {
-  const buttons: string[] = [];
-  if (!isConfirmed) {
-    buttons.push(
-      `<button class="btn btn-secondary btn-sm" data-scoreboard-kamp-id="${kamp.id}">Scoreboard</button>`,
-    );
-  }
-  // A 3-unit match carries no score of its own — the placement dialog settles it.
-  if (kamp.er_tre_spelarar) {
-    buttons.push(
-      `<button class="btn ${isConfirmed ? "btn-secondary" : "btn-outline-secondary"} btn-sm" id="bekrft-${kamp.id}">${isConfirmed ? "Endre plassering" : "Sett plassering"}</button>`,
-    );
-  }
-  if (!buttons.length) return "";
-  return `<tr>
-            <td colspan="2" class="text-end pe-1">${buttons.join(" ")}</td>
-          </tr>`;
 }
 
 function renderMatchBlock(
@@ -536,20 +525,27 @@ function renderMatchBlock(
     isThreeSides: kamp.er_tre_spelarar,
   };
 
-  const adminRow = isAdminLocal ? adminRowHtml(kamp, isConfirmed) : "";
+  const scoreboardBtn =
+    isAdminLocal && !isConfirmed
+      ? `<button type="button" class="cup-card__sb" data-scoreboard-kamp-id="${kamp.id}" title="Scoreboard" aria-label="Scoreboard">${SCOREBOARD_SVG}</button>`
+      : "";
+  // A 3-unit match carries no score of its own — the placement dialog settles it.
+  const placementBtn =
+    isAdminLocal && kamp.er_tre_spelarar
+      ? `<div class="cup-card__footer">
+          <button class="btn ${isConfirmed ? "btn-secondary" : "btn-outline-secondary"} btn-sm" id="bekrft-${kamp.id}">${isConfirmed ? "Endre plassering" : "Sett plassering"}</button>
+        </div>`
+      : "";
 
   return `
-    <div class="final-match-block">
-      <div class="final-match-header">
-        <span class="final-match-lane">Bane ${kamp.bane_nummer}</span>
-        ${hasRounds && !isConfirmed ? livePillHtml() : ""}
+    <div class="cup-card">
+      <div class="cup-card__header">
+        <span class="cup-card__lane">Bane ${kamp.bane_nummer}</span>
+        ${scoreboardBtn}
+        ${hasRounds && !isConfirmed ? '<span class="live-prikk cup-card__live"></span>' : ""}
       </div>
-      <table class="table table-sm table-bordered mb-0">
-        <tbody>
-          ${playerRowsHtml(kamp, sides, flags)}
-          ${adminRow}
-        </tbody>
-      </table>
+      <div class="cup-card__rows">${playerRowsHtml(kamp, sides, flags)}</div>
+      ${placementBtn}
     </div>`;
 }
 

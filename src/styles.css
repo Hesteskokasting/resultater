@@ -1186,13 +1186,6 @@
   }
 }
 
-.match-advancing td {
-  background: var(--match-advancing-bg) !important;
-}
-.match-eliminated td {
-  background: var(--match-eliminated-bg) !important;
-}
-
 .standing-player-row {
   cursor: pointer;
 }
@@ -3697,23 +3690,113 @@ button.bane-omgang-chip:hover {
 #group-assignment-wrapper .btn-check:checked + .btn::before {
   content: "✓ ";
 }
-.final-match-block {
+/* ── Cup / group match card ──
+   Two rows, one per unit: name left, score in a fixed cell right. Every metric
+   here is state-independent on purpose — a confirmed, live and unplayed card
+   must be the same size, so cards in adjacent columns stay on the same line. */
+.cup-card {
   width: calc(50% - 0.5rem);
   min-width: 220px;
 }
-.final-match-header {
+.cup-card__header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 0.375rem;
+  /* Fixed: holds the line whether or not the scoreboard button and live dot
+     are present. */
   height: 1.5rem;
   margin-bottom: 0.25rem;
 }
-.final-match-lane {
+.cup-card__lane {
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--lenke);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+}
+.cup-card__sb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  background: var(--flate-2);
+  color: var(--tekst-2);
+  border: 1px solid var(--kant);
+  border-radius: 5px;
+}
+.cup-card__sb:hover {
+  background: var(--primaer-hover);
+  color: var(--tekst);
+}
+/* Far right, on the live match only. */
+.cup-card__live {
+  margin-left: auto;
+}
+.cup-card__rows {
+  border: 1px solid var(--kant);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.cup-row {
+  display: flex;
+  align-items: stretch;
+  height: 2.25rem;
+  background: var(--flate);
+  /* Transparent until confirmed, so the result rail costs no layout shift. */
+  border-left: 3px solid transparent;
+}
+.cup-row + .cup-row {
+  border-top: 1px solid var(--kant);
+}
+.cup-row__name {
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0 0.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--tekst);
+}
+/* Fixed box: never sized by its own content, never squeezed by a long name. */
+.cup-row__score {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 3rem;
+  width: 3rem;
+  background: var(--cup-score-flate);
+  color: var(--tekst);
+  border-left: 1px solid var(--kant);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.cup-row--vinnar {
+  background: var(--cup-flate-vinnar);
+  border-left-color: var(--cup-rail-vinnar);
+}
+.cup-row--vinnar .cup-row__name {
+  font-weight: 600;
+}
+.cup-row--vinnar .cup-row__score {
+  background: var(--cup-score-vinnar);
+}
+.cup-row--tapar {
+  background: var(--cup-flate-tapar);
+  border-left-color: var(--cup-rail-tapar);
+}
+.cup-row--tapar .cup-row__name {
+  color: var(--tekst-2);
+}
+.cup-row--tapar .cup-row__score {
+  background: var(--cup-score-tapar);
+}
+.cup-card__footer {
+  margin-top: 0.25rem;
+  text-align: right;
 }
 .live-pill {
   display: inline-flex;
@@ -3738,13 +3821,9 @@ button.bane-omgang-chip:hover {
   }
 }
 @media (max-width: 499px) {
-  .final-match-block {
+  .cup-card {
     width: 100%;
   }
-}
-.final-score-cell {
-  font-variant-numeric: tabular-nums;
-  background: var(--avsl-score-bg) !important;
 }
 .avsl-stilling-einzel {
   max-width: 500px;

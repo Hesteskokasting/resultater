@@ -21,8 +21,16 @@
   --header-bg: #0d0f14;
   --input-bg: #1c1f2a;
   --feil: #ff6b6b;
-  --match-advancing-bg: color-mix(in srgb, #4caf50 22%, var(--flate));
   --match-eliminated-bg: color-mix(in srgb, #ff6b6b 22%, var(--flate));
+  /* Cup match card. The rails are the saturated accent; the row and score fills
+     stay mixed well down toward --flate so --tekst keeps its contrast on them. */
+  --cup-rail-vinnar: #4caf50;
+  --cup-rail-tapar: #ff6b6b;
+  --cup-flate-vinnar: color-mix(in srgb, #4caf50 11%, var(--flate));
+  --cup-flate-tapar: color-mix(in srgb, #ff6b6b 11%, var(--flate));
+  --cup-score-vinnar: color-mix(in srgb, #4caf50 26%, var(--flate));
+  --cup-score-tapar: color-mix(in srgb, #ff6b6b 26%, var(--flate));
+  --cup-score-flate: var(--flate-2);
   --kamp-stripe-ikke: var(--tekst-3);
   --kamp-stripe-pagaar: #d4860a;
   --kamp-stripe-ferdig: #4caf50;
@@ -128,8 +136,16 @@
   --header-bg: #e8e8e8;
   --input-bg: #ffffff;
   --feil: #b30000;
-  --match-advancing-bg: #c8f0c8;
   --match-eliminated-bg: #f8d0d0;
+  /* Light: the surface is the light end, so the fills are tints and the text on
+     them is the near-black --tekst. */
+  --cup-rail-vinnar: #2e7d32;
+  --cup-rail-tapar: #b30000;
+  --cup-flate-vinnar: #e6f5e6;
+  --cup-flate-tapar: #fbe6e6;
+  --cup-score-vinnar: #c8f0c8;
+  --cup-score-tapar: #f8d0d0;
+  --cup-score-flate: var(--flate-2);
   --kamp-stripe-pagaar: #b36000;
   --kamp-stripe-ferdig: #2e7d32;
   /* Subtler step in light mode — high-contrast surfaces need less. */
