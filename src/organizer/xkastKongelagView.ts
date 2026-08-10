@@ -7,6 +7,7 @@
 // layout, and numberpad entry order.
 //
 import type { RealtimeChannel } from "@supabase/supabase-js";
+import { getUser } from "@/services/authService";
 import { createErrorBanner } from "@/components/ErrorBanner";
 import { createLoadingState } from "@/components/LoadingState";
 import { createEmptyState } from "@/components/EmptyState";
@@ -160,6 +161,8 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
   interface CourtPhaseState {
     stevneid: number;
     isAdmin: boolean;
+    /** Logged-in user's kasterid, so their own court gets the scoring controls. */
+    myKasterid: number | null;
     config: CourtPhaseConfig;
     antallOmganger: number;
     courts: CourtRow[];
@@ -235,6 +238,21 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
     return court.deltakarar.length + expandedCountInCourt(court);
   }
 
+  function isOnCourt(court: CourtRow): boolean {
+    const s = state!;
+    return s.myKasterid != null && court.deltakarar.some((p) => p.kasterid === s.myKasterid);
+  }
+
+  /**
+   * Admins score every court; a player scores the court they sit on while it is
+   * open — the same rule the omgang RLS policies and confirm_xkast_kongelag
+   * enforce server-side.
+   */
+  function canScoreCourt(court: CourtRow): boolean {
+    const s = state!;
+    return s.isAdmin || (!court.er_bekreftet && isOnCourt(court));
+  }
+
   /**
    * Bane-level actions, shown inside every expanded player of the court: both
    * Registrer and Bekreft act on the whole bane, and neither fits the main row
@@ -245,11 +263,13 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
     if (court.er_bekreftet) {
       return '<span class="match-confirmed-indicator">✓ Bekreftet</span>';
     }
-    if (!s.isAdmin) return "";
+    if (!canScoreCourt(court)) return "";
     const canConfirm = isCourtComplete(court, s.antallOmganger);
     const bane = court.bane_nummer ?? "?";
+    // A player always gets the court-level Registrer — the pulje-wide one is an
+    // admin affordance that would span other people's banar.
     const registerBtn =
-      variant.registerScope === "court"
+      variant.registerScope === "court" || !s.isAdmin
         ? `<button class="match-button match-button-primary" data-xk-register="${court.id}">Registrer bane ${bane}</button>`
         : "";
     return `${registerBtn}<button class="match-button${canConfirm ? " match-button-success" : ""}" data-xk-confirm="${court.id}"${canConfirm ? "" : " disabled"}>Bekreft bane ${bane}</button>`;
@@ -265,10 +285,15 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
     );
   }
 
-  /** Admin may edit omgang scores (confirmed courts allowed; fullført and manual totals not). */
-  function canEditScores(participant: CourtParticipantRow): boolean {
+  /**
+   * Who may correct an omgang: admins on any court (confirmed included), a
+   * player only on their own open court. Fullført stevner and manual totals are
+   * closed to both.
+   */
+  function canEditScores(court: CourtRow, participant: CourtParticipantRow): boolean {
     const s = state!;
-    return s.isAdmin && !s.config.erfullfort && !participant.totalsum_manuelt;
+    if (s.config.erfullfort || participant.totalsum_manuelt) return false;
+    return canScoreCourt(court);
   }
 
   /** One score cell: poeng with the ringer count as a small secondary figure. */
@@ -295,7 +320,7 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
     const s = state!;
     const rows = variant.detailRows(s.antallOmganger);
     const maxPerRow = rows.reduce((max, r) => Math.max(max, r.omganger.length), 0);
-    const editable = canEditScores(participant);
+    const editable = canEditScores(court, participant);
 
     const omgangHeaders = Array.from(
       { length: maxPerRow },
@@ -395,9 +420,9 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
    * the runde, whose chip holds a sum and is therefore read-only — editing
    * happens per omgang in the expansion.
    */
-  function chipGridCellHtml(participant: CourtParticipantRow): string {
+  function chipGridCellHtml(court: CourtRow, participant: CourtParticipantRow): string {
     const s = state!;
-    const editable = variant.mainScore === "omganger" && canEditScores(participant);
+    const editable = variant.mainScore === "omganger" && canEditScores(court, participant);
 
     const units =
       variant.mainScore === "omganger"
@@ -443,7 +468,7 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
     return sortedParticipants(court)
       .map((participant, i) => {
         const isExpanded = s.expandedDeltakerIds.has(participant.id);
-        const scoreCells = chipGridCellHtml(participant);
+        const scoreCells = chipGridCellHtml(court, participant);
         const firstCells =
           i === 0
             ? `<td class="text-center align-middle fw-semibold ${laneCellClass}" rowspan="${courtRowspan(court)}">${court.bane_nummer ?? ""}</td>`
@@ -770,7 +795,11 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
         initialPoeng: existing?.poeng,
         initialRinger: existing?.antall_ringer ?? undefined,
         onSave: async (poeng, antallRinger) => {
-          const { error } = await editCourtOmgang(participant.id, omgang, poeng, antallRinger);
+          // edit_xkast_kongelag_omgang is admin-only (it re-syncs confirmed
+          // courts); a player's own open court goes through the plain upsert.
+          const { error } = s.isAdmin
+            ? await editCourtOmgang(participant.id, omgang, poeng, antallRinger)
+            : await saveOmgang(participant.id, omgang, poeng, antallRinger);
           if (error) {
             showToast("Feil ved lagring av omgang.", "error");
             return false;
@@ -930,10 +959,11 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
     container.replaceChildren(createLoadingState());
 
     try {
-      const [configRes, courtsRes, carryRes] = await Promise.all([
+      const [configRes, courtsRes, carryRes, auth] = await Promise.all([
         variant.loadConfig(id),
         getCourts(id, variant.fase),
         variant.loadCarryOver?.(id) ?? Promise.resolve({ data: null, error: null }),
+        getUser(),
       ]);
       if (configRes.error || courtsRes.error || carryRes.error || !configRes.data) {
         container.replaceChildren(createErrorBanner("Kunne ikkje laste data."));
@@ -950,6 +980,7 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
       state = {
         stevneid: id,
         isAdmin,
+        myKasterid: auth?.profil?.kasterid ?? null,
         config: configRes.data,
         antallOmganger,
         courts: courtsRes.data,

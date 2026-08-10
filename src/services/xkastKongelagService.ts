@@ -46,6 +46,43 @@ export async function getCourts(
   return { data: data ?? [], error };
 }
 
+const _myCourtsQuery = supabase.from("xkast_kongelag_deltaker").select(`
+  id, kasterid,
+  bane:xkast_kongelag_id(
+    id, stevneid, fase, bane_nummer, er_bekreftet,
+    stevne:stevneid(id, navn, dato, erfullfort),
+    deltakarar:xkast_kongelag_deltaker(
+      id, kasterid, poeng,
+      kaster:kasterid(id, fornavn, etternavn)
+    )
+  )
+`);
+
+export type MyCourtSeatRow = QueryData<typeof _myCourtsQuery>[number];
+export type MyCourtRow = NonNullable<MyCourtSeatRow["bane"]>;
+
+/** Courts the given thrower is seated on, across all stevner — the Min side listing. */
+export async function getMyCourts(
+  kasterid: number,
+): Promise<{ data: MyCourtRow[]; error: unknown }> {
+  const { data, error } = await supabase
+    .from("xkast_kongelag_deltaker")
+    .select(`
+      id, kasterid,
+      bane:xkast_kongelag_id(
+        id, stevneid, fase, bane_nummer, er_bekreftet,
+        stevne:stevneid(id, navn, dato, erfullfort),
+        deltakarar:xkast_kongelag_deltaker(
+          id, kasterid, poeng,
+          kaster:kasterid(id, fornavn, etternavn)
+        )
+      )
+    `)
+    .eq("kasterid", kasterid);
+  if (error) logError("getMyCourts", error);
+  return { data: (data ?? []).map((seat) => seat.bane).filter((b) => b != null), error };
+}
+
 // ── Stevne config ─────────────────────────────────────────────────────────────
 
 /** Shared config for the X-kast/Kongelag court views (see @/organizer/xkastKongelagView). */

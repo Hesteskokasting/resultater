@@ -2,10 +2,12 @@ import { throwerName } from "@/utils/kaster";
 import { escHtml } from "@/utils/escHtml";
 import { createTabs } from "@/components/Tabs";
 import { getMyMatches, getStartNumbersForTournaments } from "@/services/kampService";
+import { getMyCourts } from "@/services/xkastKongelagService";
 import { newTabAnchorAttrs } from "@/services/navigationService";
 import { renderSectionCard } from "./_sectionCard";
 import type { MinSideContext } from "./_linkState";
 import type { MatchPlayerRow } from "@/services/kampService";
+import type { MyCourtRow } from "@/services/xkastKongelagService";
 
 function makePanel(html: string): HTMLElement {
   const div = document.createElement("div");
@@ -41,8 +43,65 @@ function findOpponents(
   });
 }
 
+// X-kast (innledende) and Kongelag (avsluttende) are the two court-based formats.
+const COURT_PHASE_LABEL: Record<string, string> = {
+  innledende: "X-kast",
+  avsluttende: "Kongelag",
+};
+
+function courtTableHtml(
+  courts: MyCourtRow[],
+  throwerId: number,
+  makeButton: (court: MyCourtRow) => string,
+): string {
+  const rows = courts
+    .map((court) => {
+      const others = court.deltakarar
+        .filter((d) => d.kasterid !== throwerId)
+        .map((d) => escHtml(throwerName(d.kaster)));
+      return `<tr>
+      <td>B${court.bane_nummer ?? ""}</td>
+      <td>${others.length ? others.join(" / ") : "–"}</td>
+      <td>${makeButton(court)}</td>
+    </tr>`;
+    })
+    .join("");
+  return `<table class="table table-sm mb-3">
+      <thead><tr><th>Bane</th><th>Medspelarar</th><th></th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+/** One table per stevne+fase — a player can sit on both an X-kast and a Kongelag bane. */
+function groupCourtsByTournament(
+  courts: MyCourtRow[],
+  throwerId: number,
+  makeButton: (court: MyCourtRow) => string,
+): string | null {
+  if (!courts.length) return null;
+  const groups = new Map<string, { name: string; courts: MyCourtRow[] }>();
+  for (const court of courts) {
+    const key = `${court.stevneid}:${court.fase}`;
+    if (!groups.has(key)) {
+      const phase = COURT_PHASE_LABEL[court.fase ?? ""] ?? "Bane";
+      groups.set(key, { name: `${court.stevne?.navn ?? ""} – ${phase}`, courts: [] });
+    }
+    groups.get(key)!.courts.push(court);
+  }
+  return [...groups.values()]
+    .map(
+      ({ name, courts: group }) => `
+      <p class="fw-semibold mb-1 mt-2">${escHtml(name)}</p>
+      ${courtTableHtml(group, throwerId, makeButton)}`,
+    )
+    .join("");
+}
+
 async function buildMatchesContent(throwerId: number): Promise<HTMLElement> {
-  const { data, error } = await getMyMatches(throwerId);
+  const [{ data, error }, courtsRes] = await Promise.all([
+    getMyMatches(throwerId),
+    getMyCourts(throwerId),
+  ]);
   if (error) {
     const p = document.createElement("p");
     p.className = "text-muted";
@@ -155,26 +214,54 @@ async function buildMatchesContent(throwerId: number): Promise<HTMLElement> {
     true,
   );
 
+  const activeCourts = courtsRes.data
+    .filter((c) => c.stevne?.erfullfort === false)
+    .sort((a, b) => (a.bane_nummer ?? 0) - (b.bane_nummer ?? 0));
+  const completedCourts = courtsRes.data
+    .filter((c) => c.stevne?.erfullfort === true)
+    .sort(
+      (a, b) =>
+        (b.stevne?.dato ?? "").localeCompare(a.stevne?.dato ?? "") ||
+        (a.bane_nummer ?? 0) - (b.bane_nummer ?? 0),
+    );
+
+  const courtHref = (court: MyCourtRow): string =>
+    `#/stevne/${court.stevneid}/${court.fase ?? "innledende"}`;
+
+  const activeCourtsContent = groupCourtsByTournament(activeCourts, throwerId, (court) => {
+    if (!court.er_bekreftet) {
+      return `<a href="${courtHref(court)}" class="btn btn-sm btn-primary">Opne bane</a>`;
+    }
+    const poeng = court.deltakarar.find((d) => d.kasterid === throwerId)?.poeng;
+    return poeng == null ? "–" : `<span class="fw-semibold">${poeng}</span>`;
+  });
+  const completedCourtsContent = groupCourtsByTournament(
+    completedCourts,
+    throwerId,
+    (court) => `<a href="${courtHref(court)}" class="btn btn-sm btn-outline-secondary">Vis</a>`,
+  );
+
+  const activeHtml = [activeContent, activeCourtsContent].filter(Boolean).join("");
+  const completedHtml = [completedContent, completedCourtsContent].filter(Boolean).join("");
+
   return createTabs({
     tabs: [
       {
         id: "active",
-        label: `Aktive (${active.length})`,
-        panel: makePanel(activeContent ?? '<p class="text-muted">Ingen aktive kampar.</p>'),
+        label: `Aktive (${active.length + activeCourts.length})`,
+        panel: makePanel(activeHtml || '<p class="text-muted">Ingen aktive kampar.</p>'),
       },
       {
         id: "completed",
-        label: `Ferdige (${completed.length})`,
-        panel: makePanel(
-          completedContent ?? '<p class="text-muted">Ingen ferdige kampar enno.</p>',
-        ),
+        label: `Ferdige (${completed.length + completedCourts.length})`,
+        panel: makePanel(completedHtml || '<p class="text-muted">Ingen ferdige kampar enno.</p>'),
       },
     ],
   });
 }
 
 export async function render(container: HTMLElement, ctx: MinSideContext): Promise<void> {
-  const shell = renderSectionCard(container, ctx, "Mine kampar");
+  const shell = renderSectionCard(container, ctx, "Mine kampar og banar");
   if (!shell) return;
 
   const content = await buildMatchesContent(shell.throwerId);
