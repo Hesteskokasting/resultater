@@ -29,6 +29,7 @@ import {
   sortStandings,
   initialMenuItems,
   setBannerMeta,
+  parseRound1Format,
   createChangeHandler,
   bindStandingDetails,
   renderMainContent,
@@ -177,6 +178,8 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
         hasMatchCount: true,
         positionMap,
         unitLabel: isTeam ? "par" : "spelarar",
+        // Once the avsluttande fase has an A/B split, mark where A ends.
+        qualifyCutoff: parseRound1Format(stevne.runde1_format)?.nA ?? null,
       });
 
       const activeTab = getActiveTab(container);

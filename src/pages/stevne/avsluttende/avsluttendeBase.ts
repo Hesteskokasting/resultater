@@ -19,6 +19,7 @@ import {
   renderMainContent,
   finalMenuItems,
   setBannerMeta,
+  parseRound1Format,
   bindStandingDetails,
   bindTabToggle,
   getActiveTab,
@@ -53,7 +54,7 @@ import {
   type FinalResultRow,
 } from "@/services/resultatService";
 import { getPairsForTournament } from "@/services/pameldingService";
-import type { Round1FormatTyped, Json } from "@/types";
+import type { Round1FormatTyped } from "@/types";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -94,11 +95,6 @@ export interface FinalPhaseVariant {
 }
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
-
-function parseRound1Format(json: Json | null): Round1FormatTyped | null {
-  if (json == null || typeof json !== "object" || Array.isArray(json)) return null;
-  return json as unknown as Round1FormatTyped;
-}
 
 function toOrgMatch(matches: FinalMatchRow[]): OrgMatch[] {
   return matches.map((k) => ({

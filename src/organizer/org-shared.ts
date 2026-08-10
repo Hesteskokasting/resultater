@@ -9,7 +9,7 @@ import {
 import { throwerNameShort } from "@/utils/kaster";
 import { escHtml } from "@/utils/escHtml";
 import { coalesceReload } from "@/utils/coalesceReload";
-import type { Tables } from "@/types";
+import type { Tables, Json, Round1FormatTyped } from "@/types";
 import { createTable, type ColumnDef } from "@/components/Table";
 import type { BannerMenuItem } from "@/components/BannerMenu";
 import { openInNewTab } from "@/services/navigationService";
@@ -83,6 +83,17 @@ interface StandingOptions {
   hasMatchCount?: boolean;
   positionMap?: Record<number, number>;
   unitLabel?: string;
+  /**
+   * Number of units qualifying for group A in the avsluttande fase — draws a
+   * cut line under that row. Ignored once the table is itself split by group.
+   */
+  qualifyCutoff?: number | null;
+}
+
+/** stevne.runde1_format holds the avsluttande A/B split; nA is the group-A size. */
+export function parseRound1Format(json: Json | null): Round1FormatTyped | null {
+  if (json == null || typeof json !== "object" || Array.isArray(json)) return null;
+  return json as unknown as Round1FormatTyped;
 }
 
 /**
@@ -229,6 +240,7 @@ export function renderStandingTable(
     hasMatchCount = false,
     positionMap = {},
     unitLabel = "spelarar",
+    qualifyCutoff = null,
   } = opts;
 
   const thW = hasMatchCount ? "th-32" : "th-28";
@@ -304,6 +316,13 @@ export function renderStandingTable(
 
   const colspan = columns.length;
 
+  // A cut line only means something in an ungrouped list, and never under the
+  // last row — there'd be nothing below it to separate.
+  const cutoffRow =
+    !hasGroups && qualifyCutoff != null && qualifyCutoff > 0 && qualifyCutoff < flatList.length
+      ? qualifyCutoff
+      : null;
+
   let lastGroup: string | null = null;
   const sectionHeaderFn = (item: FlatStandingRow): HTMLElement | null => {
     const g = hasGroups ? (item.gruppe?.navn ?? "_") : "_";
@@ -348,7 +367,10 @@ export function renderStandingTable(
     rows: flatList,
     tableClass: "table table-sm match-table mb-0",
     theadClass: "org-thead",
-    rowClass: "standing-player-row",
+    rowClass: (r) =>
+      cutoffRow != null && r.posInGroup === cutoffRow
+        ? "standing-player-row standing-cutoff"
+        : "standing-player-row",
     rowAttrs: (r) => ({ "data-kasterid": String(r.kasterid) }),
     sectionHeader: sectionHeaderFn,
     detailRowClass: "standing-detail",

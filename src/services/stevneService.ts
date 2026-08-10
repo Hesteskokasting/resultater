@@ -642,7 +642,7 @@ export async function getFinalMethodName(
 const _innlStevneQuery = supabase
   .from("stevne")
   .select(
-    "id, navn, erfullfort, stevne_fase, antall_runder_innl, avsluttendekastemetodeid, kastemetodeInnl:innledendekastemetodeid(id, navn), kategori:kategoriid(erlagbasert)",
+    "id, navn, erfullfort, stevne_fase, antall_runder_innl, runde1_format, avsluttendekastemetodeid, kastemetodeInnl:innledendekastemetodeid(id, navn), kategori:kategoriid(erlagbasert)",
   );
 
 export type InitialPhaseTournamentRow = QueryData<typeof _innlStevneQuery>[number];
@@ -653,7 +653,7 @@ export async function getInitialPhaseTournament(
   const { data, error } = await supabase
     .from("stevne")
     .select(
-      "id, navn, erfullfort, stevne_fase, antall_runder_innl, avsluttendekastemetodeid, kastemetodeInnl:innledendekastemetodeid(id, navn), kategori:kategoriid(erlagbasert)",
+      "id, navn, erfullfort, stevne_fase, antall_runder_innl, runde1_format, avsluttendekastemetodeid, kastemetodeInnl:innledendekastemetodeid(id, navn), kategori:kategoriid(erlagbasert)",
     )
     .eq("id", stevneid)
     .maybeSingle();

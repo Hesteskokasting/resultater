@@ -1196,6 +1196,11 @@
 .standing-active td {
   background-color: var(--primaer-selektert) !important;
 }
+/* Cut line under the last unit qualifying for group A in the avsluttande fase.
+   Scoped through .match-table so it outranks that table's own cell border. */
+.match-table tbody tr.standing-cutoff > td {
+  border-bottom: 2px solid var(--feil);
+}
 .standing-detail-table {
   font-size: 0.85em;
 }
