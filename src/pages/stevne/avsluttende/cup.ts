@@ -490,16 +490,13 @@ function playerRowsHtml(
 }
 
 /**
- * Admin actions under a match. A two-side match settles when its score is
- * entered, so once confirmed there is nothing left to act on and the row is
- * dropped; the score cells stay editable for corrections.
+ * Admin actions under a match. A two-side match is scored and settled by
+ * clicking its score cell, so once confirmed there is nothing left to act on
+ * and the row is dropped entirely.
  */
 function adminRowHtml(kamp: FinalMatchRow, isConfirmed: boolean): string {
   const buttons: string[] = [];
   if (!isConfirmed) {
-    if (!kamp.er_walkover && !kamp.er_tre_spelarar) {
-      buttons.push(`<button class="btn btn-primary btn-sm" id="plus-${kamp.id}">+</button>`);
-    }
     buttons.push(
       `<button class="btn btn-secondary btn-sm" data-scoreboard-kamp-id="${kamp.id}">Scoreboard</button>`,
     );
@@ -529,7 +526,13 @@ function renderMatchBlock(
   const flags: MatchBlockFlags = {
     isConfirmed,
     hasRounds,
-    canEditScore: isAdminLocal && kamp.er_bekreftet && !kamp.er_tre_spelarar && !hasRounds,
+    // Clicking the score both enters it and settles the match. A confirmed
+    // match with live omgangar belongs to the scoreboard, not the numberpad.
+    canEditScore:
+      isAdminLocal &&
+      !kamp.er_tre_spelarar &&
+      !kamp.er_walkover &&
+      (!kamp.er_bekreftet || !hasRounds),
     isThreeSides: kamp.er_tre_spelarar,
   };
 
@@ -595,7 +598,8 @@ function bindMatchEventsLocal(
       }
     };
 
-    container.querySelector(`#plus-${kamp.id}`)?.addEventListener("click", () => {
+    /** Unconfirmed: entering the score settles the match, no separate Bekreft step. */
+    const scoreAndConfirm = (): void => {
       void showScoreEditor({
         side1Name: p1Name,
         side2Name: p2Name,
@@ -605,20 +609,20 @@ function bindMatchEventsLocal(
         hasRounds: kamp.spelarar.some((s) => (s.omgangar?.length ?? 0) > 0),
         logPrefix: "cup",
         onSave: writeSideScore,
-        // Entering the score settles the match — there is no separate Bekreft step.
         onSaved: async () => {
           if (!(await confirmCupMatch2Sides(stevneid, kamp, sides, reload))) await reload();
         },
       });
-    });
+    };
 
     container.querySelector(`#bekrft-${kamp.id}`)?.addEventListener("click", () => {
       openThreeSideConfirmDialog(kamp, sides, stevneid, reload);
     });
 
-    if (isAdminLocal && kamp.er_bekreftet && !kamp.er_tre_spelarar) {
+    if (isAdminLocal && !kamp.er_tre_spelarar && !kamp.er_walkover) {
       const allKasterids = sides.flatMap((s) => s.members.map((m) => m.kasterid));
-      const handler = (): void => {
+      /** Confirmed: a correction, so the placements and the bracket move with it. */
+      const rescore = (): void => {
         showNumberpad(
           [
             { name: p1Name, score: sideSum(side1, kamp) },
@@ -662,9 +666,10 @@ function bindMatchEventsLocal(
           },
         );
       };
+      const onScoreClick = kamp.er_bekreftet ? rescore : scoreAndConfirm;
       container
         .querySelectorAll<HTMLElement>(`[data-endre-score="${kamp.id}"]`)
-        .forEach((cell) => cell.addEventListener("click", handler));
+        .forEach((cell) => cell.addEventListener("click", onScoreClick));
     }
   }
 }
