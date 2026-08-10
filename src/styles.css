@@ -1446,7 +1446,9 @@
   display: grid;
   grid-template-columns: 24px 1fr auto auto auto;
   gap: 10px;
-  padding: 6px 0;
+  /* Right inset only — keeps the scoreboard icon off the list border, while the
+     lane column stays flush against the status rail on the left. */
+  padding: 6px 8px 6px 0;
   align-items: center;
   /* No row-wide pointer — only the score cell and the scoreboard icon act on a
      click. The row expands too, but that panel is empty until the per-match
