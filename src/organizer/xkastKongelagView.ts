@@ -25,6 +25,7 @@ import { logError } from "@/utils/logError";
 import { unsubscribeChannel } from "@/utils/realtime";
 import { coalesceReload } from "@/utils/coalesceReload";
 import { ringerPercent } from "@/utils/omgangValidation";
+import { isSeatUnscored, canSwapSeat } from "@/utils/courtSeat";
 import {
   renderMainContent,
   bindTabToggle,
@@ -151,8 +152,7 @@ function isCourtComplete(court: CourtRow, antallOmganger: number): boolean {
 
 function courtStatus(court: CourtRow): string {
   if (court.er_bekreftet) return "done";
-  if (court.deltakarar.some((p) => p.totalsum_manuelt || p.omgangar.length > 0))
-    return "in-progress";
+  if (court.deltakarar.some((p) => !isSeatUnscored(p))) return "in-progress";
   return "not-started";
 }
 
@@ -279,14 +279,10 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
     return `${registerBtn}<button class="match-button${canConfirm ? " match-button-success" : ""}" data-xk-confirm="${court.id}"${canConfirm ? "" : " disabled"}>Bekreft bane ${bane}</button>`;
   }
 
+  /** Variant/role gate on top of canSwapSeat, which owns the row-level rules. */
   function canSwapParticipant(court: CourtRow, participant: CourtParticipantRow): boolean {
     const s = state!;
-    return (
-      Boolean(variant.canSwapPlayers) &&
-      s.isAdmin &&
-      !court.er_bekreftet &&
-      participant.omgangar.length === 0
-    );
+    return Boolean(variant.canSwapPlayers) && s.isAdmin && canSwapSeat(court, participant);
   }
 
   /**
@@ -742,6 +738,17 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
     }
     if (first.court.id === second.court.id) {
       showToast("Spelarane står allereie på same bane.", "info");
+      return;
+    }
+    // Re-check: the first pick may have been scored from another device since it
+    // was selected (the repaint clears the cell, not swapSelectedId).
+    if (
+      !canSwapParticipant(first.court, first.participant) ||
+      !canSwapParticipant(second.court, second.participant)
+    ) {
+      s.swapSelectedId = null;
+      renderView(container);
+      showToast("Kan ikkje byte: ein av spelarane har alt eit resultat.", "error");
       return;
     }
 
