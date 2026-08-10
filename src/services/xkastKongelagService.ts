@@ -191,8 +191,6 @@ export async function isInnledendeComplete(
 export interface KongelagCarryOverInfo {
   /** Carry-over added to each player's kongelag total. */
   byKasterid: Record<number, number>;
-  /** Raw innledende X-kast totals; null for kamp-based innledende (Gloppen/NHM). */
-  xkastPoengByKasterid: Record<number, number> | null;
   /** X-kast carry-over percentage (33.33/20/10); null for kamp-based innledende. */
   xkastPercent: number | null;
 }
@@ -229,9 +227,6 @@ export async function getKongelagCarryOver(
         isXkast,
         antallOmganger: antall_omganger,
       }),
-      xkastPoengByKasterid: isXkast
-        ? Object.fromEntries(seedingRows.map((r) => [r.kasterid, r.poeng_xkast ?? 0]))
-        : null,
       xkastPercent: isXkast && antall_omganger ? xkastCarryOverPercent(antall_omganger) : null,
     },
     error: null,
