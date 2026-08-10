@@ -2356,23 +2356,29 @@ th.initial-score-th {
   margin: 0 auto 2px;
 }
 
+/* Back left, close right — always rendered so the card never resizes. */
+.onp-toprow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 28px;
+}
+
 .onp-close {
-  position: absolute;
-  top: 12px;
-  right: 14px;
   background: none;
   border: none;
   color: var(--onp-tekst-2);
   font-size: 1.5rem;
   line-height: 1;
   cursor: pointer;
-  padding: 4px;
+  padding: 0 4px;
 }
 
 .onp-progress {
   display: flex;
   gap: 10px;
-  margin: 2px 0 6px;
+  margin: 0 0 6px;
 }
 
 .onp-progress-seg {
@@ -2387,13 +2393,16 @@ th.initial-score-th {
 }
 
 .onp-back {
-  align-self: flex-start;
   background: none;
   border: none;
   padding: 0;
   color: var(--onp-aksent);
   font-size: 0.9rem;
   cursor: pointer;
+}
+
+.onp-back-skjult {
+  visibility: hidden;
 }
 
 .onp-context {

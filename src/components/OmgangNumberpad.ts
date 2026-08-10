@@ -224,8 +224,26 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
   function headerEls(): HTMLElement[] {
     const handle = createEl("div", null, "onp-handle");
 
+    // Back and close share one row so the card height stays fixed across stages.
+    const topRow = createEl("div", null, "onp-toprow");
+
+    const back = createEl("button", "← Poeng", "onp-back") as HTMLButtonElement;
+    back.addEventListener("click", () => {
+      state.stage = "poeng";
+      state.selectedRinger = null;
+      render();
+    });
+    if (state.stage !== "ringer") {
+      back.classList.add("onp-back-skjult");
+      back.disabled = true;
+      back.setAttribute("aria-hidden", "true");
+    }
+    topRow.appendChild(back);
+
     const closeBtn = createEl("button", "×", "onp-close");
+    closeBtn.setAttribute("aria-label", "Lukk");
     closeBtn.addEventListener("click", close);
+    topRow.appendChild(closeBtn);
 
     const progress = createEl("div", null, "onp-progress");
     progress.appendChild(createEl("div", null, "onp-progress-seg active"));
@@ -233,20 +251,7 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
       createEl("div", null, `onp-progress-seg${state.stage === "ringer" ? " active" : ""}`),
     );
 
-    const els: HTMLElement[] = [handle, closeBtn, progress];
-
-    if (state.stage === "ringer") {
-      const back = createEl("button", "← Poeng", "onp-back");
-      back.addEventListener("click", () => {
-        state.stage = "poeng";
-        state.selectedRinger = null;
-        render();
-      });
-      els.push(back);
-    }
-
-    els.push(titleEl(), metaEl(), stripEl());
-    return els;
+    return [handle, topRow, progress, titleEl(), metaEl(), stripEl()];
   }
 
   function displayBoxEl(): HTMLElement {

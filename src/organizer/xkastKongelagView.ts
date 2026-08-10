@@ -542,8 +542,8 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
     const scoreCells =
       "carryOver" in row
         ? `<td class="standing-number standing-dim-cell table-summary-start">${row.carryOver}</td>
-      <td class="standing-number standing-kp-cell">${row.antallRinger}</td>
       <td class="standing-number">${row.poeng}</td>
+      <td class="standing-number standing-kp-cell">${row.antallRinger}</td>
       <td class="standing-number standing-sp-cell">${row.displayTotal}</td>`
         : `<td class="standing-number standing-kp-cell table-summary-start">${row.antallRinger}</td>
       <td class="standing-number standing-sp-cell">${row.poeng}</td>`;
@@ -560,12 +560,12 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
     const standing = computeStanding();
     if (!standing.length) return "";
 
-    // With carry-over: X = innleiande carry-over, R = ringar, K = kongelag
-    // poeng, TOT = X + K
+    // With carry-over: X = innleiande carry-over, K = kongelag poeng,
+    // R = ringar, TOT = X + K
     const scoreHeaders = s.carryOver
       ? `<th class="th-44 standing-number table-summary-start">X</th>
-            <th class="th-44 standing-number standing-kp-th">R</th>
             <th class="th-44 standing-number">K</th>
+            <th class="th-44 standing-number standing-kp-th">R</th>
             <th class="th-50 standing-number standing-sp-th">TOT</th>`
       : `<th class="th-44 standing-number standing-kp-th table-summary-start">R</th>
             <th class="th-50 standing-number standing-sp-th">P</th>`;
