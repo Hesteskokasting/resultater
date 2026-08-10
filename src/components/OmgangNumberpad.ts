@@ -263,7 +263,13 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
         "onp-display-label",
       ),
     );
-    box.appendChild(createEl("div", String(currentPoeng()), "onp-display-value"));
+    box.appendChild(
+      createEl(
+        "div",
+        String(currentPoeng()),
+        `onp-display-value${state.poengInput === "" ? " tom" : ""}`,
+      ),
+    );
     return box;
   }
 
@@ -285,7 +291,8 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
     zero.addEventListener("click", () => appendDigit("0"));
     grid.appendChild(zero);
 
-    const next = createEl("button", "→", "onp-key onp-key-action");
+    const next = createEl("button", "→", "onp-key onp-key-action") as HTMLButtonElement;
+    next.disabled = state.poengInput === "";
     next.addEventListener("click", goToRinger);
     grid.appendChild(next);
     return grid;

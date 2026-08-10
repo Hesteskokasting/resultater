@@ -2530,6 +2530,12 @@ th.initial-score-th {
   line-height: 1.15;
 }
 
+/* Placeholder 0 before any digit is typed. */
+.onp-display-value.tom {
+  color: var(--onp-tekst-2);
+  opacity: 0.5;
+}
+
 .onp-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -2558,6 +2564,11 @@ th.initial-score-th {
   background: var(--onp-aksent);
   border-color: var(--onp-aksent);
   color: var(--onp-aksent-tekst);
+}
+
+.onp-key:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
 .onp-ring-heading {
