@@ -2377,7 +2377,7 @@ th.initial-score-th {
   border-radius: 20px;
   padding: 14px 20px 20px;
   width: 100%;
-  max-width: 700px;
+  max-width: 650px;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -2386,22 +2386,6 @@ th.initial-score-th {
 /* Side-by-side entry columns (kamp on a wide screen) need the extra width. */
 .pad-card:has(.pad-col + .pad-col) {
   max-width: 900px;
-}
-
-/* Phones: the pad owns the whole screen instead of floating in a card. */
-@media (max-width: 560px) {
-  .pad-overlay {
-    padding: 0;
-    align-items: stretch;
-  }
-
-  .pad-card {
-    border: none;
-    border-radius: 0;
-    min-height: 100%;
-    padding: 12px 14px 16px;
-    justify-content: flex-start;
-  }
 }
 
 .pad-handle {
@@ -2571,8 +2555,9 @@ th.initial-score-th {
   text-align: right;
 }
 
-/* One column per participant — the kamp pad shows all of them side by side on
-   a wide screen, every other pad has exactly one. */
+/* One column per participant — the kamp pad shows all of them side by side above
+   STEPWISE_MAX_WIDTH (ScoreNumberpad); below it, and in every other pad, the
+   wrapper holds exactly one column. */
 .pad-cols {
   display: grid;
   grid-auto-flow: column;
@@ -2585,12 +2570,6 @@ th.initial-score-th {
   flex-direction: column;
   gap: 10px;
   min-width: 0;
-}
-
-@media (max-width: 560px) {
-  .pad-cols {
-    grid-auto-flow: row;
-  }
 }
 
 .pad-display {

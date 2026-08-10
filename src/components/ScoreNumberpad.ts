@@ -13,6 +13,9 @@ import {
 /** Highest flat score the pad accepts — three digits is well past any real kamp. */
 const MAX_SCORE = 999;
 
+/** Below 750px the sides are entered one at a time; from 750px they sit side by side. */
+const STEPWISE_MAX_WIDTH = "(max-width: 749px)";
+
 export interface NumberpadEntry {
   /** Display name shown above the pad. */
   name: string;
@@ -37,7 +40,15 @@ export function showNumberpad(
   let step = 0;
   let isSaving = false;
 
-  const { overlay, close } = createNumberpadOverlay();
+  // Rotating a phone or resizing a window crosses the layout threshold with the
+  // pad open, so the layout follows it instead of waiting for the next open.
+  const stepwiseQuery = window.matchMedia(STEPWISE_MAX_WIDTH);
+  const onViewportChange = (): void => render();
+
+  const { overlay, close } = createNumberpadOverlay(() =>
+    stepwiseQuery.removeEventListener("change", onViewportChange),
+  );
+  stepwiseQuery.addEventListener("change", onViewportChange);
 
   const valueOf = (idx: number): number => parseInt(inputs[idx] || "0");
 
@@ -85,8 +96,7 @@ export function showNumberpad(
 
   function render(): void {
     overlay.innerHTML = "";
-    const isMobile = window.matchMedia("(max-width: 767px)").matches;
-    const stepwise = isMobile && entries.length > 1;
+    const stepwise = stepwiseQuery.matches && entries.length > 1;
 
     const card = padCard();
     card.appendChild(

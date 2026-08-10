@@ -15,22 +15,28 @@ export interface NumberpadOverlay {
 
 /**
  * Fullscreen overlay shell. Opening pushes a history entry so the device back
- * button closes the pad instead of leaving the page.
+ * button closes the pad instead of leaving the page. `onClosed` runs however the
+ * pad goes away — its own close button or the back button — so a caller can drop
+ * listeners it set up for the pad's lifetime.
  */
-export function createNumberpadOverlay(): NumberpadOverlay {
+export function createNumberpadOverlay(onClosed?: () => void): NumberpadOverlay {
   const overlay = document.createElement("div");
   overlay.className = "pad-overlay";
 
   history.pushState({ numberpad: true }, "");
 
-  function handlePopState(): void {
+  function teardown(): void {
     window.removeEventListener("popstate", handlePopState);
     if (document.body.contains(overlay)) document.body.removeChild(overlay);
+    onClosed?.();
+  }
+
+  function handlePopState(): void {
+    teardown();
   }
 
   function close(): void {
-    window.removeEventListener("popstate", handlePopState);
-    if (document.body.contains(overlay)) document.body.removeChild(overlay);
+    teardown();
     if ((history.state as { numberpad?: boolean } | null)?.numberpad) history.back();
   }
 

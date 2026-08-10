@@ -9,8 +9,28 @@ import { showNumberpad } from "@/components/ScoreNumberpad";
 import { showTotalNumberpad } from "@/components/TotalNumberpad";
 import { showOmgangNumberpad } from "@/components/OmgangNumberpad";
 
-function setViewport(isMobile: boolean): void {
-  window.matchMedia = ((query: string) => ({ matches: isMobile, media: query })) as never;
+/** Live matchMedia fake: `narrow` flips and every open pad hears about it. */
+let narrow = false;
+let mqListeners: Array<() => void> = [];
+
+function setViewport(isNarrow: boolean): void {
+  narrow = isNarrow;
+  mqListeners = [];
+  window.matchMedia = ((query: string) => ({
+    media: query,
+    get matches() {
+      return narrow;
+    },
+    addEventListener: (_: string, cb: () => void) => void mqListeners.push(cb),
+    removeEventListener: (_: string, cb: () => void) => {
+      mqListeners = mqListeners.filter((listener) => listener !== cb);
+    },
+  })) as never;
+}
+
+function resizeTo(isNarrow: boolean): void {
+  narrow = isNarrow;
+  for (const listener of mqListeners) listener();
 }
 
 function click(selector: string): void {
@@ -75,6 +95,30 @@ describe("showNumberpad", () => {
     expect(label()).toBe("Lag A");
 
     click(".pad-close");
+    expect(document.querySelector(".pad-overlay")).toBeNull();
+  });
+
+  it("follows the viewport across the layout threshold while open", () => {
+    setViewport(true);
+    showNumberpad(
+      [
+        { name: "Lag A", score: 1 },
+        { name: "Lag B", score: 2 },
+      ],
+      async () => {},
+    );
+    expect(document.querySelectorAll(".pad-col").length).toBe(1);
+
+    resizeTo(false);
+    expect(document.querySelectorAll(".pad-col").length).toBe(2);
+    expect(document.querySelector(".pad-register")).not.toBeNull();
+
+    resizeTo(true);
+    expect(document.querySelectorAll(".pad-col").length).toBe(1);
+
+    // Closing drops the listener, so a later resize can't touch a dead pad.
+    click(".pad-close");
+    resizeTo(false);
     expect(document.querySelector(".pad-overlay")).toBeNull();
   });
 });
