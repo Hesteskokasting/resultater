@@ -964,13 +964,23 @@
   padding: 0;
 }
 
+/* Title strip for the tabs that don't own a hero. Page chrome on the ordinary
+   surface — an accent rule carries the identity, not a solid colour band. */
 .org-fase-header {
-  background: var(--primaer);
-  color: var(--primaer-text);
+  background: var(--flate);
+  color: var(--tekst);
   padding: 0.5rem 1rem;
+  border-left: 3px solid var(--primaer);
+  border-bottom: 1px solid var(--kant);
+}
+.org-fase-header h5 {
+  font-weight: 600;
+  overflow-wrap: anywhere;
 }
 [data-theme="light"] .org-fase-header {
-  background: var(--standing-kp-th);
+  /* --kant reads heavier on the light surface; soften it to the same
+     perceived weight as in dark. */
+  border-bottom-color: color-mix(in srgb, var(--kant) 45%, var(--flate));
 }
 
 .org-max-480 {
@@ -1004,17 +1014,17 @@
   min-width: 5rem;
 }
 
-.stevne-nav {
+.tournament-nav {
   font-size: 0.875rem;
 }
-.stevne-nav .nav-link {
+.tournament-nav .nav-link {
   color: var(--tekst-2);
 }
-.stevne-nav .nav-link:hover,
-.stevne-nav .nav-link:focus {
+.tournament-nav .nav-link:hover,
+.tournament-nav .nav-link:focus {
   color: var(--tekst);
 }
-.stevne-nav .nav-link.active {
+.tournament-nav .nav-link.active {
   color: var(--lenke);
 }
 
