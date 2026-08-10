@@ -478,10 +478,13 @@ export async function confirmCourt(xkastKongelagId: number): Promise<{ error: un
 // ── Realtime ──────────────────────────────────────────────────────────────────
 
 /**
- * xkast_kongelag_omgang carries no stevneid, so its events cannot be filtered
- * server-side. `ownsDeltaker` lets the view drop events for other stevner's
- * courts; unknown ids (DELETE only ships the primary key) fall through to a
- * reload.
+ * xkast_kongelag_omgang and xkast_kongelag_deltaker carry no stevneid, so their
+ * events cannot be filtered server-side. `ownsDeltaker` lets the view drop
+ * events for other stevner's courts; unknown ids (DELETE only ships the primary
+ * key) fall through to a reload.
+ *
+ * The deltaker listener matters for manual totals — set_xkast_kongelag_total
+ * touches only that table, so without it the view would never repaint.
  */
 export function subscribeToCourtChanges(
   stevneid: number,
@@ -498,6 +501,16 @@ export function subscribeToCourtChanges(
         const deltakerId =
           (payload.new as { xkast_kongelag_deltaker_id?: number })?.xkast_kongelag_deltaker_id ??
           (payload.old as { xkast_kongelag_deltaker_id?: number })?.xkast_kongelag_deltaker_id;
+        if (deltakerId != null && ownsDeltaker && !ownsDeltaker(deltakerId)) return;
+        onChange();
+      },
+    )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "xkast_kongelag_deltaker" },
+      (payload) => {
+        const deltakerId =
+          (payload.new as { id?: number })?.id ?? (payload.old as { id?: number })?.id;
         if (deltakerId != null && ownsDeltaker && !ownsDeltaker(deltakerId)) return;
         onChange();
       },

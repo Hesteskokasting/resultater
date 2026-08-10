@@ -814,7 +814,7 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
     ]);
   }
 
-  function openTotalEdit(deltakerId: number): void {
+  function openTotalEdit(container: HTMLElement, deltakerId: number): void {
     const s = state;
     if (!s) return;
     const found = findParticipant(deltakerId);
@@ -837,6 +837,9 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
             return false;
           }
           showToast("Totalsum lagra.", "success");
+          // Manual totals only touch the deltaker row; repaint without waiting
+          // for the realtime round-trip.
+          await reload(container);
           return true;
         },
       });
@@ -899,7 +902,7 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
 
       const totalCell = target.closest<HTMLElement>("[data-xk-total]");
       if (totalCell) {
-        openTotalEdit(Number(totalCell.dataset.xkTotal));
+        openTotalEdit(container, Number(totalCell.dataset.xkTotal));
         return;
       }
 
