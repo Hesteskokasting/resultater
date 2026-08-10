@@ -1,0 +1,143 @@
+/**
+ * The three score pads share one shell (components/numberpadUi.ts), so these
+ * cover the parts that shell is responsible for: a close button on every pad,
+ * the stage/step navigation, and each flow reaching its own save.
+ */
+
+import { beforeEach, describe, expect, it } from "vite-plus/test";
+import { showNumberpad } from "@/components/ScoreNumberpad";
+import { showTotalNumberpad } from "@/components/TotalNumberpad";
+import { showOmgangNumberpad } from "@/components/OmgangNumberpad";
+
+function setViewport(isMobile: boolean): void {
+  window.matchMedia = ((query: string) => ({ matches: isMobile, media: query })) as never;
+}
+
+function click(selector: string): void {
+  document.querySelector<HTMLButtonElement>(selector)!.click();
+}
+
+function label(): string {
+  return document.querySelector(".pad-display-label")!.textContent ?? "";
+}
+
+function gridKeys(colIndex = 0): HTMLButtonElement[] {
+  const col = document.querySelectorAll<HTMLElement>(".pad-col")[colIndex]!;
+  return [...col.querySelectorAll<HTMLButtonElement>(".pad-grid .pad-key")];
+}
+
+beforeEach(() => {
+  document.body.innerHTML = "";
+  setViewport(false);
+});
+
+describe("showNumberpad", () => {
+  it("shows one column per side on a wide screen and saves every score", async () => {
+    const saved: number[][] = [];
+    showNumberpad(
+      [
+        { name: "Lag A", score: 0 },
+        { name: "Lag B", score: 7 },
+      ],
+      async (scores) => void saved.push(scores),
+    );
+
+    expect(document.querySelectorAll(".pad-col").length).toBe(2);
+    expect(document.querySelectorAll(".pad-close").length).toBe(1);
+
+    const keys = gridKeys(0);
+    keys[0]!.click();
+    keys[1]!.click();
+    click(".pad-register");
+    await Promise.resolve();
+
+    expect(saved[0]).toEqual([12, 7]);
+  });
+
+  it("steps through the sides on a phone and can go back", () => {
+    setViewport(true);
+    showNumberpad(
+      [
+        { name: "Lag A", score: 3 },
+        { name: "Lag B", score: 0 },
+      ],
+      async () => {},
+    );
+
+    expect(document.querySelectorAll(".pad-col").length).toBe(1);
+    expect(document.querySelectorAll(".pad-progress-seg").length).toBe(2);
+    expect(label()).toBe("Lag A");
+    expect(document.querySelector(".pad-back")!.classList).toContain("pad-back-skjult");
+
+    click(".pad-key-action");
+    expect(label()).toBe("Lag B");
+    click(".pad-back");
+    expect(label()).toBe("Lag A");
+
+    click(".pad-close");
+    expect(document.querySelector(".pad-overlay")).toBeNull();
+  });
+});
+
+describe("showTotalNumberpad", () => {
+  it("walks poeng → ringere and back", () => {
+    showTotalNumberpad({
+      contextLabel: "Bane 1 · Totalsum",
+      playerName: "Ola",
+      antallOmganger: 10,
+      onSave: async () => true,
+    });
+
+    expect(document.querySelector(".pad-context")!.textContent).toBe("Bane 1 · Totalsum");
+    expect(label()).toContain("Poengsum");
+
+    click(".pad-key-action");
+    expect(label()).toContain("Ringere");
+    expect(document.querySelectorAll(".pad-progress-seg.active").length).toBe(2);
+
+    click(".pad-back");
+    expect(label()).toContain("Poengsum");
+  });
+});
+
+describe("showOmgangNumberpad", () => {
+  it("gates the digit stage until a poengsum is typed, then shows the ring keys", () => {
+    showOmgangNumberpad([
+      {
+        header: {
+          baneLabel: "Bane 2",
+          rundeLabel: "Runde 1 av 3",
+          cellLabels: ["1", "2"],
+          cellPoeng: [null, null],
+          cellIndex: 0,
+          totalPoeng: 0,
+          playerKey: "p1",
+          rundeKey: "p1-r1",
+        },
+        playerName: "Kari",
+        onSave: async () => true,
+      },
+    ]);
+
+    expect(document.querySelector(".pad-name")!.textContent).toBe("Kari");
+    expect(document.querySelector(".pad-total")!.textContent).toBe("0");
+    // Two omgang cells plus the SUM cell.
+    expect(document.querySelectorAll(".pad-strip-cell").length).toBe(3);
+    expect(document.querySelector<HTMLButtonElement>(".pad-key-action")!.disabled).toBe(true);
+
+    gridKeys()[7]!.click();
+    expect(document.querySelector(".pad-display-value")!.textContent).toBe("8");
+
+    click(".pad-key-action");
+    expect(document.querySelectorAll(".pad-ring-btn").length).toBe(5);
+    expect(document.querySelector(".pad-grid")).toBeNull();
+    // Registering stays blocked until a ring count is picked.
+    expect(document.querySelector<HTMLButtonElement>(".pad-register")!.disabled).toBe(true);
+
+    const ring = [...document.querySelectorAll<HTMLButtonElement>(".pad-ring-btn")].find(
+      (btn) => !btn.disabled,
+    )!;
+    ring.click();
+    expect(document.querySelector<HTMLButtonElement>(".pad-register")!.disabled).toBe(false);
+  });
+});

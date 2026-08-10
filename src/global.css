@@ -72,26 +72,19 @@
   --gull-tekst: #fff;
   --excel-gronn: #217346;
 
-  /* Nummerpad — intentionally blue in both themes */
-  --np-bg: #1e4976;
-  --np-tekst: #ffffff;
-  --np-knapp-bg: #ffffff;
-  --np-knapp-tekst: #1e4976;
-  --np-pad-bg: rgba(255, 255, 255, 0.1);
-  --np-reset-bg: rgba(255, 255, 255, 0.25);
-  --np-nav-bg: rgba(255, 255, 255, 0.15);
-
-  /* Omgang-nummerpad (X-kast/Kongelag) — intentionally dark navy in both themes */
-  --onp-backdrop: rgba(5, 10, 20, 0.72);
-  --onp-card-bg: #0e1f38;
-  --onp-flate: #15294a;
-  --onp-kant: #24406e;
-  --onp-tekst: #ffffff;
-  --onp-tekst-2: #8296b8;
-  --onp-aksent: #14c9a6;
-  --onp-aksent-tekst: #06253f;
-  --onp-valgt: #f2a33c;
-  --onp-seg-inaktiv: #24365a;
+  /* Score-nummerpad (kamp, omgang og total) — follows the theme; only the
+     backdrop and the accent are its own, since both need to hold up against the
+     card in either theme. */
+  --pad-backdrop: rgba(5, 10, 20, 0.72);
+  --pad-card-bg: var(--flate);
+  --pad-flate: var(--flate-2);
+  --pad-kant: var(--kant);
+  --pad-tekst: var(--tekst);
+  --pad-tekst-2: var(--tekst-2);
+  --pad-seg-inaktiv: var(--kant-2);
+  --pad-aksent: #14c9a6;
+  --pad-aksent-tekst: #06253f;
+  --pad-valgt: #f2a33c;
 
   /* Scoreboard — intentionally dark in both themes */
   --sb-bg: #000;
@@ -172,6 +165,18 @@
   --chart-s1: #2a78d6;
   --chart-s2: #eb6834;
   --chart-s3: #1baf7a;
+
+  /* Nummerpad: the card is the page white and the keys the tinted surface, so
+     the stack keeps the same order as in dark. The teal accent goes dark enough
+     to carry text and white key labels on the light surface. */
+  --pad-card-bg: var(--bg);
+  --pad-flate: var(--flate);
+  --pad-tekst-2: var(--tekst-3);
+  --pad-seg-inaktiv: var(--flate-2);
+  --pad-backdrop: rgba(17, 19, 24, 0.5);
+  --pad-aksent: #0f6d62;
+  --pad-aksent-tekst: #ffffff;
+  --pad-valgt: #96500a;
 
   /* Scoreboard — white bg + pure black for outdoor sun readability */
   --sb-bg: #ffffff;

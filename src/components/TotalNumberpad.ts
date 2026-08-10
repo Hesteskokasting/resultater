@@ -1,10 +1,19 @@
 import { createEl } from "@/utils/createEl";
-import { createNumberpadOverlay } from "@/components/ScoreNumberpad";
+import {
+  createNumberpadOverlay,
+  padCard,
+  padContext,
+  padDigitGrid,
+  padDisplay,
+  padProgress,
+  padTitle,
+  padTopRow,
+} from "@/components/numberpadUi";
 import { showToast } from "@/components/Toast";
 import { isValidTotalEntry, totalMaxPoeng, totalMaxRinger } from "@/utils/omgangValidation";
 
 export interface TotalEntry {
-  /** Small teal context line, e.g. "Bane 1 · Totalsum". */
+  /** Small accent context line, e.g. "Bane 1 · Totalsum". */
   contextLabel: string;
   playerName: string;
   /** Omgang count for the format — drives the max poeng/ringere and validity. */
@@ -30,7 +39,7 @@ export function showTotalNumberpad(entry: TotalEntry): void {
   let ringerInput = entry.initialRinger != null ? String(entry.initialRinger) : "";
   let isSaving = false;
 
-  const { overlay, close } = createNumberpadOverlay("onp-overlay");
+  const { overlay, close } = createNumberpadOverlay();
 
   const currentMax = (): number => (stage === "poeng" ? maxPoeng : maxRinger);
   const currentInput = (): string => (stage === "poeng" ? poengInput : ringerInput);
@@ -69,81 +78,55 @@ export function showTotalNumberpad(entry: TotalEntry): void {
     }
   }
 
-  function digitGridEl(actionLabel: string, onAction: () => void): HTMLElement {
-    const grid = createEl("div", null, "onp-grid");
-    for (let digit = 1; digit <= 9; digit++) {
-      const btn = createEl("button", String(digit), "onp-key");
-      btn.addEventListener("click", () => appendDigit(String(digit)));
-      grid.appendChild(btn);
-    }
-    const back = createEl("button", "⌫", "onp-key onp-key-muted");
-    back.addEventListener("click", backspace);
-    grid.appendChild(back);
-
-    const zero = createEl("button", "0", "onp-key");
-    zero.addEventListener("click", () => appendDigit("0"));
-    grid.appendChild(zero);
-
-    const action = createEl("button", actionLabel, "onp-key onp-key-action") as HTMLButtonElement;
-    action.disabled = isSaving;
-    action.addEventListener("click", onAction);
-    grid.appendChild(action);
-    return grid;
-  }
-
   function render(): void {
     overlay.innerHTML = "";
-    const card = createEl("div", null, "onp-card");
 
-    card.appendChild(createEl("div", null, "onp-handle"));
-    const closeBtn = createEl("button", "×", "onp-close");
-    closeBtn.addEventListener("click", close);
-    card.appendChild(closeBtn);
-
-    const progress = createEl("div", null, "onp-progress");
-    progress.appendChild(createEl("div", null, "onp-progress-seg active"));
-    progress.appendChild(
-      createEl("div", null, `onp-progress-seg${stage === "ringer" ? " active" : ""}`),
-    );
-    card.appendChild(progress);
-
-    if (stage === "ringer") {
-      const backLink = createEl("button", "← Poeng", "onp-back");
-      backLink.addEventListener("click", () => {
-        stage = "poeng";
-        render();
-      });
-      card.appendChild(backLink);
-    }
-
-    card.appendChild(createEl("div", entry.contextLabel, "onp-context"));
-    card.appendChild(createEl("h3", entry.playerName, "onp-name"));
-
-    const box = createEl("div", null, "onp-display");
-    box.appendChild(
-      createEl(
-        "div",
-        stage === "poeng" ? `Poengsum (maks ${maxPoeng})` : `Ringere (maks ${maxRinger})`,
-        "onp-display-label",
+    const card = padCard();
+    card.appendChild(
+      padTopRow(
+        close,
+        stage === "ringer"
+          ? {
+              label: "← Poeng",
+              onClick: () => {
+                stage = "poeng";
+                render();
+              },
+            }
+          : null,
       ),
     );
-    box.appendChild(createEl("div", String(currentValue()), "onp-display-value"));
-    card.appendChild(box);
+    card.appendChild(padProgress(2, stage === "poeng" ? 0 : 1));
+    card.appendChild(padContext(entry.contextLabel));
+    card.appendChild(padTitle(entry.playerName));
 
-    if (stage === "poeng") {
-      card.appendChild(
-        digitGridEl("→", () => {
-          stage = "ringer";
-          render();
-        }),
-      );
-    } else {
-      card.appendChild(
-        digitGridEl(isSaving ? "…" : "✓", () => {
-          void save();
-        }),
-      );
-    }
+    const cols = createEl("div", null, "pad-cols");
+    const col = createEl("div", null, "pad-col");
+    col.appendChild(
+      padDisplay(
+        stage === "poeng" ? `Poengsum (maks ${maxPoeng})` : `Ringere (maks ${maxRinger})`,
+        String(currentValue()),
+        { placeholder: currentInput() === "" },
+      ),
+    );
+    col.appendChild(
+      padDigitGrid({
+        onDigit: appendDigit,
+        onBackspace: backspace,
+        action:
+          stage === "poeng"
+            ? {
+                label: "→",
+                onClick: () => {
+                  stage = "ringer";
+                  render();
+                },
+              }
+            : { label: isSaving ? "…" : "✓", disabled: isSaving, onClick: () => void save() },
+      }),
+    );
+    cols.appendChild(col);
+    card.appendChild(cols);
 
     overlay.appendChild(card);
   }

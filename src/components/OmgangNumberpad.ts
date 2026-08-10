@@ -1,5 +1,14 @@
 import { createEl } from "@/utils/createEl";
-import { createNumberpadOverlay } from "@/components/ScoreNumberpad";
+import {
+  createNumberpadOverlay,
+  padCard,
+  padDigitGrid,
+  padDisplay,
+  padProgress,
+  padRegister,
+  padTitle,
+  padTopRow,
+} from "@/components/numberpadUi";
 import { showToast } from "@/components/Toast";
 import {
   isValidOmgangEntry,
@@ -73,7 +82,7 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
   };
   /** Poeng saved during this pad session, so the strip and total stay live. */
   const savedPoeng = new Map<number, number>();
-  const { overlay, close } = createNumberpadOverlay("onp-overlay");
+  const { overlay, close } = createNumberpadOverlay();
 
   /** Resets the two-stage state for the current step, prefilling when editing. */
   function loadStepDefaults(): void {
@@ -176,19 +185,11 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
-  function titleEl(): HTMLElement {
-    const step = steps[state.stepIdx]!;
-    const row = createEl("div", null, "onp-title");
-    row.appendChild(createEl("h3", step.playerName, "onp-name"));
-    row.appendChild(createEl("div", String(liveTotal()), "onp-total"));
-    return row;
-  }
-
   function metaEl(): HTMLElement {
     const header = steps[state.stepIdx]!.header;
-    const row = createEl("div", null, "onp-meta");
-    row.appendChild(createEl("span", header.baneLabel, "onp-bane"));
-    row.appendChild(createEl("span", header.rundeLabel, "onp-runde"));
+    const row = createEl("div", null, "pad-meta");
+    row.appendChild(createEl("span", header.baneLabel, "pad-bane"));
+    row.appendChild(createEl("span", header.rundeLabel, "pad-runde"));
     return row;
   }
 
@@ -196,117 +197,47 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
     const header = steps[state.stepIdx]!.header;
     const cells = liveCells();
 
-    const strip = createEl("div", null, "onp-strip");
+    const strip = createEl("div", null, "pad-strip");
     strip.style.gridTemplateColumns = `repeat(${header.cellLabels.length}, minmax(0, 1fr)) auto`;
 
     header.cellLabels.forEach((label, i) => {
       strip.appendChild(
-        createEl("div", label, `onp-strip-head${i === header.cellIndex ? " current" : ""}`),
+        createEl("div", label, `pad-strip-head${i === header.cellIndex ? " current" : ""}`),
       );
     });
-    strip.appendChild(createEl("div", "SUM", "onp-strip-head onp-strip-sum"));
+    strip.appendChild(createEl("div", "SUM", "pad-strip-head pad-strip-sum"));
 
     header.cellLabels.forEach((_, i) => {
       const poeng = cells[i];
       const value = createEl(
         "div",
         poeng != null ? String(poeng) : "–",
-        `onp-strip-cell${i === header.cellIndex ? " current" : ""}${poeng == null ? " empty" : ""}`,
+        `pad-strip-cell${i === header.cellIndex ? " current" : ""}${poeng == null ? " empty" : ""}`,
       );
       strip.appendChild(value);
     });
     const sum = cells.reduce<number>((acc, p) => acc + (p ?? 0), 0);
-    strip.appendChild(createEl("div", String(sum), "onp-strip-cell onp-strip-sum"));
+    strip.appendChild(createEl("div", String(sum), "pad-strip-cell pad-strip-sum"));
 
     return strip;
   }
 
-  function headerEls(): HTMLElement[] {
-    const handle = createEl("div", null, "onp-handle");
-
-    // Back and close share one row so the card height stays fixed across stages.
-    const topRow = createEl("div", null, "onp-toprow");
-
-    const back = createEl("button", "← Poeng", "onp-back") as HTMLButtonElement;
-    back.addEventListener("click", () => {
-      state.stage = "poeng";
-      state.selectedRinger = null;
-      render();
-    });
-    if (state.stage !== "ringer") {
-      back.classList.add("onp-back-skjult");
-      back.disabled = true;
-      back.setAttribute("aria-hidden", "true");
-    }
-    topRow.appendChild(back);
-
-    const closeBtn = createEl("button", "×", "onp-close");
-    closeBtn.setAttribute("aria-label", "Lukk");
-    closeBtn.addEventListener("click", close);
-    topRow.appendChild(closeBtn);
-
-    const progress = createEl("div", null, "onp-progress");
-    progress.appendChild(createEl("div", null, "onp-progress-seg active"));
-    progress.appendChild(
-      createEl("div", null, `onp-progress-seg${state.stage === "ringer" ? " active" : ""}`),
-    );
-
-    return [handle, topRow, progress, titleEl(), metaEl(), stripEl()];
-  }
-
-  function displayBoxEl(): HTMLElement {
-    const box = createEl("div", null, "onp-display");
-    box.appendChild(
-      createEl(
-        "div",
-        state.stage === "poeng" ? "Poengsum" : "Poengsum registrert",
-        "onp-display-label",
-      ),
-    );
-    box.appendChild(
-      createEl(
-        "div",
-        String(currentPoeng()),
-        `onp-display-value${state.poengInput === "" ? " tom" : ""}`,
-      ),
-    );
-    return box;
-  }
-
   function poengGridEl(): HTMLElement {
-    const grid = createEl("div", null, "onp-grid");
-    for (let digit = 1; digit <= 9; digit++) {
-      const btn = createEl("button", String(digit), "onp-key");
-      btn.addEventListener("click", () => appendDigit(String(digit)));
-      grid.appendChild(btn);
-    }
-    const backspace = createEl("button", "⌫", "onp-key onp-key-muted");
-    backspace.addEventListener("click", () => {
-      state.poengInput = state.poengInput.slice(0, -1);
-      render();
+    return padDigitGrid({
+      onDigit: appendDigit,
+      onBackspace: () => {
+        state.poengInput = state.poengInput.slice(0, -1);
+        render();
+      },
+      action: { label: "→", disabled: state.poengInput === "", onClick: goToRinger },
     });
-    grid.appendChild(backspace);
-
-    const zero = createEl("button", "0", "onp-key");
-    zero.addEventListener("click", () => appendDigit("0"));
-    grid.appendChild(zero);
-
-    const next = createEl("button", "→", "onp-key onp-key-action") as HTMLButtonElement;
-    next.disabled = state.poengInput === "";
-    next.addEventListener("click", goToRinger);
-    grid.appendChild(next);
-    return grid;
   }
 
   function ringButtonEl(count: number, isAllowed: boolean): HTMLButtonElement {
     const label = count === 0 ? "ingen ringer" : count === 1 ? "ring" : "ringer";
-    const btn = createEl(
-      "button",
-      null,
-      `onp-ring-btn${count === 0 ? " onp-ring-zero" : ""}`,
-    ) as HTMLButtonElement;
-    btn.appendChild(createEl("span", String(count), "onp-ring-value"));
-    btn.appendChild(createEl("span", label, "onp-ring-label"));
+    const btn = createEl("button", null, `pad-ring-btn${count === 0 ? " pad-ring-zero" : ""}`);
+    btn.appendChild(createEl("span", String(count), "pad-ring-value"));
+    btn.appendChild(createEl("span", label, "pad-ring-label"));
     btn.disabled = !isAllowed;
     btn.classList.toggle("selected", state.selectedRinger === count);
     btn.addEventListener("click", () => {
@@ -319,24 +250,20 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
   function ringStageEls(): HTMLElement[] {
     const { allowed } = ringOptions(currentPoeng());
 
-    const heading = createEl("div", null, "onp-ring-heading");
-    heading.appendChild(createEl("span", "Antall ringer", "onp-ring-heading-main"));
-    heading.appendChild(createEl("span", `(maks ${OMGANG_MAX_RINGER})`, "onp-ring-heading-sub"));
+    const heading = createEl("div", null, "pad-ring-heading");
+    heading.appendChild(createEl("span", "Antall ringer", "pad-ring-heading-main"));
+    heading.appendChild(createEl("span", `(maks ${OMGANG_MAX_RINGER})`, "pad-ring-heading-sub"));
 
-    const grid = createEl("div", null, "onp-ring-grid");
+    const grid = createEl("div", null, "pad-ring-grid");
     for (let count = 1; count <= OMGANG_MAX_RINGER; count++) {
       grid.appendChild(ringButtonEl(count, allowed.includes(count)));
     }
     grid.appendChild(ringButtonEl(0, allowed.includes(0)));
 
-    const register = createEl(
-      "button",
-      state.isSaving ? "Lagrer…" : "Registrer og fullfør ✓",
-      "onp-register",
-    ) as HTMLButtonElement;
-    register.disabled = state.selectedRinger == null || state.isSaving;
-    register.addEventListener("click", () => {
-      void save();
+    const register = padRegister({
+      label: state.isSaving ? "Lagrer…" : "Registrer og fullfør ✓",
+      disabled: state.selectedRinger == null || state.isSaving,
+      onClick: () => void save(),
     });
 
     return [heading, grid, register];
@@ -344,16 +271,45 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
 
   function render(): void {
     overlay.innerHTML = "";
-    if (!steps[state.stepIdx]) return;
+    const step = steps[state.stepIdx];
+    if (!step) return;
 
-    const card = createEl("div", null, "onp-card");
-    for (const el of headerEls()) card.appendChild(el);
-    card.appendChild(displayBoxEl());
-    if (state.stage === "poeng") {
-      card.appendChild(poengGridEl());
-    } else {
-      for (const el of ringStageEls()) card.appendChild(el);
-    }
+    const card = padCard();
+    card.appendChild(
+      padTopRow(
+        close,
+        state.stage === "ringer"
+          ? {
+              label: "← Poeng",
+              onClick: () => {
+                state.stage = "poeng";
+                state.selectedRinger = null;
+                render();
+              },
+            }
+          : null,
+      ),
+    );
+    card.appendChild(padProgress(2, state.stage === "poeng" ? 0 : 1));
+    card.appendChild(padTitle(step.playerName, String(liveTotal())));
+    card.appendChild(metaEl());
+    card.appendChild(stripEl());
+
+    const cols = createEl("div", null, "pad-cols");
+    const col = createEl("div", null, "pad-col");
+    col.appendChild(
+      padDisplay(
+        state.stage === "poeng" ? "Poengsum" : "Poengsum registrert",
+        String(currentPoeng()),
+        { placeholder: state.poengInput === "" },
+      ),
+    );
+    if (state.stage === "poeng") col.appendChild(poengGridEl());
+    cols.appendChild(col);
+    card.appendChild(cols);
+
+    if (state.stage === "ringer") for (const el of ringStageEls()) card.appendChild(el);
+
     overlay.appendChild(card);
   }
 

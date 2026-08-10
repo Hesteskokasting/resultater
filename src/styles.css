@@ -2351,142 +2351,17 @@ th.initial-score-th {
   font-variant-numeric: tabular-nums;
 }
 
-/* ── Nummerpad ── */
+/* ── Score-nummerpad ── */
+/* One surface for all three pads: the kamp pad (ScoreNumberpad), the per-omgang
+   wizard (OmgangNumberpad) and the total pad (TotalNumberpad). Parts are shared
+   from components/numberpadUi.ts; the strip and ring keys are only used by the
+   omgang pad but stay here so the whole pad reads as one system. */
 
-.np-overlay {
+.pad-overlay {
   position: fixed;
   inset: 0;
   z-index: 9999;
-  background: var(--np-bg);
-  color: var(--np-tekst);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 12px 8px 24px;
-  overflow-y: auto;
-}
-
-.np-lukk-btn {
-  position: absolute;
-  top: 12px;
-  right: 14px;
-  background: rgba(255, 255, 255, 0.15);
-  border: 1.5px solid rgba(255, 255, 255, 0.55);
-  border-radius: 6px;
-  color: var(--np-tekst);
-  font-size: 1.4rem;
-  cursor: pointer;
-  line-height: 1;
-  padding: 5px 10px;
-}
-
-.np-lukk-btn:hover {
-  background: rgba(255, 255, 255, 0.28);
-}
-
-.np-lagre-btn {
-  margin: 0 auto 16px;
-  padding: 8px 40px;
-  font-size: 1rem;
-  font-weight: 700;
-  background: var(--np-knapp-bg);
-  color: var(--np-knapp-tekst);
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.np-wrap {
-  display: flex;
-  gap: 32px;
-  justify-content: center;
-  width: 100%;
-  max-width: 1200px;
-  flex-wrap: wrap;
-}
-
-.np-pad {
-  background: var(--np-pad-bg);
-  border-radius: 12px;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  min-width: 300px;
-  flex: 1;
-  max-width: 520px;
-}
-
-.np-navn {
-  margin: 0;
-  font-size: 1.5rem;
-  text-align: center;
-}
-
-.np-score {
-  font-size: 5rem;
-  font-weight: 700;
-  line-height: 1;
-  margin: 8px 0;
-}
-
-.np-reset-btn {
-  padding: 4px 20px;
-  background: var(--np-reset-bg);
-  color: var(--np-tekst);
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.85rem;
-}
-
-.np-reset-btn:disabled {
-  opacity: 0.4;
-}
-
-.np-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  width: 100%;
-  margin-top: 4px;
-}
-
-.np-num-btn {
-  padding: 20px;
-  font-size: 1.7rem;
-  font-weight: 600;
-  background: var(--np-knapp-bg);
-  color: var(--np-knapp-tekst);
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.np-grid-btn {
-  background: rgba(255, 255, 255, 0.45);
-  color: var(--np-knapp-tekst);
-  font-size: 1rem;
-  padding: 12px 6px;
-}
-
-.np-grid-close-btn {
-  font-size: 2.5rem;
-  line-height: 1;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* ── Omgang-nummerpad (X-kast/Kongelag) ── */
-
-.onp-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  background: var(--onp-backdrop);
+  background: var(--pad-backdrop);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2494,10 +2369,11 @@ th.initial-score-th {
   overflow-y: auto;
 }
 
-.onp-card {
+.pad-card {
   position: relative;
-  background: var(--onp-card-bg);
-  color: var(--onp-tekst);
+  background: var(--pad-card-bg);
+  color: var(--pad-tekst);
+  border: 1px solid var(--pad-kant);
   border-radius: 20px;
   padding: 14px 20px 20px;
   width: 100%;
@@ -2507,14 +2383,20 @@ th.initial-score-th {
   gap: 10px;
 }
 
+/* Side-by-side entry columns (kamp on a wide screen) need the extra width. */
+.pad-card:has(.pad-col + .pad-col) {
+  max-width: 900px;
+}
+
 /* Phones: the pad owns the whole screen instead of floating in a card. */
 @media (max-width: 560px) {
-  .onp-overlay {
+  .pad-overlay {
     padding: 0;
     align-items: stretch;
   }
 
-  .onp-card {
+  .pad-card {
+    border: none;
     border-radius: 0;
     min-height: 100%;
     padding: 12px 14px 16px;
@@ -2522,90 +2404,97 @@ th.initial-score-th {
   }
 }
 
-.onp-handle {
+.pad-handle {
   width: 48px;
   height: 4px;
   border-radius: 2px;
-  background: var(--onp-kant);
+  background: var(--pad-kant);
   margin: 0 auto 2px;
 }
 
 /* Back left, close right — always rendered so the card never resizes. */
-.onp-toprow {
+.pad-toprow {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  min-height: 28px;
+  min-height: 34px;
 }
 
-.onp-close {
+.pad-back {
   background: none;
   border: none;
-  color: var(--onp-tekst-2);
+  padding: 0;
+  color: var(--pad-aksent);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.pad-back-skjult {
+  visibility: hidden;
+}
+
+.pad-close {
+  flex: none;
+  width: 40px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--pad-flate);
+  border: 1px solid var(--pad-kant);
+  border-radius: 10px;
+  color: var(--pad-tekst);
   font-size: 1.5rem;
   line-height: 1;
   cursor: pointer;
-  padding: 0 4px;
+  padding: 0;
 }
 
-.onp-progress {
+.pad-progress {
   display: flex;
   gap: 10px;
   margin: 0 0 6px;
 }
 
-.onp-progress-seg {
+.pad-progress-seg {
   flex: 1;
   height: 4px;
   border-radius: 2px;
-  background: var(--onp-seg-inaktiv);
+  background: var(--pad-seg-inaktiv);
 }
 
-.onp-progress-seg.active {
-  background: var(--onp-aksent);
+.pad-progress-seg.active {
+  background: var(--pad-aksent);
 }
 
-.onp-back {
-  background: none;
-  border: none;
-  padding: 0;
-  color: var(--onp-aksent);
-  font-size: 0.9rem;
-  cursor: pointer;
-}
-
-.onp-back-skjult {
-  visibility: hidden;
-}
-
-.onp-context {
-  color: var(--onp-aksent);
+.pad-context {
+  color: var(--pad-aksent);
   font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.12em;
 }
 
-.onp-name {
-  margin: 0;
-  font-size: 1.5rem;
-  font-weight: 700;
-}
-
-.onp-title {
+.pad-title {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
 }
 
-.onp-total {
+.pad-name {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.pad-total {
   flex: none;
   min-width: 62px;
   padding: 6px 12px;
-  background: var(--onp-flate);
-  border: 1px solid var(--onp-kant);
+  background: var(--pad-flate);
+  border: 1px solid var(--pad-kant);
   border-radius: 10px;
   font-size: 1.5rem;
   font-weight: 700;
@@ -2613,17 +2502,17 @@ th.initial-score-th {
   text-align: center;
 }
 
-.onp-meta {
+.pad-meta {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-.onp-bane {
+.pad-bane {
   padding: 3px 10px;
-  border: 1px solid var(--onp-aksent);
+  border: 1px solid var(--pad-aksent);
   border-radius: 999px;
-  color: var(--onp-aksent);
+  color: var(--pad-aksent);
   font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -2631,35 +2520,35 @@ th.initial-score-th {
   white-space: nowrap;
 }
 
-.onp-runde {
+.pad-runde {
   font-size: 1.05rem;
   font-weight: 600;
 }
 
-.onp-strip {
+.pad-strip {
   display: grid;
   grid-auto-flow: row;
   align-items: center;
   gap: 4px 4px;
   padding: 6px 10px 8px;
-  background: var(--onp-flate);
-  border: 1px solid var(--onp-kant);
+  background: var(--pad-flate);
+  border: 1px solid var(--pad-kant);
   border-radius: 12px;
 }
 
-.onp-strip-head {
-  color: var(--onp-tekst-2);
+.pad-strip-head {
+  color: var(--pad-tekst-2);
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-align: center;
 }
 
-.onp-strip-head.current {
-  color: var(--onp-aksent);
+.pad-strip-head.current {
+  color: var(--pad-aksent);
 }
 
-.onp-strip-cell {
+.pad-strip-cell {
   padding: 4px 2px;
   border: 1px dashed transparent;
   border-radius: 8px;
@@ -2668,121 +2557,143 @@ th.initial-score-th {
   text-align: center;
 }
 
-.onp-strip-cell.empty {
-  color: var(--onp-tekst-2);
+.pad-strip-cell.empty {
+  color: var(--pad-tekst-2);
 }
 
-.onp-strip-cell.current {
-  border-color: var(--onp-aksent);
-  color: var(--onp-aksent);
+.pad-strip-cell.current {
+  border-color: var(--pad-aksent);
+  color: var(--pad-aksent);
 }
 
-.onp-strip-sum {
+.pad-strip-sum {
   padding-left: 10px;
   text-align: right;
 }
 
-.onp-display {
-  background: var(--onp-flate);
-  border: 1px solid var(--onp-kant);
+/* One column per participant — the kamp pad shows all of them side by side on
+   a wide screen, every other pad has exactly one. */
+.pad-cols {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 20px;
+}
+
+.pad-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+@media (max-width: 560px) {
+  .pad-cols {
+    grid-auto-flow: row;
+  }
+}
+
+.pad-display {
+  background: var(--pad-flate);
+  border: 1px solid var(--pad-kant);
   border-radius: 14px;
   padding: 14px;
   text-align: center;
 }
 
-.onp-display-label {
-  color: var(--onp-tekst-2);
+.pad-display-label {
+  color: var(--pad-tekst-2);
   font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.14em;
 }
 
-.onp-display-value {
+.pad-display-value {
   font-size: 2.8rem;
   font-weight: 700;
   line-height: 1.15;
 }
 
 /* Placeholder 0 before any digit is typed. */
-.onp-display-value.tom {
-  color: var(--onp-tekst-2);
+.pad-display-value.tom {
+  color: var(--pad-tekst-2);
   opacity: 0.5;
 }
 
-.onp-grid {
+.pad-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 10px;
 }
 
-.onp-key {
+.pad-key {
   padding: 18px 0;
   font-size: 1.4rem;
   font-weight: 600;
-  background: var(--onp-flate);
-  color: var(--onp-tekst);
-  border: 1px solid var(--onp-kant);
+  background: var(--pad-flate);
+  color: var(--pad-tekst);
+  border: 1px solid var(--pad-kant);
   border-radius: 12px;
   cursor: pointer;
 }
 
-.onp-key-muted {
+.pad-key-muted {
   background: none;
   border-color: transparent;
-  color: var(--onp-aksent);
+  color: var(--pad-aksent);
   font-size: 1.2rem;
 }
 
-.onp-key-action {
-  background: var(--onp-aksent);
-  border-color: var(--onp-aksent);
-  color: var(--onp-aksent-tekst);
+.pad-key-action {
+  background: var(--pad-aksent);
+  border-color: var(--pad-aksent);
+  color: var(--pad-aksent-tekst);
 }
 
-.onp-key:disabled {
+.pad-key:disabled {
   opacity: 0.35;
   cursor: not-allowed;
 }
 
-.onp-ring-heading {
+.pad-ring-heading {
   display: flex;
   gap: 6px;
   align-items: baseline;
 }
 
-.onp-ring-heading-main {
+.pad-ring-heading-main {
   font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.12em;
 }
 
-.onp-ring-heading-sub {
-  color: var(--onp-tekst-2);
+.pad-ring-heading-sub {
+  color: var(--pad-tekst-2);
   font-size: 0.7rem;
 }
 
-.onp-ring-grid {
+.pad-ring-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 10px;
 }
 
-.onp-ring-btn {
+.pad-ring-btn {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 2px;
   padding: 10px 0;
-  background: var(--onp-flate);
-  color: var(--onp-tekst);
-  border: 1px solid var(--onp-kant);
+  background: var(--pad-flate);
+  color: var(--pad-tekst);
+  border: 1px solid var(--pad-kant);
   border-radius: 12px;
   cursor: pointer;
 }
 
-.onp-ring-zero {
+.pad-ring-zero {
   grid-column: 1 / -1;
   flex-direction: row;
   gap: 8px;
@@ -2790,35 +2701,35 @@ th.initial-score-th {
   justify-content: center;
 }
 
-.onp-ring-value {
+.pad-ring-value {
   font-size: 1.3rem;
   font-weight: 700;
 }
 
-.onp-ring-label {
-  color: var(--onp-tekst-2);
+.pad-ring-label {
+  color: var(--pad-tekst-2);
   font-size: 0.7rem;
   letter-spacing: 0.08em;
 }
 
-.onp-ring-btn:disabled {
+.pad-ring-btn:disabled {
   opacity: 0.35;
   cursor: default;
 }
-.onp-ring-btn.selected {
-  border-color: var(--onp-valgt);
+.pad-ring-btn.selected {
+  border-color: var(--pad-valgt);
 }
 
-.onp-ring-btn.selected .onp-ring-value,
-.onp-ring-btn.selected .onp-ring-label {
-  color: var(--onp-valgt);
+.pad-ring-btn.selected .pad-ring-value,
+.pad-ring-btn.selected .pad-ring-label {
+  color: var(--pad-valgt);
 }
 
-.onp-register {
+.pad-register {
   margin-top: 4px;
   padding: 14px;
-  background: var(--onp-aksent);
-  color: var(--onp-aksent-tekst);
+  background: var(--pad-aksent);
+  color: var(--pad-aksent-tekst);
   border: none;
   border-radius: 12px;
   font-size: 1rem;
@@ -2826,7 +2737,7 @@ th.initial-score-th {
   cursor: pointer;
 }
 
-.onp-register:disabled {
+.pad-register:disabled {
   opacity: 0.45;
   cursor: default;
 }

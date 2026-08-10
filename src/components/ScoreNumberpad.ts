@@ -1,4 +1,17 @@
 import { createEl } from "@/utils/createEl";
+import {
+  createNumberpadOverlay,
+  padCard,
+  padContext,
+  padDigitGrid,
+  padDisplay,
+  padProgress,
+  padRegister,
+  padTopRow,
+} from "@/components/numberpadUi";
+
+/** Highest flat score the pad accepts — three digits is well past any real kamp. */
+const MAX_SCORE = 999;
 
 export interface NumberpadEntry {
   /** Display name shown above the pad. */
@@ -7,185 +20,125 @@ export interface NumberpadEntry {
   score: number;
 }
 
-export interface NumberpadOverlay {
-  overlay: HTMLDivElement;
-  /** Removes the overlay and unwinds the history entry pushed on open. */
-  close: () => void;
-}
-
 /**
- * Fullscreen numberpad overlay shell. Opening pushes a history entry so the
- * device back button closes the pad instead of leaving the page. Shared by
- * showNumberpad (np-overlay) and OmgangNumberpad (onp-overlay).
- */
-export function createNumberpadOverlay(className = "np-overlay"): NumberpadOverlay {
-  const overlay = document.createElement("div");
-  overlay.className = className;
-
-  history.pushState({ numberpad: true }, "");
-
-  function handlePopState(): void {
-    window.removeEventListener("popstate", handlePopState);
-    if (document.body.contains(overlay)) document.body.removeChild(overlay);
-  }
-
-  function close(): void {
-    window.removeEventListener("popstate", handlePopState);
-    if (document.body.contains(overlay)) document.body.removeChild(overlay);
-    if ((history.state as { numberpad?: boolean } | null)?.numberpad) history.back();
-  }
-
-  window.addEventListener("popstate", handlePopState);
-  return { overlay, close };
-}
-
-/**
- * Fullscreen numberpad for direct score entry. Supports any number of
- * participants (kamp uses 2 sides, X-kast courts have 1–3 players).
- * Mobile shows one participant at a time ("→" advances, Save on the last);
- * desktop shows all pads side by side.
+ * Numberpad for direct score entry. Supports any number of participants (kamp
+ * uses 2 sides, X-kast courts have 1–3 players). Mobile shows one participant
+ * at a time ("→" advances, Lagre on the last); wider screens show every pad
+ * side by side with a single Lagre below.
  */
 export function showNumberpad(
   entries: NumberpadEntry[],
   onSave: (scores: number[]) => Promise<void>,
 ): void {
-  const scores = entries.map((e) => e.score);
+  if (entries.length === 0) return;
+
+  /** Typed score per entry as a string so "" (untouched) stays distinguishable. */
+  const inputs = entries.map((e) => (e.score !== 0 ? String(e.score) : ""));
   let step = 0;
+  let isSaving = false;
 
   const { overlay, close } = createNumberpadOverlay();
 
-  function makeSaveBtn(className: string): HTMLButtonElement {
-    const btn = createEl("button", "Lagre", className) as HTMLButtonElement;
-    btn.addEventListener("click", async () => {
-      btn.disabled = true;
-      btn.textContent = "Lagrer…";
-      await onSave(scores);
-      close();
-    });
-    return btn;
+  const valueOf = (idx: number): number => parseInt(inputs[idx] || "0");
+
+  function appendDigit(idx: number, digit: string): void {
+    const current = inputs[idx] ?? "";
+    const next = current === "0" ? digit : current + digit;
+    if (parseInt(next) > MAX_SCORE) return;
+    inputs[idx] = next;
+    render();
+  }
+
+  function backspace(idx: number): void {
+    inputs[idx] = (inputs[idx] ?? "").slice(0, -1);
+    render();
+  }
+
+  async function save(): Promise<void> {
+    if (isSaving) return;
+    isSaving = true;
+    render();
+    await onSave(entries.map((_, idx) => valueOf(idx)));
+    close();
+  }
+
+  /** One entry's read-out plus its keys. `action` fills the grid's thumb slot. */
+  function columnEl(
+    idx: number,
+    action: Parameters<typeof padDigitGrid>[0]["action"],
+  ): HTMLElement {
+    const col = createEl("div", null, "pad-col");
+    col.appendChild(
+      padDisplay(entries[idx]?.name ?? "", String(valueOf(idx)), {
+        placeholder: inputs[idx] === "",
+      }),
+    );
+    col.appendChild(
+      padDigitGrid({
+        onDigit: (digit) => appendDigit(idx, digit),
+        onBackspace: () => backspace(idx),
+        action,
+      }),
+    );
+    return col;
   }
 
   function render(): void {
     overlay.innerHTML = "";
     const isMobile = window.matchMedia("(max-width: 767px)").matches;
+    const stepwise = isMobile && entries.length > 1;
 
-    if (!isMobile) {
-      const xBtn = createEl("button", "×", "np-lukk-btn");
-      xBtn.addEventListener("click", close);
-      overlay.appendChild(xBtn);
-      overlay.appendChild(makeSaveBtn("np-lagre-btn"));
-    }
+    const card = padCard();
+    card.appendChild(
+      padTopRow(
+        close,
+        stepwise && step > 0
+          ? {
+              label: `← ${entries[step - 1]?.name ?? "Førre"}`,
+              onClick: () => {
+                step--;
+                render();
+              },
+            }
+          : null,
+      ),
+    );
+    if (stepwise) card.appendChild(padProgress(entries.length, step));
+    card.appendChild(padContext("Registrer score"));
 
-    const wrap = createEl("div", null, "np-wrap");
-    overlay.appendChild(wrap);
-
-    if (isMobile) {
-      const closeBtn = createEl("button", "×", "np-num-btn np-grid-btn np-grid-close-btn");
-      closeBtn.addEventListener("click", close);
-
-      let actionBtn: HTMLElement;
-      if (step < entries.length - 1) {
-        const nextBtn = createEl("button", "→", "np-num-btn");
-        nextBtn.addEventListener("click", () => {
-          step++;
-          render();
-        });
-        actionBtn = nextBtn;
-      } else {
-        actionBtn = makeSaveBtn("np-num-btn");
-      }
-
-      const entry = entries[step];
-      if (!entry) return;
-      const idx = step;
-      const pad = createPad(entry.name, scores[idx] ?? 0, closeBtn, actionBtn);
-      wrap.appendChild(pad);
-      bindPadButtons(
-        pad,
-        () => scores[idx] ?? 0,
-        (v) => {
-          scores[idx] = v;
-        },
+    const cols = createEl("div", null, "pad-cols");
+    if (stepwise) {
+      const isLast = step === entries.length - 1;
+      cols.appendChild(
+        columnEl(step, {
+          label: isLast ? (isSaving ? "…" : "✓") : "→",
+          disabled: isSaving,
+          onClick: isLast
+            ? () => void save()
+            : () => {
+                step++;
+                render();
+              },
+        }),
       );
     } else {
-      entries.forEach((entry, idx) => {
-        const pad = createPad(entry.name, scores[idx] ?? 0);
-        wrap.appendChild(pad);
-        bindPadButtons(
-          pad,
-          () => scores[idx] ?? 0,
-          (v) => {
-            scores[idx] = v;
-          },
-        );
-      });
+      entries.forEach((_, idx) => cols.appendChild(columnEl(idx, null)));
     }
+    card.appendChild(cols);
+
+    if (!stepwise) {
+      card.appendChild(
+        padRegister({
+          label: isSaving ? "Lagrer…" : "Lagre",
+          disabled: isSaving,
+          onClick: () => void save(),
+        }),
+      );
+    }
+
+    overlay.appendChild(card);
   }
 
   render();
   document.body.appendChild(overlay);
-}
-
-/** Builds one numberpad card. Shared with OmgangNumberpad's sequential wizard. */
-export function createPad(
-  name: string,
-  initScore: number,
-  bottomLeft?: HTMLElement,
-  bottomRight?: HTMLElement,
-): HTMLElement {
-  const pad = createEl("div", null, "np-pad");
-
-  pad.appendChild(createEl("h3", name, "np-navn"));
-
-  const scoreEl = createEl("div", String(initScore), "np-score");
-  scoreEl.dataset.scoreEl = "1";
-  pad.appendChild(scoreEl);
-
-  const resetBtn = createEl("button", "Reset", "np-reset-btn") as HTMLButtonElement;
-  resetBtn.disabled = initScore === 0;
-  resetBtn.dataset.resetBtn = "1";
-  pad.appendChild(resetBtn);
-
-  const grid = createEl("div", null, "np-grid");
-  for (let i = 1; i <= 9; i++) {
-    const btn = createEl("button", String(i), "np-num-btn") as HTMLButtonElement;
-    btn.dataset.val = String(i);
-    grid.appendChild(btn);
-  }
-  grid.appendChild(bottomLeft ?? document.createElement("div"));
-  const zeroBtn = createEl("button", "0", "np-num-btn") as HTMLButtonElement;
-  zeroBtn.dataset.val = "0";
-  grid.appendChild(zeroBtn);
-  grid.appendChild(bottomRight ?? document.createElement("div"));
-
-  pad.appendChild(grid);
-  return pad;
-}
-
-/** Wires digit/reset buttons. `max` silently ignores presses that would exceed it. */
-export function bindPadButtons(
-  pad: HTMLElement,
-  getScore: () => number,
-  setScore: (v: number) => void,
-  max?: number,
-): void {
-  const scoreEl = pad.querySelector<HTMLElement>("[data-score-el]")!;
-  const resetBtn = pad.querySelector<HTMLButtonElement>("[data-reset-btn]")!;
-
-  for (const btn of pad.querySelectorAll<HTMLButtonElement>("[data-val]")) {
-    btn.addEventListener("click", () => {
-      const curr = getScore();
-      const next = curr === 0 ? Number(btn.dataset.val) : parseInt(String(curr) + btn.dataset.val);
-      if (max !== undefined && next > max) return;
-      setScore(next);
-      scoreEl.textContent = String(next);
-      resetBtn.disabled = false;
-    });
-  }
-
-  resetBtn.addEventListener("click", () => {
-    setScore(0);
-    scoreEl.textContent = "0";
-    resetBtn.disabled = true;
-  });
 }
