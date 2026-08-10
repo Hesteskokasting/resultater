@@ -68,8 +68,11 @@ describe("showNumberpad", () => {
         { name: "Lag B", score: 7 },
       ],
       async (scores) => void saved.push(scores),
+      { baneLabel: "Bane 3", rundeLabel: "Runde 2" },
     );
 
+    expect(document.querySelector(".pad-bane")!.textContent).toBe("Bane 3");
+    expect(document.querySelector(".pad-runde")!.textContent).toBe("Runde 2");
     expect(document.querySelectorAll(".pad-col").length).toBe(2);
     expect(document.querySelectorAll(".pad-close").length).toBe(1);
     expect(names()).toEqual(["Lag A", "Lag B"]);

@@ -300,6 +300,8 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
         side2Name: sideNavn(side2, false),
         currentS1: sideScore(side1, kamp.er_bekreftet),
         currentS2: sideScore(side2, kamp.er_bekreftet),
+        baneLabel: `Bane ${kamp.bane_nummer ?? "?"}`,
+        rundeLabel: `Runde ${kamp.runde_nummer}`,
         playerIds,
         hasRounds,
         logPrefix: variant.logPrefix,

@@ -13,6 +13,10 @@ export interface ScoreEditorOptions {
   currentS1: number;
   /** Score prefilled for side 2. */
   currentS2: number;
+  /** Court pill above the pads, e.g. "Bane 3". */
+  baneLabel?: string;
+  /** Round line beside the pill, e.g. "Runde 2" or "Semifinale". */
+  rundeLabel?: string;
   /** kamp_spelar ids whose omgangar are cleared before a direct score is written. */
   playerIds: number[];
   /** True when a side has live omgangar — gates the delete-warning dialog. */
@@ -67,5 +71,6 @@ export async function showScoreEditor(opts: ScoreEditorOptions): Promise<void> {
       }
       await opts.onSaved();
     },
+    { baneLabel: opts.baneLabel, rundeLabel: opts.rundeLabel },
   );
 }

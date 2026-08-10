@@ -2,9 +2,9 @@ import { createEl } from "@/utils/createEl";
 import {
   createNumberpadOverlay,
   padCard,
-  padContext,
   padDigitGrid,
   padDisplay,
+  padMeta,
   padProgress,
   padRegister,
   padTitle,
@@ -24,6 +24,14 @@ export interface NumberpadEntry {
   score: number;
 }
 
+/** Where the kamp sits — same header line the X-kast pad shows. */
+export interface NumberpadContext {
+  /** Pill above the pads, e.g. "Bane 3". */
+  baneLabel?: string;
+  /** Round line beside the pill, e.g. "Runde 2" or "Semifinale". */
+  rundeLabel?: string;
+}
+
 /**
  * Numberpad for direct score entry. Supports any number of participants (kamp
  * uses 2 sides, X-kast courts have 1–3 players). Mobile shows one participant
@@ -33,6 +41,7 @@ export interface NumberpadEntry {
 export function showNumberpad(
   entries: NumberpadEntry[],
   onSave: (scores: number[]) => Promise<void>,
+  context: NumberpadContext = {},
 ): void {
   if (entries.length === 0) return;
 
@@ -110,7 +119,9 @@ export function showNumberpad(
       ),
     );
     if (stepwise) body.appendChild(padProgress(entries.length, step));
-    body.appendChild(padContext("Registrer score"));
+    if (context.baneLabel != null || context.rundeLabel != null) {
+      body.appendChild(padMeta(context.baneLabel, context.rundeLabel));
+    }
 
     const cols = createEl("div", null, "pad-cols");
     if (stepwise) cols.appendChild(columnEl(step));

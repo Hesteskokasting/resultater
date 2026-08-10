@@ -594,6 +594,8 @@ function bindMatchEventsLocal(
         side2Name: p2Name,
         currentS1: sideSum(side1, kamp),
         currentS2: sideSum(side2, kamp),
+        baneLabel: `Bane ${kamp.bane_nummer ?? "?"}`,
+        rundeLabel: kamp.runde_navn ?? `Runde ${kamp.runde_nummer}`,
         playerIds,
         hasRounds: kamp.spelarar.some((s) => (s.omgangar?.length ?? 0) > 0),
         logPrefix: "cup",
@@ -652,6 +654,10 @@ function bindMatchEventsLocal(
               newLoserIds,
             });
             await reload();
+          },
+          {
+            baneLabel: `Bane ${kamp.bane_nummer ?? "?"}`,
+            rundeLabel: kamp.runde_navn ?? `Runde ${kamp.runde_nummer}`,
           },
         );
       };

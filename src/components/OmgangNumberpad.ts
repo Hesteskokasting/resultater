@@ -4,6 +4,7 @@ import {
   padCard,
   padDigitGrid,
   padDisplay,
+  padMeta,
   padProgress,
   padRegister,
   padTitle,
@@ -185,14 +186,6 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
-  function metaEl(): HTMLElement {
-    const header = steps[state.stepIdx]!.header;
-    const row = createEl("div", null, "pad-meta");
-    row.appendChild(createEl("span", header.baneLabel, "pad-bane"));
-    row.appendChild(createEl("span", header.rundeLabel, "pad-runde"));
-    return row;
-  }
-
   function stripEl(): HTMLElement {
     const header = steps[state.stepIdx]!.header;
     const cells = liveCells();
@@ -293,7 +286,7 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
     );
     body.appendChild(padProgress(2, state.stage === "poeng" ? 0 : 1));
     body.appendChild(padTitle(step.playerName, String(liveTotal())));
-    body.appendChild(metaEl());
+    body.appendChild(padMeta(step.header.baneLabel, step.header.rundeLabel));
     body.appendChild(stripEl());
 
     const cols = createEl("div", null, "pad-cols");

@@ -104,6 +104,17 @@ export function padProgress(count: number, activeIndex: number): HTMLElement {
   return bar;
 }
 
+/**
+ * Where the entry belongs: bane as a pill, round line beside it. Either half may
+ * be left out — a phase without courts, or a court without a round.
+ */
+export function padMeta(baneLabel?: string | null, rundeLabel?: string | null): HTMLElement {
+  const row = createEl("div", null, "pad-meta");
+  if (baneLabel) row.appendChild(createEl("span", baneLabel, "pad-bane"));
+  if (rundeLabel) row.appendChild(createEl("span", rundeLabel, "pad-runde"));
+  return row;
+}
+
 /** Small uppercase accent line, e.g. "Bane 1 · Totalsum". */
 export function padContext(label: string): HTMLElement {
   return createEl("div", label, "pad-context");
