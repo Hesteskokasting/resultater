@@ -1,6 +1,7 @@
 import { generateNextSwissRound } from "@/services/kampGenereringInnledendeService";
 import { showToast } from "@/components/Toast";
 import { logError } from "@/utils/logError";
+import { errorMessage } from "@/utils/errorMessage";
 import { createInnledendeRenderer, type InnledendeVariant } from "./innledendeBase";
 
 let showAllRounds = false;
@@ -43,7 +44,7 @@ const variant: InnledendeVariant = {
         await reload();
       } catch (e) {
         logError("nordhordland:nesteRunde", e);
-        showToast("Feil ved generering av neste runde", "error");
+        showToast(errorMessage(e), "error");
         if (nextRoundBtn) {
           nextRoundBtn.disabled = false;
           nextRoundBtn.textContent = "Generer neste runde";

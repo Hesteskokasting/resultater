@@ -458,16 +458,25 @@ export function setBannerMeta(bannerSlot: HTMLElement | null, text: string): voi
   if (meta) meta.textContent = text;
 }
 
-/** Variant-specific entries land between "Generer neste runde" and the dev/complete entries. */
+export interface InitialMenuState {
+  erSwiss: boolean;
+  /** Rounds still left to generate against stevne.antall_runder_innl (Swiss only). */
+  canGenerateRound: boolean;
+  /** Every planned round exists and every kamp is confirmed. */
+  canComplete: boolean;
+  /** Variant entries — placed between "Generer neste runde" and the dev/complete entries. */
+  extras?: BannerMenuItem[];
+}
+
 export function initialMenuItems(
   tournament: Pick<Tables<"stevne">, "erfullfort" | "avsluttendekastemetodeid">,
-  erSwiss: boolean,
-  extras: BannerMenuItem[] = [],
+  state: InitialMenuState,
 ): BannerMenuItem[] {
   const hasFinalPhase = tournament.avsluttendekastemetodeid != null;
   const items: BannerMenuItem[] = [];
-  if (erSwiss) items.push({ id: "neste-runde-btn", label: "Generer neste runde" });
-  items.push(...extras);
+  if (state.erSwiss && state.canGenerateRound)
+    items.push({ id: "neste-runde-btn", label: "Generer neste runde" });
+  items.push(...(state.extras ?? []));
   if (import.meta.env.VITE_ENV === "dev")
     items.push({ id: "test-auto-complete-btn", label: "TEST: Autofullfør" });
   if (!hasFinalPhase)
@@ -475,7 +484,10 @@ export function initialMenuItems(
       id: "complete-tournament-btn",
       label: "Fullfør turnering",
       tone: "success",
-      disabled: tournament.erfullfort === true,
+      disabled: tournament.erfullfort === true || !state.canComplete,
+      hint: state.canComplete
+        ? undefined
+        : "Alle rundar må vere genererte og alle kampar bekrefta.",
     });
   return items;
 }

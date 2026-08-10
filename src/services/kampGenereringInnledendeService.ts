@@ -433,6 +433,20 @@ export async function generateNextSwissRound(
   };
   const matchRows = rawMatches as MatchRow[];
   const roundNumber = Math.max(...matchRows.map((k) => k.runde_nummer)) + 1;
+
+  // Hard stop at the planned round count — the banner hides the action once the
+  // last runde exists, but a stale view must not slip an extra runde through.
+  const { data: stevneRow, error: stevneErr } = await supabase
+    .from("stevne")
+    .select("antall_runder_innl")
+    .eq("id", stevneid)
+    .single();
+  if (stevneErr) throw new Error("Feil ved henting av stevne: " + stevneErr.message);
+  const plannedRounds = stevneRow?.antall_runder_innl ?? null;
+  if (plannedRounds != null && roundNumber > plannedRounds) {
+    throw new Error(`Alle ${plannedRounds} rundane er allereie genererte.`);
+  }
+
   const allStartNrs = Object.keys(snrToKasterids).map(Number);
 
   const unplayed: Record<number, number[]> = {};

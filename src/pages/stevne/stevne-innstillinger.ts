@@ -153,17 +153,23 @@ export async function render(
     // Gloppen pairs the first half of the startnummer against the second, one
     // offset per runde, so it runs out of fresh matchups after ceil(N/2).
     function syncRoundsHelp(): void {
-      const isCascade = isCascadeMethodName(selectedMethodName());
-      if (!isCascade || roundCap == null) {
+      const method = selectedMethodName();
+      const isRoundBased = method !== "" && usesInitialRoundCount(method);
+      if (!isRoundBased) {
         roundsHelp.classList.add("d-none");
         return;
       }
-      const wanted = Number(roundsInput.value);
-      const overCap = wanted > roundCap;
-      roundsHelp.textContent = overCap
-        ? `For mange rundar: ${entryCount} ${capUnit} gjev maks ${roundCap} rundar utan omkampar.`
-        : `Maks ${roundCap} rundar med ${entryCount} ${capUnit} påmelde.`;
-      roundsHelp.classList.toggle("text-danger", overCap);
+      if (isCascadeMethodName(method) && roundCap != null) {
+        const overCap = Number(roundsInput.value) > roundCap;
+        roundsHelp.textContent = overCap
+          ? `For mange rundar: ${entryCount} ${capUnit} gjev maks ${roundCap} rundar utan omkampar.`
+          : `Maks ${roundCap} rundar med ${entryCount} ${capUnit} påmelde.`;
+        roundsHelp.classList.toggle("text-danger", overCap);
+        roundsHelp.classList.remove("d-none");
+        return;
+      }
+      roundsHelp.textContent = "Påkravd — kampgenereringa stoppar på dette talet.";
+      roundsHelp.classList.remove("text-danger");
       roundsHelp.classList.remove("d-none");
     }
 
@@ -188,6 +194,13 @@ export async function render(
         const finalId = container.querySelector<HTMLSelectElement>("#avsl-metode")!.value || null;
         const rounds = container.querySelector<HTMLInputElement>("#antall-rundar")!.value;
         const lanesInput = container.querySelector<HTMLInputElement>("#tilgjengelege-banar");
+
+        // Gloppen/NHM generate against this count, so it can't be left unset.
+        if (usesInitialRoundCount(selectedMethodName()) && !Number(rounds)) {
+          showToast("Antal rundar innleiande må setjast for Gloppen/NHM.", "error");
+          roundsInput.focus();
+          return;
+        }
 
         const { error } = await updateTournamentSettings(id, {
           innledendekastemetodeid: isSncLocal

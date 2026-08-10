@@ -555,12 +555,15 @@ describe("settings tab on an SNC umbrella", () => {
       expect(el.querySelector("#rundar-hjelp")!.classList.contains("d-none")).toBe(true);
     });
 
-    it("stays hidden before anyone is påmeld", async () => {
+    it("falls back to the required-hint before anyone is påmeld", async () => {
       getTournamentSettings.mockResolvedValue({ data: gloppenSettings(4), error: null });
       const el = host();
       await renderSettings(el, { id: 10 });
 
-      expect(el.querySelector("#rundar-hjelp")!.classList.contains("d-none")).toBe(true);
+      const help = el.querySelector<HTMLElement>("#rundar-hjelp")!;
+      expect(help.classList.contains("d-none")).toBe(false);
+      expect(help.textContent).not.toContain("Maks");
+      expect(help.textContent).toContain("Påkravd");
     });
   });
 });

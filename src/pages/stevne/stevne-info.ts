@@ -31,6 +31,7 @@ import {
   isCascadeMethodName,
   isKongelagMethodName,
   maxCascadeRounds,
+  usesInitialRoundCount,
 } from "@/utils/kastemetode";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -69,6 +70,8 @@ export async function render(
     const isNotStarted = phase === null || phase === "ikke_startet";
     const methodName = stevne.kastemetodeInnl?.navn ?? "—";
     const isCascade = isCascadeMethodName(methodName);
+    // Gloppen and NHM both generate against stevne.antall_runder_innl
+    const isRoundBased = usesInitialRoundCount(methodName);
     const isTeam = stevne.kategori?.erlagbasert ?? false;
     const categoryName = (stevne.kategori?.navn ?? "").toLowerCase();
     const isTeamOrMix = categoryName.includes("par") || categoryName.includes("mix");
@@ -136,7 +139,7 @@ export async function render(
           );
           return;
         }
-        if (isCascade && !stevne.antall_runder_innl) {
+        if (isRoundBased && !stevne.antall_runder_innl) {
           showToast(
             "Du må setje antal rundar for innleiande fase. Gå til Innstillingar for å endre.",
             "error",

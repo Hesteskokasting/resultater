@@ -223,8 +223,19 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
     setBannerMeta(bannerSlot, variant.bannerMeta(ctx));
     if (!bannerSlot) return;
     const extras = variant.getMenuItems(ctx);
+    // The stevne is only finished once every planned runde exists. Legacy stevner
+    // with no planned count are unbounded — neither gate applies to them.
+    const plannedRounds = ctx.stevne.antall_runder_innl;
+    const allRoundsGenerated = plannedRounds != null && ctx.roundMap.size >= plannedRounds;
     bannerSlot.innerHTML = renderBannerMenu(
-      isAdmin ? initialMenuItems(ctx.stevne, variant.isSwiss, extras) : extras,
+      isAdmin
+        ? initialMenuItems(ctx.stevne, {
+            erSwiss: variant.isSwiss,
+            canGenerateRound: plannedRounds == null || ctx.roundMap.size < plannedRounds,
+            canComplete: ctx.allMatchesConfirmed && (plannedRounds == null || allRoundsGenerated),
+            extras,
+          })
+        : extras,
     );
     bindBannerMenu(bannerSlot);
     variant.bindBannerExtra(bannerSlot, ctx);

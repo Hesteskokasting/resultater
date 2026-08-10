@@ -11,6 +11,8 @@ export interface BannerMenuItem {
   /** Colours the label; success = the green "Fullfør turnering" entry. */
   tone?: "success" | "warning";
   disabled?: boolean;
+  /** Tooltip — used to explain why a disabled entry is unavailable. */
+  hint?: string;
 }
 
 export function renderBannerMenu(items: BannerMenuItem[]): string {
@@ -20,6 +22,7 @@ export function renderBannerMenu(items: BannerMenuItem[]): string {
       (item) => `
       <button type="button" role="menuitem" id="${item.id}"
         class="org-banner-menu__item${item.tone ? ` org-banner-menu__item--${item.tone}` : ""}"
+        ${item.hint ? `title="${escHtml(item.hint)}"` : ""}
         ${item.disabled ? "disabled" : ""}>${escHtml(item.label)}</button>`,
     )
     .join("");
