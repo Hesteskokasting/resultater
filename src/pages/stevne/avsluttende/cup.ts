@@ -11,12 +11,7 @@ import { openThreeSideConfirmDialog } from "./_avslCupTreSpelarDialog";
 import { showNumberpad } from "@/components/ScoreNumberpad";
 import { matchScoreForPlayer, sideScore, getAllMatchSides, type MatchSide } from "@/utils/kamp";
 import { livePillHtml } from "@/components/LivePill";
-import {
-  bindScoreboardClicks,
-  canConfirmMatch,
-  sideNameHtml,
-  type StandingRow,
-} from "@/organizer/org-shared";
+import { bindScoreboardClicks, sideNameHtml, type StandingRow } from "@/organizer/org-shared";
 import { showScoreEditor } from "@/organizer/scoreEditor";
 import { escHtml } from "@/utils/escHtml";
 import { errorMessage } from "@/utils/errorMessage";
@@ -39,7 +34,7 @@ import { updateTournamentPhase, setRound1Format } from "@/services/stevneService
 import { isInnledendeComplete } from "@/services/xkastKongelagService";
 import { isXkastMethodName } from "@/utils/kastemetode";
 import { setGroupAssignment, clearGroupAssignment } from "@/services/resultatService";
-import { createFinalPhaseRenderer, toOrgPlayer, type FinalPhaseVariant } from "./avsluttendeBase";
+import { createFinalPhaseRenderer, type FinalPhaseVariant } from "./avsluttendeBase";
 
 // ── Side helpers (Par/Mix: one side = a pair, grouped by startnummer) ─────────
 
@@ -494,48 +489,30 @@ function playerRowsHtml(
   return sides.map((side) => sideRowHtml(kamp, side, sides.length, flags)).join("");
 }
 
-interface ConfirmButtonState {
-  css: string;
-  text: string;
-  disabled: boolean;
-  extraCss: string;
-}
-
-function confirmButtonState(
-  kamp: FinalMatchRow,
-  sides: MatchSide<FinalMatchPlayerKnown>[],
-  hasRounds: boolean,
-  isConfirmed: boolean,
-): ConfirmButtonState {
-  // 3-unit matches confirm via the placement dialog, which stays available after confirm
-  if (kamp.er_tre_spelarar) {
-    return {
-      css: isConfirmed ? "btn-secondary" : "btn-outline-secondary",
-      text: isConfirmed ? "Endre plassering" : "Sett plassering",
-      disabled: false,
-      extraCss: "",
-    };
+/**
+ * Admin actions under a match. A two-side match settles when its score is
+ * entered, so once confirmed there is nothing left to act on and the row is
+ * dropped; the score cells stay editable for corrections.
+ */
+function adminRowHtml(kamp: FinalMatchRow, isConfirmed: boolean): string {
+  const buttons: string[] = [];
+  if (!isConfirmed) {
+    if (!kamp.er_walkover && !kamp.er_tre_spelarar) {
+      buttons.push(`<button class="btn btn-primary btn-sm" id="plus-${kamp.id}">+</button>`);
+    }
+    buttons.push(
+      `<button class="btn btn-secondary btn-sm" data-scoreboard-kamp-id="${kamp.id}">Scoreboard</button>`,
+    );
   }
-  const canConfirm = canConfirmMatch(kamp, toOrgPlayer(sides.map((s) => s.rep)), hasRounds);
-  return {
-    css: isConfirmed ? "btn-secondary" : canConfirm ? "btn-success" : "btn-outline-secondary",
-    text: isConfirmed ? "Bekreftet" : "Bekreft",
-    disabled: isConfirmed || !canConfirm,
-    extraCss: " btn-confirm",
-  };
-}
-
-function adminRowHtml(kamp: FinalMatchRow, isConfirmed: boolean, btn: ConfirmButtonState): string {
+  // A 3-unit match carries no score of its own — the placement dialog settles it.
+  if (kamp.er_tre_spelarar) {
+    buttons.push(
+      `<button class="btn ${isConfirmed ? "btn-secondary" : "btn-outline-secondary"} btn-sm" id="bekrft-${kamp.id}">${isConfirmed ? "Endre plassering" : "Sett plassering"}</button>`,
+    );
+  }
+  if (!buttons.length) return "";
   return `<tr>
-            <td colspan="2" class="text-end pe-1">
-              ${
-                !kamp.er_walkover && !kamp.er_tre_spelarar
-                  ? `<button class="btn btn-primary btn-sm" id="plus-${kamp.id}"${isConfirmed ? " disabled" : ""}>+</button> `
-                  : ""
-              }
-              ${!isConfirmed ? `<button class="btn btn-secondary btn-sm" data-scoreboard-kamp-id="${kamp.id}">Scoreboard</button> ` : ""}
-              <button class="btn ${btn.css} btn-sm${btn.extraCss}" id="bekrft-${kamp.id}"${btn.disabled ? " disabled" : ""}>${btn.text}</button>
-            </td>
+            <td colspan="2" class="text-end pe-1">${buttons.join(" ")}</td>
           </tr>`;
 }
 
@@ -556,9 +533,7 @@ function renderMatchBlock(
     isThreeSides: kamp.er_tre_spelarar,
   };
 
-  const adminRow = isAdminLocal
-    ? adminRowHtml(kamp, isConfirmed, confirmButtonState(kamp, sides, hasRounds, isConfirmed))
-    : "";
+  const adminRow = isAdminLocal ? adminRowHtml(kamp, isConfirmed) : "";
 
   return `
     <div class="final-match-block">
@@ -630,28 +605,15 @@ function bindMatchEventsLocal(
         hasRounds: kamp.spelarar.some((s) => (s.omgangar?.length ?? 0) > 0),
         logPrefix: "cup",
         onSave: writeSideScore,
-        onSaved: reload,
+        // Entering the score settles the match — there is no separate Bekreft step.
+        onSaved: async () => {
+          if (!(await confirmCupMatch2Sides(stevneid, kamp, sides, reload))) await reload();
+        },
       });
     });
 
-    container.querySelector(`#bekrft-${kamp.id}`)?.addEventListener("click", async (e) => {
-      if (kamp.er_tre_spelarar) {
-        openThreeSideConfirmDialog(kamp, sides, stevneid, reload);
-      } else {
-        const btn = e.currentTarget as HTMLButtonElement;
-        btn.disabled = true;
-        btn.textContent = "Lagrer…";
-        try {
-          const ok = await confirmCupMatch2Sides(stevneid, kamp, sides, reload);
-          if (!ok) {
-            btn.disabled = false;
-            btn.textContent = "Bekreft";
-          }
-        } catch {
-          btn.disabled = false;
-          btn.textContent = "Bekreft";
-        }
-      }
+    container.querySelector(`#bekrft-${kamp.id}`)?.addEventListener("click", () => {
+      openThreeSideConfirmDialog(kamp, sides, stevneid, reload);
     });
 
     if (isAdminLocal && kamp.er_bekreftet && !kamp.er_tre_spelarar) {
