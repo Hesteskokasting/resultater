@@ -113,6 +113,11 @@ export interface CourtPhaseVariant {
    * omganger. X-kast only for now.
    */
   canSwapPlayers?: boolean;
+  /**
+   * Lets a player register and confirm the court they sit on. X-kast only —
+   * Kongelag is scored by the organizer.
+   */
+  playerScoring?: boolean;
   /** Optional replacement for the empty state (e.g. Kongelag's admin start panel). */
   renderNoCourts?: (ctx: CourtPhaseContext) => HTMLElement | null;
   /**
@@ -244,13 +249,14 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
   }
 
   /**
-   * Admins score every court; a player scores the court they sit on while it is
-   * open — the same rule the omgang RLS policies and confirm_xkast_kongelag
-   * enforce server-side.
+   * Admins score every court. In a variant with playerScoring a player also
+   * scores the court they sit on while it is open — the RLS policies and
+   * confirm_xkast_kongelag allow exactly that much server-side.
    */
   function canScoreCourt(court: CourtRow): boolean {
     const s = state!;
-    return s.isAdmin || (!court.er_bekreftet && isOnCourt(court));
+    if (s.isAdmin) return true;
+    return Boolean(variant.playerScoring) && !court.er_bekreftet && isOnCourt(court);
   }
 
   /**
@@ -266,10 +272,8 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
     if (!canScoreCourt(court)) return "";
     const canConfirm = isCourtComplete(court, s.antallOmganger);
     const bane = court.bane_nummer ?? "?";
-    // A player always gets the court-level Registrer — the pulje-wide one is an
-    // admin affordance that would span other people's banar.
     const registerBtn =
-      variant.registerScope === "court" || !s.isAdmin
+      variant.registerScope === "court"
         ? `<button class="match-button match-button-primary" data-xk-register="${court.id}">Registrer bane ${bane}</button>`
         : "";
     return `${registerBtn}<button class="match-button${canConfirm ? " match-button-success" : ""}" data-xk-confirm="${court.id}"${canConfirm ? "" : " disabled"}>Bekreft bane ${bane}</button>`;

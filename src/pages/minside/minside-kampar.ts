@@ -43,12 +43,6 @@ function findOpponents(
   });
 }
 
-// X-kast (innledende) and Kongelag (avsluttende) are the two court-based formats.
-const COURT_PHASE_LABEL: Record<string, string> = {
-  innledende: "X-kast",
-  avsluttende: "Kongelag",
-};
-
 function courtTableHtml(
   courts: MyCourtRow[],
   throwerId: number,
@@ -72,20 +66,17 @@ function courtTableHtml(
     </table>`;
 }
 
-/** One table per stevne+fase — a player can sit on both an X-kast and a Kongelag bane. */
 function groupCourtsByTournament(
   courts: MyCourtRow[],
   throwerId: number,
   makeButton: (court: MyCourtRow) => string,
 ): string | null {
   if (!courts.length) return null;
-  const groups = new Map<string, { name: string; courts: MyCourtRow[] }>();
+  const groups = new Map<number | string, { name: string; courts: MyCourtRow[] }>();
   for (const court of courts) {
-    const key = `${court.stevneid}:${court.fase}`;
-    if (!groups.has(key)) {
-      const phase = COURT_PHASE_LABEL[court.fase ?? ""] ?? "Bane";
-      groups.set(key, { name: `${court.stevne?.navn ?? ""} – ${phase}`, courts: [] });
-    }
+    const key = court.stevneid ?? "unknown";
+    if (!groups.has(key))
+      groups.set(key, { name: `${court.stevne?.navn ?? ""} – X-kast`, courts: [] });
     groups.get(key)!.courts.push(court);
   }
   return [...groups.values()]
@@ -214,10 +205,13 @@ async function buildMatchesContent(throwerId: number): Promise<HTMLElement> {
     true,
   );
 
-  const activeCourts = courtsRes.data
+  // X-kast only — Kongelag is scored by the organizer, so it gets no player entry point.
+  const myCourts = courtsRes.data.filter((c) => c.fase === "innledende");
+
+  const activeCourts = myCourts
     .filter((c) => c.stevne?.erfullfort === false)
     .sort((a, b) => (a.bane_nummer ?? 0) - (b.bane_nummer ?? 0));
-  const completedCourts = courtsRes.data
+  const completedCourts = myCourts
     .filter((c) => c.stevne?.erfullfort === true)
     .sort(
       (a, b) =>
@@ -225,8 +219,7 @@ async function buildMatchesContent(throwerId: number): Promise<HTMLElement> {
         (a.bane_nummer ?? 0) - (b.bane_nummer ?? 0),
     );
 
-  const courtHref = (court: MyCourtRow): string =>
-    `#/stevne/${court.stevneid}/${court.fase ?? "innledende"}`;
+  const courtHref = (court: MyCourtRow): string => `#/stevne/${court.stevneid}/innledende`;
 
   const activeCourtsContent = groupCourtsByTournament(activeCourts, throwerId, (court) => {
     if (!court.er_bekreftet) {

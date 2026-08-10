@@ -79,6 +79,7 @@ const xkastVariant: CourtPhaseVariant = {
   entryOrder,
   padHeader,
   canSwapPlayers: true,
+  playerScoring: true,
   emptyHint: (isAdmin) =>
     isAdmin
       ? "Ingen puljar er genererte enno. Start stevnet frå Info-fana."
