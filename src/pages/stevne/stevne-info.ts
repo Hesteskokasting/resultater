@@ -26,7 +26,12 @@ import { createOppmoteButton } from "@/components/OppmoteKnapp";
 import { generateInitialRoundMatches } from "@/services/kampGenereringInnledendeService";
 import { generateKongelagCourts } from "@/services/xkastKongelagService";
 import { registerRefetch } from "@/utils/refetchRegistry";
-import { isKongelagMethodName } from "@/utils/kastemetode";
+import {
+  cascadeRoundLimitMessage,
+  isCascadeMethodName,
+  isKongelagMethodName,
+  maxCascadeRounds,
+} from "@/utils/kastemetode";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -63,7 +68,7 @@ export async function render(
     const phase = stevne.stevne_fase ?? null;
     const isNotStarted = phase === null || phase === "ikke_startet";
     const methodName = stevne.kastemetodeInnl?.navn ?? "—";
-    const isCascade = methodName.toLowerCase().includes("gloppen");
+    const isCascade = isCascadeMethodName(methodName);
     const isTeam = stevne.kategori?.erlagbasert ?? false;
     const categoryName = (stevne.kategori?.navn ?? "").toLowerCase();
     const isTeamOrMix = categoryName.includes("par") || categoryName.includes("mix");
@@ -134,6 +139,14 @@ export async function render(
         if (isCascade && !stevne.antall_runder_innl) {
           showToast(
             "Du må setje antal rundar for innleiande fase. Gå til Innstillingar for å endre.",
+            "error",
+          );
+          return;
+        }
+        const entryCount = isTeam ? pairCount : count;
+        if (isCascade && (stevne.antall_runder_innl ?? 0) > maxCascadeRounds(entryCount)) {
+          showToast(
+            cascadeRoundLimitMessage(entryCount, stevne.antall_runder_innl ?? 0, isTeam),
             "error",
           );
           return;

@@ -2,7 +2,12 @@ import { supabase } from "@/supabase";
 import { sortStandings, type MatchForSorting } from "@/organizer/org-shared";
 import { createCourts, type NewCourt } from "@/services/xkastKongelagService";
 import { calcXkastLayout } from "@/utils/calcXkastLayout";
-import { isXkastMethodName } from "@/utils/kastemetode";
+import {
+  cascadeRoundLimitMessage,
+  isCascadeMethodName,
+  isXkastMethodName,
+  maxCascadeRounds,
+} from "@/utils/kastemetode";
 import { errorMessage } from "@/utils/errorMessage";
 
 function genMatchId(): string {
@@ -113,6 +118,13 @@ export async function generateInitialRoundMatches(
   }
 
   const N = entries.length;
+
+  // Before the resultat delete below: a too-high roundCount must abort the
+  // whole generation, not wipe the startnummer and then produce omkampar.
+  if (isCascadeMethodName(throwingMethodName) && roundCount > maxCascadeRounds(N)) {
+    throw new Error(cascadeRoundLimitMessage(N, roundCount, isTeam));
+  }
+
   const posToKasterids: Record<number, number[]> = {};
   const resultatRows: {
     stevneid: number;
@@ -144,7 +156,7 @@ export async function generateInitialRoundMatches(
     return _insertXkastCourts(stevneid, posToKasterids, N);
   }
 
-  const isCascade = throwingMethodName.toLowerCase().includes("gloppen");
+  const isCascade = isCascadeMethodName(throwingMethodName);
 
   if (isCascade) {
     return _insertCascadeMatches(stevneid, posToKasterids, N, roundCount);

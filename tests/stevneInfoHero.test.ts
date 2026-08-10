@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   getPairCount: vi.fn(),
   getUnconfirmedCount: vi.fn(),
   getMyRegistrationForTournament: vi.fn(),
+  generateInitialRoundMatches: vi.fn(),
   createRegistrationButton: vi.fn(),
   getUser: vi.fn(),
   confirmDialog: vi.fn(),
@@ -33,7 +34,7 @@ vi.mock("@/components/PameldingKnapp", () => ({
   createRegistrationButton: mocks.createRegistrationButton,
 }));
 vi.mock("@/services/kampGenereringInnledendeService", () => ({
-  generateInitialRoundMatches: vi.fn(),
+  generateInitialRoundMatches: mocks.generateInitialRoundMatches,
 }));
 vi.mock("@/services/xkastKongelagService", () => ({ generateKongelagCourts: vi.fn() }));
 vi.mock("@/services/authService", () => ({ getUser: mocks.getUser }));
@@ -133,6 +134,40 @@ describe("stevne-info hero", () => {
 
     expect(slot(el).querySelector("#start-stevne-btn")).not.toBeNull();
     expect(el.querySelector("#info-handling-knapper .pamelding-knapp")).not.toBeNull();
+  });
+
+  it("refuses to start Gloppen with more rundar than the field can pair", async () => {
+    mocks.getInfoTournament.mockResolvedValue({
+      data: row({ antall_runder_innl: 7, kastemetodeInnl: { id: 1, navn: "Gloppen" } }),
+      error: null,
+    });
+    mocks.getRegistrationCount.mockResolvedValue(10);
+    mocks.getUnconfirmedCount.mockResolvedValue(0);
+    const el = host();
+    await renderInfo(el, { id: 5, isAdmin: true });
+
+    slot(el).querySelector<HTMLButtonElement>("#start-stevne-btn")!.click();
+    await vi.waitFor(() => expect(mocks.showToast).toHaveBeenCalled());
+
+    expect(mocks.showToast.mock.calls[0]![0]).toContain("maks 5 rundar");
+    expect(mocks.generateInitialRoundMatches).not.toHaveBeenCalled();
+  });
+
+  it("starts Gloppen when the rundar sit on the cap", async () => {
+    mocks.getInfoTournament.mockResolvedValue({
+      data: row({ antall_runder_innl: 5, kastemetodeInnl: { id: 1, navn: "Gloppen" } }),
+      error: null,
+    });
+    mocks.getRegistrationCount.mockResolvedValue(10);
+    mocks.getUnconfirmedCount.mockResolvedValue(0);
+    mocks.updateTournamentPhase.mockResolvedValue({ error: null });
+    const el = host();
+    await renderInfo(el, { id: 5, isAdmin: true });
+
+    slot(el).querySelector<HTMLButtonElement>("#start-stevne-btn")!.click();
+    await vi.waitFor(() => expect(mocks.generateInitialRoundMatches).toHaveBeenCalled());
+
+    expect(mocks.generateInitialRoundMatches).toHaveBeenCalledWith(5, "Gloppen", 5, false);
   });
 
   it("leaves the slot empty for a visitor with nothing to do", async () => {

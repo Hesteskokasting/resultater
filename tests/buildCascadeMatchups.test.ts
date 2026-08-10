@@ -1,4 +1,5 @@
 import { buildCascadeMatchups } from "@/services/kampGenereringInnledendeService";
+import { maxCascadeRounds } from "@/utils/kastemetode";
 
 describe("buildCascadeMatchups", () => {
   describe("match count", () => {
@@ -77,6 +78,42 @@ describe("buildCascadeMatchups", () => {
           }
         }
       }
+    });
+
+    function firstRematchRound(N: number, roundCount: number): number | null {
+      const seen = new Set<string>();
+      const rounds = buildCascadeMatchups(N, roundCount);
+      for (let ri = 0; ri < rounds.length; ri++) {
+        for (const match of rounds[ri]!) {
+          if (match.isWalkover) continue;
+          const key = `${match.p1Pos}-${match.p2Pos}`;
+          if (seen.has(key)) return ri + 1;
+          seen.add(key);
+        }
+      }
+      return null;
+    }
+
+    it.each([6, 7, 8, 9, 10, 11, 12, 23, 24, 25])(
+      "N=%i stays rematch-free through maxCascadeRounds and breaks one round later",
+      (N) => {
+        const cap = maxCascadeRounds(N);
+        expect(firstRematchRound(N, cap)).toBeNull();
+        expect(firstRematchRound(N, cap + 1)).toBe(cap + 1);
+      },
+    );
+
+    it("round cap is ceil(N/2) — exactly half for even N, rounded up for odd", () => {
+      expect(maxCascadeRounds(10)).toBe(5);
+      expect(maxCascadeRounds(11)).toBe(6);
+      expect(maxCascadeRounds(24)).toBe(12);
+    });
+
+    it("the first over-cap round repeats round 1 in full, not just partly", () => {
+      const N = 10;
+      const rounds = buildCascadeMatchups(N, maxCascadeRounds(N) + 1);
+      const key = (m: { p1Pos: number; p2Pos: number | null }): string => `${m.p1Pos}-${m.p2Pos}`;
+      expect(new Set(rounds[rounds.length - 1]!.map(key))).toEqual(new Set(rounds[0]!.map(key)));
     });
   });
 

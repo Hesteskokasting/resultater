@@ -18,6 +18,8 @@ const mocks = vi.hoisted(() => ({
   getRegistrationsAcrossTournaments: vi.fn(),
   registerForTournament: vi.fn(),
   removeRegistration: vi.fn(),
+  getRegistrationCount: vi.fn(),
+  getPairCount: vi.fn(),
   getUser: vi.fn(),
   confirmDialog: vi.fn(),
   showToast: vi.fn(),
@@ -41,6 +43,8 @@ vi.mock("@/services/pameldingService", () => ({
   getRegistrationsAcrossTournaments: mocks.getRegistrationsAcrossTournaments,
   registerForTournament: mocks.registerForTournament,
   removeRegistration: mocks.removeRegistration,
+  getRegistrationCount: mocks.getRegistrationCount,
+  getPairCount: mocks.getPairCount,
 }));
 vi.mock("@/services/authService", () => ({ getUser: mocks.getUser }));
 vi.mock("@/components/ConfirmDialog", () => ({ confirmDialog: mocks.confirmDialog }));
@@ -150,6 +154,8 @@ beforeEach(() => {
   removeRegistration.mockResolvedValue({ error: null });
   completeSncParent.mockResolvedValue({ error: null });
   reopenSncParent.mockResolvedValue({ error: null });
+  mocks.getRegistrationCount.mockResolvedValue(0);
+  mocks.getPairCount.mockResolvedValue(0);
 });
 
 describe("SNC umbrella info tab", () => {
@@ -480,5 +486,81 @@ describe("settings tab on an SNC umbrella", () => {
     expect(el.querySelector("#tilgjengelege-banar")).not.toBeNull();
     expect(el.querySelector("#nullstill-btn")).not.toBeNull();
     expect(optionLabels(el, "innl-metode")).toEqual(["Gloppen", "Minimatch X-kast"]);
+  });
+
+  describe("Gloppen round cap hint", () => {
+    function gloppenSettings(rounds: number | null) {
+      return settings({
+        er_snc_hovudstevne: false,
+        innledendekastemetodeid: 1,
+        antall_runder_innl: rounds,
+      });
+    }
+
+    it("names the cap for the current field", async () => {
+      getTournamentSettings.mockResolvedValue({ data: gloppenSettings(4), error: null });
+      mocks.getRegistrationCount.mockResolvedValue(10);
+      const el = host();
+      await renderSettings(el, { id: 10 });
+
+      const help = el.querySelector<HTMLElement>("#rundar-hjelp")!;
+      expect(help.classList.contains("d-none")).toBe(false);
+      expect(help.textContent).toContain("Maks 5 rundar med 10 spelarar");
+      expect(help.classList.contains("text-danger")).toBe(false);
+    });
+
+    it("flags a stored round count that is already over the cap", async () => {
+      getTournamentSettings.mockResolvedValue({ data: gloppenSettings(7), error: null });
+      mocks.getRegistrationCount.mockResolvedValue(10);
+      const el = host();
+      await renderSettings(el, { id: 10 });
+
+      const help = el.querySelector<HTMLElement>("#rundar-hjelp")!;
+      expect(help.textContent).toContain("For mange rundar");
+      expect(help.classList.contains("text-danger")).toBe(true);
+    });
+
+    it("counts par, not spelarar, on a lagbasert stevne", async () => {
+      getTournamentSettings.mockResolvedValue({ data: gloppenSettings(3), error: null });
+      mocks.getRegistrationCount.mockResolvedValue(16);
+      mocks.getPairCount.mockResolvedValue(8);
+      const el = host();
+      await renderSettings(el, { id: 10 });
+
+      expect(el.querySelector("#rundar-hjelp")!.textContent).toContain("Maks 4 rundar med 8 par");
+    });
+
+    it("updates as the organiser types", async () => {
+      getTournamentSettings.mockResolvedValue({ data: gloppenSettings(4), error: null });
+      mocks.getRegistrationCount.mockResolvedValue(10);
+      const el = host();
+      await renderSettings(el, { id: 10 });
+
+      const input = el.querySelector<HTMLInputElement>("#antall-rundar")!;
+      input.value = "9";
+      input.dispatchEvent(new Event("input"));
+
+      expect(el.querySelector("#rundar-hjelp")!.classList.contains("text-danger")).toBe(true);
+    });
+
+    it("stays hidden for a non-cascade metode", async () => {
+      getTournamentSettings.mockResolvedValue({
+        data: settings({ er_snc_hovudstevne: false }),
+        error: null,
+      });
+      mocks.getRegistrationCount.mockResolvedValue(10);
+      const el = host();
+      await renderSettings(el, { id: 10 });
+
+      expect(el.querySelector("#rundar-hjelp")!.classList.contains("d-none")).toBe(true);
+    });
+
+    it("stays hidden before anyone is påmeld", async () => {
+      getTournamentSettings.mockResolvedValue({ data: gloppenSettings(4), error: null });
+      const el = host();
+      await renderSettings(el, { id: 10 });
+
+      expect(el.querySelector("#rundar-hjelp")!.classList.contains("d-none")).toBe(true);
+    });
   });
 });

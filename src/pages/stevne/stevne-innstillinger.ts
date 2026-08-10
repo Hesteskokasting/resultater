@@ -13,10 +13,13 @@ import {
 import type { ActiveThrowingMethodRow } from "@/services/stevneService";
 import { resetTournament } from "@/services/testDataService";
 import {
+  isCascadeMethodName,
   isKongelagMethodName,
   isXkastMethodName,
+  maxCascadeRounds,
   usesInitialRoundCount,
 } from "@/utils/kastemetode";
+import { getPairCount, getRegistrationCount } from "@/services/pameldingService";
 import { registerRefetch } from "@/utils/refetchRegistry";
 
 // ── Render ────────────────────────────────────────────────────────────────────
@@ -29,9 +32,11 @@ export async function render(
   container.replaceChildren(createLoadingState());
 
   try {
-    const [tournamentRes, methodsRes] = await Promise.all([
+    const [tournamentRes, methodsRes, playerCount, pairCount] = await Promise.all([
       getTournamentSettings(id),
       getActiveThrowingMethods(),
+      getRegistrationCount(id),
+      getPairCount(id),
     ]);
 
     if (tournamentRes.error || !tournamentRes.data) {
@@ -54,6 +59,14 @@ export async function render(
     const finalMethods = methods.filter(
       (m) => m.er_avsluttende && (!isSncParent || isKongelagMethodName(m.navn)),
     );
+
+    // Only a lagbasert stevne can have lag_id rows, so a non-zero pairCount
+    // identifies the unit the round cap applies to. With no påmelde at all
+    // there is no cap to show yet.
+    const isTeam = pairCount > 0;
+    const entryCount = isTeam ? pairCount : playerCount;
+    const roundCap = entryCount > 0 ? maxCascadeRounds(entryCount) : null;
+    const capUnit = isTeam ? "par" : "spelarar";
 
     function optionsHtml(list: ActiveThrowingMethodRow[], selectedId: number | null): string {
       return list
@@ -96,6 +109,7 @@ export async function render(
             <label class="form-label fw-semibold">Antal rundar innleiande</label>
             <input id="antall-rundar" type="number" min="1" class="form-control"
               value="${stevne.antall_runder_innl ?? ""}" placeholder="t.d. 6">
+            <p id="rundar-hjelp" class="form-text d-none"></p>
           </div>
           ${
             isSncParent
@@ -126,15 +140,44 @@ export async function render(
     // methods get their omgang count from kastemetode.antall_omganger.
     const initialSelect = container.querySelector<HTMLSelectElement>("#innl-metode")!;
     const roundsInput = container.querySelector<HTMLInputElement>("#antall-rundar")!;
+    const roundsHelp = container.querySelector<HTMLParagraphElement>("#rundar-hjelp")!;
+    // The selected="" attribute above sets the initial option; assigning value
+    // as well keeps the select in sync with the row for the code below, which
+    // reads the live select rather than the markup.
+    initialSelect.value = String(stevne.innledendekastemetodeid ?? "");
+
+    function selectedMethodName(): string {
+      return initialMethods.find((m) => m.id === Number(initialSelect.value))?.navn ?? "";
+    }
+
+    // Gloppen pairs the first half of the startnummer against the second, one
+    // offset per runde, so it runs out of fresh matchups after ceil(N/2).
+    function syncRoundsHelp(): void {
+      const isCascade = isCascadeMethodName(selectedMethodName());
+      if (!isCascade || roundCap == null) {
+        roundsHelp.classList.add("d-none");
+        return;
+      }
+      const wanted = Number(roundsInput.value);
+      const overCap = wanted > roundCap;
+      roundsHelp.textContent = overCap
+        ? `For mange rundar: ${entryCount} ${capUnit} gjev maks ${roundCap} rundar utan omkampar.`
+        : `Maks ${roundCap} rundar med ${entryCount} ${capUnit} påmelde.`;
+      roundsHelp.classList.toggle("text-danger", overCap);
+      roundsHelp.classList.remove("d-none");
+    }
+
     function syncRoundsInput(): void {
-      const method = initialMethods.find((m) => m.id === Number(initialSelect.value));
-      const isRoundBased = method != null && usesInitialRoundCount(method.navn);
+      const method = selectedMethodName();
+      const isRoundBased = method !== "" && usesInitialRoundCount(method);
       roundsInput.disabled = !isRoundBased;
       if (!isRoundBased) roundsInput.value = "";
       roundsInput.placeholder = isRoundBased ? "t.d. 6" : "Berre for Gloppen/NHM";
+      syncRoundsHelp();
     }
     syncRoundsInput();
     initialSelect.addEventListener("change", syncRoundsInput);
+    roundsInput.addEventListener("input", syncRoundsHelp);
 
     container
       .querySelector<HTMLFormElement>("#innstillingar-form")!
