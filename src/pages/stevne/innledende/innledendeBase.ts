@@ -37,7 +37,6 @@ import {
   getActiveTab,
   setActiveTab,
   renderStandingTable,
-  canConfirmMatch,
   sideNameHtml,
   bindScoreboardClicks,
   type StandingRow,
@@ -285,6 +284,7 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
     stevneid: number,
     kamp: InitialMatchRow,
     startNumberMap: Record<number, number>,
+    hcpMap: Record<number, number>,
     positionMap: Record<number, number>,
   ): void {
     const [side1, side2] = getMatchSides(kamp.spelarar, startNumberMap, positionMap);
@@ -310,7 +310,18 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
           ]);
           return null;
         },
-        onSaved: () => loadAndRender(container, stevneid),
+        // Entering a score is the confirmation — there is no separate Bekreft step.
+        onSaved: async () => {
+          const ok = await confirmMatch(
+            container,
+            stevneid,
+            kamp,
+            startNumberMap,
+            hcpMap,
+            positionMap,
+          );
+          if (!ok) await loadAndRender(container, stevneid);
+        },
       });
     };
 
@@ -323,55 +334,14 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
     });
   }
 
-  function createConfirmHandler(
-    container: HTMLElement,
-    stevneid: number,
-    kamp: InitialMatchRow,
-    startNumberMap: Record<number, number>,
-    hcpMap: Record<number, number>,
-    positionMap: Record<number, number>,
-    stopProp: boolean,
-  ): (e: Event) => Promise<void> {
-    return async (e: Event) => {
-      if (stopProp) e.stopPropagation();
-      const btn = e.currentTarget as HTMLButtonElement;
-      btn.disabled = true;
-      btn.textContent = "Lagrer…";
-      try {
-        const ok = await confirmMatch(
-          container,
-          stevneid,
-          kamp,
-          startNumberMap,
-          hcpMap,
-          positionMap,
-        );
-        if (!ok) {
-          btn.disabled = false;
-          btn.textContent = "Bekreft";
-        }
-      } catch {
-        btn.disabled = false;
-        btn.textContent = "Bekreft";
-      }
-    };
-  }
-
-  function bindMobileRow(
-    container: HTMLElement,
-    stevneid: number,
-    kamp: InitialMatchRow,
-    startNumberMap: Record<number, number>,
-    hcpMap: Record<number, number>,
-    positionMap: Record<number, number>,
-  ): void {
+  function bindMobileRow(container: HTMLElement, kamp: InitialMatchRow): void {
     const mobileRow = container.querySelector<HTMLElement>(
       `.match-row-mobile[data-kamp-id="${kamp.id}"]`,
     );
     if (!mobileRow) return;
 
     // Viewer rows navigate via their data-scoreboard-kamp-id (delegated in
-    // bindScoreboardClicks); only admin rows have expand/confirm interactions.
+    // bindScoreboardClicks); only admin rows expand.
     if (!isAdmin) return;
 
     mobileRow.querySelector(".match-row-mobile__header")?.addEventListener("click", () => {
@@ -385,12 +355,6 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
       mobileRow.dataset.expanded = expanded ? "false" : "true";
       mobileRow.setAttribute("aria-expanded", String(!expanded));
     });
-    container
-      .querySelector(`#m-bekrft-${kamp.id}`)
-      ?.addEventListener(
-        "click",
-        createConfirmHandler(container, stevneid, kamp, startNumberMap, hcpMap, positionMap, true),
-      );
   }
 
   function bindMatchEvents(
@@ -402,16 +366,9 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
     positionMap: Record<number, number>,
     canEditMatches: boolean,
   ): void {
-    if (canEditMatches) bindScoreEdit(container, stevneid, kamp, startNumberMap, positionMap);
-
-    container
-      .querySelector(`#bekrft-${kamp.id}`)
-      ?.addEventListener(
-        "click",
-        createConfirmHandler(container, stevneid, kamp, startNumberMap, hcpMap, positionMap, false),
-      );
-
-    bindMobileRow(container, stevneid, kamp, startNumberMap, hcpMap, positionMap);
+    if (canEditMatches)
+      bindScoreEdit(container, stevneid, kamp, startNumberMap, hcpMap, positionMap);
+    bindMobileRow(container, kamp);
   }
 
   function subscribeToChanges(container: HTMLElement, stevneid: number): void {
@@ -664,7 +621,6 @@ function calcMatchRowState(
     hcp2,
   );
 
-  const sp = [p1, p2].filter((s): s is InitialMatchPlayerRow => s != null);
   return {
     side1,
     side2,
@@ -676,7 +632,6 @@ function calcMatchRowState(
     s2,
     hasPoints,
     status: resolveMatchStatus(kamp, hasPoints, hasRounds),
-    canConfirm: canConfirmMatch(kamp, sp, hasRounds, hcpMap),
     isLive: hasRounds && !kamp.er_bekreftet,
   };
 }
@@ -695,25 +650,13 @@ function matchRowButtonTd(
   kamp: InitialMatchRow,
   admin: boolean,
   hasRounds: boolean,
-  canConfirm: boolean,
   isLive: boolean,
 ): string {
-  if (kamp.er_bekreftet) {
-    return `<td class="text-end pe-2"><span class="match-confirmed-indicator">✓ Bekreftet</span></td>`;
-  }
   const pill = isLive ? livePillHtml() : "";
-  if (!admin) {
-    return `<td class="text-end pe-2 text-nowrap">
-        ${pill}
-        <button class="match-button" data-scoreboard-kamp-id="${kamp.id}" title="Scoreboard">Scoreboard</button>
-      </td>`;
-  }
-  const scoreCss = `match-button${hasRounds ? " match-button-primary" : ""}`;
-  const confirmCss = `match-button${canConfirm ? " match-button-success" : ""}`;
+  const scoreCss = `match-button${admin && hasRounds ? " match-button-primary" : ""}`;
   return `<td class="text-end pe-2 text-nowrap">
         ${pill}
         <button class="${scoreCss}" data-scoreboard-kamp-id="${kamp.id}" title="Scoreboard">Scoreboard</button>
-        <button class="${confirmCss}" id="bekrft-${kamp.id}"${!canConfirm ? " disabled" : ""}>Bekreft</button>
       </td>`;
 }
 
@@ -724,20 +667,8 @@ function matchRow(
   hcpMap: Record<number, number> = {},
   positionMap: Record<number, number> = {},
 ): string {
-  const {
-    side1,
-    side2,
-    p1,
-    p2,
-    p2IsBye,
-    hasRounds,
-    s1,
-    s2,
-    hasPoints,
-    status,
-    canConfirm,
-    isLive,
-  } = calcMatchRowState(kamp, startNumberMap, hcpMap, positionMap);
+  const { side1, side2, p1, p2, p2IsBye, hasRounds, s1, s2, hasPoints, status, isLive } =
+    calcMatchRowState(kamp, startNumberMap, hcpMap, positionMap);
 
   const p1Nr = p1?.kasterid ? (startNumberMap[p1.kasterid] ?? "") : "";
   const p2Nr = p2?.kasterid ? (startNumberMap[p2.kasterid] ?? "") : "";
@@ -754,7 +685,7 @@ function matchRow(
       <td>${p1Display}</td>
       <td class="${scoreCss}"${scoreAttr}>${hasPoints ? scoreInnerHtml(s1, s2) : "—"}</td>
       <td>${p2Display}</td>
-      ${matchRowButtonTd(kamp, admin, hasRounds, canConfirm, isLive)}
+      ${matchRowButtonTd(kamp, admin, hasRounds, isLive)}
     </tr>`;
 }
 
@@ -765,8 +696,12 @@ function matchRowMobile(
   hcpMap: Record<number, number> = {},
   positionMap: Record<number, number> = {},
 ): string {
-  const { side1, side2, p2IsBye, s1, s2, hasPoints, status, canConfirm, isLive } =
-    calcMatchRowState(kamp, startNumberMap, hcpMap, positionMap);
+  const { side1, side2, p2IsBye, s1, s2, hasPoints, status, isLive } = calcMatchRowState(
+    kamp,
+    startNumberMap,
+    hcpMap,
+    positionMap,
+  );
 
   const p1NameShort = sideNavn(side1, true);
   const p2NameShort = p2IsBye ? "Walkover" : sideNavn(side2, true);
@@ -785,18 +720,14 @@ function matchRowMobile(
         <span class="match-mobile-pill-slot">${isLive ? livePillHtml() : ""}</span>
         <span class="match-mobile-result${resultCss}"${resultAttr}>${resultText}</span>
       </div>
-      ${admin ? matchRowMobileButtons(kamp, canConfirm) : ""}
+      ${admin ? matchRowMobileButtons(kamp) : ""}
     </li>`;
 }
 
-/** The mobile score/confirm button row, shown only to admins. */
-function matchRowMobileButtons(kamp: InitialMatchRow, canConfirm: boolean): string {
-  const confirmCell = kamp.er_bekreftet
-    ? `<span class="match-confirmed-mobile">✓ Bekreftet</span>`
-    : `<button class="match-button-mobile match-button-confirm-mobile" id="m-bekrft-${kamp.id}"${!canConfirm ? " disabled" : ""}>Bekreft</button>`;
+/** The mobile action row, shown only to admins. */
+function matchRowMobileButtons(kamp: InitialMatchRow): string {
   return `
       <div class="match-mobile-buttons">
         <button class="match-button-mobile" data-scoreboard-kamp-id="${kamp.id}">Scoreboard</button>
-        ${confirmCell}
       </div>`;
 }

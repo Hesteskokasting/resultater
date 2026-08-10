@@ -264,7 +264,8 @@ async function _insertRounds(
         fase: "innledende",
         runde_nummer: roundNumber,
         bane_nummer: ci + 1,
-        er_bekreftet: false,
+        // A walkover has no score to enter, so nothing would ever confirm it.
+        er_bekreftet: matchup.isWalkover,
         er_walkover: matchup.isWalkover,
       },
     })),
@@ -521,7 +522,8 @@ export async function generateNextSwissRound(
     fase: "innledende",
     runde_nummer: roundNumber,
     bane_nummer: i + 1,
-    er_bekreftet: false,
+    // A walkover has no score to enter, so nothing would ever confirm it.
+    er_bekreftet: matchup.isWalkover,
     er_walkover: matchup.isWalkover,
   }));
 
