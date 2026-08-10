@@ -4,7 +4,7 @@
  */
 
 import { describe, expect, it } from "vite-plus/test";
-import { appendDigit, digitValue, dropDigit } from "@/utils/padInput";
+import { appendDigit, digitValue } from "@/utils/padInput";
 
 describe("appendDigit", () => {
   it("appends and replaces a lone leading zero", () => {
@@ -21,14 +21,6 @@ describe("appendDigit", () => {
     expect(appendDigit("99", "9", 999)).toBe("999");
     expect(appendDigit("999", "9", 999)).toBe("999");
     expect(appendDigit("2", "1", 20)).toBe("2");
-  });
-});
-
-describe("dropDigit", () => {
-  it("deletes the last digit and tolerates an empty pad", () => {
-    expect(dropDigit("123")).toBe("12");
-    expect(dropDigit("1")).toBe("");
-    expect(dropDigit("")).toBe("");
   });
 });
 

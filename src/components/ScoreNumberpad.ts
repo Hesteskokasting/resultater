@@ -11,7 +11,7 @@ import {
   padTitle,
   padTopRow,
 } from "@/components/numberpadUi";
-import { appendDigit, digitValue, dropDigit } from "@/utils/padInput";
+import { appendDigit, digitValue } from "@/utils/padInput";
 
 /** Highest flat score the pad accepts — three digits is well past any real kamp. */
 const MAX_SCORE = 999;
@@ -91,7 +91,7 @@ export function showNumberpad(
       padDisplay("Poengsum", String(valueOf(idx)), { placeholder: inputs[idx] === "" }),
       padDigitGrid({
         onDigit: (digit) => edit(idx, appendDigit(inputs[idx] ?? "", digit, MAX_SCORE)),
-        onBackspace: () => edit(idx, dropDigit(inputs[idx] ?? "")),
+        onClear: () => edit(idx, ""),
       }),
     ]);
   }

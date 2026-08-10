@@ -92,6 +92,20 @@ describe("showNumberpad", () => {
     expect(saved[0]).toEqual([12, 7]);
   });
 
+  it("wipes the whole score on one press of the clear key", () => {
+    showNumberpad([{ name: "Lag A", score: 0 }], async () => true);
+
+    const keys = gridKeys();
+    keys[0]!.click();
+    keys[2]!.click();
+    expect(document.querySelector(".pad-display-value")!.textContent).toBe("13");
+
+    // The clear key sits where a backspace would, but takes the lot.
+    keys[9]!.click();
+    expect(document.querySelector(".pad-display-value")!.textContent).toBe("0");
+    expect(document.querySelector(".pad-display-value")!.classList).toContain("tom");
+  });
+
   it("stays open with the typed scores when the save fails", async () => {
     showNumberpad([{ name: "Lag A", score: 0 }], async () => false);
 

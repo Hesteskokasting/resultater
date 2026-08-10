@@ -15,11 +15,6 @@ export function appendDigit(current: string, digit: string, max: number): string
   return parseInt(next) > max ? current : next;
 }
 
-/** Deletes the last digit. Emptying is fine — the pad shows a placeholder 0. */
-export function dropDigit(current: string): string {
-  return current.slice(0, -1);
-}
-
 /** The typed value, with an untouched pad reading 0. */
 export function digitValue(current: string): number {
   return parseInt(current || "0");

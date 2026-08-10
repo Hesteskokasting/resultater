@@ -14,7 +14,7 @@ import {
   padTopRow,
 } from "@/components/numberpadUi";
 import { showToast } from "@/components/Toast";
-import { appendDigit, digitValue, dropDigit } from "@/utils/padInput";
+import { appendDigit, digitValue } from "@/utils/padInput";
 import {
   isValidOmgangEntry,
   ringOptions,
@@ -220,7 +220,7 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
   function poengGridEl(): HTMLElement {
     return padDigitGrid({
       onDigit: (digit) => edit(appendDigit(state.poengInput, digit, OMGANG_MAX_POENG)),
-      onBackspace: () => edit(dropDigit(state.poengInput)),
+      onClear: () => edit(""),
       action: { label: "→", disabled: state.poengInput === "", onClick: goToRinger },
     });
   }

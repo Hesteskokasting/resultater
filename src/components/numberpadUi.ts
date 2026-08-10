@@ -170,12 +170,13 @@ export interface PadKey {
 
 export interface PadGridOptions {
   onDigit: (digit: string) => void;
-  onBackspace: () => void;
+  /** Wipes the whole figure — one press, back to an empty pad. */
+  onClear: () => void;
   /** Bottom-right key — the stage's primary action. Omit to leave the slot empty. */
   action?: PadKey | null;
 }
 
-/** 1–9, backspace, 0 and the stage action in the bottom-right thumb position. */
+/** 1–9, clear, 0 and the stage action in the bottom-right thumb position. */
 export function padDigitGrid(opts: PadGridOptions): HTMLElement {
   const grid = createEl("div", null, "pad-grid");
 
@@ -185,10 +186,10 @@ export function padDigitGrid(opts: PadGridOptions): HTMLElement {
     grid.appendChild(btn);
   }
 
-  const back = createEl("button", "⌫", "pad-key pad-key-muted");
-  back.setAttribute("aria-label", "Slett siste siffer");
-  back.addEventListener("click", opts.onBackspace);
-  grid.appendChild(back);
+  const clear = createEl("button", "⌫", "pad-key pad-key-muted");
+  clear.setAttribute("aria-label", "Slett heile talet");
+  clear.addEventListener("click", opts.onClear);
+  grid.appendChild(clear);
 
   const zero = createEl("button", "0", "pad-key");
   zero.addEventListener("click", () => opts.onDigit("0"));

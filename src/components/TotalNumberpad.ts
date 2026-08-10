@@ -10,7 +10,7 @@ import {
   padTitle,
   padTopRow,
 } from "@/components/numberpadUi";
-import { appendDigit, digitValue, dropDigit } from "@/utils/padInput";
+import { appendDigit, digitValue } from "@/utils/padInput";
 import { showToast } from "@/components/Toast";
 import { isValidTotalEntry, totalMaxPoeng, totalMaxRinger } from "@/utils/omgangValidation";
 
@@ -102,7 +102,7 @@ export function showTotalNumberpad(entry: TotalEntry): void {
       ),
       padDigitGrid({
         onDigit: (digit) => edit(appendDigit(currentInput(), digit, currentMax())),
-        onBackspace: () => edit(dropDigit(currentInput())),
+        onClear: () => edit(""),
         action:
           stage === "poeng"
             ? {
