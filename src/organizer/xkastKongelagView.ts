@@ -539,24 +539,19 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
   }
 
   function standingRowHtml(row: XkastStandingRow | KongelagStandingRow): string {
-    const s = state!;
-    const xkastCell = s.carryOver?.xkastPoengByKasterid
-      ? `<td class="standing-number standing-dim-cell">${s.carryOver.xkastPoengByKasterid[row.kasterid] ?? "—"}</td>`
-      : "";
-    const carryCells =
+    const scoreCells =
       "carryOver" in row
-        ? `<td class="standing-number">${row.poeng}</td>
-      ${xkastCell}
-      <td class="standing-number standing-dim-cell">${row.carryOver}</td>
+        ? `<td class="standing-number standing-dim-cell table-summary-start">${row.carryOver}</td>
+      <td class="standing-number standing-kp-cell">${row.antallRinger}</td>
+      <td class="standing-number">${row.poeng}</td>
       <td class="standing-number standing-sp-cell">${row.displayTotal}</td>`
-        : `<td class="standing-number standing-sp-cell">${row.poeng}</td>`;
+        : `<td class="standing-number standing-kp-cell table-summary-start">${row.antallRinger}</td>
+      <td class="standing-number standing-sp-cell">${row.poeng}</td>`;
     return `<tr class="standing-player-row" data-kasterid="${row.kasterid}">
       <td class="standing-dim-cell">${row.plassering}</td>
       <td>${escHtml(row.navn)}</td>
       <td class="standing-number standing-dim-cell">${row.antallOmganger}</td>
-      <td class="standing-number standing-kp-cell table-summary-start">${row.antallRinger}</td>
-      <td class="standing-number standing-dim-cell">${percentCellHtml(row.antallRinger, row.antallOmganger)}</td>
-      ${carryCells}
+      ${scoreCells}
     </tr>`;
   }
 
@@ -565,14 +560,15 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
     const standing = computeStanding();
     if (!standing.length) return "";
 
-    // With carry-over: P = kongelag poeng, X = rå X-kast-sum, I = innleiande
-    // carry-over (X × prosenten i overskrifta), TOT = P + I
+    // With carry-over: X = innleiande carry-over, R = ringar, K = kongelag
+    // poeng, TOT = X + K
     const scoreHeaders = s.carryOver
-      ? `<th class="th-44 standing-number">P</th>
-            ${s.carryOver.xkastPoengByKasterid ? '<th class="th-44 standing-number">X</th>' : ""}
-            <th class="th-44 standing-number">I</th>
+      ? `<th class="th-44 standing-number table-summary-start">X</th>
+            <th class="th-44 standing-number standing-kp-th">R</th>
+            <th class="th-44 standing-number">K</th>
             <th class="th-50 standing-number standing-sp-th">TOT</th>`
-      : '<th class="th-44 standing-number standing-sp-th">P</th>';
+      : `<th class="th-44 standing-number standing-kp-th table-summary-start">R</th>
+            <th class="th-50 standing-number standing-sp-th">P</th>`;
     const percentSuffix =
       s.carryOver?.xkastPercent != null ? ` · overføring ${s.carryOver.xkastPercent} %` : "";
 
@@ -586,8 +582,6 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
                 <th class="th-32">#</th>
                 <th>NAMN</th>
                 <th class="th-50 standing-number">O</th>
-                <th class="th-44 standing-number standing-kp-th table-summary-start">R</th>
-                <th class="th-50 standing-number">%</th>
                 ${scoreHeaders}
               </tr>
             </thead>
