@@ -1306,6 +1306,39 @@
 
 /* ── Desktop buttons ── */
 
+/* Icon-only "open the scoreboard" control (components/ScoreboardButton.ts).
+   One shape for every view that offers it: cup cards, innledende rows, minside.
+   Sized to fit inside the cup card's fixed 1.5rem header. */
+.scoreboard-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  background: var(--flate-2);
+  color: var(--tekst-2);
+  border: 1px solid var(--kant);
+  border-radius: 5px;
+  cursor: pointer;
+}
+.scoreboard-btn:hover {
+  background: var(--primaer-hover);
+  color: var(--tekst);
+}
+/* Where the control is a primary tap target rather than table chrome. */
+.scoreboard-btn--touch {
+  width: 38px;
+  height: 38px;
+  border-radius: 6px;
+}
+@media (pointer: coarse) {
+  .scoreboard-btn--touch {
+    width: 44px;
+    height: 44px;
+  }
+}
+
 .match-button {
   background: transparent;
   border: 0.5px solid var(--kant-2);
@@ -1467,13 +1500,13 @@
 /* Admin expandable buttons */
 .match-mobile-buttons {
   display: none;
-  grid-template-columns: 1fr 1fr 1fr;
   gap: 6px;
   padding: 8px 12px 12px;
   border-top: 0.5px solid var(--kant);
 }
 .match-row-mobile[data-expanded="true"] .match-mobile-buttons {
-  display: grid;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .match-button-mobile {
@@ -3713,22 +3746,6 @@ button.bane-omgang-chip:hover {
   color: var(--lenke);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-}
-.cup-card__sb {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  padding: 0;
-  background: var(--flate-2);
-  color: var(--tekst-2);
-  border: 1px solid var(--kant);
-  border-radius: 5px;
-}
-.cup-card__sb:hover {
-  background: var(--primaer-hover);
-  color: var(--tekst);
 }
 /* Far right, on the live match only. */
 .cup-card__live {

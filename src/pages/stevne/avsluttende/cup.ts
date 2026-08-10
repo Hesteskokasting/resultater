@@ -11,6 +11,7 @@ import { openThreeSideConfirmDialog } from "./_avslCupTreSpelarDialog";
 import { showNumberpad } from "@/components/ScoreNumberpad";
 import { matchScoreForPlayer, sideScore, getAllMatchSides, type MatchSide } from "@/utils/kamp";
 import { bindScoreboardClicks, sideNameHtml, type StandingRow } from "@/organizer/org-shared";
+import { scoreboardButtonHtml } from "@/components/ScoreboardButton";
 import { showScoreEditor } from "@/organizer/scoreEditor";
 import { escHtml } from "@/utils/escHtml";
 import { errorMessage } from "@/utils/errorMessage";
@@ -454,14 +455,6 @@ interface MatchBlockFlags {
   isThreeSides: boolean;
 }
 
-// Bootstrap Icons isn't loaded in this app — inline SVG, matching ExcelButton.
-const SCOREBOARD_SVG =
-  '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
-  'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-  '<rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/>' +
-  '<line x1="12" y1="17" x2="12" y2="21"/>' +
-  "</svg>";
-
 /**
  * One unit's row: name left, score in a fixed cell right. A confirmed match
  * carries its result as colour — winner green, loser red — which is the only
@@ -525,10 +518,7 @@ function renderMatchBlock(
     isThreeSides: kamp.er_tre_spelarar,
   };
 
-  const scoreboardBtn =
-    isAdminLocal && !isConfirmed
-      ? `<button type="button" class="cup-card__sb" data-scoreboard-kamp-id="${kamp.id}" title="Scoreboard" aria-label="Scoreboard">${SCOREBOARD_SVG}</button>`
-      : "";
+  const scoreboardBtn = isAdminLocal && !isConfirmed ? scoreboardButtonHtml(kamp.id) : "";
   // A 3-unit match carries no score of its own — the placement dialog settles it.
   const placementBtn =
     isAdminLocal && kamp.er_tre_spelarar

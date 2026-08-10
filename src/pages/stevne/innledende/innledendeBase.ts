@@ -42,6 +42,7 @@ import {
   type StandingRow,
 } from "@/organizer/org-shared";
 import { renderBannerMenu, bindBannerMenu, type BannerMenuItem } from "@/components/BannerMenu";
+import { scoreboardButtonHtml } from "@/components/ScoreboardButton";
 import { createLoadingState } from "@/components/LoadingState";
 import { createErrorBanner } from "@/components/ErrorBanner";
 import { errorMessage } from "@/utils/errorMessage";
@@ -646,17 +647,12 @@ function withStartNumber(name: string, nr: number | string): string {
 }
 
 /** The right-hand action cell for a desktop match row. */
-function matchRowButtonTd(
-  kamp: InitialMatchRow,
-  admin: boolean,
-  hasRounds: boolean,
-  isLive: boolean,
-): string {
-  const pill = isLive ? livePillHtml() : "";
-  const scoreCss = `match-button${admin && hasRounds ? " match-button-primary" : ""}`;
-  return `<td class="text-end pe-2 text-nowrap">
-        ${pill}
-        <button class="${scoreCss}" data-scoreboard-kamp-id="${kamp.id}" title="Scoreboard">Scoreboard</button>
+function matchRowButtonTd(kamp: InitialMatchRow, isLive: boolean): string {
+  return `<td class="pe-2">
+        <span class="d-flex align-items-center justify-content-end gap-2">
+          ${isLive ? livePillHtml() : ""}
+          ${scoreboardButtonHtml(kamp.id)}
+        </span>
       </td>`;
 }
 
@@ -667,8 +663,12 @@ function matchRow(
   hcpMap: Record<number, number> = {},
   positionMap: Record<number, number> = {},
 ): string {
-  const { side1, side2, p1, p2, p2IsBye, hasRounds, s1, s2, hasPoints, status, isLive } =
-    calcMatchRowState(kamp, startNumberMap, hcpMap, positionMap);
+  const { side1, side2, p1, p2, p2IsBye, s1, s2, hasPoints, status, isLive } = calcMatchRowState(
+    kamp,
+    startNumberMap,
+    hcpMap,
+    positionMap,
+  );
 
   const p1Nr = p1?.kasterid ? (startNumberMap[p1.kasterid] ?? "") : "";
   const p2Nr = p2?.kasterid ? (startNumberMap[p2.kasterid] ?? "") : "";
@@ -685,7 +685,7 @@ function matchRow(
       <td>${p1Display}</td>
       <td class="${scoreCss}"${scoreAttr}>${hasPoints ? scoreInnerHtml(s1, s2) : "—"}</td>
       <td>${p2Display}</td>
-      ${matchRowButtonTd(kamp, admin, hasRounds, isLive)}
+      ${matchRowButtonTd(kamp, isLive)}
     </tr>`;
 }
 
@@ -728,6 +728,6 @@ function matchRowMobile(
 function matchRowMobileButtons(kamp: InitialMatchRow): string {
   return `
       <div class="match-mobile-buttons">
-        <button class="match-button-mobile" data-scoreboard-kamp-id="${kamp.id}">Scoreboard</button>
+        ${scoreboardButtonHtml(kamp.id, "scoreboard-btn--touch")}
       </div>`;
 }

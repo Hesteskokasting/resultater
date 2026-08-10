@@ -4,6 +4,7 @@ import { createTabs } from "@/components/Tabs";
 import { getMyMatches, getStartNumbersForTournaments } from "@/services/kampService";
 import { getMyCourts } from "@/services/xkastKongelagService";
 import { newTabAnchorAttrs } from "@/services/navigationService";
+import { scoreboardLinkHtml } from "@/components/ScoreboardButton";
 import { renderSectionCard } from "./_sectionCard";
 import type { MinSideContext } from "./_linkState";
 import type { MatchPlayerRow } from "@/services/kampService";
@@ -189,7 +190,7 @@ async function buildMatchesContent(throwerId: number): Promise<HTMLElement> {
 
   const activeContent = groupMatchesByTournament(active, (ks) => {
     if (!ks.kamp?.er_bekreftet) {
-      return `<a href="#/kamp/${ks.kamp?.id ?? ""}" class="btn btn-sm btn-primary"${newTabAnchorAttrs()}>Scoreboard</a>`;
+      return scoreboardLinkHtml(ks.kamp?.id ?? "", newTabAnchorAttrs(), "scoreboard-btn--touch");
     }
     const tournamentId = ks.kamp.stevneid;
     const myScore = ks.kamp.spelarar?.find((s) => s.kasterid === throwerId)?.score_poeng;
