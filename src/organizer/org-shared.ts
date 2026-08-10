@@ -176,13 +176,15 @@ export function canConfirmMatch(
 export function renderMainContent(matchesHtml: string, standingHtml: string): string {
   return `
     <div class="org-main-content">
-      <div class="org-tab-buttons btn-group w-100 mb-2">
-        <button class="btn btn-primary org-tab-btn" data-tab="matches">Kampar</button>
-        <button class="btn btn-outline-primary org-tab-btn" data-tab="standing">Stilling</button>
+      <div class="org-tab-buttons" role="tablist">
+        <button type="button" class="org-tab-btn" role="tab" data-tab="matches"
+                aria-selected="true" aria-controls="org-panel-matches">Kampar</button>
+        <button type="button" class="org-tab-btn" role="tab" data-tab="standing"
+                aria-selected="false" aria-controls="org-panel-standing">Stilling</button>
       </div>
       <div class="d-flex gap-3 align-items-start org-content-row">
-        <div class="flex-grow-1 org-matches-panel">${matchesHtml}</div>
-        <div class="org-standing-col">${standingHtml}</div>
+        <div id="org-panel-matches" class="flex-grow-1 org-matches-panel">${matchesHtml}</div>
+        <div id="org-panel-standing" class="org-standing-col">${standingHtml}</div>
       </div>
     </div>`;
 }
@@ -198,23 +200,15 @@ export function setActiveTab(container: HTMLElement, tab: "matches" | "standing"
   if (!wrapper) return;
   wrapper.classList.toggle("org-show-standing", tab === "standing");
   container.querySelectorAll<HTMLButtonElement>(".org-tab-btn").forEach((btn) => {
-    const isActive = btn.dataset.tab === tab;
-    btn.classList.toggle("btn-primary", isActive);
-    btn.classList.toggle("btn-outline-primary", !isActive);
+    btn.setAttribute("aria-selected", String(btn.dataset.tab === tab));
   });
 }
 
 export function bindTabToggle(container: HTMLElement): void {
-  const wrapper = container.querySelector<HTMLElement>(".org-main-content");
-  if (!wrapper) return;
+  if (!container.querySelector(".org-main-content")) return;
   container.querySelectorAll<HTMLButtonElement>(".org-tab-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
-      const isStanding = btn.dataset.tab === "standing";
-      wrapper.classList.toggle("org-show-standing", isStanding);
-      container.querySelectorAll<HTMLButtonElement>(".org-tab-btn").forEach((b) => {
-        b.classList.toggle("btn-primary", b.dataset.tab === btn.dataset.tab);
-        b.classList.toggle("btn-outline-primary", b.dataset.tab !== btn.dataset.tab);
-      });
+      setActiveTab(container, btn.dataset.tab === "standing" ? "standing" : "matches");
     });
   });
 }

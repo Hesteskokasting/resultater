@@ -986,9 +986,48 @@
 .org-max-480 {
   max-width: 480px;
 }
+/* Kampar / Stilling switch — a segmented control in the theme palette rather
+   than a pair of solid Bootstrap buttons. Spans the content width with no side
+   inset, so the table below lines up with its edges. */
 .org-tab-buttons {
   display: none;
+  width: 100%;
+  background: var(--flate);
+  border: 1px solid var(--kant);
+  border-radius: 8px;
+  overflow: hidden;
 }
+.org-tab-btn {
+  flex: 1;
+  min-width: 0;
+  padding: 0.45rem 0.75rem;
+  border: 0;
+  background: transparent;
+  color: var(--tekst-2);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.org-tab-btn + .org-tab-btn {
+  border-left: 1px solid var(--kant);
+}
+.org-tab-btn:hover {
+  color: var(--tekst);
+}
+/* Tinted fill rather than a solid --primaer block: the saturated blue reads far
+   sharper on the light surface than anything else on the page. */
+.org-tab-btn[aria-selected="true"] {
+  background: var(--primaer-aktiv);
+  color: var(--tekst);
+}
+.org-tab-btn:focus-visible {
+  outline: 2px solid var(--lenke);
+  outline-offset: -2px;
+}
+[data-theme="light"] .org-tab-buttons,
+[data-theme="light"] .org-tab-btn + .org-tab-btn {
+  border-color: color-mix(in srgb, var(--kant) 45%, var(--flate));
+}
+
 .org-standing-col {
   width: 100%;
   max-width: 500px;
@@ -1029,15 +1068,22 @@
 }
 
 @media (max-width: 1199px) {
+  /* Cancel the px-3 inset #org-subpage puts on us, so the switch and the table
+     under it run to the shell edges like the title strip above them. */
+  .org-main-content {
+    margin-inline: -1rem;
+  }
   .org-tab-buttons {
     display: flex;
     margin-bottom: 0.75rem;
+    border-inline: 0;
+    border-radius: 0;
   }
-  .org-tab-btn {
-    flex: 1;
-  }
+  /* Single column below the split layout, so the standing table fills the same
+     width as the switch above it instead of stopping at the sidebar cap. */
   .org-standing-col {
     width: 100%;
+    max-width: none;
   }
   .org-main-content .org-standing-col {
     display: none;
