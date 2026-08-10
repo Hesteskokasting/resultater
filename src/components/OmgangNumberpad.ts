@@ -247,7 +247,8 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
     return btn;
   }
 
-  function ringStageEls(): HTMLElement[] {
+  /** Ring-stage parts, split by where they belong: content and footer action. */
+  function ringStageEls(): { content: HTMLElement[]; register: HTMLElement } {
     const { allowed } = ringOptions(currentPoeng());
 
     const heading = createEl("div", null, "pad-ring-heading");
@@ -266,7 +267,7 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
       onClick: () => void save(),
     });
 
-    return [heading, grid, register];
+    return { content: [heading, grid], register };
   }
 
   function render(): void {
@@ -274,8 +275,8 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
     const step = steps[state.stepIdx];
     if (!step) return;
 
-    const card = padCard();
-    card.appendChild(
+    const { card, body, footer } = padCard();
+    body.appendChild(
       padTopRow(
         close,
         state.stage === "ringer"
@@ -290,10 +291,10 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
           : null,
       ),
     );
-    card.appendChild(padProgress(2, state.stage === "poeng" ? 0 : 1));
-    card.appendChild(padTitle(step.playerName, String(liveTotal())));
-    card.appendChild(metaEl());
-    card.appendChild(stripEl());
+    body.appendChild(padProgress(2, state.stage === "poeng" ? 0 : 1));
+    body.appendChild(padTitle(step.playerName, String(liveTotal())));
+    body.appendChild(metaEl());
+    body.appendChild(stripEl());
 
     const cols = createEl("div", null, "pad-cols");
     const col = createEl("div", null, "pad-col");
@@ -306,9 +307,13 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
     );
     if (state.stage === "poeng") col.appendChild(poengGridEl());
     cols.appendChild(col);
-    card.appendChild(cols);
+    body.appendChild(cols);
 
-    if (state.stage === "ringer") for (const el of ringStageEls()) card.appendChild(el);
+    if (state.stage === "ringer") {
+      const { content, register } = ringStageEls();
+      for (const el of content) body.appendChild(el);
+      footer.appendChild(register);
+    }
 
     overlay.appendChild(card);
   }

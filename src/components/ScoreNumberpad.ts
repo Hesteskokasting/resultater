@@ -7,6 +7,7 @@ import {
   padDisplay,
   padProgress,
   padRegister,
+  padTitle,
   padTopRow,
 } from "@/components/numberpadUi";
 
@@ -73,22 +74,17 @@ export function showNumberpad(
     close();
   }
 
-  /** One entry's read-out plus its keys. `action` fills the grid's thumb slot. */
-  function columnEl(
-    idx: number,
-    action: Parameters<typeof padDigitGrid>[0]["action"],
-  ): HTMLElement {
+  /** One entry's name, read-out and keys — the same stack as the X-kast pad. */
+  function columnEl(idx: number): HTMLElement {
     const col = createEl("div", null, "pad-col");
+    col.appendChild(padTitle(entries[idx]?.name ?? ""));
     col.appendChild(
-      padDisplay(entries[idx]?.name ?? "", String(valueOf(idx)), {
-        placeholder: inputs[idx] === "",
-      }),
+      padDisplay("Poengsum", String(valueOf(idx)), { placeholder: inputs[idx] === "" }),
     );
     col.appendChild(
       padDigitGrid({
         onDigit: (digit) => appendDigit(idx, digit),
         onBackspace: () => backspace(idx),
-        action,
       }),
     );
     return col;
@@ -98,8 +94,8 @@ export function showNumberpad(
     overlay.innerHTML = "";
     const stepwise = stepwiseQuery.matches && entries.length > 1;
 
-    const card = padCard();
-    card.appendChild(
+    const { card, body, footer } = padCard();
+    body.appendChild(
       padTopRow(
         close,
         stepwise && step > 0
@@ -113,38 +109,32 @@ export function showNumberpad(
           : null,
       ),
     );
-    if (stepwise) card.appendChild(padProgress(entries.length, step));
-    card.appendChild(padContext("Registrer score"));
+    if (stepwise) body.appendChild(padProgress(entries.length, step));
+    body.appendChild(padContext("Registrer score"));
 
     const cols = createEl("div", null, "pad-cols");
-    if (stepwise) {
-      const isLast = step === entries.length - 1;
-      cols.appendChild(
-        columnEl(step, {
-          label: isLast ? (isSaving ? "…" : "✓") : "→",
-          disabled: isSaving,
-          onClick: isLast
-            ? () => void save()
-            : () => {
-                step++;
-                render();
-              },
-        }),
-      );
-    } else {
-      entries.forEach((_, idx) => cols.appendChild(columnEl(idx, null)));
-    }
-    card.appendChild(cols);
+    if (stepwise) cols.appendChild(columnEl(step));
+    else entries.forEach((_, idx) => cols.appendChild(columnEl(idx)));
+    body.appendChild(cols);
 
-    if (!stepwise) {
-      card.appendChild(
-        padRegister({
-          label: isSaving ? "Lagrer…" : "Lagre",
-          disabled: isSaving,
-          onClick: () => void save(),
-        }),
-      );
-    }
+    // The footer action advances while a later side is still unentered, and
+    // saves once every side is on screen (wide) or reached (stepwise).
+    const nextName = stepwise ? entries[step + 1]?.name : undefined;
+    footer.appendChild(
+      nextName != null
+        ? padRegister({
+            label: `Neste: ${nextName} →`,
+            onClick: () => {
+              step++;
+              render();
+            },
+          })
+        : padRegister({
+            label: isSaving ? "Lagrer…" : "Lagre",
+            disabled: isSaving,
+            onClick: () => void save(),
+          }),
+    );
 
     overlay.appendChild(card);
   }

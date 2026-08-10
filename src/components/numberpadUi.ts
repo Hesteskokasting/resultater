@@ -44,11 +44,26 @@ export function createNumberpadOverlay(onClosed?: () => void): NumberpadOverlay 
   return { overlay, close };
 }
 
-/** The card the pad parts stack in, with the grab handle already in place. */
-export function padCard(): HTMLDivElement {
+export interface PadShell {
+  /** Fills the viewport; nothing is appended to it directly. */
+  card: HTMLDivElement;
+  /** Scrolling content column — everything above the action bar. */
+  body: HTMLDivElement;
+  /** Sticky action bar; collapses to nothing when a stage has no action. */
+  footer: HTMLDivElement;
+}
+
+/**
+ * The fullscreen card the pad parts stack in. Content goes in `body` and the
+ * primary action in `footer`, so the action stays reachable at the bottom of a
+ * tall pad without ever covering the keys.
+ */
+export function padCard(): PadShell {
   const card = createEl("div", null, "pad-card");
-  card.appendChild(createEl("div", null, "pad-handle"));
-  return card;
+  const body = createEl("div", null, "pad-body");
+  const footer = createEl("div", null, "pad-footer");
+  card.append(body, footer);
+  return { card, body, footer };
 }
 
 export interface PadBack {

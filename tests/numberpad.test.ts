@@ -41,6 +41,14 @@ function label(): string {
   return document.querySelector(".pad-display-label")!.textContent ?? "";
 }
 
+function names(): string[] {
+  return [...document.querySelectorAll(".pad-name")].map((el) => el.textContent ?? "");
+}
+
+function registerLabel(): string {
+  return document.querySelector(".pad-footer .pad-register")!.textContent ?? "";
+}
+
 function gridKeys(colIndex = 0): HTMLButtonElement[] {
   const col = document.querySelectorAll<HTMLElement>(".pad-col")[colIndex]!;
   return [...col.querySelectorAll<HTMLButtonElement>(".pad-grid .pad-key")];
@@ -64,6 +72,10 @@ describe("showNumberpad", () => {
 
     expect(document.querySelectorAll(".pad-col").length).toBe(2);
     expect(document.querySelectorAll(".pad-close").length).toBe(1);
+    expect(names()).toEqual(["Lag A", "Lag B"]);
+    expect(registerLabel()).toBe("Lagre");
+    // The stage action lives in the footer, never as a key.
+    expect(document.querySelector(".pad-key-action")).toBeNull();
 
     const keys = gridKeys(0);
     keys[0]!.click();
@@ -86,13 +98,18 @@ describe("showNumberpad", () => {
 
     expect(document.querySelectorAll(".pad-col").length).toBe(1);
     expect(document.querySelectorAll(".pad-progress-seg").length).toBe(2);
-    expect(label()).toBe("Lag A");
+    expect(names()).toEqual(["Lag A"]);
+    expect(label()).toBe("Poengsum");
     expect(document.querySelector(".pad-back")!.classList).toContain("pad-back-skjult");
 
-    click(".pad-key-action");
-    expect(label()).toBe("Lag B");
+    // The footer advances while a side is still unentered, then turns into Lagre.
+    expect(registerLabel()).toContain("Lag B");
+    click(".pad-register");
+    expect(names()).toEqual(["Lag B"]);
+    expect(registerLabel()).toBe("Lagre");
+
     click(".pad-back");
-    expect(label()).toBe("Lag A");
+    expect(names()).toEqual(["Lag A"]);
 
     click(".pad-close");
     expect(document.querySelector(".pad-overlay")).toBeNull();

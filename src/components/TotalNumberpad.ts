@@ -81,8 +81,8 @@ export function showTotalNumberpad(entry: TotalEntry): void {
   function render(): void {
     overlay.innerHTML = "";
 
-    const card = padCard();
-    card.appendChild(
+    const { card, body } = padCard();
+    body.appendChild(
       padTopRow(
         close,
         stage === "ringer"
@@ -96,9 +96,9 @@ export function showTotalNumberpad(entry: TotalEntry): void {
           : null,
       ),
     );
-    card.appendChild(padProgress(2, stage === "poeng" ? 0 : 1));
-    card.appendChild(padContext(entry.contextLabel));
-    card.appendChild(padTitle(entry.playerName));
+    body.appendChild(padProgress(2, stage === "poeng" ? 0 : 1));
+    body.appendChild(padContext(entry.contextLabel));
+    body.appendChild(padTitle(entry.playerName));
 
     const cols = createEl("div", null, "pad-cols");
     const col = createEl("div", null, "pad-col");
@@ -126,7 +126,7 @@ export function showTotalNumberpad(entry: TotalEntry): void {
       }),
     );
     cols.appendChild(col);
-    card.appendChild(cols);
+    body.appendChild(cols);
 
     overlay.appendChild(card);
   }
