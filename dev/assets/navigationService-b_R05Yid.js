@@ -1,0 +1,1 @@
+import{Jt as e}from"./index-CFlkG31m.js";function t(t){if(e.isNativePlatform()){location.href=t;return}window.open(t,`_blank`)}function n(){return e.isNativePlatform()?``:` target="_blank" rel="noopener"`}export{t as n,n as t};
