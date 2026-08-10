@@ -1448,7 +1448,9 @@
   gap: 10px;
   padding: 6px 0;
   align-items: center;
-  cursor: pointer;
+  /* No row-wide pointer — only the score cell and the scoreboard icon act on a
+     click. The row expands too, but that panel is empty until the per-match
+     statistics land and gets its own affordance then. */
   user-select: none;
   -webkit-tap-highlight-color: transparent;
 }
@@ -1463,10 +1465,6 @@
   align-items: center;
   justify-content: center;
   width: 22px;
-}
-/* Viewer rows have nothing to expand — no click affordance. */
-.match-row-mobile--viewer .match-row-mobile__header {
-  cursor: default;
 }
 
 .match-mobile-lane {
@@ -1498,12 +1496,27 @@
   color: var(--tekst-3);
   font-size: 0.85em;
 }
+/* Same cell treatment as the desktop SCORE column — it already renders the same
+   .initial-score-inner grid, so only the surround differs. text-align carries
+   into that grid's columns, which is what centres each number in its own track;
+   on desktop it comes from the cell's .text-center. */
 .match-mobile-result {
-  font-size: 19px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  /* Cancels the header's vertical padding so the fill runs the full row height
+     and reads as a column, not a floating box. */
+  margin-block: -6px;
+  padding-block: 6px;
+  text-align: center;
+  font-size: 1.05rem;
   font-weight: 600;
   color: var(--tekst);
   white-space: nowrap;
-  text-align: center;
+  background: var(--avsl-score-bg);
+  border-left: 2px solid var(--standing-kp-th);
+  border-right: 2px solid var(--standing-kp-th);
 }
 
 /* Admin expandable buttons */

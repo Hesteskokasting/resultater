@@ -352,10 +352,8 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
         .querySelectorAll<HTMLElement>('.match-row-mobile[data-expanded="true"]')
         .forEach((r) => {
           r.dataset.expanded = "false";
-          r.setAttribute("aria-expanded", "false");
         });
       mobileRow.dataset.expanded = expanded ? "false" : "true";
-      mobileRow.setAttribute("aria-expanded", String(!expanded));
     });
   }
 
@@ -707,12 +705,12 @@ function matchRowMobile(
   const resultAttr = canEditScore ? ` id="m-score-${kamp.id}"` : "";
   const resultCss = canEditScore ? " score-editable" : "";
   const roleCss = admin ? "" : " match-row-mobile--viewer";
-  // The icon is the only way into the scoreboard — the row itself never
-  // navigates, so it stays free to expand.
-  const rowAttrs = admin ? ' role="button" tabindex="0"' : "";
+  // No role/tabindex: Bootstrap gives [role=button] a pointer over the whole
+  // row, and the expand panel has nothing in it yet. Both come back with the
+  // per-match statistics, on a real toggle control.
 
   return `
-    <li class="match-row-mobile${roleCss}" data-kamp-id="${kamp.id}" data-status="${status}"${rowAttrs}>
+    <li class="match-row-mobile${roleCss}" data-kamp-id="${kamp.id}" data-status="${status}">
       <div class="match-row-mobile__header">
         <span class="match-mobile-lane">${kamp.bane_nummer ?? ""}</span>
         <span class="match-mobile-name"><span class="match-mobile-name__p1">${p1NameShort}</span><span class="match-mobile-name__p2"><span class="match-mobile-vs">vs</span> ${p2NameShort}</span></span>
