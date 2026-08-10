@@ -2393,13 +2393,10 @@ th.initial-score-th {
   gap: 10px;
 }
 
+/* Edge-to-edge action bar, like the scoreboard's bottom button: the button *is*
+   the bar, so the footer only holds it and carries no padding of its own. */
 .pad-footer {
   flex: none;
-  width: 100%;
-  max-width: 650px;
-  margin: 0 auto;
-  padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
-  border-top: 1px solid var(--pad-kant);
   display: flex;
   flex-direction: column;
 }
@@ -2409,8 +2406,7 @@ th.initial-score-th {
 }
 
 /* Side-by-side entry columns (kamp on a wide screen) need the extra width. */
-.pad-card:has(.pad-col + .pad-col) .pad-body,
-.pad-card:has(.pad-col + .pad-col) .pad-footer {
+.pad-card:has(.pad-col + .pad-col) .pad-body {
   max-width: 900px;
 }
 
@@ -2733,13 +2729,18 @@ th.initial-score-th {
   color: var(--pad-valgt);
 }
 
+/* Fills the pad's width and runs into the bottom inset, so nothing sits between
+   it and the edge of the screen. */
 .pad-register {
-  padding: 16px;
+  display: block;
+  width: 100%;
+  padding: clamp(14px, 3vh, 22px);
+  padding-bottom: calc(clamp(14px, 3vh, 22px) + env(safe-area-inset-bottom));
   background: var(--pad-aksent);
   color: var(--pad-aksent-tekst);
   border: none;
-  border-radius: 12px;
-  font-size: 1rem;
+  border-radius: 0;
+  font-size: clamp(1.05rem, 3.5vw, 1.5rem);
   font-weight: 700;
   cursor: pointer;
 }
