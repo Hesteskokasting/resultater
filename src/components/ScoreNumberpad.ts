@@ -1,7 +1,8 @@
-import { createEl } from "@/utils/createEl";
 import {
   createNumberpadOverlay,
   padCard,
+  padColumn,
+  padColumns,
   padDigitGrid,
   padDisplay,
   padMeta,
@@ -10,6 +11,7 @@ import {
   padTitle,
   padTopRow,
 } from "@/components/numberpadUi";
+import { appendDigit, digitValue, dropDigit } from "@/utils/padInput";
 
 /** Highest flat score the pad accepts — three digits is well past any real kamp. */
 const MAX_SCORE = 999;
@@ -35,12 +37,13 @@ export interface NumberpadContext {
 /**
  * Numberpad for direct score entry. Supports any number of participants (kamp
  * uses 2 sides, X-kast courts have 1–3 players). Mobile shows one participant
- * at a time ("→" advances, Lagre on the last); wider screens show every pad
- * side by side with a single Lagre below.
+ * at a time (the footer advances, Lagre on the last); wider screens show every
+ * pad side by side with a single Lagre below. `onSave` returns false to keep
+ * the pad open — a failed write must not take the typed scores with it.
  */
 export function showNumberpad(
   entries: NumberpadEntry[],
-  onSave: (scores: number[]) => Promise<void>,
+  onSave: (scores: number[]) => Promise<boolean>,
   context: NumberpadContext = {},
 ): void {
   if (entries.length === 0) return;
@@ -60,18 +63,10 @@ export function showNumberpad(
   );
   stepwiseQuery.addEventListener("change", onViewportChange);
 
-  const valueOf = (idx: number): number => parseInt(inputs[idx] || "0");
+  const valueOf = (idx: number): number => digitValue(inputs[idx] ?? "");
 
-  function appendDigit(idx: number, digit: string): void {
-    const current = inputs[idx] ?? "";
-    const next = current === "0" ? digit : current + digit;
-    if (parseInt(next) > MAX_SCORE) return;
+  function edit(idx: number, next: string): void {
     inputs[idx] = next;
-    render();
-  }
-
-  function backspace(idx: number): void {
-    inputs[idx] = (inputs[idx] ?? "").slice(0, -1);
     render();
   }
 
@@ -79,24 +74,26 @@ export function showNumberpad(
     if (isSaving) return;
     isSaving = true;
     render();
-    await onSave(entries.map((_, idx) => valueOf(idx)));
-    close();
+    const saved = await onSave(entries.map((_, idx) => valueOf(idx)));
+    if (saved) close();
+    else {
+      isSaving = false;
+      render();
+    }
   }
 
   /** One entry's name, read-out and keys — the same stack as the X-kast pad. */
   function columnEl(idx: number): HTMLElement {
-    const col = createEl("div", null, "pad-col");
-    col.appendChild(padTitle(entries[idx]?.name ?? ""));
-    col.appendChild(
+    // The handlers read `inputs` when clicked, not when built, so a key that
+    // outlives its render still edits the current value.
+    return padColumn([
+      padTitle(entries[idx]?.name ?? ""),
       padDisplay("Poengsum", String(valueOf(idx)), { placeholder: inputs[idx] === "" }),
-    );
-    col.appendChild(
       padDigitGrid({
-        onDigit: (digit) => appendDigit(idx, digit),
-        onBackspace: () => backspace(idx),
+        onDigit: (digit) => edit(idx, appendDigit(inputs[idx] ?? "", digit, MAX_SCORE)),
+        onBackspace: () => edit(idx, dropDigit(inputs[idx] ?? "")),
       }),
-    );
-    return col;
+    ]);
   }
 
   function render(): void {
@@ -123,10 +120,9 @@ export function showNumberpad(
       body.appendChild(padMeta(context.baneLabel, context.rundeLabel));
     }
 
-    const cols = createEl("div", null, "pad-cols");
-    if (stepwise) cols.appendChild(columnEl(step));
-    else entries.forEach((_, idx) => cols.appendChild(columnEl(idx)));
-    body.appendChild(cols);
+    body.appendChild(
+      padColumns(stepwise ? [columnEl(step)] : entries.map((_, idx) => columnEl(idx))),
+    );
 
     // The footer action advances while a later side is still unentered, and
     // saves once every side is on screen (wide) or reached (stepwise).

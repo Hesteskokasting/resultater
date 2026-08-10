@@ -56,20 +56,21 @@ export async function showScoreEditor(opts: ScoreEditorOptions): Promise<void> {
           const { error } = await deleteMatchRounds(opts.playerIds);
           if (error) {
             showToast("DB-feil ved sletting av omgangar", "error");
-            return;
+            return false;
           }
         }
         const result = await opts.onSave(s1, s2);
         if (result?.error) {
           showToast("Feil ved lagring av score", "error");
-          return;
+          return false;
         }
       } catch (err) {
         logError(`${opts.logPrefix}:showScoreEditor`, err);
         showToast("Feil ved lagring av score", "error");
-        return;
+        return false;
       }
       await opts.onSaved();
+      return true;
     },
     { baneLabel: opts.baneLabel, rundeLabel: opts.rundeLabel },
   );

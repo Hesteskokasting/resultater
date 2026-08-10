@@ -1,7 +1,8 @@
-import { createEl } from "@/utils/createEl";
 import {
   createNumberpadOverlay,
   padCard,
+  padColumn,
+  padColumns,
   padContext,
   padDigitGrid,
   padDisplay,
@@ -9,6 +10,7 @@ import {
   padTitle,
   padTopRow,
 } from "@/components/numberpadUi";
+import { appendDigit, digitValue, dropDigit } from "@/utils/padInput";
 import { showToast } from "@/components/Toast";
 import { isValidTotalEntry, totalMaxPoeng, totalMaxRinger } from "@/utils/omgangValidation";
 
@@ -43,20 +45,12 @@ export function showTotalNumberpad(entry: TotalEntry): void {
 
   const currentMax = (): number => (stage === "poeng" ? maxPoeng : maxRinger);
   const currentInput = (): string => (stage === "poeng" ? poengInput : ringerInput);
-  const currentValue = (): number => parseInt(currentInput() || "0");
+  const currentValue = (): number => digitValue(currentInput());
 
-  function appendDigit(digit: string): void {
-    const next = currentInput() + digit;
-    if (parseInt(next) > currentMax()) return;
-    const normalized = currentInput() === "0" ? digit : next;
-    if (stage === "poeng") poengInput = normalized;
-    else ringerInput = normalized;
-    render();
-  }
-
-  function backspace(): void {
-    if (stage === "poeng") poengInput = poengInput.slice(0, -1);
-    else ringerInput = ringerInput.slice(0, -1);
+  /** Writes back to whichever figure the open stage is collecting. */
+  function edit(next: string): void {
+    if (stage === "poeng") poengInput = next;
+    else ringerInput = next;
     render();
   }
 
@@ -100,19 +94,15 @@ export function showTotalNumberpad(entry: TotalEntry): void {
     body.appendChild(padContext(entry.contextLabel));
     body.appendChild(padTitle(entry.playerName));
 
-    const cols = createEl("div", null, "pad-cols");
-    const col = createEl("div", null, "pad-col");
-    col.appendChild(
+    const col = padColumn([
       padDisplay(
         stage === "poeng" ? `Poengsum (maks ${maxPoeng})` : `Ringere (maks ${maxRinger})`,
         String(currentValue()),
         { placeholder: currentInput() === "" },
       ),
-    );
-    col.appendChild(
       padDigitGrid({
-        onDigit: appendDigit,
-        onBackspace: backspace,
+        onDigit: (digit) => edit(appendDigit(currentInput(), digit, currentMax())),
+        onBackspace: () => edit(dropDigit(currentInput())),
         action:
           stage === "poeng"
             ? {
@@ -124,9 +114,8 @@ export function showTotalNumberpad(entry: TotalEntry): void {
               }
             : { label: isSaving ? "…" : "✓", disabled: isSaving, onClick: () => void save() },
       }),
-    );
-    cols.appendChild(col);
-    body.appendChild(cols);
+    ]);
+    body.appendChild(padColumns([col]));
 
     overlay.appendChild(card);
   }

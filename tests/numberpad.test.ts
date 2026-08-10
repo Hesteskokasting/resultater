@@ -67,7 +67,10 @@ describe("showNumberpad", () => {
         { name: "Lag A", score: 0 },
         { name: "Lag B", score: 7 },
       ],
-      async (scores) => void saved.push(scores),
+      async (scores) => {
+        saved.push(scores);
+        return true;
+      },
       { baneLabel: "Bane 3", rundeLabel: "Runde 2" },
     );
 
@@ -89,6 +92,19 @@ describe("showNumberpad", () => {
     expect(saved[0]).toEqual([12, 7]);
   });
 
+  it("stays open with the typed scores when the save fails", async () => {
+    showNumberpad([{ name: "Lag A", score: 0 }], async () => false);
+
+    gridKeys()[4]!.click();
+    click(".pad-register");
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(document.querySelector(".pad-overlay")).not.toBeNull();
+    expect(document.querySelector(".pad-display-value")!.textContent).toBe("5");
+    expect(document.querySelector<HTMLButtonElement>(".pad-register")!.disabled).toBe(false);
+  });
+
   it("steps through the sides on a phone and can go back", () => {
     setViewport(true);
     showNumberpad(
@@ -96,7 +112,7 @@ describe("showNumberpad", () => {
         { name: "Lag A", score: 3 },
         { name: "Lag B", score: 0 },
       ],
-      async () => {},
+      async () => true,
     );
 
     expect(document.querySelectorAll(".pad-col").length).toBe(1);
@@ -125,7 +141,7 @@ describe("showNumberpad", () => {
         { name: "Lag A", score: 1 },
         { name: "Lag B", score: 2 },
       ],
-      async () => {},
+      async () => true,
     );
     expect(document.querySelectorAll(".pad-col").length).toBe(1);
 

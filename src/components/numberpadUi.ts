@@ -66,6 +66,23 @@ export function padCard(): PadShell {
   return { card, body, footer };
 }
 
+/**
+ * Wraps one column per participant. The kamp pad puts every side side by side
+ * on a wide screen; the other pads always pass a single column.
+ */
+export function padColumns(cols: HTMLElement[]): HTMLElement {
+  const wrapper = createEl("div", null, "pad-cols");
+  for (const col of cols) wrapper.appendChild(col);
+  return wrapper;
+}
+
+/** One participant's stack — name, read-out and keys. */
+export function padColumn(children: HTMLElement[]): HTMLElement {
+  const col = createEl("div", null, "pad-col");
+  for (const child of children) col.appendChild(child);
+  return col;
+}
+
 export interface PadBack {
   label: string;
   onClick: () => void;

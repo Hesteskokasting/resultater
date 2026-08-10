@@ -624,13 +624,13 @@ function bindMatchEventsLocal(
               const { error } = await deleteMatchRounds(playerIds);
               if (error) {
                 showToast("DB-feil ved sletting av omgangar", "error");
-                return;
+                return false;
               }
             }
             const feil = await writeSideScore(newS1, newS2);
             if (feil) {
               showToast("DB-feil ved oppdatering av score", "error");
-              return;
+              return false;
             }
             const newWinner = newS1 >= newS2 ? side1 : side2;
             const newLoser = newS1 >= newS2 ? side2 : side1;
@@ -643,7 +643,7 @@ function bindMatchEventsLocal(
             const { error: plErr } = await setMatchPlayerPlacements(kamp.id, newPlacements);
             if (plErr) {
               showToast("DB-feil ved oppdatering av plassering", "error");
-              return;
+              return false;
             }
             await updateWinnerLoser({
               stevneId: stevneid,
@@ -654,6 +654,7 @@ function bindMatchEventsLocal(
               newLoserIds,
             });
             await reload();
+            return true;
           },
           {
             baneLabel: `Bane ${kamp.bane_nummer ?? "?"}`,

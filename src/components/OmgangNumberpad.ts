@@ -2,6 +2,8 @@ import { createEl } from "@/utils/createEl";
 import {
   createNumberpadOverlay,
   padCard,
+  padColumn,
+  padColumns,
   padDigitGrid,
   padDisplay,
   padMeta,
@@ -11,6 +13,7 @@ import {
   padTopRow,
 } from "@/components/numberpadUi";
 import { showToast } from "@/components/Toast";
+import { appendDigit, digitValue, dropDigit } from "@/utils/padInput";
 import {
   isValidOmgangEntry,
   ringOptions,
@@ -95,7 +98,7 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
   }
 
   function currentPoeng(): number {
-    return Math.min(OMGANG_MAX_POENG, parseInt(state.poengInput || "0"));
+    return digitValue(state.poengInput);
   }
 
   function advance(): void {
@@ -108,10 +111,8 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
     render();
   }
 
-  function appendDigit(digit: string): void {
-    const next = state.poengInput + digit;
-    if (parseInt(next) > OMGANG_MAX_POENG) return;
-    state.poengInput = state.poengInput === "0" ? digit : next;
+  function edit(next: string): void {
+    state.poengInput = next;
     render();
   }
 
@@ -217,11 +218,8 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
 
   function poengGridEl(): HTMLElement {
     return padDigitGrid({
-      onDigit: appendDigit,
-      onBackspace: () => {
-        state.poengInput = state.poengInput.slice(0, -1);
-        render();
-      },
+      onDigit: (digit) => edit(appendDigit(state.poengInput, digit, OMGANG_MAX_POENG)),
+      onBackspace: () => edit(dropDigit(state.poengInput)),
       action: { label: "→", disabled: state.poengInput === "", onClick: goToRinger },
     });
   }
@@ -289,18 +287,14 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
     body.appendChild(padMeta(step.header.baneLabel, step.header.rundeLabel));
     body.appendChild(stripEl());
 
-    const cols = createEl("div", null, "pad-cols");
-    const col = createEl("div", null, "pad-col");
-    col.appendChild(
-      padDisplay(
-        state.stage === "poeng" ? "Poengsum" : "Poengsum registrert",
-        String(currentPoeng()),
-        { placeholder: state.poengInput === "" },
-      ),
+    const display = padDisplay(
+      state.stage === "poeng" ? "Poengsum" : "Poengsum registrert",
+      String(currentPoeng()),
+      { placeholder: state.poengInput === "" },
     );
-    if (state.stage === "poeng") col.appendChild(poengGridEl());
-    cols.appendChild(col);
-    body.appendChild(cols);
+    body.appendChild(
+      padColumns([padColumn(state.stage === "poeng" ? [display, poengGridEl()] : [display])]),
+    );
 
     if (state.stage === "ringer") {
       const { content, register } = ringStageEls();
