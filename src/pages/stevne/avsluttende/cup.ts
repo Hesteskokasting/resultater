@@ -518,7 +518,10 @@ function renderMatchBlock(
     isThreeSides: kamp.er_tre_spelarar,
   };
 
-  const scoreboardBtn = isAdminLocal && !isConfirmed ? scoreboardButtonHtml(kamp.id) : "";
+  // A match settled without the scoreboard has no omgangar to look at, so its
+  // scoreboard would open empty; one played on it stays worth opening.
+  const scoreboardBtn =
+    isAdminLocal && !(isConfirmed && !hasRounds) ? scoreboardButtonHtml(kamp.id) : "";
   // A 3-unit match carries no score of its own — the placement dialog settles it.
   const placementBtn =
     isAdminLocal && kamp.er_tre_spelarar

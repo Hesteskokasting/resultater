@@ -341,11 +341,12 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
     );
     if (!mobileRow) return;
 
-    // Viewer rows navigate via their data-scoreboard-kamp-id (delegated in
-    // bindScoreboardClicks); only admin rows expand.
+    // Only admin rows carry the detail panel, so only they expand.
     if (!isAdmin) return;
 
-    mobileRow.querySelector(".match-row-mobile__header")?.addEventListener("click", () => {
+    mobileRow.querySelector(".match-row-mobile__header")?.addEventListener("click", (e) => {
+      // The scoreboard icon lives in the header; opening it must not expand.
+      if ((e.target as HTMLElement).closest("[data-scoreboard-kamp-id]")) return;
       const expanded = mobileRow.dataset.expanded === "true";
       container
         .querySelectorAll<HTMLElement>('.match-row-mobile[data-expanded="true"]')
@@ -634,6 +635,9 @@ function calcMatchRowState(
     hasPoints,
     status: resolveMatchStatus(kamp, hasPoints, hasRounds),
     isLive: hasRounds && !kamp.er_bekreftet,
+    // A finished match whose score was typed in has no omgangar to look at, so
+    // its scoreboard would open empty.
+    showScoreboard: !(kamp.er_bekreftet && !hasRounds),
   };
 }
 
@@ -647,11 +651,11 @@ function withStartNumber(name: string, nr: number | string): string {
 }
 
 /** The right-hand action cell for a desktop match row. */
-function matchRowButtonTd(kamp: InitialMatchRow, isLive: boolean): string {
+function matchRowButtonTd(kamp: InitialMatchRow, isLive: boolean, showScoreboard: boolean): string {
   return `<td class="pe-2">
         <span class="d-flex align-items-center justify-content-end gap-2">
           ${isLive ? livePillHtml() : ""}
-          ${scoreboardButtonHtml(kamp.id)}
+          ${showScoreboard ? scoreboardButtonHtml(kamp.id) : ""}
         </span>
       </td>`;
 }
@@ -663,12 +667,8 @@ function matchRow(
   hcpMap: Record<number, number> = {},
   positionMap: Record<number, number> = {},
 ): string {
-  const { side1, side2, p1, p2, p2IsBye, s1, s2, hasPoints, status, isLive } = calcMatchRowState(
-    kamp,
-    startNumberMap,
-    hcpMap,
-    positionMap,
-  );
+  const { side1, side2, p1, p2, p2IsBye, s1, s2, hasPoints, status, isLive, showScoreboard } =
+    calcMatchRowState(kamp, startNumberMap, hcpMap, positionMap);
 
   const p1Nr = p1?.kasterid ? (startNumberMap[p1.kasterid] ?? "") : "";
   const p2Nr = p2?.kasterid ? (startNumberMap[p2.kasterid] ?? "") : "";
@@ -685,7 +685,7 @@ function matchRow(
       <td>${p1Display}</td>
       <td class="${scoreCss}"${scoreAttr}>${hasPoints ? scoreInnerHtml(s1, s2) : "—"}</td>
       <td>${p2Display}</td>
-      ${matchRowButtonTd(kamp, isLive)}
+      ${matchRowButtonTd(kamp, isLive, showScoreboard)}
     </tr>`;
 }
 
@@ -696,12 +696,8 @@ function matchRowMobile(
   hcpMap: Record<number, number> = {},
   positionMap: Record<number, number> = {},
 ): string {
-  const { side1, side2, p2IsBye, s1, s2, hasPoints, status, isLive } = calcMatchRowState(
-    kamp,
-    startNumberMap,
-    hcpMap,
-    positionMap,
-  );
+  const { side1, side2, p2IsBye, s1, s2, hasPoints, status, isLive, showScoreboard } =
+    calcMatchRowState(kamp, startNumberMap, hcpMap, positionMap);
 
   const p1NameShort = sideNavn(side1, true);
   const p2NameShort = p2IsBye ? "Walkover" : sideNavn(side2, true);
@@ -711,23 +707,19 @@ function matchRowMobile(
   const resultAttr = canEditScore ? ` id="m-score-${kamp.id}"` : "";
   const resultCss = canEditScore ? " score-editable" : "";
   const roleCss = admin ? "" : " match-row-mobile--viewer";
+  // The icon is the only way into the scoreboard — the row itself never
+  // navigates, so it stays free to expand.
+  const rowAttrs = admin ? ' role="button" tabindex="0"' : "";
 
   return `
-    <li class="match-row-mobile${roleCss}" data-kamp-id="${kamp.id}"${admin ? "" : ` data-scoreboard-kamp-id="${kamp.id}"`} data-status="${status}" role="button" tabindex="0">
+    <li class="match-row-mobile${roleCss}" data-kamp-id="${kamp.id}" data-status="${status}"${rowAttrs}>
       <div class="match-row-mobile__header">
         <span class="match-mobile-lane">${kamp.bane_nummer ?? ""}</span>
         <span class="match-mobile-name"><span class="match-mobile-name__p1">${p1NameShort}</span><span class="match-mobile-name__p2"><span class="match-mobile-vs">vs</span> ${p2NameShort}</span></span>
         <span class="match-mobile-pill-slot">${isLive ? livePillHtml() : ""}</span>
         <span class="match-mobile-result${resultCss}"${resultAttr}>${resultText}</span>
+        <span class="match-mobile-sb-slot">${showScoreboard ? scoreboardButtonHtml(kamp.id) : ""}</span>
       </div>
-      ${admin ? matchRowMobileButtons(kamp) : ""}
+      ${admin ? '<div class="match-mobile-detail"></div>' : ""}
     </li>`;
-}
-
-/** The mobile action row, shown only to admins. */
-function matchRowMobileButtons(kamp: InitialMatchRow): string {
-  return `
-      <div class="match-mobile-buttons">
-        ${scoreboardButtonHtml(kamp.id, "scoreboard-btn--touch")}
-      </div>`;
 }

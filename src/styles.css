@@ -1444,7 +1444,7 @@
 
 .match-row-mobile__header {
   display: grid;
-  grid-template-columns: 24px 1fr auto auto;
+  grid-template-columns: 24px 1fr auto auto auto;
   gap: 10px;
   padding: 6px 0;
   align-items: center;
@@ -1456,8 +1456,17 @@
   display: flex;
   align-items: center;
 }
+/* Fixed width whether or not the icon is there, so the results above and below
+   stay on the same vertical line. */
+.match-mobile-sb-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+}
+/* Viewer rows have nothing to expand — no click affordance. */
 .match-row-mobile--viewer .match-row-mobile__header {
-  cursor: pointer;
+  cursor: default;
 }
 
 .match-mobile-lane {
@@ -1498,43 +1507,16 @@
 }
 
 /* Admin expandable buttons */
-.match-mobile-buttons {
+/* Expandable detail slot — kept for the per-match statistics still to come.
+   Empty for now, so nothing renders until it has content. */
+.match-mobile-detail {
   display: none;
   gap: 6px;
   padding: 8px 12px 12px;
   border-top: 0.5px solid var(--kant);
 }
-.match-row-mobile[data-expanded="true"] .match-mobile-buttons {
+.match-row-mobile[data-expanded="true"] .match-mobile-detail:not(:empty) {
   display: flex;
-  justify-content: flex-end;
-}
-
-.match-button-mobile {
-  background: transparent;
-  border: 0.5px solid var(--kant-2);
-  padding: 8px 4px;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  color: var(--tekst);
-  cursor: pointer;
-  text-align: center;
-  white-space: nowrap;
-}
-.match-button-mobile:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-.match-button-confirm-mobile {
-  border-color: var(--kamp-stripe-ferdig);
-  color: var(--kamp-stripe-ferdig);
-}
-.match-confirmed-mobile {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.75rem;
-  color: var(--kamp-stripe-ferdig);
-  font-weight: 500;
 }
 
 /* Stilling table — tabular numbers */
