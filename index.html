@@ -2,7 +2,12 @@
 <html lang="nb" data-theme="light" data-bs-theme="light">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!-- No viewport-fit=cover on purpose: Capacitor's SystemBars plugin reads this
+         at DOM-ready and, when cover is absent, insets the WebView natively so no
+         content can ever be drawn under the Android nav bar / status bar. With
+         cover it passes the insets through to env(safe-area-inset-*) instead and
+         lets content scroll under the bars. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Hesteskokasting Resultater</title>
     <script>
       (function () {
@@ -15,12 +20,12 @@
     </script>
     <link rel="preconnect" href="https://urtvpewjlevhlevtnvkf.supabase.co" crossorigin />
     <link rel="icon" type="image/svg+xml" href="/assets/NHF_logo_original_oppskalert-CHgQrqP2.svg" />
-    <script type="module" crossorigin src="/assets/index-HV6oZghK.js"></script>
+    <script type="module" crossorigin src="/assets/index-Dib9Q0Sp.js"></script>
     <link rel="modulepreload" crossorigin href="/assets/rolldown-runtime-DK3Fl9T5.js">
     <link rel="modulepreload" crossorigin href="/assets/vendor-B24C_aok.js">
     <link rel="modulepreload" crossorigin href="/assets/logError-CB4-2Lin.js">
     <link rel="modulepreload" crossorigin href="/assets/verifiedWrite-dJ27H7z9.js">
-    <link rel="stylesheet" crossorigin href="/assets/index-78p7uPbu.css">
+    <link rel="stylesheet" crossorigin href="/assets/index-BVQXGkou.css">
   </head>
   <body>
     <header class="top-header">
@@ -146,7 +151,7 @@
           </button>
         </li>
         <li class="meny-skillelinje"></li>
-        <li class="menu-version">v0.9.10</li>
+        <li class="menu-version">v0.9.11</li>
       </ul>
     </nav>
 

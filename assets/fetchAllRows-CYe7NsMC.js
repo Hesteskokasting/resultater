@@ -1,0 +1,1 @@
+async function e(e){let t=[];for(let n=0;;){let{data:r,error:i}=await e(n,n+1e3-1);if(i)return{data:t,error:i};let a=r??[];if(t.push(...a),!a.length)return{data:t,error:null};n+=a.length}}export{e as t};
