@@ -125,12 +125,15 @@ export function showNumberpad(
     );
 
     // The footer action advances while a later side is still unentered, and
-    // saves once every side is on screen (wide) or reached (stepwise).
+    // saves once every side is on screen (wide) or reached (stepwise). Either
+    // way it stays blocked until the sides it covers have a typed score — a 0
+    // must be pressed, not assumed.
     const nextName = stepwise ? entries[step + 1]?.name : undefined;
     footer.appendChild(
       nextName != null
         ? padRegister({
             label: `Neste: ${nextName} →`,
+            disabled: inputs[step] === "",
             onClick: () => {
               step++;
               render();
@@ -138,7 +141,7 @@ export function showNumberpad(
           })
         : padRegister({
             label: isSaving ? "Lagrer…" : "Lagre",
-            disabled: isSaving,
+            disabled: isSaving || (stepwise ? inputs[step] === "" : inputs.includes("")),
             onClick: () => void save(),
           }),
     );

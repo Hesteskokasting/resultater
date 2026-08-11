@@ -106,6 +106,38 @@ describe("showNumberpad", () => {
     expect(document.querySelector(".pad-display-value")!.classList).toContain("tom");
   });
 
+  it("blocks the footer action until the sides it covers have a score", () => {
+    setViewport(true);
+    showNumberpad(
+      [
+        { name: "Lag A", score: 0 },
+        { name: "Lag B", score: 0 },
+      ],
+      async () => true,
+    );
+
+    const register = (): HTMLButtonElement =>
+      document.querySelector<HTMLButtonElement>(".pad-register")!;
+
+    expect(register().disabled).toBe(true);
+    // A zero counts, but it has to be pressed.
+    gridKeys()[10]!.click();
+    expect(register().disabled).toBe(false);
+
+    click(".pad-register");
+    expect(registerLabel()).toBe("Lagre");
+    expect(register().disabled).toBe(true);
+
+    gridKeys()[3]!.click();
+    expect(register().disabled).toBe(false);
+
+    // Widening puts both sides on screen; clearing one blocks Lagre again.
+    resizeTo(false);
+    expect(register().disabled).toBe(false);
+    gridKeys(0)[9]!.click();
+    expect(register().disabled).toBe(true);
+  });
+
   it("stays open with the typed scores when the save fails", async () => {
     showNumberpad([{ name: "Lag A", score: 0 }], async () => false);
 
