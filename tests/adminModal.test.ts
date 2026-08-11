@@ -58,7 +58,7 @@ describe("openAdminModal", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it("closes on Escape, on the close button and on a backdrop click", () => {
+  it("closes on Escape and on the close button", () => {
     const onClose = vi.fn();
 
     openAdminModal({ title: "X", onClose });
@@ -69,11 +69,7 @@ describe("openAdminModal", () => {
     document.querySelector<HTMLButtonElement>("[data-modal-close]")!.click();
     expect(modalEl()).toBeNull();
 
-    openAdminModal({ title: "X", onClose });
-    modalEl()!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    expect(modalEl()).toBeNull();
-
-    expect(onClose).toHaveBeenCalledTimes(3);
+    expect(onClose).toHaveBeenCalledTimes(2);
   });
 
   it("ignores Escape while a dialog is stacked on top of it", () => {
@@ -95,9 +91,10 @@ describe("openAdminModal", () => {
     modal.close();
   });
 
-  it("does not close when the click lands inside the dialog", () => {
+  it("stays open on a click anywhere in the overlay", () => {
     const modal = openAdminModal({ title: "X" });
     modal.body.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    modalEl()!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     expect(modalEl()).not.toBeNull();
     modal.close();
   });

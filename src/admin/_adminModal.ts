@@ -58,10 +58,6 @@ export function openAdminModal({ title, onClose }: AdminModalProps): AdminModalH
   }
 
   el.querySelector("[data-modal-close]")!.addEventListener("click", close);
-  // Click outside the dialog closes, matching how the app's other overlays behave.
-  el.addEventListener("click", (e) => {
-    if (e.target === el) close();
-  });
 
   /**
    * A confirm dialog (delete, fullfør) opens on top of this one and installs its
