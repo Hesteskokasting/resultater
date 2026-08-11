@@ -13,6 +13,7 @@ import {
 } from "@/utils/refetchRegistry";
 import { initPushNotifications } from "@/services/pushNotificationService";
 import { initStatusBarThemeSync } from "@/services/statusBarService";
+import { initKeepScreenAwake } from "@/services/keepAwakeService";
 import { initPullToRefresh } from "@/components/PullToRefresh";
 import type { PageRenderFn, Role, Route } from "@/types";
 
@@ -306,6 +307,8 @@ void App.addListener("resume", runRefetch);
 initPullToRefresh(refreshCurrent);
 
 initStatusBarThemeSync();
+
+initKeepScreenAwake();
 
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("menyLoggUtKnapp")!.addEventListener("click", async () => {
