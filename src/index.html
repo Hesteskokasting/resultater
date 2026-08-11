@@ -2,7 +2,12 @@
 <html lang="nb" data-theme="light" data-bs-theme="light">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!-- No viewport-fit=cover on purpose: Capacitor's SystemBars plugin reads this
+         at DOM-ready and, when cover is absent, insets the WebView natively so no
+         content can ever be drawn under the Android nav bar / status bar. With
+         cover it passes the insets through to env(safe-area-inset-*) instead and
+         lets content scroll under the bars. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Hesteskokasting Resultater</title>
     <script>
       (function () {

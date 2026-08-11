@@ -4,6 +4,11 @@
   max-width: 500px;
   margin: 0 auto;
   padding: 20px 16px;
+  /* Edge-to-edge native app: keep content clear of the Android nav bar /
+     iOS home indicator and of a landscape notch; 0 everywhere else */
+  padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  padding-left: calc(16px + env(safe-area-inset-left, 0px));
+  padding-right: calc(16px + env(safe-area-inset-right, 0px));
 }
 
 @media (min-width: 700px) {
@@ -223,6 +228,8 @@
   overflow-y: auto;
   padding-top: env(safe-area-inset-top, 0px);
   padding-right: env(safe-area-inset-right, 0px);
+  /* The last menu entries must clear the Android nav bar / home indicator */
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .sidepanel.aktiv {
@@ -466,7 +473,7 @@
 }
 
 .tl-sheet-content {
-  padding: 20px 16px 32px;
+  padding: 20px 16px calc(32px + env(safe-area-inset-bottom, 0px));
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -962,6 +969,8 @@
 #app:has(.org-shell) {
   max-width: none;
   padding: 0;
+  /* Full-bleed shell, but still clear of the Android nav bar / home indicator */
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 /* Title strip for the tabs that don't own a hero. Page chrome on the ordinary

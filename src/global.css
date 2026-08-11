@@ -280,8 +280,8 @@ textarea:focus {
 /* ── Toast ─────────────────────────────────────────────────────────────────── */
 #toast-container {
   position: fixed;
-  bottom: 1rem;
-  right: 1rem;
+  bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  right: calc(1rem + env(safe-area-inset-right, 0px));
   z-index: 9999;
   display: flex;
   flex-direction: column;
