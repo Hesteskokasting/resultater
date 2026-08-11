@@ -102,7 +102,7 @@ export async function render(
                    og kan berre endrast der.</p>`
               : ""
           }
-          <div class="mb-3">
+          <div id="rundar-felt" class="mb-3 d-none">
             <label class="form-label fw-semibold">Antal rundar innleiande</label>
             <input id="antall-rundar" type="number" min="1" class="form-control"
               value="${stevne.antall_runder_innl ?? ""}" placeholder="t.d. 6">
@@ -155,6 +155,7 @@ export async function render(
     // antall_runder_innl only drives Gloppen/NHM kamp generation — X-kast
     // methods get their omgang count from kastemetode.antall_omganger.
     const initialSelect = container.querySelector<HTMLSelectElement>("#innl-metode")!;
+    const roundsField = container.querySelector<HTMLElement>("#rundar-felt")!;
     const roundsInput = container.querySelector<HTMLInputElement>("#antall-rundar")!;
     const roundsHelp = container.querySelector<HTMLParagraphElement>("#rundar-hjelp")!;
     // The selected="" attribute above sets the initial option; assigning value
@@ -189,12 +190,13 @@ export async function render(
       roundsHelp.classList.remove("d-none");
     }
 
+    // The field means nothing outside Gloppen/NHM, so it is hidden rather than
+    // shown disabled, and its value cleared so a leftover count is not saved.
     function syncRoundsInput(): void {
       const method = selectedMethodName();
       const isRoundBased = method !== "" && usesInitialRoundCount(method);
-      roundsInput.disabled = !isRoundBased;
+      roundsField.classList.toggle("d-none", !isRoundBased);
       if (!isRoundBased) roundsInput.value = "";
-      roundsInput.placeholder = isRoundBased ? "t.d. 6" : "Berre for Gloppen/NHM";
       syncRoundsHelp();
     }
     syncRoundsInput();

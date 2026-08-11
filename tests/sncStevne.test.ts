@@ -543,6 +543,23 @@ describe("settings tab on an SNC umbrella", () => {
       expect(el.querySelector("#rundar-hjelp")!.classList.contains("text-danger")).toBe(true);
     });
 
+    it("shows the round count only for a round-based metode", async () => {
+      getTournamentSettings.mockResolvedValue({ data: gloppenSettings(4), error: null });
+      const el = host();
+      await renderSettings(el, { id: 10 });
+
+      const field = el.querySelector<HTMLElement>("#rundar-felt")!;
+      expect(field.classList.contains("d-none")).toBe(false);
+
+      // Minimatch X-kast gets its omgangar from the kastemetode instead.
+      const select = el.querySelector<HTMLSelectElement>("#innl-metode")!;
+      select.value = "3";
+      select.dispatchEvent(new Event("change"));
+
+      expect(field.classList.contains("d-none")).toBe(true);
+      expect(el.querySelector<HTMLInputElement>("#antall-rundar")!.value).toBe("");
+    });
+
     it("stays hidden for a non-cascade metode", async () => {
       getTournamentSettings.mockResolvedValue({
         data: settings({ er_snc_hovudstevne: false }),
