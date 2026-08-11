@@ -295,8 +295,9 @@ async function updateAuthMenu(): Promise<void> {
     minsideItem.classList.add("d-none");
     adminItem.classList.add("d-none");
     loggutItem.classList.add("d-none");
-    headerEmail.textContent = "";
-    headerEmail.classList.add("d-none");
+    headerEmail.textContent = "Logg inn";
+    (headerEmail as HTMLAnchorElement).href = "#/logginn";
+    headerEmail.classList.remove("d-none");
   }
 }
 
