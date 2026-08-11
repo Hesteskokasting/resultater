@@ -5,7 +5,12 @@ import { getUser, isAdmin, isClubAdmin, signOut } from "./services/authService";
 import { createErrorBanner } from "./components/ErrorBanner";
 import { showReauthModal } from "./components/ReauthModal";
 import { setPageTitle } from "@/utils/pageTitle";
-import { hasRefetch, registerRefetch, runRefetch } from "@/utils/refetchRegistry";
+import {
+  hasRefetch,
+  registerRefetch,
+  registerRouteReload,
+  runRefetch,
+} from "@/utils/refetchRegistry";
 import { initPushNotifications } from "@/services/pushNotificationService";
 import { initStatusBarThemeSync } from "@/services/statusBarService";
 import { initPullToRefresh } from "@/components/PullToRefresh";
@@ -293,6 +298,8 @@ async function updateAuthMenu(): Promise<void> {
 }
 
 window.addEventListener("hashchange", navigate);
+
+registerRouteReload(navigate);
 
 void App.addListener("resume", runRefetch);
 

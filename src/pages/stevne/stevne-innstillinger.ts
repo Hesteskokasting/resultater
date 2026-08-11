@@ -20,7 +20,7 @@ import {
   usesInitialRoundCount,
 } from "@/utils/kastemetode";
 import { getPairCount, getRegistrationCount } from "@/services/pameldingService";
-import { registerRefetch } from "@/utils/refetchRegistry";
+import { registerRefetch, reloadRoute } from "@/utils/refetchRegistry";
 
 // ── Render ────────────────────────────────────────────────────────────────────
 
@@ -79,9 +79,6 @@ export async function render(
 
     container.innerHTML = `
       <div>
-        <div class="mb-3">
-          <button type="button" id="rediger-stevne" class="btn btn-outline-secondary btn-sm">Rediger stevne</button>
-        </div>
         <h4 class="mb-3">Innstillingar</h4>
         <form id="innstillingar-form" class="org-max-480">
           <div class="mb-3">
@@ -122,6 +119,7 @@ export async function render(
           </div>`
           }
           <button type="submit" class="btn btn-primary">Lagre</button>
+          <button type="button" id="rediger-stevne" class="btn btn-outline-secondary ms-2">Fleire innstillingar</button>
           <span id="lagre-status" class="ms-3 text-success d-none">Lagra ✓</span>
           ${
             isSncParent
@@ -136,16 +134,18 @@ export async function render(
         </form>
       </div>`;
 
-    // Editing runs in the overlay so the arrangør keeps this page; a delete
-    // leaves nothing to come back to, so it returns to the terminliste. The
-    // admin form is loaded on demand — it is far larger than this page.
+    // Editing runs in the overlay so the arrangør keeps this page. A save can
+    // change the name and the kastemetodar, which the page header and the tab
+    // row above this subpage are drawn from, so the whole route re-renders. A
+    // delete leaves nothing to come back to, so it returns to the terminliste.
+    // The admin form is loaded on demand — it is far larger than this page.
     container
       .querySelector<HTMLButtonElement>("#rediger-stevne")!
       .addEventListener("click", async () => {
         const { openTournamentEditor } = await import("@/admin/_adminEdit");
         openTournamentEditor(
           id,
-          () => void render(container, { id }),
+          () => void reloadRoute(),
           () => {
             location.hash = "#/terminliste";
           },
