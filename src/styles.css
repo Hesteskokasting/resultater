@@ -3775,8 +3775,13 @@ button.bane-omgang-chip:hover {
   margin-inline: auto;
 }
 
+/* Eliminated standing row: solid under the position cell, then fading from the
+   first pixel of the name cell all the way to the points columns. */
 .final-elim-position {
   background: var(--match-eliminated-bg) !important;
+}
+.final-elim-position + td {
+  background: linear-gradient(90deg, var(--match-eliminated-bg) 0%, transparent 100%) !important;
 }
 
 .final-dialog-overlay {
