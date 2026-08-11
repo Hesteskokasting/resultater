@@ -30,6 +30,9 @@
   --cup-flate-tapar: color-mix(in srgb, #ff6b6b 11%, var(--flate));
   --cup-score-vinnar: color-mix(in srgb, #4caf50 26%, var(--flate));
   --cup-score-tapar: color-mix(in srgb, #ff6b6b 26%, var(--flate));
+  /* Darkest end of the name gradient, at the rail. */
+  --cup-grad-vinnar: color-mix(in srgb, #4caf50 8%, var(--bg));
+  --cup-grad-tapar: color-mix(in srgb, #ff6b6b 8%, var(--bg));
   --cup-score-flate: var(--flate-2);
   --kamp-stripe-ikke: var(--tekst-3);
   --kamp-stripe-pagaar: #d4860a;
@@ -138,6 +141,8 @@
   --cup-flate-tapar: #fbe6e6;
   --cup-score-vinnar: #c8f0c8;
   --cup-score-tapar: #f8d0d0;
+  --cup-grad-vinnar: #bfe2bf;
+  --cup-grad-tapar: #eec6c6;
   --cup-score-flate: var(--flate-2);
   --kamp-stripe-pagaar: #b36000;
   --kamp-stripe-ferdig: #2e7d32;

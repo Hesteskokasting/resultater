@@ -3705,25 +3705,36 @@ button.bane-omgang-chip:hover {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
+/* Confirmed rows: the name gradient runs dark at the rail to the score cell's own
+   fill at its right edge, so the two cells meet seamlessly. */
 .cup-row--vinnar {
-  background: var(--cup-flate-vinnar);
   border-left-color: var(--cup-rail-vinnar);
 }
 .cup-row--vinnar .cup-row__name {
+  background: linear-gradient(90deg, var(--cup-grad-vinnar) 0%, var(--cup-score-vinnar) 100%);
   font-weight: 600;
 }
 .cup-row--vinnar .cup-row__score {
   background: var(--cup-score-vinnar);
+  border-left-color: transparent;
 }
 .cup-row--tapar {
-  background: var(--cup-flate-tapar);
   border-left-color: var(--cup-rail-tapar);
 }
 .cup-row--tapar .cup-row__name {
+  background: linear-gradient(90deg, var(--cup-grad-tapar) 0%, var(--cup-score-tapar) 100%);
   color: var(--tekst-2);
 }
 .cup-row--tapar .cup-row__score {
   background: var(--cup-score-tapar);
+  border-left-color: transparent;
+}
+/* Fixed-width box, so growing the glyphs costs no layout shift. */
+.cup-row__score.score-editable {
+  transition: font-size 0.12s ease;
+}
+.cup-row__score.score-editable:hover {
+  font-size: 1.2em;
 }
 .cup-card__footer {
   margin-top: 0.25rem;
