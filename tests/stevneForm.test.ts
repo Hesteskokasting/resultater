@@ -74,6 +74,25 @@ function optionValues(container: HTMLElement, name: string): string[] {
     .filter((v) => v !== "");
 }
 
+/** The kontaktperson picker: its hidden value field, its search box and its menu. */
+function contact(container: HTMLElement) {
+  const root = container.querySelector<HTMLElement>(".search-select")!;
+  const search = root.querySelector<HTMLInputElement>('input[type="text"]')!;
+  return {
+    hidden: field<HTMLInputElement>(container, "kontaktkasterid"),
+    search,
+    /** Types a query and returns the rows it turns up. */
+    matches(query: string): HTMLElement[] {
+      search.value = query;
+      search.dispatchEvent(new Event("input"));
+      return [...root.querySelectorAll<HTMLElement>(".search-select__menu [data-id]")];
+    },
+    pick(row: HTMLElement): void {
+      row.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true }));
+    },
+  };
+}
+
 function submit(container: HTMLElement): void {
   container.querySelector("form")!.dispatchEvent(new Event("submit", { cancelable: true }));
 }
@@ -175,7 +194,8 @@ describe("stevneForm, ordinary tournament", () => {
     await mountTournamentForm(h);
     field<HTMLInputElement>(h.container, "navn").value = "Nytt stevne";
     field<HTMLInputElement>(h.container, "dato").value = "2026-08-01";
-    field<HTMLSelectElement>(h.container, "kontaktkasterid").value = "61";
+    const picker = contact(h.container);
+    picker.pick(picker.matches("kari")[0]!);
     submit(h.container);
 
     await vi.waitFor(() => expect(onSaved).toHaveBeenCalledWith(7, true));
@@ -184,13 +204,16 @@ describe("stevneForm, ordinary tournament", () => {
     );
   });
 
-  it("lists only active kontaktpersonar on create, etternavn first", async () => {
+  it("searches only active kontaktpersonar on create, etternavn first", async () => {
     const h = host();
     await mountTournamentForm(h);
+    const picker = contact(h.container);
 
-    expect(optionValues(h.container, "kontaktkasterid")).toEqual(["61"]);
-    const [, active] = [...field<HTMLSelectElement>(h.container, "kontaktkasterid").options];
-    expect(active!.textContent).toBe("Nordmann Kari");
+    expect(picker.matches("").map((r) => r.dataset["id"])).toEqual(["61"]);
+    expect(picker.matches("nordmann")[0]!.textContent).toContain("Nordmann Kari");
+    // Both name parts match, in either order.
+    expect(picker.matches("kari nordmann")).toHaveLength(1);
+    expect(picker.matches("slutta")).toHaveLength(0);
   });
 
   it("preselects the saved kontaktperson and keeps it on save", async () => {
@@ -200,9 +223,11 @@ describe("stevneForm, ordinary tournament", () => {
     const h = host({ onSaved });
 
     await mountTournamentForm(h, 5);
-    expect(field<HTMLSelectElement>(h.container, "kontaktkasterid").value).toBe("61");
-    // Inactive throwers stay listed so an existing contact is never dropped.
-    expect(optionValues(h.container, "kontaktkasterid")).toContain("62");
+    const picker = contact(h.container);
+    expect(picker.hidden.value).toBe("61");
+    expect(picker.search.value).toBe("Nordmann Kari");
+    // Inactive throwers stay searchable so an existing contact is never dropped.
+    expect(picker.matches("slutta")[0]!.textContent).toContain("Slutta Ola (inaktiv)");
 
     submit(h.container);
     await vi.waitFor(() => expect(onSaved).toHaveBeenCalledWith(5, false));

@@ -3,6 +3,7 @@ import { confirmDialog } from "@/components/ConfirmDialog";
 import { isAdmin, isClubAdmin } from "@/services/authService";
 import { escHtml } from "@/utils/escHtml";
 import { buildDropdownOptions } from "@/utils/buildDropdownOptions";
+import { createSearchSelect } from "@/components/SearchSelect";
 import { formNum } from "@/utils/formNum";
 import { logError } from "@/utils/logError";
 import { createErrorBanner } from "@/components/ErrorBanner";
@@ -118,17 +119,14 @@ export async function mountTournamentForm(host: AdminFormHost, id?: number): Pro
   const finalOpt = buildDropdownOptions(finalMethods, v.avsluttendekastemetodeid);
   const categoryOpt = buildDropdownOptions(categories, defaultCategory);
   // A new stevne only offers active throwers. On edit, inactive ones stay listed
-  // so an existing contact never falls out of the dropdown and gets nulled on save.
-  const contactOpt = buildDropdownOptions(
-    throwers
-      .filter((k) => k.eraktiv || id != null)
-      .map((k) => ({
-        id: k.id,
-        navn: throwerNameLastFirst(k) + (k.eraktiv ? "" : " (inaktiv)"),
-      })),
-    v.kontaktkasterid,
-    "— ingen kontaktperson —",
-  );
+  // so an existing contact never falls out of the picker and gets nulled on save.
+  const contactItems = throwers
+    .filter((k) => k.eraktiv || id != null)
+    .map((k) => ({
+      id: k.id,
+      label: throwerNameLastFirst(k) + (k.eraktiv ? "" : " (inaktiv)"),
+      sublabel: k.klubb?.navn ?? null,
+    }));
   const sncParentLabel = sncParent
     ? escHtml(sncParent.navn) + (sncParent.dato ? ` (${formatDate(sncParent.dato)})` : "")
     : "";
@@ -152,7 +150,7 @@ export async function mountTournamentForm(host: AdminFormHost, id?: number): Pro
       </div>
       <div class="admin-form-grid">
         ${formRowHtml("Arrangørklubb", `<select class="form-select" name="klubbid">${clubOpt}</select>`)}
-        ${formRowHtml("Kontaktperson", `<select class="form-select" name="kontaktkasterid">${contactOpt}</select>`)}
+        ${formRowHtml("Kontaktperson", `<span id="kontakt-slot"></span>`)}
       </div>
       <div class="admin-form-grid">
         ${formRowHtml("Stevnetype", `<select class="form-select" name="stevnetypeid">${typeOpt}</select>`)}
@@ -200,6 +198,15 @@ export async function mountTournamentForm(host: AdminFormHost, id?: number): Pro
     </form>`;
 
   container.replaceChildren(wrapper);
+
+  createSearchSelect({
+    slot: wrapper.querySelector("#kontakt-slot")!,
+    items: contactItems,
+    name: "kontaktkasterid",
+    value: v.kontaktkasterid ?? null,
+    placeholder: "Søk på etternamn eller fornamn…",
+    clearLabel: "— ingen kontaktperson —",
+  });
 
   const sncParentCheckbox = wrapper.querySelector<HTMLInputElement>("#snc-hovud")!;
   const sncFieldset = wrapper.querySelector<HTMLElement>("#snc-fieldset")!;
