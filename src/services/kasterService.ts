@@ -1,6 +1,7 @@
 import type { QueryData } from "@supabase/supabase-js";
 import { supabase } from "@/supabase";
 import { logError } from "@/utils/logError";
+import { fetchAllRows } from "@/utils/fetchAllRows";
 import type { Tables } from "@/types";
 
 // Query builders used only for type inference — no HTTP calls at module load
@@ -70,28 +71,30 @@ export async function getClubMembers(
   return entry;
 }
 
+/** One page of the thrower list, in the order every list view shows it. */
+function throwerListPage(from: number, to: number, activeOnly: boolean) {
+  const query = supabase
+    .from("kaster")
+    .select("id, fornavn, etternavn, eraktiv, avatarurl, kjonnid, klubb:klubbid(id, navn)");
+  return (activeOnly ? query.eq("eraktiv", true) : query)
+    .order("etternavn")
+    .order("fornavn")
+    .range(from, to);
+}
+
 export async function getActiveThrowerList(): Promise<{ data: ThrowerListRow[]; error: unknown }> {
   if (_kasterListeAktivCache) return { data: _kasterListeAktivCache, error: null };
-  const { data, error } = await supabase
-    .from("kaster")
-    .select("id, fornavn, etternavn, eraktiv, avatarurl, kjonnid, klubb:klubbid(id, navn)")
-    .eq("eraktiv", true)
-    .order("etternavn")
-    .order("fornavn");
+  const { data, error } = await fetchAllRows((from, to) => throwerListPage(from, to, true));
   if (error) logError("getActiveThrowerList", error);
-  _kasterListeAktivCache = data ?? [];
+  _kasterListeAktivCache = data;
   return { data: _kasterListeAktivCache, error };
 }
 
 export async function getAllThrowerList(): Promise<{ data: ThrowerListRow[]; error: unknown }> {
   if (_kasterListeAlleCache) return { data: _kasterListeAlleCache, error: null };
-  const { data, error } = await supabase
-    .from("kaster")
-    .select("id, fornavn, etternavn, eraktiv, avatarurl, kjonnid, klubb:klubbid(id, navn)")
-    .order("etternavn")
-    .order("fornavn");
+  const { data, error } = await fetchAllRows((from, to) => throwerListPage(from, to, false));
   if (error) logError("getAllThrowerList", error);
-  _kasterListeAlleCache = data ?? [];
+  _kasterListeAlleCache = data;
   return { data: _kasterListeAlleCache, error };
 }
 
@@ -229,15 +232,18 @@ export async function getThrowerAdminList(): Promise<{
   error: unknown;
 }> {
   if (_kasterAdminListeCache) return { data: _kasterAdminListeCache, error: null };
-  const { data, error } = await supabase
-    .from("kaster")
-    .select(
-      "id, fornavn, etternavn, eraktiv, medlemsnummer, klubbid, klubb:klubbid(id, navn), klasse:klasseid(id, navn), kjonn:kjonnid(id, navn)",
-    )
-    .order("etternavn")
-    .order("fornavn");
+  const { data, error } = await fetchAllRows((from, to) =>
+    supabase
+      .from("kaster")
+      .select(
+        "id, fornavn, etternavn, eraktiv, medlemsnummer, klubbid, klubb:klubbid(id, navn), klasse:klasseid(id, navn), kjonn:kjonnid(id, navn)",
+      )
+      .order("etternavn")
+      .order("fornavn")
+      .range(from, to),
+  );
   if (error) logError("getThrowerAdminList", error);
-  _kasterAdminListeCache = data ?? [];
+  _kasterAdminListeCache = data;
   return { data: _kasterAdminListeCache, error };
 }
 

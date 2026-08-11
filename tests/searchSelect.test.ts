@@ -39,6 +39,27 @@ describe("createSearchSelect", () => {
     expect(h.type("finnes ikkje")).toHaveLength(0);
   });
 
+  it("ignores case and Nordic letters both ways", () => {
+    const h = mount({
+      items: [
+        { id: 1, label: "Østbø Åse" },
+        { id: 2, label: "Ostebo Ase" },
+      ],
+    });
+    expect(h.type("ostbo")).toHaveLength(1);
+    expect(h.type("Østbø")).toHaveLength(1);
+    expect(h.type("ase")).toHaveLength(2);
+  });
+
+  it("says how many hits it left out instead of cutting the list silently", () => {
+    const many = Array.from({ length: 30 }, (_, i) => ({ id: i + 1, label: `Testar Nummer ${i}` }));
+    const h = mount({ items: many, maxResults: 10 });
+
+    expect(h.type("testar")).toHaveLength(10);
+    expect(h.search.parentElement!.textContent).toContain("Viser 10 av 30 treff");
+    expect(h.type("nummer 25")).toHaveLength(1);
+  });
+
   it("writes the picked id to the form field and shows the label", () => {
     const onSelect = vi.fn();
     const h = mount({ onSelect });

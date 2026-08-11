@@ -23,6 +23,7 @@ export interface SearchSelectProps {
   emptyText?: string;
   /** Characters needed before the list opens. Defaults to 0 with `items`, 2 when lazy. */
   minChars?: number;
+  /** Rows rendered at most. Anything beyond is reported in a footer, never dropped silently. */
   maxResults?: number;
   onSelect?: (id: number | null) => void;
 }
@@ -34,9 +35,20 @@ export interface SearchSelectHandle {
   setValue: (id: number | null) => void;
 }
 
+/** Case- and accent-insensitive, so "ostbo" finds "Østbø" and vice versa. */
+function fold(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(/[æä]/g, "ae")
+    .replace(/[øö]/g, "o")
+    .replace(/å/g, "a");
+}
+
 /** Every whitespace-separated term must hit the label or sublabel, in any order. */
 function matches(item: SearchSelectItem, terms: string[]): boolean {
-  const hay = `${item.label} ${item.sublabel ?? ""}`.toLowerCase();
+  const hay = fold(`${item.label} ${item.sublabel ?? ""}`);
   return terms.every((t) => hay.includes(t));
 }
 
@@ -54,7 +66,7 @@ export function createSearchSelect({
   clearLabel,
   emptyText = "Ingen treff.",
   minChars,
-  maxResults = 12,
+  maxResults = 50,
   onSelect,
 }: SearchSelectProps): SearchSelectHandle {
   const threshold = minChars ?? (items ? 0 : 2);
@@ -104,10 +116,10 @@ export function createSearchSelect({
   }
 
   function render(query: string): void {
-    const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
-    const hits = (all ?? []).filter((k) => matches(k, terms)).slice(0, maxResults);
+    const terms = fold(query).split(/\s+/).filter(Boolean);
+    const hits = (all ?? []).filter((k) => matches(k, terms));
 
-    const rows: HTMLElement[] = hits.map((k) => {
+    const rows: HTMLElement[] = hits.slice(0, maxResults).map((k) => {
       const row = createEl("button", null, "list-group-item list-group-item-action");
       row.type = "button";
       row.dataset["id"] = String(k.id);
@@ -135,6 +147,16 @@ export function createSearchSelect({
       menu.replaceChildren(empty);
     } else {
       menu.replaceChildren(...rows);
+      // Say so rather than letting a cut-off list look complete.
+      if (hits.length > maxResults) {
+        menu.append(
+          createEl(
+            "div",
+            `Viser ${maxResults} av ${hits.length} treff — skriv meir for å snevre inn.`,
+            "list-group-item small text-muted",
+          ),
+        );
+      }
     }
     menu.classList.remove("d-none");
     input.setAttribute("aria-expanded", "true");
