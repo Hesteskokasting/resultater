@@ -106,13 +106,19 @@ export function showTotalNumberpad(entry: TotalEntry): void {
         action:
           stage === "poeng"
             ? {
+                caption: "Neste",
                 label: "→",
                 onClick: () => {
                   stage = "ringer";
                   render();
                 },
               }
-            : { label: isSaving ? "…" : "✓", disabled: isSaving, onClick: () => void save() },
+            : {
+                caption: "Lagre",
+                label: isSaving ? "…" : "✓",
+                disabled: isSaving,
+                onClick: () => void save(),
+              },
       }),
     ]);
     body.appendChild(padColumns([col]));

@@ -2653,6 +2653,29 @@ th.initial-score-th {
   color: var(--pad-aksent-tekst);
 }
 
+/* A glyph alone reads as decoration, so the action key names itself above it. */
+.pad-key-stacked {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  line-height: 1;
+}
+
+.pad-key-caption {
+  font-size: clamp(0.9rem, 3.2vw, 1.15rem);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.pad-key-glyph {
+  font-size: clamp(1.9rem, 6.5vw, 2.4rem);
+  font-weight: 700;
+}
+
 .pad-key:disabled {
   opacity: 0.35;
   cursor: not-allowed;

@@ -221,7 +221,12 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
     return padDigitGrid({
       onDigit: (digit) => edit(appendDigit(state.poengInput, digit, OMGANG_MAX_POENG)),
       onClear: () => edit(""),
-      action: { label: "→", disabled: state.poengInput === "", onClick: goToRinger },
+      action: {
+        caption: "Neste",
+        label: "→",
+        disabled: state.poengInput === "",
+        onClick: goToRinger,
+      },
     });
   }
 

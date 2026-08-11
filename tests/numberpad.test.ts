@@ -250,6 +250,8 @@ describe("showOmgangNumberpad", () => {
     // Two omgang cells plus the SUM cell.
     expect(document.querySelectorAll(".pad-strip-cell").length).toBe(3);
     expect(document.querySelector<HTMLButtonElement>(".pad-key-action")!.disabled).toBe(true);
+    // The arrow is captioned, so the key says what it does.
+    expect(document.querySelector(".pad-key-action .pad-key-caption")!.textContent).toBe("Neste");
 
     gridKeys()[7]!.click();
     expect(document.querySelector(".pad-display-value")!.textContent).toBe("8");
