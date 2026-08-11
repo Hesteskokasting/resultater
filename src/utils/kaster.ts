@@ -6,6 +6,13 @@ export function throwerName(
   return [k?.fornavn, k?.etternavn].filter(Boolean).join(" ");
 }
 
+/** "Etternavn Fornavn" — for dropdowns sorted by last name. */
+export function throwerNameLastFirst(
+  k: { fornavn?: string | null; etternavn?: string | null } | null | undefined,
+): string {
+  return [k?.etternavn, k?.fornavn].filter(Boolean).join(" ");
+}
+
 /** "Fornavn E." — first name plus last-name initial. */
 export function throwerNameShort(
   k: { fornavn?: string | null; etternavn?: string | null } | null | undefined,

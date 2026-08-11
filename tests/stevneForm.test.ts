@@ -184,6 +184,15 @@ describe("stevneForm, ordinary tournament", () => {
     );
   });
 
+  it("lists only active kontaktpersonar on create, etternavn first", async () => {
+    const h = host();
+    await mountTournamentForm(h);
+
+    expect(optionValues(h.container, "kontaktkasterid")).toEqual(["61"]);
+    const [, active] = [...field<HTMLSelectElement>(h.container, "kontaktkasterid").options];
+    expect(active!.textContent).toBe("Nordmann Kari");
+  });
+
   it("preselects the saved kontaktperson and keeps it on save", async () => {
     mocks.getTournamentForAdmin.mockResolvedValue({ data: row(), error: null });
     mocks.updateTournament.mockResolvedValue({ data: { id: 5 }, error: null });

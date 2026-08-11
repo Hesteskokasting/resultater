@@ -26,7 +26,7 @@ import {
 } from "@/services/stevneService";
 import { getClubs } from "@/services/klubbService";
 import { getAllThrowerList, type ThrowerListRow } from "@/services/kasterService";
-import { throwerName } from "@/utils/kaster";
+import { throwerNameLastFirst } from "@/utils/kaster";
 import { isKongelagMethodName, isXkastMethodName } from "@/utils/kastemetode";
 import { formatDate } from "@/utils/shared";
 import { formShell } from "./_formHost";
@@ -117,13 +117,15 @@ export async function mountTournamentForm(host: AdminFormHost, id?: number): Pro
   const initialOpt = buildDropdownOptions(initialMethods, v.innledendekastemetodeid);
   const finalOpt = buildDropdownOptions(finalMethods, v.avsluttendekastemetodeid);
   const categoryOpt = buildDropdownOptions(categories, defaultCategory);
-  // Inactive throwers are listed too, so an existing contact never falls out of
-  // the dropdown and gets nulled on save.
+  // A new stevne only offers active throwers. On edit, inactive ones stay listed
+  // so an existing contact never falls out of the dropdown and gets nulled on save.
   const contactOpt = buildDropdownOptions(
-    throwers.map((k) => ({
-      id: k.id,
-      navn: throwerName(k) + (k.eraktiv ? "" : " (inaktiv)"),
-    })),
+    throwers
+      .filter((k) => k.eraktiv || id != null)
+      .map((k) => ({
+        id: k.id,
+        navn: throwerNameLastFirst(k) + (k.eraktiv ? "" : " (inaktiv)"),
+      })),
     v.kontaktkasterid,
     "— ingen kontaktperson —",
   );
