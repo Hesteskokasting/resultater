@@ -1,5 +1,6 @@
 import { createErrorBanner } from "@/components/ErrorBanner";
 import { createStevneCard } from "@/components/StevneCard";
+import { createLogoutButton } from "@/components/LogoutButton";
 import { createEl } from "@/utils/createEl";
 import { logError } from "@/utils/logError";
 import { registerRefetch } from "@/utils/refetchRegistry";
@@ -77,7 +78,9 @@ export async function render(container: HTMLElement, params: Params = {}): Promi
   const head = createEl("header", null, "admin-head");
   head.appendChild(createEl("h2", "Dashboard - Admin", "admin-head__title"));
   const subtitle = createEl("span", null, "admin-head__sub");
-  head.appendChild(subtitle);
+  const meta = createEl("div", null, "admin-head__meta");
+  meta.append(subtitle, createLogoutButton());
+  head.appendChild(meta);
 
   const nav = buildNav(activeTab);
   const content = createEl("div", null, "admin-panel");

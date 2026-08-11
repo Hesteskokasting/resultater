@@ -3887,6 +3887,14 @@ button.bane-omgang-chip:hover {
   max-width: 640px;
 }
 
+.mypage-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
 /* ── Klubbar ─────────────────────────────────────────────────────────────────── */
 
 .club-detail-header {
@@ -4492,6 +4500,12 @@ a.kd-res-row__name:hover {
 .admin-head__sub {
   color: var(--tekst-2);
   font-size: 0.85rem;
+}
+
+.admin-head__meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 /* Seven tabs do not fit a phone: scroll them sideways instead of wrapping to
