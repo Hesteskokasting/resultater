@@ -1,0 +1,1 @@
+import{t as e}from"./klubbForm-BfFVA_uW.js";import{t}from"./_formRoute-DiYnNHqu.js";function n(n,r={}){return t(n,r,{mount:e,heading:e=>e?`Ny klubb`:`Rediger klubb`,wrapperClass:`container py-4 admin-form-sm`,createdHash:e=>`#/klubber/${e}/admin`,nameFields:[`navn`]})}export{n as render};

@@ -1,0 +1,1 @@
+import{c as e}from"./index-D2QTlVNA.js";function t(t,n,r=`— velg —`){let i=`<option value="">${r}</option>`;for(let r of t??[]){let t=String(r.id)===String(n)?` selected`:``,a=e(r.navn??r.klubbnavn??``);i+=`<option value="${r.id}"${t}>${a}</option>`}return i}export{t};
