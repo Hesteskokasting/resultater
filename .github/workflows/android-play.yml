@@ -1,0 +1,135 @@
+name: Android Play Bundle
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+    inputs:
+      server_url:
+        description: "Server URL override, e.g. https://res.hesteskokasting.no/dev (empty = production)"
+        required: false
+        default: ""
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment: android-release
+
+    steps:
+      - uses: actions/checkout@v5
+
+      # vp version is auto-detected from the vite-plus devDependency + lockfile.
+      - uses: voidzero-dev/setup-vp@v1
+        with:
+          node-version: "24"
+          cache: true
+          run-install: false
+
+      - name: Install dependencies
+        run: vp install --frozen-lockfile
+
+      - name: Check formatting, lint and types
+        run: vp check
+
+      # versionCode comes from package.json, and Play rejects a duplicate. Surface it
+      # up front so a stale build number fails the eye test before Gradle even starts.
+      - name: Report version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          BUILD=$(node -p "require('./package.json').buildNumber")
+          echo "### versionName $VERSION / versionCode $BUILD" >> "$GITHUB_STEP_SUMMARY"
+          echo "Bump \`buildNumber\` in package.json if Play already has $BUILD." >> "$GITHUB_STEP_SUMMARY"
+
+      # No VITE_* secrets here on purpose: server.url points at the deployed site, so
+      # the WebView never loads the bundled dist/. It is built only because cap sync
+      # requires webDir to exist. (iOS does need them — it injects the Google Sign-In
+      # URL scheme into Info.plist at build time. Android registers its SHA-1 in Google
+      # Cloud instead, so nothing platform-specific is baked into this build.)
+      - name: Build web assets
+        run: vp build --base /
+
+      # capacitor.config.ts treats an empty CAPACITOR_SERVER_URL as set, so only
+      # export it when the input is non-empty — otherwise production is used.
+      - name: Sync Capacitor Android
+        run: |
+          if [ -n "${{ inputs.server_url }}" ]; then
+            export CAPACITOR_SERVER_URL="${{ inputs.server_url }}"
+            echo "::warning::Building against non-production server: ${{ inputs.server_url }}"
+          fi
+          vp exec cap sync android
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: "platforms;android-36 build-tools;36.0.0"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # Written outside the repo tree so a later step can't accidentally archive it.
+      - name: Restore release keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::error::Secret ANDROID_KEYSTORE_BASE64 is not set in the android-release environment"
+            exit 1
+          fi
+          KEYSTORE_PATH="$RUNNER_TEMP/release.keystore"
+          echo "$KEYSTORE_BASE64" | base64 -d > "$KEYSTORE_PATH"
+          cat > android/app/keystore.properties << EOF
+          storeFile=$KEYSTORE_PATH
+          storePassword=$KEYSTORE_PASSWORD
+          keyAlias=$KEY_ALIAS
+          keyPassword=$KEY_PASSWORD
+          EOF
+
+      - name: Build release bundle
+        run: ./gradlew bundleRelease --no-daemon
+        working-directory: android
+
+      - name: Remove keystore
+        if: always()
+        run: rm -f android/app/keystore.properties "$RUNNER_TEMP/release.keystore"
+
+      # build.gradle silently falls back to debug signing when keystore.properties is
+      # missing, and Play rejects the upload only after you have waited for it.
+      - name: Verify release signing
+        run: |
+          CERT=$(keytool -printcert -jarfile android/app/build/outputs/bundle/release/app-release.aab)
+          echo "$CERT"
+          if echo "$CERT" | grep -q "CN=Android Debug"; then
+            echo "::error::Bundle is debug-signed — the keystore secrets did not apply"
+            exit 1
+          fi
+
+      # A single missing plugin class makes PluginManager abort registration of *every*
+      # plugin at runtime, while the build still reports success. Catch it here.
+      - name: Verify plugin classes are in the bundle
+        run: |
+          unzip -o -q android/app/build/outputs/bundle/release/app-release.aab \
+            'base/dex/*' -d "$RUNNER_TEMP/aab"
+          MISSING=0
+          while read -r CLASSPATH; do
+            if grep -qaF "$(echo "$CLASSPATH" | tr '.' '/')" "$RUNNER_TEMP"/aab/base/dex/*.dex; then
+              echo "ok      $CLASSPATH"
+            else
+              echo "::error::Plugin class missing from the bundle: $CLASSPATH"
+              MISSING=1
+            fi
+          done < <(jq -r '.[].classpath' android/app/src/main/assets/capacitor.plugins.json)
+          exit $MISSING
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-release-aab
+          path: android/app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+          retention-days: 30
