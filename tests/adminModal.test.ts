@@ -117,14 +117,12 @@ describe("openAdminModal", () => {
     modal.close();
   });
 
-  it("uses the wide dialog only when asked", () => {
-    const wide = openAdminModal({ title: "X", size: "lg" });
-    expect(document.querySelector(".modal-dialog")?.classList.contains("modal-lg")).toBe(true);
-    wide.close();
-
-    const normal = openAdminModal({ title: "X" });
-    expect(document.querySelector(".modal-dialog")?.classList.contains("modal-lg")).toBe(false);
-    normal.close();
+  it("fills the screen", () => {
+    const modal = openAdminModal({ title: "X" });
+    expect(document.querySelector(".modal-dialog")?.classList.contains("modal-fullscreen")).toBe(
+      true,
+    );
+    modal.close();
   });
 });
 

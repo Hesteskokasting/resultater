@@ -18,15 +18,13 @@ export interface AdminModalHandle {
 
 export interface AdminModalProps {
   title: string;
-  /** "lg" for the tournament form, "md" (default) for the shorter ones. */
-  size?: "md" | "lg";
   /** Runs on every close, whichever way it was closed. */
   onClose?: () => void;
 }
 
 let openHandle: AdminModalHandle | null = null;
 
-export function openAdminModal({ title, size = "md", onClose }: AdminModalProps): AdminModalHandle {
+export function openAdminModal({ title, onClose }: AdminModalProps): AdminModalHandle {
   // Defensive: a stray second open would otherwise stack backdrops.
   openHandle?.close();
 
@@ -35,7 +33,7 @@ export function openAdminModal({ title, size = "md", onClose }: AdminModalProps)
     role: "dialog",
     labelledBy: "admin-modal-title",
     html: `
-    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable ${size === "lg" ? "modal-lg" : ""} admin-modal">
+    <div class="modal-dialog modal-fullscreen admin-modal">
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" id="admin-modal-title"></h5>

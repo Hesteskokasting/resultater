@@ -17,7 +17,6 @@ interface EditorProps {
   title: (isNew: boolean) => string;
   savedMessage: (isNew: boolean) => string;
   deletedMessage: string;
-  size?: "md" | "lg";
 }
 
 function openEditor(
@@ -27,7 +26,7 @@ function openEditor(
   onChanged: () => void,
 ) {
   const isNew = id === undefined;
-  const modal = openAdminModal({ title: props.title(isNew), size: props.size });
+  const modal = openAdminModal({ title: props.title(isNew) });
 
   const finish = (message: string): void => {
     modal.close();
@@ -53,7 +52,6 @@ export function openTournamentEditor(id: number | undefined, onChanged: () => vo
       title: (isNew) => (isNew ? "Nytt stevne" : "Rediger stevne"),
       savedMessage: (created) => (created ? "Stevnet er oppretta." : "Stevnet er lagra."),
       deletedMessage: "Stevnet er sletta.",
-      size: "lg",
     },
     id,
     onChanged,
@@ -67,7 +65,6 @@ export function openThrowerEditor(id: number | undefined, onChanged: () => void)
       title: (isNew) => (isNew ? "Ny utøvar" : "Rediger utøvar"),
       savedMessage: (created) => (created ? "Utøvaren er oppretta." : "Utøvaren er lagra."),
       deletedMessage: "Utøvaren er sletta.",
-      size: "lg",
     },
     id,
     onChanged,
