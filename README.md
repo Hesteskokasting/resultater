@@ -465,6 +465,63 @@ Lokal bygg mot ein simulator krev Xcode 26 + macOS 16. Inntil då er GitHub Acti
 
 ---
 
+## Slepp ein ny app-versjon (Google Play + TestFlight)
+
+Appane lastar nettsida live via `server.url`, så **vanlege web-endringar treng ikkje ny app-versjon** — dei er ute med det same GitHub Pages-deployen er godkjend. Nytt native-bygg trengst berre når noko native har endra seg: ein ny Capacitor-plugin, endra `capacitor.config.ts`, ikon/splash, `AndroidManifest.xml`, Gradle-konfigurasjon eller liknande.
+
+### 1. Deploy web fyrst
+
+Merge `dev` → `main` og godkjenn produksjonsdeployen (sjå [Branchar og deployment](#branchar-og-deployment)).
+
+Dette må skje fyrst fordi JS-koden som brukar ein ny plugin ligg i web-bygget, ikkje i appen. Motsett rekkjefølgje er ufarleg — gamle installasjonar loggar berre ein `not implemented`-feil som blir fanga opp — men då gjer den nye appversjonen ingenting før weben er ute.
+
+### 2. Auk byggnummeret
+
+`versionCode` for Android kjem frå `buildNumber` i `package.json` ([`android/app/build.gradle`](android/app/build.gradle)). Google Play avviser eit opplasta bygg med eit `versionCode` som allereie finst, så auk det med éin og commit:
+
+```jsonc
+"buildNumber": 4
+```
+
+`versionName` kjem frå `version` i same fil — auk den òg viss dette er ein versjon brukarane skal sjå. iOS treng ingenting: byggnummeret der kjem automatisk frå `github.run_number`.
+
+### 3. Byggj Android-AAB-en
+
+```powershell
+Set-Location <repo>
+vp run build
+vp run android:sync          # MERK: utan CAPACITOR_SERVER_URL — sjå åtvaringa under
+$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
+Set-Location android
+.\gradlew.bat bundleRelease
+```
+
+AAB-en hamnar i `android/app/build/outputs/bundle/release/app-release.aab`.
+
+> **Åtvaring:** har du testa mot dev eller ein lokal Vite-server, peikar `android/app/src/main/assets/capacitor.config.json` framleis dit. `vp run android:sync` utan `CAPACITOR_SERVER_URL` skriv han tilbake til produksjon — hopp aldri over dette steget. (Release-bygget blokkerer uansett cleartext, så eit gløymt `http://localhost`-bygg feilar synleg i staden for stille, men versjonen er då brend.)
+
+Du treng **ikkje** opne Android Studio. Ligg `android/app/keystore.properties` på plass, signerer Gradle release-bygget med release-nøkkelen automatisk — sjå [Release-signering](#release-signering). Manglar fila, fell bygget tilbake til debug-signering og Play avviser opplastinga.
+
+Sjekk til slutt at bygget er signert med release-nøkkelen og ikkje debug-nøkkelen. Ein AAB er jar-signert, så `keytool` les han direkte (`aapt2 dump badging` fungerer berre på APK-ar):
+
+```powershell
+& "$env:JAVA_HOME\bin\keytool.exe" -printcert -jarfile android\app\build\outputs\bundle\release\app-release.aab
+```
+
+Står det `CN=Android Debug` i utskrifta, mangla `keystore.properties` under bygget.
+
+Sidan éin einaste plugin-klasse som manglar stoppar registreringa av **alle** plugins ved oppstart, er det verdt å stadfeste at kvar `classpath` i `android/app/src/main/assets/capacitor.plugins.json` faktisk finst i bygget før du lastar opp.
+
+### 4. Last opp til Google Play
+
+[Play Console](https://play.google.com/console) → appen → **Testing → Internal testing** (eller **Production**) → **Create new release** → last opp `app-release.aab`.
+
+### 5. Send til TestFlight
+
+**GitHub → Actions → iOS TestFlight → Run workflow**, køyrd mot `main` etter mergen i steg 1. Workflowen byggjer weben, synkroniserer Capacitor og lastar opp sjølv — sjå [Køyre ein TestFlight-bygg](#køyre-ein-testflight-bygg).
+
+---
+
 ## Prosjektstruktur
 
 ```
