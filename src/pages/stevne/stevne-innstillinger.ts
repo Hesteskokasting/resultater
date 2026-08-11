@@ -80,7 +80,7 @@ export async function render(
     container.innerHTML = `
       <div>
         <div class="mb-3">
-          <a href="#/stevne/${id}/rediger" class="btn btn-outline-secondary btn-sm">Rediger stevne</a>
+          <button type="button" id="rediger-stevne" class="btn btn-outline-secondary btn-sm">Rediger stevne</button>
         </div>
         <h4 class="mb-3">Innstillingar</h4>
         <form id="innstillingar-form" class="org-max-480">
@@ -135,6 +135,22 @@ export async function render(
           }
         </form>
       </div>`;
+
+    // Editing runs in the overlay so the arrangør keeps this page; a delete
+    // leaves nothing to come back to, so it returns to the terminliste. The
+    // admin form is loaded on demand — it is far larger than this page.
+    container
+      .querySelector<HTMLButtonElement>("#rediger-stevne")!
+      .addEventListener("click", async () => {
+        const { openTournamentEditor } = await import("@/admin/_adminEdit");
+        openTournamentEditor(
+          id,
+          () => void render(container, { id }),
+          () => {
+            location.hash = "#/terminliste";
+          },
+        );
+      });
 
     // antall_runder_innl only drives Gloppen/NHM kamp generation — X-kast
     // methods get their omgang count from kastemetode.antall_omganger.

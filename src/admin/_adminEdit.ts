@@ -24,28 +24,34 @@ function openEditor(
   props: EditorProps,
   id: number | undefined,
   onChanged: () => void,
+  onDeleted?: () => void,
 ) {
   const isNew = id === undefined;
   const modal = openAdminModal({ title: props.title(isNew) });
 
-  const finish = (message: string): void => {
+  const finish = (message: string, after: () => void): void => {
     modal.close();
     showToast(message, "success");
-    onChanged();
+    after();
   };
 
   void mount(
     {
       container: modal.body,
-      onSaved: (_savedId, created) => finish(props.savedMessage(created)),
-      onDeleted: () => finish(props.deletedMessage),
+      onSaved: (_savedId, created) => finish(props.savedMessage(created), onChanged),
+      // A caller viewing the deleted row itself has to leave, not just refresh.
+      onDeleted: () => finish(props.deletedMessage, onDeleted ?? onChanged),
       onCancel: () => modal.close(),
     },
     id,
   );
 }
 
-export function openTournamentEditor(id: number | undefined, onChanged: () => void): void {
+export function openTournamentEditor(
+  id: number | undefined,
+  onChanged: () => void,
+  onDeleted?: () => void,
+): void {
   openEditor(
     mountTournamentForm,
     {
@@ -55,6 +61,7 @@ export function openTournamentEditor(id: number | undefined, onChanged: () => vo
     },
     id,
     onChanged,
+    onDeleted,
   );
 }
 

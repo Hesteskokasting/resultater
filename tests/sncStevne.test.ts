@@ -398,11 +398,11 @@ describe("settings tab on an SNC umbrella", () => {
     getTournamentSettings.mockResolvedValue({ data: settings(), error: null });
   });
 
-  it("keeps the edit link, so date and time stay reachable", async () => {
+  it("keeps the edit button, so date and time stay reachable", async () => {
     const el = host();
     await renderSettings(el, { id: 10 });
 
-    expect(el.querySelector('a[href="#/stevne/10/rediger"]')).not.toBeNull();
+    expect(el.querySelector("#rediger-stevne")).not.toBeNull();
   });
 
   it("offers only X-kast and Kongelag as methods", async () => {
