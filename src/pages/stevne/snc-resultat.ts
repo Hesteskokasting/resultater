@@ -217,11 +217,17 @@ function detailHtml(row: SncResultRow, cols: ColFlags): string {
   return boxes.join("");
 }
 
-function mobileRowHtml(row: SncResultRow, cols: ColFlags, idx: number): string {
+function mobileRowHtml(
+  row: SncResultRow,
+  cols: ColFlags,
+  idx: number,
+  variant: TableVariant = "samla",
+): string {
   const panelId = `res-detalj-${idx}`;
+  const lead = variant === "samla" ? row.snc_plassering : row.plassering;
   return `
     <div class="res-row res-row--snc">
-      <span class="res-pl">${row.snc_plassering ?? "–"}.</span>
+      <span class="res-pl">${lead ?? "–"}.</span>
       <div class="res-info">
         <span class="res-navn">${escHtml(throwerName(row.kaster) || "–")}</span>
         <span class="res-klubb">${escHtml(row.klubb?.navn ?? "–")}</span>
@@ -235,6 +241,63 @@ function mobileRowHtml(row: SncResultRow, cols: ColFlags, idx: number): string {
       </div>
       <div class="res-detalj" id="${panelId}" hidden>${detailHtml(row, cols)}</div>
     </div>`;
+}
+
+/** The mobile cards and the desktop table for one set of rows. */
+function listHtml(rows: SncResultRow[], cols: ColFlags, variant: TableVariant): string {
+  return `
+    <div class="res-mobil-blokk">
+      <div class="res-group">
+        <div class="res-group-rows">
+          ${rows.map((r, i) => mobileRowHtml(r, cols, i, variant)).join("")}
+        </div>
+      </div>
+    </div>
+    <div class="res-desktop-blokk">${tableHtml(rows, cols, variant)}</div>`;
+}
+
+/** "Alle lokale stevne" plus the ones that actually have results. */
+function filterHtml(locals: SncLocalTournamentRow[], rows: SncResultRow[]): string {
+  const options = localsWithResults(locals, rows)
+    .map(({ local }) => `<option value="${local.id}">${escHtml(local.navn)}</option>`)
+    .join("");
+  if (!options) return "";
+  return `
+    <label class="res-filter">
+      <span class="res-filter__etikett">Lokalt stevne</span>
+      <select id="snc-lokal-filter" class="form-select form-select-sm res-filter__vel">
+        <option value="">Alle lokale stevne</option>
+        ${options}
+      </select>
+    </label>`;
+}
+
+/**
+ * Picking a local stevne swaps the merged list for that stevne's own — the same
+ * table the printed per-stevne pages carry, led by the local placement.
+ */
+function bindLocalFilter(
+  container: HTMLElement,
+  locals: SncLocalTournamentRow[],
+  rows: SncResultRow[],
+  cols: ColFlags,
+): void {
+  const select = container.querySelector<HTMLSelectElement>("#snc-lokal-filter");
+  const listSlot = container.querySelector<HTMLElement>("#snc-liste");
+  const titleSlot = container.querySelector<HTMLElement>("#snc-liste-tittel");
+  if (!select || !listSlot || !titleSlot) return;
+
+  select.addEventListener("change", () => {
+    const id = Number(select.value);
+    const entry = localsWithResults(locals, rows).find(({ local }) => local.id === id);
+    if (!entry) {
+      titleSlot.textContent = sectionTitle(cols, rows.length);
+      listSlot.innerHTML = listHtml(rows, cols, "samla");
+      return;
+    }
+    titleSlot.textContent = `${entry.local.navn} – ${entry.rows.length} deltakarar`;
+    listSlot.innerHTML = listHtml(entry.rows, cols, "lokal");
+  });
 }
 
 /** One delegated listener toggles whichever detail panel was asked for. */
@@ -352,18 +415,17 @@ export async function render(
       <div class="res-side">
         ${printHeaderHtml(parent, cols, localCount, rows.length)}
         <section class="res-seksjon">
-          <h6 class="res-seksjon-tittel">${escHtml(sectionTitle(cols, rows.length))}</h6>
-          <div class="res-mobil-blokk">
-            <div class="res-group">
-              <div class="res-group-rows">${rows.map((r, i) => mobileRowHtml(r, cols, i)).join("")}</div>
-            </div>
+          <div class="res-seksjon-topp">
+            <h6 class="res-seksjon-tittel" id="snc-liste-tittel">${escHtml(sectionTitle(cols, rows.length))}</h6>
+            ${filterHtml(locals, rows)}
           </div>
-          <div class="res-desktop-blokk">${tableHtml(rows, cols, "samla")}</div>
+          <div id="snc-liste">${listHtml(rows, cols, "samla")}</div>
         </section>
         ${printLocalsHtml(locals, rows, cols)}
       </div>`;
 
     bindDetailToggles(container);
+    bindLocalFilter(container, locals, rows, cols);
     bindBannerActions(bannerSlot, parent, locals, rows, cols);
   } catch (err) {
     logError("snc-resultat.render", err);

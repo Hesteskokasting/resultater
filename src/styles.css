@@ -942,6 +942,16 @@
   margin-bottom: 18px;
 }
 
+.res-seksjon-topp {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+  max-width: 1000px;
+}
+
 .res-seksjon-tittel {
   margin: 0 0 6px;
   font-size: 0.66rem;
@@ -949,6 +959,31 @@
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--tekst-2);
+}
+
+.res-seksjon-topp .res-seksjon-tittel {
+  margin: 0;
+}
+
+.res-filter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+
+.res-filter__etikett {
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tekst-2);
+}
+
+.res-filter__vel {
+  width: auto;
+  max-width: 220px;
+  font-size: 0.8rem;
 }
 
 .res-tabell-boks {
@@ -5506,7 +5541,8 @@ body:has(.modal.show) {
   .org-fase-header,
   .org-banner-menu,
   .res-mobil-blokk,
-  .res-detalj-btn {
+  .res-detalj-btn,
+  .res-filter {
     display: none !important;
   }
 

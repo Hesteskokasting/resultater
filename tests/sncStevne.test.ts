@@ -389,6 +389,45 @@ describe("SNC consolidated result", () => {
     expect(el.querySelectorAll(".res-desktop-blokk tbody tr td.res-td-tot")).toHaveLength(2);
   });
 
+  it("swaps the merged list for one local stevne's own when the filter picks it", async () => {
+    getSncParentTournament.mockResolvedValue({
+      data: parentRow({ erfullfort: true }),
+      error: null,
+    });
+    getSncConsolidatedResults.mockResolvedValue({ data: consolidated, error: null });
+    const el = host();
+    await renderSncResults(el, { id: 10 });
+
+    const select = el.querySelector<HTMLSelectElement>("#snc-lokal-filter")!;
+    expect([...select.options].map((o) => o.textContent)).toEqual([
+      "Alle lokale stevne",
+      "SNC runde 1 – Førde",
+      "SNC runde 1 – Bergen",
+    ]);
+    expect(el.querySelectorAll("#snc-liste .res-desktop-blokk tbody tr")).toHaveLength(2);
+
+    select.value = "12";
+    select.dispatchEvent(new Event("change"));
+
+    const list = el.querySelector("#snc-liste")!;
+    const rows = [...list.querySelectorAll(".res-desktop-blokk tbody tr")];
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.textContent).toContain("Cato");
+    expect(el.querySelector("#snc-liste-tittel")?.textContent).toBe(
+      "SNC runde 1 – Bergen – 1 deltakarar",
+    );
+    // The local view leads with the local placement, so LOKAL PL gives way to SNC PL.
+    const columns = [...list.querySelectorAll(".res-thead-columns th")].map((th) =>
+      th.textContent?.trim(),
+    );
+    expect(columns[columns.length - 1]).toBe("SNC PL");
+
+    select.value = "";
+    select.dispatchEvent(new Event("change"));
+    expect(list.querySelectorAll(".res-desktop-blokk tbody tr")).toHaveLength(2);
+    expect(el.querySelector("#snc-liste-tittel")?.textContent).toContain("2 deltakarar");
+  });
+
   it("carries a print-only title and stevneinfo the screen keeps hidden", async () => {
     getSncParentTournament.mockResolvedValue({
       data: parentRow({ erfullfort: true }),
