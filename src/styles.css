@@ -2742,7 +2742,7 @@ th.initial-score-th {
   flex: 1;
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  grid-auto-rows: minmax(84px, 1fr);
+  grid-auto-rows: minmax(clamp(56px, 9vh, 72px), 1fr);
   gap: 10px;
 }
 
@@ -2756,7 +2756,7 @@ th.initial-score-th {
    is far larger than a digit key's, and the selected one larger still. */
 .pad-ring-btn {
   position: relative;
-  font-size: 3rem;
+  font-size: clamp(1.9rem, 4.5vh, 2.4rem);
   line-height: 1;
 }
 
@@ -2765,7 +2765,7 @@ th.initial-score-th {
   background: var(--pad-valgt);
   border: 2px solid var(--pad-valgt);
   color: var(--pad-valgt-tekst);
-  font-size: 3.5rem;
+  font-size: clamp(2.2rem, 5.2vh, 2.75rem);
   font-weight: 700;
   box-shadow: 0 0 0 3px var(--pad-valgt-glod);
 }
