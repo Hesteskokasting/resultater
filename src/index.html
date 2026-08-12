@@ -2,11 +2,7 @@
 <html lang="nb" data-theme="light" data-bs-theme="light">
   <head>
     <meta charset="UTF-8" />
-    <!-- No viewport-fit=cover on purpose: both platforms inset the WebView
-         natively instead. Android's SystemBars plugin reads this tag at DOM-ready
-         and pads the WebView itself when cover is absent; iOS does the same via
-         ios.contentInset in capacitor.config.ts. With cover, both would hand the
-         insets to CSS and let content scroll under the system bars. -->
+    <!-- viewport-fit is set per platform by the script below — see the comment there. -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Hesteskokasting Resultater</title>
     <script>
@@ -15,6 +11,31 @@
         if (tema === "dark") {
           document.documentElement.setAttribute("data-theme", tema);
           document.documentElement.setAttribute("data-bs-theme", "dark");
+        }
+
+        // The two native platforms need opposite viewport-fit values, so the tag
+        // above stays neutral and iOS gets cover added here, before first paint.
+        //
+        // iOS: Capacitor's WKWebView is the root view with contentInset "never",
+        // so nothing insets it natively. Without cover env(safe-area-inset-*) is
+        // 0 too, and the header draws under the status bar.
+        //
+        // Android: must NOT get cover. The SystemBars plugin reads this tag at
+        // DOM-ready and, when cover is absent, pads the WebView itself so nothing
+        // can be drawn under the navigation bar. With cover it stops padding and
+        // hands the insets to CSS instead.
+        //
+        // Either way the layout reads the insets through the --sa-* variables in
+        // global.css, which resolve to 0 when the padding is done natively.
+        if (
+          window.webkit &&
+          window.webkit.messageHandlers &&
+          window.webkit.messageHandlers.bridge
+        ) {
+          var viewport = document.querySelector('meta[name="viewport"]');
+          if (viewport) {
+            viewport.content += ", viewport-fit=cover";
+          }
         }
       })();
     </script>

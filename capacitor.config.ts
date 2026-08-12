@@ -18,13 +18,6 @@ const config: CapacitorConfig = {
   appId: "no.hesteskokasting.app",
   appName: "Hesteskokasting",
   webDir: "dist",
-  ios: {
-    // Capacitor defaults this to "never" and expects viewport-fit=cover plus
-    // env(safe-area-inset-*) instead. We inset natively on both platforms (see
-    // the viewport comment in index.html), so the WKWebView scroll view has to
-    // apply the safe area itself — otherwise the header draws under the status bar.
-    contentInset: "always",
-  },
   server: {
     url: serverUrl,
     cleartext: isLocalHttp,
