@@ -8,26 +8,23 @@ import { createLoadingState } from "@/components/LoadingState";
 import { createEmptyState } from "@/components/EmptyState";
 import { escHtml } from "@/utils/escHtml";
 import { logError } from "@/utils/logError";
+import { renderBannerMenu, bindBannerMenu } from "@/components/BannerMenu";
+import { showToast } from "@/components/Toast";
 import { xkastCarryOverFactor, xkastCarryOverPercent } from "@/utils/kongelagStilling";
-import { getSncParentTournament } from "@/services/stevneService";
+import { getSncParentTournament, getSncLocalTournaments } from "@/services/stevneService";
 import { getSncConsolidatedResults } from "@/services/resultatService";
 import type { SncResultRow } from "@/services/resultatService";
+import type { SncParentTournamentRow } from "@/services/stevneService";
+import { downloadExcelRows } from "@/utils/shared";
+import { buildSncExportRows, sncExportFileName, sncTotal } from "@/utils/sncExcelExport";
+import type { SncExportOptions } from "@/utils/sncExcelExport";
 
-interface ColFlags {
-  showXkast: boolean;
-  showKongelag: boolean;
-  carryFactor: number | null;
-  /** Innledende method name, e.g. "Halvmatch" — the mobile detail box label. */
-  innlLabel: string;
-  avslLabel: string;
-  carryPercent: number | null;
-}
+// The export sheet needs exactly the flags the table does, so the two share one
+// shape: method labels, which blocks exist and how much carries over.
+type ColFlags = SncExportOptions;
 
 function totalFor(row: SncResultRow, cols: ColFlags): number {
-  if (cols.carryFactor != null) {
-    return (row.poeng_kongelag ?? 0) + Math.round((row.poeng_xkast ?? 0) * cols.carryFactor);
-  }
-  return (cols.showKongelag ? row.poeng_kongelag : row.poeng_xkast) ?? 0;
+  return sncTotal(row, cols);
 }
 
 function rowHtml(row: SncResultRow, cols: ColFlags): string {
@@ -125,9 +122,43 @@ function bindDetailToggles(container: HTMLElement): void {
   });
 }
 
+/**
+ * Excel lives in the banner's overflow menu. Both the local stevne facts and the
+ * xlsx package are fetched on click, so neither costs anything on page load.
+ */
+function bindExcelExport(
+  bannerSlot: HTMLElement | null | undefined,
+  parent: SncParentTournamentRow,
+  rows: SncResultRow[],
+  cols: ColFlags,
+): void {
+  if (!bannerSlot) return;
+  bannerSlot.innerHTML = renderBannerMenu([{ id: "snc-excel-btn", label: "Last ned som Excel" }]);
+  bindBannerMenu(bannerSlot);
+
+  const button = bannerSlot.querySelector<HTMLButtonElement>("#snc-excel-btn");
+  button?.addEventListener("click", async () => {
+    button.disabled = true;
+    try {
+      const { data: locals } = await getSncLocalTournaments(parent.id);
+      await downloadExcelRows(
+        buildSncExportRows(parent, locals, rows, cols),
+        sncExportFileName(parent.navn),
+        "Samla resultat",
+      );
+    } catch (err) {
+      logError("snc-resultat.excel", err);
+      showToast("Kunne ikkje lage Excel-fila.", "error");
+    } finally {
+      button.disabled = false;
+    }
+  });
+}
+
 export async function render(
   container: HTMLElement,
   { id }: { id: number; isAdmin?: boolean },
+  bannerSlot?: HTMLElement | null,
 ): Promise<void> {
   container.replaceChildren(createLoadingState("Laster samla resultat…"));
 
@@ -205,6 +236,7 @@ export async function render(
       </div>`;
 
     bindDetailToggles(container);
+    bindExcelExport(bannerSlot, parent, rows, cols);
   } catch (err) {
     logError("snc-resultat.render", err);
     container.replaceChildren(createErrorBanner("Kunne ikkje laste samla resultat."));
