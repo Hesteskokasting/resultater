@@ -2722,9 +2722,32 @@ th.initial-score-th {
   grid-column: 1 / -1;
 }
 
+.pad-ring-btn {
+  position: relative;
+}
+
+/* Solid fill plus a glow ring — a border alone did not read as chosen. */
 .pad-ring-btn.selected {
-  border-color: var(--pad-valgt);
+  background: var(--pad-valgt);
+  border: 2px solid var(--pad-valgt);
+  color: var(--pad-valgt-tekst);
+  font-weight: 700;
+  box-shadow: 0 0 0 3px var(--pad-valgt-glod);
+}
+
+.pad-ring-valgt {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--pad-valgt-tekst);
   color: var(--pad-valgt);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1.4;
 }
 
 /* Fills the pad's width and runs into the bottom inset, so nothing sits between

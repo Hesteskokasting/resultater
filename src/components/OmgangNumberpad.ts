@@ -244,7 +244,10 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
       `pad-ring-btn${count === 0 ? " pad-ring-zero" : ""}`,
     );
     btn.setAttribute("aria-label", count === 1 ? "1 ring" : `${count} ringar`);
-    btn.classList.toggle("selected", state.selectedRinger === count);
+    const isSelected = state.selectedRinger === count;
+    btn.setAttribute("aria-pressed", String(isSelected));
+    btn.classList.toggle("selected", isSelected);
+    if (isSelected) btn.appendChild(createEl("span", "✓ Valgt", "pad-ring-valgt"));
     return btn;
   }
 

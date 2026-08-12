@@ -87,7 +87,11 @@
   --pad-seg-inaktiv: var(--kant-2);
   --pad-aksent: #14c9a6;
   --pad-aksent-tekst: #06253f;
-  --pad-valgt: #f2a33c;
+  /* Selected key: a solid fill, not an outline — an outline alone is too weak to
+     read at a glance on the ring grid. */
+  --pad-valgt: #14c9a6;
+  --pad-valgt-tekst: #06253f;
+  --pad-valgt-glod: rgba(20, 201, 166, 0.35);
 
   /* Scoreboard — intentionally dark in both themes */
   --sb-bg: #000;
@@ -189,7 +193,9 @@
   --pad-backdrop: rgba(17, 19, 24, 0.5);
   --pad-aksent: #0f6d62;
   --pad-aksent-tekst: #ffffff;
-  --pad-valgt: #96500a;
+  --pad-valgt: #145c46;
+  --pad-valgt-tekst: #ffffff;
+  --pad-valgt-glod: rgba(20, 92, 70, 0.3);
 
   /* Scoreboard — white bg + pure black for outdoor sun readability */
   --sb-bg: #ffffff;
