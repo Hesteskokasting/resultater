@@ -222,7 +222,8 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
       onDigit: (digit) => edit(appendDigit(state.poengInput, digit, OMGANG_MAX_POENG)),
       onClear: () => edit(""),
       action: {
-        caption: "Neste",
+        caption: "Bekreft",
+        value: `${currentPoeng()} p`,
         label: "→",
         disabled: state.poengInput === "",
         onClick: goToRinger,

@@ -251,10 +251,12 @@ describe("showOmgangNumberpad", () => {
     expect(document.querySelectorAll(".pad-strip-cell").length).toBe(3);
     expect(document.querySelector<HTMLButtonElement>(".pad-key-action")!.disabled).toBe(true);
     // The arrow is captioned, so the key says what it does.
-    expect(document.querySelector(".pad-key-action .pad-key-caption")!.textContent).toBe("Neste");
+    expect(document.querySelector(".pad-key-action .pad-key-caption")!.textContent).toBe("Bekreft");
 
     gridKeys()[7]!.click();
     expect(document.querySelector(".pad-display-value")!.textContent).toBe("8");
+    // The action key mirrors the typed figure, so it confirms what it shows.
+    expect(document.querySelector(".pad-key-action .pad-key-value")!.textContent).toBe("8 p");
 
     click(".pad-key-action");
     expect(document.querySelectorAll(".pad-ring-btn").length).toBe(5);

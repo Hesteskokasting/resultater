@@ -2703,6 +2703,18 @@ th.initial-score-th {
   font-weight: 700;
 }
 
+/* The live figure the key confirms; the arrow shrinks to a hint beneath it. */
+.pad-key-value {
+  font-size: clamp(1.3rem, 5vw, 1.7rem);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.pad-key-value ~ .pad-key-glyph {
+  font-size: 1rem;
+  line-height: 1;
+}
+
 .pad-key:disabled {
   opacity: 0.35;
   cursor: not-allowed;

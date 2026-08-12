@@ -168,6 +168,8 @@ export interface PadKey {
   disabled?: boolean;
   /** Word above the label, for a key whose glyph alone doesn't say what it does. */
   caption?: string;
+  /** Live figure between caption and glyph, e.g. the score being confirmed. */
+  value?: string;
 }
 
 export interface PadGridOptions {
@@ -218,8 +220,9 @@ function padKeyEl(key: PadKey, className: string): HTMLButtonElement {
   if (key.caption) {
     btn.classList.add("pad-key-stacked");
     btn.appendChild(createEl("span", key.caption, "pad-key-caption"));
+    if (key.value) btn.appendChild(createEl("span", key.value, "pad-key-value"));
     btn.appendChild(createEl("span", key.label, "pad-key-glyph"));
-    btn.setAttribute("aria-label", key.caption);
+    btn.setAttribute("aria-label", key.value ? `${key.caption} ${key.value}` : key.caption);
   }
   btn.disabled = key.disabled === true;
   btn.addEventListener("click", key.onClick);
