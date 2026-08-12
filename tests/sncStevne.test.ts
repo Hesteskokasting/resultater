@@ -360,17 +360,16 @@ describe("SNC consolidated result", () => {
     const el = host();
     await renderSncResults(el, { id: 10 });
 
-    const groups = [...el.querySelectorAll(".res-thead-grupper .res-gruppe")].map((th) => [
-      th.textContent?.trim(),
-      th.getAttribute("colspan"),
-    ]);
+    const groups = [
+      ...el.querySelectorAll(".res-desktop-blokk .res-thead-grupper .res-gruppe"),
+    ].map((th) => [th.textContent?.trim(), th.getAttribute("colspan")]);
     // Poeng + ringar + overført under the innledende method, poeng + ringar under kongelag.
     expect(groups).toEqual([
       ["Minimatch X-kast", "3"],
       ["Kongelag", "2"],
     ]);
 
-    const columns = [...el.querySelectorAll(".res-thead-columns th")].map((th) =>
+    const columns = [...el.querySelectorAll(".res-desktop-blokk .res-thead-columns th")].map((th) =>
       th.textContent?.trim(),
     );
     expect(columns).toEqual([
@@ -406,6 +405,43 @@ describe("SNC consolidated result", () => {
     expect(facts).toContain("Arrangør NHF");
     expect(facts).toContain("Deltakarar 2");
     expect(facts).toContain("Lokale stevne 2");
+    // Tid and stad belong to the local stevner, not to the umbrella.
+    expect(facts.some((f) => f?.startsWith("Tid"))).toBe(false);
+    expect(facts.some((f) => f?.startsWith("Stad"))).toBe(false);
+  });
+
+  it("prints every local stevne separately, with its own tid, stad and placement", async () => {
+    getSncParentTournament.mockResolvedValue({
+      data: parentRow({ erfullfort: true }),
+      error: null,
+    });
+    getSncConsolidatedResults.mockResolvedValue({ data: consolidated, error: null });
+    const el = host();
+    await renderSncResults(el, { id: 10 });
+
+    const blocks = [...el.querySelectorAll(".res-print-lokal")];
+    expect(blocks.map((b) => b.querySelector(".res-print-undertittel")?.textContent)).toEqual([
+      "SNC runde 1 – Førde",
+      "SNC runde 1 – Bergen",
+    ]);
+
+    const forde = blocks[0]!;
+    const facts = [...forde.querySelectorAll(".res-print-fakta__par")].map((p) =>
+      p.textContent?.replace(/\s+/g, " ").trim(),
+    );
+    expect(facts).toContain("Tid 11:00");
+    expect(facts).toContain("Stad Førde");
+    expect(facts).toContain("Deltakarar 1");
+
+    // A local table leads with the local placement and trails with the SNC one.
+    const columns = [...forde.querySelectorAll(".res-thead-columns th")].map((th) =>
+      th.textContent?.trim(),
+    );
+    expect(columns[0]).toBe("PL");
+    expect(columns[columns.length - 1]).toBe("SNC PL");
+    const cells = [...forde.querySelectorAll("tbody tr td")].map((td) => td.textContent?.trim());
+    expect(cells[0]).toBe("1.");
+    expect(cells[cells.length - 1]).toBe("2");
   });
 
   it("drops rows the consolidation has not placed", async () => {

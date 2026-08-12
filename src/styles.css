@@ -5515,9 +5515,21 @@ body:has(.modal.show) {
     margin-bottom: 10px;
   }
 
+  /* Each local stevne starts its own page, after the merged list. */
+  .res-print-lokal {
+    break-before: page;
+    margin-top: 0;
+  }
+
   .res-print-tittel {
     margin: 0 0 6px;
     font-size: 1.3rem;
+    font-weight: bold;
+  }
+
+  .res-print-undertittel {
+    margin: 0 0 6px;
+    font-size: 1.05rem;
     font-weight: bold;
   }
 

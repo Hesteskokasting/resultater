@@ -98,11 +98,10 @@ describe("buildSncExportSheet", () => {
   it("leads with the round's name and its facts as a labels row over a values row", () => {
     expect(cells[0]).toBe("SNC Runde 3");
     const at = cells.indexOf("STEVNEINFO");
+    // Tid and stad are the local stevner's, so the umbrella's block leaves them out.
     expect(rows[at + 1]).toEqual([
       "Arrangør",
       "Dato",
-      "Tid",
-      "Stad",
       "Type / kategori",
       "Kontaktperson",
       "Innleiande",
@@ -114,8 +113,6 @@ describe("buildSncExportSheet", () => {
     expect(rows[at + 2]).toEqual([
       "Nordhordland HK",
       "1.8.2026",
-      "10:00",
-      "Årdalen",
       "SNC Singel",
       "Kari Nordmann",
       "Halvmatch",
@@ -124,6 +121,13 @@ describe("buildSncExportSheet", () => {
       2,
       3,
     ]);
+  });
+
+  it("keeps tid and stad for a round with no local stevne of its own", () => {
+    const alone = buildSncExportSheet(parent, [], [result(1, "A", 10, 1, 302)], opts);
+    const at = firstCells(alone.rows).indexOf("STEVNEINFO");
+    expect(alone.rows[at + 1]).toContain("Tid");
+    expect(alone.rows[at + 1]).toContain("Stad");
   });
 
   it("leaves out status and omgangar", () => {

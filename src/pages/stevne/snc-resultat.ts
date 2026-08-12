@@ -14,10 +14,11 @@ import { xkastCarryOverFactor, xkastCarryOverPercent } from "@/utils/kongelagSti
 import { getSncParentTournament, getSncLocalTournaments } from "@/services/stevneService";
 import { getSncConsolidatedResults } from "@/services/resultatService";
 import type { SncResultRow } from "@/services/resultatService";
-import type { SncParentTournamentRow } from "@/services/stevneService";
-import { downloadExcelRows } from "@/utils/shared";
+import type { SncLocalTournamentRow, SncParentTournamentRow } from "@/services/stevneService";
+import { downloadExcelRows, formatDateNumeric, formatTime } from "@/utils/shared";
 import {
   buildSncExportSheet,
+  localsWithResults,
   sncExportFileName,
   sncInfoFacts,
   sncTotal,
@@ -36,15 +37,25 @@ function carryFor(row: SncResultRow, cols: ColFlags): number | null {
   return cols.carryFactor != null ? Math.round((row.poeng_xkast ?? 0) * cols.carryFactor) : null;
 }
 
-function rowHtml(row: SncResultRow, cols: ColFlags): string {
+/**
+ * The merged list leads with the SNC placement and trails with the local one; a
+ * local stevne's own table is the same table with those two swapped.
+ */
+type TableVariant = "samla" | "lokal";
+
+function rowHtml(row: SncResultRow, cols: ColFlags, variant: TableVariant = "samla"): string {
   const kaster = row.kaster;
   const nameHtml = kaster
     ? `<a href="#/kastere/${buildThrowerSlug(kaster)}" class="res-kaster-lenke">${escHtml(throwerName(kaster))}</a>`
     : "–";
   const carry = carryFor(row, cols);
+  const [lead, trail] =
+    variant === "samla"
+      ? [row.snc_plassering, row.plassering]
+      : [row.plassering, row.snc_plassering];
   return `
     <tr>
-      <td class="res-td-pl">${row.snc_plassering ?? "–"}.</td>
+      <td class="res-td-pl">${lead ?? "–"}.</td>
       <td class="res-td-navn">${nameHtml}</td>
       <td class="res-td-klubb">${escHtml(row.klubb?.navn ?? "–")}</td>
       ${
@@ -62,12 +73,12 @@ function rowHtml(row: SncResultRow, cols: ColFlags): string {
       }
       <td class="res-tal res-td-tot">${totalFor(row, cols)}</td>
       <td class="res-tal res-tal--dempa">${row.nc_poeng ?? "–"}</td>
-      <td class="res-tal res-tal--dempa">${row.plassering ?? "–"}</td>
+      <td class="res-tal res-tal--dempa">${trail ?? "–"}</td>
     </tr>`;
 }
 
 /** Two header rows: the method groups on top, the repeated Poeng/Ringar below. */
-function headHtml(cols: ColFlags): string {
+function headHtml(cols: ColFlags, variant: TableVariant = "samla"): string {
   const xkastSpan = cols.carryFactor != null ? 3 : 2;
   return `
     <tr class="res-thead-grupper">
@@ -93,21 +104,26 @@ function headHtml(cols: ColFlags): string {
       ${cols.showKongelag ? '<th class="res-tal">POENG</th><th class="res-tal res-kol-slutt">RINGAR</th>' : ""}
       <th class="res-tal res-td-tot">TOTAL</th>
       <th class="res-tal">NC</th>
-      <th class="res-tal">LOKAL PL</th>
+      <th class="res-tal">${variant === "samla" ? "LOKAL PL" : "SNC PL"}</th>
     </tr>`;
+}
+
+function tableHtml(rows: SncResultRow[], cols: ColFlags, variant: TableVariant): string {
+  return `
+    <div class="res-tabell-boks">
+      <table class="res-table res-table--snc">
+        <thead>${headHtml(cols, variant)}</thead>
+        <tbody>${rows.map((r) => rowHtml(r, cols, variant)).join("")}</tbody>
+      </table>
+    </div>`;
 }
 
 /**
  * Screen-hidden, print-only: the page's own title and the stevneinfo, so a
  * printed sheet or a PDF stands on its own without the app chrome around it.
  */
-function printHeaderHtml(
-  parent: SncParentTournamentRow,
-  cols: ColFlags,
-  localCount: number,
-  deltakarar: number,
-): string {
-  const facts = sncInfoFacts(parent, cols, localCount, deltakarar)
+function printFactsHtml(facts: [label: string, value: string | number | null][]): string {
+  const pairs = facts
     .map(
       ([label, value]) => `
         <div class="res-print-fakta__par">
@@ -116,11 +132,48 @@ function printHeaderHtml(
         </div>`,
     )
     .join("");
+  return `<dl class="res-print-fakta">${pairs}</dl>`;
+}
+
+function printHeaderHtml(
+  parent: SncParentTournamentRow,
+  cols: ColFlags,
+  localCount: number,
+  deltakarar: number,
+): string {
   return `
     <div class="res-print-blokk">
       <h1 class="res-print-tittel">${escHtml(parent.navn)}</h1>
-      <dl class="res-print-fakta">${facts}</dl>
+      ${printFactsHtml(sncInfoFacts(parent, cols, localCount, deltakarar))}
     </div>`;
+}
+
+/**
+ * Print-only: every local stevne's own result after the merged list, each on a
+ * fresh page. Tid and stad live here — the umbrella above has neither.
+ */
+function printLocalsHtml(
+  locals: SncLocalTournamentRow[],
+  rows: SncResultRow[],
+  cols: ColFlags,
+): string {
+  return localsWithResults(locals, rows)
+    .map(({ local, rows: localRows }) => {
+      const facts: [string, string | number | null][] = [
+        ["Arrangør", local.klubb?.navn ?? ""],
+        ["Dato", local.dato ? formatDateNumeric(local.dato) : ""],
+        ["Tid", local.tid ? formatTime(local.tid) : ""],
+        ["Stad", local.sted ?? ""],
+        ["Deltakarar", localRows.length],
+      ];
+      return `
+        <div class="res-print-blokk res-print-lokal">
+          <h2 class="res-print-undertittel">${escHtml(local.navn)}</h2>
+          ${printFactsHtml(facts)}
+          ${tableHtml(localRows, cols, "lokal")}
+        </div>`;
+    })
+    .join("");
 }
 
 /** "Halvmatch / Kongelag – 67 deltakarar" — the methods thrown and how many threw. */
@@ -209,12 +262,13 @@ function bindDetailToggles(container: HTMLElement): void {
 }
 
 /**
- * Print and Excel live in the banner's overflow menu. Both the local stevne facts
- * and the xlsx package are fetched on click, so neither costs anything on load.
+ * Print and Excel live in the banner's overflow menu. xlsx is imported on click,
+ * so the package itself still costs nothing until someone exports.
  */
 function bindBannerActions(
   bannerSlot: HTMLElement | null | undefined,
   parent: SncParentTournamentRow,
+  locals: SncLocalTournamentRow[],
   rows: SncResultRow[],
   cols: ColFlags,
 ): void {
@@ -231,7 +285,6 @@ function bindBannerActions(
   button?.addEventListener("click", async () => {
     button.disabled = true;
     try {
-      const { data: locals } = await getSncLocalTournaments(parent.id);
       const sheet = buildSncExportSheet(parent, locals, rows, cols);
       await downloadExcelRows(
         sheet.rows,
@@ -256,9 +309,12 @@ export async function render(
   container.replaceChildren(createLoadingState("Laster samla resultat…"));
 
   try {
-    const [parentResult, resultsResult] = await Promise.all([
+    // The locals ride along: their tid and stad are what the printed per-stevne
+    // pages carry, and the Excel export then needs no fetch of its own.
+    const [parentResult, resultsResult, localsResult] = await Promise.all([
       getSncParentTournament(id),
       getSncConsolidatedResults(id),
+      getSncLocalTournaments(id),
     ]);
 
     if (parentResult.error || !parentResult.data) {
@@ -295,7 +351,8 @@ export async function render(
       carryPercent: carryOmganger != null ? xkastCarryOverPercent(carryOmganger) : null,
     };
 
-    const localCount = new Set(resultsResult.data.map((r) => r.stevne.id)).size;
+    const locals = localsResult.data;
+    const localCount = locals.length || new Set(rows.map((r) => r.stevne.id)).size;
 
     container.innerHTML = `
       <div class="res-side">
@@ -307,19 +364,13 @@ export async function render(
               <div class="res-group-rows">${rows.map((r, i) => mobileRowHtml(r, cols, i)).join("")}</div>
             </div>
           </div>
-          <div class="res-desktop-blokk">
-            <div class="res-tabell-boks">
-              <table class="res-table res-table--snc">
-                <thead>${headHtml(cols)}</thead>
-                <tbody>${rows.map((r) => rowHtml(r, cols)).join("")}</tbody>
-              </table>
-            </div>
-          </div>
+          <div class="res-desktop-blokk">${tableHtml(rows, cols, "samla")}</div>
         </section>
+        ${printLocalsHtml(locals, rows, cols)}
       </div>`;
 
     bindDetailToggles(container);
-    bindBannerActions(bannerSlot, parent, rows, cols);
+    bindBannerActions(bannerSlot, parent, locals, rows, cols);
   } catch (err) {
     logError("snc-resultat.render", err);
     container.replaceChildren(createErrorBanner("Kunne ikkje laste samla resultat."));

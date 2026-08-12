@@ -103,11 +103,15 @@ export function sncInfoFacts(
   const facts: [string, Cell][] = [
     ["Arrangør", parent.klubb?.navn ?? ""],
     ["Dato", formatDateNumeric(parent.dato)],
-    ["Tid", formatTime(parent.tid)],
-    ["Stad", parent.sted ?? ""],
+  ];
+  // Tid and stad belong to the local stevner, not to the umbrella they sit under.
+  if (localCount === 0) {
+    facts.push(["Tid", formatTime(parent.tid)], ["Stad", parent.sted ?? ""]);
+  }
+  facts.push(
     ["Type / kategori", [parent.stevnetype?.navn, parent.kategori?.navn].filter(Boolean).join(" ")],
     ["Kontaktperson", fullName(parent.kontakt ?? null)],
-  ];
+  );
   if (opts.showXkast) facts.push(["Innleiande", opts.innlLabel]);
   if (opts.showKongelag) facts.push(["Avsluttande", opts.avslLabel]);
   if (opts.carryPercent != null) facts.push(["Overføring", `${opts.carryPercent} %`]);
@@ -211,9 +215,7 @@ function localBlock(
   opts: SncExportOptions,
   firstRow: number,
 ): { rows: Cell[][]; merges: SheetMerge[] } {
-  const ordered = [...results].sort(
-    (a, b) => (a.plassering ?? Number.MAX_SAFE_INTEGER) - (b.plassering ?? Number.MAX_SAFE_INTEGER),
-  );
+  const ordered = results;
   const facts = factBlock([
     ["Arrangør", local.klubb?.navn ?? ""],
     ["Dato", formatDateNumeric(local.dato)],
@@ -237,18 +239,25 @@ function localBlock(
 }
 
 /**
- * Locals the export shows: the ones passed in, plus any stevne a result points
- * at that the list missed, so no row is silently dropped.
+ * Locals the export and the printed page show: the ones passed in, plus any
+ * stevne a result points at that the list missed, so no row is silently dropped.
+ * Locals without results are left out. Rows come back in local placement order.
  */
-function localsWithResults(
-  locals: SncExportLocal[],
-  results: SncExportResult[],
-): { local: SncExportLocal; rows: SncExportResult[] }[] {
-  const byStevne = new Map<number, SncExportResult[]>();
+export function localsWithResults<T extends SncExportLocal, R extends SncExportResult>(
+  locals: T[],
+  results: R[],
+): { local: T | SncExportLocal; rows: R[] }[] {
+  const byStevne = new Map<number, R[]>();
   for (const row of results) {
     const list = byStevne.get(row.stevne.id) ?? [];
     list.push(row);
     byStevne.set(row.stevne.id, list);
+  }
+  for (const list of byStevne.values()) {
+    list.sort(
+      (a, b) =>
+        (a.plassering ?? Number.MAX_SAFE_INTEGER) - (b.plassering ?? Number.MAX_SAFE_INTEGER),
+    );
   }
 
   const known = new Set(locals.map((l) => l.id));
