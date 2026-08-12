@@ -6,9 +6,9 @@
   padding: 20px 16px;
   /* Edge-to-edge native app: keep content clear of the Android nav bar /
      iOS home indicator and of a landscape notch; 0 everywhere else */
-  padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
-  padding-left: calc(16px + env(safe-area-inset-left, 0px));
-  padding-right: calc(16px + env(safe-area-inset-right, 0px));
+  padding-bottom: calc(20px + var(--sa-bottom));
+  padding-left: calc(16px + var(--sa-left));
+  padding-right: calc(16px + var(--sa-right));
 }
 
 @media (min-width: 700px) {
@@ -29,7 +29,7 @@
   justify-content: space-between;
   padding: 10px 16px;
   /* Keep the header below the iOS status bar/notch; 0 everywhere else */
-  padding-top: calc(10px + env(safe-area-inset-top, 0px));
+  padding-top: calc(10px + var(--sa-top));
   background: var(--header-bg);
   border-bottom: 1px solid var(--kant);
   position: sticky;
@@ -219,17 +219,17 @@
   right: 0;
   height: 100%;
   /* Widen by the landscape notch inset so the usable area stays 260px */
-  width: calc(260px + env(safe-area-inset-right, 0px));
+  width: calc(260px + var(--sa-right));
   background: var(--flate);
   box-shadow: -2px 0 12px rgba(0, 0, 0, 0.3);
   transform: translateX(100%);
   transition: transform 0.3s ease;
   z-index: 300;
   overflow-y: auto;
-  padding-top: env(safe-area-inset-top, 0px);
-  padding-right: env(safe-area-inset-right, 0px);
+  padding-top: var(--sa-top);
+  padding-right: var(--sa-right);
   /* The last menu entries must clear the Android nav bar / home indicator */
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-bottom: var(--sa-bottom);
 }
 
 .sidepanel.aktiv {
@@ -473,7 +473,7 @@
 }
 
 .tl-sheet-content {
-  padding: 20px 16px calc(32px + env(safe-area-inset-bottom, 0px));
+  padding: 20px 16px calc(32px + var(--sa-bottom));
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -970,7 +970,7 @@
   max-width: none;
   padding: 0;
   /* Full-bleed shell, but still clear of the Android nav bar / home indicator */
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-bottom: var(--sa-bottom);
 }
 
 /* Title strip for the tabs that don't own a hero. Page chrome on the ordinary
@@ -2396,7 +2396,7 @@ th.initial-score-th {
   width: 100%;
   max-width: 650px;
   margin: 0 auto;
-  padding: max(12px, env(safe-area-inset-top)) 16px 16px;
+  padding: max(12px, var(--sa-top)) 16px 16px;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -2733,7 +2733,7 @@ th.initial-score-th {
   display: block;
   width: 100%;
   padding: clamp(14px, 3vh, 22px);
-  padding-bottom: calc(clamp(14px, 3vh, 22px) + env(safe-area-inset-bottom));
+  padding-bottom: calc(clamp(14px, 3vh, 22px) + var(--sa-bottom));
   background: var(--pad-aksent);
   color: var(--pad-aksent-tekst);
   border: none;
@@ -3059,9 +3059,9 @@ button.bane-omgang-chip:hover {
   flex-direction: column;
   /* Edge-to-edge native app: keep the bottom button clear of the Android
      nav bar / iOS home indicator, and panels clear of a landscape notch */
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-  padding-left: env(safe-area-inset-left, 0px);
-  padding-right: env(safe-area-inset-right, 0px);
+  padding-bottom: var(--sa-bottom);
+  padding-left: var(--sa-left);
+  padding-right: var(--sa-right);
 }
 
 .sb-kamp-topbar {
@@ -3070,7 +3070,7 @@ button.bane-omgang-chip:hover {
   align-items: center;
   padding: 6px 10px;
   /* Keep the topbar below the status bar/notch, like .top-header */
-  padding-top: calc(6px + env(safe-area-inset-top, 0px));
+  padding-top: calc(6px + var(--sa-top));
   flex-shrink: 0;
   background: var(--sb-topbar-bg);
   border-bottom: 1px solid var(--sb-border);
@@ -3705,25 +3705,36 @@ button.bane-omgang-chip:hover {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
+/* Confirmed rows: the name gradient runs dark at the rail to the score cell's own
+   fill at its right edge, so the two cells meet seamlessly. */
 .cup-row--vinnar {
-  background: var(--cup-flate-vinnar);
   border-left-color: var(--cup-rail-vinnar);
 }
 .cup-row--vinnar .cup-row__name {
+  background: linear-gradient(90deg, var(--cup-grad-vinnar) 0%, var(--cup-score-vinnar) 100%);
   font-weight: 600;
 }
 .cup-row--vinnar .cup-row__score {
   background: var(--cup-score-vinnar);
+  border-left-color: transparent;
 }
 .cup-row--tapar {
-  background: var(--cup-flate-tapar);
   border-left-color: var(--cup-rail-tapar);
 }
 .cup-row--tapar .cup-row__name {
+  background: linear-gradient(90deg, var(--cup-grad-tapar) 0%, var(--cup-score-tapar) 100%);
   color: var(--tekst-2);
 }
 .cup-row--tapar .cup-row__score {
   background: var(--cup-score-tapar);
+  border-left-color: transparent;
+}
+/* Fixed-width box, so growing the glyphs costs no layout shift. */
+.cup-row__score.score-editable {
+  transition: font-size 0.12s ease;
+}
+.cup-row__score.score-editable:hover {
+  font-size: 1.2em;
 }
 .cup-card__footer {
   margin-top: 0.25rem;
@@ -3764,8 +3775,13 @@ button.bane-omgang-chip:hover {
   margin-inline: auto;
 }
 
+/* Eliminated standing row: solid under the position cell, then fading from the
+   first pixel of the name cell all the way to the points columns. */
 .final-elim-position {
   background: var(--match-eliminated-bg) !important;
+}
+.final-elim-position + td {
+  background: linear-gradient(90deg, var(--match-eliminated-bg) 0%, transparent 100%) !important;
 }
 
 .final-dialog-overlay {
@@ -3869,6 +3885,14 @@ button.bane-omgang-chip:hover {
 
 .mypage-container {
   max-width: 640px;
+}
+
+.mypage-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
 /* ── Klubbar ─────────────────────────────────────────────────────────────────── */
@@ -4476,6 +4500,12 @@ a.kd-res-row__name:hover {
 .admin-head__sub {
   color: var(--tekst-2);
   font-size: 0.85rem;
+}
+
+.admin-head__meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 /* Seven tabs do not fit a phone: scroll them sideways instead of wrapping to

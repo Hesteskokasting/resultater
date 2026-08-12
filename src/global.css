@@ -30,6 +30,9 @@
   --cup-flate-tapar: color-mix(in srgb, #ff6b6b 11%, var(--flate));
   --cup-score-vinnar: color-mix(in srgb, #4caf50 26%, var(--flate));
   --cup-score-tapar: color-mix(in srgb, #ff6b6b 26%, var(--flate));
+  /* Darkest end of the name gradient, at the rail. */
+  --cup-grad-vinnar: color-mix(in srgb, #4caf50 8%, var(--bg));
+  --cup-grad-tapar: color-mix(in srgb, #ff6b6b 8%, var(--bg));
   --cup-score-flate: var(--flate-2);
   --kamp-stripe-ikke: var(--tekst-3);
   --kamp-stripe-pagaar: #d4860a;
@@ -109,6 +112,14 @@
   --sb-vann-bg: rgba(0, 60, 0, 0.85);
   --sb-vann-tekst: #fff;
   --sb-vann-positiv: #4cff4c;
+
+  /* Safe-area insets. iOS resolves env() itself; on Android the Capacitor
+     SystemBars plugin injects --safe-area-inset-* on <html> (0 when it has
+     already padded the WebView natively), so that wins where it is set. */
+  --sa-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
+  --sa-right: var(--safe-area-inset-right, env(safe-area-inset-right, 0px));
+  --sa-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+  --sa-left: var(--safe-area-inset-left, env(safe-area-inset-left, 0px));
 }
 
 [data-theme="light"] {
@@ -138,6 +149,8 @@
   --cup-flate-tapar: #fbe6e6;
   --cup-score-vinnar: #c8f0c8;
   --cup-score-tapar: #f8d0d0;
+  --cup-grad-vinnar: #a5d8a5;
+  --cup-grad-tapar: #eeb0b0;
   --cup-score-flate: var(--flate-2);
   --kamp-stripe-pagaar: #b36000;
   --kamp-stripe-ferdig: #2e7d32;
@@ -280,8 +293,8 @@ textarea:focus {
 /* ── Toast ─────────────────────────────────────────────────────────────────── */
 #toast-container {
   position: fixed;
-  bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
-  right: calc(1rem + env(safe-area-inset-right, 0px));
+  bottom: calc(1rem + var(--sa-bottom));
+  right: calc(1rem + var(--sa-right));
   z-index: 9999;
   display: flex;
   flex-direction: column;

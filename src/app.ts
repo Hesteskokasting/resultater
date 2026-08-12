@@ -13,7 +13,7 @@ import {
 } from "@/utils/refetchRegistry";
 import { initPushNotifications } from "@/services/pushNotificationService";
 import { initStatusBarThemeSync } from "@/services/statusBarService";
-import { initKeepScreenAwake } from "@/services/keepAwakeService";
+import { applyKeepAwakeForRoute } from "@/services/keepAwakeService";
 import { initPullToRefresh } from "@/components/PullToRefresh";
 import type { PageRenderFn, Role, Route } from "@/types";
 
@@ -248,6 +248,8 @@ async function navigate(): Promise<void> {
   const seq = ++navigationSeq;
   const [hash = "/"] = (location.hash.replace(/^#/, "") || "/").split("?");
 
+  applyKeepAwakeForRoute(hash);
+
   for (const route of routes) {
     const match = hash.match(route.pattern);
     if (match) {
@@ -293,8 +295,9 @@ async function updateAuthMenu(): Promise<void> {
     minsideItem.classList.add("d-none");
     adminItem.classList.add("d-none");
     loggutItem.classList.add("d-none");
-    headerEmail.textContent = "";
-    headerEmail.classList.add("d-none");
+    headerEmail.textContent = "Logg inn";
+    (headerEmail as HTMLAnchorElement).href = "#/logginn";
+    headerEmail.classList.remove("d-none");
   }
 }
 
@@ -307,8 +310,6 @@ void App.addListener("resume", runRefetch);
 initPullToRefresh(refreshCurrent);
 
 initStatusBarThemeSync();
-
-initKeepScreenAwake();
 
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("menyLoggUtKnapp")!.addEventListener("click", async () => {

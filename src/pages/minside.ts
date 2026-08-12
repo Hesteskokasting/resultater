@@ -1,6 +1,7 @@
 import { getUser } from "@/services/authService";
 import { createErrorBanner } from "@/components/ErrorBanner";
 import { createLoadingState } from "@/components/LoadingState";
+import { createLogoutButton } from "@/components/LogoutButton";
 import { escHtml } from "@/utils/escHtml";
 import { logError } from "@/utils/logError";
 import { registerRefetch } from "@/utils/refetchRegistry";
@@ -63,11 +64,18 @@ export async function render(container: HTMLElement, params: Params): Promise<vo
 
     container.innerHTML = `
       <div class="mypage-container">
-        <h2 class="mb-1">Min side</h2>
-        <p class="text-muted mb-3">${escHtml(user.email ?? "")}</p>
+        <div class="mypage-head">
+          <div>
+            <h2 class="mb-1">Min side</h2>
+            <p class="text-muted mb-0">${escHtml(user.email ?? "")}</p>
+          </div>
+          <div data-slot="logout"></div>
+        </div>
         ${renderNav(activeTab)}
         <div id="minside-subpage"></div>
       </div>`;
+
+    container.querySelector<HTMLElement>('[data-slot="logout"]')!.appendChild(createLogoutButton());
 
     const subpage = container.querySelector<HTMLElement>("#minside-subpage")!;
     await TAB_RENDER[activeTab](subpage, { user, profil, status });
