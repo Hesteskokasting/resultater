@@ -18,6 +18,10 @@ interface ColFlags {
   showXkast: boolean;
   showKongelag: boolean;
   carryFactor: number | null;
+  /** Innledende method name, e.g. "Halvmatch" — the mobile detail box label. */
+  innlLabel: string;
+  avslLabel: string;
+  carryPercent: number | null;
 }
 
 function totalFor(row: SncResultRow, cols: ColFlags): number {
@@ -46,23 +50,81 @@ function rowHtml(row: SncResultRow, cols: ColFlags): string {
     </tr>`;
 }
 
-function mobileRowHtml(row: SncResultRow, cols: ColFlags): string {
-  const meta = [
-    `<strong class="res-meta-tot">TOT ${totalFor(row, cols)}</strong>`,
-    `NC ${row.nc_poeng ?? "–"}`,
-  ];
-  if (cols.showXkast) meta.unshift(`X ${row.poeng_xkast ?? "–"} (${row.antall_ring_xkast ?? "–"})`);
-  if (cols.showKongelag)
-    meta.unshift(`K ${row.poeng_kongelag ?? "–"} (${row.antall_ring_kongelag ?? "–"})`);
+function statBoxHtml(label: string, value: string, extra: string, sub: string): string {
   return `
-    <div class="res-row">
+    <div class="res-stat">
+      <span class="res-stat-label">${escHtml(label)}</span>
+      <span class="res-stat-verdi">${escHtml(value)}${extra ? ` <span class="res-stat-carry">${escHtml(extra)}</span>` : ""}</span>
+      ${sub ? `<span class="res-stat-sub">${escHtml(sub)}</span>` : ""}
+    </div>`;
+}
+
+function detailHtml(row: SncResultRow, cols: ColFlags): string {
+  const boxes: string[] = [];
+  if (cols.showXkast) {
+    const carry =
+      cols.carryFactor != null ? `(${Math.round((row.poeng_xkast ?? 0) * cols.carryFactor)})` : "";
+    const label =
+      cols.carryPercent != null ? `${cols.innlLabel} (${cols.carryPercent} %)` : cols.innlLabel;
+    boxes.push(
+      statBoxHtml(
+        label,
+        String(row.poeng_xkast ?? "–"),
+        carry,
+        row.antall_ring_xkast != null ? `${row.antall_ring_xkast} ringer` : "",
+      ),
+    );
+  }
+  if (cols.showKongelag) {
+    boxes.push(
+      statBoxHtml(
+        cols.avslLabel,
+        String(row.poeng_kongelag ?? "–"),
+        "",
+        row.antall_ring_kongelag != null ? `${row.antall_ring_kongelag} ringer` : "",
+      ),
+    );
+  }
+  boxes.push(statBoxHtml("NC", String(row.nc_poeng ?? "–"), "", ""));
+  return boxes.join("");
+}
+
+function mobileRowHtml(row: SncResultRow, cols: ColFlags, idx: number): string {
+  const panelId = `res-detalj-${idx}`;
+  return `
+    <div class="res-row res-row--snc">
       <span class="res-pl">${row.snc_plassering ?? "–"}.</span>
       <div class="res-info">
         <span class="res-navn">${escHtml(throwerName(row.kaster) || "–")}</span>
         <span class="res-klubb">${escHtml(row.klubb?.navn ?? "–")} · ${escHtml(sncLocalLabel(row.stevne))}</span>
-        <span class="res-meta">${meta.join("  ")}</span>
+        <button type="button" class="res-detalj-btn" aria-expanded="false" aria-controls="${panelId}">
+          <span class="res-detalj-tekst">Vis detaljar</span><span class="res-detalj-pil" aria-hidden="true">▾</span>
+        </button>
       </div>
+      <div class="res-tot">
+        <span class="res-tot-label">TOT</span>
+        <span class="res-tot-verdi">${totalFor(row, cols)}</span>
+      </div>
+      <div class="res-detalj" id="${panelId}" hidden>${detailHtml(row, cols)}</div>
     </div>`;
+}
+
+/** One delegated listener toggles whichever detail panel was asked for. */
+function bindDetailToggles(container: HTMLElement): void {
+  container.addEventListener("click", (event) => {
+    const btn = (event.target as HTMLElement).closest<HTMLButtonElement>(".res-detalj-btn");
+    if (!btn) return;
+    const row = btn.closest(".res-row");
+    const panel = row?.querySelector<HTMLElement>(".res-detalj");
+    if (!panel) return;
+    const open = panel.hidden;
+    panel.hidden = !open;
+    btn.setAttribute("aria-expanded", String(open));
+    const text = btn.querySelector(".res-detalj-tekst");
+    const arrow = btn.querySelector(".res-detalj-pil");
+    if (text) text.textContent = open ? "Skjul detaljar" : "Vis detaljar";
+    if (arrow) arrow.textContent = open ? "▴" : "▾";
+  });
 }
 
 export async function render(
@@ -101,10 +163,14 @@ export async function render(
     const omganger = parent.kastemetodeInnl?.antall_omganger ?? null;
     const showXkast = parent.innledendekastemetodeid != null;
     const showKongelag = parent.avsluttendekastemetodeid != null;
+    const carryOmganger = showXkast && showKongelag ? omganger : null;
     const cols: ColFlags = {
       showXkast,
       showKongelag,
-      carryFactor: showXkast && showKongelag && omganger ? xkastCarryOverFactor(omganger) : null,
+      carryFactor: carryOmganger != null ? xkastCarryOverFactor(carryOmganger) : null,
+      innlLabel: parent.kastemetodeInnl?.navn ?? "X-kast",
+      avslLabel: parent.kastemetodeAvsl?.navn ?? "Kongelag",
+      carryPercent: carryOmganger != null ? xkastCarryOverPercent(carryOmganger) : null,
     };
 
     const localCount = new Set(resultsResult.data.map((r) => r.stevne.id)).size;
@@ -120,7 +186,7 @@ export async function render(
         </div>
         <div class="res-mobil-blokk">
           <div class="res-group">
-            <div class="res-group-rows">${rows.map((r) => mobileRowHtml(r, cols)).join("")}</div>
+            <div class="res-group-rows">${rows.map((r, i) => mobileRowHtml(r, cols, i)).join("")}</div>
           </div>
         </div>
         <div class="res-desktop-blokk">
@@ -144,6 +210,8 @@ export async function render(
           </div>
         </div>
       </div>`;
+
+    bindDetailToggles(container);
   } catch (err) {
     logError("snc-resultat.render", err);
     container.replaceChildren(createErrorBanner("Kunne ikkje laste samla resultat."));
