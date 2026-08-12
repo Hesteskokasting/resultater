@@ -16,7 +16,12 @@ import { getSncConsolidatedResults } from "@/services/resultatService";
 import type { SncResultRow } from "@/services/resultatService";
 import type { SncParentTournamentRow } from "@/services/stevneService";
 import { downloadExcelRows } from "@/utils/shared";
-import { buildSncExportSheet, sncExportFileName, sncTotal } from "@/utils/sncExcelExport";
+import {
+  buildSncExportSheet,
+  sncExportFileName,
+  sncInfoFacts,
+  sncTotal,
+} from "@/utils/sncExcelExport";
 import type { SncExportOptions } from "@/utils/sncExcelExport";
 
 // The export sheet needs exactly the flags the table does, so the two share one
@@ -90,6 +95,32 @@ function headHtml(cols: ColFlags): string {
       <th class="res-tal">NC</th>
       <th class="res-tal">LOKAL PL</th>
     </tr>`;
+}
+
+/**
+ * Screen-hidden, print-only: the page's own title and the stevneinfo, so a
+ * printed sheet or a PDF stands on its own without the app chrome around it.
+ */
+function printHeaderHtml(
+  parent: SncParentTournamentRow,
+  cols: ColFlags,
+  localCount: number,
+  deltakarar: number,
+): string {
+  const facts = sncInfoFacts(parent, cols, localCount, deltakarar)
+    .map(
+      ([label, value]) => `
+        <div class="res-print-fakta__par">
+          <dt>${escHtml(label)}</dt>
+          <dd>${escHtml(String(value ?? "—") || "—")}</dd>
+        </div>`,
+    )
+    .join("");
+  return `
+    <div class="res-print-blokk">
+      <h1 class="res-print-tittel">${escHtml(parent.navn)}</h1>
+      <dl class="res-print-fakta">${facts}</dl>
+    </div>`;
 }
 
 /** "Halvmatch / Kongelag – 67 deltakarar" — the methods thrown and how many threw. */
@@ -178,18 +209,23 @@ function bindDetailToggles(container: HTMLElement): void {
 }
 
 /**
- * Excel lives in the banner's overflow menu. Both the local stevne facts and the
- * xlsx package are fetched on click, so neither costs anything on page load.
+ * Print and Excel live in the banner's overflow menu. Both the local stevne facts
+ * and the xlsx package are fetched on click, so neither costs anything on load.
  */
-function bindExcelExport(
+function bindBannerActions(
   bannerSlot: HTMLElement | null | undefined,
   parent: SncParentTournamentRow,
   rows: SncResultRow[],
   cols: ColFlags,
 ): void {
   if (!bannerSlot) return;
-  bannerSlot.innerHTML = renderBannerMenu([{ id: "snc-excel-btn", label: "Last ned som Excel" }]);
+  bannerSlot.innerHTML = renderBannerMenu([
+    { id: "snc-print-btn", label: "Skriv ut / lagre som PDF" },
+    { id: "snc-excel-btn", label: "Last ned som Excel" },
+  ]);
   bindBannerMenu(bannerSlot);
+
+  bannerSlot.querySelector("#snc-print-btn")?.addEventListener("click", () => window.print());
 
   const button = bannerSlot.querySelector<HTMLButtonElement>("#snc-excel-btn");
   button?.addEventListener("click", async () => {
@@ -259,8 +295,11 @@ export async function render(
       carryPercent: carryOmganger != null ? xkastCarryOverPercent(carryOmganger) : null,
     };
 
+    const localCount = new Set(resultsResult.data.map((r) => r.stevne.id)).size;
+
     container.innerHTML = `
       <div class="res-side">
+        ${printHeaderHtml(parent, cols, localCount, rows.length)}
         <section class="res-seksjon">
           <h6 class="res-seksjon-tittel">${escHtml(sectionTitle(cols, rows.length))}</h6>
           <div class="res-mobil-blokk">
@@ -280,7 +319,7 @@ export async function render(
       </div>`;
 
     bindDetailToggles(container);
-    bindExcelExport(bannerSlot, parent, rows, cols);
+    bindBannerActions(bannerSlot, parent, rows, cols);
   } catch (err) {
     logError("snc-resultat.render", err);
     container.replaceChildren(createErrorBanner("Kunne ikkje laste samla resultat."));

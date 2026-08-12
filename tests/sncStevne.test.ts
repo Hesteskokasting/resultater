@@ -389,6 +389,25 @@ describe("SNC consolidated result", () => {
     expect(el.querySelectorAll(".res-desktop-blokk tbody tr td.res-td-tot")).toHaveLength(2);
   });
 
+  it("carries a print-only title and stevneinfo the screen keeps hidden", async () => {
+    getSncParentTournament.mockResolvedValue({
+      data: parentRow({ erfullfort: true }),
+      error: null,
+    });
+    getSncConsolidatedResults.mockResolvedValue({ data: consolidated, error: null });
+    const el = host();
+    await renderSncResults(el, { id: 10 });
+
+    const block = el.querySelector(".res-print-blokk");
+    expect(block?.querySelector(".res-print-tittel")?.textContent).toBe("SNC runde 1");
+    const facts = [...block!.querySelectorAll(".res-print-fakta__par")].map((p) =>
+      p.textContent?.replace(/\s+/g, " ").trim(),
+    );
+    expect(facts).toContain("Arrangør NHF");
+    expect(facts).toContain("Deltakarar 2");
+    expect(facts).toContain("Lokale stevne 2");
+  });
+
   it("drops rows the consolidation has not placed", async () => {
     getSncParentTournament.mockResolvedValue({
       data: parentRow({ erfullfort: true }),

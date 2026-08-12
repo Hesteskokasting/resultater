@@ -90,12 +90,16 @@ export function sncTotal(row: SncExportResult, opts: SncExportOptions): number {
   return (opts.showKongelag ? row.poeng_kongelag : row.poeng_xkast) ?? 0;
 }
 
-function infoRows(
+/**
+ * The round's facts, in the order both the sheet and the printed page show them —
+ * one list so the two cannot drift apart.
+ */
+export function sncInfoFacts(
   parent: SncExportParent,
-  locals: SncExportLocal[],
-  results: SncExportResult[],
   opts: SncExportOptions,
-): Cell[][] {
+  localCount: number,
+  deltakarar: number,
+): [label: string, value: Cell][] {
   const facts: [string, Cell][] = [
     ["Arrangør", parent.klubb?.navn ?? ""],
     ["Dato", formatDateNumeric(parent.dato)],
@@ -107,8 +111,17 @@ function infoRows(
   if (opts.showXkast) facts.push(["Innleiande", opts.innlLabel]);
   if (opts.showKongelag) facts.push(["Avsluttande", opts.avslLabel]);
   if (opts.carryPercent != null) facts.push(["Overføring", `${opts.carryPercent} %`]);
-  facts.push(["Lokale stevne", locals.length], ["Deltakarar", results.length]);
-  return [["STEVNEINFO"], ...factBlock(facts)];
+  facts.push(["Lokale stevne", localCount], ["Deltakarar", deltakarar]);
+  return facts;
+}
+
+function infoRows(
+  parent: SncExportParent,
+  locals: SncExportLocal[],
+  results: SncExportResult[],
+  opts: SncExportOptions,
+): Cell[][] {
+  return [["STEVNEINFO"], ...factBlock(sncInfoFacts(parent, opts, locals.length, results.length))];
 }
 
 /** One method's block of columns: the name goes above, the plain labels below. */
