@@ -252,6 +252,14 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
     return btn;
   }
 
+  /** Spells out what is about to be saved: poeng, then ring count. */
+  function registerLabel(): string {
+    if (state.isSaving) return "Lagrer…";
+    const ringer = state.selectedRinger;
+    if (ringer == null) return "Vel antall ringer";
+    return `Registrer ${currentPoeng()} p – ${ringer} ${ringer === 1 ? "ring" : "ringar"} ✓`;
+  }
+
   /** Ring-stage parts, split by where they belong: content and footer action. */
   function ringStageEls(): { content: HTMLElement[]; register: HTMLElement } {
     const { allowed } = ringOptions(currentPoeng());
@@ -267,7 +275,7 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
     grid.appendChild(ringButtonEl(0, allowed.includes(0)));
 
     const register = padRegister({
-      label: state.isSaving ? "Lagrer…" : "Registrer og fullfør ✓",
+      label: registerLabel(),
       disabled: state.selectedRinger == null || state.isSaving,
       onClick: () => void save(),
     });

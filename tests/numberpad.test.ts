@@ -261,13 +261,19 @@ describe("showOmgangNumberpad", () => {
     click(".pad-key-action");
     expect(document.querySelectorAll(".pad-ring-btn").length).toBe(5);
     expect(document.querySelector(".pad-grid")).toBeNull();
-    // Registering stays blocked until a ring count is picked.
+    // Registering stays blocked until a ring count is picked, and the button
+    // asks for one rather than naming a half-filled entry.
     expect(document.querySelector<HTMLButtonElement>(".pad-register")!.disabled).toBe(true);
+    expect(registerLabel()).toBe("Vel antall ringer");
 
     const ring = [...document.querySelectorAll<HTMLButtonElement>(".pad-ring-btn")].find(
       (btn) => !btn.disabled,
     )!;
+    const count = ring.textContent!.trim();
     ring.click();
     expect(document.querySelector<HTMLButtonElement>(".pad-register")!.disabled).toBe(false);
+    // The label carries both figures being saved, each with its unit.
+    const unit = count === "1" ? "ring" : "ringar";
+    expect(registerLabel()).toBe(`Registrer 8 p – ${count} ${unit} ✓`);
   });
 });
