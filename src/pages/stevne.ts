@@ -31,7 +31,7 @@ const TABS = [
   { key: "deltakere", label: "Deltakere", adminOnly: true, completedOnly: false },
   { key: "innledende", label: "Innl.", adminOnly: false, completedOnly: false },
   { key: "avsluttende", label: "Avsl.", adminOnly: false, completedOnly: false },
-  { key: "resultat", label: "Sluttresultat", adminOnly: false, completedOnly: true },
+  { key: "resultat", label: "Resultat", adminOnly: false, completedOnly: true },
   { key: "innstillinger", label: "Innstillingar", adminOnly: true, completedOnly: false },
   { key: "stats", label: "Stats", adminOnly: false, completedOnly: false },
 ] as const;
@@ -52,7 +52,7 @@ const TAB_RENDER: Record<TabKey, TabRender> = {
   stats: renderStats as TabRender,
 };
 
-// Same tabs, SNC content: Info lists the local stevner, Sluttresultat merges them.
+// Same tabs, SNC content: Info lists the local stevner, Resultat merges them.
 // Anything not listed keeps the ordinary tab (Innstillingar handles SNC itself).
 const SNC_PARENT_RENDER: Partial<Record<TabKey, TabRender>> = {
   info: renderSncInfo as TabRender,
