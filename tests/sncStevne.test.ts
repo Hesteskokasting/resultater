@@ -342,12 +342,9 @@ describe("SNC consolidated result", () => {
 
     const rows = [...el.querySelectorAll(".res-desktop-blokk tbody tr")];
     expect(rows).toHaveLength(2);
-    const facts = [...el.querySelectorAll(".res-fakta .stevne-hero__rute")].map((r) =>
-      r.textContent?.replace(/\s+/g, " ").trim(),
+    expect(el.querySelector(".res-seksjon-tittel")?.textContent?.trim()).toBe(
+      "Minimatch X-kast / Kongelag – 2 deltakarar",
     );
-    expect(facts).toContain("Lokale stevne 2");
-    expect(facts).toContain("Deltakarar 2");
-    expect(facts).toContain("Arrangør NHF");
     // Kongelag 55 + carried-over X-kast (150 / 3) = 105 for the winner, 100 for 2nd
     expect(rows[0]!.textContent).toContain("105");
     expect(rows[1]!.textContent).toContain("100");
@@ -371,7 +368,6 @@ describe("SNC consolidated result", () => {
     expect(groups).toEqual([
       ["Minimatch X-kast", "3"],
       ["Kongelag", "2"],
-      ["Total", null],
     ]);
 
     const columns = [...el.querySelectorAll(".res-thead-columns th")].map((th) =>
@@ -386,7 +382,7 @@ describe("SNC consolidated result", () => {
       "OVERFØRT",
       "POENG",
       "RINGAR",
-      "SUM",
+      "TOTAL",
       "NC",
       "LOKAL PL",
     ]);

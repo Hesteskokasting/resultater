@@ -10,14 +10,12 @@ import { escHtml } from "@/utils/escHtml";
 import { logError } from "@/utils/logError";
 import { renderBannerMenu, bindBannerMenu } from "@/components/BannerMenu";
 import { showToast } from "@/components/Toast";
-import { contactName, factGridHtml, typeAndCategoryLabel } from "@/components/StevneHero";
-import type { StevneHeroFact } from "@/components/StevneHero";
 import { xkastCarryOverFactor, xkastCarryOverPercent } from "@/utils/kongelagStilling";
 import { getSncParentTournament, getSncLocalTournaments } from "@/services/stevneService";
 import { getSncConsolidatedResults } from "@/services/resultatService";
 import type { SncResultRow } from "@/services/resultatService";
 import type { SncParentTournamentRow } from "@/services/stevneService";
-import { downloadExcelRows, formatDateNumeric, formatTime } from "@/utils/shared";
+import { downloadExcelRows } from "@/utils/shared";
 import { buildSncExportRows, sncExportFileName, sncTotal } from "@/utils/sncExcelExport";
 import type { SncExportOptions } from "@/utils/sncExcelExport";
 
@@ -71,8 +69,7 @@ function headHtml(cols: ColFlags): string {
       <th colspan="3"></th>
       ${cols.showXkast ? `<th colspan="${xkastSpan}" class="res-gruppe res-kol-slutt">${escHtml(cols.innlLabel)}</th>` : ""}
       ${cols.showKongelag ? `<th colspan="2" class="res-gruppe res-kol-slutt">${escHtml(cols.avslLabel)}</th>` : ""}
-      <th class="res-gruppe res-td-tot">Total</th>
-      <th colspan="2"></th>
+      <th colspan="3"></th>
     </tr>
     <tr class="res-thead-columns">
       <th class="res-td-pl">PL</th>
@@ -81,45 +78,26 @@ function headHtml(cols: ColFlags): string {
       ${
         cols.showXkast
           ? `<th class="res-tal">POENG</th><th class="res-tal">RINGAR</th>
-             ${cols.carryFactor != null ? '<th class="res-tal res-kol-slutt">OVERFØRT</th>' : ""}`
+             ${
+               cols.carryPercent != null
+                 ? `<th class="res-tal res-kol-slutt" title="${cols.carryPercent} % av poenga frå ${escHtml(cols.innlLabel)}">OVERFØRT</th>`
+                 : ""
+             }`
           : ""
       }
       ${cols.showKongelag ? '<th class="res-tal">POENG</th><th class="res-tal res-kol-slutt">RINGAR</th>' : ""}
-      <th class="res-tal res-td-tot">SUM</th>
+      <th class="res-tal res-td-tot">TOTAL</th>
       <th class="res-tal">NC</th>
       <th class="res-tal">LOKAL PL</th>
     </tr>`;
 }
 
-/** Everything the round is: who ran it, when, how it was thrown, how big it got. */
-function infoFacts(
-  parent: SncParentTournamentRow,
-  cols: ColFlags,
-  localCount: number,
-  deltakarar: number,
-): StevneHeroFact[] {
-  const facts: StevneHeroFact[] = [
-    { label: "Arrangør", html: escHtml(parent.klubb?.navn ?? "—") },
-    { label: "Dato", html: parent.dato ? formatDateNumeric(parent.dato) : "—" },
-    { label: "Tid", html: parent.tid ? formatTime(parent.tid) : "—" },
-    { label: "Stad", html: escHtml(parent.sted ?? "—") },
-    { label: "Type / kategori", html: escHtml(typeAndCategoryLabel(parent)) },
-    { label: "Kontaktperson", html: escHtml(contactName(parent) || "—") },
-  ];
-  if (cols.showXkast) {
-    facts.push({ label: "Innleiande", html: escHtml(cols.innlLabel) });
-    const omganger = parent.kastemetodeInnl?.antall_omganger;
-    if (omganger != null) facts.push({ label: "Omgangar", html: String(omganger) });
-  }
-  if (cols.showKongelag) facts.push({ label: "Avsluttande", html: escHtml(cols.avslLabel) });
-  if (cols.carryPercent != null) {
-    facts.push({ label: "Overføring", html: `${cols.carryPercent} %` });
-  }
-  facts.push(
-    { label: "Lokale stevne", html: String(localCount) },
-    { label: "Deltakarar", html: String(deltakarar) },
-  );
-  return facts;
+/** "Halvmatch / Kongelag – 67 deltakarar" — the methods thrown and how many threw. */
+function sectionTitle(cols: ColFlags, deltakarar: number): string {
+  const methods = [cols.showXkast ? cols.innlLabel : "", cols.showKongelag ? cols.avslLabel : ""]
+    .filter(Boolean)
+    .join(" / ");
+  return `${methods ? `${methods} – ` : ""}${deltakarar} deltakarar`;
 }
 
 function statBoxHtml(label: string, value: string, extra: string, sub: string): string {
@@ -279,16 +257,10 @@ export async function render(
       carryPercent: carryOmganger != null ? xkastCarryOverPercent(carryOmganger) : null,
     };
 
-    const localCount = new Set(resultsResult.data.map((r) => r.stevne.id)).size;
-
     container.innerHTML = `
       <div class="res-side">
         <section class="res-seksjon">
-          <h6 class="res-seksjon-tittel">Stevneinfo</h6>
-          ${factGridHtml(infoFacts(parent, cols, localCount, rows.length), "res-fakta")}
-        </section>
-        <section class="res-seksjon">
-          <h6 class="res-seksjon-tittel">Samla resultat</h6>
+          <h6 class="res-seksjon-tittel">${escHtml(sectionTitle(cols, rows.length))}</h6>
           <div class="res-mobil-blokk">
             <div class="res-group">
               <div class="res-group-rows">${rows.map((r, i) => mobileRowHtml(r, cols, i)).join("")}</div>

@@ -102,12 +102,6 @@ function detailHtml(detail: StevneHeroFact): string {
     </div>`;
 }
 
-/** The tile grid on its own, for pages that want the facts without the hero. */
-export function factGridHtml(facts: StevneHeroFact[], modifierClass = ""): string {
-  if (!facts.length) return "";
-  return `<div class="stevne-hero__ruter${modifierClass ? ` ${modifierClass}` : ""}">${facts.map(tileHtml).join("")}</div>`;
-}
-
 export function stevneHeroHtml(options: StevneHeroOptions): string {
   const { title, status, subtitle, facts, methods, details } = options;
   return `
