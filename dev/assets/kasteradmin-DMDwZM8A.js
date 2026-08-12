@@ -1,1 +1,0 @@
-import{t as e}from"./kasterForm-Br7dTy3r.js";import{t}from"./_formRoute-DiYnNHqu.js";function n(n,r={}){return t(n,r,{mount:e,heading:e=>e?`Ny utøvar`:`Rediger utøvar`,wrapperClass:`container py-4 admin-form-md`,createdHash:e=>`#/kaster/${e}/admin`,deletedHash:`#/kastere`,nameFields:[`fornavn`,`etternavn`]})}export{n as render};
