@@ -204,6 +204,7 @@ export async function clearGroupAssignment(stevneid: number): Promise<{ error: u
 // cannot drift apart.
 const SNC_RESULTAT_SELECT = `
   snc_plassering, plassering, nc_poeng, poeng_xkast, poeng_kongelag,
+  antall_ring_xkast, antall_ring_kongelag,
   kaster:kasterid(id, fornavn, etternavn),
   klubb:klubbid(navn),
   stevne:stevneid!inner(id, navn, sted, klubb:klubbid(navn))

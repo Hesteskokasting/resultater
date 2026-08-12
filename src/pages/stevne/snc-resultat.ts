@@ -38,18 +38,22 @@ function rowHtml(row: SncResultRow, cols: ColFlags): string {
       <td class="res-td-navn">${nameHtml}</td>
       <td class="res-td-klubb">${escHtml(row.klubb?.navn ?? "–")}</td>
       <td class="res-td-klubb">${escHtml(sncLocalLabel(row.stevne))}</td>
-      ${cols.showXkast ? `<td class="res-td-kp">${row.poeng_xkast ?? ""}</td>` : ""}
-      ${cols.showKongelag ? `<td class="res-td-sp">${row.poeng_kongelag ?? ""}</td>` : ""}
-      <td class="res-td-sp">${totalFor(row, cols)}</td>
+      ${cols.showXkast ? `<td class="res-td-kp">${row.poeng_xkast ?? ""}</td><td class="res-td-ring">${row.antall_ring_xkast ?? ""}</td>` : ""}
+      ${cols.showKongelag ? `<td class="res-td-sp">${row.poeng_kongelag ?? ""}</td><td class="res-td-ring">${row.antall_ring_kongelag ?? ""}</td>` : ""}
+      <td class="res-td-tot">${totalFor(row, cols)}</td>
       <td class="res-td-nc">${row.nc_poeng ?? ""}</td>
       <td class="res-td-pl">${row.plassering ?? "–"}</td>
     </tr>`;
 }
 
 function mobileRowHtml(row: SncResultRow, cols: ColFlags): string {
-  const meta = [`TOT ${totalFor(row, cols)}`, `NC ${row.nc_poeng ?? "–"}`];
-  if (cols.showXkast) meta.unshift(`X ${row.poeng_xkast ?? "–"}`);
-  if (cols.showKongelag) meta.unshift(`K ${row.poeng_kongelag ?? "–"}`);
+  const meta = [
+    `<strong class="res-meta-tot">TOT ${totalFor(row, cols)}</strong>`,
+    `NC ${row.nc_poeng ?? "–"}`,
+  ];
+  if (cols.showXkast) meta.unshift(`X ${row.poeng_xkast ?? "–"} (${row.antall_ring_xkast ?? "–"})`);
+  if (cols.showKongelag)
+    meta.unshift(`K ${row.poeng_kongelag ?? "–"} (${row.antall_ring_kongelag ?? "–"})`);
   return `
     <div class="res-row">
       <span class="res-pl">${row.snc_plassering ?? "–"}.</span>
@@ -128,9 +132,9 @@ export async function render(
                   <th class="res-td-navn">NAVN</th>
                   <th class="res-td-klubb">KLUBB</th>
                   <th class="res-td-klubb">LOKALT STEVNE</th>
-                  ${cols.showXkast ? '<th class="res-td-kp">X</th>' : ""}
-                  ${cols.showKongelag ? '<th class="res-td-sp">K</th>' : ""}
-                  <th class="res-td-sp">TOT</th>
+                  ${cols.showXkast ? '<th class="res-td-kp">X</th><th class="res-td-ring">RING</th>' : ""}
+                  ${cols.showKongelag ? '<th class="res-td-sp">K</th><th class="res-td-ring">RING</th>' : ""}
+                  <th class="res-td-tot">TOT</th>
                   <th class="res-td-nc">NC</th>
                   <th class="res-td-pl">LOKAL PL</th>
                 </tr>

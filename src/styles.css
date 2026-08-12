@@ -923,6 +923,16 @@
   text-align: right;
 }
 
+.res-td-ring {
+  width: 55px;
+  color: var(--tekst-2);
+}
+
+.res-thead-columns th.res-td-tot,
+.res-table td.res-td-tot {
+  font-weight: bold;
+}
+
 .res-kaster-lenke {
   color: var(--lenke);
   text-decoration: none;
