@@ -300,11 +300,9 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
     body.appendChild(padMeta(step.header.baneLabel, step.header.rundeLabel));
     body.appendChild(stripEl());
 
-    const display = padDisplay(
-      state.stage === "poeng" ? "Poengsum" : "Poengsum registrert",
-      String(currentPoeng()),
-      { placeholder: state.poengInput === "" },
-    );
+    const display = padDisplay("Poengsum", String(currentPoeng()), {
+      placeholder: state.poengInput === "",
+    });
     body.appendChild(
       padColumns([padColumn(state.stage === "poeng" ? [display, poengGridEl()] : [display])]),
     );
