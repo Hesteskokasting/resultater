@@ -10,12 +10,14 @@ import { escHtml } from "@/utils/escHtml";
 import { logError } from "@/utils/logError";
 import { renderBannerMenu, bindBannerMenu } from "@/components/BannerMenu";
 import { showToast } from "@/components/Toast";
+import { contactName, factGridHtml, typeAndCategoryLabel } from "@/components/StevneHero";
+import type { StevneHeroFact } from "@/components/StevneHero";
 import { xkastCarryOverFactor, xkastCarryOverPercent } from "@/utils/kongelagStilling";
 import { getSncParentTournament, getSncLocalTournaments } from "@/services/stevneService";
 import { getSncConsolidatedResults } from "@/services/resultatService";
 import type { SncResultRow } from "@/services/resultatService";
 import type { SncParentTournamentRow } from "@/services/stevneService";
-import { downloadExcelRows } from "@/utils/shared";
+import { downloadExcelRows, formatDateNumeric, formatTime } from "@/utils/shared";
 import { buildSncExportRows, sncExportFileName, sncTotal } from "@/utils/sncExcelExport";
 import type { SncExportOptions } from "@/utils/sncExcelExport";
 
@@ -27,22 +29,97 @@ function totalFor(row: SncResultRow, cols: ColFlags): number {
   return sncTotal(row, cols);
 }
 
+function carryFor(row: SncResultRow, cols: ColFlags): number | null {
+  return cols.carryFactor != null ? Math.round((row.poeng_xkast ?? 0) * cols.carryFactor) : null;
+}
+
 function rowHtml(row: SncResultRow, cols: ColFlags): string {
   const kaster = row.kaster;
   const nameHtml = kaster
     ? `<a href="#/kastere/${buildThrowerSlug(kaster)}" class="res-kaster-lenke">${escHtml(throwerName(kaster))}</a>`
     : "–";
+  const carry = carryFor(row, cols);
   return `
     <tr>
-      <td class="res-td-pl">${row.snc_plassering ?? "–"}</td>
+      <td class="res-td-pl">${row.snc_plassering ?? "–"}.</td>
       <td class="res-td-navn">${nameHtml}</td>
       <td class="res-td-klubb">${escHtml(row.klubb?.navn ?? "–")}</td>
-      ${cols.showXkast ? `<td class="res-td-kp">${row.poeng_xkast ?? ""}</td><td class="res-td-ring">${row.antall_ring_xkast ?? ""}</td>` : ""}
-      ${cols.showKongelag ? `<td class="res-td-sp">${row.poeng_kongelag ?? ""}</td><td class="res-td-ring">${row.antall_ring_kongelag ?? ""}</td>` : ""}
-      <td class="res-td-tot">${totalFor(row, cols)}</td>
-      <td class="res-td-nc">${row.nc_poeng ?? ""}</td>
-      <td class="res-td-pl">${row.plassering ?? "–"}</td>
+      ${
+        cols.showXkast
+          ? `<td class="res-tal">${row.poeng_xkast ?? "–"}</td>
+             <td class="res-tal res-tal--dempa">${row.antall_ring_xkast ?? "–"}</td>
+             ${carry != null ? `<td class="res-tal res-tal--dempa res-kol-slutt">${carry}</td>` : ""}`
+          : ""
+      }
+      ${
+        cols.showKongelag
+          ? `<td class="res-tal">${row.poeng_kongelag ?? "–"}</td>
+             <td class="res-tal res-tal--dempa res-kol-slutt">${row.antall_ring_kongelag ?? "–"}</td>`
+          : ""
+      }
+      <td class="res-tal res-td-tot">${totalFor(row, cols)}</td>
+      <td class="res-tal res-tal--dempa">${row.nc_poeng ?? "–"}</td>
+      <td class="res-tal res-tal--dempa">${row.plassering ?? "–"}</td>
     </tr>`;
+}
+
+/** Two header rows: the method groups on top, the repeated Poeng/Ringar below. */
+function headHtml(cols: ColFlags): string {
+  const xkastSpan = cols.carryFactor != null ? 3 : 2;
+  return `
+    <tr class="res-thead-grupper">
+      <th colspan="3"></th>
+      ${cols.showXkast ? `<th colspan="${xkastSpan}" class="res-gruppe res-kol-slutt">${escHtml(cols.innlLabel)}</th>` : ""}
+      ${cols.showKongelag ? `<th colspan="2" class="res-gruppe res-kol-slutt">${escHtml(cols.avslLabel)}</th>` : ""}
+      <th class="res-gruppe res-td-tot">Total</th>
+      <th colspan="2"></th>
+    </tr>
+    <tr class="res-thead-columns">
+      <th class="res-td-pl">PL</th>
+      <th class="res-td-navn">NAMN</th>
+      <th class="res-td-klubb">KLUBB</th>
+      ${
+        cols.showXkast
+          ? `<th class="res-tal">POENG</th><th class="res-tal">RINGAR</th>
+             ${cols.carryFactor != null ? '<th class="res-tal res-kol-slutt">OVERFØRT</th>' : ""}`
+          : ""
+      }
+      ${cols.showKongelag ? '<th class="res-tal">POENG</th><th class="res-tal res-kol-slutt">RINGAR</th>' : ""}
+      <th class="res-tal res-td-tot">SUM</th>
+      <th class="res-tal">NC</th>
+      <th class="res-tal">LOKAL PL</th>
+    </tr>`;
+}
+
+/** Everything the round is: who ran it, when, how it was thrown, how big it got. */
+function infoFacts(
+  parent: SncParentTournamentRow,
+  cols: ColFlags,
+  localCount: number,
+  deltakarar: number,
+): StevneHeroFact[] {
+  const facts: StevneHeroFact[] = [
+    { label: "Arrangør", html: escHtml(parent.klubb?.navn ?? "—") },
+    { label: "Dato", html: parent.dato ? formatDateNumeric(parent.dato) : "—" },
+    { label: "Tid", html: parent.tid ? formatTime(parent.tid) : "—" },
+    { label: "Stad", html: escHtml(parent.sted ?? "—") },
+    { label: "Type / kategori", html: escHtml(typeAndCategoryLabel(parent)) },
+    { label: "Kontaktperson", html: escHtml(contactName(parent) || "—") },
+  ];
+  if (cols.showXkast) {
+    facts.push({ label: "Innleiande", html: escHtml(cols.innlLabel) });
+    const omganger = parent.kastemetodeInnl?.antall_omganger;
+    if (omganger != null) facts.push({ label: "Omgangar", html: String(omganger) });
+  }
+  if (cols.showKongelag) facts.push({ label: "Avsluttande", html: escHtml(cols.avslLabel) });
+  if (cols.carryPercent != null) {
+    facts.push({ label: "Overføring", html: `${cols.carryPercent} %` });
+  }
+  facts.push(
+    { label: "Lokale stevne", html: String(localCount) },
+    { label: "Deltakarar", html: String(deltakarar) },
+  );
+  return facts;
 }
 
 function statBoxHtml(label: string, value: string, extra: string, sub: string): string {
@@ -57,8 +134,8 @@ function statBoxHtml(label: string, value: string, extra: string, sub: string): 
 function detailHtml(row: SncResultRow, cols: ColFlags): string {
   const boxes: string[] = [];
   if (cols.showXkast) {
-    const carry =
-      cols.carryFactor != null ? `(${Math.round((row.poeng_xkast ?? 0) * cols.carryFactor)})` : "";
+    const carried = carryFor(row, cols);
+    const carry = carried != null ? `(${carried})` : "";
     const label =
       cols.carryPercent != null ? `${cols.innlLabel} (${cols.carryPercent} %)` : cols.innlLabel;
     boxes.push(
@@ -206,33 +283,26 @@ export async function render(
 
     container.innerHTML = `
       <div class="res-side">
-        <div class="res-felles">
-          <p class="res-antall"><strong>${rows.length} deltakarar frå ${localCount} lokale stevne</strong></p>
-        </div>
-        <div class="res-mobil-blokk">
-          <div class="res-group">
-            <div class="res-group-rows">${rows.map((r, i) => mobileRowHtml(r, cols, i)).join("")}</div>
+        <section class="res-seksjon">
+          <h6 class="res-seksjon-tittel">Stevneinfo</h6>
+          ${factGridHtml(infoFacts(parent, cols, localCount, rows.length), "res-fakta")}
+        </section>
+        <section class="res-seksjon">
+          <h6 class="res-seksjon-tittel">Samla resultat</h6>
+          <div class="res-mobil-blokk">
+            <div class="res-group">
+              <div class="res-group-rows">${rows.map((r, i) => mobileRowHtml(r, cols, i)).join("")}</div>
+            </div>
           </div>
-        </div>
-        <div class="res-desktop-blokk">
-          <div class="res-table-section">
-            <table class="res-table">
-              <thead>
-                <tr class="res-thead-columns">
-                  <th class="res-td-pl">Pl</th>
-                  <th class="res-td-navn">NAVN</th>
-                  <th class="res-td-klubb">KLUBB</th>
-                  ${cols.showXkast ? '<th class="res-td-kp">X</th><th class="res-td-ring">RING</th>' : ""}
-                  ${cols.showKongelag ? '<th class="res-td-sp">K</th><th class="res-td-ring">RING</th>' : ""}
-                  <th class="res-td-tot">TOT</th>
-                  <th class="res-td-nc">NC</th>
-                  <th class="res-td-pl">LOKAL PL</th>
-                </tr>
-              </thead>
-              <tbody>${rows.map((r) => rowHtml(r, cols)).join("")}</tbody>
-            </table>
+          <div class="res-desktop-blokk">
+            <div class="res-tabell-boks">
+              <table class="res-table res-table--snc">
+                <thead>${headHtml(cols)}</thead>
+                <tbody>${rows.map((r) => rowHtml(r, cols)).join("")}</tbody>
+              </table>
+            </div>
           </div>
-        </div>
+        </section>
       </div>`;
 
     bindDetailToggles(container);

@@ -936,6 +936,147 @@
   color: var(--tekst-2);
 }
 
+/* ── SNC consolidated result: info tiles + grouped table ── */
+
+.res-seksjon {
+  margin-bottom: 18px;
+}
+
+.res-seksjon-tittel {
+  margin: 0 0 6px;
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--tekst-2);
+}
+
+/* Denser than the hero grid: more columns, smaller type, no wasted padding. */
+.res-fakta {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  border: 1px solid var(--kant);
+  border-radius: 8px;
+  background: var(--kant);
+  overflow: hidden;
+}
+
+.res-fakta .stevne-hero__rute {
+  border: none;
+  border-radius: 0;
+  padding: 5px 10px;
+  background: var(--flate);
+}
+
+.res-fakta .stevne-hero__etikett {
+  font-size: 0.6rem;
+  letter-spacing: 0.05em;
+}
+
+.res-fakta .stevne-hero__verdi {
+  font-size: 0.85rem;
+}
+
+@media (min-width: 700px) {
+  .res-fakta {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 992px) {
+  .res-fakta {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
+.res-tabell-boks {
+  border: 1px solid var(--kant);
+  border-radius: 8px;
+  overflow-x: auto;
+}
+
+.res-table--snc {
+  font-size: 0.8rem;
+}
+
+.res-table--snc th,
+.res-table--snc td {
+  padding: 3px 8px;
+  white-space: nowrap;
+}
+
+/* Group row: one label above each method's Poeng/Ringar pair. */
+.res-thead-grupper th {
+  background: var(--flate-2);
+  color: var(--tekst-2);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: center;
+  padding: 3px 8px;
+  border-bottom: 1px solid var(--kant);
+}
+
+.res-table--snc .res-thead-columns th {
+  background: var(--flate-2);
+  color: var(--tekst-2);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  padding: 3px 8px;
+  border-bottom: 1px solid var(--kant);
+}
+
+.res-table--snc .res-tal {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.res-table--snc .res-tal--dempa {
+  color: var(--tekst-2);
+}
+
+/* Vertical rule after each group, so the pairs read as blocks. */
+.res-table--snc .res-kol-slutt {
+  border-right: 1px solid var(--kant);
+}
+
+.res-table--snc .res-td-pl {
+  width: auto;
+  color: var(--lenke);
+  font-weight: bold;
+  text-align: right;
+}
+
+.res-table--snc .res-td-navn {
+  font-weight: 600;
+}
+
+.res-table--snc .res-td-klubb {
+  color: var(--tekst-2);
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The one column the eye should land on. */
+.res-table--snc .res-td-tot {
+  background: color-mix(in srgb, var(--primaer) 32%, var(--flate));
+  color: var(--tekst);
+  border-left: 1px solid var(--kant);
+  border-right: 1px solid var(--kant);
+}
+
+.res-table--snc tbody .res-td-tot {
+  font-size: 0.95rem;
+  font-weight: bold;
+}
+
+.res-table--snc .res-thead-grupper .res-td-tot {
+  color: var(--primaer-text);
+}
+
 /* Desktop-infotabell */
 
 .res-info-tabell {
@@ -1014,11 +1155,6 @@
 .res-td-nc {
   width: 60px;
   text-align: right;
-}
-
-.res-td-ring {
-  width: 55px;
-  color: var(--tekst-2);
 }
 
 .res-thead-columns th.res-td-tot,
