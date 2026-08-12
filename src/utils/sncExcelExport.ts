@@ -7,6 +7,17 @@ import { formatDateNumeric, formatTime } from "@/utils/shared";
 
 export type Cell = string | number | null;
 
+/** A merged cell range, in xlsx's own row/column form. */
+export interface SheetMerge {
+  s: { r: number; c: number };
+  e: { r: number; c: number };
+}
+
+export interface SncExportSheet {
+  rows: Cell[][];
+  merges: SheetMerge[];
+}
+
 interface NamedRow {
   navn?: string | null;
 }
@@ -100,13 +111,58 @@ function infoRows(
   return [["STEVNEINFO"], ...factBlock(facts)];
 }
 
-/** Score columns repeat in both tables, so the header and the cells share a shape. */
-function scoreHeader(opts: SncExportOptions): Cell[] {
-  const header: Cell[] = [];
-  if (opts.showXkast) header.push(`${opts.innlLabel} poeng`, `${opts.innlLabel} ringer`);
-  if (opts.carryFactor != null) header.push("Overført");
-  if (opts.showKongelag) header.push(`${opts.avslLabel} poeng`, `${opts.avslLabel} ringer`);
-  return [...header, "Total", "NC"];
+/** One method's block of columns: the name goes above, the plain labels below. */
+function scoreGroups(opts: SncExportOptions): { label: string; labels: string[] }[] {
+  const groups: { label: string; labels: string[] }[] = [];
+  if (opts.showXkast) {
+    const labels = ["Poeng", "Ringar"];
+    if (opts.carryFactor != null) labels.push("Overført");
+    groups.push({ label: opts.innlLabel, labels });
+  }
+  if (opts.showKongelag) {
+    groups.push({ label: opts.avslLabel, labels: ["Poeng", "Ringar"] });
+  }
+  return groups;
+}
+
+/**
+ * Two header rows, mirroring the table on the page: the method names merged over
+ * their own columns, then Poeng / Ringar under each. `firstRow` is where the
+ * group row lands in the sheet, so the merge ranges point at the right cells.
+ */
+function headerRows(
+  leading: string[],
+  trailing: string[],
+  opts: SncExportOptions,
+  firstRow: number,
+): { rows: Cell[][]; merges: SheetMerge[] } {
+  const groups = scoreGroups(opts);
+  const groupRow: Cell[] = leading.map(() => "");
+  const merges: SheetMerge[] = [];
+  let col = leading.length;
+
+  for (const group of groups) {
+    groupRow.push(group.label, ...group.labels.slice(1).map(() => ""));
+    if (group.labels.length > 1) {
+      merges.push({
+        s: { r: firstRow, c: col },
+        e: { r: firstRow, c: col + group.labels.length - 1 },
+      });
+    }
+    col += group.labels.length;
+  }
+
+  const labelRow: Cell[] = [
+    ...leading,
+    ...groups.flatMap((g) => g.labels),
+    "Total",
+    "NC",
+    ...trailing,
+  ];
+  return {
+    rows: [[...groupRow, ...labelRow.slice(groupRow.length).map(() => "")], labelRow],
+    merges,
+  };
 }
 
 function scoreCells(row: SncExportResult, opts: SncExportOptions): Cell[] {
@@ -117,43 +173,44 @@ function scoreCells(row: SncExportResult, opts: SncExportOptions): Cell[] {
   return [...cells, sncTotal(row, opts), row.nc_poeng];
 }
 
-function mainTable(results: SncExportResult[], opts: SncExportOptions): Cell[][] {
-  const rows: Cell[][] = [
-    ["SAMLA RESULTAT"],
-    ["Pl", "Namn", "Klubb", "Lokalt stevne", ...scoreHeader(opts), "Lokal pl"],
-  ];
+function mainTable(
+  results: SncExportResult[],
+  opts: SncExportOptions,
+  firstRow: number,
+): { rows: Cell[][]; merges: SheetMerge[] } {
+  // +1: the section title sits above the header rows.
+  const header = headerRows(["Pl", "Namn", "Klubb"], [], opts, firstRow + 1);
+  const rows: Cell[][] = [["SAMLA RESULTAT"], ...header.rows];
   for (const row of results) {
     rows.push([
       row.snc_plassering,
       fullName(row.kaster),
       row.klubb?.navn ?? "",
-      row.stevne.navn,
       ...scoreCells(row, opts),
-      row.plassering,
     ]);
   }
-  return rows;
+  return { rows, merges: header.merges };
 }
 
 function localBlock(
   local: SncExportLocal,
   results: SncExportResult[],
   opts: SncExportOptions,
-): Cell[][] {
+  firstRow: number,
+): { rows: Cell[][]; merges: SheetMerge[] } {
   const ordered = [...results].sort(
     (a, b) => (a.plassering ?? Number.MAX_SAFE_INTEGER) - (b.plassering ?? Number.MAX_SAFE_INTEGER),
   );
-  const rows: Cell[][] = [
-    [local.navn],
-    ...factBlock([
-      ["Arrangør", local.klubb?.navn ?? ""],
-      ["Dato", formatDateNumeric(local.dato)],
-      ["Tid", formatTime(local.tid)],
-      ["Stad", local.sted ?? ""],
-      ["Deltakarar", ordered.length],
-    ]),
-    ["Pl", "Namn", "Klubb", ...scoreHeader(opts), "SNC pl"],
-  ];
+  const facts = factBlock([
+    ["Arrangør", local.klubb?.navn ?? ""],
+    ["Dato", formatDateNumeric(local.dato)],
+    ["Tid", formatTime(local.tid)],
+    ["Stad", local.sted ?? ""],
+    ["Deltakarar", ordered.length],
+  ]);
+  // Name row + the fact block come before the header rows.
+  const header = headerRows(["Pl", "Namn", "Klubb"], ["SNC pl"], opts, firstRow + 1 + facts.length);
+  const rows: Cell[][] = [[local.navn], ...facts, ...header.rows];
   for (const row of ordered) {
     rows.push([
       row.plassering,
@@ -163,7 +220,7 @@ function localBlock(
       row.snc_plassering,
     ]);
   }
-  return rows;
+  return { rows, merges: header.merges };
 }
 
 /**
@@ -194,25 +251,25 @@ function localsWithResults(
     .filter((entry) => entry.rows.length > 0);
 }
 
-export function buildSncExportRows(
+export function buildSncExportSheet(
   parent: SncExportParent,
   locals: SncExportLocal[],
   results: SncExportResult[],
   opts: SncExportOptions,
-): Cell[][] {
-  const rows: Cell[][] = [
-    [parent.navn],
-    EMPTY,
-    ...infoRows(parent, locals, results, opts),
-    EMPTY,
-    ...mainTable(results, opts),
-    EMPTY,
-    ["LOKALE STEVNE"],
-  ];
+): SncExportSheet {
+  const rows: Cell[][] = [[parent.navn], EMPTY, ...infoRows(parent, locals, results, opts), EMPTY];
+
+  const main = mainTable(results, opts, rows.length);
+  rows.push(...main.rows, EMPTY, ["LOKALE STEVNE"]);
+  const merges = [...main.merges];
+
   for (const entry of localsWithResults(locals, results)) {
-    rows.push(EMPTY, ...localBlock(entry.local, entry.rows, opts));
+    rows.push(EMPTY);
+    const block = localBlock(entry.local, entry.rows, opts, rows.length);
+    rows.push(...block.rows);
+    merges.push(...block.merges);
   }
-  return rows;
+  return { rows, merges };
 }
 
 /** "SNC Runde 3 – Dale" → "snc-runde-3-dale.xlsx" */

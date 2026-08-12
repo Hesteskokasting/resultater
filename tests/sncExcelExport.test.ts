@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { buildSncExportRows, sncExportFileName, sncTotal } from "@/utils/sncExcelExport";
+import { buildSncExportSheet, sncExportFileName, sncTotal } from "@/utils/sncExcelExport";
 import type {
   SncExportLocal,
   SncExportOptions,
@@ -85,13 +85,14 @@ describe("sncTotal", () => {
   });
 });
 
-describe("buildSncExportRows", () => {
-  const rows = buildSncExportRows(
+describe("buildSncExportSheet", () => {
+  const sheet = buildSncExportSheet(
     parent,
     locals,
     [result(1, "A", 10, 1, 302), result(2, "B", 11, 1, 290), result(3, "C", 10, 2, 280)],
     opts,
   );
+  const rows = sheet.rows;
   const cells = firstCells(rows);
 
   it("leads with the round's name and its facts as a labels row over a values row", () => {
@@ -136,27 +137,38 @@ describe("buildSncExportRows", () => {
     expect(cells.indexOf("LOKALE STEVNE")).toBeLessThan(cells.lastIndexOf("Dale"));
   });
 
-  it("names the score columns after the methods in use", () => {
-    const header = rows[cells.indexOf("SAMLA RESULTAT") + 1]!;
-    expect(header).toEqual([
+  it("groups the score columns under the method names instead of repeating them", () => {
+    const at = cells.indexOf("SAMLA RESULTAT");
+    expect(rows[at + 1]).toEqual(["", "", "", "Halvmatch", "", "", "Kongelag", "", "", ""]);
+    expect(rows[at + 2]).toEqual([
       "Pl",
       "Namn",
       "Klubb",
-      "Lokalt stevne",
-      "Halvmatch poeng",
-      "Halvmatch ringer",
+      "Poeng",
+      "Ringar",
       "Overført",
-      "Kongelag poeng",
-      "Kongelag ringer",
+      "Poeng",
+      "Ringar",
       "Total",
       "NC",
-      "Lokal pl",
     ]);
   });
 
+  it("merges each method name over its own columns", () => {
+    const at = cells.indexOf("SAMLA RESULTAT") + 1;
+    expect(sheet.merges).toContainEqual({ s: { r: at, c: 3 }, e: { r: at, c: 5 } });
+    expect(sheet.merges).toContainEqual({ s: { r: at, c: 6 }, e: { r: at, c: 7 } });
+  });
+
   it("writes each result as numbers, with the carried-over value spelled out", () => {
-    const first = rows[cells.indexOf("SAMLA RESULTAT") + 2]!;
-    expect(first).toEqual([1, "A Testar", "Skjold HK", "Dale", 302, 24, 60, 118, 8, 178, 100, 1]);
+    const first = rows[cells.indexOf("SAMLA RESULTAT") + 3]!;
+    expect(first).toEqual([1, "A Testar", "Skjold HK", 302, 24, 60, 118, 8, 178, 100]);
+  });
+
+  it("leaves the local stevne and its placement out of the merged list", () => {
+    const at = cells.indexOf("SAMLA RESULTAT");
+    expect(rows[at + 2]).not.toContain("Lokalt stevne");
+    expect(rows[at + 2]).not.toContain("Lokal pl");
   });
 
   it("gives every local stevne its own block, ordered by local placement", () => {
@@ -171,31 +183,32 @@ describe("buildSncExportRows", () => {
 
   it("skips columns for a block the round does not use", () => {
     const single = { ...opts, showKongelag: false, carryFactor: null, carryPercent: null };
-    const onlyXkast = buildSncExportRows(parent, locals, [result(1, "A", 10, 1, 302)], single);
-    const heads = firstCells(onlyXkast);
-    expect(onlyXkast[heads.indexOf("SAMLA RESULTAT") + 1]).toEqual([
+    const onlyXkast = buildSncExportSheet(parent, locals, [result(1, "A", 10, 1, 302)], single);
+    const heads = firstCells(onlyXkast.rows);
+    const at = heads.indexOf("SAMLA RESULTAT");
+    expect(onlyXkast.rows[at + 1]).toEqual(["", "", "", "Halvmatch", "", "", ""]);
+    expect(onlyXkast.rows[at + 2]).toEqual([
       "Pl",
       "Namn",
       "Klubb",
-      "Lokalt stevne",
-      "Halvmatch poeng",
-      "Halvmatch ringer",
+      "Poeng",
+      "Ringar",
       "Total",
       "NC",
-      "Lokal pl",
     ]);
-    expect(heads).not.toContain("Overføring frå innleiande");
+    expect(heads).not.toContain("Overføring");
   });
 
   it("keeps a stevne the local list missed rather than dropping its rows", () => {
-    const built = buildSncExportRows(parent, [locals[0]!], [result(1, "B", 11, 1, 290)], opts);
-    expect(firstCells(built)).toContain("Voss");
+    const built = buildSncExportSheet(parent, [locals[0]!], [result(1, "B", 11, 1, 290)], opts);
+    expect(firstCells(built.rows)).toContain("Voss");
   });
 
   it("leaves out a local stevne with no results", () => {
-    const built = buildSncExportRows(parent, locals, [result(1, "A", 10, 1, 302)], opts);
-    const afterList = firstCells(built).slice(firstCells(built).indexOf("LOKALE STEVNE"));
-    expect(afterList).not.toContain("Voss");
+    const built = firstCells(
+      buildSncExportSheet(parent, locals, [result(1, "A", 10, 1, 302)], opts).rows,
+    );
+    expect(built.slice(built.indexOf("LOKALE STEVNE"))).not.toContain("Voss");
   });
 });
 

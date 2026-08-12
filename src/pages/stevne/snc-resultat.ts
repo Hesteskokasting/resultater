@@ -16,7 +16,7 @@ import { getSncConsolidatedResults } from "@/services/resultatService";
 import type { SncResultRow } from "@/services/resultatService";
 import type { SncParentTournamentRow } from "@/services/stevneService";
 import { downloadExcelRows } from "@/utils/shared";
-import { buildSncExportRows, sncExportFileName, sncTotal } from "@/utils/sncExcelExport";
+import { buildSncExportSheet, sncExportFileName, sncTotal } from "@/utils/sncExcelExport";
 import type { SncExportOptions } from "@/utils/sncExcelExport";
 
 // The export sheet needs exactly the flags the table does, so the two share one
@@ -196,10 +196,12 @@ function bindExcelExport(
     button.disabled = true;
     try {
       const { data: locals } = await getSncLocalTournaments(parent.id);
+      const sheet = buildSncExportSheet(parent, locals, rows, cols);
       await downloadExcelRows(
-        buildSncExportRows(parent, locals, rows, cols),
+        sheet.rows,
         sncExportFileName(parent.navn),
         "Samla resultat",
+        sheet.merges,
       );
     } catch (err) {
       logError("snc-resultat.excel", err);
