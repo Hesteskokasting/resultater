@@ -201,6 +201,8 @@ Køyr integrasjonstestane når du endrar migreringsfiler, RLS-politikkar eller `
 
 Push til `main` triggar GitHub Actions-workflow som byggjer og deployer til GitHub Pages. **Produksjon krev manuell godkjenning** i GitHub → Environments → `github-pages`.
 
+Etter ein godkjend deploy taggar workflowen automatisk commiten med `v` + `version` frå [`package.json`](package.json) (t.d. `v0.9.12`). Er versjonen alt tagga, hoppar steget over — så fleire prod-deployar på same versjon er trygt, men du får berre éin tagg per versjonsnummer. Vil du at kvar utgåve skal vere tagga, må du auke `version` i same commit som du merger til `main`. `git log --first-parent main` gir deg utgåvelista.
+
 **Angrar du etter push til `main`?** Du har to val:
 
 - **Før du har godkjent deployen:** Gå til GitHub → Actions → den køyrande workflowen → klikk **"Reject"** i godkjenningssteget. Ingenting vert publisert, og du kan rette opp med ein ny commit.
