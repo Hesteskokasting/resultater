@@ -105,6 +105,7 @@ function localRow(id: number, klubb: string, overrides: Record<string, unknown> 
     stevne_fase: "ikke_startet",
     klubbid: id,
     klubb: { id, navn: klubb, logourl: null },
+    kontakt: { fornavn: "Ola", etternavn: klubb },
     ...overrides,
   };
 }
@@ -431,6 +432,7 @@ describe("SNC consolidated result", () => {
     );
     expect(facts).toContain("Tid 11:00");
     expect(facts).toContain("Stad Førde");
+    expect(facts).toContain("Kontaktperson Ola Førde");
     expect(facts).toContain("Deltakarar 1");
 
     // A local table leads with the local placement and trails with the SNC one.

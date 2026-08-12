@@ -15,12 +15,13 @@ import { getSncParentTournament, getSncLocalTournaments } from "@/services/stevn
 import { getSncConsolidatedResults } from "@/services/resultatService";
 import type { SncResultRow } from "@/services/resultatService";
 import type { SncLocalTournamentRow, SncParentTournamentRow } from "@/services/stevneService";
-import { downloadExcelRows, formatDateNumeric, formatTime } from "@/utils/shared";
+import { downloadExcelRows } from "@/utils/shared";
 import {
   buildSncExportSheet,
   localsWithResults,
   sncExportFileName,
   sncInfoFacts,
+  sncLocalFacts,
   sncTotal,
 } from "@/utils/sncExcelExport";
 import type { SncExportOptions } from "@/utils/sncExcelExport";
@@ -158,21 +159,14 @@ function printLocalsHtml(
   cols: ColFlags,
 ): string {
   return localsWithResults(locals, rows)
-    .map(({ local, rows: localRows }) => {
-      const facts: [string, string | number | null][] = [
-        ["Arrangør", local.klubb?.navn ?? ""],
-        ["Dato", local.dato ? formatDateNumeric(local.dato) : ""],
-        ["Tid", local.tid ? formatTime(local.tid) : ""],
-        ["Stad", local.sted ?? ""],
-        ["Deltakarar", localRows.length],
-      ];
-      return `
+    .map(
+      ({ local, rows: localRows }) => `
         <div class="res-print-blokk res-print-lokal">
           <h2 class="res-print-undertittel">${escHtml(local.navn)}</h2>
-          ${printFactsHtml(facts)}
+          ${printFactsHtml(sncLocalFacts(local, localRows.length))}
           ${tableHtml(localRows, cols, "lokal")}
-        </div>`;
-    })
+        </div>`,
+    )
     .join("");
 }
 

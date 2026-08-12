@@ -43,6 +43,7 @@ export interface SncExportLocal {
   tid?: string | null;
   sted?: string | null;
   klubb?: NamedRow | null;
+  kontakt?: { fornavn?: string | null; etternavn?: string | null } | null;
 }
 
 export interface SncExportResult {
@@ -117,6 +118,21 @@ export function sncInfoFacts(
   if (opts.carryPercent != null) facts.push(["Overføring", `${opts.carryPercent} %`]);
   facts.push(["Lokale stevne", localCount], ["Deltakarar", deltakarar]);
   return facts;
+}
+
+/** A local stevne's own facts — where and when it was thrown, and by how many. */
+export function sncLocalFacts(
+  local: SncExportLocal,
+  deltakarar: number,
+): [label: string, value: Cell][] {
+  return [
+    ["Arrangør", local.klubb?.navn ?? ""],
+    ["Dato", formatDateNumeric(local.dato)],
+    ["Tid", formatTime(local.tid)],
+    ["Stad", local.sted ?? ""],
+    ["Kontaktperson", fullName(local.kontakt ?? null)],
+    ["Deltakarar", deltakarar],
+  ];
 }
 
 function infoRows(
@@ -216,13 +232,7 @@ function localBlock(
   firstRow: number,
 ): { rows: Cell[][]; merges: SheetMerge[] } {
   const ordered = results;
-  const facts = factBlock([
-    ["Arrangør", local.klubb?.navn ?? ""],
-    ["Dato", formatDateNumeric(local.dato)],
-    ["Tid", formatTime(local.tid)],
-    ["Stad", local.sted ?? ""],
-    ["Deltakarar", ordered.length],
-  ]);
+  const facts = factBlock(sncLocalFacts(local, ordered.length));
   // Name row + the fact block come before the header rows.
   const header = headerRows(["Pl", "Namn", "Klubb"], ["SNC pl"], opts, firstRow + 1 + facts.length);
   const rows: Cell[][] = [[local.navn], ...facts, ...header.rows];

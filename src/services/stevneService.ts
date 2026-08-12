@@ -289,7 +289,7 @@ export async function deleteTournament(id: number): Promise<{ error: unknown }> 
 // One string per query, used both to derive the row type and to run it, so the
 // two cannot drift apart.
 const SNC_LOKALSTEVNE_SELECT =
-  "id, navn, sted, dato, tid, erfullfort, stevne_fase, klubbid, klubb:klubbid(id, navn, logourl)" as const;
+  "id, navn, sted, dato, tid, erfullfort, stevne_fase, klubbid, klubb:klubbid(id, navn, logourl), kontakt:kontaktkasterid(fornavn, etternavn)" as const;
 
 const _sncLokalstevneQuery = supabase.from("stevne").select(SNC_LOKALSTEVNE_SELECT);
 

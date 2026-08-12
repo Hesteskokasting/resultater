@@ -28,6 +28,7 @@ const locals: SncExportLocal[] = [
     tid: "11:00:00",
     sted: "Dale",
     klubb: { navn: "Skjold HK" },
+    kontakt: { fornavn: "Per", etternavn: "Dale" },
   },
   {
     id: 11,
@@ -178,8 +179,8 @@ describe("buildSncExportSheet", () => {
   it("gives every local stevne its own block, ordered by local placement", () => {
     const start = cells.indexOf("Dale", cells.indexOf("LOKALE STEVNE"));
     const block = rows.slice(start);
-    expect(block[1]).toEqual(["Arrangør", "Dato", "Tid", "Stad", "Deltakarar"]);
-    expect(block[2]).toEqual(["Skjold HK", "25.7.2026", "11:00", "Dale", 2]);
+    expect(block[1]).toEqual(["Arrangør", "Dato", "Tid", "Stad", "Kontaktperson", "Deltakarar"]);
+    expect(block[2]).toEqual(["Skjold HK", "25.7.2026", "11:00", "Dale", "Per Dale", 2]);
     const header = block.findIndex((r) => r[0] === "Pl");
     expect(block[header + 1]?.[1]).toBe("A Testar");
     expect(block[header + 2]?.[1]).toBe("C Testar");
