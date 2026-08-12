@@ -12,7 +12,6 @@ const parent: SncExportParent = {
   dato: "2026-08-01",
   tid: "10:00:00",
   sted: "Årdalen",
-  erfullfort: true,
   stevnetype: { navn: "SNC" },
   kategori: { navn: "Singel" },
   klubb: { navn: "Nordhordland HK" },
@@ -28,7 +27,6 @@ const locals: SncExportLocal[] = [
     dato: "2026-07-25",
     tid: "11:00:00",
     sted: "Dale",
-    erfullfort: true,
     klubb: { navn: "Skjold HK" },
   },
   {
@@ -37,7 +35,6 @@ const locals: SncExportLocal[] = [
     dato: "2026-07-26",
     tid: "12:00:00",
     sted: "Voss",
-    erfullfort: true,
     klubb: { navn: "Voss HK" },
   },
 ];
@@ -97,13 +94,41 @@ describe("buildSncExportRows", () => {
   );
   const cells = firstCells(rows);
 
-  it("leads with the round's name and its facts", () => {
+  it("leads with the round's name and its facts as a labels row over a values row", () => {
     expect(cells[0]).toBe("SNC Runde 3");
-    expect(cells).toContain("STEVNEINFO");
-    expect(rows.find((r) => r[0] === "Arrangør")?.[1]).toBe("Nordhordland HK");
-    expect(rows.find((r) => r[0] === "Omgangar")?.[1]).toBe(25);
-    expect(rows.find((r) => r[0] === "Overføring frå innleiande")?.[1]).toBe("20 %");
-    expect(rows.find((r) => r[0] === "Type / kategori")?.[1]).toBe("SNC Singel");
+    const at = cells.indexOf("STEVNEINFO");
+    expect(rows[at + 1]).toEqual([
+      "Arrangør",
+      "Dato",
+      "Tid",
+      "Stad",
+      "Type / kategori",
+      "Kontaktperson",
+      "Innleiande",
+      "Avsluttande",
+      "Overføring",
+      "Lokale stevne",
+      "Deltakarar",
+    ]);
+    expect(rows[at + 2]).toEqual([
+      "Nordhordland HK",
+      "1.8.2026",
+      "10:00",
+      "Årdalen",
+      "SNC Singel",
+      "Kari Nordmann",
+      "Halvmatch",
+      "Kongelag",
+      "20 %",
+      2,
+      3,
+    ]);
+  });
+
+  it("leaves out status and omgangar", () => {
+    expect(cells).not.toContain("Status");
+    expect(cells).not.toContain("Omgangar");
+    expect(rows[cells.indexOf("STEVNEINFO") + 1]).not.toContain("Omgangar");
   });
 
   it("puts the merged list before the local blocks", () => {
@@ -137,8 +162,8 @@ describe("buildSncExportRows", () => {
   it("gives every local stevne its own block, ordered by local placement", () => {
     const start = cells.indexOf("Dale", cells.indexOf("LOKALE STEVNE"));
     const block = rows.slice(start);
-    expect(block[1]).toEqual(["Arrangør", "Skjold HK"]);
-    expect(block.find((r) => r[0] === "Deltakarar")?.[1]).toBe(2);
+    expect(block[1]).toEqual(["Arrangør", "Dato", "Tid", "Stad", "Deltakarar"]);
+    expect(block[2]).toEqual(["Skjold HK", "25.7.2026", "11:00", "Dale", 2]);
     const header = block.findIndex((r) => r[0] === "Pl");
     expect(block[header + 1]?.[1]).toBe("A Testar");
     expect(block[header + 2]?.[1]).toBe("C Testar");

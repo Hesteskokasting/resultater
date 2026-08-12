@@ -17,7 +17,6 @@ export interface SncExportParent {
   dato?: string | null;
   tid?: string | null;
   sted?: string | null;
-  erfullfort?: boolean | null;
   stevnetype?: NamedRow | null;
   kategori?: NamedRow | null;
   klubb?: NamedRow | null;
@@ -32,7 +31,6 @@ export interface SncExportLocal {
   dato?: string | null;
   tid?: string | null;
   sted?: string | null;
-  erfullfort?: boolean | null;
   klubb?: NamedRow | null;
 }
 
@@ -66,8 +64,12 @@ function fullName(person: { fornavn?: string | null; etternavn?: string | null }
   return `${person.fornavn ?? ""} ${person.etternavn ?? ""}`.trim();
 }
 
-function labelValue(label: string, value: Cell): Cell[] {
-  return [label, value ?? ""];
+/**
+ * Facts as a labels row over a values row, so a dozen of them cost two rows
+ * instead of a dozen — the same shape the info tiles have on the page.
+ */
+function factBlock(facts: [label: string, value: Cell][]): Cell[][] {
+  return [facts.map(([label]) => label), facts.map(([, value]) => value ?? "")];
 }
 
 export function sncTotal(row: SncExportResult, opts: SncExportOptions): number {
@@ -83,31 +85,19 @@ function infoRows(
   results: SncExportResult[],
   opts: SncExportOptions,
 ): Cell[][] {
-  const omganger = parent.kastemetodeInnl?.antall_omganger ?? null;
-  const rows: Cell[][] = [
-    ["STEVNEINFO"],
-    labelValue("Arrangør", parent.klubb?.navn ?? ""),
-    labelValue("Dato", formatDateNumeric(parent.dato)),
-    labelValue("Tid", formatTime(parent.tid)),
-    labelValue("Stad", parent.sted ?? ""),
-    labelValue(
-      "Type / kategori",
-      [parent.stevnetype?.navn, parent.kategori?.navn].filter(Boolean).join(" "),
-    ),
-    labelValue("Kontaktperson", fullName(parent.kontakt ?? null)),
-    labelValue("Innleiande metode", parent.kastemetodeInnl?.navn ?? ""),
+  const facts: [string, Cell][] = [
+    ["Arrangør", parent.klubb?.navn ?? ""],
+    ["Dato", formatDateNumeric(parent.dato)],
+    ["Tid", formatTime(parent.tid)],
+    ["Stad", parent.sted ?? ""],
+    ["Type / kategori", [parent.stevnetype?.navn, parent.kategori?.navn].filter(Boolean).join(" ")],
+    ["Kontaktperson", fullName(parent.kontakt ?? null)],
   ];
-  if (omganger != null) rows.push(labelValue("Omgangar", omganger));
-  rows.push(labelValue("Avsluttande metode", parent.kastemetodeAvsl?.navn ?? ""));
-  if (opts.carryPercent != null) {
-    rows.push(labelValue("Overføring frå innleiande", `${opts.carryPercent} %`));
-  }
-  rows.push(
-    labelValue("Status", parent.erfullfort ? "Konsolidert" : "Ikkje konsolidert"),
-    labelValue("Lokale stevne", locals.length),
-    labelValue("Deltakarar", results.length),
-  );
-  return rows;
+  if (opts.showXkast) facts.push(["Innleiande", opts.innlLabel]);
+  if (opts.showKongelag) facts.push(["Avsluttande", opts.avslLabel]);
+  if (opts.carryPercent != null) facts.push(["Overføring", `${opts.carryPercent} %`]);
+  facts.push(["Lokale stevne", locals.length], ["Deltakarar", results.length]);
+  return [["STEVNEINFO"], ...factBlock(facts)];
 }
 
 /** Score columns repeat in both tables, so the header and the cells share a shape. */
@@ -155,12 +145,13 @@ function localBlock(
   );
   const rows: Cell[][] = [
     [local.navn],
-    labelValue("Arrangør", local.klubb?.navn ?? ""),
-    labelValue("Dato", formatDateNumeric(local.dato)),
-    labelValue("Tid", formatTime(local.tid)),
-    labelValue("Stad", local.sted ?? ""),
-    labelValue("Status", local.erfullfort ? "Fullført" : "Ikkje fullført"),
-    labelValue("Deltakarar", ordered.length),
+    ...factBlock([
+      ["Arrangør", local.klubb?.navn ?? ""],
+      ["Dato", formatDateNumeric(local.dato)],
+      ["Tid", formatTime(local.tid)],
+      ["Stad", local.sted ?? ""],
+      ["Deltakarar", ordered.length],
+    ]),
     ["Pl", "Namn", "Klubb", ...scoreHeader(opts), "SNC pl"],
   ];
   for (const row of ordered) {
