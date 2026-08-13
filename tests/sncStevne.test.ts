@@ -387,7 +387,8 @@ describe("SNC consolidated result", () => {
       "KLUBB",
       "POENG",
       "RINGAR",
-      "OVERFØRT",
+      // The carried column is headed by the share it carries: 15 omganger → a third.
+      "33,33 %",
       "POENG",
       "RINGAR",
       "TOTAL",

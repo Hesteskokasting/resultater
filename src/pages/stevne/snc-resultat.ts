@@ -45,6 +45,11 @@ function carryFor(row: SncResultRow, cols: ColFlags): number | null {
   return cols.carryFactor != null ? Math.round((row.poeng_xkast ?? 0) * cols.carryFactor) : null;
 }
 
+/** "20 %" / "33,33 %" — the carried share, and the header of the column it fills. */
+function carryLabel(prosent: number): string {
+  return `${String(prosent).replace(".", ",")} %`;
+}
+
 /**
  * The merged list leads with the SNC placement and trails with the local one; a
  * local stevne's own table is the same table with those two swapped.
@@ -115,7 +120,7 @@ function headHtml(cols: ColFlags, variant: TableVariant = "samla"): string {
           ? `<th class="res-tal">POENG</th><th class="res-tal">RINGAR</th>
              ${
                cols.carryPercent != null
-                 ? `<th class="res-tal res-kol-slutt" title="${cols.carryPercent} % av poenga frå ${escHtml(cols.innlLabel)}">OVERFØRT</th>`
+                 ? `<th class="res-tal res-kol-slutt" title="Overført til totalen: ${carryLabel(cols.carryPercent)} av poenga frå ${escHtml(cols.innlLabel)}">${carryLabel(cols.carryPercent)}</th>`
                  : ""
              }`
           : ""
@@ -123,7 +128,11 @@ function headHtml(cols: ColFlags, variant: TableVariant = "samla"): string {
       ${cols.showKongelag ? '<th class="res-tal">POENG</th><th class="res-tal res-kol-slutt">RINGAR</th>' : ""}
       <th class="res-tal res-td-tot">TOTAL</th>
       <th class="res-tal">NC</th>
-      <th class="res-tal">${variant === "samla" ? "PREMIE" : "SNC PL"}</th>
+      ${
+        variant === "samla"
+          ? '<th class="res-tal res-td-premie">PREMIE</th>'
+          : '<th class="res-tal">SNC PL</th>'
+      }
     </tr>`;
 }
 

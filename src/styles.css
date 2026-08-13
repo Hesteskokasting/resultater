@@ -1026,9 +1026,18 @@
   border-bottom: 1px solid var(--kant);
 }
 
+/* Figures sit centred under their own headers — tabular digits keep the columns
+   lining up despite the centring. */
 .res-table--snc .res-tal {
-  text-align: right;
+  text-align: center;
   font-variant-numeric: tabular-nums;
+}
+
+/* The figures that carry the result. Weight rather than colour alone: in dark
+   mode the contrast against the dimmed columns reads as bold on its own, in light
+   mode it does not. */
+.res-table--snc tbody .res-tal:not(.res-tal--dempa) {
+  font-weight: 600;
 }
 
 .res-table--snc .res-tal--dempa {
@@ -5662,10 +5671,6 @@ body:has(.modal.show) {
 .res-premie {
   font-weight: bold;
   line-height: 1;
-}
-
-.res-table--snc .res-td-premie {
-  text-align: center;
 }
 
 .res-tot .res-premie {
