@@ -142,7 +142,10 @@ async function buildMatchesContent(throwerId: number): Promise<HTMLElement> {
 
   const active = allMatches
     .filter((ks) => ks.kamp?.stevne?.erfullfort === false)
-    .sort((a, b) => (a.kamp?.runde_nummer ?? 0) - (b.kamp?.runde_nummer ?? 0));
+    .sort(
+      (a, b) =>
+        phaseRank(a) - phaseRank(b) || (a.kamp?.runde_nummer ?? 0) - (b.kamp?.runde_nummer ?? 0),
+    );
 
   const completed = allMatches
     .filter((ks) => ks.kamp?.stevne?.erfullfort === true)
@@ -214,27 +217,28 @@ async function buildMatchesContent(throwerId: number): Promise<HTMLElement> {
   const matchGridHtml = (group: MatchPlayerRow[]): string =>
     gridHtml(["Runde / Bane", "Motstandar", "Resultat"], group.map(matchRow));
 
-  /** One grid per phase with a small heading — only when the stevne spans both phases. */
+  /**
+   * One labelled grid per fase, whether or not the stevne spans both — a stevne
+   * still in innleiande gets its heading too. Matches whose fase is unknown fall
+   * into a trailing unlabelled grid.
+   */
   const phaseSectionsHtml = (group: MatchPlayerRow[]): string => {
-    const byPhase = PHASES.map(({ key, label }) => ({
+    const sections = PHASES.map(({ key, label }) => ({
       label,
       matches: group.filter((ks) => ks.kamp?.fase === key),
     })).filter((p) => p.matches.length);
-    const allPhasesKnown = byPhase.reduce((n, p) => n + p.matches.length, 0) === group.length;
-    if (byPhase.length < 2 || !allPhasesKnown) return matchGridHtml(group);
-    return byPhase
-      .map(
-        ({ label, matches: phaseMatches }) => `
+    const unknown = group.filter((ks) => !PHASES.some((p) => p.key === ks.kamp?.fase));
+    return [
+      ...sections.map(
+        ({ label, matches }) => `
       <p class="match-grid__phase">${label}</p>
-      ${matchGridHtml(phaseMatches)}`,
-      )
-      .join("");
+      ${matchGridHtml(matches)}`,
+      ),
+      ...(unknown.length ? [matchGridHtml(unknown)] : []),
+    ].join("");
   };
 
-  const groupMatchesByTournament = (
-    matches: MatchPlayerRow[],
-    groupByPhase = false,
-  ): string | null => {
+  const groupMatchesByTournament = (matches: MatchPlayerRow[]): string | null => {
     if (!matches.length) return null;
     const groups = new Map<number | string, { name: string; matches: MatchPlayerRow[] }>();
     for (const ks of matches) {
@@ -248,13 +252,13 @@ async function buildMatchesContent(throwerId: number): Promise<HTMLElement> {
       .map(
         ({ name, matches: group }) => `
       <p class="match-grid__stevne">${escHtml(name)}</p>
-      ${groupByPhase ? phaseSectionsHtml(group) : matchGridHtml(group)}`,
+      ${phaseSectionsHtml(group)}`,
       )
       .join("");
   };
 
   const activeContent = groupMatchesByTournament(active);
-  const completedContent = groupMatchesByTournament(completed, true);
+  const completedContent = groupMatchesByTournament(completed);
 
   // ── X-kast banar ────────────────────────────────────────────────────────────
   // X-kast only — Kongelag is scored by the organizer, so it gets no player entry point.
