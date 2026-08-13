@@ -160,8 +160,12 @@ describe("stevne resultat tab", () => {
         (td) => td.textContent,
       ),
     ).toEqual(["Gruppe 1", "Gruppe 2"]);
-    // One row each, not both under one heading.
-    expect(el.querySelectorAll(".res-desktop-blokk tbody tr")).toHaveLength(2);
+    // One shared table, so the columns line up between the groups.
+    expect(el.querySelectorAll(".res-desktop-blokk table")).toHaveLength(1);
+    // One data row each, under its own heading.
+    expect(el.querySelectorAll(".res-desktop-blokk tbody:not(.res-tbody-hovud) tr")).toHaveLength(
+      2,
+    );
   });
 
   it("prefixes the group name with the klasse for stevner before 2026", async () => {
@@ -190,7 +194,7 @@ describe("stevne resultat tab", () => {
     const el = host();
     await render(el, { id: 5 });
 
-    const rows = [...el.querySelectorAll(".res-desktop-blokk tbody tr")];
+    const rows = [...el.querySelectorAll(".res-desktop-blokk tbody:not(.res-tbody-hovud) tr")];
     expect(rows).toHaveLength(1);
     expect(rows[0]!.querySelector(".res-td-navn")?.textContent?.trim()).toBe("Ada A og Bo B");
     expect(rows[0]!.querySelector(".res-td-klubb")?.textContent).toBe("Førde / Bergen");

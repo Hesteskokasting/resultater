@@ -192,14 +192,10 @@ export async function render(
           ${juryHtml}
           <p class="res-antall"><strong>Antall deltakarar: ${results.length}</strong></p>
         </div>
-        ${groups
-          .map((g, i) =>
-            resultatListeHtml(radarFor(g, isParMix), cols, {
-              tittel: g.label,
-              prefiks: `${i}-`,
-            }),
-          )
-          .join("")}
+        ${resultatListeHtml(
+          groups.map((g) => ({ tittel: g.label, rows: radarFor(g, isParMix) })),
+          cols,
+        )}
       </div>`;
 
     bindResultatDetaljar(container);

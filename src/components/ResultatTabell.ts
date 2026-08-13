@@ -47,11 +47,11 @@ export interface ResultatRad {
   erpremie: boolean;
 }
 
-export interface ResultatListeVal {
-  /** Group name, shown above the mobile card list and as the table's top row. */
+/** One klasse or gruppe of a result list — or the whole list, when it has no groups. */
+export interface ResultatSeksjon {
+  /** Group name, shown above the mobile cards and above the section's columns. */
   tittel?: string | null;
-  /** Keeps the detail panels' ids unique when a page renders several lists. */
-  prefiks?: string;
+  rows: ResultatRad[];
 }
 
 const EMPTY_KOLONNAR: ResultatKolonnar = {
@@ -263,19 +263,29 @@ function radHtml(row: ResultatRad, spec: Gruppe[]): string {
   return `<tr>${cells}</tr>`;
 }
 
-/** The desktop table for one list of rows. */
-export function resultatTabellHtml(
-  rows: ResultatRad[],
-  cols: ResultatKolonnar,
-  tittel?: string | null,
-): string {
+/**
+ * Every section in one table, never one table each: column widths are settled per
+ * table, so separate tables per klasse or gruppe would leave the columns ragged
+ * from block to block. A single section keeps its header rows in `thead`, which
+ * print then repeats on every page; sections that carry a name of their own get a
+ * header block per section instead, so the name sits above the columns it heads.
+ */
+export function resultatTabellHtml(seksjonar: ResultatSeksjon[], cols: ResultatKolonnar): string {
   const spec = byggGrupper(cols);
+  const body =
+    seksjonar.length === 1 && !seksjonar[0]!.tittel
+      ? `<thead>${headHtml(spec, null)}</thead>
+         <tbody>${seksjonar[0]!.rows.map((r) => radHtml(r, spec)).join("")}</tbody>`
+      : seksjonar
+          .map(
+            (s) => `
+              <tbody class="res-tbody-hovud">${headHtml(spec, s.tittel)}</tbody>
+              <tbody>${s.rows.map((r) => radHtml(r, spec)).join("")}</tbody>`,
+          )
+          .join("");
   return `
     <div class="res-tabell-boks">
-      <table class="res-table res-table--gruppert">
-        <thead>${headHtml(spec, tittel)}</thead>
-        <tbody>${rows.map((r) => radHtml(r, spec)).join("")}</tbody>
-      </table>
+      <table class="res-table res-table--gruppert">${body}</table>
     </div>`;
 }
 
@@ -377,25 +387,25 @@ function mobilRadHtml(row: ResultatRad, cols: ResultatKolonnar, panelId: string)
     </div>`;
 }
 
-/** The mobile cards and the desktop table for one list of rows. */
-export function resultatListeHtml(
-  rows: ResultatRad[],
-  cols: ResultatKolonnar,
-  val: ResultatListeVal = {},
-): string {
-  const prefiks = val.prefiks ?? "";
-  return `
-    <div class="res-liste">
-    <div class="res-mobil-blokk">
+/**
+ * The whole list: one card group per section on mobile, and the one shared table
+ * on desktop.
+ */
+export function resultatListeHtml(seksjonar: ResultatSeksjon[], cols: ResultatKolonnar): string {
+  const kort = seksjonar
+    .map(
+      (s, si) => `
       <div class="res-group">
-        ${val.tittel ? `<h2 class="res-group-title">${escHtml(val.tittel)}</h2>` : ""}
+        ${s.tittel ? `<h2 class="res-group-title">${escHtml(s.tittel)}</h2>` : ""}
         <div class="res-group-rows">
-          ${rows.map((r, i) => mobilRadHtml(r, cols, `res-detalj-${prefiks}${i}`)).join("")}
+          ${s.rows.map((r, i) => mobilRadHtml(r, cols, `res-detalj-${si}-${i}`)).join("")}
         </div>
-      </div>
-    </div>
-    <div class="res-desktop-blokk">${resultatTabellHtml(rows, cols, val.tittel)}</div>
-    </div>`;
+      </div>`,
+    )
+    .join("");
+  return `
+    <div class="res-mobil-blokk">${kort}</div>
+    <div class="res-desktop-blokk">${resultatTabellHtml(seksjonar, cols)}</div>`;
 }
 
 /** One delegated listener toggles whichever detail panel was asked for. */

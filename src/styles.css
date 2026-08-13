@@ -986,12 +986,6 @@
   font-size: 0.8rem;
 }
 
-/* Several groups on one page: the mobile cards carry their own margin, the tables
-   need one. */
-.res-liste + .res-liste .res-desktop-blokk {
-  margin-top: 16px;
-}
-
 .res-tabell-boks {
   max-width: 1000px;
   border: 1px solid var(--kant);
@@ -1042,8 +1036,14 @@
 /* The figures that carry the result. Weight rather than colour alone: in dark
    mode the contrast against the dimmed columns reads as bold on its own, in light
    mode it does not. */
-.res-table--gruppert tbody .res-tal:not(.res-tal--dempa) {
+.res-table--gruppert tbody td.res-tal:not(.res-tal--dempa) {
   font-weight: 600;
+}
+
+/* A grouped list repeats its header rows per section, inside a tbody of their
+   own — they must not pick up the body's cell styling, or split across pages. */
+.res-tbody-hovud {
+  break-inside: avoid;
 }
 
 .res-table--gruppert .res-tal--dempa {
@@ -1081,7 +1081,7 @@
   border-right: 1px solid var(--kant);
 }
 
-.res-table--gruppert tbody .res-td-tot {
+.res-table--gruppert tbody td.res-td-tot {
   font-size: 0.95rem;
   font-weight: bold;
 }

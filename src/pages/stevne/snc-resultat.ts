@@ -89,7 +89,7 @@ function radFor(row: SncResultRow, variant: TableVariant): ResultatRad {
 
 function tableHtml(rows: SncResultRow[], cols: ColFlags, variant: TableVariant): string {
   return resultatTabellHtml(
-    rows.map((r) => radFor(r, variant)),
+    [{ rows: rows.map((r) => radFor(r, variant)) }],
     tabellKolonnar(cols, variant),
   );
 }
@@ -156,7 +156,7 @@ function sectionTitle(cols: ColFlags, deltakarar: number): string {
 /** The mobile cards and the desktop table for one set of rows. */
 function listHtml(rows: SncResultRow[], cols: ColFlags, variant: TableVariant): string {
   return resultatListeHtml(
-    rows.map((r) => radFor(r, variant)),
+    [{ rows: rows.map((r) => radFor(r, variant)) }],
     tabellKolonnar(cols, variant),
   );
 }

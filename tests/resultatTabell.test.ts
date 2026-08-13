@@ -72,7 +72,7 @@ const GLOPPEN = resultatKolonnar({
 
 describe("resultatTabellHtml", () => {
   it("groups an X-kast innledende and Kongelag under their method names", () => {
-    const el = host(resultatTabellHtml([rad()], XKAST_KONGELAG));
+    const el = host(resultatTabellHtml([{ rows: [rad()] }], XKAST_KONGELAG));
 
     expect(groups(el)).toEqual([
       ["Minimatch X-kast", "3"],
@@ -108,7 +108,7 @@ describe("resultatTabellHtml", () => {
   });
 
   it("gives Gloppen kamp- and scorepoeng, and no total without an avsluttande fase", () => {
-    const el = host(resultatTabellHtml([rad()], GLOPPEN));
+    const el = host(resultatTabellHtml([{ rows: [rad()] }], GLOPPEN));
 
     expect(groups(el)).toEqual([["Gloppen", "2"]]);
     expect(headers(el)).toEqual(["PL", "NAMN", "KLUBB", "KP", "SP", "PREMIE"]);
@@ -117,7 +117,7 @@ describe("resultatTabellHtml", () => {
 
   it("adds the kamppoeng as thrown to a Kongelag total behind Gloppen", () => {
     const cols = resultatKolonnar({ ...GLOPPEN, visAvslPoeng: true, visTotal: true });
-    const el = host(resultatTabellHtml([rad()], cols));
+    const el = host(resultatTabellHtml([{ rows: [rad()] }], cols));
 
     expect(headers(el)).toEqual([
       "PL",
@@ -141,7 +141,7 @@ describe("resultatTabellHtml", () => {
       carryFactor: null,
       carryPercent: null,
     });
-    const el = host(resultatTabellHtml([rad()], cols));
+    const el = host(resultatTabellHtml([{ rows: [rad()] }], cols));
 
     expect(groups(el)).toEqual([
       ["Minimatch X-kast", "2"],
@@ -152,7 +152,7 @@ describe("resultatTabellHtml", () => {
   });
 
   it("drops the whole group row for a stevne with no scored method", () => {
-    const el = host(resultatTabellHtml([rad()], resultatKolonnar()));
+    const el = host(resultatTabellHtml([{ rows: [rad()] }], resultatKolonnar()));
 
     expect(el.querySelector(".res-thead-grupper")).toBeNull();
     expect(headers(el)).toEqual(["PL", "NAMN", "KLUBB", "PREMIE"]);
@@ -161,7 +161,7 @@ describe("resultatTabellHtml", () => {
   it("swaps the prize column for the merged placement when asked", () => {
     const el = host(
       resultatTabellHtml(
-        [rad()],
+        [{ rows: [rad()] }],
         resultatKolonnar({ ...XKAST_KONGELAG, visPremie: false, visSncPl: true }),
       ),
     );
@@ -173,21 +173,37 @@ describe("resultatTabellHtml", () => {
   });
 
   it("marks a drawn prize with an X in its own column", () => {
-    const el = host(resultatTabellHtml([rad({ erpremie: true })], XKAST_KONGELAG));
+    const el = host(resultatTabellHtml([{ rows: [rad({ erpremie: true })] }], XKAST_KONGELAG));
 
     expect(el.querySelector("td.res-td-premie .res-premie")?.textContent).toBe("X");
   });
 
-  it("heads the table with the group name when one is given", () => {
-    const el = host(resultatTabellHtml([rad()], GLOPPEN, "Klasse A Gruppe 1"));
+  it("heads each section with its own name, in one shared table", () => {
+    const el = host(
+      resultatTabellHtml(
+        [
+          { tittel: "Klasse A Gruppe 1", rows: [rad()] },
+          { tittel: "Klasse 2 X", rows: [rad({ pl: 2 })] },
+        ],
+        GLOPPEN,
+      ),
+    );
 
-    const header = el.querySelector(".res-thead-group td")!;
-    expect(header.textContent).toBe("Klasse A Gruppe 1");
-    expect(header.getAttribute("colspan")).toBe("6");
+    // One table, so every section's columns line up with the others'.
+    expect(el.querySelectorAll("table")).toHaveLength(1);
+    const bands = [...el.querySelectorAll(".res-thead-group td")];
+    expect(bands.map((td) => td.textContent)).toEqual(["Klasse A Gruppe 1", "Klasse 2 X"]);
+    expect(bands[0]!.getAttribute("colspan")).toBe("6");
+    // Each section repeats the column headers above its own rows.
+    expect(el.querySelectorAll(".res-tbody-hovud")).toHaveLength(2);
+    expect(el.querySelectorAll(".res-thead-columns")).toHaveLength(2);
+    expect(el.querySelectorAll("tbody tr td.res-td-pl")).toHaveLength(2);
   });
 
   it("escapes what comes from the database", () => {
-    const el = host(resultatTabellHtml([rad({ namn: "<script>", klubb: "A & B" })], GLOPPEN));
+    const el = host(
+      resultatTabellHtml([{ rows: [rad({ namn: "<script>", klubb: "A & B" })] }], GLOPPEN),
+    );
 
     expect(el.querySelector("script")).toBeNull();
     expect(cells(el)).toContain("<script>");
@@ -197,7 +213,7 @@ describe("resultatTabellHtml", () => {
 
 describe("resultatListeHtml", () => {
   it("leads the mobile card with the total and hides the rest behind a toggle", () => {
-    const el = host(resultatListeHtml([rad({ erpremie: true })], XKAST_KONGELAG));
+    const el = host(resultatListeHtml([{ rows: [rad({ erpremie: true })] }], XKAST_KONGELAG));
 
     const card = el.querySelector(".res-mobil-blokk .res-row--detalj")!;
     expect(card.querySelector(".res-tot-label")?.textContent).toBe("TOT");
@@ -214,25 +230,33 @@ describe("resultatListeHtml", () => {
   });
 
   it("falls back to the kamppoeng when there is no total to lead with", () => {
-    const el = host(resultatListeHtml([rad()], GLOPPEN));
+    const el = host(resultatListeHtml([{ rows: [rad()] }], GLOPPEN));
 
     expect(el.querySelector(".res-tot-label")?.textContent).toBe("KP");
     expect(el.querySelector(".res-tot-verdi")?.textContent).toBe("4");
   });
 
   it("leaves out the detail toggle when there is nothing to unfold", () => {
-    const el = host(resultatListeHtml([rad()], resultatKolonnar()));
+    const el = host(resultatListeHtml([{ rows: [rad()] }], resultatKolonnar()));
 
     expect(el.querySelector(".res-detalj-btn")).toBeNull();
     expect(el.querySelector(".res-detalj")).toBeNull();
   });
 
-  it("keeps the panel ids apart between lists on one page", () => {
+  it("gives every section its own card group, with panel ids kept apart", () => {
     const el = host(
-      resultatListeHtml([rad()], GLOPPEN, { prefiks: "0-" }) +
-        resultatListeHtml([rad()], GLOPPEN, { prefiks: "1-" }),
+      resultatListeHtml(
+        [
+          { tittel: "Gruppe 1", rows: [rad()] },
+          { tittel: "Gruppe 2", rows: [rad({ pl: 2 })] },
+        ],
+        GLOPPEN,
+      ),
     );
 
+    expect(
+      [...el.querySelectorAll(".res-mobil-blokk .res-group-title")].map((h) => h.textContent),
+    ).toEqual(["Gruppe 1", "Gruppe 2"]);
     const ids = [...el.querySelectorAll(".res-detalj")].map((p) => p.id);
     expect(ids).toEqual(["res-detalj-0-0", "res-detalj-1-0"]);
   });
