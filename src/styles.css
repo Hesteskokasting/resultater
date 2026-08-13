@@ -5560,10 +5560,19 @@ body:has(.modal.show) {
     margin-bottom: 10px;
   }
 
-  /* Each local stevne starts its own page, after the merged list. */
+  /* Locals follow straight on from the merged list. No forced page break: it left
+     the rest of the previous page blank before every single local. */
   .res-print-lokal {
-    break-before: page;
-    margin-top: 0;
+    margin-top: 12px;
+  }
+
+  /* No trailing whitespace after the last table either. */
+  .res-side {
+    padding-bottom: 0;
+  }
+
+  .res-seksjon {
+    margin-bottom: 0;
   }
 
   .res-print-tittel {
@@ -5576,6 +5585,12 @@ body:has(.modal.show) {
     margin: 0 0 6px;
     font-size: 1.05rem;
     font-weight: bold;
+  }
+
+  /* A local's heading and facts stay with the first rows of its own table. */
+  .res-print-undertittel,
+  .res-print-fakta {
+    break-after: avoid;
   }
 
   /* Facts as label/value pairs across the page, three to a line. */
