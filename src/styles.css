@@ -5688,7 +5688,10 @@ body:has(.modal.show) {
   .org-banner-menu,
   .res-mobil-blokk,
   .res-detalj-btn,
-  .res-filter {
+  .res-filter,
+  /* The pdf link, the SNC cross-link and the count: screen navigation, and the
+     print header carries the count itself. */
+  .res-felles {
     display: none !important;
   }
 

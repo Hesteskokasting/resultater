@@ -216,6 +216,42 @@ describe("stevne resultat tab", () => {
     expect(el.querySelector('a[href="#/stevne/10/resultat"]')).not.toBeNull();
   });
 
+  it("carries a print-only title and stevneinfo the screen keeps hidden", async () => {
+    getTournamentWithDetails.mockResolvedValue({
+      data: stevne({ tid: "11:00:00", klubb: { navn: "Førde HK" }, juryleder: "Kari K" }),
+      error: null,
+    });
+    const el = host();
+    await render(el, { id: 5 });
+
+    const block = el.querySelector(".res-print-blokk")!;
+    expect(block.querySelector(".res-print-tittel")?.textContent).toBe("Førde open");
+    const facts = [...block.querySelectorAll(".res-print-fakta__par")].map((p) =>
+      p.textContent?.replace(/\s+/g, " ").trim(),
+    );
+    expect(facts).toContain("Arrangør Førde HK");
+    expect(facts).toContain("Tid 11:00");
+    expect(facts).toContain("Stad Førde");
+    expect(facts).toContain("Innleiande Minimatch X-kast");
+    expect(facts).toContain("Avsluttande Kongelag");
+    expect(facts).toContain("Juryleiar Kari K");
+    expect(facts).toContain("Deltakarar 1");
+  });
+
+  it("offers print in the banner menu", async () => {
+    const el = host();
+    const banner = document.createElement("div");
+    document.body.appendChild(banner);
+    const print = vi.fn();
+    vi.stubGlobal("print", print);
+
+    await render(el, { id: 5 }, banner);
+    banner.querySelector<HTMLButtonElement>("#res-print-btn")!.click();
+
+    expect(print).toHaveBeenCalled();
+    vi.unstubAllGlobals();
+  });
+
   it("says so when the tournament has no result yet", async () => {
     getTournamentWithDetails.mockResolvedValue({
       data: stevne({ erfullfort: false }),

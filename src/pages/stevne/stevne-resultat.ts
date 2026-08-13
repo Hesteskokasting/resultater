@@ -13,6 +13,8 @@ import {
   resultatListeHtml,
 } from "@/components/ResultatTabell";
 import type { ResultatKolonnar, ResultatRad } from "@/components/ResultatTabell";
+import { printHeaderHtml, stevneInfoFacts } from "@/components/ResultatPrint";
+import { renderBannerMenu, bindBannerMenu } from "@/components/BannerMenu";
 import {
   isKongelagMethodName,
   isXkastMethodName,
@@ -131,9 +133,20 @@ function radarFor(group: GroupEntry, isParMix: boolean): ResultatRad[] {
 
 // ── Render ────────────────────────────────────────────────────────────────────
 
+/** Print lives in the banner's overflow menu, the same place the SNC list has it. */
+function bindPrint(bannerSlot: HTMLElement | null | undefined): void {
+  if (!bannerSlot) return;
+  bannerSlot.innerHTML = renderBannerMenu([
+    { id: "res-print-btn", label: "Skriv ut / lagre som PDF" },
+  ]);
+  bindBannerMenu(bannerSlot);
+  bannerSlot.querySelector("#res-print-btn")?.addEventListener("click", () => window.print());
+}
+
 export async function render(
   container: HTMLElement,
   { id }: { id: number; isAdmin?: boolean },
+  bannerSlot?: HTMLElement | null,
 ): Promise<void> {
   container.replaceChildren(createLoadingState("Laster resultat…"));
 
@@ -186,6 +199,7 @@ export async function render(
 
     container.innerHTML = `
       <div class="res-side">
+        ${printHeaderHtml(stevne.navn, stevneInfoFacts(stevne, results.length))}
         <div class="res-felles">
           ${pdfHtml}
           ${sncHtml}
@@ -199,6 +213,7 @@ export async function render(
       </div>`;
 
     bindResultatDetaljar(container);
+    bindPrint(bannerSlot);
   } catch (err) {
     logError("stevne-resultat.render", err);
     container.replaceChildren(createErrorBanner("Kunne ikkje laste resultat."));

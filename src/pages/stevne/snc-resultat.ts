@@ -27,6 +27,7 @@ import {
   resultatTabellHtml,
 } from "@/components/ResultatTabell";
 import type { ResultatKolonnar, ResultatRad } from "@/components/ResultatTabell";
+import { printHeaderHtml, printSeksjonHtml } from "@/components/ResultatPrint";
 import type { SncResultRow } from "@/services/resultatService";
 import type { SncLocalTournamentRow, SncParentTournamentRow } from "@/services/stevneService";
 import { downloadExcelRows } from "@/utils/shared";
@@ -95,38 +96,8 @@ function tableHtml(rows: SncResultRow[], cols: ColFlags, variant: TableVariant):
 }
 
 /**
- * Screen-hidden, print-only: the page's own title and the stevneinfo, so a
- * printed sheet or a PDF stands on its own without the app chrome around it.
- */
-function printFactsHtml(facts: [label: string, value: string | number | null][]): string {
-  const pairs = facts
-    .map(
-      ([label, value]) => `
-        <div class="res-print-fakta__par">
-          <dt>${escHtml(label)}</dt>
-          <dd>${escHtml(String(value ?? "—") || "—")}</dd>
-        </div>`,
-    )
-    .join("");
-  return `<dl class="res-print-fakta">${pairs}</dl>`;
-}
-
-function printHeaderHtml(
-  parent: SncParentTournamentRow,
-  cols: ColFlags,
-  localCount: number,
-  deltakarar: number,
-): string {
-  return `
-    <div class="res-print-blokk">
-      <h1 class="res-print-tittel">${escHtml(parent.navn)}</h1>
-      ${printFactsHtml(sncInfoFacts(parent, cols, localCount, deltakarar))}
-    </div>`;
-}
-
-/**
- * Print-only: every local stevne's own result after the merged list, each on a
- * fresh page. Tid and stad live here — the umbrella above has neither.
+ * Print-only: every local stevne's own result below the merged list. Tid and stad
+ * live here — the umbrella above has neither.
  */
 function printLocalsHtml(
   locals: SncLocalTournamentRow[],
@@ -134,13 +105,12 @@ function printLocalsHtml(
   cols: ColFlags,
 ): string {
   return localsWithResults(locals, rows)
-    .map(
-      ({ local, rows: localRows }) => `
-        <div class="res-print-blokk res-print-lokal">
-          <h2 class="res-print-undertittel">${escHtml(local.navn)}</h2>
-          ${printFactsHtml(sncLocalFacts(local, localRows.length))}
-          ${tableHtml(localRows, cols, "lokal")}
-        </div>`,
+    .map(({ local, rows: localRows }) =>
+      printSeksjonHtml(
+        local.navn,
+        sncLocalFacts(local, localRows.length),
+        tableHtml(localRows, cols, "lokal"),
+      ),
     )
     .join("");
 }
@@ -371,7 +341,7 @@ export async function render(
 
     container.innerHTML = `
       <div class="res-side">
-        ${printHeaderHtml(parent, cols, localCount, rows.length)}
+        ${printHeaderHtml(parent.navn, sncInfoFacts(parent, cols, localCount, rows.length))}
         <section class="res-seksjon">
           <div class="res-seksjon-topp">
             <h6 class="res-seksjon-tittel" id="snc-liste-tittel">${escHtml(sectionTitle(cols, rows.length))}</h6>

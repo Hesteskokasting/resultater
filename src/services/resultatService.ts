@@ -9,7 +9,8 @@ import type { KongelagSeedingRow } from "@/utils/kongelagSeeding";
 // One string per query, used both to derive the row type and to run it, so the
 // two cannot drift apart.
 const STEVNE_DETALJER_SELECT = `
-    id, navn, sted, dato, erfullfort, resultaturl, juryleder, klubbid, snc_hovudstevne_id,
+    id, navn, sted, dato, tid, erfullfort, resultaturl, juryleder, klubbid, snc_hovudstevne_id,
+    klubb:klubbid(navn),
     stevnetype:stevnetypeid(navn),
     kategori:kategoriid(navn, erlagbasert),
     kontakt:kontaktkasterid(fornavn, etternavn),
