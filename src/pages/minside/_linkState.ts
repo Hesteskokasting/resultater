@@ -1,7 +1,8 @@
-import { createSearchSelect } from "@/components/SearchSelect";
-import { throwerNameLastFirst } from "@/utils/kaster";
+import { confirmDialog } from "@/components/ConfirmDialog";
+import { createSearchSelect, type SearchSelectHandle } from "@/components/SearchSelect";
+import { throwerName, throwerNameLastFirst } from "@/utils/kaster";
 import { invalidateUserCache } from "@/services/authService";
-import { getActiveThrowerList } from "@/services/kasterService";
+import { getActiveThrowerList, getThrowerForLink } from "@/services/kasterService";
 import { sendProfileLinkRequest } from "@/services/brukerProfilService";
 import { runRefetch } from "@/utils/refetchRegistry";
 import type { User } from "@supabase/supabase-js";
@@ -27,28 +28,57 @@ function unlinkedHtml(status: LinkStatus): string {
 }
 
 function pendingHtml(): string {
-  return '<div class="alert alert-info mb-4">Koblingforespørselen din ventar på godkjenning frå ein administrator.</div>';
+  return `
+    <div class="alert alert-info mb-4">
+      <p class="mb-1">Koblingforespørselen din<span id="pending-name"></span> ventar på godkjenning.</p>
+      <p class="mb-0 small">Feil kobling? Send e-post til <a href="mailto:kontakt@hesteskokasting.no">kontakt@hesteskokasting.no</a></p>
+    </div>`;
+}
+
+/** Fills the pending alert with the requested thrower's name once the lookup lands. */
+function fillPendingName(container: HTMLElement, kasterid: number | null): void {
+  const slot = container.querySelector<HTMLElement>("#pending-name");
+  if (!slot || kasterid == null) return;
+  void (async () => {
+    const { data } = await getThrowerForLink(kasterid);
+    if (data) slot.textContent = ` for ${throwerName(data)}`;
+  })();
 }
 
 function bindThrowerSearch(container: HTMLElement, userId: string): void {
   const errorDiv = container.querySelector<HTMLElement>("#thrower-error")!;
+  let throwers: { id: number; label: string; sublabel: string | null }[] = [];
+  let handle: SearchSelectHandle | null = null;
 
-  createSearchSelect({
+  handle = createSearchSelect({
     slot: container.querySelector("#thrower-search-slot")!,
     // The register is only fetched once someone actually starts typing here.
     loadItems: async () => {
       const { data } = await getActiveThrowerList();
-      return data.map((k) => ({
+      throwers = data.map((k) => ({
         id: k.id,
         label: throwerNameLastFirst(k),
         sublabel: k.klubb?.navn ?? null,
       }));
+      return throwers;
     },
     placeholder: "Søk på navn…",
     onSelect: (kasterid) => {
       if (kasterid == null) return;
       void (async () => {
         errorDiv.classList.add("d-none");
+        const chosen = throwers.find((t) => t.id === kasterid);
+        const name = chosen ? chosen.label + (chosen.sublabel ? ` (${chosen.sublabel})` : "") : "";
+        // The request cannot be withdrawn or changed by the user afterwards.
+        const ok = await confirmDialog({
+          title: "Er dette deg?",
+          message: `Send koblingforespørsel for ${name}?`,
+          confirmText: "Send forespørsel",
+        });
+        if (!ok) {
+          handle?.setValue(null);
+          return;
+        }
         const { error } = await sendProfileLinkRequest(userId, kasterid);
         if (error) {
           errorDiv.textContent = "Kunne ikkje sende forespørsel.";
@@ -73,6 +103,7 @@ export function renderLinkGate(container: HTMLElement, ctx: MinSideContext): num
   if (ctx.status === "godkjent" && ctx.profil?.kasterid != null) return ctx.profil.kasterid;
   if (ctx.status === "venter") {
     container.innerHTML = pendingHtml();
+    fillPendingName(container, ctx.profil?.kobling_kasterid ?? null);
     return null;
   }
   container.innerHTML = unlinkedHtml(ctx.status);

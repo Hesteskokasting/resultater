@@ -92,6 +92,19 @@ describe("showNumberpad", () => {
     expect(saved[0]).toEqual([12, 7]);
   });
 
+  it("lights a score key on press and lets go on release", () => {
+    showNumberpad([{ name: "Lag A", score: 0 }], async () => true);
+
+    const key = gridKeys()[0]!;
+    key.dispatchEvent(new Event("pointerdown"));
+    expect(key.classList).toContain("is-pressed");
+    key.dispatchEvent(new Event("pointerup"));
+    expect(key.classList).not.toContain("is-pressed");
+
+    // The ring keys keep their own selected state instead.
+    expect(document.querySelector(".pad-ring-btn")).toBeNull();
+  });
+
   it("wipes the whole score on one press of the clear key", () => {
     showNumberpad([{ name: "Lag A", score: 0 }], async () => true);
 
@@ -237,6 +250,7 @@ describe("showOmgangNumberpad", () => {
           cellPoeng: [null, null],
           cellIndex: 0,
           totalPoeng: 0,
+          totalRinger: 0,
           playerKey: "p1",
           rundeKey: "p1-r1",
         },
@@ -275,5 +289,75 @@ describe("showOmgangNumberpad", () => {
     // The label carries both figures being saved, each with its unit.
     const unit = count === "1" ? "ring" : "ringar";
     expect(registerLabel()).toBe(`Registrer 8 p – ${count} ${unit} ✓`);
+  });
+
+  it("summarises the runder before the pad moves to the next player", async () => {
+    /** Types one omgang: poengsum, then the first allowed ring count. */
+    async function enter(poeng: number): Promise<void> {
+      for (const digit of String(poeng))
+        gridKeys()[Number(digit) === 0 ? 10 : Number(digit) - 1]!.click();
+      click(".pad-key-action");
+      [...document.querySelectorAll<HTMLButtonElement>(".pad-ring-btn")]
+        .find((btn) => !btn.disabled)!
+        .click();
+      click(".pad-register");
+      await Promise.resolve();
+      await Promise.resolve();
+    }
+
+    const step = (pid: number, playerName: string, cellIndex: number) => ({
+      header: {
+        baneLabel: "Bane 1",
+        rundeLabel: "Runde 1 av 1",
+        cellLabels: ["1", "2"],
+        cellPoeng: [null, null],
+        cellIndex,
+        totalPoeng: 0,
+        totalRinger: 0,
+        playerKey: `p${pid}`,
+        rundeKey: `p${pid}-r1`,
+        summary: {
+          rows: [
+            {
+              label: "1",
+              rundeKey: `p${pid}-r1`,
+              cellPoeng: [null, null],
+              cellRinger: [null, null],
+            },
+          ],
+        },
+      },
+      playerName,
+      onSave: async () => true,
+    });
+
+    showOmgangNumberpad([step(1, "Kari", 0), step(1, "Kari", 1), step(2, "Ola", 0)]);
+
+    // The entry screen reads the runde back in the same row the summary uses,
+    // with the kast being entered marked; the flat strip is gone.
+    expect(document.querySelector(".pad-strip")).toBeNull();
+    expect(document.querySelectorAll(".pad-summary-row").length).toBe(1);
+    expect(document.querySelector(".pad-summary-kast.current .pad-summary-key")!.textContent).toBe(
+      "1",
+    );
+
+    await enter(12);
+    expect(document.querySelector(".pad-summary-list")).toBeNull();
+    // The ring badge tracks what has been saved, on the entry screen too.
+    expect(document.querySelector(".pad-total-sub")!.textContent).not.toBe("0");
+    await enter(9);
+
+    // Kari's runder are read back instead of Ola's keys.
+    expect(document.querySelector(".pad-name")!.textContent).toBe("Kari");
+    expect(document.querySelector(".pad-grid")).toBeNull();
+    expect(document.querySelector(".pad-total")!.textContent).toBe("21");
+    expect(document.querySelectorAll(".pad-summary-row").length).toBe(1);
+    expect(document.querySelector(".pad-summary-sum .pad-summary-value")!.textContent).toBe("21");
+    expect(document.querySelector(".pad-runde")!.textContent).toBe("Alle 1 runder fullført");
+    expect(registerLabel()).toBe("Neste spiller: Ola");
+
+    click(".pad-register");
+    expect(document.querySelector(".pad-name")!.textContent).toBe("Ola");
+    expect(document.querySelector(".pad-grid")).not.toBeNull();
   });
 });

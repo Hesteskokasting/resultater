@@ -2708,7 +2708,7 @@ th.initial-score-th {
 .pad-progress {
   display: flex;
   gap: 10px;
-  margin: 0 0 6px;
+  margin: 0 0 2px;
 }
 
 .pad-progress-seg {
@@ -2763,6 +2763,12 @@ th.initial-score-th {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+/* The meta line belongs to the name above it, so it sits tighter than the
+   body's own rhythm. */
+.pad-title + .pad-meta {
+  margin-top: -6px;
 }
 
 .pad-bane {
@@ -2838,6 +2844,103 @@ th.initial-score-th {
   font-size: 1.5rem;
 }
 
+/* ── Round summary (OmgangNumberpad, between players) ────────────────────── */
+
+/* The ring count rides the bane/runde line, right-aligned so it sits under the
+   total badge — the quieter of the two figures, and no line of its own. */
+.pad-total-sub {
+  flex: none;
+  min-width: 84px;
+  margin-left: auto;
+  padding: 2px 16px;
+  background: var(--pad-flate);
+  border: 1px solid var(--pad-kant);
+  border-radius: 8px;
+  color: var(--pad-tekst-2);
+  font-size: 1rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.pad-summary-heading {
+  color: var(--pad-tekst-2);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.pad-summary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pad-summary-row {
+  display: grid;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  background: var(--pad-flate);
+  border: 1px solid var(--pad-kant);
+  border-radius: 12px;
+}
+
+.pad-summary-runde {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.pad-summary-kast,
+.pad-summary-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.pad-summary-key {
+  color: var(--pad-tekst-2);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.pad-summary-value {
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.pad-summary-kast.empty .pad-summary-value {
+  color: var(--pad-tekst-2);
+}
+
+/* The kast being entered, marked the way the old strip marked it. */
+.pad-summary-kast.current .pad-summary-key,
+.pad-summary-kast.current .pad-summary-value {
+  color: var(--pad-aksent);
+}
+
+.pad-summary-kast.current .pad-summary-value {
+  border: 1px dashed var(--pad-aksent);
+  border-radius: 8px;
+  padding: 0 6px;
+}
+
+.pad-summary-sum {
+  padding-left: 10px;
+  border-left: 1px solid var(--pad-kant);
+}
+
+.pad-summary-sum .pad-summary-key,
+.pad-summary-sum .pad-summary-value {
+  color: var(--pad-aksent);
+}
+
+.pad-summary-ringer {
+  padding-left: 10px;
+}
+
 /* One column per participant — the kamp pad shows all of them side by side above
    STEPWISE_MAX_WIDTH (ScoreNumberpad); below it, and in every other pad, the
    wrapper holds exactly one column. */
@@ -2907,6 +3010,36 @@ th.initial-score-th {
   border: 1px solid var(--pad-kant);
   border-radius: 12px;
   cursor: pointer;
+}
+
+/* Score keys answer the touch: they take the accent and dip while the finger is
+   down. is-pressed lands on pointerdown, so the key is lit before the pad
+   repaints on click; :active covers a mouse press. Ring keys opt out — they
+   have their own selected state. */
+.pad-key-press:active,
+.pad-key-press.is-pressed {
+  background: var(--pad-aksent);
+  border-color: var(--pad-aksent);
+  color: var(--pad-aksent-tekst);
+  transform: scale(0.95);
+}
+
+.pad-key-press {
+  transition:
+    transform 90ms ease,
+    background-color 90ms ease,
+    color 90ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pad-key-press {
+    transition: none;
+  }
+
+  .pad-key-press:active,
+  .pad-key-press.is-pressed {
+    transform: none;
+  }
 }
 
 .pad-key-muted {
@@ -4148,6 +4281,13 @@ button.bane-omgang-chip:hover {
 
 .account-container {
   max-width: 480px;
+}
+
+.google-play-badge img {
+  display: block;
+  width: 150px;
+  max-width: 40vw;
+  height: auto;
 }
 
 .btn-google,
@@ -5560,10 +5700,19 @@ body:has(.modal.show) {
     margin-bottom: 10px;
   }
 
-  /* Each local stevne starts its own page, after the merged list. */
+  /* Locals follow straight on from the merged list. No forced page break: it left
+     the rest of the previous page blank before every single local. */
   .res-print-lokal {
-    break-before: page;
-    margin-top: 0;
+    margin-top: 12px;
+  }
+
+  /* No trailing whitespace after the last table either. */
+  .res-side {
+    padding-bottom: 0;
+  }
+
+  .res-seksjon {
+    margin-bottom: 0;
   }
 
   .res-print-tittel {
@@ -5576,6 +5725,12 @@ body:has(.modal.show) {
     margin: 0 0 6px;
     font-size: 1.05rem;
     font-weight: bold;
+  }
+
+  /* A local's heading and facts stay with the first rows of its own table. */
+  .res-print-undertittel,
+  .res-print-fakta {
+    break-after: avoid;
   }
 
   /* Facts as label/value pairs across the page, three to a line. */
