@@ -9,7 +9,7 @@ import { createEmptyState } from "@/components/EmptyState";
 import { escHtml } from "@/utils/escHtml";
 import { logError } from "@/utils/logError";
 import { renderBannerMenu, bindBannerMenu } from "@/components/BannerMenu";
-import { promptDialog } from "@/components/PromptDialog";
+import { premieDialog } from "@/components/PremieDialog";
 import { showToast } from "@/components/Toast";
 import { errorMessage } from "@/utils/errorMessage";
 import { xkastCarryOverFactor, xkastCarryOverPercent } from "@/utils/kongelagStilling";
@@ -51,24 +51,25 @@ function carryFor(row: SncResultRow, cols: ColFlags): number | null {
  */
 type TableVariant = "samla" | "lokal";
 
-/** Drawn a prize — the marker sits beside the name in both layouts. */
+/** Drawn a prize. Only the merged list has a prize column — a local stevne's own
+ * table keeps the SNC placement there instead. */
 function premieHtml(row: SncResultRow): string {
   return row.erpremie
-    ? ' <span class="res-premie" title="Trekt premie" aria-label="Trekt premie">🎁</span>'
+    ? '<span class="res-premie" title="Trekt premie" aria-label="Trekt premie">🎁</span>'
     : "";
 }
 
 function rowHtml(row: SncResultRow, cols: ColFlags, variant: TableVariant = "samla"): string {
   const kaster = row.kaster;
-  const nameHtml =
-    (kaster
-      ? `<a href="#/kastere/${buildThrowerSlug(kaster)}" class="res-kaster-lenke">${escHtml(throwerName(kaster))}</a>`
-      : "–") + premieHtml(row);
+  const nameHtml = kaster
+    ? `<a href="#/kastere/${buildThrowerSlug(kaster)}" class="res-kaster-lenke">${escHtml(throwerName(kaster))}</a>`
+    : "–";
   const carry = carryFor(row, cols);
-  const [lead, trail] =
+  const trailHtml =
     variant === "samla"
-      ? [row.snc_plassering, row.plassering]
-      : [row.plassering, row.snc_plassering];
+      ? `<td class="res-tal res-td-premie">${premieHtml(row)}</td>`
+      : `<td class="res-tal res-tal--dempa">${row.snc_plassering ?? "–"}</td>`;
+  const lead = variant === "samla" ? row.snc_plassering : row.plassering;
   return `
     <tr>
       <td class="res-td-pl">${lead ?? "–"}.</td>
@@ -89,7 +90,7 @@ function rowHtml(row: SncResultRow, cols: ColFlags, variant: TableVariant = "sam
       }
       <td class="res-tal res-td-tot">${totalFor(row, cols)}</td>
       <td class="res-tal res-tal--dempa">${row.nc_poeng ?? "–"}</td>
-      <td class="res-tal res-tal--dempa">${trail ?? "–"}</td>
+      ${trailHtml}
     </tr>`;
 }
 
@@ -120,7 +121,7 @@ function headHtml(cols: ColFlags, variant: TableVariant = "samla"): string {
       ${cols.showKongelag ? '<th class="res-tal">POENG</th><th class="res-tal res-kol-slutt">RINGAR</th>' : ""}
       <th class="res-tal res-td-tot">TOTAL</th>
       <th class="res-tal">NC</th>
-      <th class="res-tal">${variant === "samla" ? "LOKAL PL" : "SNC PL"}</th>
+      <th class="res-tal">${variant === "samla" ? "PREMIE" : "SNC PL"}</th>
     </tr>`;
 }
 
@@ -244,7 +245,7 @@ function mobileRowHtml(
     <div class="res-row res-row--snc">
       <span class="res-pl">${lead ?? "–"}.</span>
       <div class="res-info">
-        <span class="res-navn">${escHtml(throwerName(row.kaster) || "–")}${premieHtml(row)}</span>
+        <span class="res-navn">${escHtml(throwerName(row.kaster) || "–")}</span>
         <span class="res-klubb">${escHtml(row.klubb?.navn ?? "–")}</span>
         <button type="button" class="res-detalj-btn" aria-expanded="false" aria-controls="${panelId}">
           <span class="res-detalj-tekst">Vis detaljar</span><span class="res-detalj-pil" aria-hidden="true">▾</span>
@@ -253,6 +254,7 @@ function mobileRowHtml(
       <div class="res-tot">
         <span class="res-tot-label">TOT</span>
         <span class="res-tot-verdi">${totalFor(row, cols)}</span>
+        ${premieHtml(row)}
       </div>
       <div class="res-detalj" id="${panelId}" hidden>${detailHtml(row, cols)}</div>
     </div>`;
@@ -368,22 +370,11 @@ function bindPrizeDraw(
 
   const button = bannerSlot.querySelector<HTMLButtonElement>("#snc-premie-btn");
   button?.addEventListener("click", async () => {
-    const answer = await promptDialog({
-      title: "Trekk premiar",
-      message: `Kor mange prosent av dei ${rows.length} deltakarane skal trekkjast? Talet blir runda opp. Dei tre fremste blir ikkje trekte, og runden kan berre trekkjast éin gong.`,
-      defaultValue: "10",
-      inputType: "number",
-    });
-    if (answer == null) return;
-
-    const prosent = Number(answer.replace(",", "."));
-    if (!Number.isFinite(prosent) || prosent <= 0 || prosent > 100) {
-      showToast("Oppgi ein prosent mellom 0 og 100.", "error");
-      return;
-    }
+    const mengd = await premieDialog({ deltakarar: rows.length });
+    if (mengd == null) return;
 
     button.disabled = true;
-    const { antal, error } = await drawSncPremiar(parent.id, prosent);
+    const { antal, error } = await drawSncPremiar(parent.id, mengd);
     button.disabled = false;
     if (error) {
       showToast("Kunne ikkje trekkje premiar: " + errorMessage(error), "error");

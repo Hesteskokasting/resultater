@@ -144,7 +144,7 @@ describe("buildSncExportSheet", () => {
 
   it("groups the score columns under the method names instead of repeating them", () => {
     const at = cells.indexOf("SAMLA RESULTAT");
-    expect(rows[at + 1]).toEqual(["", "", "", "Halvmatch", "", "", "Kongelag", "", "", ""]);
+    expect(rows[at + 1]).toEqual(["", "", "", "Halvmatch", "", "", "Kongelag", "", "", "", ""]);
     expect(rows[at + 2]).toEqual([
       "Pl",
       "Namn",
@@ -156,6 +156,7 @@ describe("buildSncExportSheet", () => {
       "Ringar",
       "Total",
       "NC",
+      "Premie",
     ]);
   });
 
@@ -167,7 +168,22 @@ describe("buildSncExportSheet", () => {
 
   it("writes each result as numbers, with the carried-over value spelled out", () => {
     const first = rows[cells.indexOf("SAMLA RESULTAT") + 3]!;
-    expect(first).toEqual([1, "A Testar", "Skjold HK", 302, 24, 60, 118, 8, 178, 100]);
+    expect(first).toEqual([1, "A Testar", "Skjold HK", 302, 24, 60, 118, 8, 178, 100, ""]);
+  });
+
+  it("marks a drawn prize in the merged list only", () => {
+    const built = buildSncExportSheet(
+      parent,
+      locals,
+      [{ ...result(1, "A", 10, 1, 302), erpremie: true }],
+      opts,
+    );
+    const heads = firstCells(built.rows);
+    expect(built.rows[heads.indexOf("SAMLA RESULTAT") + 3]?.slice(-1)).toEqual(["Ja"]);
+    // A local block trails with the SNC placement instead of a prize column.
+    const local = heads.indexOf("Dale", heads.indexOf("LOKALE STEVNE"));
+    const header = built.rows.slice(local).findIndex((r) => r[0] === "Pl");
+    expect(built.rows.slice(local)[header]?.slice(-1)).toEqual(["SNC pl"]);
   });
 
   it("leaves the local stevne and its placement out of the merged list", () => {
@@ -191,7 +207,7 @@ describe("buildSncExportSheet", () => {
     const onlyXkast = buildSncExportSheet(parent, locals, [result(1, "A", 10, 1, 302)], single);
     const heads = firstCells(onlyXkast.rows);
     const at = heads.indexOf("SAMLA RESULTAT");
-    expect(onlyXkast.rows[at + 1]).toEqual(["", "", "", "Halvmatch", "", "", ""]);
+    expect(onlyXkast.rows[at + 1]).toEqual(["", "", "", "Halvmatch", "", "", "", ""]);
     expect(onlyXkast.rows[at + 2]).toEqual([
       "Pl",
       "Namn",
@@ -200,6 +216,7 @@ describe("buildSncExportSheet", () => {
       "Ringar",
       "Total",
       "NC",
+      "Premie",
     ]);
     expect(heads).not.toContain("Overføring");
   });

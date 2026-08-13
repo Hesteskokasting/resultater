@@ -1,10 +1,12 @@
 BEGIN;
 
-SELECT plan(19);
+SELECT plan(24);
 
--- draw_snc_premiar / clear_snc_premiar (20260813120000): random prizes for a
+-- draw_snc_premiar / clear_snc_premiar (20260813120000, revised by
+-- 20260813120100): random prizes for a
 -- consolidated SNC round. The percentage counts every placed participant, is
--- rounded up, and is clamped to who may be drawn — never the top three. A round
+-- rounded down, and is clamped to who may be drawn — never the top three. An
+-- exact number can be given instead of a percentage, but never both. A round
 -- is drawn once: a second draw is refused so nobody can pull until they like the
 -- outcome, and clearing is the only way back. The write reaches resultat rows on
 -- stevner that are fullført, so the test also pins that the lock this opens stays
@@ -105,6 +107,24 @@ SELECT throws_ok(
   'over 100 prosent blir avvist'
 );
 
+SELECT throws_ok(
+  $$ SELECT public.draw_snc_premiar(9950) $$,
+  'P0001', NULL,
+  'korkje prosent eller tal blir avvist'
+);
+
+SELECT throws_ok(
+  $$ SELECT public.draw_snc_premiar(9950, 10, 4) $$,
+  'P0001', NULL,
+  'både prosent og tal samtidig blir avvist'
+);
+
+SELECT throws_ok(
+  $$ SELECT public.draw_snc_premiar(9950, NULL, 0) $$,
+  'P0001', NULL,
+  '0 premiar blir avvist'
+);
+
 SELECT set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000009951","role":"authenticated"}', true);
 
 SELECT throws_ok(
@@ -115,19 +135,19 @@ SELECT throws_ok(
 
 SELECT set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000009950","role":"authenticated"}', true);
 
--- ── Case 3: the count — 10 placed, rounded up ────────────────────────────────
--- The row without a kaster is unplaced, so the base is 10: 15 % is ceil(1,5) = 2.
+-- ── Case 3: the count — 10 placed, rounded down ──────────────────────────────
+-- The row without a kaster is unplaced, so the base is 10: 15 % is floor(1,5) = 1.
 
 SELECT is(
   (SELECT public.draw_snc_premiar(9950, 15)),
-  2,
-  '15 % av 10 plasserte blir runda opp frå 1,5 til 2'
+  1,
+  '15 % av 10 plasserte blir runda ned frå 1,5 til 1'
 );
 
 SELECT is(
   (SELECT COUNT(*)::int FROM public.resultat WHERE stevneid IN (9951, 9952) AND erpremie),
-  2,
-  'nøyaktig dei 2 trekte har premie'
+  1,
+  'nøyaktig den eine trekte har premie'
 );
 
 -- ── Case 4: a round is drawn once, and clearing is the way back ──────────────
@@ -141,7 +161,7 @@ SELECT throws_ok(
 
 SELECT is(
   (SELECT COUNT(*)::int FROM public.resultat WHERE stevneid IN (9951, 9952) AND erpremie),
-  2,
+  1,
   'den avviste trekninga endra ingenting'
 );
 
@@ -157,8 +177,8 @@ SELECT set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000
 
 SELECT is(
   (SELECT public.clear_snc_premiar(9950)),
-  2,
-  'nullstilling fjernar dei 2 premiane'
+  1,
+  'nullstilling fjernar premien'
 );
 
 SELECT is(
@@ -167,7 +187,21 @@ SELECT is(
   'ingen har premie etter nullstilling'
 );
 
--- ── Case 5: the top three are never drawn ────────────────────────────────────
+-- ── Case 5: an exact number instead of a percentage ──────────────────────────
+
+SELECT is(
+  (SELECT public.draw_snc_premiar(9950, NULL, 4)),
+  4,
+  'eit eksakt tal trekkjer nøyaktig så mange'
+);
+
+SELECT is(
+  (SELECT public.clear_snc_premiar(9950)),
+  4,
+  'nullstilling fjernar dei 4 premiane'
+);
+
+-- ── Case 6: the top three are never drawn ────────────────────────────────────
 -- 100 % asks for all 10, but only the 7 outside the podium may be drawn.
 
 SELECT is(
@@ -176,7 +210,7 @@ SELECT is(
   '100 % blir klamra til dei 7 som kan trekkjast'
 );
 
--- ── Case 6: who ended up with a prize ───────────────────────────────────────
+-- ── Case 7: who ended up with a prize ───────────────────────────────────────
 
 SELECT results_eq(
   $$ SELECT snc_plassering FROM public.resultat
@@ -191,7 +225,7 @@ SELECT is(
   'ei rad utan kastar og utan plassering blir ikkje trekt'
 );
 
--- ── Case 7: the lock this opens stays narrow ─────────────────────────────────
+-- ── Case 8: the lock this opens stays narrow ─────────────────────────────────
 -- erpremie is the only column the exception lets through on a fullført stevne.
 
 SELECT throws_ok(

@@ -230,18 +230,21 @@ export async function getSncConsolidatedResults(
   return { data: data ?? [], error };
 }
 
+/** How many prizes to draw: a share of the placed participants, or an exact count. */
+export type PremieMengd = { prosent: number } | { antal: number };
+
 /**
- * Flags a random share of the round's placed participants with erpremie. The
- * three top-ranked are never drawn, and a round can only be drawn once — a
- * second call is refused. Returns how many were drawn.
+ * Flags a random selection of the round's placed participants with erpremie. The
+ * three top-ranked are never drawn, a percentage is rounded down, and a round can
+ * only be drawn once — a second call is refused. Returns how many were drawn.
  */
 export async function drawSncPremiar(
   hovudstevneId: number,
-  prosent: number,
+  mengd: PremieMengd,
 ): Promise<{ antal: number; error: unknown }> {
   const { data, error } = await supabase.rpc("draw_snc_premiar", {
     p_stevneid: hovudstevneId,
-    p_prosent: prosent,
+    ...("prosent" in mengd ? { p_prosent: mengd.prosent } : { p_antal: mengd.antal }),
   });
   if (error) logError("drawSncPremiar", error);
   return { antal: data ?? 0, error };

@@ -12,7 +12,8 @@ const mocks = vi.hoisted(() => ({
   reopenSncParent: vi.fn(),
   getSncConsolidatedResults: vi.fn(),
   drawSncPremiar: vi.fn(),
-  promptDialog: vi.fn(),
+  clearSncPremiar: vi.fn(),
+  premieDialog: vi.fn(),
   getTournamentSettings: vi.fn(),
   getActiveThrowingMethods: vi.fn(),
   updateTournamentSettings: vi.fn(),
@@ -41,8 +42,9 @@ vi.mock("@/services/testDataService", () => ({ resetTournament: mocks.resetTourn
 vi.mock("@/services/resultatService", () => ({
   getSncConsolidatedResults: mocks.getSncConsolidatedResults,
   drawSncPremiar: mocks.drawSncPremiar,
+  clearSncPremiar: mocks.clearSncPremiar,
 }));
-vi.mock("@/components/PromptDialog", () => ({ promptDialog: mocks.promptDialog }));
+vi.mock("@/components/PremieDialog", () => ({ premieDialog: mocks.premieDialog }));
 vi.mock("@/services/pameldingService", () => ({
   getRegistrationsAcrossTournaments: mocks.getRegistrationsAcrossTournaments,
   registerForTournament: mocks.registerForTournament,
@@ -61,7 +63,7 @@ const {
   reopenSncParent,
   getSncConsolidatedResults,
   drawSncPremiar,
-  promptDialog,
+  premieDialog,
   getTournamentSettings,
   getActiveThrowingMethods,
   getRegistrationsAcrossTournaments,
@@ -390,7 +392,7 @@ describe("SNC consolidated result", () => {
       "RINGAR",
       "TOTAL",
       "NC",
-      "LOKAL PL",
+      "PREMIE",
     ]);
     expect(el.querySelectorAll(".res-desktop-blokk tbody tr td.res-td-tot")).toHaveLength(2);
   });
@@ -422,7 +424,7 @@ describe("SNC consolidated result", () => {
     expect(el.querySelector("#snc-liste-tittel")?.textContent).toBe(
       "SNC runde 1 – Bergen – 1 deltakarar",
     );
-    // The local view leads with the local placement, so LOKAL PL gives way to SNC PL.
+    // The local view leads with the local placement, so PREMIE gives way to SNC PL.
     const columns = [...list.querySelectorAll(".res-thead-columns th")].map((th) =>
       th.textContent?.trim(),
     );
@@ -440,7 +442,7 @@ describe("SNC consolidated result", () => {
       error: null,
     });
     getSncConsolidatedResults.mockResolvedValue({ data: consolidated, error: null });
-    promptDialog.mockResolvedValue("25");
+    premieDialog.mockResolvedValue({ prosent: 25 });
     drawSncPremiar.mockResolvedValue({ antal: 1, error: null });
 
     const el = host();
@@ -450,7 +452,7 @@ describe("SNC consolidated result", () => {
 
     banner.querySelector<HTMLButtonElement>("#snc-premie-btn")!.click();
     await vi.waitFor(() => expect(drawSncPremiar).toHaveBeenCalled());
-    expect(drawSncPremiar).toHaveBeenCalledWith(10, 25);
+    expect(drawSncPremiar).toHaveBeenCalledWith(10, { prosent: 25 });
 
     // The redraw picks up erpremie: the winner is marked, and a drawn round
     // offers the reset instead of letting the admin draw again on top.
@@ -459,8 +461,35 @@ describe("SNC consolidated result", () => {
       error: null,
     });
     await renderSncResults(el, { id: 10, isAdmin: true }, banner);
-    expect(el.querySelectorAll(".res-premie").length).toBeGreaterThan(0);
     expect(banner.querySelector("#snc-premie-nullstill-btn")).not.toBeNull();
+
+    // The marker lives in the merged table's own PREMIE column and, on mobile,
+    // under the total — not beside the name.
+    const winner = el.querySelector(".res-desktop-blokk tbody tr")!;
+    expect(winner.querySelector("td.res-td-premie .res-premie")).not.toBeNull();
+    expect(winner.querySelector(".res-td-navn .res-premie")).toBeNull();
+    expect(el.querySelector(".res-mobil-blokk .res-tot .res-premie")).not.toBeNull();
+    // A local stevne's own table has no prize column, so nothing is marked there.
+    expect(el.querySelectorAll(".res-print-lokal .res-premie")).toHaveLength(0);
+  });
+
+  it("passes an exact prize count straight through when that is what was chosen", async () => {
+    getSncParentTournament.mockResolvedValue({
+      data: parentRow({ erfullfort: true }),
+      error: null,
+    });
+    getSncConsolidatedResults.mockResolvedValue({ data: consolidated, error: null });
+    premieDialog.mockResolvedValue({ antal: 6 });
+    drawSncPremiar.mockResolvedValue({ antal: 6, error: null });
+
+    const el = host();
+    const banner = document.createElement("div");
+    document.body.appendChild(banner);
+    await renderSncResults(el, { id: 10, isAdmin: true }, banner);
+
+    banner.querySelector<HTMLButtonElement>("#snc-premie-btn")!.click();
+    await vi.waitFor(() => expect(drawSncPremiar).toHaveBeenCalled());
+    expect(drawSncPremiar).toHaveBeenCalledWith(10, { antal: 6 });
   });
 
   it("offers no reset until the round has drawn prizes", async () => {

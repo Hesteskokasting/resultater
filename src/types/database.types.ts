@@ -1044,7 +1044,7 @@ export type Database = {
         Returns: undefined
       }
       draw_snc_premiar: {
-        Args: { p_prosent: number; p_stevneid: number }
+        Args: { p_antal?: number; p_prosent?: number; p_stevneid: number }
         Returns: number
       }
       edit_xkast_kongelag_omgang: {

@@ -50,6 +50,7 @@ export interface SncExportResult {
   snc_plassering: number | null;
   plassering: number | null;
   nc_poeng: number | null;
+  erpremie?: boolean | null;
   poeng_xkast: number | null;
   poeng_kongelag: number | null;
   antall_ring_xkast: number | null;
@@ -212,7 +213,7 @@ function mainTable(
   firstRow: number,
 ): { rows: Cell[][]; merges: SheetMerge[] } {
   // +1: the section title sits above the header rows.
-  const header = headerRows(["Pl", "Namn", "Klubb"], [], opts, firstRow + 1);
+  const header = headerRows(["Pl", "Namn", "Klubb"], ["Premie"], opts, firstRow + 1);
   const rows: Cell[][] = [["SAMLA RESULTAT"], ...header.rows];
   for (const row of results) {
     rows.push([
@@ -220,6 +221,7 @@ function mainTable(
       fullName(row.kaster),
       row.klubb?.navn ?? "",
       ...scoreCells(row, opts),
+      row.erpremie ? "Ja" : "",
     ]);
   }
   return { rows, merges: header.merges };
