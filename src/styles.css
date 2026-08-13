@@ -5635,3 +5635,7 @@ body:has(.modal.show) {
     text-decoration: none;
   }
 }
+
+.res-premie {
+  font-size: 0.85em;
+}

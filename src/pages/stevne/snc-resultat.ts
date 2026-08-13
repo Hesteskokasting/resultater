@@ -9,10 +9,17 @@ import { createEmptyState } from "@/components/EmptyState";
 import { escHtml } from "@/utils/escHtml";
 import { logError } from "@/utils/logError";
 import { renderBannerMenu, bindBannerMenu } from "@/components/BannerMenu";
+import { promptDialog } from "@/components/PromptDialog";
 import { showToast } from "@/components/Toast";
+import { errorMessage } from "@/utils/errorMessage";
 import { xkastCarryOverFactor, xkastCarryOverPercent } from "@/utils/kongelagStilling";
 import { getSncParentTournament, getSncLocalTournaments } from "@/services/stevneService";
-import { getSncConsolidatedResults } from "@/services/resultatService";
+import {
+  getSncConsolidatedResults,
+  drawSncPremiar,
+  clearSncPremiar,
+} from "@/services/resultatService";
+import { confirmDialog } from "@/components/ConfirmDialog";
 import type { SncResultRow } from "@/services/resultatService";
 import type { SncLocalTournamentRow, SncParentTournamentRow } from "@/services/stevneService";
 import { downloadExcelRows } from "@/utils/shared";
@@ -44,11 +51,19 @@ function carryFor(row: SncResultRow, cols: ColFlags): number | null {
  */
 type TableVariant = "samla" | "lokal";
 
+/** Drawn a prize — the marker sits beside the name in both layouts. */
+function premieHtml(row: SncResultRow): string {
+  return row.erpremie
+    ? ' <span class="res-premie" title="Trekt premie" aria-label="Trekt premie">🎁</span>'
+    : "";
+}
+
 function rowHtml(row: SncResultRow, cols: ColFlags, variant: TableVariant = "samla"): string {
   const kaster = row.kaster;
-  const nameHtml = kaster
-    ? `<a href="#/kastere/${buildThrowerSlug(kaster)}" class="res-kaster-lenke">${escHtml(throwerName(kaster))}</a>`
-    : "–";
+  const nameHtml =
+    (kaster
+      ? `<a href="#/kastere/${buildThrowerSlug(kaster)}" class="res-kaster-lenke">${escHtml(throwerName(kaster))}</a>`
+      : "–") + premieHtml(row);
   const carry = carryFor(row, cols);
   const [lead, trail] =
     variant === "samla"
@@ -229,7 +244,7 @@ function mobileRowHtml(
     <div class="res-row res-row--snc">
       <span class="res-pl">${lead ?? "–"}.</span>
       <div class="res-info">
-        <span class="res-navn">${escHtml(throwerName(row.kaster) || "–")}</span>
+        <span class="res-navn">${escHtml(throwerName(row.kaster) || "–")}${premieHtml(row)}</span>
         <span class="res-klubb">${escHtml(row.klubb?.navn ?? "–")}</span>
         <button type="button" class="res-detalj-btn" aria-expanded="false" aria-controls="${panelId}">
           <span class="res-detalj-tekst">Vis detaljar</span><span class="res-detalj-pil" aria-hidden="true">▾</span>
@@ -319,6 +334,70 @@ function bindDetailToggles(container: HTMLElement): void {
 }
 
 /**
+ * Admins draw prizes for a share of the round: the admin gives a percentage and
+ * the RPC picks that many at random, never the top three. A round is drawn once —
+ * to draw again it has to be reset first, so nobody can pull until they like the
+ * outcome.
+ */
+function bindPrizeDraw(
+  bannerSlot: HTMLElement,
+  parent: SncParentTournamentRow,
+  rows: SncResultRow[],
+  rerender: () => Promise<void>,
+): void {
+  const reset = bannerSlot.querySelector<HTMLButtonElement>("#snc-premie-nullstill-btn");
+  reset?.addEventListener("click", async () => {
+    if (
+      !(await confirmDialog({
+        title: "Nullstill premietrekning",
+        message: "Alle trekte premiar i denne runden blir fjerna, og runden kan trekkjast på nytt.",
+        danger: true,
+      }))
+    )
+      return;
+    reset.disabled = true;
+    const { antal, error } = await clearSncPremiar(parent.id);
+    reset.disabled = false;
+    if (error) {
+      showToast("Kunne ikkje nullstille: " + errorMessage(error), "error");
+      return;
+    }
+    showToast(antal ? `${antal} premiar nullstilte.` : "Ingen premiar å nullstille.", "success");
+    if (antal) await rerender();
+  });
+
+  const button = bannerSlot.querySelector<HTMLButtonElement>("#snc-premie-btn");
+  button?.addEventListener("click", async () => {
+    const answer = await promptDialog({
+      title: "Trekk premiar",
+      message: `Kor mange prosent av dei ${rows.length} deltakarane skal trekkjast? Talet blir runda opp. Dei tre fremste blir ikkje trekte, og runden kan berre trekkjast éin gong.`,
+      defaultValue: "10",
+      inputType: "number",
+    });
+    if (answer == null) return;
+
+    const prosent = Number(answer.replace(",", "."));
+    if (!Number.isFinite(prosent) || prosent <= 0 || prosent > 100) {
+      showToast("Oppgi ein prosent mellom 0 og 100.", "error");
+      return;
+    }
+
+    button.disabled = true;
+    const { antal, error } = await drawSncPremiar(parent.id, prosent);
+    button.disabled = false;
+    if (error) {
+      showToast("Kunne ikkje trekkje premiar: " + errorMessage(error), "error");
+      return;
+    }
+    showToast(
+      antal ? `${antal} premiar trekt.` : "Ingen nye premiar å trekkje.",
+      antal ? "success" : "info",
+    );
+    if (antal) await rerender();
+  });
+}
+
+/**
  * Print and Excel live in the banner's overflow menu. xlsx is imported on click,
  * so the package itself still costs nothing until someone exports.
  */
@@ -328,15 +407,32 @@ function bindBannerActions(
   locals: SncLocalTournamentRow[],
   rows: SncResultRow[],
   cols: ColFlags,
+  isAdmin: boolean,
+  rerender: () => Promise<void>,
 ): void {
   if (!bannerSlot) return;
   bannerSlot.innerHTML = renderBannerMenu([
     { id: "snc-print-btn", label: "Skriv ut / lagre som PDF" },
     { id: "snc-excel-btn", label: "Last ned som Excel" },
+    ...(isAdmin
+      ? [
+          { id: "snc-premie-btn", label: "Trekk premiar" },
+          ...(rows.some((r) => r.erpremie)
+            ? [
+                {
+                  id: "snc-premie-nullstill-btn",
+                  label: "Nullstill premietrekning",
+                  tone: "warning" as const,
+                },
+              ]
+            : []),
+        ]
+      : []),
   ]);
   bindBannerMenu(bannerSlot);
 
   bannerSlot.querySelector("#snc-print-btn")?.addEventListener("click", () => window.print());
+  bindPrizeDraw(bannerSlot, parent, rows, rerender);
 
   const button = bannerSlot.querySelector<HTMLButtonElement>("#snc-excel-btn");
   button?.addEventListener("click", async () => {
@@ -360,9 +456,10 @@ function bindBannerActions(
 
 export async function render(
   container: HTMLElement,
-  { id }: { id: number; isAdmin?: boolean },
+  { id, isAdmin = false }: { id: number; isAdmin?: boolean },
   bannerSlot?: HTMLElement | null,
 ): Promise<void> {
+  const rerender = (): Promise<void> => render(container, { id, isAdmin }, bannerSlot);
   container.replaceChildren(createLoadingState("Laster samla resultat…"));
 
   try {
@@ -426,7 +523,7 @@ export async function render(
 
     bindDetailToggles(container);
     bindLocalFilter(container, locals, rows, cols);
-    bindBannerActions(bannerSlot, parent, locals, rows, cols);
+    bindBannerActions(bannerSlot, parent, locals, rows, cols, isAdmin, rerender);
   } catch (err) {
     logError("snc-resultat.render", err);
     container.replaceChildren(createErrorBanner("Kunne ikkje laste samla resultat."));

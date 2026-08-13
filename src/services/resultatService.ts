@@ -204,7 +204,7 @@ export async function clearGroupAssignment(stevneid: number): Promise<{ error: u
 // cannot drift apart.
 const SNC_RESULTAT_SELECT = `
   snc_plassering, plassering, nc_poeng, poeng_xkast, poeng_kongelag,
-  antall_ring_xkast, antall_ring_kongelag,
+  antall_ring_xkast, antall_ring_kongelag, erpremie,
   kaster:kasterid(id, fornavn, etternavn),
   klubb:klubbid(navn),
   stevne:stevneid!inner(id, navn, sted, klubb:klubbid(navn))
@@ -228,6 +228,34 @@ export async function getSncConsolidatedResults(
     .order("snc_plassering", { nullsFirst: false });
   if (error) logError("getSncConsolidatedResults", error);
   return { data: data ?? [], error };
+}
+
+/**
+ * Flags a random share of the round's placed participants with erpremie. The
+ * three top-ranked are never drawn, and a round can only be drawn once — a
+ * second call is refused. Returns how many were drawn.
+ */
+export async function drawSncPremiar(
+  hovudstevneId: number,
+  prosent: number,
+): Promise<{ antal: number; error: unknown }> {
+  const { data, error } = await supabase.rpc("draw_snc_premiar", {
+    p_stevneid: hovudstevneId,
+    p_prosent: prosent,
+  });
+  if (error) logError("drawSncPremiar", error);
+  return { antal: data ?? 0, error };
+}
+
+/** Clears the round's draw so it can be drawn afresh. Returns how many it reset. */
+export async function clearSncPremiar(
+  hovudstevneId: number,
+): Promise<{ antal: number; error: unknown }> {
+  const { data, error } = await supabase.rpc("clear_snc_premiar", {
+    p_stevneid: hovudstevneId,
+  });
+  if (error) logError("clearSncPremiar", error);
+  return { antal: data ?? 0, error };
 }
 
 export async function getResultsForTournament(

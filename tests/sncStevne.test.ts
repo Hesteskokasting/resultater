@@ -11,6 +11,8 @@ const mocks = vi.hoisted(() => ({
   completeSncParent: vi.fn(),
   reopenSncParent: vi.fn(),
   getSncConsolidatedResults: vi.fn(),
+  drawSncPremiar: vi.fn(),
+  promptDialog: vi.fn(),
   getTournamentSettings: vi.fn(),
   getActiveThrowingMethods: vi.fn(),
   updateTournamentSettings: vi.fn(),
@@ -38,7 +40,9 @@ vi.mock("@/services/stevneService", () => ({
 vi.mock("@/services/testDataService", () => ({ resetTournament: mocks.resetTournament }));
 vi.mock("@/services/resultatService", () => ({
   getSncConsolidatedResults: mocks.getSncConsolidatedResults,
+  drawSncPremiar: mocks.drawSncPremiar,
 }));
+vi.mock("@/components/PromptDialog", () => ({ promptDialog: mocks.promptDialog }));
 vi.mock("@/services/pameldingService", () => ({
   getRegistrationsAcrossTournaments: mocks.getRegistrationsAcrossTournaments,
   registerForTournament: mocks.registerForTournament,
@@ -56,6 +60,8 @@ const {
   completeSncParent,
   reopenSncParent,
   getSncConsolidatedResults,
+  drawSncPremiar,
+  promptDialog,
   getTournamentSettings,
   getActiveThrowingMethods,
   getRegistrationsAcrossTournaments,
@@ -426,6 +432,67 @@ describe("SNC consolidated result", () => {
     select.dispatchEvent(new Event("change"));
     expect(list.querySelectorAll(".res-desktop-blokk tbody tr")).toHaveLength(2);
     expect(el.querySelector("#snc-liste-tittel")?.textContent).toContain("2 deltakarar");
+  });
+
+  it("draws prizes for the percentage the admin gives, and marks the winners", async () => {
+    getSncParentTournament.mockResolvedValue({
+      data: parentRow({ erfullfort: true }),
+      error: null,
+    });
+    getSncConsolidatedResults.mockResolvedValue({ data: consolidated, error: null });
+    promptDialog.mockResolvedValue("25");
+    drawSncPremiar.mockResolvedValue({ antal: 1, error: null });
+
+    const el = host();
+    const banner = document.createElement("div");
+    document.body.appendChild(banner);
+    await renderSncResults(el, { id: 10, isAdmin: true }, banner);
+
+    banner.querySelector<HTMLButtonElement>("#snc-premie-btn")!.click();
+    await vi.waitFor(() => expect(drawSncPremiar).toHaveBeenCalled());
+    expect(drawSncPremiar).toHaveBeenCalledWith(10, 25);
+
+    // The redraw picks up erpremie: the winner is marked, and a drawn round
+    // offers the reset instead of letting the admin draw again on top.
+    getSncConsolidatedResults.mockResolvedValue({
+      data: [{ ...consolidated[0], erpremie: true }, consolidated[1]],
+      error: null,
+    });
+    await renderSncResults(el, { id: 10, isAdmin: true }, banner);
+    expect(el.querySelectorAll(".res-premie").length).toBeGreaterThan(0);
+    expect(banner.querySelector("#snc-premie-nullstill-btn")).not.toBeNull();
+  });
+
+  it("offers no reset until the round has drawn prizes", async () => {
+    getSncParentTournament.mockResolvedValue({
+      data: parentRow({ erfullfort: true }),
+      error: null,
+    });
+    getSncConsolidatedResults.mockResolvedValue({ data: consolidated, error: null });
+
+    const el = host();
+    const banner = document.createElement("div");
+    document.body.appendChild(banner);
+    await renderSncResults(el, { id: 10, isAdmin: true }, banner);
+
+    expect(banner.querySelector("#snc-premie-btn")).not.toBeNull();
+    expect(banner.querySelector("#snc-premie-nullstill-btn")).toBeNull();
+  });
+
+  it("keeps the prize draw out of the menu for a non-admin", async () => {
+    getSncParentTournament.mockResolvedValue({
+      data: parentRow({ erfullfort: true }),
+      error: null,
+    });
+    getSncConsolidatedResults.mockResolvedValue({ data: consolidated, error: null });
+
+    const el = host();
+    const banner = document.createElement("div");
+    document.body.appendChild(banner);
+    await renderSncResults(el, { id: 10 }, banner);
+
+    expect(banner.querySelector("#snc-premie-btn")).toBeNull();
+    expect(banner.querySelector("#snc-excel-btn")).not.toBeNull();
   });
 
   it("carries a print-only title and stevneinfo the screen keeps hidden", async () => {
