@@ -234,8 +234,12 @@ describe("stevne resultat tab", () => {
     expect(facts).toContain("Stad Førde");
     expect(facts).toContain("Innleiande Minimatch X-kast");
     expect(facts).toContain("Avsluttande Kongelag");
-    expect(facts).toContain("Juryleiar Kari K");
     expect(facts).toContain("Deltakarar 1");
+    // The printed result keeps the juryleiar; the screen leaves it to the info tab.
+    expect(facts).toContain("Juryleiar Kari K");
+    const kontakt = facts.findIndex((f) => f?.startsWith("Kontaktperson"));
+    expect(facts[kontakt + 1]).toBe("Juryleiar Kari K");
+    expect(el.querySelector(".res-felles")?.textContent).not.toContain("Jury");
   });
 
   it("offers print in the banner menu", async () => {

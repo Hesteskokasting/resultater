@@ -111,6 +111,26 @@ describe("stevne-info hero", () => {
     expect(facts.join("|")).toContain("Kongelag");
   });
 
+  it("lists juryleiaren right after kontaktpersonen, and only when there is one", async () => {
+    const el = host();
+    await renderInfo(el, { id: 5 });
+
+    const labels = [...el.querySelectorAll(".stevne-hero__detalj dt")].map((dt) => dt.textContent);
+    expect(labels).not.toContain("Juryleiar");
+
+    mocks.getInfoTournament.mockResolvedValue({
+      data: row({ juryleder: "Kari Kasting" }),
+      error: null,
+    });
+    await renderInfo(el, { id: 5 });
+
+    const details = [...el.querySelectorAll(".stevne-hero__detalj")].map((d) =>
+      d.textContent?.replace(/\s+/g, " ").trim(),
+    );
+    const kontakt = details.findIndex((d) => d?.startsWith("Kontaktperson"));
+    expect(details[kontakt + 1]).toBe("Juryleiar Kari Kasting");
+  });
+
   it("gives the admin Start stevne in the hero slot", async () => {
     const el = host();
     await renderInfo(el, { id: 5, isAdmin: true });

@@ -77,9 +77,11 @@ export function stevneInfoFacts(stevne: PrintStevne, deltakarar: number): Fakta[
     ["Type / kategori", [stevne.stevnetype?.navn, stevne.kategori?.navn].filter(Boolean).join(" ")],
     ["Kontaktperson", fullName(stevne.kontakt ?? null)],
   ];
+  // Paper keeps the juryleiar even though the screen moved it to the info tab: a
+  // printed result is the official document, and that is where the name belongs.
+  if (stevne.juryleder) facts.push(["Juryleiar", stevne.juryleder]);
   if (stevne.innledende?.navn) facts.push(["Innleiande", stevne.innledende.navn]);
   if (stevne.avsluttende?.navn) facts.push(["Avsluttande", stevne.avsluttende.navn]);
-  if (stevne.juryleder) facts.push(["Juryleiar", stevne.juryleder]);
   facts.push(["Deltakarar", deltakarar]);
   return facts;
 }

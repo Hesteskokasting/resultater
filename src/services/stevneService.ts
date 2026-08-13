@@ -171,7 +171,7 @@ export async function getInfoTournament(
     .from("stevne")
     .select(`
       id, navn, dato, tid, sted, stevne_fase, antall_runder_innl, erfullfort, klubbid, tilgjengelige_baner,
-      snc_hovudstevne_id,
+      snc_hovudstevne_id, juryleder,
       kastemetodeInnl:kastemetode!stevne_innledendekastemetodeid_fkey(id, navn),
       kastemetodeAvsl:kastemetode!stevne_avsluttendekastemetodeid_fkey(id, navn),
       kategori:kategoriid(erlagbasert, navn),

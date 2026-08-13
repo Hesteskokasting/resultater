@@ -193,17 +193,12 @@ export async function render(
       ? `<a class="res-pdf-lenke" href="${escHtml(stevne.resultaturl)}" target="_blank" rel="noopener">Resultat som pdf 📄</a>`
       : "";
 
-    const juryHtml = stevne.juryleder
-      ? `<p class="res-klassifisering">Juryleder: ${escHtml(stevne.juryleder)}</p>`
-      : "";
-
     container.innerHTML = `
       <div class="res-side">
         ${printHeaderHtml(stevne.navn, stevneInfoFacts(stevne, results.length))}
         <div class="res-felles">
           ${pdfHtml}
           ${sncHtml}
-          ${juryHtml}
           <p class="res-antall"><strong>Antall deltakarar: ${results.length}</strong></p>
         </div>
         ${resultatListeHtml(
