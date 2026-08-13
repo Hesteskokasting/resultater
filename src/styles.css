@@ -2708,7 +2708,7 @@ th.initial-score-th {
 .pad-progress {
   display: flex;
   gap: 10px;
-  margin: 0 0 6px;
+  margin: 0 0 2px;
 }
 
 .pad-progress-seg {
@@ -2763,6 +2763,12 @@ th.initial-score-th {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+/* The meta line belongs to the name above it, so it sits tighter than the
+   body's own rhythm. */
+.pad-title + .pad-meta {
+  margin-top: -6px;
 }
 
 .pad-bane {
@@ -2840,15 +2846,12 @@ th.initial-score-th {
 
 /* ── Round summary (OmgangNumberpad, between players) ────────────────────── */
 
-/* The ring count sits under the total as the quieter of the two figures. */
-.pad-total-stack {
-  display: flex;
-  flex: none;
-  flex-direction: column;
-  gap: 4px;
-}
-
+/* The ring count rides the bane/runde line, right-aligned so it sits under the
+   total badge — the quieter of the two figures, and no line of its own. */
 .pad-total-sub {
+  flex: none;
+  min-width: 84px;
+  margin-left: auto;
   padding: 2px 16px;
   background: var(--pad-flate);
   border: 1px solid var(--pad-kant);

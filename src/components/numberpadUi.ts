@@ -123,12 +123,19 @@ export function padProgress(count: number, activeIndex: number): HTMLElement {
 
 /**
  * Where the entry belongs: bane as a pill, round line beside it. Either half may
- * be left out — a phase without courts, or a court without a round.
+ * be left out — a phase without courts, or a court without a round. A trailing
+ * figure (e.g. the ring count) is pushed to the right edge of the same line, so
+ * it lines up under the total badge instead of taking a line of its own.
  */
-export function padMeta(baneLabel?: string | null, rundeLabel?: string | null): HTMLElement {
+export function padMeta(
+  baneLabel?: string | null,
+  rundeLabel?: string | null,
+  trailing?: string | null,
+): HTMLElement {
   const row = createEl("div", null, "pad-meta");
   if (baneLabel) row.appendChild(createEl("span", baneLabel, "pad-bane"));
   if (rundeLabel) row.appendChild(createEl("span", rundeLabel, "pad-runde"));
+  if (trailing != null) row.appendChild(createEl("div", trailing, "pad-total-sub"));
   return row;
 }
 
@@ -137,26 +144,11 @@ export function padContext(label: string): HTMLElement {
   return createEl("div", label, "pad-context");
 }
 
-/**
- * Player name, optionally with a running figure badged to the right. A second
- * figure (e.g. the ring count) is stacked under the first in a quieter badge.
- */
-export function padTitle(
-  name: string,
-  trailing?: string | null,
-  trailingSub?: string | null,
-): HTMLElement {
+/** Player name, optionally with a running figure badged to the right. */
+export function padTitle(name: string, trailing?: string | null): HTMLElement {
   const row = createEl("div", null, "pad-title");
   row.appendChild(createEl("h3", name, "pad-name"));
-  if (trailing == null) return row;
-  const total = createEl("div", trailing, "pad-total");
-  if (trailingSub == null) {
-    row.appendChild(total);
-    return row;
-  }
-  const stack = createEl("div", null, "pad-total-stack");
-  stack.append(total, createEl("div", trailingSub, "pad-total-sub"));
-  row.appendChild(stack);
+  if (trailing != null) row.appendChild(createEl("div", trailing, "pad-total"));
   return row;
 }
 

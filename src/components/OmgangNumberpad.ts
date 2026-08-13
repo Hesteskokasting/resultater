@@ -426,13 +426,20 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
 
   /**
    * The block every screen opens with: close/back row, stage bar, name with the
-   * poeng and ringer badges, and the bane pill beside `metaLine`.
+   * poeng badge, then the bane pill and `metaLine` on one line with the ring
+   * total at its right edge, under the poeng badge.
    */
-  function headEls(step: OmgangEntryStep, back: PadBack | null, activeSeg: number): HTMLElement[] {
+  function headEls(
+    step: OmgangEntryStep,
+    back: PadBack | null,
+    activeSeg: number,
+    metaLine: string,
+  ): HTMLElement[] {
     return [
       padTopRow(close, back),
       padProgress(2, activeSeg),
-      padTitle(step.playerName, String(liveTotal()), String(liveRinger())),
+      padTitle(step.playerName, String(liveTotal())),
+      padMeta(step.header.baneLabel, metaLine, String(liveRinger())),
     ];
   }
 
@@ -444,8 +451,7 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
     const next = steps[state.stepIdx + 1];
 
     const { card, body, footer } = padCard();
-    for (const el of headEls(step, null, 1)) body.appendChild(el);
-    body.appendChild(padMeta(step.header.baneLabel, statusLabel(rows)));
+    for (const el of headEls(step, null, 1, statusLabel(rows))) body.appendChild(el);
     body.appendChild(createEl("div", "Oppsummering", "pad-summary-heading"));
     const list = createEl("div", null, "pad-summary-list");
     for (const row of rows) list.appendChild(roundRowEl(row, null));
@@ -495,8 +501,8 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
             },
           }
         : null;
-    for (const el of headEls(step, back, state.stage === "poeng" ? 0 : 1)) body.appendChild(el);
-    body.appendChild(padMeta(step.header.baneLabel, step.header.rundeLabel));
+    const head = headEls(step, back, state.stage === "poeng" ? 0 : 1, step.header.rundeLabel);
+    for (const el of head) body.appendChild(el);
     body.appendChild(entryScoreEl());
 
     const display = padDisplay("Poengsum", String(currentPoeng()), {
