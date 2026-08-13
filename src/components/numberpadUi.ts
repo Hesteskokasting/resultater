@@ -137,11 +137,26 @@ export function padContext(label: string): HTMLElement {
   return createEl("div", label, "pad-context");
 }
 
-/** Player name, optionally with a running figure badged to the right. */
-export function padTitle(name: string, trailing?: string | null): HTMLElement {
+/**
+ * Player name, optionally with a running figure badged to the right. A second
+ * figure (e.g. the ring count) is stacked under the first in a quieter badge.
+ */
+export function padTitle(
+  name: string,
+  trailing?: string | null,
+  trailingSub?: string | null,
+): HTMLElement {
   const row = createEl("div", null, "pad-title");
   row.appendChild(createEl("h3", name, "pad-name"));
-  if (trailing != null) row.appendChild(createEl("div", trailing, "pad-total"));
+  if (trailing == null) return row;
+  const total = createEl("div", trailing, "pad-total");
+  if (trailingSub == null) {
+    row.appendChild(total);
+    return row;
+  }
+  const stack = createEl("div", null, "pad-total-stack");
+  stack.append(total, createEl("div", trailingSub, "pad-total-sub"));
+  row.appendChild(stack);
   return row;
 }
 

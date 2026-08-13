@@ -40,6 +40,7 @@ function padHeader(
     cellPoeng: omganger.map((o) => participant.omgangar.find((r) => r.omgang === o)?.poeng ?? null),
     cellIndex: omgang - 1,
     totalPoeng: participant.omgangar.reduce((sum, o) => sum + o.poeng, 0),
+    totalRinger: participant.omgangar.reduce((sum, o) => sum + (o.antall_ringer ?? 0), 0),
     playerKey: `p${participant.id}`,
     rundeKey: `p${participant.id}`,
   };

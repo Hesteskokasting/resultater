@@ -12,6 +12,7 @@ import {
   padRegister,
   padTitle,
   padTopRow,
+  type PadBack,
 } from "@/components/numberpadUi";
 import { showToast } from "@/components/Toast";
 import { appendDigit, digitValue } from "@/utils/padInput";
@@ -21,6 +22,27 @@ import {
   OMGANG_MAX_POENG,
   OMGANG_MAX_RINGER,
 } from "@/utils/omgangValidation";
+
+/** One round of the end-of-round summary, as known when the pad opened. */
+export interface OmgangPadSummaryRow {
+  /** Row label, e.g. the round number. */
+  label: string;
+  /** Matches OmgangPadHeader.rundeKey, so this session's entries overlay it. */
+  rundeKey: string;
+  /** Poeng per omgang in the round; null = not entered. */
+  cellPoeng: (number | null)[];
+  /** Ringar per omgang in the round; null = not entered. */
+  cellRinger: (number | null)[];
+}
+
+/**
+ * Round breakdown shown instead of the keys once the pad has taken every
+ * omgang it holds for a player, so the round is read back before the next
+ * player starts. Omit to advance straight to the next step.
+ */
+export interface OmgangPadSummary {
+  rows: OmgangPadSummaryRow[];
+}
 
 export interface OmgangPadHeader {
   /** Pill left of the round line, e.g. "Bane 2". */
@@ -35,10 +57,14 @@ export interface OmgangPadHeader {
   cellIndex: number;
   /** Player total across all omganger as known when the pad opened. */
   totalPoeng: number;
+  /** Player ring total across all omganger as known when the pad opened. */
+  totalRinger: number;
   /** Identity used to overlay saves made in this pad session. */
   playerKey: string;
   /** Identity of the strip (player + round) for the same overlay. */
   rundeKey: string;
+  /** Round breakdown shown when the pad leaves this player. */
+  summary?: OmgangPadSummary;
 }
 
 export interface OmgangEntryStep {
@@ -64,6 +90,8 @@ interface PadState {
   poengInput: string;
   selectedRinger: number | null;
   isSaving: boolean;
+  /** Showing the round summary for the current step's player instead of the keys. */
+  showSummary: boolean;
 }
 
 /**
@@ -84,9 +112,12 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
     poengInput: "",
     selectedRinger: null,
     isSaving: false,
+    showSummary: false,
   };
   /** Poeng saved during this pad session, so the strip and total stay live. */
   const savedPoeng = new Map<number, number>();
+  /** Ringar saved during this pad session, for the same overlay in the summary. */
+  const savedRinger = new Map<number, number>();
   const { overlay, close } = createNumberpadOverlay();
 
   /** Resets the two-stage state for the current step, prefilling when editing. */
@@ -102,7 +133,15 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
     return digitValue(state.poengInput);
   }
 
-  function advance(): void {
+  /** True when the next step belongs to someone else — the player is done here. */
+  function leavesPlayer(idx: number): boolean {
+    const current = steps[idx];
+    const next = steps[idx + 1];
+    if (!current) return false;
+    return !next || next.header.playerKey !== current.header.playerKey;
+  }
+
+  function nextStep(): void {
     state.stepIdx++;
     if (state.stepIdx >= steps.length) {
       close();
@@ -110,6 +149,20 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
     }
     loadStepDefaults();
     render();
+  }
+
+  /**
+   * A player who has thrown every omgang the pad holds for them gets the round
+   * summary before the pad moves on, rather than jumping straight to the next
+   * player. A single-step pad (an edit) skips it — there is nothing to read back.
+   */
+  function advance(): void {
+    if (steps.length > 1 && steps[state.stepIdx]?.header.summary && leavesPlayer(state.stepIdx)) {
+      state.showSummary = true;
+      render();
+      return;
+    }
+    nextStep();
   }
 
   function edit(next: string): void {
@@ -143,6 +196,7 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
     const saved = await step.onSave(poeng, ringer);
     if (saved) {
       savedPoeng.set(state.stepIdx, poeng);
+      savedRinger.set(state.stepIdx, ringer);
       advance();
     } else {
       state.isSaving = false;
@@ -161,6 +215,14 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
     return currentPoeng();
   }
 
+  /** Ringar for a step: saved value, or the picked one while it is the open step. */
+  function effectiveRinger(idx: number): number | null {
+    const saved = savedRinger.get(idx);
+    if (saved != null) return saved;
+    if (idx !== state.stepIdx) return null;
+    return state.selectedRinger ?? steps[idx]?.initialRinger ?? null;
+  }
+
   /** Total for the player, adjusted by what this session has entered so far. */
   function liveTotal(): number {
     const header = steps[state.stepIdx]!.header;
@@ -170,6 +232,19 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
       const poeng = effectivePoeng(idx);
       if (poeng == null) return;
       total += poeng - (step.initialPoeng ?? 0);
+    });
+    return total;
+  }
+
+  /** Ring total for the player, on the same live basis as liveTotal. */
+  function liveRinger(): number {
+    const header = steps[state.stepIdx]!.header;
+    let total = header.totalRinger;
+    steps.forEach((step, idx) => {
+      if (step.header.playerKey !== header.playerKey) return;
+      const ringer = effectiveRinger(idx);
+      if (ringer == null) return;
+      total += ringer - (step.initialRinger ?? 0);
     });
     return total;
   }
@@ -283,31 +358,146 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
     return { content: [heading, grid], register };
   }
 
+  // ── Round rows (the entry screens and the summary draw the same row) ────────
+
+  interface RoundRow {
+    label: string;
+    rundeKey: string;
+    poeng: (number | null)[];
+    ringer: (number | null)[];
+  }
+
+  /** Every round of the current player, overlaid with this session's entries. */
+  function roundRows(): RoundRow[] {
+    const header = steps[state.stepIdx]!.header;
+    return (header.summary?.rows ?? []).map((row) => {
+      const poeng = [...row.cellPoeng];
+      const ringer = [...row.cellRinger];
+      steps.forEach((step, idx) => {
+        if (step.header.rundeKey !== row.rundeKey) return;
+        const p = effectivePoeng(idx);
+        if (p != null) poeng[step.header.cellIndex] = p;
+        const r = effectiveRinger(idx);
+        if (r != null) ringer[step.header.cellIndex] = r;
+      });
+      return { label: row.label, rundeKey: row.rundeKey, poeng, ringer };
+    });
+  }
+
+  function sumOf(values: (number | null)[]): number {
+    return values.reduce<number>((acc, v) => acc + (v ?? 0), 0);
+  }
+
+  function statusLabel(rows: RoundRow[]): string {
+    const done = rows.filter((row) => row.poeng.every((p) => p != null)).length;
+    return done >= rows.length
+      ? `Alle ${rows.length} runder fullført`
+      : `${done} av ${rows.length} runder fullført`;
+  }
+
+  /** Labelled figure at the end of a round row (SUM, RINGER). */
+  function roundStatEl(key: string, value: string, klasse: string): HTMLElement {
+    const cell = createEl("div", null, `pad-summary-stat ${klasse}`);
+    cell.appendChild(createEl("span", key, "pad-summary-key"));
+    cell.appendChild(createEl("span", value, "pad-summary-value"));
+    return cell;
+  }
+
+  /** Runde number, its kast, SUM and RINGER. `currentIndex` marks the open kast. */
+  function roundRowEl(row: RoundRow, currentIndex: number | null): HTMLElement {
+    const el = createEl("div", null, "pad-summary-row");
+    el.style.gridTemplateColumns = `28px repeat(${row.poeng.length}, minmax(0, 1fr)) auto auto`;
+    el.appendChild(createEl("div", row.label, "pad-summary-runde"));
+    row.poeng.forEach((poeng, i) => {
+      const current = i === currentIndex ? " current" : "";
+      const cell = createEl(
+        "div",
+        null,
+        `pad-summary-kast${poeng == null ? " empty" : ""}${current}`,
+      );
+      cell.appendChild(createEl("span", String(i + 1), "pad-summary-key"));
+      cell.appendChild(createEl("span", poeng != null ? String(poeng) : "–", "pad-summary-value"));
+      el.appendChild(cell);
+    });
+    el.appendChild(roundStatEl("SUM", String(sumOf(row.poeng)), "pad-summary-sum"));
+    el.appendChild(roundStatEl("RINGER", String(sumOf(row.ringer)), "pad-summary-ringer"));
+    return el;
+  }
+
+  /**
+   * The block every screen opens with: close/back row, stage bar, name with the
+   * poeng and ringer badges, and the bane pill beside `metaLine`.
+   */
+  function headEls(step: OmgangEntryStep, back: PadBack | null, activeSeg: number): HTMLElement[] {
+    return [
+      padTopRow(close, back),
+      padProgress(2, activeSeg),
+      padTitle(step.playerName, String(liveTotal()), String(liveRinger())),
+    ];
+  }
+
+  function renderSummary(): void {
+    overlay.innerHTML = "";
+    const step = steps[state.stepIdx];
+    if (!step) return;
+    const rows = roundRows();
+    const next = steps[state.stepIdx + 1];
+
+    const { card, body, footer } = padCard();
+    for (const el of headEls(step, null, 1)) body.appendChild(el);
+    body.appendChild(padMeta(step.header.baneLabel, statusLabel(rows)));
+    body.appendChild(createEl("div", "Oppsummering", "pad-summary-heading"));
+    const list = createEl("div", null, "pad-summary-list");
+    for (const row of rows) list.appendChild(roundRowEl(row, null));
+    body.appendChild(list);
+
+    footer.appendChild(
+      padRegister({
+        label: next ? `Neste spiller: ${next.playerName}` : "Ferdig",
+        onClick: () => {
+          state.showSummary = false;
+          nextStep();
+        },
+      }),
+    );
+
+    overlay.appendChild(card);
+  }
+
+  /**
+   * Score readback above the keys: the round being thrown, drawn as a summary
+   * row. A variant without a runde breakdown (Kongelag) keeps the flat strip.
+   */
+  function entryScoreEl(): HTMLElement {
+    const header = steps[state.stepIdx]!.header;
+    const row = roundRows().find((r) => r.rundeKey === header.rundeKey);
+    return row ? roundRowEl(row, header.cellIndex) : stripEl();
+  }
+
   function render(): void {
+    if (state.showSummary) {
+      renderSummary();
+      return;
+    }
     overlay.innerHTML = "";
     const step = steps[state.stepIdx];
     if (!step) return;
 
     const { card, body, footer } = padCard();
-    body.appendChild(
-      padTopRow(
-        close,
-        state.stage === "ringer"
-          ? {
-              label: "← Poeng",
-              onClick: () => {
-                state.stage = "poeng";
-                state.selectedRinger = null;
-                render();
-              },
-            }
-          : null,
-      ),
-    );
-    body.appendChild(padProgress(2, state.stage === "poeng" ? 0 : 1));
-    body.appendChild(padTitle(step.playerName, String(liveTotal())));
+    const back: PadBack | null =
+      state.stage === "ringer"
+        ? {
+            label: "← Poeng",
+            onClick: () => {
+              state.stage = "poeng";
+              state.selectedRinger = null;
+              render();
+            },
+          }
+        : null;
+    for (const el of headEls(step, back, state.stage === "poeng" ? 0 : 1)) body.appendChild(el);
     body.appendChild(padMeta(step.header.baneLabel, step.header.rundeLabel));
-    body.appendChild(stripEl());
+    body.appendChild(entryScoreEl());
 
     const display = padDisplay("Poengsum", String(currentPoeng()), {
       placeholder: state.poengInput === "",

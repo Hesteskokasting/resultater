@@ -2838,6 +2838,106 @@ th.initial-score-th {
   font-size: 1.5rem;
 }
 
+/* ── Round summary (OmgangNumberpad, between players) ────────────────────── */
+
+/* The ring count sits under the total as the quieter of the two figures. */
+.pad-total-stack {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pad-total-sub {
+  padding: 2px 16px;
+  background: var(--pad-flate);
+  border: 1px solid var(--pad-kant);
+  border-radius: 8px;
+  color: var(--pad-tekst-2);
+  font-size: 1rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.pad-summary-heading {
+  color: var(--pad-tekst-2);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.pad-summary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pad-summary-row {
+  display: grid;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  background: var(--pad-flate);
+  border: 1px solid var(--pad-kant);
+  border-radius: 12px;
+}
+
+.pad-summary-runde {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.pad-summary-kast,
+.pad-summary-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.pad-summary-key {
+  color: var(--pad-tekst-2);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.pad-summary-value {
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.pad-summary-kast.empty .pad-summary-value {
+  color: var(--pad-tekst-2);
+}
+
+/* The kast being entered, marked the way the old strip marked it. */
+.pad-summary-kast.current .pad-summary-key,
+.pad-summary-kast.current .pad-summary-value {
+  color: var(--pad-aksent);
+}
+
+.pad-summary-kast.current .pad-summary-value {
+  border: 1px dashed var(--pad-aksent);
+  border-radius: 8px;
+  padding: 0 6px;
+}
+
+.pad-summary-sum {
+  padding-left: 10px;
+  border-left: 1px solid var(--pad-kant);
+}
+
+.pad-summary-sum .pad-summary-key,
+.pad-summary-sum .pad-summary-value {
+  color: var(--pad-aksent);
+}
+
+.pad-summary-ringer {
+  padding-left: 10px;
+}
+
 /* One column per participant — the kamp pad shows all of them side by side above
    STEPWISE_MAX_WIDTH (ScoreNumberpad); below it, and in every other pad, the
    wrapper holds exactly one column. */
