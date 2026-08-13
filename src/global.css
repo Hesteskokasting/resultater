@@ -219,6 +219,8 @@
 body {
   background: var(--bg);
   color: var(--tekst);
+  /* No double-tap zoom on iOS; pinch-zoom and panning stay intact. */
+  touch-action: manipulation;
 }
 
 /* Theme switch */
