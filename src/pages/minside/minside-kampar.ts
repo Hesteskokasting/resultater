@@ -158,15 +158,17 @@ async function buildMatchesContent(throwerId: number): Promise<HTMLElement> {
     (ks.kamp?.spelarar ?? []).some((s) => (s.omgangar?.length ?? 0) > 0);
 
   /**
-   * The result cell of a played match: the score as a win/loss/draw pill, or the
-   * placement for a 3-side match, where scores do not decide the outcome.
+   * The result cell: the score as a win/loss/draw pill, or the placement for a
+   * 3-side match, where scores do not decide the outcome. An unconfirmed match
+   * has no outcome yet, so it shows its running score (0 – 0 before the first
+   * omgang) in the neutral tint.
    */
   const matchResultHtml = (ks: MatchPlayerRow): string => {
     const match = ks.kamp;
     const isConfirmed = match?.er_bekreftet ?? false;
     const { mine, others } = matchSides(ks, throwerId, startNrMap);
 
-    if (match?.er_tre_spelarar || others.length > 1) {
+    if (isConfirmed && (match?.er_tre_spelarar || others.length > 1)) {
       const placement = mine.find((m) => m.kasterid === throwerId)?.kamp_plassering;
       if (placement == null) return resultBadge("–", "neutral");
       return resultBadge(
@@ -180,31 +182,37 @@ async function buildMatchesContent(throwerId: number): Promise<HTMLElement> {
     if (!mine.length || !opponents?.length) return resultBadge("–", "neutral");
     const me = sideTotal(mine, isConfirmed);
     const them = sideTotal(opponents, isConfirmed);
+    if (!isConfirmed) return resultBadge(`${me} – ${them}`, "neutral", "Ikkje stadfesta");
     const outcome: Outcome = me > them ? "win" : me < them ? "loss" : "draw";
     return resultBadge(`${me} – ${them}`, outcome);
   };
 
-  const matchRow = (ks: MatchPlayerRow, showResult: boolean): GridRow => {
+  /**
+   * Trailing cell: the stats icon once the match has omgang rows. An unconfirmed
+   * match always gets it — the same link is the player's way into the scoreboard.
+   */
+  const matchStatsHtml = (ks: MatchPlayerRow): string => {
+    const match = ks.kamp;
+    if (!(match?.er_bekreftet ?? false)) {
+      return scoreboardLinkHtml(match?.id ?? "", newTabAnchorAttrs(), "scoreboard-btn--touch");
+    }
+    if (!hasStats(ks)) return "";
+    return scoreboardLinkHtml(match?.id ?? "", newTabAnchorAttrs(), "scoreboard-btn--stats");
+  };
+
+  const matchRow = (ks: MatchPlayerRow): GridRow => {
     const match = ks.kamp;
     const { others } = matchSides(ks, throwerId, startNrMap);
-    const statsLink = hasStats(ks)
-      ? scoreboardLinkHtml(match?.id ?? "", newTabAnchorAttrs(), "scoreboard-btn--stats")
-      : "";
     return {
       slot: `R${match?.runde_nummer ?? ""} / B${match?.bane_nummer ?? ""}`,
       name: namesHtml(others),
-      result: showResult
-        ? matchResultHtml(ks)
-        : scoreboardLinkHtml(match?.id ?? "", newTabAnchorAttrs(), "scoreboard-btn--touch"),
-      stats: showResult ? statsLink : "",
+      result: matchResultHtml(ks),
+      stats: matchStatsHtml(ks),
     };
   };
 
   const matchGridHtml = (group: MatchPlayerRow[]): string =>
-    gridHtml(
-      ["Runde / Bane", "Motstandar", "Resultat"],
-      group.map((ks) => matchRow(ks, ks.kamp?.er_bekreftet ?? false)),
-    );
+    gridHtml(["Runde / Bane", "Motstandar", "Resultat"], group.map(matchRow));
 
   /** One grid per phase with a small heading — only when the stevne spans both phases. */
   const phaseSectionsHtml = (group: MatchPlayerRow[]): string => {
