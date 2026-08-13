@@ -1,0 +1,245 @@
+import { describe, expect, it } from "vite-plus/test";
+import { buildSncExportSheet, sncExportFileName, sncTotal } from "@/utils/sncExcelExport";
+import type {
+  SncExportLocal,
+  SncExportOptions,
+  SncExportParent,
+  SncExportResult,
+} from "@/utils/sncExcelExport";
+
+const parent: SncExportParent = {
+  navn: "SNC Runde 3",
+  dato: "2026-08-01",
+  tid: "10:00:00",
+  sted: "Årdalen",
+  stevnetype: { navn: "SNC" },
+  kategori: { navn: "Singel" },
+  klubb: { navn: "Nordhordland HK" },
+  kontakt: { fornavn: "Kari", etternavn: "Nordmann" },
+  kastemetodeInnl: { navn: "Halvmatch", antall_omganger: 25 },
+  kastemetodeAvsl: { navn: "Kongelag" },
+};
+
+const locals: SncExportLocal[] = [
+  {
+    id: 10,
+    navn: "Dale",
+    dato: "2026-07-25",
+    tid: "11:00:00",
+    sted: "Dale",
+    klubb: { navn: "Skjold HK" },
+    kontakt: { fornavn: "Per", etternavn: "Dale" },
+  },
+  {
+    id: 11,
+    navn: "Voss",
+    dato: "2026-07-26",
+    tid: "12:00:00",
+    sted: "Voss",
+    klubb: { navn: "Voss HK" },
+  },
+];
+
+function result(
+  sncPl: number,
+  navn: string,
+  stevneId: number,
+  localPl: number,
+  poengXkast: number,
+): SncExportResult {
+  return {
+    snc_plassering: sncPl,
+    plassering: localPl,
+    nc_poeng: 100,
+    poeng_xkast: poengXkast,
+    poeng_kongelag: 118,
+    antall_ring_xkast: 24,
+    antall_ring_kongelag: 8,
+    kaster: { fornavn: navn, etternavn: "Testar" },
+    klubb: { navn: "Skjold HK" },
+    stevne: { id: stevneId, navn: stevneId === 10 ? "Dale" : "Voss", sted: null },
+  };
+}
+
+const opts: SncExportOptions = {
+  showXkast: true,
+  showKongelag: true,
+  carryFactor: 0.2,
+  carryPercent: 20,
+  innlLabel: "Halvmatch",
+  avslLabel: "Kongelag",
+};
+
+/** First cell of every row — enough to assert on section order. */
+function firstCells(rows: (string | number | null)[][]): string[] {
+  return rows.map((r) => String(r[0] ?? ""));
+}
+
+describe("sncTotal", () => {
+  it("adds the carried-over innledende points to the kongelag points", () => {
+    expect(sncTotal(result(1, "A", 10, 1, 302), opts)).toBe(178);
+  });
+
+  it("falls back to the single block's own points when nothing carries over", () => {
+    const single = { ...opts, showKongelag: false, carryFactor: null, carryPercent: null };
+    expect(sncTotal(result(1, "A", 10, 1, 302), single)).toBe(302);
+  });
+});
+
+describe("buildSncExportSheet", () => {
+  const sheet = buildSncExportSheet(
+    parent,
+    locals,
+    [result(1, "A", 10, 1, 302), result(2, "B", 11, 1, 290), result(3, "C", 10, 2, 280)],
+    opts,
+  );
+  const rows = sheet.rows;
+  const cells = firstCells(rows);
+
+  it("leads with the round's name and its facts as a labels row over a values row", () => {
+    expect(cells[0]).toBe("SNC Runde 3");
+    const at = cells.indexOf("STEVNEINFO");
+    // Tid and stad are the local stevner's, so the umbrella's block leaves them out.
+    expect(rows[at + 1]).toEqual([
+      "Arrangør",
+      "Dato",
+      "Type / kategori",
+      "Kontaktperson",
+      "Innleiande",
+      "Avsluttande",
+      "Overføring",
+      "Lokale stevne",
+      "Deltakarar",
+    ]);
+    expect(rows[at + 2]).toEqual([
+      "Nordhordland HK",
+      "1.8.2026",
+      "SNC Singel",
+      "Kari Nordmann",
+      "Halvmatch",
+      "Kongelag",
+      "20 %",
+      2,
+      3,
+    ]);
+  });
+
+  it("keeps tid and stad for a round with no local stevne of its own", () => {
+    const alone = buildSncExportSheet(parent, [], [result(1, "A", 10, 1, 302)], opts);
+    const at = firstCells(alone.rows).indexOf("STEVNEINFO");
+    expect(alone.rows[at + 1]).toContain("Tid");
+    expect(alone.rows[at + 1]).toContain("Stad");
+  });
+
+  it("leaves out status and omgangar", () => {
+    expect(cells).not.toContain("Status");
+    expect(cells).not.toContain("Omgangar");
+    expect(rows[cells.indexOf("STEVNEINFO") + 1]).not.toContain("Omgangar");
+  });
+
+  it("puts the merged list before the local blocks", () => {
+    expect(cells.indexOf("SAMLA RESULTAT")).toBeLessThan(cells.indexOf("LOKALE STEVNE"));
+    expect(cells.indexOf("LOKALE STEVNE")).toBeLessThan(cells.lastIndexOf("Dale"));
+  });
+
+  it("groups the score columns under the method names instead of repeating them", () => {
+    const at = cells.indexOf("SAMLA RESULTAT");
+    expect(rows[at + 1]).toEqual(["", "", "", "Halvmatch", "", "", "Kongelag", "", "", "", ""]);
+    expect(rows[at + 2]).toEqual([
+      "Pl",
+      "Namn",
+      "Klubb",
+      "Poeng",
+      "Ringar",
+      "Overført",
+      "Poeng",
+      "Ringar",
+      "Total",
+      "NC",
+      "Premie",
+    ]);
+  });
+
+  it("merges each method name over its own columns", () => {
+    const at = cells.indexOf("SAMLA RESULTAT") + 1;
+    expect(sheet.merges).toContainEqual({ s: { r: at, c: 3 }, e: { r: at, c: 5 } });
+    expect(sheet.merges).toContainEqual({ s: { r: at, c: 6 }, e: { r: at, c: 7 } });
+  });
+
+  it("writes each result as numbers, with the carried-over value spelled out", () => {
+    const first = rows[cells.indexOf("SAMLA RESULTAT") + 3]!;
+    expect(first).toEqual([1, "A Testar", "Skjold HK", 302, 24, 60, 118, 8, 178, 100, ""]);
+  });
+
+  it("marks a drawn prize in the merged list only", () => {
+    const built = buildSncExportSheet(
+      parent,
+      locals,
+      [{ ...result(1, "A", 10, 1, 302), erpremie: true }],
+      opts,
+    );
+    const heads = firstCells(built.rows);
+    expect(built.rows[heads.indexOf("SAMLA RESULTAT") + 3]?.slice(-1)).toEqual(["Ja"]);
+    // A local block trails with the SNC placement instead of a prize column.
+    const local = heads.indexOf("Dale", heads.indexOf("LOKALE STEVNE"));
+    const header = built.rows.slice(local).findIndex((r) => r[0] === "Pl");
+    expect(built.rows.slice(local)[header]?.slice(-1)).toEqual(["SNC pl"]);
+  });
+
+  it("leaves the local stevne and its placement out of the merged list", () => {
+    const at = cells.indexOf("SAMLA RESULTAT");
+    expect(rows[at + 2]).not.toContain("Lokalt stevne");
+    expect(rows[at + 2]).not.toContain("Lokal pl");
+  });
+
+  it("gives every local stevne its own block, ordered by local placement", () => {
+    const start = cells.indexOf("Dale", cells.indexOf("LOKALE STEVNE"));
+    const block = rows.slice(start);
+    expect(block[1]).toEqual(["Arrangør", "Dato", "Tid", "Stad", "Kontaktperson", "Deltakarar"]);
+    expect(block[2]).toEqual(["Skjold HK", "25.7.2026", "11:00", "Dale", "Per Dale", 2]);
+    const header = block.findIndex((r) => r[0] === "Pl");
+    expect(block[header + 1]?.[1]).toBe("A Testar");
+    expect(block[header + 2]?.[1]).toBe("C Testar");
+  });
+
+  it("skips columns for a block the round does not use", () => {
+    const single = { ...opts, showKongelag: false, carryFactor: null, carryPercent: null };
+    const onlyXkast = buildSncExportSheet(parent, locals, [result(1, "A", 10, 1, 302)], single);
+    const heads = firstCells(onlyXkast.rows);
+    const at = heads.indexOf("SAMLA RESULTAT");
+    expect(onlyXkast.rows[at + 1]).toEqual(["", "", "", "Halvmatch", "", "", "", ""]);
+    expect(onlyXkast.rows[at + 2]).toEqual([
+      "Pl",
+      "Namn",
+      "Klubb",
+      "Poeng",
+      "Ringar",
+      "Total",
+      "NC",
+      "Premie",
+    ]);
+    expect(heads).not.toContain("Overføring");
+  });
+
+  it("keeps a stevne the local list missed rather than dropping its rows", () => {
+    const built = buildSncExportSheet(parent, [locals[0]!], [result(1, "B", 11, 1, 290)], opts);
+    expect(firstCells(built.rows)).toContain("Voss");
+  });
+
+  it("leaves out a local stevne with no results", () => {
+    const built = firstCells(
+      buildSncExportSheet(parent, locals, [result(1, "A", 10, 1, 302)], opts).rows,
+    );
+    expect(built.slice(built.indexOf("LOKALE STEVNE"))).not.toContain("Voss");
+  });
+});
+
+describe("sncExportFileName", () => {
+  it("slugs the name and keeps the extension", () => {
+    expect(sncExportFileName("SNC Runde 3 – Årdalen")).toBe("snc-runde-3-ardalen.xlsx");
+  });
+
+  it("falls back when nothing survives slugging", () => {
+    expect(sncExportFileName("—")).toBe("snc-resultat.xlsx");
+  });
+});

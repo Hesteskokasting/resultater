@@ -89,6 +89,24 @@ export async function downloadExcel(
   XLSX.writeFile(book, fileName);
 }
 
+/**
+ * Rows of cells rather than objects, for sheets that mix info blocks and tables.
+ * xlsx is imported here too, so it only loads when an export actually runs.
+ */
+export async function downloadExcelRows(
+  rows: (string | number | null)[][],
+  fileName: string,
+  sheetName = "Data",
+  merges: { s: { r: number; c: number }; e: { r: number; c: number } }[] = [],
+): Promise<void> {
+  const XLSX = await import("xlsx");
+  const sheet = XLSX.utils.aoa_to_sheet(rows);
+  if (merges.length) sheet["!merges"] = merges;
+  const book = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(book, sheet, sheetName);
+  XLSX.writeFile(book, fileName);
+}
+
 // ── Year dropdown ─────────────────────────────────────────────────────────────
 
 export function yearOptions(selected: number, from: number, to = new Date().getFullYear()): string {

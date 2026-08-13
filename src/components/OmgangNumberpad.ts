@@ -222,7 +222,8 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
       onDigit: (digit) => edit(appendDigit(state.poengInput, digit, OMGANG_MAX_POENG)),
       onClear: () => edit(""),
       action: {
-        caption: "Neste",
+        caption: "Bekreft",
+        value: `${currentPoeng()} p`,
         label: "→",
         disabled: state.poengInput === "",
         onClick: goToRinger,
@@ -244,8 +245,19 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
       `pad-ring-btn${count === 0 ? " pad-ring-zero" : ""}`,
     );
     btn.setAttribute("aria-label", count === 1 ? "1 ring" : `${count} ringar`);
-    btn.classList.toggle("selected", state.selectedRinger === count);
+    const isSelected = state.selectedRinger === count;
+    btn.setAttribute("aria-pressed", String(isSelected));
+    btn.classList.toggle("selected", isSelected);
+    if (isSelected) btn.appendChild(createEl("span", "✓ Valgt", "pad-ring-valgt"));
     return btn;
+  }
+
+  /** Spells out what is about to be saved: poeng, then ring count. */
+  function registerLabel(): string {
+    if (state.isSaving) return "Lagrer…";
+    const ringer = state.selectedRinger;
+    if (ringer == null) return "Vel antall ringer";
+    return `Registrer ${currentPoeng()} p – ${ringer} ${ringer === 1 ? "ring" : "ringar"} ✓`;
   }
 
   /** Ring-stage parts, split by where they belong: content and footer action. */
@@ -263,7 +275,7 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
     grid.appendChild(ringButtonEl(0, allowed.includes(0)));
 
     const register = padRegister({
-      label: state.isSaving ? "Lagrer…" : "Registrer og fullfør ✓",
+      label: registerLabel(),
       disabled: state.selectedRinger == null || state.isSaving,
       onClick: () => void save(),
     });
@@ -297,11 +309,9 @@ export function showOmgangNumberpad(steps: OmgangEntryStep[]): void {
     body.appendChild(padMeta(step.header.baneLabel, step.header.rundeLabel));
     body.appendChild(stripEl());
 
-    const display = padDisplay(
-      state.stage === "poeng" ? "Poengsum" : "Poengsum registrert",
-      String(currentPoeng()),
-      { placeholder: state.poengInput === "" },
-    );
+    const display = padDisplay("Poengsum", String(currentPoeng()), {
+      placeholder: state.poengInput === "",
+    });
     body.appendChild(
       padColumns([padColumn(state.stage === "poeng" ? [display, poengGridEl()] : [display])]),
     );

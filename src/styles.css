@@ -843,6 +843,243 @@
   color: var(--tekst-2);
 }
 
+/* SNC mobile row: total on the right, details in a toggled panel below */
+
+.res-row--snc {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  align-items: start;
+  column-gap: 12px;
+  row-gap: 10px;
+}
+
+.res-detalj-btn {
+  align-self: start;
+  margin-top: 4px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--lenke);
+  font-size: 0.8rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.res-detalj-btn:hover .res-detalj-tekst {
+  text-decoration: underline;
+}
+
+.res-tot {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+}
+
+.res-tot-label {
+  font-size: 0.65rem;
+  font-weight: bold;
+  letter-spacing: 0.08em;
+  color: var(--tekst-2);
+}
+
+.res-tot-verdi {
+  font-size: 1.9rem;
+  font-weight: bold;
+  line-height: 1.05;
+  color: var(--tekst);
+}
+
+.res-detalj {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.res-stat {
+  flex: 1 1 30%;
+  min-width: 92px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid var(--kant);
+  border-radius: 6px;
+  background: var(--flate-2);
+}
+
+.res-stat-label {
+  font-size: 0.62rem;
+  font-weight: bold;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--tekst-2);
+}
+
+.res-stat-verdi {
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: var(--tekst);
+}
+
+.res-stat-carry {
+  font-size: 0.9rem;
+  font-weight: normal;
+  color: var(--tekst-2);
+}
+
+.res-stat-sub {
+  font-size: 0.7rem;
+  color: var(--tekst-2);
+}
+
+/* ── SNC consolidated result: info tiles + grouped table ── */
+
+.res-seksjon {
+  margin-bottom: 18px;
+}
+
+.res-seksjon-topp {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+  max-width: 1000px;
+}
+
+.res-seksjon-tittel {
+  margin: 0 0 6px;
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--tekst-2);
+}
+
+.res-seksjon-topp .res-seksjon-tittel {
+  margin: 0;
+}
+
+.res-filter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+
+.res-filter__etikett {
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tekst-2);
+}
+
+.res-filter__vel {
+  width: auto;
+  max-width: 220px;
+  font-size: 0.8rem;
+}
+
+.res-tabell-boks {
+  max-width: 1000px;
+  border: 1px solid var(--kant);
+  border-radius: 8px;
+  overflow-x: auto;
+}
+
+.res-table--snc {
+  font-size: 0.8rem;
+}
+
+.res-table--snc th,
+.res-table--snc td {
+  padding: 3px 8px;
+  white-space: nowrap;
+}
+
+/* Group row: one label above each method's Poeng/Ringar pair. */
+.res-thead-grupper th {
+  background: var(--flate-2);
+  color: var(--tekst-2);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: center;
+  padding: 3px 8px;
+  border-bottom: 1px solid var(--kant);
+}
+
+.res-table--snc .res-thead-columns th {
+  background: var(--flate-2);
+  color: var(--tekst-2);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  padding: 3px 8px;
+  border-bottom: 1px solid var(--kant);
+}
+
+/* Figures sit centred under their own headers — tabular digits keep the columns
+   lining up despite the centring. */
+.res-table--snc .res-tal {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The figures that carry the result. Weight rather than colour alone: in dark
+   mode the contrast against the dimmed columns reads as bold on its own, in light
+   mode it does not. */
+.res-table--snc tbody .res-tal:not(.res-tal--dempa) {
+  font-weight: 600;
+}
+
+.res-table--snc .res-tal--dempa {
+  color: var(--tekst-2);
+}
+
+/* Vertical rule after each group, so the pairs read as blocks. */
+.res-table--snc .res-kol-slutt {
+  border-right: 1px solid var(--kant);
+}
+
+.res-table--snc .res-td-pl {
+  width: auto;
+  color: var(--lenke);
+  font-weight: bold;
+  text-align: right;
+}
+
+.res-table--snc .res-td-navn {
+  font-weight: 600;
+}
+
+.res-table--snc .res-td-klubb {
+  color: var(--tekst-2);
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The one column the eye should land on. */
+.res-table--snc .res-td-tot {
+  background: color-mix(in srgb, var(--primaer) 32%, var(--flate));
+  color: var(--tekst);
+  border-left: 1px solid var(--kant);
+  border-right: 1px solid var(--kant);
+}
+
+.res-table--snc tbody .res-td-tot {
+  font-size: 0.95rem;
+  font-weight: bold;
+}
+
 /* Desktop-infotabell */
 
 .res-info-tabell {
@@ -921,6 +1158,11 @@
 .res-td-nc {
   width: 60px;
   text-align: right;
+}
+
+.res-thead-columns th.res-td-tot,
+.res-table td.res-td-tot {
+  font-weight: bold;
 }
 
 .res-kaster-lenke {
@@ -2428,12 +2670,17 @@ th.initial-score-th {
   min-height: 34px;
 }
 
+/* Bordered rather than a bare link — a text-only back reads as decoration next
+   to the boxed close button. */
 .pad-back {
-  background: none;
-  border: none;
-  padding: 0;
+  padding: 6px 12px;
+  background: var(--pad-flate);
+  border: 1px solid var(--pad-kant);
+  border-radius: 10px;
   color: var(--pad-aksent);
   font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.2;
   cursor: pointer;
 }
 
@@ -2496,14 +2743,17 @@ th.initial-score-th {
   font-weight: 700;
 }
 
+/* The running total is the figure the thrower looks for, so it carries the
+   accent and outsizes the name beside it. */
 .pad-total {
   flex: none;
-  min-width: 62px;
-  padding: 6px 12px;
+  min-width: 84px;
+  padding: 8px 16px;
   background: var(--pad-flate);
-  border: 1px solid var(--pad-kant);
-  border-radius: 10px;
-  font-size: 1.5rem;
+  border: 2px solid var(--pad-aksent);
+  border-radius: 12px;
+  color: var(--pad-aksent);
+  font-size: 2rem;
   font-weight: 700;
   line-height: 1.1;
   text-align: center;
@@ -2576,6 +2826,16 @@ th.initial-score-th {
 .pad-strip-sum {
   padding-left: 10px;
   text-align: right;
+}
+
+/* Round sum: the one figure in the strip that is not a single cell. */
+.pad-strip-head.pad-strip-sum {
+  color: var(--pad-aksent);
+}
+
+.pad-strip-cell.pad-strip-sum {
+  color: var(--pad-aksent);
+  font-size: 1.5rem;
 }
 
 /* One column per participant — the kamp pad shows all of them side by side above
@@ -2685,6 +2945,18 @@ th.initial-score-th {
   font-weight: 700;
 }
 
+/* The live figure the key confirms; the arrow shrinks to a hint beneath it. */
+.pad-key-value {
+  font-size: clamp(1.3rem, 5vw, 1.7rem);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.pad-key-value ~ .pad-key-glyph {
+  font-size: 1rem;
+  line-height: 1;
+}
+
 .pad-key:disabled {
   opacity: 0.35;
   cursor: not-allowed;
@@ -2712,7 +2984,7 @@ th.initial-score-th {
   flex: 1;
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  grid-auto-rows: minmax(56px, 1fr);
+  grid-auto-rows: minmax(clamp(56px, 9vh, 72px), 1fr);
   gap: 10px;
 }
 
@@ -2722,9 +2994,37 @@ th.initial-score-th {
   grid-column: 1 / -1;
 }
 
+/* Thrown-glove targets — the count is read from arm's length, so the numeral
+   is far larger than a digit key's, and the selected one larger still. */
+.pad-ring-btn {
+  position: relative;
+  font-size: clamp(1.9rem, 4.5vh, 2.4rem);
+  line-height: 1;
+}
+
+/* Solid fill plus a glow ring — a border alone did not read as chosen. */
 .pad-ring-btn.selected {
-  border-color: var(--pad-valgt);
+  background: var(--pad-valgt);
+  border: 2px solid var(--pad-valgt);
+  color: var(--pad-valgt-tekst);
+  font-size: clamp(2.2rem, 5.2vh, 2.75rem);
+  font-weight: 700;
+  box-shadow: 0 0 0 3px var(--pad-valgt-glod);
+}
+
+.pad-ring-valgt {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--pad-valgt-tekst);
   color: var(--pad-valgt);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1.4;
 }
 
 /* Fills the pad's width and runs into the bottom inset, so nothing sits between
@@ -5207,4 +5507,175 @@ body:has(.modal.show) {
   font-weight: 500;
   text-align: right;
   overflow-wrap: anywhere;
+}
+
+/* ── Print: the result page as a standalone sheet ─────────────────────────────
+   The screen keeps the app chrome and the mobile cards; paper gets a title, the
+   stevneinfo and the desktop table, on white regardless of the active theme. */
+
+.res-print-blokk {
+  display: none;
+}
+
+@media print {
+  /* Light tokens for paper, whichever theme the screen is in. --primaer stays a
+     grey so the highlighted total column prints as a tint, not as ink. */
+  :root {
+    --bg: #fff;
+    --flate: #fff;
+    --flate-2: #f1f1f1;
+    --kant: #999;
+    --kant-2: #777;
+    --tekst: #000;
+    --tekst-2: #333;
+    --tekst-3: #555;
+    --primaer: #b4b4b4;
+    --primaer-text: #000;
+    --lenke: #000;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 12mm;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  .top-header,
+  .sidepanel,
+  .meny-bakgrunn,
+  .tournament-nav,
+  .org-fase-header,
+  .org-banner-menu,
+  .res-mobil-blokk,
+  .res-detalj-btn,
+  .res-filter {
+    display: none !important;
+  }
+
+  .res-print-blokk {
+    display: block;
+    margin-bottom: 10px;
+  }
+
+  /* Each local stevne starts its own page, after the merged list. */
+  .res-print-lokal {
+    break-before: page;
+    margin-top: 0;
+  }
+
+  .res-print-tittel {
+    margin: 0 0 6px;
+    font-size: 1.3rem;
+    font-weight: bold;
+  }
+
+  .res-print-undertittel {
+    margin: 0 0 6px;
+    font-size: 1.05rem;
+    font-weight: bold;
+  }
+
+  /* Facts as label/value pairs across the page, three to a line. */
+  .res-print-fakta {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1px 14px;
+    margin: 0;
+    font-size: 0.75rem;
+  }
+
+  .res-print-fakta__par {
+    display: flex;
+    gap: 5px;
+  }
+
+  .res-print-fakta dt {
+    color: #333;
+    font-weight: 400;
+  }
+
+  .res-print-fakta dt::after {
+    content: ":";
+  }
+
+  .res-print-fakta dd {
+    margin: 0;
+    font-weight: 600;
+  }
+
+  /* Print the table even when the screen was showing the mobile cards. */
+  .res-desktop-blokk {
+    display: block !important;
+  }
+
+  .res-tabell-boks {
+    max-width: none;
+    border: none;
+    overflow: visible;
+  }
+
+  .res-table--snc {
+    font-size: 0.7rem;
+  }
+
+  /* Repeat the two header rows on every page, and never split a thrower's row. */
+  .res-table--snc thead {
+    display: table-header-group;
+  }
+
+  .res-table--snc tr {
+    break-inside: avoid;
+  }
+
+  .res-table--snc tbody tr:nth-child(even) {
+    background: #f7f7f7;
+  }
+
+  .res-table--snc th,
+  .res-table--snc td {
+    border-bottom: 1px solid #ccc;
+  }
+
+  .res-kaster-lenke {
+    color: #000;
+    text-decoration: none;
+  }
+}
+
+/* Prize draw dialog: percentage or exact count, one of the two. */
+
+.premie-dialog__hjelp {
+  margin-bottom: 10px;
+  font-size: 0.8rem;
+  color: var(--tekst-2);
+}
+
+.premie-dialog__val + .premie-dialog__val {
+  margin-top: 10px;
+}
+
+.premie-dialog__rad {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+/* Prize marker: an X in the table's own column, spelled out under the total on
+   mobile where there is no column header to name it. */
+.res-premie {
+  font-weight: bold;
+  line-height: 1;
+}
+
+.res-tot .res-premie {
+  margin-top: 2px;
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  color: var(--lenke);
 }

@@ -1,7 +1,7 @@
 /**
  * Which tabs a stevne shows (stevne.ts) and what the home page shows (home.ts)
  * when SNC is involved: an umbrella uses the same tab set as any other stevne but
- * only Info and Sluttresultat have content, and its local stevner are hidden from
+ * only Info and Resultat have content, and its local stevner are hidden from
  * the home page in favour of the umbrella itself.
  */
 
@@ -154,7 +154,7 @@ describe("stevne tabs", () => {
     const el = host();
     await renderTournamentPage(el, { id: 10, tab: "info" });
 
-    expect(tabLabels(el)).toEqual(["Info", "Sluttresultat", "Innstillingar"]);
+    expect(tabLabels(el)).toEqual(["Info", "Resultat", "Innstillingar"]);
   });
 
   it("serves the ordinary settings tab on a hovudstevne", async () => {
@@ -185,7 +185,7 @@ describe("stevne tabs", () => {
     ]);
   });
 
-  it("serves the consolidated list on the hovudstevne's Sluttresultat tab", async () => {
+  it("serves the consolidated list on the hovudstevne's Resultat tab", async () => {
     getTournamentHeader.mockResolvedValue({
       data: header({ er_snc_hovudstevne: true, erfullfort: true }),
       error: null,

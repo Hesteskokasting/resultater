@@ -11,6 +11,9 @@ const mocks = vi.hoisted(() => ({
   completeSncParent: vi.fn(),
   reopenSncParent: vi.fn(),
   getSncConsolidatedResults: vi.fn(),
+  drawSncPremiar: vi.fn(),
+  clearSncPremiar: vi.fn(),
+  premieDialog: vi.fn(),
   getTournamentSettings: vi.fn(),
   getActiveThrowingMethods: vi.fn(),
   updateTournamentSettings: vi.fn(),
@@ -38,7 +41,10 @@ vi.mock("@/services/stevneService", () => ({
 vi.mock("@/services/testDataService", () => ({ resetTournament: mocks.resetTournament }));
 vi.mock("@/services/resultatService", () => ({
   getSncConsolidatedResults: mocks.getSncConsolidatedResults,
+  drawSncPremiar: mocks.drawSncPremiar,
+  clearSncPremiar: mocks.clearSncPremiar,
 }));
+vi.mock("@/components/PremieDialog", () => ({ premieDialog: mocks.premieDialog }));
 vi.mock("@/services/pameldingService", () => ({
   getRegistrationsAcrossTournaments: mocks.getRegistrationsAcrossTournaments,
   registerForTournament: mocks.registerForTournament,
@@ -56,6 +62,8 @@ const {
   completeSncParent,
   reopenSncParent,
   getSncConsolidatedResults,
+  drawSncPremiar,
+  premieDialog,
   getTournamentSettings,
   getActiveThrowingMethods,
   getRegistrationsAcrossTournaments,
@@ -105,6 +113,7 @@ function localRow(id: number, klubb: string, overrides: Record<string, unknown> 
     stevne_fase: "ikke_startet",
     klubbid: id,
     klubb: { id, navn: klubb, logourl: null },
+    kontakt: { fornavn: "Ola", etternavn: klubb },
     ...overrides,
   };
 }
@@ -342,11 +351,235 @@ describe("SNC consolidated result", () => {
 
     const rows = [...el.querySelectorAll(".res-desktop-blokk tbody tr")];
     expect(rows).toHaveLength(2);
-    expect(el.textContent).toContain("2 deltakarar frå 2 lokale stevne");
+    expect(el.querySelector(".res-seksjon-tittel")?.textContent?.trim()).toBe(
+      "Minimatch X-kast / Kongelag – 2 deltakarar",
+    );
     // Kongelag 55 + carried-over X-kast (150 / 3) = 105 for the winner, 100 for 2nd
     expect(rows[0]!.textContent).toContain("105");
     expect(rows[1]!.textContent).toContain("100");
     expect(rows[0]!.textContent).toContain("Bergen");
+  });
+
+  it("groups the score columns under the method names, with Total on its own", async () => {
+    getSncParentTournament.mockResolvedValue({
+      data: parentRow({ erfullfort: true }),
+      error: null,
+    });
+    getSncConsolidatedResults.mockResolvedValue({ data: consolidated, error: null });
+    const el = host();
+    await renderSncResults(el, { id: 10 });
+
+    const groups = [
+      ...el.querySelectorAll(".res-desktop-blokk .res-thead-grupper .res-gruppe"),
+    ].map((th) => [th.textContent?.trim(), th.getAttribute("colspan")]);
+    // Poeng + ringar + overført under the innledende method, poeng + ringar under kongelag.
+    expect(groups).toEqual([
+      ["Minimatch X-kast", "3"],
+      ["Kongelag", "2"],
+    ]);
+
+    const columns = [...el.querySelectorAll(".res-desktop-blokk .res-thead-columns th")].map((th) =>
+      th.textContent?.trim(),
+    );
+    expect(columns).toEqual([
+      "PL",
+      "NAMN",
+      "KLUBB",
+      "POENG",
+      "RINGAR",
+      // The carried column is headed by the share it carries: 15 omganger → a third.
+      "33,33 %",
+      "POENG",
+      "RINGAR",
+      "TOTAL",
+      "NC",
+      "PREMIE",
+    ]);
+    expect(el.querySelectorAll(".res-desktop-blokk tbody tr td.res-td-tot")).toHaveLength(2);
+  });
+
+  it("swaps the merged list for one local stevne's own when the filter picks it", async () => {
+    getSncParentTournament.mockResolvedValue({
+      data: parentRow({ erfullfort: true }),
+      error: null,
+    });
+    getSncConsolidatedResults.mockResolvedValue({ data: consolidated, error: null });
+    const el = host();
+    await renderSncResults(el, { id: 10 });
+
+    const select = el.querySelector<HTMLSelectElement>("#snc-lokal-filter")!;
+    expect([...select.options].map((o) => o.textContent)).toEqual([
+      "Alle lokale stevne",
+      "SNC runde 1 – Førde",
+      "SNC runde 1 – Bergen",
+    ]);
+    expect(el.querySelectorAll("#snc-liste .res-desktop-blokk tbody tr")).toHaveLength(2);
+
+    select.value = "12";
+    select.dispatchEvent(new Event("change"));
+
+    const list = el.querySelector("#snc-liste")!;
+    const rows = [...list.querySelectorAll(".res-desktop-blokk tbody tr")];
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.textContent).toContain("Cato");
+    expect(el.querySelector("#snc-liste-tittel")?.textContent).toBe(
+      "SNC runde 1 – Bergen – 1 deltakarar",
+    );
+    // The local view leads with the local placement, so PREMIE gives way to SNC PL.
+    const columns = [...list.querySelectorAll(".res-thead-columns th")].map((th) =>
+      th.textContent?.trim(),
+    );
+    expect(columns[columns.length - 1]).toBe("SNC PL");
+
+    select.value = "";
+    select.dispatchEvent(new Event("change"));
+    expect(list.querySelectorAll(".res-desktop-blokk tbody tr")).toHaveLength(2);
+    expect(el.querySelector("#snc-liste-tittel")?.textContent).toContain("2 deltakarar");
+  });
+
+  it("draws prizes for the percentage the admin gives, and marks the winners", async () => {
+    getSncParentTournament.mockResolvedValue({
+      data: parentRow({ erfullfort: true }),
+      error: null,
+    });
+    getSncConsolidatedResults.mockResolvedValue({ data: consolidated, error: null });
+    premieDialog.mockResolvedValue({ prosent: 25 });
+    drawSncPremiar.mockResolvedValue({ antal: 1, error: null });
+
+    const el = host();
+    const banner = document.createElement("div");
+    document.body.appendChild(banner);
+    await renderSncResults(el, { id: 10, isAdmin: true }, banner);
+
+    banner.querySelector<HTMLButtonElement>("#snc-premie-btn")!.click();
+    await vi.waitFor(() => expect(drawSncPremiar).toHaveBeenCalled());
+    expect(drawSncPremiar).toHaveBeenCalledWith(10, { prosent: 25 });
+
+    // The redraw picks up erpremie: the winner is marked, and a drawn round
+    // offers the reset instead of letting the admin draw again on top.
+    getSncConsolidatedResults.mockResolvedValue({
+      data: [{ ...consolidated[0], erpremie: true }, consolidated[1]],
+      error: null,
+    });
+    await renderSncResults(el, { id: 10, isAdmin: true }, banner);
+    expect(banner.querySelector("#snc-premie-nullstill-btn")).not.toBeNull();
+
+    // The marker lives in the merged table's own PREMIE column and, on mobile,
+    // under the total — not beside the name.
+    const winner = el.querySelector(".res-desktop-blokk tbody tr")!;
+    expect(winner.querySelector("td.res-td-premie .res-premie")?.textContent).toBe("X");
+    expect(winner.querySelector(".res-td-navn .res-premie")).toBeNull();
+    expect(el.querySelector(".res-mobil-blokk .res-tot .res-premie")?.textContent).toBe("PREMIE");
+    // A local stevne's own table has no prize column, so nothing is marked there.
+    expect(el.querySelectorAll(".res-print-lokal .res-premie")).toHaveLength(0);
+  });
+
+  it("passes an exact prize count straight through when that is what was chosen", async () => {
+    getSncParentTournament.mockResolvedValue({
+      data: parentRow({ erfullfort: true }),
+      error: null,
+    });
+    getSncConsolidatedResults.mockResolvedValue({ data: consolidated, error: null });
+    premieDialog.mockResolvedValue({ antal: 6 });
+    drawSncPremiar.mockResolvedValue({ antal: 6, error: null });
+
+    const el = host();
+    const banner = document.createElement("div");
+    document.body.appendChild(banner);
+    await renderSncResults(el, { id: 10, isAdmin: true }, banner);
+
+    banner.querySelector<HTMLButtonElement>("#snc-premie-btn")!.click();
+    await vi.waitFor(() => expect(drawSncPremiar).toHaveBeenCalled());
+    expect(drawSncPremiar).toHaveBeenCalledWith(10, { antal: 6 });
+  });
+
+  it("offers no reset until the round has drawn prizes", async () => {
+    getSncParentTournament.mockResolvedValue({
+      data: parentRow({ erfullfort: true }),
+      error: null,
+    });
+    getSncConsolidatedResults.mockResolvedValue({ data: consolidated, error: null });
+
+    const el = host();
+    const banner = document.createElement("div");
+    document.body.appendChild(banner);
+    await renderSncResults(el, { id: 10, isAdmin: true }, banner);
+
+    expect(banner.querySelector("#snc-premie-btn")).not.toBeNull();
+    expect(banner.querySelector("#snc-premie-nullstill-btn")).toBeNull();
+  });
+
+  it("keeps the prize draw out of the menu for a non-admin", async () => {
+    getSncParentTournament.mockResolvedValue({
+      data: parentRow({ erfullfort: true }),
+      error: null,
+    });
+    getSncConsolidatedResults.mockResolvedValue({ data: consolidated, error: null });
+
+    const el = host();
+    const banner = document.createElement("div");
+    document.body.appendChild(banner);
+    await renderSncResults(el, { id: 10 }, banner);
+
+    expect(banner.querySelector("#snc-premie-btn")).toBeNull();
+    expect(banner.querySelector("#snc-excel-btn")).not.toBeNull();
+  });
+
+  it("carries a print-only title and stevneinfo the screen keeps hidden", async () => {
+    getSncParentTournament.mockResolvedValue({
+      data: parentRow({ erfullfort: true }),
+      error: null,
+    });
+    getSncConsolidatedResults.mockResolvedValue({ data: consolidated, error: null });
+    const el = host();
+    await renderSncResults(el, { id: 10 });
+
+    const block = el.querySelector(".res-print-blokk");
+    expect(block?.querySelector(".res-print-tittel")?.textContent).toBe("SNC runde 1");
+    const facts = [...block!.querySelectorAll(".res-print-fakta__par")].map((p) =>
+      p.textContent?.replace(/\s+/g, " ").trim(),
+    );
+    expect(facts).toContain("Arrangør NHF");
+    expect(facts).toContain("Deltakarar 2");
+    expect(facts).toContain("Lokale stevne 2");
+    // Tid and stad belong to the local stevner, not to the umbrella.
+    expect(facts.some((f) => f?.startsWith("Tid"))).toBe(false);
+    expect(facts.some((f) => f?.startsWith("Stad"))).toBe(false);
+  });
+
+  it("prints every local stevne separately, with its own tid, stad and placement", async () => {
+    getSncParentTournament.mockResolvedValue({
+      data: parentRow({ erfullfort: true }),
+      error: null,
+    });
+    getSncConsolidatedResults.mockResolvedValue({ data: consolidated, error: null });
+    const el = host();
+    await renderSncResults(el, { id: 10 });
+
+    const blocks = [...el.querySelectorAll(".res-print-lokal")];
+    expect(blocks.map((b) => b.querySelector(".res-print-undertittel")?.textContent)).toEqual([
+      "SNC runde 1 – Førde",
+      "SNC runde 1 – Bergen",
+    ]);
+
+    const forde = blocks[0]!;
+    const facts = [...forde.querySelectorAll(".res-print-fakta__par")].map((p) =>
+      p.textContent?.replace(/\s+/g, " ").trim(),
+    );
+    expect(facts).toContain("Tid 11:00");
+    expect(facts).toContain("Stad Førde");
+    expect(facts).toContain("Kontaktperson Ola Førde");
+    expect(facts).toContain("Deltakarar 1");
+
+    // A local table leads with the local placement and trails with the SNC one.
+    const columns = [...forde.querySelectorAll(".res-thead-columns th")].map((th) =>
+      th.textContent?.trim(),
+    );
+    expect(columns[0]).toBe("PL");
+    expect(columns[columns.length - 1]).toBe("SNC PL");
+    const cells = [...forde.querySelectorAll("tbody tr td")].map((td) => td.textContent?.trim());
+    expect(cells[0]).toBe("1.");
+    expect(cells[cells.length - 1]).toBe("2");
   });
 
   it("drops rows the consolidation has not placed", async () => {
