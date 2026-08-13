@@ -8,7 +8,11 @@ const _kampSpelarQuery = supabase.from("kamp_spelar").select(`
   id, kasterid,
   kamp:kampid(
     id, stevneid, fase, runde_nummer, bane_nummer, er_bekreftet, er_walkover, er_tre_spelarar,
-    stevne:stevneid(id, navn, dato, erfullfort),
+    stevne:stevneid(
+      id, navn, dato, erfullfort,
+      metodeInnl:kastemetode!stevne_innledendekastemetodeid_fkey(navn),
+      metodeAvsl:kastemetode!stevne_avsluttendekastemetodeid_fkey(navn)
+    ),
     spelarar:kamp_spelar(
       id, kasterid, score_poeng, kamp_plassering,
       kaster:kasterid(id, fornavn, etternavn),
@@ -28,7 +32,11 @@ export async function getMyMatches(
       id, kasterid,
       kamp:kampid(
         id, stevneid, fase, runde_nummer, bane_nummer, er_bekreftet, er_walkover, er_tre_spelarar,
-        stevne:stevneid(id, navn, dato, erfullfort),
+        stevne:stevneid(
+          id, navn, dato, erfullfort,
+          metodeInnl:kastemetode!stevne_innledendekastemetodeid_fkey(navn),
+          metodeAvsl:kastemetode!stevne_avsluttendekastemetodeid_fkey(navn)
+        ),
         spelarar:kamp_spelar(
           id, kasterid, score_poeng, kamp_plassering,
           kaster:kasterid(id, fornavn, etternavn),

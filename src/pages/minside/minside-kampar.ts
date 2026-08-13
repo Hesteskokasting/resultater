@@ -30,6 +30,18 @@ function phaseRank(ks: MatchPlayerRow): number {
   return idx === -1 ? PHASES.length : idx;
 }
 
+/**
+ * The fase heading: the kastemetode the stevne runs that fase with ("Gloppen",
+ * "Cup"), which says more than the fase itself. Falls back to the fase name for
+ * a stevne whose metode is not set.
+ */
+function phaseLabel(ks: MatchPlayerRow, fallback: string): string {
+  const stevne = ks.kamp?.stevne;
+  const metode =
+    ks.kamp?.fase === "innledende" ? stevne?.metodeInnl?.navn : stevne?.metodeAvsl?.navn;
+  return metode ?? fallback;
+}
+
 // ── Shared 4-column grid ──────────────────────────────────────────────────────
 
 /** One row of the listing: the same four columns for kampar and X-kast banar. */
@@ -256,7 +268,7 @@ async function buildMatchesContent(throwerId: number): Promise<HTMLElement> {
     return [
       ...sections.map(
         ({ label, matches }) => `
-      <p class="match-grid__phase">${label}</p>
+      <p class="match-grid__phase">${escHtml(phaseLabel(matches[0]!, label))}</p>
       ${matchGridHtml(matches)}`,
       ),
       ...(unknown.length ? [matchGridHtml(unknown)] : []),
