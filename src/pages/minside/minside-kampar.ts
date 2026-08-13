@@ -375,7 +375,7 @@ async function buildMatchesContent(throwerId: number): Promise<HTMLElement> {
 }
 
 export async function render(container: HTMLElement, ctx: MinSideContext): Promise<void> {
-  const shell = renderSectionCard(container, ctx, "Mine kampar og banar");
+  const shell = renderSectionCard(container, ctx, "Kampar / X-kast");
   if (!shell) return;
 
   const content = await buildMatchesContent(shell.throwerId);

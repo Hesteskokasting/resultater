@@ -3,9 +3,15 @@ import { supabase } from "@/supabase";
 import { logError } from "@/utils/logError";
 import { verifyRowsAffected, verifyRowsAffectedReturning } from "@/utils/verifiedWrite";
 
-const _pameldingQuery = supabase
-  .from("pamelding")
-  .select("id, stevne:stevneid(id, navn, dato, erfullfort)");
+const _pameldingQuery = supabase.from("pamelding").select(`
+      id,
+      stevne:stevneid(
+        id, navn, dato, sted, ernm, erfullfort, stevne_fase,
+        klubb:klubbid(id, navn),
+        stevnetype:stevnetypeid(id, navn),
+        kategori:kategoriid(id, navn)
+      )
+    `);
 const _pameldingMedKasterQuery = supabase
   .from("pamelding")
   .select("id, kasterid, kaster:kasterid(id, fornavn, etternavn, klubb:klubbid(navn))");
@@ -43,7 +49,15 @@ export async function getMyRegistrations(
 ): Promise<{ data: RegistrationRow[]; error: unknown }> {
   const { data, error } = await supabase
     .from("pamelding")
-    .select("id, stevne:stevneid(id, navn, dato, erfullfort)")
+    .select(`
+      id,
+      stevne:stevneid(
+        id, navn, dato, sted, ernm, erfullfort, stevne_fase,
+        klubb:klubbid(id, navn),
+        stevnetype:stevnetypeid(id, navn),
+        kategori:kategoriid(id, navn)
+      )
+    `)
     .eq("kasterid", kasterid)
     .limit(50);
   if (error) logError("getMyRegistrations", error);

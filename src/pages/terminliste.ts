@@ -8,22 +8,14 @@ import {
   emptyThrowerRegistrations,
 } from "@/services/stevneService";
 import type { ScheduleTournamentRow, ThrowerRegistrations } from "@/services/stevneService";
-import {
-  formatDateLong,
-  formatDateWeekday,
-  formatWeekdayShort,
-  formatDayOfMonth,
-  yearOptions,
-  downloadExcel,
-} from "@/utils/shared";
+import { yearOptions, downloadExcel } from "@/utils/shared";
 import { buildDropdownOptions } from "@/utils/buildDropdownOptions";
 import { createErrorBanner } from "@/components/ErrorBanner";
 import { createLoadingState } from "@/components/LoadingState";
 import { createEmptyState } from "@/components/EmptyState";
 import {
-  createStevneCard,
+  createTournamentCard,
   actionLinkHtml,
-  type StevneCardTypeBadge,
   type StevneCardActionLink,
 } from "@/components/StevneCard";
 import { sncUmbrellaActionLink } from "@/utils/sncRegistration";
@@ -346,32 +338,9 @@ function buildView(
 // ── Card (mobile) ─────────────────────────────────────────────────────────────
 
 function cardNode(s: TournamentRow, nearestLabel: string | undefined): HTMLElement {
-  const isLive =
-    (s.stevne_fase === "innledende" || s.stevne_fase === "avsluttende") && !s.erfullfort;
-  const isUpcoming = !s.erfullfort && new Date(s.dato + "T12:00:00") > new Date();
-
-  const localCount = sncLocalCountLabel(s);
-  const stedArrangor = [localCount ?? s.sted, s.klubb?.navn]
-    .filter((v): v is string => Boolean(v))
-    .join(" · ");
-  const meta = stedArrangor ? [stedArrangor] : [];
-
-  const typeBadge: StevneCardTypeBadge | undefined = s.stevnetype?.navn
-    ? { type: s.stevnetype.navn, kategori: s.kategori?.navn ?? undefined }
-    : undefined;
-
-  return createStevneCard({
-    title: s.navn ?? "",
+  return createTournamentCard(s, {
     href: rowHref(s),
-    date: formatDateWeekday(s.dato),
-    dateIso: s.dato,
-    dateFull: formatDateLong(s.dato),
-    dateWeekday: formatWeekdayShort(s.dato),
-    dateDay: formatDayOfMonth(s.dato),
-    status: isLive ? "live" : isUpcoming ? "upcoming" : "done",
-    meta,
-    typeBadge,
-    isNm: s.ernm,
+    placeOverride: sncLocalCountLabel(s),
     nearestLabel,
     registrationSlotId: canRegisterRow(s, _auth) && !s.er_snc_hovudstevne ? s.id : undefined,
     actionLink: sncRegistrationLink(s),

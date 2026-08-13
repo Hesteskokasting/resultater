@@ -1,8 +1,7 @@
-import { formatDate } from "@/utils/shared";
 import { getMyRegistrations } from "@/services/pameldingService";
 import { bindRegistrationSlots } from "@/components/PameldingKnapp";
 import { createEmptyState } from "@/components/EmptyState";
-import { createStevneCard } from "@/components/StevneCard";
+import { createTournamentCard } from "@/components/StevneCard";
 import { renderSectionCard } from "./_sectionCard";
 import type { MinSideContext } from "./_linkState";
 import type { RegistrationRow } from "@/services/pameldingService";
@@ -31,14 +30,13 @@ async function buildRegistrationContent(throwerId: number): Promise<Registration
   const wrap = document.createElement("div");
   wrap.className = "stevne-kort-liste";
   for (const p of sorted) {
-    const tournamentId = p.stevne?.id;
+    const stevne = p.stevne;
+    const tournamentId = stevne?.id;
     if (tournamentId != null) registeredMap.set(tournamentId, p.id);
+    if (!stevne) continue;
     wrap.appendChild(
-      createStevneCard({
-        title: p.stevne?.navn ?? "",
+      createTournamentCard(stevne, {
         href: tournamentId != null ? `#/stevne/${tournamentId}/info` : "#",
-        date: formatDate(p.stevne?.dato),
-        status: "upcoming",
         registrationSlotId: tournamentId ?? undefined,
       }),
     );

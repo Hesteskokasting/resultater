@@ -1,4 +1,10 @@
 import { escHtml } from "@/utils/escHtml";
+import {
+  formatDateLong,
+  formatDateWeekday,
+  formatWeekdayShort,
+  formatDayOfMonth,
+} from "@/utils/shared";
 
 export type StevneCardStatus = "live" | "done" | "upcoming";
 
@@ -135,4 +141,65 @@ export function createStevneCard(props: StevneCardProps): HTMLElement {
     trailing;
 
   return card;
+}
+
+/** The stevne fields the schedule card reads — a structural subset of ScheduleTournamentRow. */
+export interface TournamentCardRow {
+  navn?: string | null;
+  dato?: string | null;
+  sted?: string | null;
+  erfullfort?: boolean | null;
+  stevne_fase?: string | null;
+  ernm?: boolean | null;
+  klubb?: { navn?: string | null } | null;
+  stevnetype?: { navn?: string | null } | null;
+  kategori?: { navn?: string | null } | null;
+}
+
+export interface TournamentCardOptions {
+  href: string;
+  /** Replaces `sted` in the meta line — terminliste puts its SNC local count here. */
+  placeOverride?: string | null;
+  nearestLabel?: string;
+  registrationSlotId?: number;
+  actionLink?: StevneCardActionLink;
+}
+
+/**
+ * The stevne card as terminliste's mobile list renders it: stacked weekday/day
+ * block, live/upcoming/done status, NM medal, merged type+kategori pill and a
+ * "Sted · Arrangør" meta line. Every view that lists stevner builds its cards
+ * here, so they stay identical.
+ */
+export function createTournamentCard(
+  s: TournamentCardRow,
+  opts: TournamentCardOptions,
+): HTMLElement {
+  const isDone = s.erfullfort === true;
+  const isLive = (s.stevne_fase === "innledende" || s.stevne_fase === "avsluttende") && !isDone;
+  const isUpcoming = !isDone && !!s.dato && new Date(s.dato + "T12:00:00") > new Date();
+
+  const place = opts.placeOverride ?? s.sted;
+  const placeAndOrganizer = [place, s.klubb?.navn]
+    .filter((v): v is string => Boolean(v))
+    .join(" · ");
+
+  return createStevneCard({
+    title: s.navn ?? "",
+    href: opts.href,
+    date: formatDateWeekday(s.dato),
+    dateIso: s.dato ?? undefined,
+    dateFull: formatDateLong(s.dato),
+    dateWeekday: formatWeekdayShort(s.dato),
+    dateDay: formatDayOfMonth(s.dato),
+    status: isLive ? "live" : isUpcoming ? "upcoming" : "done",
+    meta: placeAndOrganizer ? [placeAndOrganizer] : [],
+    typeBadge: s.stevnetype?.navn
+      ? { type: s.stevnetype.navn, kategori: s.kategori?.navn ?? undefined }
+      : undefined,
+    isNm: s.ernm ?? false,
+    nearestLabel: opts.nearestLabel,
+    registrationSlotId: opts.registrationSlotId,
+    actionLink: opts.actionLink,
+  });
 }
