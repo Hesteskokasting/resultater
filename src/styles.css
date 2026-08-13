@@ -4398,6 +4398,13 @@ button.bane-omgang-chip:hover {
   font-variant-numeric: tabular-nums;
 }
 
+/* Stands in for the missing opponent of a walkover. */
+.match-grid__bye {
+  font-weight: 500;
+  color: var(--tekst-2);
+  font-style: italic;
+}
+
 /* Stevne name above each group, and the fase label inside it. */
 .match-grid__stevne {
   font-weight: 600;

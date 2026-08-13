@@ -110,8 +110,16 @@ function matchSides(
   };
 }
 
+/** A walkover's opponent is a bye: either no side at all, or a row with no kaster. */
+function isByeSide(members: IdentifiedPlayer[] | undefined): boolean {
+  return !members?.length || members.every((m) => m.kaster == null);
+}
+
 function namesHtml(sides: IdentifiedPlayer[][]): string {
-  const names = sides.flat().map((m) => escHtml(throwerName(m.kaster)));
+  const names = sides
+    .flat()
+    .map((m) => escHtml(throwerName(m.kaster)))
+    .filter(Boolean);
   return names.length ? names.join(" / ") : "–";
 }
 
@@ -133,7 +141,7 @@ async function buildMatchesContent(throwerId: number): Promise<HTMLElement> {
     return p;
   }
 
-  const allMatches = data.filter((ks) => !ks.kamp?.er_walkover);
+  const allMatches = data;
 
   const tournamentIds = [
     ...new Set(allMatches.map((ks) => ks.kamp?.stevneid).filter((s): s is number => s != null)),
@@ -171,6 +179,15 @@ async function buildMatchesContent(throwerId: number): Promise<HTMLElement> {
     const isConfirmed = match?.er_bekreftet ?? false;
     const { mine, others } = matchSides(ks, throwerId, startNrMap);
 
+    // A walkover is never played, so it carries the awarded score rather than a
+    // thrown one. The bye is the side without a kaster — normally the opponent.
+    if (match?.er_walkover) {
+      const lost = !isByeSide(others[0]) && sideTotal(others[0]!, true) > sideTotal(mine, true);
+      return lost
+        ? resultBadge("0 – 21", "loss", "Tapt på walkover")
+        : resultBadge("21 – 0", "win", "Vunne på walkover");
+    }
+
     if (isConfirmed && (match?.er_tre_spelarar || others.length > 1)) {
       const placement = mine.find((m) => m.kasterid === throwerId)?.kamp_plassering;
       if (placement == null) return resultBadge("–", "neutral");
@@ -193,9 +210,11 @@ async function buildMatchesContent(throwerId: number): Promise<HTMLElement> {
   /**
    * Trailing cell: the stats icon once the match has omgang rows. An unconfirmed
    * match always gets it — the same link is the player's way into the scoreboard.
+   * A walkover is never thrown, so it gets neither.
    */
   const matchStatsHtml = (ks: MatchPlayerRow): string => {
     const match = ks.kamp;
+    if (match?.er_walkover) return "";
     if (!(match?.er_bekreftet ?? false)) {
       return scoreboardLinkHtml(match?.id ?? "", newTabAnchorAttrs(), "scoreboard-btn--touch");
     }
@@ -206,9 +225,10 @@ async function buildMatchesContent(throwerId: number): Promise<HTMLElement> {
   const matchRow = (ks: MatchPlayerRow): GridRow => {
     const match = ks.kamp;
     const { others } = matchSides(ks, throwerId, startNrMap);
+    const isBye = match?.er_walkover && isByeSide(others[0]);
     return {
       slot: `R${match?.runde_nummer ?? ""} / B${match?.bane_nummer ?? ""}`,
-      name: namesHtml(others),
+      name: isBye ? '<span class="match-grid__bye">Walkover</span>' : namesHtml(others),
       result: matchResultHtml(ks),
       stats: matchStatsHtml(ks),
     };
