@@ -7,11 +7,12 @@ import { verifyRowsAffected } from "@/utils/verifiedWrite";
 const _kampSpelarQuery = supabase.from("kamp_spelar").select(`
   id, kasterid,
   kamp:kampid(
-    id, stevneid, fase, runde_nummer, bane_nummer, er_bekreftet, er_walkover,
+    id, stevneid, fase, runde_nummer, bane_nummer, er_bekreftet, er_walkover, er_tre_spelarar,
     stevne:stevneid(id, navn, dato, erfullfort),
     spelarar:kamp_spelar(
-      id, kasterid, score_poeng,
-      kaster:kasterid(id, fornavn, etternavn)
+      id, kasterid, score_poeng, kamp_plassering,
+      kaster:kasterid(id, fornavn, etternavn),
+      omgangar:kamp_omgang(score)
     )
   )
 `);
@@ -26,11 +27,12 @@ export async function getMyMatches(
     .select(`
       id, kasterid,
       kamp:kampid(
-        id, stevneid, fase, runde_nummer, bane_nummer, er_bekreftet, er_walkover,
+        id, stevneid, fase, runde_nummer, bane_nummer, er_bekreftet, er_walkover, er_tre_spelarar,
         stevne:stevneid(id, navn, dato, erfullfort),
         spelarar:kamp_spelar(
-          id, kasterid, score_poeng,
-          kaster:kasterid(id, fornavn, etternavn)
+          id, kasterid, score_poeng, kamp_plassering,
+          kaster:kasterid(id, fornavn, etternavn),
+          omgangar:kamp_omgang(score)
         )
       )
     `)

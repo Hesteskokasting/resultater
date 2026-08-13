@@ -5,6 +5,7 @@ import { getMyMatches, getStartNumbersForTournaments } from "@/services/kampServ
 import { getMyCourts } from "@/services/xkastKongelagService";
 import { newTabAnchorAttrs } from "@/services/navigationService";
 import { scoreboardLinkHtml } from "@/components/ScoreboardButton";
+import { getAllMatchSides, sideScore } from "@/utils/kamp";
 import { renderSectionCard } from "./_sectionCard";
 import type { MinSideContext } from "./_linkState";
 import type { MatchPlayerRow } from "@/services/kampService";
@@ -17,6 +18,7 @@ function makePanel(html: string): HTMLElement {
 }
 
 type MatchPlayerInMatch = NonNullable<MatchPlayerRow["kamp"]>["spelarar"][number];
+type IdentifiedPlayer = MatchPlayerInMatch & { kasterid: number };
 
 const PHASES = [
   { key: "innledende", label: "Innleiande" },
@@ -28,66 +30,96 @@ function phaseRank(ks: MatchPlayerRow): number {
   return idx === -1 ? PHASES.length : idx;
 }
 
-/** Players in a match other than the given thrower, excluding anyone sharing the same start number (teammates). */
-function findOpponents(
-  players: MatchPlayerInMatch[],
-  throwerId: number,
-  tournamentId: number | null | undefined,
-  startNrMap: Record<string, number>,
-): MatchPlayerInMatch[] {
-  const myStartNr = tournamentId != null ? startNrMap[`${tournamentId}:${throwerId}`] : undefined;
-  return players.filter((s) => {
-    if (s.kasterid == null || s.kasterid === throwerId) return false;
-    const opponentStartNr =
-      tournamentId != null ? startNrMap[`${tournamentId}:${s.kasterid}`] : undefined;
-    return myStartNr == null || opponentStartNr == null || opponentStartNr !== myStartNr;
-  });
+// ── Shared 4-column grid ──────────────────────────────────────────────────────
+
+/** One row of the listing: the same four columns for kampar and X-kast banar. */
+interface GridRow {
+  /** "R1 / B2" for a kamp, "B2" for an X-kast bane. */
+  slot: string;
+  /** Opponent(s) or team-mate(s), already escaped. */
+  name: string;
+  /** Result badge or the open-the-match control. */
+  result: string;
+  /** Stats icon, ring count, or empty — the cell always exists so columns align. */
+  stats: string;
 }
 
-function courtTableHtml(
-  courts: MyCourtRow[],
-  throwerId: number,
-  makeButton: (court: MyCourtRow) => string,
-): string {
-  const rows = courts
-    .map((court) => {
-      const others = court.deltakarar
-        .filter((d) => d.kasterid !== throwerId)
-        .map((d) => escHtml(throwerName(d.kaster)));
-      return `<tr>
-      <td>B${court.bane_nummer ?? ""}</td>
-      <td>${others.length ? others.join(" / ") : "–"}</td>
-      <td>${makeButton(court)}</td>
-    </tr>`;
-    })
-    .join("");
-  return `<table class="table table-sm mb-3">
-      <thead><tr><th>Bane</th><th>Medspelarar</th><th></th></tr></thead>
-      <tbody>${rows}</tbody>
-    </table>`;
-}
-
-function groupCourtsByTournament(
-  courts: MyCourtRow[],
-  throwerId: number,
-  makeButton: (court: MyCourtRow) => string,
-): string | null {
-  if (!courts.length) return null;
-  const groups = new Map<number | string, { name: string; courts: MyCourtRow[] }>();
-  for (const court of courts) {
-    const key = court.stevneid ?? "unknown";
-    if (!groups.has(key))
-      groups.set(key, { name: `${court.stevne?.navn ?? ""} – X-kast`, courts: [] });
-    groups.get(key)!.courts.push(court);
-  }
-  return [...groups.values()]
+function gridHtml(headers: [string, string, string], rows: GridRow[]): string {
+  const head = `<div class="match-grid__head" role="row">
+      <span role="columnheader">${headers[0]}</span>
+      <span role="columnheader">${headers[1]}</span>
+      <span role="columnheader" class="match-grid__end">${headers[2]}</span>
+      <span role="columnheader"><span class="visually-hidden">Statistikk</span></span>
+    </div>`;
+  const body = rows
     .map(
-      ({ name, courts: group }) => `
-      <p class="fw-semibold mb-1 mt-2">${escHtml(name)}</p>
-      ${courtTableHtml(group, throwerId, makeButton)}`,
+      (r) => `<div class="match-grid__row" role="row">
+      <span class="match-grid__slot" role="cell">${r.slot}</span>
+      <span class="match-grid__name" role="cell">${r.name}</span>
+      <span class="match-grid__result" role="cell">${r.result}</span>
+      <span class="match-grid__stats" role="cell">${r.stats}</span>
+    </div>`,
     )
     .join("");
+  return `<div class="match-grid" role="table">${head}${body}</div>`;
 }
+
+type Outcome = "win" | "loss" | "draw" | "neutral";
+
+const OUTCOME_TITLE: Record<Outcome, string> = {
+  win: "Vunne",
+  loss: "Tapt",
+  draw: "Uavgjort",
+  neutral: "",
+};
+
+function resultBadge(text: string, outcome: Outcome, title = OUTCOME_TITLE[outcome]): string {
+  const attr = title ? ` title="${escHtml(title)}"` : "";
+  return `<span class="result-badge result-badge--${outcome}"${attr}>${text}</span>`;
+}
+
+function ringsHtml(rings: number | null | undefined): string {
+  if (rings == null) return "";
+  return `<span class="match-grid__rings" title="Ringar">${rings}</span>`;
+}
+
+// ── Sides ─────────────────────────────────────────────────────────────────────
+
+/**
+ * The match's players grouped into sides by startnummer, with my own side first.
+ * startNrMap spans several stevner (see getStartNumbersForTournaments), so it is
+ * narrowed to this match's stevne before grouping.
+ */
+function matchSides(
+  ks: MatchPlayerRow,
+  throwerId: number,
+  startNrMap: Record<string, number>,
+): { mine: IdentifiedPlayer[]; others: IdentifiedPlayer[][] } {
+  const match = ks.kamp;
+  const players = (match?.spelarar ?? []).filter((s): s is IdentifiedPlayer => s.kasterid != null);
+  const localMap: Record<number, number> = {};
+  for (const s of players) {
+    const nr = match?.stevneid != null ? startNrMap[`${match.stevneid}:${s.kasterid}`] : undefined;
+    if (nr != null) localMap[s.kasterid] = nr;
+  }
+  const sides = getAllMatchSides(players, localMap);
+  const mineIdx = sides.findIndex((side) => side.members.some((m) => m.kasterid === throwerId));
+  return {
+    mine: mineIdx === -1 ? [] : (sides[mineIdx]?.members ?? []),
+    others: sides.filter((_, i) => i !== mineIdx).map((side) => side.members),
+  };
+}
+
+function namesHtml(sides: IdentifiedPlayer[][]): string {
+  const names = sides.flat().map((m) => escHtml(throwerName(m.kaster)));
+  return names.length ? names.join(" / ") : "–";
+}
+
+function sideTotal(members: IdentifiedPlayer[], isConfirmed: boolean): number {
+  return sideScore({ rep: members[0]!, members }, isConfirmed);
+}
+
+// ── Matches ───────────────────────────────────────────────────────────────────
 
 async function buildMatchesContent(throwerId: number): Promise<HTMLElement> {
   const [{ data, error }, courtsRes] = await Promise.all([
@@ -121,53 +153,78 @@ async function buildMatchesContent(throwerId: number): Promise<HTMLElement> {
         (a.kamp?.runde_nummer ?? 0) - (b.kamp?.runde_nummer ?? 0),
     );
 
-  const tableHeader = `<thead><tr><th>Runde/Bane</th><th>Motstandar</th><th></th></tr></thead>`;
+  /** True once any player in the match has kamp_omgang rows — the stats view needs them. */
+  const hasStats = (ks: MatchPlayerRow): boolean =>
+    (ks.kamp?.spelarar ?? []).some((s) => (s.omgangar?.length ?? 0) > 0);
 
-  const makeMatchRow = (ks: MatchPlayerRow, button: string): string => {
+  /**
+   * The result cell of a played match: the score as a win/loss/draw pill, or the
+   * placement for a 3-side match, where scores do not decide the outcome.
+   */
+  const matchResultHtml = (ks: MatchPlayerRow): string => {
     const match = ks.kamp;
-    const tournamentId = match?.stevneid;
-    const opponents = findOpponents(match?.spelarar ?? [], throwerId, tournamentId, startNrMap);
-    const opponentNames = opponents.length
-      ? opponents.map((m) => escHtml(throwerName(m.kaster))).join(" / ")
-      : "–";
-    return `<tr>
-      <td>R${match?.runde_nummer ?? ""} / B${match?.bane_nummer ?? ""}</td>
-      <td>${opponentNames}</td>
-      <td>${button}</td>
-    </tr>`;
+    const isConfirmed = match?.er_bekreftet ?? false;
+    const { mine, others } = matchSides(ks, throwerId, startNrMap);
+
+    if (match?.er_tre_spelarar || others.length > 1) {
+      const placement = mine.find((m) => m.kasterid === throwerId)?.kamp_plassering;
+      if (placement == null) return resultBadge("–", "neutral");
+      return resultBadge(
+        `${placement}. plass`,
+        placement >= 3 ? "loss" : "win",
+        `Plassering i kampen: ${placement}`,
+      );
+    }
+
+    const opponents = others[0];
+    if (!mine.length || !opponents?.length) return resultBadge("–", "neutral");
+    const me = sideTotal(mine, isConfirmed);
+    const them = sideTotal(opponents, isConfirmed);
+    const outcome: Outcome = me > them ? "win" : me < them ? "loss" : "draw";
+    return resultBadge(`${me} – ${them}`, outcome);
   };
 
-  const matchTableHtml = (
-    group: MatchPlayerRow[],
-    makeButton: (ks: MatchPlayerRow) => string,
-  ): string => `
-      <table class="table table-sm mb-3">${tableHeader}<tbody>
-        ${group.map((ks) => makeMatchRow(ks, makeButton(ks))).join("")}
-      </tbody></table>`;
+  const matchRow = (ks: MatchPlayerRow, showResult: boolean): GridRow => {
+    const match = ks.kamp;
+    const { others } = matchSides(ks, throwerId, startNrMap);
+    const statsLink = hasStats(ks)
+      ? scoreboardLinkHtml(match?.id ?? "", newTabAnchorAttrs(), "scoreboard-btn--stats")
+      : "";
+    return {
+      slot: `R${match?.runde_nummer ?? ""} / B${match?.bane_nummer ?? ""}`,
+      name: namesHtml(others),
+      result: showResult
+        ? matchResultHtml(ks)
+        : scoreboardLinkHtml(match?.id ?? "", newTabAnchorAttrs(), "scoreboard-btn--touch"),
+      stats: showResult ? statsLink : "",
+    };
+  };
 
-  /** One table per phase with a small heading — only when the tournament actually spans both phases. */
-  const phaseSectionsHtml = (
-    group: MatchPlayerRow[],
-    makeButton: (ks: MatchPlayerRow) => string,
-  ): string => {
+  const matchGridHtml = (group: MatchPlayerRow[]): string =>
+    gridHtml(
+      ["Runde / Bane", "Motstandar", "Resultat"],
+      group.map((ks) => matchRow(ks, ks.kamp?.er_bekreftet ?? false)),
+    );
+
+  /** One grid per phase with a small heading — only when the stevne spans both phases. */
+  const phaseSectionsHtml = (group: MatchPlayerRow[]): string => {
     const byPhase = PHASES.map(({ key, label }) => ({
       label,
       matches: group.filter((ks) => ks.kamp?.fase === key),
     })).filter((p) => p.matches.length);
     const allPhasesKnown = byPhase.reduce((n, p) => n + p.matches.length, 0) === group.length;
-    if (byPhase.length < 2 || !allPhasesKnown) return matchTableHtml(group, makeButton);
+    if (byPhase.length < 2 || !allPhasesKnown) return matchGridHtml(group);
     return byPhase
       .map(
         ({ label, matches: phaseMatches }) => `
-      <p class="text-muted small mb-1">${label}</p>
-      ${matchTableHtml(phaseMatches, makeButton)}`,
+      <p class="match-grid__phase">${label}</p>
+      ${matchGridHtml(phaseMatches)}`,
       )
       .join("");
   };
 
   const groupMatchesByTournament = (
     matches: MatchPlayerRow[],
-    makeButton: (ks: MatchPlayerRow) => string,
     groupByPhase = false,
   ): string | null => {
     if (!matches.length) return null;
@@ -182,30 +239,16 @@ async function buildMatchesContent(throwerId: number): Promise<HTMLElement> {
     return [...groups.values()]
       .map(
         ({ name, matches: group }) => `
-      <p class="fw-semibold mb-1 mt-2">${escHtml(name)}</p>
-      ${groupByPhase ? phaseSectionsHtml(group, makeButton) : matchTableHtml(group, makeButton)}`,
+      <p class="match-grid__stevne">${escHtml(name)}</p>
+      ${groupByPhase ? phaseSectionsHtml(group) : matchGridHtml(group)}`,
       )
       .join("");
   };
 
-  const activeContent = groupMatchesByTournament(active, (ks) => {
-    if (!ks.kamp?.er_bekreftet) {
-      return scoreboardLinkHtml(ks.kamp?.id ?? "", newTabAnchorAttrs(), "scoreboard-btn--touch");
-    }
-    const tournamentId = ks.kamp.stevneid;
-    const myScore = ks.kamp.spelarar?.find((s) => s.kasterid === throwerId)?.score_poeng;
-    const oppScore = findOpponents(ks.kamp.spelarar ?? [], throwerId, tournamentId, startNrMap)[0]
-      ?.score_poeng;
-    if (myScore == null || oppScore == null) return "–";
-    return `<span class="fw-semibold">${myScore} – ${oppScore}</span>`;
-  });
-  const completedContent = groupMatchesByTournament(
-    completed,
-    (ks) =>
-      `<a href="#/kamp/${ks.kamp?.id ?? ""}" class="btn btn-sm btn-outline-secondary"${newTabAnchorAttrs()}>Vis</a>`,
-    true,
-  );
+  const activeContent = groupMatchesByTournament(active);
+  const completedContent = groupMatchesByTournament(completed, true);
 
+  // ── X-kast banar ────────────────────────────────────────────────────────────
   // X-kast only — Kongelag is scored by the organizer, so it gets no player entry point.
   const myCourts = courtsRes.data.filter((c) => c.fase === "innledende");
 
@@ -222,18 +265,43 @@ async function buildMatchesContent(throwerId: number): Promise<HTMLElement> {
 
   const courtHref = (court: MyCourtRow): string => `#/stevne/${court.stevneid}/innledende`;
 
-  const activeCourtsContent = groupCourtsByTournament(activeCourts, throwerId, (court) => {
-    if (!court.er_bekreftet) {
-      return `<a href="${courtHref(court)}" class="btn btn-sm btn-primary">Opne bane</a>`;
+  /** X-kast is not head-to-head: poeng in a neutral pill, ringar where a kamp shows its stats icon. */
+  const courtRow = (court: MyCourtRow): GridRow => {
+    const me = court.deltakarar.find((d) => d.kasterid === throwerId);
+    const others = court.deltakarar
+      .filter((d) => d.kasterid !== throwerId)
+      .map((d) => escHtml(throwerName(d.kaster)));
+    const confirmed = court.er_bekreftet ?? false;
+    return {
+      slot: `B${court.bane_nummer ?? ""}`,
+      name: others.length ? others.join(" / ") : "–",
+      result: confirmed
+        ? resultBadge(me?.poeng == null ? "–" : String(me.poeng), "neutral")
+        : `<a href="${courtHref(court)}" class="btn btn-sm btn-primary">Opne bane</a>`,
+      stats: confirmed ? ringsHtml(me?.antall_ringer) : "",
+    };
+  };
+
+  const groupCourtsByTournament = (courts: MyCourtRow[]): string | null => {
+    if (!courts.length) return null;
+    const groups = new Map<number | string, { name: string; courts: MyCourtRow[] }>();
+    for (const court of courts) {
+      const key = court.stevneid ?? "unknown";
+      if (!groups.has(key))
+        groups.set(key, { name: `${court.stevne?.navn ?? ""} – X-kast`, courts: [] });
+      groups.get(key)!.courts.push(court);
     }
-    const poeng = court.deltakarar.find((d) => d.kasterid === throwerId)?.poeng;
-    return poeng == null ? "–" : `<span class="fw-semibold">${poeng}</span>`;
-  });
-  const completedCourtsContent = groupCourtsByTournament(
-    completedCourts,
-    throwerId,
-    (court) => `<a href="${courtHref(court)}" class="btn btn-sm btn-outline-secondary">Vis</a>`,
-  );
+    return [...groups.values()]
+      .map(
+        ({ name, courts: group }) => `
+      <p class="match-grid__stevne">${escHtml(name)}</p>
+      ${gridHtml(["Bane", "Medspelarar", "Poeng"], group.map(courtRow))}`,
+      )
+      .join("");
+  };
+
+  const activeCourtsContent = groupCourtsByTournament(activeCourts);
+  const completedCourtsContent = groupCourtsByTournament(completedCourts);
 
   const activeHtml = [activeContent, activeCourtsContent].filter(Boolean).join("");
   const completedHtml = [completedContent, completedCourtsContent].filter(Boolean).join("");

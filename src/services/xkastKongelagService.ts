@@ -52,7 +52,7 @@ const _myCourtsQuery = supabase.from("xkast_kongelag_deltaker").select(`
     id, stevneid, fase, bane_nummer, er_bekreftet,
     stevne:stevneid(id, navn, dato, erfullfort),
     deltakarar:xkast_kongelag_deltaker(
-      id, kasterid, poeng,
+      id, kasterid, poeng, antall_ringer,
       kaster:kasterid(id, fornavn, etternavn)
     )
   )
@@ -73,7 +73,7 @@ export async function getMyCourts(
         id, stevneid, fase, bane_nummer, er_bekreftet,
         stevne:stevneid(id, navn, dato, erfullfort),
         deltakarar:xkast_kongelag_deltaker(
-          id, kasterid, poeng,
+          id, kasterid, poeng, antall_ringer,
           kaster:kasterid(id, fornavn, etternavn)
         )
       )

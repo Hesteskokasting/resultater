@@ -46,6 +46,20 @@
   /* Omgang detail panel — recessed below the row's zebra tint (toward the page
      colour in dark) so it reads as nested. */
   --bane-detail-bg: color-mix(in srgb, var(--flate) 58%, var(--bg) 42%);
+  /* Match outcome pill (Min side → Kampar). Saturated ink on a low-alpha fill of
+     the same hue, so the pill reads as a tint of the row rather than a button. */
+  --utfall-vinn-tekst: #5ddc93;
+  --utfall-vinn-flate: rgba(46, 160, 90, 0.16);
+  --utfall-vinn-kant: rgba(46, 160, 90, 0.5);
+  --utfall-tap-tekst: #ff8a8a;
+  --utfall-tap-flate: rgba(214, 64, 64, 0.14);
+  --utfall-tap-kant: rgba(214, 64, 64, 0.5);
+  --utfall-uavgjort-tekst: #f2d06b;
+  --utfall-uavgjort-flate: rgba(214, 178, 48, 0.14);
+  --utfall-uavgjort-kant: rgba(214, 178, 48, 0.5);
+  --utfall-noytral-tekst: var(--tekst);
+  --utfall-noytral-flate: var(--flate-2);
+  --utfall-noytral-kant: var(--kant);
   --standing-kp-bg: color-mix(in srgb, var(--primaer) 40%, var(--flate));
   --standing-kp-th: var(--primaer);
   --standing-sp-bg: color-mix(in srgb, #4caf50 22%, var(--flate));
@@ -167,6 +181,17 @@
   /* Light: --bg is lighter than the surface, so recess toward the text colour
      (a touch below the zebra tint step) instead. */
   --bane-detail-bg: color-mix(in srgb, var(--flate) 88%, var(--tekst) 12%);
+  /* Light: the ink has to carry the contrast on a near-white surface, so the
+     hues go dark and the fills become pale tints. */
+  --utfall-vinn-tekst: #10633a;
+  --utfall-vinn-flate: #d8f0e2;
+  --utfall-vinn-kant: #2e7d32;
+  --utfall-tap-tekst: #9d1c1c;
+  --utfall-tap-flate: #fadcdc;
+  --utfall-tap-kant: #b30000;
+  --utfall-uavgjort-tekst: #6d5000;
+  --utfall-uavgjort-flate: #f7ecc8;
+  --utfall-uavgjort-kant: #a37c00;
   --standing-kp-bg: #d0e4f7;
   --standing-kp-th: #2563eb;
   --standing-sp-bg: #c8f0c8;

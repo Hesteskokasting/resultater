@@ -1574,6 +1574,12 @@
   background: var(--primaer-hover);
   color: var(--tekst);
 }
+/* Trailing stats column of the Min side match listing. */
+.scoreboard-btn--stats {
+  width: 32px;
+  height: 28px;
+  border-radius: 6px;
+}
 /* Where the control is a primary tap target rather than table chrome. */
 .scoreboard-btn--touch {
   width: 38px;
@@ -4330,6 +4336,120 @@ button.bane-omgang-chip:hover {
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 16px;
+}
+
+/* ── Min side → Kampar: match listing ──
+   Fixed column widths, repeated on the header row and every data row, so the
+   columns line up across every stevne and fase group on the page. */
+.match-grid {
+  --match-cols: 116px 1fr 124px 44px;
+  margin-bottom: 16px;
+}
+
+.match-grid__head,
+.match-grid__row {
+  display: grid;
+  grid-template-columns: var(--match-cols);
+  align-items: center;
+  gap: 8px;
+}
+
+.match-grid__head {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--tekst-2);
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--kant);
+}
+
+.match-grid__row {
+  min-height: 54px;
+  border-bottom: 1px solid var(--kant);
+}
+
+.match-grid__slot {
+  font-weight: 700;
+  color: var(--tekst);
+  font-variant-numeric: tabular-nums;
+}
+
+.match-grid__name {
+  font-weight: 600;
+  color: var(--tekst);
+  overflow-wrap: anywhere;
+}
+
+.match-grid__end,
+.match-grid__result {
+  justify-self: end;
+}
+
+.match-grid__stats,
+.match-grid__rings {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.match-grid__rings {
+  width: 100%;
+  font-weight: 600;
+  color: var(--tekst-2);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Stevne name above each group, and the fase label inside it. */
+.match-grid__stevne {
+  font-weight: 600;
+  margin: 16px 0 4px;
+}
+.match-grid__phase {
+  font-size: 0.875rem;
+  color: var(--tekst-2);
+  margin: 0 0 4px;
+}
+
+/* Outcome pill replacing the old "Vis" button. */
+.result-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 88px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--utfall-noytral-kant);
+  background: var(--utfall-noytral-flate);
+  color: var(--utfall-noytral-tekst);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.result-badge--win {
+  border-color: var(--utfall-vinn-kant);
+  background: var(--utfall-vinn-flate);
+  color: var(--utfall-vinn-tekst);
+}
+.result-badge--loss {
+  border-color: var(--utfall-tap-kant);
+  background: var(--utfall-tap-flate);
+  color: var(--utfall-tap-tekst);
+}
+.result-badge--draw {
+  border-color: var(--utfall-uavgjort-kant);
+  background: var(--utfall-uavgjort-flate);
+  color: var(--utfall-uavgjort-tekst);
+}
+
+@media (max-width: 480px) {
+  .match-grid {
+    --match-cols: 84px 1fr 100px 40px;
+  }
+  .result-badge {
+    min-width: 72px;
+    padding: 5px 8px;
+  }
 }
 
 /* ── Klubbar ─────────────────────────────────────────────────────────────────── */
