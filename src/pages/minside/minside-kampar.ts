@@ -44,12 +44,17 @@ interface GridRow {
   stats: string;
 }
 
-function gridHtml(headers: [string, string, string], rows: GridRow[]): string {
+/**
+ * headers[3] labels the trailing column; empty means the column carries icons
+ * rather than values, so the label is there for screen readers only.
+ */
+function gridHtml(headers: [string, string, string, string], rows: GridRow[]): string {
+  const trailing = headers[3] ? headers[3] : '<span class="visually-hidden">Statistikk</span>';
   const head = `<div class="match-grid__head" role="row">
       <span role="columnheader">${headers[0]}</span>
       <span role="columnheader">${headers[1]}</span>
-      <span role="columnheader" class="match-grid__end">${headers[2]}</span>
-      <span role="columnheader"><span class="visually-hidden">Statistikk</span></span>
+      <span role="columnheader" class="match-grid__result">${headers[2]}</span>
+      <span role="columnheader" class="match-grid__stats">${trailing}</span>
     </div>`;
   const body = rows
     .map(
@@ -235,7 +240,7 @@ async function buildMatchesContent(throwerId: number): Promise<HTMLElement> {
   };
 
   const matchGridHtml = (group: MatchPlayerRow[]): string =>
-    gridHtml(["Runde / Bane", "Motstandar", "Resultat"], group.map(matchRow));
+    gridHtml(["Runde / Bane", "Motstandar", "Resultat", ""], group.map(matchRow));
 
   /**
    * One labelled grid per fase, whether or not the stevne spans both — a stevne
@@ -327,7 +332,7 @@ async function buildMatchesContent(throwerId: number): Promise<HTMLElement> {
       .map(
         ({ name, courts: group }) => `
       <p class="match-grid__stevne">${escHtml(name)}</p>
-      ${gridHtml(["Bane", "Medspelarar", "Poeng"], group.map(courtRow))}`,
+      ${gridHtml(["Bane", "Medspelarar", "Poeng", "R"], group.map(courtRow))}`,
       )
       .join("");
   };

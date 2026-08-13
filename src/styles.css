@@ -4379,20 +4379,16 @@ button.bane-omgang-chip:hover {
   overflow-wrap: anywhere;
 }
 
-.match-grid__end,
-.match-grid__result {
-  justify-self: end;
-}
-
-.match-grid__stats,
-.match-grid__rings {
-  display: inline-flex;
+/* The two trailing columns centre their contents, header included, so the label
+   sits directly above the badge or the ring count whatever their width. */
+.match-grid__result,
+.match-grid__stats {
+  display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .match-grid__rings {
-  width: 100%;
   font-weight: 600;
   color: var(--tekst-2);
   font-variant-numeric: tabular-nums;
