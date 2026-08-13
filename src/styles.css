@@ -843,9 +843,9 @@
   color: var(--tekst-2);
 }
 
-/* SNC mobile row: total on the right, details in a toggled panel below */
+/* Result card: total on the right, details in a toggled panel below */
 
-.res-row--snc {
+.res-row--detalj {
   display: grid;
   grid-template-columns: 28px 1fr auto;
   align-items: start;
@@ -986,6 +986,12 @@
   font-size: 0.8rem;
 }
 
+/* Several groups on one page: the mobile cards carry their own margin, the tables
+   need one. */
+.res-liste + .res-liste .res-desktop-blokk {
+  margin-top: 16px;
+}
+
 .res-tabell-boks {
   max-width: 1000px;
   border: 1px solid var(--kant);
@@ -993,12 +999,12 @@
   overflow-x: auto;
 }
 
-.res-table--snc {
+.res-table--gruppert {
   font-size: 0.8rem;
 }
 
-.res-table--snc th,
-.res-table--snc td {
+.res-table--gruppert th,
+.res-table--gruppert td {
   padding: 3px 8px;
   white-space: nowrap;
 }
@@ -1016,7 +1022,7 @@
   border-bottom: 1px solid var(--kant);
 }
 
-.res-table--snc .res-thead-columns th {
+.res-table--gruppert .res-thead-columns th {
   background: var(--flate-2);
   color: var(--tekst-2);
   font-size: 0.62rem;
@@ -1028,7 +1034,7 @@
 
 /* Figures sit centred under their own headers — tabular digits keep the columns
    lining up despite the centring. */
-.res-table--snc .res-tal {
+.res-table--gruppert .res-tal {
   text-align: center;
   font-variant-numeric: tabular-nums;
 }
@@ -1036,31 +1042,31 @@
 /* The figures that carry the result. Weight rather than colour alone: in dark
    mode the contrast against the dimmed columns reads as bold on its own, in light
    mode it does not. */
-.res-table--snc tbody .res-tal:not(.res-tal--dempa) {
+.res-table--gruppert tbody .res-tal:not(.res-tal--dempa) {
   font-weight: 600;
 }
 
-.res-table--snc .res-tal--dempa {
+.res-table--gruppert .res-tal--dempa {
   color: var(--tekst-2);
 }
 
 /* Vertical rule after each group, so the pairs read as blocks. */
-.res-table--snc .res-kol-slutt {
+.res-table--gruppert .res-kol-slutt {
   border-right: 1px solid var(--kant);
 }
 
-.res-table--snc .res-td-pl {
+.res-table--gruppert .res-td-pl {
   width: auto;
   color: var(--lenke);
   font-weight: bold;
   text-align: right;
 }
 
-.res-table--snc .res-td-navn {
+.res-table--gruppert .res-td-navn {
   font-weight: 600;
 }
 
-.res-table--snc .res-td-klubb {
+.res-table--gruppert .res-td-klubb {
   color: var(--tekst-2);
   max-width: 220px;
   overflow: hidden;
@@ -1068,14 +1074,14 @@
 }
 
 /* The one column the eye should land on. */
-.res-table--snc .res-td-tot {
+.res-table--gruppert .res-td-tot {
   background: color-mix(in srgb, var(--primaer) 32%, var(--flate));
   color: var(--tekst);
   border-left: 1px solid var(--kant);
   border-right: 1px solid var(--kant);
 }
 
-.res-table--snc tbody .res-td-tot {
+.res-table--gruppert tbody .res-td-tot {
   font-size: 0.95rem;
   font-weight: bold;
 }
@@ -1107,10 +1113,6 @@
 }
 
 /* Desktop result table */
-
-.res-table-section {
-  margin-bottom: 20px;
-}
 
 .res-table,
 .app-table {
@@ -1153,11 +1155,6 @@
 
 .res-td-pl {
   width: 40px;
-}
-
-.res-td-nc {
-  width: 60px;
-  text-align: right;
 }
 
 .res-thead-columns th.res-td-tot,
@@ -5772,25 +5769,25 @@ body:has(.modal.show) {
     overflow: visible;
   }
 
-  .res-table--snc {
+  .res-table--gruppert {
     font-size: 0.7rem;
   }
 
   /* Repeat the two header rows on every page, and never split a thrower's row. */
-  .res-table--snc thead {
+  .res-table--gruppert thead {
     display: table-header-group;
   }
 
-  .res-table--snc tr {
+  .res-table--gruppert tr {
     break-inside: avoid;
   }
 
-  .res-table--snc tbody tr:nth-child(even) {
+  .res-table--gruppert tbody tr:nth-child(even) {
     background: #f7f7f7;
   }
 
-  .res-table--snc th,
-  .res-table--snc td {
+  .res-table--gruppert th,
+  .res-table--gruppert td {
     border-bottom: 1px solid #ccc;
   }
 

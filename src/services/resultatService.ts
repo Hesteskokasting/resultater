@@ -6,24 +6,31 @@ import type { KongelagSeedingRow } from "@/utils/kongelagSeeding";
 
 // ── Typar ─────────────────────────────────────────────────────────────────────
 
-const _stevneDetaljerQuery = supabase.from("stevne").select(`
+// One string per query, used both to derive the row type and to run it, so the
+// two cannot drift apart.
+const STEVNE_DETALJER_SELECT = `
     id, navn, sted, dato, erfullfort, resultaturl, juryleder, klubbid, snc_hovudstevne_id,
     stevnetype:stevnetypeid(navn),
     kategori:kategoriid(navn, erlagbasert),
     kontakt:kontaktkasterid(fornavn, etternavn),
-    innledende:kastemetode!innledendekastemetodeid(navn),
+    innledende:kastemetode!innledendekastemetodeid(navn, antall_omganger),
     avsluttende:kastemetode!avsluttendekastemetodeid(navn)
-  `);
+  ` as const;
+
+const _stevneDetaljerQuery = supabase.from("stevne").select(STEVNE_DETALJER_SELECT);
 
 export type TournamentDetailsRow = QueryData<typeof _stevneDetaljerQuery>[number];
 
-const _resultatRadQuery = supabase.from("resultat").select(`
+const RESULTAT_RAD_SELECT = `
     plassering, nc_poeng, snc_plassering, startnummer, kamp_poeng_innl, score_poeng_innl,
+    poeng_xkast, antall_ring_xkast, poeng_kongelag, antall_ring_kongelag, erpremie,
     kaster:kasterid(id, fornavn, etternavn),
     klubb:klubbid(navn),
     klasse:klasseid(navn),
     gruppe:gruppeid(navn)
-  `);
+  ` as const;
+
+const _resultatRadQuery = supabase.from("resultat").select(RESULTAT_RAD_SELECT);
 
 export type ResultRow = QueryData<typeof _resultatRadQuery>[number];
 
@@ -34,14 +41,7 @@ export async function getTournamentWithDetails(
 ): Promise<{ data: TournamentDetailsRow | null; error: unknown }> {
   const { data, error } = await supabase
     .from("stevne")
-    .select(`
-      id, navn, sted, dato, erfullfort, resultaturl, juryleder, klubbid, snc_hovudstevne_id,
-      stevnetype:stevnetypeid(navn),
-      kategori:kategoriid(navn, erlagbasert),
-      kontakt:kontaktkasterid(fornavn, etternavn),
-      innledende:kastemetode!innledendekastemetodeid(navn),
-      avsluttende:kastemetode!avsluttendekastemetodeid(navn)
-    `)
+    .select(STEVNE_DETALJER_SELECT)
     .eq("id", id)
     .maybeSingle();
   if (error) logError("getTournamentWithDetails", error);
@@ -261,20 +261,37 @@ export async function clearSncPremiar(
   return { antal: data ?? 0, error };
 }
 
+/**
+ * The result list for one stevne. Kamp- and scorepoeng come from the
+ * innledende_kamp_poeng view where it has them: resultat.kamp_poeng_innl has been
+ * unwritten since the sync triggers were dropped (20260521120000), so the stored
+ * column only still carries the older stevner.
+ */
 export async function getResultsForTournament(
   stevneId: number,
 ): Promise<{ data: ResultRow[]; error: unknown }> {
-  const { data, error } = await supabase
-    .from("resultat")
-    .select(`
-      plassering, nc_poeng, snc_plassering, startnummer, kamp_poeng_innl, score_poeng_innl,
-      kaster:kasterid(id, fornavn, etternavn),
-      klubb:klubbid(navn),
-      klasse:klasseid(navn),
-      gruppe:gruppeid(navn)
-    `)
-    .eq("stevneid", stevneId)
-    .order("plassering");
-  if (error) logError("getResultsForTournament", error);
-  return { data: data ?? [], error };
+  const [resultatRes, kampRes] = await Promise.all([
+    supabase
+      .from("resultat")
+      .select(RESULTAT_RAD_SELECT)
+      .eq("stevneid", stevneId)
+      .order("plassering"),
+    supabase
+      .from("innledende_kamp_poeng")
+      .select("kasterid, kamp_poeng_innl, score_poeng_innl")
+      .eq("stevneid", stevneId),
+  ]);
+  if (resultatRes.error) logError("getResultsForTournament", resultatRes.error);
+  if (kampRes.error) logError("getResultsForTournament.kamp", kampRes.error);
+
+  const kampByKasterid = new Map((kampRes.data ?? []).map((r) => [r.kasterid, r]));
+  const data = (resultatRes.data ?? []).map((row) => {
+    const kamp = row.kaster ? kampByKasterid.get(row.kaster.id) : undefined;
+    return {
+      ...row,
+      kamp_poeng_innl: kamp?.kamp_poeng_innl ?? row.kamp_poeng_innl,
+      score_poeng_innl: kamp?.score_poeng_innl ?? row.score_poeng_innl,
+    };
+  });
+  return { data, error: resultatRes.error };
 }

@@ -1,11 +1,26 @@
+// One stevne's own result, in the same table the consolidated SNC list uses. Which
+// score columns appear follows from the kastemetodar thrown; see ResultatTabell.
+
 import { throwerName, buildThrowerSlug } from "@/utils/kaster";
 import { createErrorBanner } from "@/components/ErrorBanner";
 import { createLoadingState } from "@/components/LoadingState";
 import { createEmptyState } from "@/components/EmptyState";
 import { escHtml } from "@/utils/escHtml";
 import { logError } from "@/utils/logError";
+import {
+  bindResultatDetaljar,
+  resultatKolonnar,
+  resultatListeHtml,
+} from "@/components/ResultatTabell";
+import type { ResultatKolonnar, ResultatRad } from "@/components/ResultatTabell";
+import {
+  isKongelagMethodName,
+  isXkastMethodName,
+  usesInitialRoundCount,
+} from "@/utils/kastemetode";
+import { xkastCarryOverFactor, xkastCarryOverPercent } from "@/utils/kongelagStilling";
 import { getTournamentWithDetails, getResultsForTournament } from "@/services/resultatService";
-import type { ResultRow } from "@/services/resultatService";
+import type { ResultRow, TournamentDetailsRow } from "@/services/resultatService";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -14,31 +29,15 @@ interface GroupEntry {
   rows: ResultRow[];
 }
 
-interface ColFlags {
-  isParMix: boolean;
-  showKpSp: boolean;
-  showNc: boolean;
-  /** Local stevne in a consolidated SNC round: show the merged placement too. */
-  showSnc: boolean;
-}
-
 const NC_STEVNETYPER = new Set(["NC", "SNC", "DNC"]);
-const KP_SP_INNLEDENDE = new Set(["Gloppen", "Nordhordlandsmetoden"]);
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 /** Club display for a pair — "Klubb A / Klubb B" if different, "Klubb A" if same. */
 function pairClubDisplay(pair: ResultRow[]): string {
   const seen = new Set<string>();
-  const names: string[] = [];
-  for (const r of pair) {
-    const name = r.klubb?.navn ?? "–";
-    if (!seen.has(name)) {
-      seen.add(name);
-      names.push(name);
-    }
-  }
-  return names.map(escHtml).join(" / ");
+  for (const r of pair) seen.add(r.klubb?.navn ?? "–");
+  return [...seen].join(" / ");
 }
 
 /** Groups rows within a group by startnummer for Par/Mix display. */
@@ -70,124 +69,64 @@ function groupResults(results: ResultRow[], isBefore2026: boolean): GroupEntry[]
   return [...groups.values()].sort((a, b) => a.label.localeCompare(b.label, "nb"));
 }
 
-// ── HTML builders ─────────────────────────────────────────────────────────────
+/**
+ * Which columns the thrown kastemetodar earn: X-kast innledende brings Poeng and
+ * Ringar plus the share it carries, Gloppen/NHM bring KP and SP, Kongelag brings
+ * its own pair and — with an innledende phase behind it — the total.
+ */
+function columnsFor(stevne: TournamentDetailsRow, results: ResultRow[]): ResultatKolonnar {
+  const innl = stevne.innledende?.navn ?? null;
+  const avsl = stevne.avsluttende?.navn ?? null;
+  const isXkast = innl != null && isXkastMethodName(innl);
+  const isKongelag = avsl != null && isKongelagMethodName(avsl);
+  const omganger = stevne.innledende?.antall_omganger ?? null;
+  // Only an X-kast innledende carries a normalized share; Gloppen/NHM carry their
+  // kamppoeng as thrown, which the KP column already shows.
+  const carryOmganger = isXkast && isKongelag ? omganger : null;
 
-function mobileMetaHtml(rep: ResultRow, cols: ColFlags): string {
-  const parts: string[] = [];
-  if (cols.showKpSp)
-    parts.push(`KP ${rep.kamp_poeng_innl ?? "–"}`, `SP ${rep.score_poeng_innl ?? "–"}`);
-  if (cols.showSnc) parts.push(`SNC ${rep.snc_plassering ?? "–"}.`);
-  if (cols.showNc) parts.push(`NC ${rep.nc_poeng ?? "–"}`);
-  return parts.length ? `<span class="res-meta">${parts.join("  ")}</span>` : "";
+  return resultatKolonnar({
+    visInnlPoeng: isXkast,
+    visKpSp: innl != null && usesInitialRoundCount(innl),
+    visAvslPoeng: isKongelag,
+    visTotal: isKongelag && innl != null,
+    visNc: NC_STEVNETYPER.has(stevne.stevnetype?.navn ?? ""),
+    visSncPl: stevne.snc_hovudstevne_id != null && results.some((r) => r.snc_plassering != null),
+    innlLabel: innl ?? "Innleiande",
+    avslLabel: avsl ?? "Avsluttande",
+    carryFactor: carryOmganger != null ? xkastCarryOverFactor(carryOmganger) : null,
+    carryPercent: carryOmganger != null ? xkastCarryOverPercent(carryOmganger) : null,
+  });
 }
 
-function mobileGroupHtml(group: GroupEntry, cols: ColFlags): string {
-  const rows = rowsForGroup(
-    group,
-    cols,
-    (pair, rep) => {
-      const namesHtml = pair.map((r) => escHtml(throwerName(r.kaster) || "–")).join(" og ");
-      return `
-        <div class="res-row">
-          <span class="res-pl">${rep.plassering ?? "–"}.</span>
-          <div class="res-info">
-            <span class="res-navn">${namesHtml}</span>
-            <span class="res-klubb">${pairClubDisplay(pair)}</span>
-            ${mobileMetaHtml(rep, cols)}
-          </div>
-        </div>`;
-    },
-    (r) => `
-      <div class="res-row">
-        <span class="res-pl">${r.plassering ?? "–"}.</span>
-        <div class="res-info">
-          <span class="res-navn">${escHtml(throwerName(r.kaster) || "–")}</span>
-          <span class="res-klubb">${escHtml(r.klubb?.navn ?? "–")}</span>
-          ${mobileMetaHtml(r, cols)}
-        </div>
-      </div>`,
-  ).join("");
-
-  return `
-    <div class="res-group">
-      <h2 class="res-group-title">${escHtml(group.label)}</h2>
-      <div class="res-group-rows">${rows}</div>
-    </div>`;
+function throwerLinkHtml(r: ResultRow): string {
+  const k = r.kaster;
+  return k
+    ? `<a href="#/kastere/${buildThrowerSlug(k)}" class="res-kaster-lenke">${escHtml(throwerName(k))}</a>`
+    : "–";
 }
 
-/** Maps a group's rows to `T`, grouping into pairs first when the category is Par/Mix. */
-function rowsForGroup<T>(
-  group: GroupEntry,
-  cols: ColFlags,
-  renderPair: (pair: ResultRow[], rep: ResultRow) => T,
-  renderSingle: (r: ResultRow) => T,
-): T[] {
-  return cols.isParMix
-    ? groupPairsByStart(group.rows).map((pair) => renderPair(pair, pair[0]!))
-    : group.rows.map(renderSingle);
-}
-
-function desktopRowHtml(
-  plassering: number | null,
-  namesHtml: string,
-  clubHtml: string,
-  rep: ResultRow,
-  cols: ColFlags,
-): string {
-  return `
-    <tr>
-      <td class="res-td-pl">${plassering ?? "–"}</td>
-      <td class="res-td-navn">${namesHtml}</td>
-      <td class="res-td-klubb">${clubHtml}</td>
-      ${cols.showKpSp ? `<td class="res-td-kp">${rep.kamp_poeng_innl ?? ""}</td><td class="res-td-sp">${rep.score_poeng_innl ?? ""}</td>` : ""}
-      ${cols.showSnc ? `<td class="res-td-pl">${rep.snc_plassering ?? ""}</td>` : ""}
-      ${cols.showNc ? `<td class="res-td-nc">${rep.nc_poeng ?? ""}</td>` : ""}
-    </tr>`;
-}
-
-function desktopGroupHtml(group: GroupEntry, cols: ColFlags): string {
-  const throwerLinkHtml = (r: ResultRow): string => {
-    const k = r.kaster;
-    return k
-      ? `<a href="#/kastere/${buildThrowerSlug(k)}" class="res-kaster-lenke">${escHtml(throwerName(k))}</a>`
-      : "–";
+/** One line of the list — a single thrower, or a Par/Mix pair read as one. */
+function radFor(pair: ResultRow[]): ResultatRad {
+  const rep = pair[0]!;
+  return {
+    pl: rep.plassering,
+    namn: pair.map((r) => throwerName(r.kaster) || "–").join(" og "),
+    namnHtml: pair.map(throwerLinkHtml).join(" og "),
+    klubb: pairClubDisplay(pair),
+    poengInnl: rep.poeng_xkast,
+    ringInnl: rep.antall_ring_xkast,
+    kampPoeng: rep.kamp_poeng_innl,
+    scorePoeng: rep.score_poeng_innl,
+    poengAvsl: rep.poeng_kongelag,
+    ringAvsl: rep.antall_ring_kongelag,
+    ncPoeng: rep.nc_poeng,
+    sncPl: rep.snc_plassering,
+    erpremie: rep.erpremie ?? false,
   };
+}
 
-  const rows = rowsForGroup(
-    group,
-    cols,
-    (pair, rep) =>
-      desktopRowHtml(
-        rep.plassering,
-        pair.map(throwerLinkHtml).join(" og "),
-        pairClubDisplay(pair),
-        rep,
-        cols,
-      ),
-    (r) => desktopRowHtml(r.plassering, throwerLinkHtml(r), escHtml(r.klubb?.navn ?? "–"), r, cols),
-  ).join("");
-
-  const colspan = 3 + (cols.showKpSp ? 2 : 0) + (cols.showSnc ? 1 : 0) + (cols.showNc ? 1 : 0);
-
-  return `
-    <div class="res-table-section">
-      <table class="res-table">
-        <thead>
-          <tr class="res-thead-group">
-            <td colspan="${colspan}" class="res-td-group-header">${escHtml(group.label)}</td>
-          </tr>
-          <tr class="res-thead-columns">
-            <th class="res-td-pl">Pl</th>
-            <th class="res-td-navn">NAVN</th>
-            <th class="res-td-klubb">KLUBB</th>
-            ${cols.showKpSp ? '<th class="res-td-kp">KP</th><th class="res-td-sp">SP</th>' : ""}
-            ${cols.showSnc ? '<th class="res-td-pl">SNC</th>' : ""}
-            ${cols.showNc ? '<th class="res-td-nc">NC</th>' : ""}
-          </tr>
-        </thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>`;
+function radarFor(group: GroupEntry, isParMix: boolean): ResultatRad[] {
+  return isParMix ? groupPairsByStart(group.rows).map(radFor) : group.rows.map((r) => radFor([r]));
 }
 
 // ── Render ────────────────────────────────────────────────────────────────────
@@ -227,13 +166,8 @@ export async function render(
 
     const year = stevne.dato ? new Date(stevne.dato + "T12:00:00").getFullYear() : 9999;
     const groups = groupResults(results, year < 2026);
-    const count = results.length;
-    const cols: ColFlags = {
-      isParMix: stevne.kategori?.erlagbasert ?? false,
-      showNc: NC_STEVNETYPER.has(stevne.stevnetype?.navn ?? ""),
-      showKpSp: KP_SP_INNLEDENDE.has(stevne.innledende?.navn ?? ""),
-      showSnc: stevne.snc_hovudstevne_id != null && results.some((r) => r.snc_plassering != null),
-    };
+    const cols = columnsFor(stevne, results);
+    const isParMix = stevne.kategori?.erlagbasert ?? false;
 
     const sncHtml =
       stevne.snc_hovudstevne_id != null
@@ -256,15 +190,19 @@ export async function render(
           ${pdfHtml}
           ${sncHtml}
           ${juryHtml}
-          <p class="res-antall"><strong>Antall deltakarar: ${count}</strong></p>
+          <p class="res-antall"><strong>Antall deltakarar: ${results.length}</strong></p>
         </div>
-        <div class="res-mobil-blokk">
-          ${groups.map((g) => mobileGroupHtml(g, cols)).join("")}
-        </div>
-        <div class="res-desktop-blokk">
-          ${groups.map((g) => desktopGroupHtml(g, cols)).join("")}
-        </div>
+        ${groups
+          .map((g, i) =>
+            resultatListeHtml(radarFor(g, isParMix), cols, {
+              tittel: g.label,
+              prefiks: `${i}-`,
+            }),
+          )
+          .join("")}
       </div>`;
+
+    bindResultatDetaljar(container);
   } catch (err) {
     logError("stevne-resultat.render", err);
     container.replaceChildren(createErrorBanner("Kunne ikkje laste resultat."));

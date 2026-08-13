@@ -20,6 +20,13 @@ import {
   clearSncPremiar,
 } from "@/services/resultatService";
 import { confirmDialog } from "@/components/ConfirmDialog";
+import {
+  bindResultatDetaljar,
+  resultatKolonnar,
+  resultatListeHtml,
+  resultatTabellHtml,
+} from "@/components/ResultatTabell";
+import type { ResultatKolonnar, ResultatRad } from "@/components/ResultatTabell";
 import type { SncResultRow } from "@/services/resultatService";
 import type { SncLocalTournamentRow, SncParentTournamentRow } from "@/services/stevneService";
 import { downloadExcelRows } from "@/utils/shared";
@@ -29,7 +36,6 @@ import {
   sncExportFileName,
   sncInfoFacts,
   sncLocalFacts,
-  sncTotal,
 } from "@/utils/sncExcelExport";
 import type { SncExportOptions } from "@/utils/sncExcelExport";
 
@@ -37,113 +43,55 @@ import type { SncExportOptions } from "@/utils/sncExcelExport";
 // shape: method labels, which blocks exist and how much carries over.
 type ColFlags = SncExportOptions;
 
-function totalFor(row: SncResultRow, cols: ColFlags): number {
-  return sncTotal(row, cols);
-}
-
-function carryFor(row: SncResultRow, cols: ColFlags): number | null {
-  return cols.carryFactor != null ? Math.round((row.poeng_xkast ?? 0) * cols.carryFactor) : null;
-}
-
-/** "20 %" / "33,33 %" — the carried share, and the header of the column it fills. */
-function carryLabel(prosent: number): string {
-  return `${String(prosent).replace(".", ",")} %`;
-}
-
 /**
- * The merged list leads with the SNC placement and trails with the local one; a
- * local stevne's own table is the same table with those two swapped.
+ * The merged list leads with the SNC placement and trails with the prize mark; a
+ * local stevne's own table leads with the local placement and keeps the merged
+ * one in that last column instead.
  */
 type TableVariant = "samla" | "lokal";
 
-/**
- * Drawn a prize. The table has a column of its own to head the mark, so an X
- * carries it there; the mobile card has no header and spells it out instead.
- * Only the merged list marks prizes — a local stevne's own table keeps the SNC
- * placement in that last column.
- */
-function premieHtml(row: SncResultRow, tekst: "X" | "PREMIE"): string {
-  return row.erpremie ? `<span class="res-premie" title="Trekt premie">${tekst}</span>` : "";
+/** The export sheet's flags as the shared table's columns — one source, two uses. */
+function tabellKolonnar(cols: ColFlags, variant: TableVariant): ResultatKolonnar {
+  return resultatKolonnar({
+    visInnlPoeng: cols.showXkast,
+    visAvslPoeng: cols.showKongelag,
+    visTotal: cols.showKongelag && cols.showXkast,
+    visNc: true,
+    visPremie: variant === "samla",
+    visSncPl: variant === "lokal",
+    innlLabel: cols.innlLabel,
+    avslLabel: cols.avslLabel,
+    carryFactor: cols.carryFactor,
+    carryPercent: cols.carryPercent,
+  });
 }
 
-function rowHtml(row: SncResultRow, cols: ColFlags, variant: TableVariant = "samla"): string {
+function radFor(row: SncResultRow, variant: TableVariant): ResultatRad {
   const kaster = row.kaster;
-  const nameHtml = kaster
-    ? `<a href="#/kastere/${buildThrowerSlug(kaster)}" class="res-kaster-lenke">${escHtml(throwerName(kaster))}</a>`
-    : "–";
-  const carry = carryFor(row, cols);
-  const trailHtml =
-    variant === "samla"
-      ? `<td class="res-tal res-td-premie">${premieHtml(row, "X")}</td>`
-      : `<td class="res-tal res-tal--dempa">${row.snc_plassering ?? "–"}</td>`;
-  const lead = variant === "samla" ? row.snc_plassering : row.plassering;
-  return `
-    <tr>
-      <td class="res-td-pl">${lead ?? "–"}.</td>
-      <td class="res-td-navn">${nameHtml}</td>
-      <td class="res-td-klubb">${escHtml(row.klubb?.navn ?? "–")}</td>
-      ${
-        cols.showXkast
-          ? `<td class="res-tal">${row.poeng_xkast ?? "–"}</td>
-             <td class="res-tal res-tal--dempa">${row.antall_ring_xkast ?? "–"}</td>
-             ${carry != null ? `<td class="res-tal res-tal--dempa res-kol-slutt">${carry}</td>` : ""}`
-          : ""
-      }
-      ${
-        cols.showKongelag
-          ? `<td class="res-tal">${row.poeng_kongelag ?? "–"}</td>
-             <td class="res-tal res-tal--dempa res-kol-slutt">${row.antall_ring_kongelag ?? "–"}</td>`
-          : ""
-      }
-      <td class="res-tal res-td-tot">${totalFor(row, cols)}</td>
-      <td class="res-tal res-tal--dempa">${row.nc_poeng ?? "–"}</td>
-      ${trailHtml}
-    </tr>`;
-}
-
-/** Two header rows: the method groups on top, the repeated Poeng/Ringar below. */
-function headHtml(cols: ColFlags, variant: TableVariant = "samla"): string {
-  const xkastSpan = cols.carryFactor != null ? 3 : 2;
-  return `
-    <tr class="res-thead-grupper">
-      <th colspan="3"></th>
-      ${cols.showXkast ? `<th colspan="${xkastSpan}" class="res-gruppe res-kol-slutt">${escHtml(cols.innlLabel)}</th>` : ""}
-      ${cols.showKongelag ? `<th colspan="2" class="res-gruppe res-kol-slutt">${escHtml(cols.avslLabel)}</th>` : ""}
-      <th colspan="3"></th>
-    </tr>
-    <tr class="res-thead-columns">
-      <th class="res-td-pl">PL</th>
-      <th class="res-td-navn">NAMN</th>
-      <th class="res-td-klubb">KLUBB</th>
-      ${
-        cols.showXkast
-          ? `<th class="res-tal">POENG</th><th class="res-tal">RINGAR</th>
-             ${
-               cols.carryPercent != null
-                 ? `<th class="res-tal res-kol-slutt" title="Overført til totalen: ${carryLabel(cols.carryPercent)} av poenga frå ${escHtml(cols.innlLabel)}">${carryLabel(cols.carryPercent)}</th>`
-                 : ""
-             }`
-          : ""
-      }
-      ${cols.showKongelag ? '<th class="res-tal">POENG</th><th class="res-tal res-kol-slutt">RINGAR</th>' : ""}
-      <th class="res-tal res-td-tot">TOTAL</th>
-      <th class="res-tal">NC</th>
-      ${
-        variant === "samla"
-          ? '<th class="res-tal res-td-premie">PREMIE</th>'
-          : '<th class="res-tal">SNC PL</th>'
-      }
-    </tr>`;
+  return {
+    pl: variant === "samla" ? row.snc_plassering : row.plassering,
+    namn: throwerName(kaster) || "–",
+    namnHtml: kaster
+      ? `<a href="#/kastere/${buildThrowerSlug(kaster)}" class="res-kaster-lenke">${escHtml(throwerName(kaster))}</a>`
+      : "–",
+    klubb: row.klubb?.navn ?? "–",
+    poengInnl: row.poeng_xkast,
+    ringInnl: row.antall_ring_xkast,
+    kampPoeng: null,
+    scorePoeng: null,
+    poengAvsl: row.poeng_kongelag,
+    ringAvsl: row.antall_ring_kongelag,
+    ncPoeng: row.nc_poeng,
+    sncPl: row.snc_plassering,
+    erpremie: row.erpremie ?? false,
+  };
 }
 
 function tableHtml(rows: SncResultRow[], cols: ColFlags, variant: TableVariant): string {
-  return `
-    <div class="res-tabell-boks">
-      <table class="res-table res-table--snc">
-        <thead>${headHtml(cols, variant)}</thead>
-        <tbody>${rows.map((r) => rowHtml(r, cols, variant)).join("")}</tbody>
-      </table>
-    </div>`;
+  return resultatTabellHtml(
+    rows.map((r) => radFor(r, variant)),
+    tabellKolonnar(cols, variant),
+  );
 }
 
 /**
@@ -205,83 +153,12 @@ function sectionTitle(cols: ColFlags, deltakarar: number): string {
   return `${methods ? `${methods} – ` : ""}${deltakarar} deltakarar`;
 }
 
-function statBoxHtml(label: string, value: string, extra: string, sub: string): string {
-  return `
-    <div class="res-stat">
-      <span class="res-stat-label">${escHtml(label)}</span>
-      <span class="res-stat-verdi">${escHtml(value)}${extra ? ` <span class="res-stat-carry">${escHtml(extra)}</span>` : ""}</span>
-      ${sub ? `<span class="res-stat-sub">${escHtml(sub)}</span>` : ""}
-    </div>`;
-}
-
-function detailHtml(row: SncResultRow, cols: ColFlags): string {
-  const boxes: string[] = [];
-  if (cols.showXkast) {
-    const carried = carryFor(row, cols);
-    const carry = carried != null ? `(${carried})` : "";
-    const label =
-      cols.carryPercent != null ? `${cols.innlLabel} (${cols.carryPercent} %)` : cols.innlLabel;
-    boxes.push(
-      statBoxHtml(
-        label,
-        String(row.poeng_xkast ?? "–"),
-        carry,
-        row.antall_ring_xkast != null ? `${row.antall_ring_xkast} ringer` : "",
-      ),
-    );
-  }
-  if (cols.showKongelag) {
-    boxes.push(
-      statBoxHtml(
-        cols.avslLabel,
-        String(row.poeng_kongelag ?? "–"),
-        "",
-        row.antall_ring_kongelag != null ? `${row.antall_ring_kongelag} ringer` : "",
-      ),
-    );
-  }
-  boxes.push(statBoxHtml("NC", String(row.nc_poeng ?? "–"), "", ""));
-  return boxes.join("");
-}
-
-function mobileRowHtml(
-  row: SncResultRow,
-  cols: ColFlags,
-  idx: number,
-  variant: TableVariant = "samla",
-): string {
-  const panelId = `res-detalj-${idx}`;
-  const lead = variant === "samla" ? row.snc_plassering : row.plassering;
-  return `
-    <div class="res-row res-row--snc">
-      <span class="res-pl">${lead ?? "–"}.</span>
-      <div class="res-info">
-        <span class="res-navn">${escHtml(throwerName(row.kaster) || "–")}</span>
-        <span class="res-klubb">${escHtml(row.klubb?.navn ?? "–")}</span>
-        <button type="button" class="res-detalj-btn" aria-expanded="false" aria-controls="${panelId}">
-          <span class="res-detalj-tekst">Vis detaljar</span><span class="res-detalj-pil" aria-hidden="true">▾</span>
-        </button>
-      </div>
-      <div class="res-tot">
-        <span class="res-tot-label">TOT</span>
-        <span class="res-tot-verdi">${totalFor(row, cols)}</span>
-        ${premieHtml(row, "PREMIE")}
-      </div>
-      <div class="res-detalj" id="${panelId}" hidden>${detailHtml(row, cols)}</div>
-    </div>`;
-}
-
 /** The mobile cards and the desktop table for one set of rows. */
 function listHtml(rows: SncResultRow[], cols: ColFlags, variant: TableVariant): string {
-  return `
-    <div class="res-mobil-blokk">
-      <div class="res-group">
-        <div class="res-group-rows">
-          ${rows.map((r, i) => mobileRowHtml(r, cols, i, variant)).join("")}
-        </div>
-      </div>
-    </div>
-    <div class="res-desktop-blokk">${tableHtml(rows, cols, variant)}</div>`;
+  return resultatListeHtml(
+    rows.map((r) => radFor(r, variant)),
+    tabellKolonnar(cols, variant),
+  );
 }
 
 /** "Alle lokale stevne" plus the ones that actually have results. */
@@ -325,24 +202,6 @@ function bindLocalFilter(
     }
     titleSlot.textContent = `${entry.local.navn} – ${entry.rows.length} deltakarar`;
     listSlot.innerHTML = listHtml(entry.rows, cols, "lokal");
-  });
-}
-
-/** One delegated listener toggles whichever detail panel was asked for. */
-function bindDetailToggles(container: HTMLElement): void {
-  container.addEventListener("click", (event) => {
-    const btn = (event.target as HTMLElement).closest<HTMLButtonElement>(".res-detalj-btn");
-    if (!btn) return;
-    const row = btn.closest(".res-row");
-    const panel = row?.querySelector<HTMLElement>(".res-detalj");
-    if (!panel) return;
-    const open = panel.hidden;
-    panel.hidden = !open;
-    btn.setAttribute("aria-expanded", String(open));
-    const text = btn.querySelector(".res-detalj-tekst");
-    const arrow = btn.querySelector(".res-detalj-pil");
-    if (text) text.textContent = open ? "Skjul detaljar" : "Vis detaljar";
-    if (arrow) arrow.textContent = open ? "▴" : "▾";
   });
 }
 
@@ -523,7 +382,7 @@ export async function render(
         ${printLocalsHtml(locals, rows, cols)}
       </div>`;
 
-    bindDetailToggles(container);
+    bindResultatDetaljar(container);
     bindLocalFilter(container, locals, rows, cols);
     bindBannerActions(bannerSlot, parent, locals, rows, cols, isAdmin, rerender);
   } catch (err) {
