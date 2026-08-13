@@ -1,4 +1,5 @@
 import { Capacitor } from "@capacitor/core";
+import googlePlayBadge from "@/assets/google-play-badge-nb-NO.svg";
 import {
   GOOGLE_SIGN_IN_PENDING_KEY,
   getUser,
@@ -95,10 +96,23 @@ export async function render(container: HTMLElement): Promise<void> {
 
   const outer = document.createElement("div");
   outer.className = "container py-4 account-container";
+  const headingRow = document.createElement("div");
+  headingRow.className = "d-flex justify-content-between align-items-start gap-3 mb-4";
   const heading = document.createElement("h2");
-  heading.className = "mb-4";
+  heading.className = "mb-0";
   heading.textContent = "Konto";
-  outer.appendChild(heading);
+  headingRow.appendChild(heading);
+  // Store badge is web-only — the app stores reject links to other stores.
+  if (!Capacitor.isNativePlatform()) {
+    const badgeLink = document.createElement("a");
+    badgeLink.href = "https://play.google.com/store/apps/details?id=no.hesteskokasting.app";
+    badgeLink.target = "_blank";
+    badgeLink.rel = "noopener";
+    badgeLink.className = "google-play-badge";
+    badgeLink.innerHTML = `<img src="${googlePlayBadge}" alt="Last ned på Google Play">`;
+    headingRow.appendChild(badgeLink);
+  }
+  outer.appendChild(headingRow);
 
   function createSocialLoginButton(
     label: string,

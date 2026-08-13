@@ -4283,6 +4283,13 @@ button.bane-omgang-chip:hover {
   max-width: 480px;
 }
 
+.google-play-badge img {
+  display: block;
+  width: 150px;
+  max-width: 40vw;
+  height: auto;
+}
+
 .btn-google,
 .btn-apple {
   background: var(--flate);
