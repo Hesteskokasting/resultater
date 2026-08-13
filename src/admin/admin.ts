@@ -1,14 +1,13 @@
 import { createErrorBanner } from "@/components/ErrorBanner";
-import { createStevneCard } from "@/components/StevneCard";
+import { createTournamentCard } from "@/components/StevneCard";
 import { createLogoutButton } from "@/components/LogoutButton";
 import { createEl } from "@/utils/createEl";
 import { logError } from "@/utils/logError";
 import { registerRefetch } from "@/utils/refetchRegistry";
-import { formatDateLong } from "@/utils/shared";
 import { getPendingLinkCount } from "@/services/adminService";
 import { getUser } from "@/services/authService";
 import { getLiveTournaments } from "@/services/stevneService";
-import type { LiveTournamentRow } from "@/services/stevneService";
+import type { ListedTournamentRow } from "@/services/stevneService";
 import { destroyAdminCharts } from "./_adminCharts";
 import { render as renderOverview } from "./panels/oversikt";
 import { render as renderTournaments } from "./panels/stevne";
@@ -37,14 +36,9 @@ const TAB_KEYS = new Set<string>(TABS.map((t) => t.key));
 
 // Same card as home.ts/terminliste — the live-prikk dot is the only "ongoing"
 // indicator, consistent everywhere it appears.
-function liveCard(s: LiveTournamentRow): HTMLElement {
+function liveCard(s: ListedTournamentRow): HTMLElement {
   const tab = s.stevne_fase === "avsluttende" ? "avsluttende" : "innledende";
-  return createStevneCard({
-    title: s.navn,
-    href: `#/stevne/${s.id}/${tab}`,
-    date: formatDateLong(s.dato),
-    status: "live",
-  });
+  return createTournamentCard(s, { href: `#/stevne/${s.id}/${tab}` });
 }
 
 function buildNav(active: TabKey): HTMLElement {

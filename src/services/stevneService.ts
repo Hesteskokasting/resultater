@@ -48,21 +48,23 @@ const _infoStevneQuery = supabase.from("stevne").select(`
 
 export type InfoTournamentRow = QueryData<typeof _infoStevneQuery>[number];
 
-export type LatestResultRow = Pick<Tables<"stevne">, "id" | "navn" | "dato">;
-export type LiveTournamentRow = Pick<
-  Tables<"stevne">,
-  | "id"
-  | "navn"
-  | "dato"
-  | "stevne_fase"
-  | "erfullfort"
-  | "er_snc_hovudstevne"
-  | "snc_hovudstevne_id"
->;
-export type UpcomingTournamentRow = Pick<
-  Tables<"stevne">,
-  "id" | "navn" | "dato" | "stevne_fase" | "erfullfort" | "er_snc_hovudstevne"
->;
+/**
+ * Everything createTournamentCard reads, plus the SNC flags the list views need.
+ * Selected verbatim by every query feeding a stevne card, so the cards on the
+ * home page, terminliste and min side are built from the same shape.
+ */
+const CARD_COLUMNS = `
+    id, navn, dato, sted, ernm, erfullfort, stevne_fase,
+    er_snc_hovudstevne, snc_hovudstevne_id,
+    klubb:klubbid(id, navn),
+    stevnetype:stevnetypeid(id, navn),
+    kategori:kategoriid(id, navn)
+  `;
+
+const _cardStevneQuery = supabase.from("stevne").select(CARD_COLUMNS);
+
+/** A stevne as the card list views read it. */
+export type ListedTournamentRow = QueryData<typeof _cardStevneQuery>[number];
 const _pameldingStevneQuery = supabase
   .from("stevne")
   .select(
@@ -74,11 +76,11 @@ export type RelatedTournamentRow = Pick<Tables<"stevne">, "id" | "navn" | "dato"
 
 // The home page shows an SNC round as one event. Local stevner are filtered out
 // in the query, not the client, because limit(5) would otherwise fill up with them.
-export async function getLatestResults(): Promise<{ data: LatestResultRow[]; error: unknown }> {
+export async function getLatestResults(): Promise<{ data: ListedTournamentRow[]; error: unknown }> {
   const today = new Date().toISOString().slice(0, 10);
   const { data, error } = await supabase
     .from("stevne")
-    .select("id, navn, dato")
+    .select(CARD_COLUMNS)
     .lte("dato", today)
     .eq("erfullfort", true)
     .is("snc_hovudstevne_id", null)
@@ -89,10 +91,13 @@ export async function getLatestResults(): Promise<{ data: LatestResultRow[]; err
 }
 
 /** Includes SNC local stevner — the admin overview needs them. */
-export async function getLiveTournaments(): Promise<{ data: LiveTournamentRow[]; error: unknown }> {
+export async function getLiveTournaments(): Promise<{
+  data: ListedTournamentRow[];
+  error: unknown;
+}> {
   const { data, error } = await supabase
     .from("stevne")
-    .select("id, navn, dato, stevne_fase, erfullfort, er_snc_hovudstevne, snc_hovudstevne_id")
+    .select(CARD_COLUMNS)
     .in("stevne_fase", ["innledende", "avsluttende"])
     .order("dato", { ascending: true });
   if (error) logError("getLiveTournaments", error);
@@ -102,11 +107,11 @@ export async function getLiveTournaments(): Promise<{ data: LiveTournamentRow[];
 /** Used by the home page to swap live local stevner for their umbrella. */
 export async function getTournamentsByIds(
   ids: number[],
-): Promise<{ data: LiveTournamentRow[]; error: unknown }> {
+): Promise<{ data: ListedTournamentRow[]; error: unknown }> {
   if (!ids.length) return { data: [], error: null };
   const { data, error } = await supabase
     .from("stevne")
-    .select("id, navn, dato, stevne_fase, erfullfort, er_snc_hovudstevne, snc_hovudstevne_id")
+    .select(CARD_COLUMNS)
     .in("id", ids)
     .order("dato", { ascending: true });
   if (error) logError("getTournamentsByIds", error);
@@ -114,13 +119,13 @@ export async function getTournamentsByIds(
 }
 
 export async function getUpcomingTournaments(): Promise<{
-  data: UpcomingTournamentRow[];
+  data: ListedTournamentRow[];
   error: unknown;
 }> {
   const today = new Date().toISOString().slice(0, 10);
   const { data, error } = await supabase
     .from("stevne")
-    .select("id, navn, dato, stevne_fase, erfullfort, er_snc_hovudstevne")
+    .select(CARD_COLUMNS)
     .gte("dato", today)
     .eq("erfullfort", false)
     .is("snc_hovudstevne_id", null)

@@ -1,4 +1,3 @@
-import { formatDateLong } from "@/utils/shared";
 import { createErrorBanner } from "@/components/ErrorBanner";
 import {
   getLatestResults,
@@ -6,54 +5,39 @@ import {
   getTournamentsByIds,
   getUpcomingTournaments,
 } from "@/services/stevneService";
-import type {
-  LatestResultRow,
-  LiveTournamentRow,
-  UpcomingTournamentRow,
-} from "@/services/stevneService";
+import type { ListedTournamentRow } from "@/services/stevneService";
 import { logError } from "@/utils/logError";
 import { getUser } from "@/services/authService";
 import { getRegistrationsForThrower, emptyThrowerRegistrations } from "@/services/stevneService";
 import type { ThrowerRegistrations } from "@/services/stevneService";
 import { bindRegistrationSlots } from "@/components/PameldingKnapp";
-import { createStevneCard } from "@/components/StevneCard";
+import { createTournamentCard } from "@/components/StevneCard";
 import { sncUmbrellaActionLink } from "@/utils/sncRegistration";
 
 // ── HTML builders ─────────────────────────────────────────────────────────────
 
-// Same card component as terminliste — the live-prikk dot on `status: 'live'` is
-// the only "ongoing" indicator, consistent across both pages.
-function liveCard(s: LiveTournamentRow): HTMLElement {
+// Same card builder as terminliste and min side — status comes from the stevne's
+// own fields, so the live-prikk dot appears here exactly as it does there.
+function liveCard(s: ListedTournamentRow): HTMLElement {
   const tab = s.stevne_fase === "avsluttende" ? "avsluttende" : "innledende";
-  return createStevneCard({
-    title: s.navn,
+  return createTournamentCard(s, {
     href: `#/stevne/${s.id}/${s.er_snc_hovudstevne ? "info" : tab}`,
-    date: formatDateLong(s.dato),
-    status: "live",
   });
 }
 
-function resultCard(s: LatestResultRow): HTMLElement {
-  return createStevneCard({
-    title: s.navn,
-    href: `#/stevne/${s.id}/resultat`,
-    date: formatDateLong(s.dato),
-    status: "done",
-  });
+function resultCard(s: ListedTournamentRow): HTMLElement {
+  return createTournamentCard(s, { href: `#/stevne/${s.id}/resultat` });
 }
 
 function upcomingCard(
-  s: UpcomingTournamentRow,
+  s: ListedTournamentRow,
   showSlot: boolean,
   registrations: ThrowerRegistrations,
 ): HTMLElement {
   // getUpcomingTournaments already constrains erfullfort and stevne_fase, so showSlot is the only gate left.
   const canRegister = showSlot;
-  return createStevneCard({
-    title: s.navn,
+  return createTournamentCard(s, {
     href: `#/stevne/${s.id}/info`,
-    date: formatDateLong(s.dato),
-    status: "upcoming",
     // SNC: the thrower must pick a local stevne first, so the button navigates.
     registrationSlotId: canRegister && !s.er_snc_hovudstevne ? s.id : undefined,
     actionLink:
