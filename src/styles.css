@@ -4340,7 +4340,7 @@ button.bane-omgang-chip:hover {
    Fixed column widths, repeated on the header row and every data row, so the
    columns line up across every stevne and fase group on the page. */
 .match-grid {
-  --match-cols: 116px 1fr 124px 44px;
+  --match-cols: 78px 1fr 124px 44px;
   margin-bottom: 16px;
 }
 
@@ -4371,6 +4371,12 @@ button.bane-omgang-chip:hover {
   font-weight: 700;
   color: var(--tekst);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.match-grid__round {
+  font-weight: 500;
+  color: var(--tekst-2);
 }
 
 .match-grid__name {
@@ -4445,7 +4451,7 @@ button.bane-omgang-chip:hover {
 
 @media (max-width: 480px) {
   .match-grid {
-    --match-cols: 84px 1fr 100px 40px;
+    --match-cols: 70px 1fr 100px 40px;
   }
   .result-badge {
     min-width: 72px;

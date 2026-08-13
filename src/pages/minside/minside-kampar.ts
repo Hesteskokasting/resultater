@@ -244,7 +244,10 @@ async function buildMatchesContent(throwerId: number): Promise<HTMLElement> {
     const { others } = matchSides(ks, throwerId, startNrMap);
     const isBye = match?.er_walkover && isByeSide(others[0]);
     return {
-      slot: `R${match?.runde_nummer ?? ""} / B${match?.bane_nummer ?? ""}`,
+      // Bane carries the weight — the round is context, so it stays muted.
+      slot:
+        `<span class="match-grid__round">R${match?.runde_nummer ?? ""} /</span> ` +
+        `B${match?.bane_nummer ?? ""}`,
       name: isBye ? '<span class="match-grid__bye">Walkover</span>' : namesHtml(others),
       result: matchResultHtml(ks),
       stats: matchStatsHtml(ks),
@@ -252,7 +255,7 @@ async function buildMatchesContent(throwerId: number): Promise<HTMLElement> {
   };
 
   const matchGridHtml = (group: MatchPlayerRow[]): string =>
-    gridHtml(["Runde / Bane", "Motstandar", "Resultat", ""], group.map(matchRow));
+    gridHtml(["R / B", "Motstandar", "Resultat", ""], group.map(matchRow));
 
   /**
    * One labelled grid per fase, whether or not the stevne spans both — a stevne
