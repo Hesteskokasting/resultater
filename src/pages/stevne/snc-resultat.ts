@@ -51,12 +51,14 @@ function carryFor(row: SncResultRow, cols: ColFlags): number | null {
  */
 type TableVariant = "samla" | "lokal";
 
-/** Drawn a prize. Only the merged list has a prize column — a local stevne's own
- * table keeps the SNC placement there instead. */
-function premieHtml(row: SncResultRow): string {
-  return row.erpremie
-    ? '<span class="res-premie" title="Trekt premie" aria-label="Trekt premie">🎁</span>'
-    : "";
+/**
+ * Drawn a prize. The table has a column of its own to head the mark, so an X
+ * carries it there; the mobile card has no header and spells it out instead.
+ * Only the merged list marks prizes — a local stevne's own table keeps the SNC
+ * placement in that last column.
+ */
+function premieHtml(row: SncResultRow, tekst: "X" | "PREMIE"): string {
+  return row.erpremie ? `<span class="res-premie" title="Trekt premie">${tekst}</span>` : "";
 }
 
 function rowHtml(row: SncResultRow, cols: ColFlags, variant: TableVariant = "samla"): string {
@@ -67,7 +69,7 @@ function rowHtml(row: SncResultRow, cols: ColFlags, variant: TableVariant = "sam
   const carry = carryFor(row, cols);
   const trailHtml =
     variant === "samla"
-      ? `<td class="res-tal res-td-premie">${premieHtml(row)}</td>`
+      ? `<td class="res-tal res-td-premie">${premieHtml(row, "X")}</td>`
       : `<td class="res-tal res-tal--dempa">${row.snc_plassering ?? "–"}</td>`;
   const lead = variant === "samla" ? row.snc_plassering : row.plassering;
   return `
@@ -254,7 +256,7 @@ function mobileRowHtml(
       <div class="res-tot">
         <span class="res-tot-label">TOT</span>
         <span class="res-tot-verdi">${totalFor(row, cols)}</span>
-        ${premieHtml(row)}
+        ${premieHtml(row, "PREMIE")}
       </div>
       <div class="res-detalj" id="${panelId}" hidden>${detailHtml(row, cols)}</div>
     </div>`;

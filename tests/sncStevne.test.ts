@@ -466,9 +466,9 @@ describe("SNC consolidated result", () => {
     // The marker lives in the merged table's own PREMIE column and, on mobile,
     // under the total — not beside the name.
     const winner = el.querySelector(".res-desktop-blokk tbody tr")!;
-    expect(winner.querySelector("td.res-td-premie .res-premie")).not.toBeNull();
+    expect(winner.querySelector("td.res-td-premie .res-premie")?.textContent).toBe("X");
     expect(winner.querySelector(".res-td-navn .res-premie")).toBeNull();
-    expect(el.querySelector(".res-mobil-blokk .res-tot .res-premie")).not.toBeNull();
+    expect(el.querySelector(".res-mobil-blokk .res-tot .res-premie")?.textContent).toBe("PREMIE");
     // A local stevne's own table has no prize column, so nothing is marked there.
     expect(el.querySelectorAll(".res-print-lokal .res-premie")).toHaveLength(0);
   });

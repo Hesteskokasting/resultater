@@ -5657,9 +5657,10 @@ body:has(.modal.show) {
   cursor: pointer;
 }
 
-/* Prize marker: its own column in the merged table, under the total on mobile. */
+/* Prize marker: an X in the table's own column, spelled out under the total on
+   mobile where there is no column header to name it. */
 .res-premie {
-  font-size: 0.85em;
+  font-weight: bold;
   line-height: 1;
 }
 
@@ -5669,5 +5670,7 @@ body:has(.modal.show) {
 
 .res-tot .res-premie {
   margin-top: 2px;
-  font-size: 1rem;
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  color: var(--lenke);
 }
