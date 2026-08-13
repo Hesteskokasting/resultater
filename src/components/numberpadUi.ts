@@ -187,6 +187,24 @@ export interface PadGridOptions {
   action?: PadKey | null;
 }
 
+/**
+ * Press feedback for the score keys, shared by every pad. The key marks itself
+ * on pointerdown — before the pad repaints on the click that follows — and taps
+ * the device where the platform supports it, so a touch that lands is felt as
+ * well as seen. Ring keys are left out: picking one already shows as selected.
+ */
+function bindPressFeedback(btn: HTMLButtonElement): void {
+  btn.classList.add("pad-key-press");
+  const release = (): void => btn.classList.remove("is-pressed");
+  btn.addEventListener("pointerdown", () => {
+    btn.classList.add("is-pressed");
+    if (typeof navigator.vibrate === "function") navigator.vibrate(12);
+  });
+  btn.addEventListener("pointerup", release);
+  btn.addEventListener("pointercancel", release);
+  btn.addEventListener("pointerleave", release);
+}
+
 /** 1–9, clear, 0 and the stage action in the bottom-right thumb position. */
 export function padDigitGrid(opts: PadGridOptions): HTMLElement {
   const grid = createEl("div", null, "pad-grid");
@@ -194,16 +212,19 @@ export function padDigitGrid(opts: PadGridOptions): HTMLElement {
   for (let digit = 1; digit <= 9; digit++) {
     const btn = createEl("button", String(digit), "pad-key");
     btn.addEventListener("click", () => opts.onDigit(String(digit)));
+    bindPressFeedback(btn);
     grid.appendChild(btn);
   }
 
   const clear = createEl("button", "⌫", "pad-key pad-key-muted");
   clear.setAttribute("aria-label", "Slett heile talet");
   clear.addEventListener("click", opts.onClear);
+  bindPressFeedback(clear);
   grid.appendChild(clear);
 
   const zero = createEl("button", "0", "pad-key");
   zero.addEventListener("click", () => opts.onDigit("0"));
+  bindPressFeedback(zero);
   grid.appendChild(zero);
 
   if (opts.action) grid.appendChild(padKeyEl(opts.action, "pad-key pad-key-action"));

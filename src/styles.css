@@ -3012,6 +3012,36 @@ th.initial-score-th {
   cursor: pointer;
 }
 
+/* Score keys answer the touch: they take the accent and dip while the finger is
+   down. is-pressed lands on pointerdown, so the key is lit before the pad
+   repaints on click; :active covers a mouse press. Ring keys opt out — they
+   have their own selected state. */
+.pad-key-press:active,
+.pad-key-press.is-pressed {
+  background: var(--pad-aksent);
+  border-color: var(--pad-aksent);
+  color: var(--pad-aksent-tekst);
+  transform: scale(0.95);
+}
+
+.pad-key-press {
+  transition:
+    transform 90ms ease,
+    background-color 90ms ease,
+    color 90ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pad-key-press {
+    transition: none;
+  }
+
+  .pad-key-press:active,
+  .pad-key-press.is-pressed {
+    transform: none;
+  }
+}
+
 .pad-key-muted {
   background: none;
   border-color: transparent;

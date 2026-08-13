@@ -92,6 +92,19 @@ describe("showNumberpad", () => {
     expect(saved[0]).toEqual([12, 7]);
   });
 
+  it("lights a score key on press and lets go on release", () => {
+    showNumberpad([{ name: "Lag A", score: 0 }], async () => true);
+
+    const key = gridKeys()[0]!;
+    key.dispatchEvent(new Event("pointerdown"));
+    expect(key.classList).toContain("is-pressed");
+    key.dispatchEvent(new Event("pointerup"));
+    expect(key.classList).not.toContain("is-pressed");
+
+    // The ring keys keep their own selected state instead.
+    expect(document.querySelector(".pad-ring-btn")).toBeNull();
+  });
+
   it("wipes the whole score on one press of the clear key", () => {
     showNumberpad([{ name: "Lag A", score: 0 }], async () => true);
 
