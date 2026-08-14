@@ -6,6 +6,7 @@ import { formatDate, yearOptions } from "@/utils/shared";
 import { createErrorBanner } from "@/components/ErrorBanner";
 import { createLoadingState } from "@/components/LoadingState";
 import { createEmptyState } from "@/components/EmptyState";
+import { createInfoTooltip } from "@/components/InfoTooltip";
 import { bindRankingDetails, detailTableHtml, rankingListHtml } from "@/components/RankingList";
 import type { Tables } from "@/types";
 import type { ResultWithRelations, TournamentForNC } from "@/services/norgescupService";
@@ -73,6 +74,21 @@ function descriptionText(rules: Tables<"antallTellendeNc">, cupType: string): st
   if (cupType === "SNC") return `Dei ${rules.max_snc} beste SNC-stevna er teljande`;
   if (cupType === "DNC") return `Dei ${rules.max_dnc} beste DNC-stevna er teljande`;
   return `Dei ${rules.maxtotal} beste stevna, herav maks ${rules.max_nc_total} NC-stevner og ${rules.max_snc_total} SNC-stevner er teljande`;
+}
+
+const TEAM_INFO_HTML = `
+  <p class="info-tip__tittel">NC Lag</p>
+  <p>Kun klasse 1. Dei 4 beste poengsummene frå kvar klubb er teljande.</p>`;
+
+/** What the singles list is made of — follows the cup type and the year's rules. */
+function singleInfoHtml(
+  rules: Tables<"antallTellendeNc"> | null,
+  cupType: string,
+  year: number,
+): string {
+  return `
+    <p class="info-tip__tittel">${escHtml(cupType)} Singel ${year}</p>
+    <p>${escHtml(rules ? descriptionText(rules, cupType) : `Ingen telleregel funnet for ${year}`)}</p>`;
 }
 
 function viewTabsHtml(selectedView: string): string {
@@ -143,7 +159,9 @@ function teamListHtml(teamList: TeamListRow[]): string {
 function pageSkeletonHtml(year: number, cupType: string): string {
   return `
     <div class="content-page res-side">
-      <h1 class="nc-main-title">Norgescupen ${year}</h1>
+      <h1 class="nc-main-title">
+        <span id="nc-title-text">Norgescupen ${year}</span><span id="nc-info-slot"></span>
+      </h1>
       <div class="nc-filter-rad nc-filter-rad--smal">
         <select id="nc-year" class="tl-select">${yearOptions(year, FIRST_YEAR)}</select>
         <select id="nc-cuptype" class="tl-select${year < FIRST_MULTI_CUP_YEAR ? " d-none" : ""}">
@@ -176,22 +194,27 @@ export async function render(container: HTMLElement): Promise<void> {
 
   container.innerHTML = pageSkeletonHtml(filter.year, filter.cupType);
 
+  const info = createInfoTooltip({
+    slot: container.querySelector("#nc-info-slot")!,
+    label: "Om denne lista",
+    html: "",
+  });
+
   function updateView(): void {
     const { year, cupType, classNum, view } = filter;
     const { rules } = cache;
     const content = container.querySelector<HTMLElement>("#nc-content")!;
 
-    (container.querySelector(".nc-main-title") as HTMLElement).textContent = `Norgescupen ${year}`;
+    container.querySelector("#nc-title-text")!.textContent = `Norgescupen ${year}`;
     container.querySelector("#nc-cuptype")!.classList.toggle("d-none", year < FIRST_MULTI_CUP_YEAR);
 
     container.querySelector("#nc-view-tabs-container")!.innerHTML =
       cupType === "NC" ? viewTabsHtml(view) : "";
 
     if (view === "lag" && cupType === "NC") {
+      info.setHtml(TEAM_INFO_HTML);
       content.innerHTML = `
         <section>
-          <h2 class="nc-section-title">NC Lag ${year} (Kun klasse 1)</h2>
-          <p class="nc-description">Dei 4 beste poengsummene frå kvar klubb.</p>
           <div class="nc-click-hint nc-click-hint-row">Klikk ein klubb for å vise detaljar</div>
           <div id="nc-team-table-container"></div>
         </section>`;
@@ -209,10 +232,9 @@ export async function render(container: HTMLElement): Promise<void> {
         bindRankingDetails(teamContainer);
       }
     } else {
+      info.setHtml(singleInfoHtml(rules, cupType, year));
       content.innerHTML = `
         <section id="nc-single-section">
-          <h2 class="nc-section-title">${escHtml(cupType)} Singel ${year}${year <= 2025 ? ` - Klasse ${classNum}` : ""}</h2>
-          <p class="nc-description">${rules ? descriptionText(rules, cupType) : `Ingen telleregel funnet for ${year}`}</p>
           <div id="nc-class-tabs-container">${classTabsHtml(classNum, year)}</div>
           <div id="nc-single-table-container"></div>
         </section>`;

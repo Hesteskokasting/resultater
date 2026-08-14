@@ -2303,22 +2303,6 @@ th.standing-sp-th {
   margin-bottom: 32px;
 }
 
-.nc-section-title {
-  text-align: center;
-  font-size: 1.05rem;
-  font-weight: bold;
-  color: var(--lenke);
-  margin-bottom: 4px;
-}
-
-.nc-description {
-  text-align: center;
-  font-size: 0.82rem;
-  color: var(--tekst-2);
-  font-style: italic;
-  margin-bottom: 10px;
-}
-
 /* Sits directly above the list, so it ends where the list ends. */
 .nc-class-tabs-wrapper {
   display: flex;
@@ -2354,6 +2338,76 @@ th.standing-sp-th {
 
 .nc-click-hint {
   font-size: 0.75rem;
+  color: var(--tekst-3);
+}
+
+/* ── Info tooltip ── */
+
+.info-tip {
+  position: relative;
+  display: inline-flex;
+  vertical-align: middle;
+  margin-left: 6px;
+}
+
+.info-tip__knapp {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  border: none;
+  background: none;
+  color: var(--tekst-3);
+  cursor: pointer;
+  line-height: 0;
+}
+
+.info-tip__knapp:hover,
+.info-tip__knapp[aria-expanded="true"] {
+  color: var(--lenke);
+}
+
+.info-tip__knapp:focus-visible {
+  outline: 2px solid var(--lenke);
+  outline-offset: 2px;
+  border-radius: 50%;
+}
+
+/* Anchored to the button, centred under it, and kept inside a narrow screen. */
+.info-tip__panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  width: max-content;
+  max-width: min(320px, 80vw);
+  padding: 10px 12px;
+  border: 1px solid var(--kant);
+  border-radius: 6px;
+  background: var(--flate-2);
+  box-shadow: 0 4px 14px rgb(0 0 0 / 35%);
+  color: var(--tekst-2);
+  font-size: 0.78rem;
+  font-weight: normal;
+  text-align: left;
+  white-space: normal;
+}
+
+.info-tip__panel p {
+  margin-bottom: 6px;
+}
+
+.info-tip__panel p:last-child {
+  margin-bottom: 0;
+}
+
+.info-tip__tittel {
+  color: var(--tekst);
+  font-weight: bold;
+}
+
+.info-tip__dempa {
   color: var(--tekst-3);
 }
 
@@ -2401,25 +2455,10 @@ th.standing-sp-th {
   text-decoration: underline;
 }
 
-.nc-info-button-row {
-  text-align: center;
-  margin-bottom: 8px;
-}
-
 .nc-click-hint-row {
   text-align: right;
   margin-bottom: 4px;
   max-width: var(--tabell-maks);
-}
-
-.nc-info-text {
-  text-align: center;
-  margin-bottom: 4px;
-}
-
-.nc-info-text--dempa {
-  color: var(--tekst-2);
-  margin-bottom: 0;
 }
 
 /* ── NM-vinnere ── */

@@ -4,6 +4,7 @@ import { createExcelButton } from "@/components/ExcelButton";
 import { createErrorBanner } from "@/components/ErrorBanner";
 import { createLoadingState } from "@/components/LoadingState";
 import { createEmptyState } from "@/components/EmptyState";
+import { createInfoTooltip } from "@/components/InfoTooltip";
 import { bindRankingDetails, detailTableHtml, rankingListHtml } from "@/components/RankingList";
 import { createSearchInput } from "@/components/SearchInput";
 import { logError } from "@/utils/logError";
@@ -25,7 +26,6 @@ interface Cache {
 const filter = {
   year: new Date().getFullYear(),
   searchText: "",
-  infoVisible: false,
 };
 
 let cache: Cache = { year: null, tournaments: [], results: [] };
@@ -66,21 +66,16 @@ async function exportExcel(): Promise<void> {
 
 // ── HTML builders ─────────────────────────────────────────────────────────────
 
-function infoHtml(visible: boolean): string {
-  return `
-    <div id="nr-info-section"${visible ? "" : ' class="d-none"'}>
-      <p class="nc-info-text">
-        Norgesranking er ein konkurranse som pågår innanfor eit kalenderår, dvs. 1. januar – 31. desember.
-        <strong>Dei ${MIN_STEVNER} beste prosentane er teljande.</strong>
-      </p>
-      <p class="nc-info-text">
-        For å få eit gyldig årsresultat skal kasteren minst ha vore gjennom ${MIN_STEVNER} rankingrunder.
-      </p>
-      <p class="nc-info-text nc-info-text--dempa">
-        Resultat utan plassering er ikkje gyldige enno (mindre enn ${MIN_STEVNER} rundar).
-      </p>
-    </div>`;
-}
+const INFO_HTML = `
+  <p class="info-tip__tittel">Norgesranking</p>
+  <p>
+    Ein konkurranse som pågår innanfor eit kalenderår, dvs. 1. januar – 31. desember.
+    <strong>Dei ${MIN_STEVNER} beste prosentane er teljande.</strong>
+  </p>
+  <p>For å få eit gyldig årsresultat må kastaren ha vore gjennom minst ${MIN_STEVNER} rankingrundar.</p>
+  <p class="info-tip__dempa">
+    Resultat utan plassering er ikkje gyldige enno (mindre enn ${MIN_STEVNER} rundar).
+  </p>`;
 
 function detailHtml(item: RankingItem): string {
   return detailTableHtml<RingInfo>(
@@ -129,11 +124,9 @@ function listHtml(list: RankingItem[], searchText: string): string | null {
 function pageSkeletonHtml(year: number, isNative: boolean): string {
   return `
     <div class="content-page res-side">
-      <h1 class="nc-main-title">Norgesranking ${year}</h1>
-      <div class="nc-info-button-row">
-        <button id="nr-info-button" class="btn btn-sm btn-outline-secondary">Vis info</button>
-      </div>
-      ${infoHtml(false)}
+      <h1 class="nc-main-title">
+        <span id="nr-title-text">Norgesranking ${year}</span><span id="nr-info-slot"></span>
+      </h1>
       <div class="nc-filter-rad nc-filter-rad--smal">
         <select id="nr-year" class="tl-select">${yearOptions(year, FIRST_YEAR)}</select>
         <span id="nr-search-slot"></span>
@@ -151,7 +144,6 @@ function pageSkeletonHtml(year: number, isNative: boolean): string {
 export async function render(container: HTMLElement): Promise<void> {
   filter.year = new Date().getFullYear();
   filter.searchText = "";
-  filter.infoVisible = false;
   cache = { year: null, tournaments: [], results: [] };
 
   container.replaceChildren(createLoadingState("Laster Norgesranking…"));
@@ -191,12 +183,17 @@ export async function render(container: HTMLElement): Promise<void> {
       onInput: updateTable,
     });
 
+    createInfoTooltip({
+      slot: container.querySelector("#nr-info-slot")!,
+      label: "Om Norgesranking",
+      html: INFO_HTML,
+    });
+
     const yearSelect = container.querySelector<HTMLSelectElement>("#nr-year")!;
-    const infoButton = container.querySelector<HTMLButtonElement>("#nr-info-button")!;
 
     yearSelect.addEventListener("change", async () => {
       filter.year = Number(yearSelect.value);
-      container.querySelector(".nc-main-title")!.textContent = `Norgesranking ${filter.year}`;
+      container.querySelector("#nr-title-text")!.textContent = `Norgesranking ${filter.year}`;
       container
         .querySelector("#nr-table-container")!
         .replaceChildren(createLoadingState("Laster..."));
@@ -220,12 +217,6 @@ export async function render(container: HTMLElement): Promise<void> {
     if (!isNative) {
       createExcelButton({ slot: container.querySelector("#nr-excel-slot")!, onClick: exportExcel });
     }
-
-    infoButton.addEventListener("click", () => {
-      filter.infoVisible = !filter.infoVisible;
-      container.querySelector("#nr-info-section")!.classList.toggle("d-none", !filter.infoVisible);
-      infoButton.textContent = filter.infoVisible ? "Skjul info" : "Vis info";
-    });
   } catch (err) {
     logError("norgesranking.render", err);
     container.replaceChildren(createErrorBanner("Kunne ikkje laste Norgesranking."));
