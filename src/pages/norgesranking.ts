@@ -4,7 +4,7 @@ import { createExcelButton } from "@/components/ExcelButton";
 import { createErrorBanner } from "@/components/ErrorBanner";
 import { createLoadingState } from "@/components/LoadingState";
 import { createEmptyState } from "@/components/EmptyState";
-import { bindRankingDetaljar, detaljTabellHtml, rankingListeHtml } from "@/components/RankingListe";
+import { bindRankingDetails, detailTableHtml, rankingListHtml } from "@/components/RankingList";
 import { createSearchInput } from "@/components/SearchInput";
 import { logError } from "@/utils/logError";
 import { getTournamentsAndResults } from "@/services/norgesrankingService";
@@ -83,20 +83,20 @@ function infoHtml(visible: boolean): string {
 }
 
 function detailHtml(item: RankingItem): string {
-  return detaljTabellHtml<RingInfo>(
+  return detailTableHtml<RingInfo>(
     [
-      { label: "Dato", verdi: (r) => formatDate(r._stevne?.dato) },
-      { label: "Type", verdi: (r) => r._stevne?.typeNamn ?? "–" },
-      { label: "Stevne", verdi: (r) => r._stevne?.navn ?? "–" },
-      { label: "Metode", verdi: (r) => r.metodeNamn },
-      { label: "Ring", klasse: "res-tal", verdi: (r) => String(r.antallRing) },
-      { label: "%Ring", klasse: "res-tal", verdi: (r) => formatPercent(r.prosent) },
+      { label: "Dato", value: (r) => formatDate(r._stevne?.dato) },
+      { label: "Type", value: (r) => r._stevne?.typeNamn ?? "–" },
+      { label: "Stevne", value: (r) => r._stevne?.navn ?? "–" },
+      { label: "Metode", value: (r) => r.metodeNamn },
+      { label: "Ring", cellClass: "res-tal", value: (r) => String(r.antallRing) },
+      { label: "%Ring", cellClass: "res-tal", value: (r) => formatPercent(r.prosent) },
     ],
     item.detaljRader,
   );
 }
 
-function rankingListHtml(list: RankingItem[], searchText: string): string | null {
+function listHtml(list: RankingItem[], searchText: string): string | null {
   const search = searchText.trim().toLowerCase();
   const filtered = search
     ? list.filter(
@@ -106,23 +106,23 @@ function rankingListHtml(list: RankingItem[], searchText: string): string | null
 
   if (filtered.length === 0) return null;
 
-  return rankingListeHtml<RankingItem>(filtered, {
+  return rankingListHtml<RankingItem>(filtered, {
     idPrefix: "nr",
-    pl: (item) => (item.erGyldig ? String(item.plassering ?? "–") : "–"),
-    namn: (item) => item.navn,
-    klubb: (item) => item.klubb,
+    placement: (item) => (item.erGyldig ? String(item.plassering ?? "–") : "–"),
+    name: (item) => item.navn,
+    club: (item) => item.klubb,
     meta: (item) => `${item.antallStevner} ${item.antallStevner === 1 ? "stevne" : "stevner"}`,
-    kolonnar: [
+    columns: [
       {
         label: "STEVNER",
-        klasse: "res-tal res-tal--dempa",
-        verdi: (item) => String(item.antallStevner),
+        cellClass: "res-tal res-tal--dempa",
+        value: (item) => String(item.antallStevner),
       },
     ],
-    hovudLabel: "%SNITT",
-    hovud: (item) => formatPercent(item.snittProsent),
-    detalj: detailHtml,
-    radKlasse: (item) => (item.erGyldig ? undefined : "rank-rad--ugyldig"),
+    mainLabel: "%SNITT",
+    main: (item) => formatPercent(item.snittProsent),
+    detail: detailHtml,
+    rowClass: (item) => (item.erGyldig ? undefined : "rank-rad--ugyldig"),
   });
 }
 
@@ -170,7 +170,7 @@ export async function render(container: HTMLElement): Promise<void> {
       const tournamentsMap = buildEventsMap(cache.tournaments);
       const list = buildRankingList(cache.results, tournamentsMap);
       const tableEl = container.querySelector<HTMLElement>("#nr-table-container")!;
-      const html = rankingListHtml(list, filter.searchText);
+      const html = listHtml(list, filter.searchText);
       if (html === null) {
         tableEl.replaceChildren(createEmptyState("Ingen resultater funnet."));
         return;
@@ -179,7 +179,7 @@ export async function render(container: HTMLElement): Promise<void> {
       inner.id = "nr-table-inner";
       inner.innerHTML = html;
       tableEl.replaceChildren(inner);
-      bindRankingDetaljar(inner);
+      bindRankingDetails(inner);
     }
 
     updateTable();

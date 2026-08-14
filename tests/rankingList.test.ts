@@ -5,64 +5,64 @@
  */
 
 import { beforeEach, describe, expect, it } from "vite-plus/test";
-import { bindRankingDetaljar, detaljTabellHtml, rankingListeHtml } from "@/components/RankingListe";
+import { bindRankingDetails, detailTableHtml, rankingListHtml } from "@/components/RankingList";
 
-interface Rad {
-  pl: number;
-  navn: string;
-  klubb: string;
-  stevner: number;
-  poeng: string;
-  gyldig: boolean;
+interface Row {
+  placement: number;
+  name: string;
+  club: string;
+  events: number;
+  points: string;
+  valid: boolean;
 }
 
-const RADER: Rad[] = [
-  { pl: 1, navn: "Ada A", klubb: "Førde", stevner: 6, poeng: "87,50", gyldig: true },
-  { pl: 2, navn: "Bo B", klubb: "Blaker", stevner: 5, poeng: "80,00", gyldig: true },
-  { pl: 3, navn: "Cato <C>", klubb: "Gloppen", stevner: 2, poeng: "70,00", gyldig: false },
+const ROWS: Row[] = [
+  { placement: 1, name: "Ada A", club: "Førde", events: 6, points: "87,50", valid: true },
+  { placement: 2, name: "Bo B", club: "Blaker", events: 5, points: "80,00", valid: true },
+  { placement: 3, name: "Cato <C>", club: "Gloppen", events: 2, points: "70,00", valid: false },
 ];
 
-function liste(over: Partial<Parameters<typeof rankingListeHtml<Rad>>[1]> = {}): HTMLElement {
-  const html = rankingListeHtml<Rad>(RADER, {
+function list(over: Partial<Parameters<typeof rankingListHtml<Row>>[1]> = {}): HTMLElement {
+  const html = rankingListHtml<Row>(ROWS, {
     idPrefix: "test",
-    pl: (r) => String(r.pl),
-    namn: (r) => r.navn,
-    klubb: (r) => r.klubb,
-    meta: (r) => `${r.stevner} stevner`,
-    kolonnar: [
-      { label: "STEVNER", klasse: "res-tal res-tal--dempa", verdi: (r) => String(r.stevner) },
+    placement: (r) => String(r.placement),
+    name: (r) => r.name,
+    club: (r) => r.club,
+    meta: (r) => `${r.events} stevner`,
+    columns: [
+      { label: "STEVNER", cellClass: "res-tal res-tal--dempa", value: (r) => String(r.events) },
     ],
-    hovudLabel: "%SNITT",
-    hovud: (r) => r.poeng,
-    detalj: (r) =>
-      detaljTabellHtml(
+    mainLabel: "%SNITT",
+    main: (r) => r.points,
+    detail: (r) =>
+      detailTableHtml(
         [
-          { label: "Stevne", verdi: (d) => d.namn },
-          { label: "%Ring", klasse: "res-tal", verdi: (d) => d.verdi },
+          { label: "Stevne", value: (d) => d.name },
+          { label: "%Ring", cellClass: "res-tal", value: (d) => d.value },
         ],
-        [{ namn: `${r.navn} runde 1`, verdi: r.poeng }],
+        [{ name: `${r.name} runde 1`, value: r.points }],
       ),
-    radKlasse: (r) => (r.gyldig ? undefined : "rank-rad--ugyldig"),
+    rowClass: (r) => (r.valid ? undefined : "rank-rad--ugyldig"),
     ...over,
   });
   const el = document.createElement("div");
   el.innerHTML = html;
   document.body.replaceChildren(el);
-  bindRankingDetaljar(el);
+  bindRankingDetails(el);
   return el;
 }
 
 beforeEach(() => document.body.replaceChildren());
 
-describe("rankingListeHtml", () => {
+describe("rankingListHtml", () => {
   it("renders both blocks with one entry per row", () => {
-    const el = liste();
+    const el = list();
     expect(el.querySelectorAll(".res-mobil-blokk .res-row")).toHaveLength(3);
     expect(el.querySelectorAll(".res-desktop-blokk .rank-rad")).toHaveLength(3);
   });
 
   it("heads the table with the spec's columns, main figure last", () => {
-    const el = liste();
+    const el = list();
     const head = [...el.querySelectorAll(".res-thead-columns th")].map((th) => th.textContent);
     expect(head).toEqual(["PL", "NAMN", "KLUBB", "STEVNER", "%SNITT"]);
     expect(el.querySelector(".res-thead-columns th:last-child")?.className).toContain("res-td-tot");
@@ -70,47 +70,47 @@ describe("rankingListeHtml", () => {
   });
 
   it("uses the name label the spec asks for", () => {
-    const el = liste({ namnLabel: "KLUBB", klubb: undefined });
+    const el = list({ nameLabel: "KLUBB", club: undefined });
     const head = [...el.querySelectorAll(".res-thead-columns th")].map((th) => th.textContent);
     expect(head).toEqual(["PL", "KLUBB", "STEVNER", "%SNITT"]);
     expect(el.querySelector(".res-mobil-blokk .res-klubb")).toBeNull();
   });
 
   it("shows the same figures in the card and in the table row", () => {
-    const el = liste();
-    const kort = el.querySelector(".res-mobil-blokk .res-row")!;
-    expect(kort.querySelector(".res-pl")?.textContent).toBe("1.");
-    expect(kort.querySelector(".res-navn")?.textContent).toBe("Ada A");
-    expect(kort.querySelector(".res-tot-verdi")?.textContent).toBe("87,50");
+    const el = list();
+    const card = el.querySelector(".res-mobil-blokk .res-row")!;
+    expect(card.querySelector(".res-pl")?.textContent).toBe("1.");
+    expect(card.querySelector(".res-navn")?.textContent).toBe("Ada A");
+    expect(card.querySelector(".res-tot-verdi")?.textContent).toBe("87,50");
 
-    const rad = el.querySelector(".res-desktop-blokk .rank-rad")!;
-    const celler = [...rad.querySelectorAll("td")].map((td) => td.textContent?.trim());
-    expect(celler).toEqual(["1.", "Ada A", "Førde", "6", "87,50▾"]);
+    const row = el.querySelector(".res-desktop-blokk .rank-rad")!;
+    const cells = [...row.querySelectorAll("td")].map((td) => td.textContent?.trim());
+    expect(cells).toEqual(["1.", "Ada A", "Førde", "6", "87,50▾"]);
   });
 
   it("escapes names into both blocks", () => {
-    const el = liste();
+    const el = list();
     expect(el.innerHTML).not.toContain("<C>");
     expect(el.querySelectorAll(".res-navn")[2]?.textContent).toBe("Cato <C>");
   });
 
   it("marks invalid rows in both blocks", () => {
-    const el = liste();
+    const el = list();
     expect(el.querySelectorAll(".res-mobil-blokk .rank-rad--ugyldig")).toHaveLength(1);
     expect(el.querySelectorAll(".res-desktop-blokk .rank-rad--ugyldig")).toHaveLength(1);
   });
 
   it("omits the detail panel when the spec has none", () => {
-    const el = liste({ detalj: undefined });
+    const el = list({ detail: undefined });
     expect(el.querySelector(".res-detalj-btn")).toBeNull();
     expect(el.querySelector(".rank-detalj-rad")).toBeNull();
     expect(el.querySelector(".rank-rad--klikk")).toBeNull();
   });
 });
 
-describe("bindRankingDetaljar", () => {
+describe("bindRankingDetails", () => {
   it("toggles the card panel from its button", () => {
-    const el = liste();
+    const el = list();
     const btn = el.querySelector<HTMLButtonElement>(".res-mobil-blokk .res-detalj-btn")!;
     const panel = el.querySelector<HTMLElement>(".res-mobil-blokk .res-detalj")!;
 
@@ -125,30 +125,30 @@ describe("bindRankingDetaljar", () => {
   });
 
   it("toggles the table panel from the row itself", () => {
-    const el = liste();
-    const rad = el.querySelector<HTMLElement>(".res-desktop-blokk .rank-rad--klikk")!;
+    const el = list();
+    const row = el.querySelector<HTMLElement>(".res-desktop-blokk .rank-rad--klikk")!;
     const panel = el.querySelector<HTMLElement>(".res-desktop-blokk .rank-detalj-rad")!;
 
-    expect(rad.getAttribute("aria-controls")).toBe(panel.id);
-    rad.click();
+    expect(row.getAttribute("aria-controls")).toBe(panel.id);
+    row.click();
     expect(panel.hidden).toBe(false);
-    expect(rad.getAttribute("aria-expanded")).toBe("true");
-    rad.click();
+    expect(row.getAttribute("aria-expanded")).toBe("true");
+    row.click();
     expect(panel.hidden).toBe(true);
   });
 
   it("opens a table row from the keyboard", () => {
-    const el = liste();
-    const rad = el.querySelector<HTMLElement>(".res-desktop-blokk .rank-rad--klikk")!;
+    const el = list();
+    const row = el.querySelector<HTMLElement>(".res-desktop-blokk .rank-rad--klikk")!;
     const panel = el.querySelector<HTMLElement>(".res-desktop-blokk .rank-detalj-rad")!;
 
-    rad.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    row.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
     expect(panel.hidden).toBe(false);
   });
 });
 
-describe("detaljTabellHtml", () => {
+describe("detailTableHtml", () => {
   it("returns nothing for an empty detail", () => {
-    expect(detaljTabellHtml([{ label: "A", verdi: () => "" }], [])).toBe("");
+    expect(detailTableHtml([{ label: "A", value: () => "" }], [])).toBe("");
   });
 });

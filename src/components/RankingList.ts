@@ -7,54 +7,54 @@
 
 import { escHtml } from "@/utils/escHtml";
 
-export interface RankingKolonne<T> {
+export interface RankingColumn<T> {
   label: string;
   title?: string;
   /** Extra cell classes — `res-tal` centres, `res-tal--dempa` dims. */
-  klasse?: string;
-  verdi: (row: T) => string;
+  cellClass?: string;
+  value: (row: T) => string;
 }
 
-export interface RankingListeSpec<T> {
+export interface RankingListSpec<T> {
   /** Unique per list on the page: the detail panels are addressed by it. */
   idPrefix: string;
-  pl: (row: T) => string;
+  placement: (row: T) => string;
   /** Header over the name column — a team list heads it "KLUBB" instead. */
-  namnLabel?: string;
-  namn: (row: T) => string;
+  nameLabel?: string;
+  name: (row: T) => string;
   /** Second line on the card and a column of its own; omit for team lists. */
-  klubb?: (row: T) => string;
+  club?: (row: T) => string;
   /** Extra line under the club on the card, e.g. how many stevner counted. */
   meta?: (row: T) => string;
   /** Columns between the club and the leading figure. */
-  kolonnar?: RankingKolonne<T>[];
+  columns?: RankingColumn<T>[];
   /** The figure the list is ranked by — the card leads with it. */
-  hovudLabel: string;
-  hovud: (row: T) => string;
+  mainLabel: string;
+  main: (row: T) => string;
   /** Detail panel markup, shared by card and table row. */
-  detalj?: (row: T) => string;
-  radKlasse?: (row: T) => string | undefined;
+  detail?: (row: T) => string;
+  rowClass?: (row: T) => string | undefined;
 }
 
-export interface DetaljKolonne<D> {
+export interface DetailColumn<D> {
   label: string;
-  klasse?: string;
-  verdi: (row: D) => string;
+  cellClass?: string;
+  value: (row: D) => string;
 }
 
 /**
  * The detail panel of a season standing: the stevner that counted, one per line.
  * Scrolls inside its own box so a wide detail never widens the card.
  */
-export function detaljTabellHtml<D>(kolonnar: DetaljKolonne<D>[], rader: D[]): string {
-  if (!rader.length) return "";
-  const head = kolonnar
-    .map((k) => `<th class="${k.klasse ?? ""}">${escHtml(k.label)}</th>`)
+export function detailTableHtml<D>(columns: DetailColumn<D>[], rows: D[]): string {
+  if (!rows.length) return "";
+  const head = columns
+    .map((c) => `<th class="${c.cellClass ?? ""}">${escHtml(c.label)}</th>`)
     .join("");
-  const body = rader
+  const body = rows
     .map(
       (r) =>
-        `<tr>${kolonnar.map((k) => `<td class="${k.klasse ?? ""}">${escHtml(k.verdi(r))}</td>`).join("")}</tr>`,
+        `<tr>${columns.map((c) => `<td class="${c.cellClass ?? ""}">${escHtml(c.value(r))}</td>`).join("")}</tr>`,
     )
     .join("");
   return `
@@ -68,68 +68,68 @@ export function detaljTabellHtml<D>(kolonnar: DetaljKolonne<D>[], rader: D[]): s
 
 // ── Column spec ───────────────────────────────────────────────────────────────
 
-interface Kol<T> {
+interface Col<T> {
   label: string;
-  klasse: string;
+  cellClass: string;
   title?: string;
-  verdi: (row: T) => string;
+  value: (row: T) => string;
 }
 
-function byggKolonnar<T>(spec: RankingListeSpec<T>): Kol<T>[] {
-  const kolonnar: Kol<T>[] = [
-    { label: "PL", klasse: "res-td-pl", verdi: (r) => `${spec.pl(r)}.` },
-    { label: spec.namnLabel ?? "NAMN", klasse: "res-td-navn", verdi: spec.namn },
+function buildColumns<T>(spec: RankingListSpec<T>): Col<T>[] {
+  const columns: Col<T>[] = [
+    { label: "PL", cellClass: "res-td-pl", value: (r) => `${spec.placement(r)}.` },
+    { label: spec.nameLabel ?? "NAMN", cellClass: "res-td-navn", value: spec.name },
   ];
-  if (spec.klubb) kolonnar.push({ label: "KLUBB", klasse: "res-td-klubb", verdi: spec.klubb });
-  for (const k of spec.kolonnar ?? []) {
-    const kol: Kol<T> = { label: k.label, klasse: k.klasse ?? "res-tal", verdi: k.verdi };
-    if (k.title != null) kol.title = k.title;
-    kolonnar.push(kol);
+  if (spec.club) columns.push({ label: "KLUBB", cellClass: "res-td-klubb", value: spec.club });
+  for (const c of spec.columns ?? []) {
+    const col: Col<T> = { label: c.label, cellClass: c.cellClass ?? "res-tal", value: c.value };
+    if (c.title != null) col.title = c.title;
+    columns.push(col);
   }
-  kolonnar.push({
-    label: spec.hovudLabel,
-    klasse: "res-tal res-td-tot",
-    verdi: spec.hovud,
+  columns.push({
+    label: spec.mainLabel,
+    cellClass: "res-tal res-td-tot",
+    value: spec.main,
   });
-  return kolonnar;
+  return columns;
 }
 
 // ── Desktop table ─────────────────────────────────────────────────────────────
 
-function radHtml<T>(row: T, i: number, kolonnar: Kol<T>[], spec: RankingListeSpec<T>): string {
-  const detaljar = spec.detalj?.(row) ?? "";
+function rowHtml<T>(row: T, i: number, columns: Col<T>[], spec: RankingListSpec<T>): string {
+  const detail = spec.detail?.(row) ?? "";
   const panelId = `${spec.idPrefix}-detalj-${i}`;
-  const ekstra = spec.radKlasse?.(row);
-  const klasser = ["rank-rad", i % 2 === 1 ? "rank-rad--stripe" : "", ekstra ?? ""]
+  const extra = spec.rowClass?.(row);
+  const classes = ["rank-rad", i % 2 === 1 ? "rank-rad--stripe" : "", extra ?? ""]
     .filter(Boolean)
     .join(" ");
-  const siste = kolonnar.length - 1;
+  const last = columns.length - 1;
 
-  const celler = kolonnar
-    .map((k, ki) => {
-      const pil =
-        ki === siste && detaljar ? `<span class="rank-pil" aria-hidden="true">▾</span>` : "";
-      return `<td class="${k.klasse}">${escHtml(k.verdi(row))}${pil}</td>`;
+  const cells = columns
+    .map((c, ci) => {
+      const chevron =
+        ci === last && detail ? `<span class="rank-pil" aria-hidden="true">▾</span>` : "";
+      return `<td class="${c.cellClass}">${escHtml(c.value(row))}${chevron}</td>`;
     })
     .join("");
 
-  const klikk = detaljar
+  const clickAttrs = detail
     ? ` role="button" tabindex="0" aria-expanded="false" aria-controls="${panelId}"`
     : "";
-  const rad = `<tr class="${klasser}${detaljar ? " rank-rad--klikk" : ""}"${klikk}>${celler}</tr>`;
-  if (!detaljar) return rad;
-  return `${rad}<tr class="rank-detalj-rad" id="${panelId}" hidden><td colspan="${kolonnar.length}">${detaljar}</td></tr>`;
+  const tr = `<tr class="${classes}${detail ? " rank-rad--klikk" : ""}"${clickAttrs}>${cells}</tr>`;
+  if (!detail) return tr;
+  return `${tr}<tr class="rank-detalj-rad" id="${panelId}" hidden><td colspan="${columns.length}">${detail}</td></tr>`;
 }
 
-export function rankingTabellHtml<T>(rows: T[], spec: RankingListeSpec<T>): string {
-  const kolonnar = byggKolonnar(spec);
-  const head = kolonnar
+export function rankingTableHtml<T>(rows: T[], spec: RankingListSpec<T>): string {
+  const columns = buildColumns(spec);
+  const head = columns
     .map(
-      (k) =>
-        `<th class="${k.klasse}"${k.title ? ` title="${escHtml(k.title)}"` : ""}>${escHtml(k.label)}</th>`,
+      (c) =>
+        `<th class="${c.cellClass}"${c.title ? ` title="${escHtml(c.title)}"` : ""}>${escHtml(c.label)}</th>`,
     )
     .join("");
-  const body = rows.map((r, i) => radHtml(r, i, kolonnar, spec)).join("");
+  const body = rows.map((r, i) => rowHtml(r, i, columns, spec)).join("");
   return `
     <div class="res-tabell-boks">
       <table class="res-table res-table--gruppert rank-table">
@@ -141,21 +141,21 @@ export function rankingTabellHtml<T>(rows: T[], spec: RankingListeSpec<T>): stri
 
 // ── Mobile cards ──────────────────────────────────────────────────────────────
 
-function kortHtml<T>(row: T, i: number, spec: RankingListeSpec<T>): string {
-  const detaljar = spec.detalj?.(row) ?? "";
+function cardHtml<T>(row: T, i: number, spec: RankingListSpec<T>): string {
+  const detail = spec.detail?.(row) ?? "";
   const panelId = `${spec.idPrefix}-kort-${i}`;
-  const klubb = spec.klubb?.(row);
+  const club = spec.club?.(row);
   const meta = spec.meta?.(row);
-  const ekstra = spec.radKlasse?.(row);
+  const extra = spec.rowClass?.(row);
   return `
-    <div class="res-row res-row--detalj${ekstra ? ` ${ekstra}` : ""}">
-      <span class="res-pl">${escHtml(spec.pl(row))}.</span>
+    <div class="res-row res-row--detalj${extra ? ` ${extra}` : ""}">
+      <span class="res-pl">${escHtml(spec.placement(row))}.</span>
       <div class="res-info">
-        <span class="res-navn">${escHtml(spec.namn(row))}</span>
-        ${klubb ? `<span class="res-klubb">${escHtml(klubb)}</span>` : ""}
+        <span class="res-navn">${escHtml(spec.name(row))}</span>
+        ${club ? `<span class="res-klubb">${escHtml(club)}</span>` : ""}
         ${meta ? `<span class="res-meta">${escHtml(meta)}</span>` : ""}
         ${
-          detaljar
+          detail
             ? `<button type="button" class="res-detalj-btn" aria-expanded="false" aria-controls="${panelId}">
                  <span class="res-detalj-tekst">Vis detaljar</span><span class="res-detalj-pil" aria-hidden="true">▾</span>
                </button>`
@@ -163,21 +163,21 @@ function kortHtml<T>(row: T, i: number, spec: RankingListeSpec<T>): string {
         }
       </div>
       <div class="res-tot">
-        <span class="res-tot-label">${escHtml(spec.hovudLabel)}</span>
-        <span class="res-tot-verdi">${escHtml(spec.hovud(row))}</span>
+        <span class="res-tot-label">${escHtml(spec.mainLabel)}</span>
+        <span class="res-tot-verdi">${escHtml(spec.main(row))}</span>
       </div>
-      ${detaljar ? `<div class="res-detalj" id="${panelId}" hidden>${detaljar}</div>` : ""}
+      ${detail ? `<div class="res-detalj" id="${panelId}" hidden>${detail}</div>` : ""}
     </div>`;
 }
 
 /** Cards below the breakpoint, the table above it — both always in the DOM. */
-export function rankingListeHtml<T>(rows: T[], spec: RankingListeSpec<T>): string {
-  const kort = rows.map((r, i) => kortHtml(r, i, spec)).join("");
+export function rankingListHtml<T>(rows: T[], spec: RankingListSpec<T>): string {
+  const cards = rows.map((r, i) => cardHtml(r, i, spec)).join("");
   return `
     <div class="res-mobil-blokk">
-      <div class="res-group"><div class="res-group-rows">${kort}</div></div>
+      <div class="res-group"><div class="res-group-rows">${cards}</div></div>
     </div>
-    <div class="res-desktop-blokk">${rankingTabellHtml(rows, spec)}</div>`;
+    <div class="res-desktop-blokk">${rankingTableHtml(rows, spec)}</div>`;
 }
 
 // ── Toggling ──────────────────────────────────────────────────────────────────
@@ -199,18 +199,18 @@ function panelFor(target: HTMLElement): { trigger: HTMLElement; panel: HTMLEleme
     const panel = btn.closest(".res-row")?.querySelector<HTMLElement>(".res-detalj");
     return panel ? { trigger: btn, panel } : null;
   }
-  const rad = target.closest<HTMLElement>(".rank-rad--klikk");
-  if (rad) {
-    const panel = rad.nextElementSibling;
+  const row = target.closest<HTMLElement>(".rank-rad--klikk");
+  if (row) {
+    const panel = row.nextElementSibling;
     if (panel instanceof HTMLElement && panel.classList.contains("rank-detalj-rad")) {
-      return { trigger: rad, panel };
+      return { trigger: row, panel };
     }
   }
   return null;
 }
 
 /** One delegated listener covers both the cards and the table rows. */
-export function bindRankingDetaljar(container: HTMLElement): void {
+export function bindRankingDetails(container: HTMLElement): void {
   container.addEventListener("click", (event) => {
     const found = panelFor(event.target as HTMLElement);
     if (found) toggle(found.trigger, found.panel);

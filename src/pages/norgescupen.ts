@@ -6,7 +6,7 @@ import { formatDate, yearOptions } from "@/utils/shared";
 import { createErrorBanner } from "@/components/ErrorBanner";
 import { createLoadingState } from "@/components/LoadingState";
 import { createEmptyState } from "@/components/EmptyState";
-import { bindRankingDetaljar, detaljTabellHtml, rankingListeHtml } from "@/components/RankingListe";
+import { bindRankingDetails, detailTableHtml, rankingListHtml } from "@/components/RankingList";
 import type { Tables } from "@/types";
 import type { ResultWithRelations, TournamentForNC } from "@/services/norgescupService";
 import type { SingleListRow, TeamListRow } from "@/utils/norgescup";
@@ -99,21 +99,21 @@ function classTabsHtml(selectedClass: number, year: number): string {
 }
 
 function singleListHtml(list: SingleListRow[]): string {
-  return rankingListeHtml<SingleListRow>(list, {
+  return rankingListHtml<SingleListRow>(list, {
     idPrefix: "nc-singel",
-    pl: (item) => String(item.plassering),
-    namn: (item) => item.navn,
-    klubb: (item) => item.klubb,
-    hovudLabel: "POENG",
-    hovud: (item) => formaterPoeng(item.totalPoeng),
-    detalj: (item) =>
-      detaljTabellHtml(
+    placement: (item) => String(item.plassering),
+    name: (item) => item.navn,
+    club: (item) => item.klubb,
+    mainLabel: "POENG",
+    main: (item) => formaterPoeng(item.totalPoeng),
+    detail: (item) =>
+      detailTableHtml(
         [
-          { label: "Dato", verdi: (r) => formatDate(r._stevne?.dato) },
-          { label: "Type", verdi: (r) => r._stevne?.typeNavn ?? "–" },
-          { label: "Stevne", verdi: (r) => r._stevne?.navn ?? "–" },
-          { label: "Pl.", klasse: "res-tal", verdi: (r) => String(r.plassering ?? "–") },
-          { label: "Poeng", klasse: "res-tal", verdi: (r) => formaterPoeng(r.nc_poeng) },
+          { label: "Dato", value: (r) => formatDate(r._stevne?.dato) },
+          { label: "Type", value: (r) => r._stevne?.typeNavn ?? "–" },
+          { label: "Stevne", value: (r) => r._stevne?.navn ?? "–" },
+          { label: "Pl.", cellClass: "res-tal", value: (r) => String(r.plassering ?? "–") },
+          { label: "Poeng", cellClass: "res-tal", value: (r) => formaterPoeng(r.nc_poeng) },
         ],
         item.detaljRader,
       ),
@@ -121,19 +121,19 @@ function singleListHtml(list: SingleListRow[]): string {
 }
 
 function teamListHtml(teamList: TeamListRow[]): string {
-  return rankingListeHtml<TeamListRow>(teamList, {
+  return rankingListHtml<TeamListRow>(teamList, {
     idPrefix: "nc-lag",
-    pl: (item) => String(item.plassering),
-    namnLabel: "KLUBB",
-    namn: (item) => item.klubb?.navn ?? "–",
+    placement: (item) => String(item.plassering),
+    nameLabel: "KLUBB",
+    name: (item) => item.klubb?.navn ?? "–",
     meta: (item) => `${item.bidragsytere.length} kastarar`,
-    hovudLabel: "POENG",
-    hovud: (item) => formaterPoeng(item.lagTotal),
-    detalj: (item) =>
-      detaljTabellHtml(
+    mainLabel: "POENG",
+    main: (item) => formaterPoeng(item.lagTotal),
+    detail: (item) =>
+      detailTableHtml(
         [
-          { label: "Kastar", verdi: (b) => throwerName(b.kaster) },
-          { label: "Poeng", klasse: "res-tal", verdi: (b) => formaterPoeng(b.sum) },
+          { label: "Kastar", value: (b) => throwerName(b.kaster) },
+          { label: "Poeng", cellClass: "res-tal", value: (b) => formaterPoeng(b.sum) },
         ],
         item.bidragsytere,
       ),
@@ -206,7 +206,7 @@ export async function render(container: HTMLElement): Promise<void> {
         );
       } else {
         teamContainer.innerHTML = teamListHtml(teamList);
-        bindRankingDetaljar(teamContainer);
+        bindRankingDetails(teamContainer);
       }
     } else {
       content.innerHTML = `
@@ -227,7 +227,7 @@ export async function render(container: HTMLElement): Promise<void> {
         );
       } else {
         singleContainer.innerHTML = singleListHtml(singleList);
-        bindRankingDetaljar(singleContainer);
+        bindRankingDetails(singleContainer);
       }
 
       content.querySelector("#nc-single-section")!.addEventListener("click", (e) => {
