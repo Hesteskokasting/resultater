@@ -2357,6 +2357,15 @@ th.standing-sp-th {
   color: var(--tekst-3);
 }
 
+/* The hint belongs to the desktop table. The cards below the breakpoint carry a
+   "Vis detaljar" button of their own and need no telling. */
+@media (max-width: 699px) {
+  .nc-click-hint,
+  .nc-click-hint-row {
+    display: none;
+  }
+}
+
 /* From 2026 the klasse tabs are gone, leaving the hint alone in the row —
    space-between would then park it on the left. */
 .nc-class-tabs-wrapper .nc-click-hint {
