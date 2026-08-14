@@ -17,6 +17,7 @@ vi.mock("@/admin/forms/kasterForm", () => ({ mountThrowerForm: mocks.mountThrowe
 vi.mock("@/admin/forms/stevneForm", () => ({ mountTournamentForm: mocks.mountTournamentForm }));
 vi.mock("@/components/Toast", () => ({ showToast: mocks.showToast }));
 
+import { confirmDialog } from "@/components/ConfirmDialog";
 import { openAdminModal } from "@/admin/_adminModal";
 import { openClubEditor, openThrowerEditor, openTournamentEditor } from "@/admin/_adminEdit";
 import type { AdminFormHost } from "@/admin/forms/_formHost";
@@ -119,6 +120,35 @@ describe("openAdminModal", () => {
     expect(document.querySelector(".modal-dialog")?.classList.contains("modal-fullscreen")).toBe(
       true,
     );
+    modal.close();
+  });
+});
+
+describe("stacked confirm dialog", () => {
+  function zIndexOf(el: Element | null): number {
+    return Number((el as HTMLElement | null)?.style.zIndex ?? 0);
+  }
+
+  function cancelConfirm(): void {
+    document.querySelector<HTMLButtonElement>("#cd-cancel")!.click();
+  }
+
+  it("paints the delete confirm above the form overlay it opened from", async () => {
+    // The dialog element is reused, so an earlier confirm leaves it in the DOM
+    // before the form overlay — it must still stack on top.
+    const first = confirmDialog({ title: "T", message: "M" });
+    cancelConfirm();
+    await first;
+
+    const modal = openAdminModal({ title: "Rediger stevne" });
+    const pending = confirmDialog({ title: "Slett stevne", message: "Sikker?", danger: true });
+
+    const dialog = document.querySelector("[role='alertdialog']");
+    expect(dialog).not.toBeNull();
+    expect(zIndexOf(dialog)).toBeGreaterThan(zIndexOf(document.querySelector("[role='dialog']")));
+
+    cancelConfirm();
+    await expect(pending).resolves.toBe(false);
     modal.close();
   });
 });

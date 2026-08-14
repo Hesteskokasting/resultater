@@ -13,7 +13,11 @@ let _resolve: ((value: boolean) => void) | null = null;
 const _modal = createModalLifecycle();
 
 function getEl(): HTMLElement {
-  if (_el) return _el;
+  if (_el) {
+    // The element is reused across dialogs; re-attach it if something detached it.
+    if (!_el.isConnected) document.body.appendChild(_el);
+    return _el;
+  }
 
   _el = createModalEl({
     role: "alertdialog",
