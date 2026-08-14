@@ -1228,13 +1228,15 @@
   white-space: normal;
 }
 
-/* Invalid: fewer counting stevner than the rules ask for. */
+/* Not yet valid: fewer counting stevner than the rules ask for. Held back rather
+   than flagged — the season is unfinished, not wrong. */
 .rank-rad--ugyldig,
 .rank-table tbody tr.rank-rad--ugyldig td,
 .rank-rad--ugyldig .res-navn,
 .rank-rad--ugyldig .res-pl,
 .rank-rad--ugyldig .res-tot-verdi {
-  color: var(--feil);
+  color: var(--tekst-2);
+  font-weight: normal;
 }
 
 .rank-detalj-boks {
@@ -2375,8 +2377,8 @@ th.standing-sp-th {
   margin-bottom: 4px;
 }
 
-.nc-info-text--warning {
-  color: var(--feil);
+.nc-info-text--dempa {
+  color: var(--tekst-2);
   margin-bottom: 0;
 }
 

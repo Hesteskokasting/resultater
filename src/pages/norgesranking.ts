@@ -76,8 +76,8 @@ function infoHtml(visible: boolean): string {
       <p class="nc-info-text">
         For å få eit gyldig årsresultat skal kasteren minst ha vore gjennom ${MIN_STEVNER} rankingrunder.
       </p>
-      <p class="nc-info-text nc-info-text--warning">
-        Resultater merket med rødt er ikkje gyldig (mindre enn ${MIN_STEVNER} runder).
+      <p class="nc-info-text nc-info-text--dempa">
+        Resultat utan plassering er ikkje gyldige enno (mindre enn ${MIN_STEVNER} rundar).
       </p>
     </div>`;
 }
