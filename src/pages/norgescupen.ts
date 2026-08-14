@@ -1,13 +1,12 @@
 import { throwerName } from "@/utils/kaster";
 import { logError } from "@/utils/logError";
-import { bindExpandableRows } from "@/utils/expandableRows";
 import { formaterPoeng, buildSingleList, buildTeamList } from "@/utils/norgescup";
 import { getRules, getTournamentsAndResults } from "@/services/norgescupService";
 import { formatDate, yearOptions } from "@/utils/shared";
 import { createErrorBanner } from "@/components/ErrorBanner";
 import { createLoadingState } from "@/components/LoadingState";
 import { createEmptyState } from "@/components/EmptyState";
-import { createTable } from "@/components/Table";
+import { bindRankingDetaljar, detaljTabellHtml, rankingListeHtml } from "@/components/RankingListe";
 import type { Tables } from "@/types";
 import type { ResultWithRelations, TournamentForNC } from "@/services/norgescupService";
 import type { SingleListRow, TeamListRow } from "@/utils/norgescup";
@@ -95,101 +94,55 @@ function classTabsHtml(selectedClass: number, year: number): string {
   return `
     <div class="nc-class-tabs-wrapper">
       ${tabs}
-      <span class="nc-click-hint">Klikk poengsum for å vise detaljer</span>
+      <span class="nc-click-hint">Klikk ein kastar for å vise detaljar</span>
     </div>`;
 }
 
-function teamPointsCellContent(points: number): DocumentFragment {
-  const frag = document.createDocumentFragment();
-  frag.appendChild(document.createTextNode(formaterPoeng(points)));
-  const chevron = document.createElement("span");
-  chevron.className = "nc-chevron";
-  chevron.textContent = " ▼";
-  frag.appendChild(chevron);
-  return frag;
-}
-
-function createSingleTable(list: SingleListRow[]): HTMLElement {
-  if (list.length === 0) return createEmptyState("Ingen resultater funnet.");
-
-  return createTable<SingleListRow>({
-    rows: list,
-    rowClass: "nc-single-row",
-    rowAttrs: (_, i) => ({ "data-idx": String(i) }),
-    detailRowClass: "nc-detail-row d-none",
-    detailRow: (item) =>
-      createTable({
-        rows: item.detaljRader,
-        tableClass: "detalj-tabell",
-        theadClass: "",
-        columns: [
-          { label: "Dato", render: (r) => formatDate(r._stevne?.dato) },
-          { label: "Type", render: (r) => r._stevne?.typeNavn ?? "–" },
-          { label: "Stevne", render: (r) => r._stevne?.navn ?? "–" },
-          { label: "Pl.", render: (r) => String(r.plassering ?? "–") },
-          { label: "Poeng", render: (r) => formaterPoeng(r.nc_poeng) },
+function singleListHtml(list: SingleListRow[]): string {
+  return rankingListeHtml<SingleListRow>(list, {
+    idPrefix: "nc-singel",
+    pl: (item) => String(item.plassering),
+    namn: (item) => item.navn,
+    klubb: (item) => item.klubb,
+    hovudLabel: "POENG",
+    hovud: (item) => formaterPoeng(item.totalPoeng),
+    detalj: (item) =>
+      detaljTabellHtml(
+        [
+          { label: "Dato", verdi: (r) => formatDate(r._stevne?.dato) },
+          { label: "Type", verdi: (r) => r._stevne?.typeNavn ?? "–" },
+          { label: "Stevne", verdi: (r) => r._stevne?.navn ?? "–" },
+          { label: "Pl.", klasse: "res-tal", verdi: (r) => String(r.plassering ?? "–") },
+          { label: "Poeng", klasse: "res-tal", verdi: (r) => formaterPoeng(r.nc_poeng) },
         ],
-      }),
-    columns: [
-      {
-        label: "Pl.",
-        thClass: "nc-td-pl",
-        cellClass: "nc-td-pl",
-        render: (item) => String(item.plassering),
-      },
-      { label: "Navn", render: (item) => item.navn },
-      { label: "Klubb", render: (item) => item.klubb },
-      {
-        label: "Poeng",
-        thClass: "nc-td-points",
-        cellClass: "nc-td-points nc-points-cell",
-        cellAttrs: (_, i) => ({ "data-idx": String(i) }),
-        render: (item) => teamPointsCellContent(item.totalPoeng),
-      },
-    ],
+        item.detaljRader,
+      ),
   });
 }
 
-function createTeamTable(teamList: TeamListRow[]): HTMLElement {
-  if (teamList.length === 0) return createEmptyState("Ingen lag funnet.");
-
-  return createTable<TeamListRow>({
-    rows: teamList,
-    rowClass: "nc-team-row",
-    rowAttrs: (_, i) => ({ "data-team-idx": String(i) }),
-    detailRowClass: "nc-team-detail-row d-none",
-    detailRow: (item) =>
-      createTable({
-        rows: item.bidragsytere,
-        tableClass: "detalj-tabell",
-        showHeader: false,
-        columns: [
-          { label: "", render: (b) => throwerName(b.kaster) },
-          { label: "", cellClass: "nc-td-points", render: (b) => formaterPoeng(b.sum) },
+function teamListHtml(teamList: TeamListRow[]): string {
+  return rankingListeHtml<TeamListRow>(teamList, {
+    idPrefix: "nc-lag",
+    pl: (item) => String(item.plassering),
+    namnLabel: "KLUBB",
+    namn: (item) => item.klubb?.navn ?? "–",
+    meta: (item) => `${item.bidragsytere.length} kastarar`,
+    hovudLabel: "POENG",
+    hovud: (item) => formaterPoeng(item.lagTotal),
+    detalj: (item) =>
+      detaljTabellHtml(
+        [
+          { label: "Kastar", verdi: (b) => throwerName(b.kaster) },
+          { label: "Poeng", klasse: "res-tal", verdi: (b) => formaterPoeng(b.sum) },
         ],
-      }),
-    columns: [
-      {
-        label: "Pl.",
-        thClass: "nc-td-pl",
-        cellClass: "nc-td-pl",
-        render: (item) => String(item.plassering),
-      },
-      { label: "Klubb", render: (item) => item.klubb?.navn ?? "–" },
-      {
-        label: "Poeng",
-        thClass: "nc-td-points",
-        cellClass: "nc-td-points nc-team-points-cell",
-        cellAttrs: (_, i) => ({ "data-team-idx": String(i) }),
-        render: (item) => teamPointsCellContent(item.lagTotal),
-      },
-    ],
+        item.bidragsytere,
+      ),
   });
 }
 
 function pageSkeletonHtml(year: number, cupType: string): string {
   return `
-    <div class="content-page">
+    <div class="content-page res-side">
       <h1 class="nc-main-title">Norgescupen ${year}</h1>
       <div class="nc-filter-rad">
         <select id="nc-year" class="tl-select">${yearOptions(year, FIRST_YEAR)}</select>
@@ -239,22 +192,21 @@ export async function render(container: HTMLElement): Promise<void> {
         <section>
           <h2 class="nc-section-title">NC Lag ${year} (Kun klasse 1)</h2>
           <p class="nc-description">Dei 4 beste poengsummene frå kvar klubb.</p>
-          <div class="nc-click-hint nc-click-hint-row">Klikk poengsum for å vise detaljar</div>
+          <div class="nc-click-hint nc-click-hint-row">Klikk ein klubb for å vise detaljar</div>
           <div id="nc-team-table-container"></div>
         </section>`;
 
       const teamContainer = content.querySelector<HTMLElement>("#nc-team-table-container")!;
-      if (!rules) {
-        teamContainer.replaceChildren(createEmptyState("Ingen data."));
+      const teamList = rules
+        ? buildTeamList(cache.results, cache.tournaments, rules, year < 2026)
+        : [];
+      if (!teamList.length) {
+        teamContainer.replaceChildren(
+          createEmptyState(rules ? "Ingen lag funnet." : "Ingen data."),
+        );
       } else {
-        const teamList = buildTeamList(cache.results, cache.tournaments, rules, year < 2026);
-        teamContainer.replaceChildren(createTeamTable(teamList));
-        bindExpandableRows(teamContainer, {
-          triggerSel: ".nc-team-points-cell",
-          idAttr: "team-idx",
-          detailSel: ".nc-team-detail-row",
-          lookupRoot: content,
-        });
+        teamContainer.innerHTML = teamListHtml(teamList);
+        bindRankingDetaljar(teamContainer);
       }
     } else {
       content.innerHTML = `
@@ -266,24 +218,16 @@ export async function render(container: HTMLElement): Promise<void> {
         </section>`;
 
       const singleContainer = content.querySelector<HTMLElement>("#nc-single-table-container")!;
-      if (!rules) {
-        singleContainer.replaceChildren(createEmptyState("Ingen data."));
-      } else {
-        const singleList = buildSingleList(
-          cache.results,
-          cache.tournaments,
-          rules,
-          cupType,
-          classNum,
-          year < 2026,
+      const singleList = rules
+        ? buildSingleList(cache.results, cache.tournaments, rules, cupType, classNum, year < 2026)
+        : [];
+      if (!singleList.length) {
+        singleContainer.replaceChildren(
+          createEmptyState(rules ? "Ingen resultater funnet." : "Ingen data."),
         );
-        singleContainer.replaceChildren(createSingleTable(singleList));
-        bindExpandableRows(singleContainer, {
-          triggerSel: ".nc-points-cell",
-          idAttr: "idx",
-          detailSel: ".nc-detail-row",
-          lookupRoot: content,
-        });
+      } else {
+        singleContainer.innerHTML = singleListHtml(singleList);
+        bindRankingDetaljar(singleContainer);
       }
 
       content.querySelector("#nc-single-section")!.addEventListener("click", (e) => {

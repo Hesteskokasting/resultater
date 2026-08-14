@@ -1,4 +1,4 @@
 1. provide a one line commit text in english when done with a task.
 2. Do not add unnecessary comments inline. Keep inline comments short and in english.
 3. Do not use npx/npm commands. Use vp, e.g. vp check, vp test etc.
-4. Use english identifiers and variables
+4. Use english identifiers, function names and variables

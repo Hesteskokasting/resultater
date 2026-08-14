@@ -4,10 +4,9 @@ import { createExcelButton } from "@/components/ExcelButton";
 import { createErrorBanner } from "@/components/ErrorBanner";
 import { createLoadingState } from "@/components/LoadingState";
 import { createEmptyState } from "@/components/EmptyState";
-import { createTable } from "@/components/Table";
+import { bindRankingDetaljar, detaljTabellHtml, rankingListeHtml } from "@/components/RankingListe";
 import { createSearchInput } from "@/components/SearchInput";
 import { logError } from "@/utils/logError";
-import { bindExpandableRows } from "@/utils/expandableRows";
 import { getTournamentsAndResults } from "@/services/norgesrankingService";
 import type { RankingTournamentRow, RankingResultRow } from "@/services/norgesrankingService";
 import { MIN_STEVNER, buildEventsMap, buildRankingList } from "@/utils/norgesrankingLogikk";
@@ -83,7 +82,21 @@ function infoHtml(visible: boolean): string {
     </div>`;
 }
 
-function createRankingTable(list: RankingItem[], searchText: string): HTMLElement {
+function detailHtml(item: RankingItem): string {
+  return detaljTabellHtml<RingInfo>(
+    [
+      { label: "Dato", verdi: (r) => formatDate(r._stevne?.dato) },
+      { label: "Type", verdi: (r) => r._stevne?.typeNamn ?? "–" },
+      { label: "Stevne", verdi: (r) => r._stevne?.navn ?? "–" },
+      { label: "Metode", verdi: (r) => r.metodeNamn },
+      { label: "Ring", klasse: "res-tal", verdi: (r) => String(r.antallRing) },
+      { label: "%Ring", klasse: "res-tal", verdi: (r) => formatPercent(r.prosent) },
+    ],
+    item.detaljRader,
+  );
+}
+
+function rankingListHtml(list: RankingItem[], searchText: string): string | null {
   const search = searchText.trim().toLowerCase();
   const filtered = search
     ? list.filter(
@@ -91,84 +104,43 @@ function createRankingTable(list: RankingItem[], searchText: string): HTMLElemen
       )
     : list;
 
-  if (filtered.length === 0) return createEmptyState("Ingen resultater funnet.");
+  if (filtered.length === 0) return null;
 
-  return createTable<RankingItem>({
-    rows: filtered,
-    rowClass: (item) => (item.erGyldig ? "nc-single-row" : "nc-single-row nc-row--invalid"),
-    rowAttrs: (_, i) => ({ "data-idx": String(i) }),
-    detailRowClass: "nc-detail-row d-none",
-    detailRow: (item) =>
-      createTable<RingInfo>({
-        rows: item.detaljRader,
-        tableClass: "detalj-tabell",
-        theadClass: "",
-        columns: [
-          { label: "Dato", render: (r) => formatDate(r._stevne?.dato) },
-          { label: "Type", render: (r) => r._stevne?.typeNamn ?? "–" },
-          { label: "Stevne", render: (r) => r._stevne?.navn ?? "–" },
-          { label: "Metode", render: (r) => r.metodeNamn },
-          { label: "Ring", render: (r) => String(r.antallRing) },
-          { label: "%Ring", render: (r) => formatPercent(r.prosent) },
-        ],
-      }),
-    columns: [
+  return rankingListeHtml<RankingItem>(filtered, {
+    idPrefix: "nr",
+    pl: (item) => (item.erGyldig ? String(item.plassering ?? "–") : "–"),
+    namn: (item) => item.navn,
+    klubb: (item) => item.klubb,
+    meta: (item) => `${item.antallStevner} ${item.antallStevner === 1 ? "stevne" : "stevner"}`,
+    kolonnar: [
       {
-        label: "Pl.",
-        thClass: "nc-td-pl",
-        cellClass: "nc-td-pl",
-        render: (item) => (item.erGyldig ? String(item.plassering ?? "–") : "–"),
-      },
-      {
-        label: "Navn",
-        render: (item) => item.navn,
-      },
-      {
-        label: "Klubb",
-        render: (item) => item.klubb,
-      },
-      {
-        label: "Stevner",
-        thClass: "nc-td-center",
-        cellClass: "nc-td-center",
-        render: (item) => String(item.antallStevner),
-      },
-      {
-        label: "%Snitt",
-        thClass: "nc-td-points",
-        cellClass: "nc-td-points nc-points-cell",
-        cellAttrs: (_, i) => ({ "data-idx": String(i) }),
-        render: (item) => {
-          const frag = document.createDocumentFragment();
-          frag.appendChild(document.createTextNode(formatPercent(item.snittProsent)));
-          const chevron = document.createElement("span");
-          chevron.className = "nc-chevron";
-          chevron.textContent = " ▼";
-          frag.appendChild(chevron);
-          return frag;
-        },
+        label: "STEVNER",
+        klasse: "res-tal res-tal--dempa",
+        verdi: (item) => String(item.antallStevner),
       },
     ],
+    hovudLabel: "%SNITT",
+    hovud: (item) => formatPercent(item.snittProsent),
+    detalj: detailHtml,
+    radKlasse: (item) => (item.erGyldig ? undefined : "rank-rad--ugyldig"),
   });
 }
 
 function pageSkeletonHtml(year: number, isNative: boolean): string {
   return `
-    <div class="content-page">
+    <div class="content-page res-side">
       <h1 class="nc-main-title">Norgesranking ${year}</h1>
       <div class="nc-info-button-row">
         <button id="nr-info-button" class="btn btn-sm btn-outline-secondary">Vis info</button>
       </div>
-      <hr>
       ${infoHtml(false)}
-      <hr>
       <div class="nc-filter-rad">
         <select id="nr-year" class="tl-select">${yearOptions(year, FIRST_YEAR)}</select>
         <span id="nr-search-slot"></span>
         ${isNative ? "" : '<span id="nr-excel-slot"></span>'}
       </div>
       <div class="nc-click-hint-row">
-        <span class="nc-click-hint">Klikk prosent for å vise detaljer</span>
+        <span class="nc-click-hint">Klikk ein kastar for å vise detaljar</span>
       </div>
       <div id="nr-table-container"></div>
     </div>`;
@@ -198,15 +170,16 @@ export async function render(container: HTMLElement): Promise<void> {
       const tournamentsMap = buildEventsMap(cache.tournaments);
       const list = buildRankingList(cache.results, tournamentsMap);
       const tableEl = container.querySelector<HTMLElement>("#nr-table-container")!;
+      const html = rankingListHtml(list, filter.searchText);
+      if (html === null) {
+        tableEl.replaceChildren(createEmptyState("Ingen resultater funnet."));
+        return;
+      }
       const inner = document.createElement("div");
       inner.id = "nr-table-inner";
-      inner.appendChild(createRankingTable(list, filter.searchText));
+      inner.innerHTML = html;
       tableEl.replaceChildren(inner);
-      bindExpandableRows(inner, {
-        triggerSel: ".nc-points-cell",
-        idAttr: "idx",
-        detailSel: ".nc-detail-row",
-      });
+      bindRankingDetaljar(inner);
     }
 
     updateTable();
