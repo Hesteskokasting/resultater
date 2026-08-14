@@ -134,7 +134,7 @@ function pageSkeletonHtml(year: number, isNative: boolean): string {
         <button id="nr-info-button" class="btn btn-sm btn-outline-secondary">Vis info</button>
       </div>
       ${infoHtml(false)}
-      <div class="nc-filter-rad">
+      <div class="nc-filter-rad nc-filter-rad--smal">
         <select id="nr-year" class="tl-select">${yearOptions(year, FIRST_YEAR)}</select>
         <span id="nr-search-slot"></span>
         ${isNative ? "" : '<span id="nr-excel-slot"></span>'}

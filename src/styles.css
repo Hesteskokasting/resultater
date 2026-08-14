@@ -1,5 +1,14 @@
 /* Bootstrap 5 reboot håndterer box-sizing, margin/padding-reset og body-basisstiler */
 
+:root {
+  /* How wide a result or standings list may grow. Whatever sits above such a
+     list — section headings, filters, click hints — lines up with this, so the
+     hint's right edge meets the table's. */
+  --tabell-maks: 1000px;
+  /* Filter rows lead a list rather than span it. */
+  --filter-maks: 420px;
+}
+
 /* One cap for every viewport. A narrower cap below the 700px breakpoint used to
    hold the column at 500px right up to 699px and then release it to 1400px, so
    the page snapped from a narrow centred column to edge-to-edge in one pixel —
@@ -947,7 +956,7 @@
   justify-content: space-between;
   gap: 8px;
   margin-bottom: 6px;
-  max-width: 1000px;
+  max-width: var(--tabell-maks);
 }
 
 .res-seksjon-tittel {
@@ -985,7 +994,7 @@
 }
 
 .res-tabell-boks {
-  max-width: 1000px;
+  max-width: var(--tabell-maks);
   border: 1px solid var(--kant);
   border-radius: 8px;
   overflow-x: auto;
@@ -2274,6 +2283,19 @@ th.standing-sp-th {
   margin-bottom: 16px;
 }
 
+/* A filter row that leads its list: the fields carry the same width whatever
+   they hold, and the row stops well short of the table it heads. An icon-only
+   button in the row keeps its own size. */
+.nc-filter-rad--smal {
+  max-width: var(--filter-maks);
+}
+
+.nc-filter-rad--smal > .tl-select {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: none;
+}
+
 #nc-singel-seksjon {
   margin-bottom: 32px;
 }
@@ -2297,11 +2319,13 @@ th.standing-sp-th {
   margin-bottom: 10px;
 }
 
+/* Sits directly above the list, so it ends where the list ends. */
 .nc-class-tabs-wrapper {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 6px;
+  max-width: var(--tabell-maks);
 }
 
 .nc-class-tabs {
@@ -2331,6 +2355,12 @@ th.standing-sp-th {
 .nc-click-hint {
   font-size: 0.75rem;
   color: var(--tekst-3);
+}
+
+/* From 2026 the klasse tabs are gone, leaving the hint alone in the row —
+   space-between would then park it on the left. */
+.nc-class-tabs-wrapper .nc-click-hint {
+  margin-left: auto;
 }
 
 .empty-state {
@@ -2370,6 +2400,7 @@ th.standing-sp-th {
 .nc-click-hint-row {
   text-align: right;
   margin-bottom: 4px;
+  max-width: var(--tabell-maks);
 }
 
 .nc-info-text {

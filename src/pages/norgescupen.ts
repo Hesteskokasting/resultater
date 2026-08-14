@@ -144,7 +144,7 @@ function pageSkeletonHtml(year: number, cupType: string): string {
   return `
     <div class="content-page res-side">
       <h1 class="nc-main-title">Norgescupen ${year}</h1>
-      <div class="nc-filter-rad">
+      <div class="nc-filter-rad nc-filter-rad--smal">
         <select id="nc-year" class="tl-select">${yearOptions(year, FIRST_YEAR)}</select>
         <select id="nc-cuptype" class="tl-select${year < FIRST_MULTI_CUP_YEAR ? " d-none" : ""}">
           <option value="NC"${cupType === "NC" ? " selected" : ""}>NC</option>
