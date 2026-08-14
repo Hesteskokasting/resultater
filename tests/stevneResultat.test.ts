@@ -200,6 +200,91 @@ describe("stevne resultat tab", () => {
     expect(rows[0]!.querySelector(".res-td-klubb")?.textContent).toBe("Førde / Bergen");
   });
 
+  it("pairs an imported Par/Mix stevne on placement, since it has no startnummer", async () => {
+    getTournamentWithDetails.mockResolvedValue({
+      data: stevne({ kategori: { navn: "Par", erlagbasert: true } }),
+      error: null,
+    });
+    getResultsForTournament.mockResolvedValue({
+      data: [
+        resultat({ startnummer: null, plassering: 1 }),
+        resultat({
+          startnummer: null,
+          plassering: 1,
+          kaster: { id: 2, fornavn: "Bo", etternavn: "B" },
+          klubb: { navn: "Bergen" },
+        }),
+        resultat({
+          startnummer: null,
+          plassering: 2,
+          kaster: { id: 3, fornavn: "Cato", etternavn: "C" },
+        }),
+        resultat({
+          startnummer: null,
+          plassering: 2,
+          kaster: { id: 4, fornavn: "Dina", etternavn: "D" },
+        }),
+      ],
+      error: null,
+    });
+    const el = host();
+    await render(el, { id: 5 });
+
+    const rows = [...el.querySelectorAll(".res-desktop-blokk tbody:not(.res-tbody-hovud) tr")];
+    expect(rows).toHaveLength(2);
+    expect(rows[0]!.querySelector(".res-td-navn")?.textContent?.trim()).toBe("Ada A og Bo B");
+    expect(rows[1]!.querySelector(".res-td-navn")?.textContent?.trim()).toBe("Cato C og Dina D");
+  });
+
+  it("keeps a startnummer pair apart from a same-numbered placement", async () => {
+    getTournamentWithDetails.mockResolvedValue({
+      data: stevne({ kategori: { navn: "Par", erlagbasert: true } }),
+      error: null,
+    });
+    getResultsForTournament.mockResolvedValue({
+      data: [
+        resultat({ startnummer: 1, plassering: 1 }),
+        resultat({
+          startnummer: null,
+          plassering: 1,
+          kaster: { id: 2, fornavn: "Bo", etternavn: "B" },
+        }),
+      ],
+      error: null,
+    });
+    const el = host();
+    await render(el, { id: 5 });
+
+    // Startnummer 1 and placement 1 are different keys, so these stay two rows.
+    expect(el.querySelectorAll(".res-desktop-blokk tbody:not(.res-tbody-hovud) tr")).toHaveLength(
+      2,
+    );
+  });
+
+  it("leaves a row alone when it has neither startnummer nor placement", async () => {
+    getTournamentWithDetails.mockResolvedValue({
+      data: stevne({ kategori: { navn: "Par", erlagbasert: true } }),
+      error: null,
+    });
+    getResultsForTournament.mockResolvedValue({
+      data: [
+        resultat({ startnummer: null, plassering: null }),
+        resultat({
+          startnummer: null,
+          plassering: null,
+          kaster: { id: 2, fornavn: "Bo", etternavn: "B" },
+        }),
+      ],
+      error: null,
+    });
+    const el = host();
+    await render(el, { id: 5 });
+
+    expect(el.querySelectorAll(".res-desktop-blokk tbody:not(.res-tbody-hovud) tr")).toHaveLength(
+      2,
+    );
+  });
+
   it("carries the merged placement and a link to the umbrella on a local SNC stevne", async () => {
     getTournamentWithDetails.mockResolvedValue({
       data: stevne({ snc_hovudstevne_id: 10, stevnetype: { navn: "SNC" } }),

@@ -42,12 +42,29 @@ function pairClubDisplay(pair: ResultRow[]): string {
   return [...seen].join(" / ");
 }
 
-/** Groups rows within a group by startnummer for Par/Mix display. */
+/**
+ * Puts a Par/Mix pair back together for display.
+ *
+ * Startnummer is the reliable signal, but only stevner run through the app carry
+ * one — every imported result has it null. Those instead give both partners the
+ * pair's own placement, so placement is the fallback. The two are namespaced
+ * apart because a startnummer and a placement are both small integers and would
+ * otherwise collide. A row with neither stands alone, which is also what happens
+ * to a partner whose row was never imported.
+ *
+ * Where two pairs tie, placement puts all four in one row. That is the price of
+ * the fallback; filling startnummer in for the old stevner is what removes it.
+ */
 function groupPairsByStart(rows: ResultRow[]): ResultRow[][] {
-  const map = new Map<number | string, ResultRow[]>();
+  const map = new Map<string, ResultRow[]>();
   let fallbackIdx = 0;
   for (const r of rows) {
-    const key = r.startnummer != null ? r.startnummer : `_${fallbackIdx++}`;
+    const key =
+      r.startnummer != null
+        ? `s${r.startnummer}`
+        : r.plassering != null
+          ? `p${r.plassering}`
+          : `_${fallbackIdx++}`;
     const group = map.get(key) ?? [];
     group.push(r);
     map.set(key, group);
