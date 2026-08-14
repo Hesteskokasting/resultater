@@ -6,6 +6,7 @@
 // from one list, so the three cannot drift apart.
 
 import { escHtml } from "@/utils/escHtml";
+import { bindExpandableRows } from "@/utils/expandableRows";
 
 export interface ResultatKolonnar {
   /** X-kast innledende: Poeng + Ringar, scored per court. */
@@ -410,18 +411,14 @@ export function resultatListeHtml(seksjonar: ResultatSeksjon[], cols: ResultatKo
 
 /** One delegated listener toggles whichever detail panel was asked for. */
 export function bindResultatDetaljar(container: HTMLElement): void {
-  container.addEventListener("click", (event) => {
-    const btn = (event.target as HTMLElement).closest<HTMLButtonElement>(".res-detalj-btn");
-    if (!btn) return;
-    const row = btn.closest(".res-row");
-    const panel = row?.querySelector<HTMLElement>(".res-detalj");
-    if (!panel) return;
-    const open = panel.hidden;
-    panel.hidden = !open;
-    btn.setAttribute("aria-expanded", String(open));
-    const text = btn.querySelector(".res-detalj-tekst");
-    const arrow = btn.querySelector(".res-detalj-pil");
-    if (text) text.textContent = open ? "Skjul detaljar" : "Vis detaljar";
-    if (arrow) arrow.textContent = open ? "▴" : "▾";
+  bindExpandableRows(container, {
+    trigger: ".res-detalj-btn",
+    panel: (btn) => btn.closest(".res-row")?.querySelector<HTMLElement>(".res-detalj") ?? null,
+    onToggle: (btn, open) => {
+      const text = btn.querySelector(".res-detalj-tekst");
+      const arrow = btn.querySelector(".res-detalj-pil");
+      if (text) text.textContent = open ? "Skjul detaljar" : "Vis detaljar";
+      if (arrow) arrow.textContent = open ? "▴" : "▾";
+    },
   });
 }

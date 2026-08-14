@@ -6,6 +6,7 @@
 // instead. The panel markup itself is shared by card and table row.
 
 import { escHtml } from "@/utils/escHtml";
+import { bindExpandableRows } from "@/utils/expandableRows";
 
 export interface RankingColumn<T> {
   label: string;
@@ -182,44 +183,34 @@ export function rankingListHtml<T>(rows: T[], spec: RankingListSpec<T>): string 
 
 // ── Toggling ──────────────────────────────────────────────────────────────────
 
-function toggle(trigger: HTMLElement, panel: HTMLElement): void {
-  const open = Boolean(panel.hidden);
-  panel.hidden = !open;
-  trigger.setAttribute("aria-expanded", String(open));
-  trigger.classList.toggle("rank-rad--open", open);
-  const text = trigger.querySelector(".res-detalj-tekst");
-  if (text) text.textContent = open ? "Skjul detaljar" : "Vis detaljar";
+function setArrow(trigger: HTMLElement, open: boolean): void {
   const arrow = trigger.querySelector(".res-detalj-pil, .rank-pil");
   if (arrow) arrow.textContent = open ? "▴" : "▾";
 }
 
-function panelFor(target: HTMLElement): { trigger: HTMLElement; panel: HTMLElement } | null {
-  const btn = target.closest<HTMLElement>(".res-detalj-btn");
-  if (btn) {
-    const panel = btn.closest(".res-row")?.querySelector<HTMLElement>(".res-detalj");
-    return panel ? { trigger: btn, panel } : null;
-  }
-  const row = target.closest<HTMLElement>(".rank-rad--klikk");
-  if (row) {
-    const panel = row.nextElementSibling;
-    if (panel instanceof HTMLElement && panel.classList.contains("rank-detalj-rad")) {
-      return { trigger: row, panel };
-    }
-  }
-  return null;
-}
-
-/** One delegated listener covers both the cards and the table rows. */
+/** The card button and the table row are two trigger kinds on one container. */
 export function bindRankingDetails(container: HTMLElement): void {
-  container.addEventListener("click", (event) => {
-    const found = panelFor(event.target as HTMLElement);
-    if (found) toggle(found.trigger, found.panel);
+  bindExpandableRows(container, {
+    trigger: ".res-detalj-btn",
+    panel: (btn) => btn.closest(".res-row")?.querySelector<HTMLElement>(".res-detalj") ?? null,
+    onToggle: (btn, open) => {
+      const text = btn.querySelector(".res-detalj-tekst");
+      if (text) text.textContent = open ? "Skjul detaljar" : "Vis detaljar";
+      setArrow(btn, open);
+    },
   });
-  container.addEventListener("keydown", (event) => {
-    if (event.key !== "Enter" && event.key !== " ") return;
-    const found = panelFor(event.target as HTMLElement);
-    if (!found || found.trigger.tagName === "BUTTON") return;
-    event.preventDefault();
-    toggle(found.trigger, found.panel);
+
+  bindExpandableRows(container, {
+    trigger: ".rank-rad--klikk",
+    panel: (row) => {
+      const next = row.nextElementSibling;
+      return next instanceof HTMLElement && next.classList.contains("rank-detalj-rad")
+        ? next
+        : null;
+    },
+    onToggle: (row, open) => {
+      row.classList.toggle("rank-rad--open", open);
+      setArrow(row, open);
+    },
   });
 }

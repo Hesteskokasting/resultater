@@ -9,6 +9,7 @@ import {
 import { throwerNameShort } from "@/utils/kaster";
 import { escHtml } from "@/utils/escHtml";
 import { coalesceReload } from "@/utils/coalesceReload";
+import { bindExpandableRows, makeRowsFocusable } from "@/utils/expandableRows";
 import type { Tables, Json, Round1FormatTyped } from "@/types";
 import { createTable, type ColumnDef } from "@/components/Table";
 import type { BannerMenuItem } from "@/components/BannerMenu";
@@ -417,37 +418,27 @@ export function bindStandingDetails(
     }
   });
 
-  tableEl.querySelectorAll<HTMLElement>("tr.standing-player-row").forEach((row) => {
-    row.setAttribute("tabindex", "0");
-    if (!row.hasAttribute("aria-expanded")) row.setAttribute("aria-expanded", "false");
-  });
+  makeRowsFocusable(tableEl, "tr.standing-player-row");
 
-  function toggle(row: HTMLElement): void {
-    const kid = row.dataset.kasterid;
-    if (!kid) return;
-    const detailRow = tableEl!.querySelector<HTMLElement>(
-      `tr.standing-detail[data-kasterid="${kid}"]`,
-    );
-    if (!detailRow) return;
-    const wasHidden = !!detailRow.hidden;
-    detailRow.hidden = !wasHidden;
-    row.classList.toggle("standing-active", wasHidden);
-    row.setAttribute("aria-expanded", String(wasHidden));
-    if (wasHidden) expandedIds.add(kid);
-    else expandedIds.delete(kid);
-  }
-
-  tableEl.addEventListener("click", (e) => {
-    const row = (e.target as HTMLElement).closest<HTMLElement>("tr.standing-player-row");
-    if (row) toggle(row);
-  });
-
-  tableEl.addEventListener("keydown", (e) => {
-    if (e.key !== "Enter" && e.key !== " ") return;
-    const row = (e.target as HTMLElement).closest<HTMLElement>("tr.standing-player-row");
-    if (!row) return;
-    e.preventDefault();
-    toggle(row);
+  // The detail is a row of its own further down the table, tied to its player
+  // row by kasterid rather than by sitting next to it.
+  bindExpandableRows(tableEl, {
+    trigger: "tr.standing-player-row",
+    panel: (row) => {
+      const kid = row.dataset.kasterid;
+      return kid
+        ? tableEl.querySelector<HTMLElement>(`tr.standing-detail[data-kasterid="${kid}"]`)
+        : null;
+    },
+    onToggle: (row, open) => {
+      row.classList.toggle("standing-active", open);
+      const kid = row.dataset.kasterid;
+      if (!kid) return;
+      // The live standing re-renders on every change; this is what reopens the
+      // rows the user had open.
+      if (open) expandedIds.add(kid);
+      else expandedIds.delete(kid);
+    },
   });
 }
 
