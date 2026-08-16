@@ -38,9 +38,9 @@ export interface RecordsFilter {
 
 export type RankedRecord = RecordRow & { plassering: number };
 
-/** The view exposes the gender as its name, so the match is on text, not an id. */
+/** The view exposes `kjonn.navn`, which is the single-letter code M/K. */
 export function isFemale(row: Pick<RecordRow, "kjonn_navn">): boolean {
-  return (row.kjonn_navn ?? "").toLowerCase().includes("dame");
+  return (row.kjonn_navn ?? "").trim().toUpperCase() === "K";
 }
 
 /** Every name column on the view is nullable; the thrower helpers want plain strings. */

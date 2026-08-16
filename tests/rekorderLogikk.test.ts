@@ -11,7 +11,7 @@ function record(
   metode: string,
   poeng: number,
   fornavn: string,
-  kjonn = "Herrer",
+  kjonn = "M",
   klubb_navn = "Bergen HK",
 ) {
   return {
@@ -38,9 +38,9 @@ describe("findRecordMethod", () => {
 });
 
 describe("isFemale", () => {
-  it("matches on the gender name, not an id", () => {
-    expect(isFemale({ kjonn_navn: "Damer" })).toBe(true);
-    expect(isFemale({ kjonn_navn: "Herrer" })).toBe(false);
+  it("matches the M/K code the view actually stores", () => {
+    expect(isFemale({ kjonn_navn: "K" })).toBe(true);
+    expect(isFemale({ kjonn_navn: "M" })).toBe(false);
     expect(isFemale({ kjonn_navn: null })).toBe(false);
   });
 });
@@ -57,7 +57,7 @@ describe("recordThrower", () => {
 
 describe("filterAndRankRecords", () => {
   const rows = [
-    record("kongelag", 150, "Kari", "Damer"),
+    record("kongelag", 150, "Kari", "K"),
     record("kongelag", 180, "Ola"),
     record("kongelag", 180, "Per"),
     record("kongelag", 120, "Nils"),

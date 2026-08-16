@@ -56,12 +56,13 @@ async function getGenderIds(): Promise<{ id: number; navn: string }[]> {
   return _genderCache;
 }
 
+/** `kjonn.navn` holds the single-letter code M/K, not a spelled-out label. */
 function findGenderId(
   genderList: { id: number; navn: string }[],
   gender: NMGender,
 ): number | undefined {
-  const needle = gender === "women" ? "dame" : "herre";
-  return genderList.find((k) => k.navn.toLowerCase().includes(needle))?.id;
+  const code = gender === "women" ? "k" : "m";
+  return genderList.find((k) => k.navn.trim().toLowerCase() === code)?.id;
 }
 
 // ── Exported function ─────────────────────────────────────────────────────────
@@ -119,9 +120,15 @@ export async function getNMData(
     .or("gruppeid.is.null,gruppeid.neq.2");
 
   if (filterByGender) {
-    const genderList = await getGenderIds();
-    const genderId = findGenderId(genderList, gender);
-    if (genderId) resultatQuery = resultatQuery.eq("kaster.kjonnid", genderId);
+    const genderId = findGenderId(await getGenderIds(), gender);
+    // Skipping the filter on a miss silently listed both genders under a
+    // gendered heading. An error is better than a wrong list.
+    if (genderId == null) {
+      const err = new Error(`Fann ingen kjønns-id for "${gender}"`);
+      logError("getNMData.gender", err);
+      return { data: [], error: err };
+    }
+    resultatQuery = resultatQuery.eq("kaster.kjonnid", genderId);
   }
 
   if (category.genderFilter === "historical" && gender === "open") {
