@@ -230,6 +230,12 @@
         }
       });
 
+      // The menu is held open by :focus-within, so a picked link keeps it
+      // hanging over the page it just navigated to. Drop the focus.
+      desktopDropdown.querySelectorAll(".header-nav__dropdown-item").forEach((a) => {
+        a.addEventListener("click", () => a.blur());
+      });
+
       document.getElementById("statistikk-knapp").addEventListener("click", () => {
         const undermeny = document.getElementById("statistikk-undermeny");
         const knapp = document.getElementById("statistikk-knapp");

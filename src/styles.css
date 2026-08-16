@@ -125,7 +125,9 @@
 .header-nav__dropdown-menu {
   display: none;
   position: absolute;
-  top: calc(100% + 4px);
+  /* Flush against the button: a gap here is a dead zone the pointer crosses,
+     which drops :hover and closes the menu before it can be clicked. */
+  top: 100%;
   left: 0;
   background: var(--flate);
   border: 1px solid var(--kant);
