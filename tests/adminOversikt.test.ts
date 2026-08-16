@@ -37,7 +37,6 @@ vi.mock("@/admin/_adminEdit", () => ({
 vi.mock("@/admin/_adminCharts", () => ({
   drawBarChart: mocks.drawBarChart,
   drawLineChart: mocks.drawLineChart,
-  seriesColor: () => "#2a78d6",
   destroyAdminCharts: vi.fn(),
 }));
 

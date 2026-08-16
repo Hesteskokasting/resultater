@@ -65,12 +65,6 @@ function readTheme(el: Element): ChartTheme {
   };
 }
 
-/** Series colour n (1-based), wrapping is never needed — callers use at most three. */
-export function seriesColor(el: Element, slot: number): string {
-  const { series } = readTheme(el);
-  return series[Math.min(slot - 1, series.length - 1)] ?? "#2a78d6";
-}
-
 function create(canvas: HTMLCanvasElement, config: ChartConfiguration): void {
   if (!chartLib) return;
   chartLib.Chart.getChart(canvas)?.destroy();

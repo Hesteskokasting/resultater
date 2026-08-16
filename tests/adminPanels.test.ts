@@ -64,7 +64,6 @@ vi.mock("@/components/Toast", () => ({ showToast: mocks.showToast }));
 vi.mock("@/admin/_adminCharts", () => ({
   drawBarChart: vi.fn(),
   drawLineChart: vi.fn(),
-  seriesColor: () => "#2a78d6",
   destroyAdminCharts: vi.fn(),
 }));
 vi.mock("@/admin/_adminEdit", () => ({

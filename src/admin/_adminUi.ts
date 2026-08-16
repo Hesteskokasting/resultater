@@ -1,6 +1,5 @@
 import { createEl } from "@/utils/createEl";
 import { createEmptyState } from "@/components/EmptyState";
-import { seriesColor } from "./_adminCharts";
 import type { LabelCount } from "@/utils/adminStats";
 
 /**
@@ -156,7 +155,7 @@ export function createChartGrid(cards: ChartCard[]): HTMLElement {
  * they don't spend a gap, but keep their palette slot so the colours stay put.
  */
 export function renderShareCard(
-  { wrap, legend, card }: ChartCard,
+  { wrap, legend }: ChartCard,
   data: LabelCount[],
   labelOf?: (label: string) => string,
 ): void {
@@ -167,12 +166,22 @@ export function renderShareCard(
     if (entry.count <= 0) return;
     const seg = createEl("div", null, "admin-sharebar__seg");
     seg.style.flexGrow = String(entry.count);
-    seg.style.background = `var(--chart-s${(i % 3) + 1})`;
+    seg.style.background = seriesVar(i);
     bar.appendChild(seg);
   });
 
   wrap.replaceChildren(bar);
-  fillShareLegend(legend, data, card, labelOf);
+  fillShareLegend(legend, data, labelOf);
+}
+
+/**
+ * Palette slot for entry `i`, cycling through the three series colours. Bar
+ * segments and legend swatches both go through here, so a share with more
+ * entries than colours repeats them identically in the two places — and cycling
+ * (rather than clamping to the last colour) keeps neighbouring segments apart.
+ */
+function seriesVar(i: number): string {
+  return `var(--chart-s${(i % 3) + 1})`;
 }
 
 /**
@@ -183,7 +192,6 @@ export function renderShareCard(
 function fillShareLegend(
   legend: HTMLElement,
   data: LabelCount[],
-  host: Element,
   labelOf: (label: string) => string = (l) => l,
 ): void {
   const total = data.reduce((sum, d) => sum + d.count, 0);
@@ -192,7 +200,7 @@ function fillShareLegend(
   data.forEach((entry, i) => {
     const item = createEl("div", null, "admin-legend__item");
     const swatch = createEl("span", null, "admin-legend__swatch");
-    swatch.style.background = seriesColor(host, i + 1);
+    swatch.style.background = seriesVar(i);
     item.appendChild(swatch);
     item.appendChild(createEl("span", labelOf(entry.label), "admin-legend__label"));
     item.appendChild(createEl("span", String(entry.count), "admin-legend__value"));
