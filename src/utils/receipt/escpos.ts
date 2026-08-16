@@ -12,9 +12,15 @@ function bytes(...vals: number[]): Uint8Array {
   return new Uint8Array(vals);
 }
 
-/** ESC @ — initialize printer (reset all modes) */
+// ESC t n — character code page. 16 = WPC1252, which is Latin-1 compatible in
+// the 0xA0-0xFF range, so æ/ø/å print from their plain char codes.
+// If the printer shows garbage instead, it lacks page 16: switch to 5 (CP865)
+// and add a Unicode → CP865 byte map in encodeChar().
+const CODE_PAGE = 16;
+
+/** ESC @ + ESC t — initialize printer (reset all modes) and select the code page */
 export function init(): Uint8Array {
-  return bytes(ESC, 0x40);
+  return bytes(ESC, 0x40, ESC, 0x74, CODE_PAGE);
 }
 
 /** ESC a n — select justification: 0=left, 1=center, 2=right */
@@ -42,28 +48,22 @@ export function charSize(widthMul: SizeMul, heightMul: SizeMul): Uint8Array {
 }
 
 /**
- * Encode a text string as Latin-1 bytes.
- * Norwegian special chars are transliterated so they print correctly
- * regardless of which code page the printer is configured to use.
+ * Encode a text string as Latin-1 bytes for the selected code page.
  * Control bytes (< 0x20) are stripped to spaces so user-sourced text
  * (player/club names) can't inject ESC/POS commands into the stream.
+ * Anything outside Latin-1 has no byte on the printer and becomes "?".
  * The line is truncated to RECEIPT_COLS and a LF is appended.
  */
 export function textLine(s: string): Uint8Array {
   const normalized = s
-    .replace(/æ/g, "ae")
-    .replace(/ø/g, "oe")
-    .replace(/å/g, "aa")
-    .replace(/Æ/g, "Ae")
-    .replace(/Ø/g, "Oe")
-    .replace(/Å/g, "Aa")
     // eslint-disable-next-line no-control-regex
     .replace(/[\x00-\x1F\x7F]/g, " ")
     .slice(0, RECEIPT_COLS);
 
   const out = new Uint8Array(normalized.length + 1);
   for (let i = 0; i < normalized.length; i++) {
-    out[i] = normalized.charCodeAt(i) & 0xff;
+    const code = normalized.charCodeAt(i);
+    out[i] = code <= 0xff ? code : 0x3f;
   }
   out[normalized.length] = LF;
   return out;

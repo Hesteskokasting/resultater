@@ -13,8 +13,14 @@ describe("textLine", () => {
     expect(out[out.length - 1]).toBe(LF);
   });
 
-  it("transliterates Norwegian vowels to ASCII", () => {
-    expect(decode(textLine("Bjørn Åse Æ"))).toBe("Bjoern Aase Ae");
+  it("keeps Norwegian vowels as Latin-1 bytes", () => {
+    expect(Array.from(textLine("æøåÆØÅ")).slice(0, -1)).toEqual([
+      0xe6, 0xf8, 0xe5, 0xc6, 0xd8, 0xc5,
+    ]);
+  });
+
+  it("replaces non-Latin-1 characters with ?", () => {
+    expect(decode(textLine("A→B"))).toBe("A?B");
   });
 
   it("strips control bytes so user text cannot inject ESC/POS commands", () => {
