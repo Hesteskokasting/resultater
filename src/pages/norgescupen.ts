@@ -1,31 +1,26 @@
 import { throwerName } from "@/utils/kaster";
-import { logError } from "@/utils/logError";
-import { formaterPoeng, buildSingleList, buildTeamList } from "@/utils/norgescup";
-import { getRules, getTournamentsAndResults } from "@/services/norgescupService";
+import { hasSeparateClasses } from "@/utils/klasse";
+import {
+  formaterPoeng,
+  buildSingleList,
+  buildTeamList,
+  normalizeCupFilter,
+  FIRST_MULTI_CUP_YEAR,
+} from "@/utils/norgescup";
+import { loadCupYear, clearCupYearCache } from "@/services/norgescupService";
 import { formatDate, yearOptions } from "@/utils/shared";
 import { createErrorBanner, createLoadingState, createEmptyState } from "@/components/states";
 import { createInfoTooltip } from "@/components/InfoTooltip";
 import { bindRankingDetails, detailTableHtml, rankingListHtml } from "@/components/RankingList";
 import type { Tables } from "@/types";
-import type { ResultWithRelations, TournamentForNC } from "@/services/norgescupService";
-import type { SingleListRow, TeamListRow } from "@/utils/norgescup";
+import type { CupYear } from "@/services/norgescupService";
+import type { SingleListRow, TeamListRow, CupFilter } from "@/utils/norgescup";
 import { escHtml } from "@/utils/escHtml";
 
 const FIRST_YEAR = 2007;
-const FIRST_MULTI_CUP_YEAR = 2024;
 
-interface Filter {
-  year: number;
-  cupType: string;
+interface Filter extends CupFilter {
   classNum: number;
-  view: "singel" | "lag";
-}
-
-interface NCCache {
-  year: number | null;
-  rules: Tables<"antallTellendeNc"> | null;
-  tournaments: TournamentForNC[];
-  results: ResultWithRelations[];
 }
 
 const filter: Filter = {
@@ -35,36 +30,7 @@ const filter: Filter = {
   view: "singel",
 };
 
-let cache: NCCache = {
-  year: null,
-  rules: null,
-  tournaments: [],
-  results: [],
-};
-
-// ── Data fetching ─────────────────────────────────────────────────────────────
-
-async function fetchAndBufferData(year: number): Promise<boolean> {
-  if (cache.year === year) return true;
-
-  try {
-    const [{ data: rules, error: e1 }, { stevner, resultater, error: e2 }] = await Promise.all([
-      getRules(year),
-      getTournamentsAndResults(year),
-    ]);
-
-    if (e1 || e2) return false;
-
-    cache.year = year;
-    cache.rules = rules;
-    cache.tournaments = stevner;
-    cache.results = resultater;
-    return true;
-  } catch (err) {
-    logError("fetchAndBufferData", err);
-    return false;
-  }
-}
+let season: CupYear = { rules: null, tournaments: [], results: [] };
 
 // ── HTML builders ─────────────────────────────────────────────────────────────
 
@@ -98,13 +64,12 @@ function viewTabsHtml(selectedView: string): string {
 }
 
 function classTabsHtml(selectedClass: number, year: number): string {
-  const tabs =
-    year <= 2025
-      ? `<div class="nc-class-tabs">
+  const tabs = hasSeparateClasses(year)
+    ? `<div class="nc-class-tabs">
         <button class="nc-class-tab${selectedClass === 1 ? " active" : ""}" data-class="1">Klasse 1</button>
         <button class="nc-class-tab${selectedClass === 2 ? " active" : ""}" data-class="2">Klasse 2</button>
       </div>`
-      : "";
+    : "";
   return `
     <div class="nc-class-tabs-wrapper">
       ${tabs}
@@ -180,15 +145,16 @@ export async function render(container: HTMLElement): Promise<void> {
   filter.cupType = "NC";
   filter.classNum = 1;
   filter.view = "singel";
-  cache = { year: null, rules: null, tournaments: [], results: [] };
+  clearCupYearCache();
 
   container.replaceChildren(createLoadingState("Laster Norgescupen..."));
 
-  const ok = await fetchAndBufferData(filter.year);
-  if (!ok) {
+  const loaded = await loadCupYear(filter.year);
+  if (!loaded) {
     container.replaceChildren(createErrorBanner("Kunne ikkje laste data for Norgescupen."));
     return;
   }
+  season = loaded;
 
   container.innerHTML = pageSkeletonHtml(filter.year, filter.cupType);
 
@@ -200,7 +166,7 @@ export async function render(container: HTMLElement): Promise<void> {
 
   function updateView(): void {
     const { year, cupType, classNum, view } = filter;
-    const { rules } = cache;
+    const { rules } = season;
     const content = container.querySelector<HTMLElement>("#nc-content")!;
 
     container.querySelector("#nc-title-text")!.textContent = `Norgescupen ${year}`;
@@ -218,9 +184,7 @@ export async function render(container: HTMLElement): Promise<void> {
         </section>`;
 
       const teamContainer = content.querySelector<HTMLElement>("#nc-team-table-container")!;
-      const teamList = rules
-        ? buildTeamList(cache.results, cache.tournaments, rules, year < 2026)
-        : [];
+      const teamList = rules ? buildTeamList(season.results, season.tournaments, rules, year) : [];
       if (!teamList.length) {
         teamContainer.replaceChildren(
           createEmptyState(rules ? "Ingen lag funnet." : "Ingen data."),
@@ -239,7 +203,7 @@ export async function render(container: HTMLElement): Promise<void> {
 
       const singleContainer = content.querySelector<HTMLElement>("#nc-single-table-container")!;
       const singleList = rules
-        ? buildSingleList(cache.results, cache.tournaments, rules, cupType, classNum, year < 2026)
+        ? buildSingleList(season.results, season.tournaments, rules, cupType, classNum, year)
         : [];
       if (!singleList.length) {
         singleContainer.replaceChildren(
@@ -264,26 +228,24 @@ export async function render(container: HTMLElement): Promise<void> {
   container.querySelector<HTMLSelectElement>("#nc-year")!.addEventListener("change", async (e) => {
     filter.year = Number((e.target as HTMLSelectElement).value);
     filter.classNum = 1;
-    if (filter.year < FIRST_MULTI_CUP_YEAR) {
-      filter.cupType = "NC";
-      filter.view = "singel";
-      container.querySelector<HTMLSelectElement>("#nc-cuptype")!.value = "NC";
-    }
+    normalizeCupFilter(filter);
+    container.querySelector<HTMLSelectElement>("#nc-cuptype")!.value = filter.cupType;
     container.querySelector<HTMLElement>("#nc-content")!.replaceChildren(createLoadingState());
-    const ok = await fetchAndBufferData(filter.year);
-    if (!ok) {
+    const loaded = await loadCupYear(filter.year);
+    if (!loaded) {
       container
         .querySelector<HTMLElement>("#nc-content")!
         .replaceChildren(createErrorBanner("Feil ved henting av data."));
       return;
     }
+    season = loaded;
     updateView();
   });
 
   container.querySelector<HTMLSelectElement>("#nc-cuptype")!.addEventListener("change", (e) => {
     filter.cupType = (e.target as HTMLSelectElement).value;
     filter.classNum = 1;
-    if (filter.cupType !== "NC") filter.view = "singel";
+    normalizeCupFilter(filter);
     updateView();
   });
 

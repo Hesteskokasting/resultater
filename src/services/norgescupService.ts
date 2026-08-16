@@ -1,4 +1,5 @@
 import type { QueryData } from "@supabase/supabase-js";
+import type { Tables } from "@/types";
 import { supabase } from "@/supabase";
 import { logError } from "@/utils/logError";
 import { fetchAllRows } from "@/utils/fetchAllRows";
@@ -71,4 +72,41 @@ export async function getTournamentsAndResults(ar: number) {
   }
 
   return { stevner: [...stevnerMap.values()], resultater, error: null };
+}
+
+// ── Årsbuffer ─────────────────────────────────────────────────────────────────
+
+export interface CupYear {
+  rules: Tables<"antallTellendeNc"> | null;
+  tournaments: TournamentForNC[];
+  results: ResultWithRelations[];
+}
+
+// One year at a time: the page shows a single year, and toggling back and forth
+// between two of them is the only repeat worth sparing.
+let cached: { year: number; data: CupYear } | null = null;
+
+/** Drops the buffer so a fresh page mount refetches instead of reusing a stale season. */
+export function clearCupYearCache(): void {
+  cached = null;
+}
+
+/** Everything the Norgescup lists are built from, for one season. Null on failure. */
+export async function loadCupYear(year: number): Promise<CupYear | null> {
+  if (cached?.year === year) return cached.data;
+
+  try {
+    const [{ data: rules, error: e1 }, { stevner, resultater, error: e2 }] = await Promise.all([
+      getRules(year),
+      getTournamentsAndResults(year),
+    ]);
+    if (e1 || e2) return null;
+
+    const data: CupYear = { rules, tournaments: stevner, results: resultater };
+    cached = { year, data };
+    return data;
+  } catch (err) {
+    logError("loadCupYear", err);
+    return null;
+  }
 }

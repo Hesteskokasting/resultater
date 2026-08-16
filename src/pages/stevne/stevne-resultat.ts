@@ -2,6 +2,7 @@
 // score columns appear follows from the kastemetodar thrown; see ResultatTabell.
 
 import { throwerName, buildThrowerSlug } from "@/utils/kaster";
+import { hasSeparateClasses } from "@/utils/klasse";
 import { createErrorBanner, createLoadingState, createEmptyState } from "@/components/states";
 import { escHtml } from "@/utils/escHtml";
 import { logError } from "@/utils/logError";
@@ -70,14 +71,15 @@ function groupPairsByStart(rows: ResultRow[]): ResultRow[][] {
   return [...map.values()];
 }
 
-function groupResults(results: ResultRow[], isBefore2026: boolean): GroupEntry[] {
+function groupResults(results: ResultRow[], year: number): GroupEntry[] {
   const groups = new Map<string, GroupEntry>();
+  const perClass = hasSeparateClasses(year);
 
   for (const r of results) {
     const groupName = r.gruppe?.navn ?? "–";
     const className = r.klasse?.navn ?? null;
-    const key = isBefore2026 ? `${className ?? ""}|${groupName}` : groupName;
-    const label = isBefore2026 ? `${className ? className + " " : ""}${groupName}` : groupName;
+    const key = perClass ? `${className ?? ""}|${groupName}` : groupName;
+    const label = perClass ? `${className ? className + " " : ""}${groupName}` : groupName;
 
     if (!groups.has(key)) groups.set(key, { label, rows: [] });
     groups.get(key)!.rows.push(r);
@@ -193,7 +195,7 @@ export async function render(
     }
 
     const year = stevne.dato ? new Date(stevne.dato + "T12:00:00").getFullYear() : 9999;
-    const groups = groupResults(results, year < 2026);
+    const groups = groupResults(results, year);
     const cols = columnsFor(stevne, results);
     const isParMix = stevne.kategori?.erlagbasert ?? false;
 

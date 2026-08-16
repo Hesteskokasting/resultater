@@ -1,6 +1,7 @@
 import type { Tables, Kaster, Klubb } from "@/types";
 import { throwerName } from "./kaster";
 import { assignPlacements } from "./tildelPlassering";
+import { hasSeparateClasses } from "./klasse";
 import type { ResultWithRelations, TournamentForNC } from "@/services/norgescupService";
 
 export type { ResultWithRelations, TournamentForNC };
@@ -41,6 +42,25 @@ type CalcFn = (
 ) => ResultWithRelations[];
 
 // ── Exported helpers ──────────────────────────────────────────────────────────
+
+/** SNC and DNC were split out of the single cup in 2024; before that only NC exists. */
+export const FIRST_MULTI_CUP_YEAR = 2024;
+
+export interface CupFilter {
+  year: number;
+  cupType: string;
+  view: "singel" | "lag";
+}
+
+/**
+ * Falls back to a selection the chosen year and cup type actually have: only NC
+ * has a lag list, and before 2024 NC is the only cup at all. Without this a
+ * leftover choice from the previous year renders an empty list.
+ */
+export function normalizeCupFilter(filter: CupFilter): void {
+  if (filter.year < FIRST_MULTI_CUP_YEAR) filter.cupType = "NC";
+  if (filter.cupType !== "NC") filter.view = "singel";
+}
 
 export function formaterPoeng(p: number | null | undefined): string {
   if (p == null) return "–";
@@ -128,13 +148,15 @@ export function buildSingleList(
   regler: Regler,
   cupType: string,
   klasse: number,
-  isBefore2026: boolean,
+  year: number,
 ): SingleListRow[] {
   const eventsMap = buildEventsMap(stevner);
   const beregn = velgBeregnFunksjon(cupType);
   const klasseNavn = klasse === 1 ? "Klasse 1" : "Klasse 2";
 
-  const rader = isBefore2026 ? resultater.filter((r) => r.klasse?.navn === klasseNavn) : resultater;
+  const rader = hasSeparateClasses(year)
+    ? resultater.filter((r) => r.klasse?.navn === klasseNavn)
+    : resultater;
   const kasterMap = groupByThrower(rader);
 
   const liste: SingleListRow[] = [];
@@ -165,10 +187,13 @@ export function buildTeamList(
   resultater: ResultWithRelations[],
   stevner: TournamentForNC[],
   regler: Regler,
-  isBefore2026: boolean,
+  year: number,
 ): TeamListRow[] {
   const eventsMap = buildEventsMap(stevner);
-  const rader = isBefore2026 ? resultater.filter((r) => r.klasse?.navn === "Klasse 1") : resultater;
+  // Lag is Klasse 1 only, so before the merge the other class is filtered away.
+  const rader = hasSeparateClasses(year)
+    ? resultater.filter((r) => r.klasse?.navn === "Klasse 1")
+    : resultater;
   const kasterMap = groupByThrower(rader);
 
   const bidragMap = new Map<string, { kaster: Kaster; klubbId: number; sum: number }>();
