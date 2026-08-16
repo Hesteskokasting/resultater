@@ -20,6 +20,8 @@ export interface OppmoteButtonProps {
   onChange?: (confirmed: boolean) => void;
 }
 
+// ponytail: no teardown — the open-window timer checks isConnected instead. Add a
+// cleanup() the day a caller mounts and unmounts this faster than once per render.
 export interface OppmoteButtonHandle {
   element: HTMLElement;
 }

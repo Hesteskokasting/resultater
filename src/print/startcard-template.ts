@@ -115,6 +115,8 @@ function createRoundsBody(roundInfos: RoundInfo[]): HTMLTableSectionElement {
   return tbody;
 }
 
+// ponytail: createTh/createTd duplicate utils/createEl with colspan/rowspan bolted
+// on. Fold into createEl if it ever grows those, or if a second caller needs them.
 function createTh(
   text: string,
   rowspan = 1,

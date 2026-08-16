@@ -171,6 +171,9 @@ export function calcRingCount(score: number): number {
 }
 
 // ── Scoreboard rules ──────────────────────────────────────────────────────────
+// ponytail: these four have a single caller (Scoreboard) and describe interaction
+// rather than the data model, unlike the rest of this file. Split into
+// utils/scoreboardRules.ts if the section grows past a screen.
 
 /** Score that ends a match. */
 const WIN_SCORE = 21;

@@ -462,6 +462,9 @@ function setupScoreboardRealtime(
 
 // ── 3-player scoreboard ───────────────────────────────────────────────────────
 
+// ponytail: 11 functions here twin the 2-player half with a `3` suffix, so every
+// rule change lands twice. Generalize renderScoreboard to N sides the next time
+// one of them has to change.
 async function renderScoreboard3(
   container: HTMLElement,
   kamp: MatchRow,
