@@ -5,7 +5,8 @@ import { getMyMatches, getStartNumbersForTournaments } from "@/services/kampServ
 import { getMyCourts } from "@/services/xkastKongelagService";
 import { newTabAnchorAttrs } from "@/services/navigationService";
 import { scoreboardLinkHtml } from "@/components/ScoreboardButton";
-import { getAllMatchSides, sideScore } from "@/utils/kamp";
+import { groupBy } from "@/utils/groupBy";
+import { isByeSide, matchOutcome, matchSides } from "@/utils/myMatches";
 import { renderSectionCard } from "./_sectionCard";
 import type { MinSideContext } from "./_linkState";
 import type { MatchPlayerRow } from "@/services/kampService";
@@ -100,48 +101,12 @@ function ringsHtml(rings: number | null | undefined): string {
   return `<span class="match-grid__rings" title="Ringar">${rings}</span>`;
 }
 
-// ── Sides ─────────────────────────────────────────────────────────────────────
-
-/**
- * The match's players grouped into sides by startnummer, with my own side first.
- * startNrMap spans several stevner (see getStartNumbersForTournaments), so it is
- * narrowed to this match's stevne before grouping.
- */
-function matchSides(
-  ks: MatchPlayerRow,
-  throwerId: number,
-  startNrMap: Record<string, number>,
-): { mine: IdentifiedPlayer[]; others: IdentifiedPlayer[][] } {
-  const match = ks.kamp;
-  const players = (match?.spelarar ?? []).filter((s): s is IdentifiedPlayer => s.kasterid != null);
-  const localMap: Record<number, number> = {};
-  for (const s of players) {
-    const nr = match?.stevneid != null ? startNrMap[`${match.stevneid}:${s.kasterid}`] : undefined;
-    if (nr != null) localMap[s.kasterid] = nr;
-  }
-  const sides = getAllMatchSides(players, localMap);
-  const mineIdx = sides.findIndex((side) => side.members.some((m) => m.kasterid === throwerId));
-  return {
-    mine: mineIdx === -1 ? [] : (sides[mineIdx]?.members ?? []),
-    others: sides.filter((_, i) => i !== mineIdx).map((side) => side.members),
-  };
-}
-
-/** A walkover's opponent is a bye: either no side at all, or a row with no kaster. */
-function isByeSide(members: IdentifiedPlayer[] | undefined): boolean {
-  return !members?.length || members.every((m) => m.kaster == null);
-}
-
 function namesHtml(sides: IdentifiedPlayer[][]): string {
   const names = sides
     .flat()
     .map((m) => escHtml(throwerName(m.kaster)))
     .filter(Boolean);
   return names.length ? names.join(" / ") : "–";
-}
-
-function sideTotal(members: IdentifiedPlayer[], isConfirmed: boolean): number {
-  return sideScore({ rep: members[0]!, members }, isConfirmed);
 }
 
 // ── Matches ───────────────────────────────────────────────────────────────────
@@ -187,41 +152,28 @@ async function buildMatchesContent(throwerId: number): Promise<HTMLElement> {
 
   /**
    * The result cell: the score as a win/loss/draw pill, or the placement for a
-   * 3-side match, where scores do not decide the outcome. An unconfirmed match
-   * has no outcome yet, so it shows its running score (0 – 0 before the first
-   * omgang) in the neutral tint.
+   * 3-side match. An unconfirmed match shows its running score (0 – 0 before the
+   * first omgang) in the neutral tint.
    */
   const matchResultHtml = (ks: MatchPlayerRow): string => {
-    const match = ks.kamp;
-    const isConfirmed = match?.er_bekreftet ?? false;
-    const { mine, others } = matchSides(ks, throwerId, startNrMap);
-
-    // A walkover is never played, so it carries the awarded score rather than a
-    // thrown one. The bye is the side without a kaster — normally the opponent.
-    if (match?.er_walkover) {
-      const lost = !isByeSide(others[0]) && sideTotal(others[0]!, true) > sideTotal(mine, true);
-      return lost
-        ? resultBadge("0 – 21", "loss", "Tapt på walkover")
-        : resultBadge("21 – 0", "win", "Vunne på walkover");
+    const outcome = matchOutcome(ks.kamp, throwerId, startNrMap);
+    switch (outcome.kind) {
+      case "walkover":
+        return resultBadge("21 – 0", "win", "Vunne på walkover");
+      case "placement":
+        return resultBadge(
+          `${outcome.placement}. plass`,
+          outcome.placement >= 3 ? "loss" : "win",
+          `Plassering i kampen: ${outcome.placement}`,
+        );
+      case "score": {
+        const { me, them } = outcome;
+        if (!outcome.confirmed) return resultBadge(`${me} – ${them}`, "neutral", "Ikkje stadfesta");
+        return resultBadge(`${me} – ${them}`, me > them ? "win" : me < them ? "loss" : "draw");
+      }
+      default:
+        return resultBadge("–", "neutral");
     }
-
-    if (isConfirmed && (match?.er_tre_spelarar || others.length > 1)) {
-      const placement = mine.find((m) => m.kasterid === throwerId)?.kamp_plassering;
-      if (placement == null) return resultBadge("–", "neutral");
-      return resultBadge(
-        `${placement}. plass`,
-        placement >= 3 ? "loss" : "win",
-        `Plassering i kampen: ${placement}`,
-      );
-    }
-
-    const opponents = others[0];
-    if (!mine.length || !opponents?.length) return resultBadge("–", "neutral");
-    const me = sideTotal(mine, isConfirmed);
-    const them = sideTotal(opponents, isConfirmed);
-    if (!isConfirmed) return resultBadge(`${me} – ${them}`, "neutral", "Ikkje stadfesta");
-    const outcome: Outcome = me > them ? "win" : me < them ? "loss" : "draw";
-    return resultBadge(`${me} – ${them}`, outcome);
   };
 
   /**
@@ -241,7 +193,7 @@ async function buildMatchesContent(throwerId: number): Promise<HTMLElement> {
 
   const matchRow = (ks: MatchPlayerRow): GridRow => {
     const match = ks.kamp;
-    const { others } = matchSides(ks, throwerId, startNrMap);
+    const { others } = matchSides(match, throwerId, startNrMap);
     const isBye = match?.er_walkover && isByeSide(others[0]);
     return {
       // Bane carries the weight — the round is context, so it stays muted.
@@ -280,18 +232,10 @@ async function buildMatchesContent(throwerId: number): Promise<HTMLElement> {
 
   const groupMatchesByTournament = (matches: MatchPlayerRow[]): string | null => {
     if (!matches.length) return null;
-    const groups = new Map<number | string, { name: string; matches: MatchPlayerRow[] }>();
-    for (const ks of matches) {
-      const tournamentId = ks.kamp?.stevneid ?? "unknown";
-      const tournamentName = ks.kamp?.stevne?.navn ?? "";
-      if (!groups.has(tournamentId))
-        groups.set(tournamentId, { name: tournamentName, matches: [] });
-      groups.get(tournamentId)!.matches.push(ks);
-    }
-    return [...groups.values()]
+    return [...groupBy(matches, (ks) => ks.kamp?.stevneid ?? "unknown").values()]
       .map(
-        ({ name, matches: group }) => `
-      <p class="match-grid__stevne">${escHtml(name)}</p>
+        (group) => `
+      <p class="match-grid__stevne">${escHtml(group[0]?.kamp?.stevne?.navn ?? "")}</p>
       ${phaseSectionsHtml(group)}`,
       )
       .join("");
@@ -336,17 +280,10 @@ async function buildMatchesContent(throwerId: number): Promise<HTMLElement> {
 
   const groupCourtsByTournament = (courts: MyCourtRow[]): string | null => {
     if (!courts.length) return null;
-    const groups = new Map<number | string, { name: string; courts: MyCourtRow[] }>();
-    for (const court of courts) {
-      const key = court.stevneid ?? "unknown";
-      if (!groups.has(key))
-        groups.set(key, { name: `${court.stevne?.navn ?? ""} – X-kast`, courts: [] });
-      groups.get(key)!.courts.push(court);
-    }
-    return [...groups.values()]
+    return [...groupBy(courts, (court) => court.stevneid ?? "unknown").values()]
       .map(
-        ({ name, courts: group }) => `
-      <p class="match-grid__stevne">${escHtml(name)}</p>
+        (group) => `
+      <p class="match-grid__stevne">${escHtml(`${group[0]?.stevne?.navn ?? ""} – X-kast`)}</p>
       ${gridHtml(["Bane", "Medspelarar", "Poeng", "R"], group.map(courtRow))}`,
       )
       .join("");
