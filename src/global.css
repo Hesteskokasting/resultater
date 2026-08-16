@@ -329,7 +329,11 @@ textarea:focus {
   position: fixed;
   bottom: calc(1rem + var(--sa-bottom));
   right: calc(1rem + var(--sa-right));
-  z-index: 9999;
+  /* Above every overlay a toast can be raised from — the numberpad and the cup
+     dialogs sit at 9999/10000, and a shared value would let DOM order decide
+     which one is visible. The container ignores pointer events, so nothing
+     underneath is blocked. */
+  z-index: 10050;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;

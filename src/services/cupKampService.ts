@@ -34,7 +34,7 @@ export interface CupRanking {
  * A cup match has to produce a winner — a draw would leave the bracket with no
  * one to advance and no one to eliminate. Both entry points below refuse one.
  */
-export const CUP_TIE_MESSAGE = "Ein cupkamp kan ikkje ende uavgjort. Ei side må ha fleire poeng.";
+export const CUP_TIE_MESSAGE = "Ein cupkamp kan ikkje ende uavgjort.";
 
 /** Highest side total wins. Equal totals are rejected before this is reached. */
 export function cupRanking(side1: CupSide, side2: CupSide, s1: number, s2: number): CupRanking {
