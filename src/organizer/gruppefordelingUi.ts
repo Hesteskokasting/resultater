@@ -121,6 +121,119 @@ export function renderGroupAssignment(
   `;
 }
 
+export interface GroupAssignmentSelection {
+  nA: number;
+  nB: number;
+  setupA: RoundSetup | null;
+  setupB: RoundSetup | null;
+}
+
+/**
+ * Wires the form rendered by renderGroupAssignment: picking a split re-renders
+ * the group panels, picking a round-1 format re-renders that group's structure
+ * table, and either one refreshes the preview. What the confirm button then does
+ * with the chosen split — store it, start the fase, assign the groups — is the
+ * caller's business, so it arrives as onConfirm.
+ */
+export function bindGroupAssignment(
+  container: HTMLElement,
+  standings: StandingRowForGroup[],
+  onConfirm: (selection: GroupAssignmentSelection) => void | Promise<void>,
+): void {
+  const n =
+    parseInt(container.querySelector<HTMLElement>("#group-assignment-wrapper")?.dataset.n ?? "0") ||
+    standings.length;
+  const sorted: StandingRowWithCupRank[] = standings.map((r, i) => ({
+    ...r,
+    cupPlassering: i + 1,
+  }));
+  const panelsEl = container.querySelector<HTMLElement>("#group-panels");
+
+  /** The checked format radio, or the first valid setup when none is rendered. */
+  function readSelectedSetup(radioName: string, nGroup: number): RoundSetup | null {
+    const selectedRadio = container.querySelector<HTMLInputElement>(
+      `input[name="${radioName}"]:checked`,
+    );
+    if (selectedRadio?.dataset.oppsett) {
+      try {
+        return JSON.parse(selectedRadio.dataset.oppsett) as RoundSetup;
+      } catch {
+        /* fall through */
+      }
+    }
+    return validRound1Setups(nGroup)[0] ?? null;
+  }
+
+  function selectedNa(): number {
+    return parseInt(
+      container.querySelector<HTMLInputElement>('input[name="group-split"]:checked')?.value ??
+        String(n),
+    );
+  }
+
+  function updatePreview(nA: number, setupA: RoundSetup | null, setupB: RoundSetup | null): void {
+    const prevEl = container.querySelector("#group-preview");
+    if (!prevEl) return;
+    prevEl.innerHTML = renderGroupPreview(
+      sorted,
+      nA,
+      setupA?.walkovers ?? 0,
+      setupB?.walkovers ?? 0,
+    );
+  }
+
+  panelsEl?.addEventListener("change", (e) => {
+    const target = e.target as HTMLInputElement;
+    if (!target.matches('input[name^="round1-format"]')) return;
+    const nA = selectedNa();
+    const nB = n - nA;
+    const setupA = readSelectedSetup("round1-format-a", nA);
+    const setupB = readSelectedSetup("round1-format-b", nB);
+    if (target.name === "round1-format-a") {
+      const strEl = container.querySelector("#structure-a");
+      if (strEl) strEl.outerHTML = renderStructureListHtml(nA, setupA, "a");
+    } else {
+      const strEl = container.querySelector("#structure-b");
+      if (strEl) strEl.outerHTML = renderStructureListHtml(nB, setupB, "b");
+    }
+    updatePreview(nA, setupA, setupB);
+  });
+
+  container.querySelectorAll<HTMLInputElement>('input[name="group-split"]').forEach((radio) => {
+    radio.addEventListener("change", () => {
+      const nA = parseInt(radio.value);
+      const nB = n - nA;
+      const setupA = validRound1Setups(nA)[0] ?? null;
+      const setupB = nB >= 2 ? (validRound1Setups(nB)[0] ?? null) : null;
+      if (panelsEl) {
+        panelsEl.innerHTML =
+          `<div id="group-panel-a" class="final-group-col">
+            ${renderGroupPanelContent("Gruppe A", nA, "round1-format-a", setupA)}
+          </div>` +
+          (nB >= 2
+            ? `<div id="group-panel-b" class="final-group-col">
+            ${renderGroupPanelContent("Gruppe B", nB, "round1-format-b", setupB)}
+          </div>`
+            : "");
+      }
+      updatePreview(nA, setupA, setupB);
+    });
+  });
+
+  container.querySelector("#confirm-group-btn")?.addEventListener("click", () => {
+    const selected = container.querySelector<HTMLInputElement>('input[name="group-split"]:checked');
+    if (!selected) return;
+    const nA = parseInt(selected.value);
+    const nB = n - nA;
+    void onConfirm({
+      nA,
+      nB,
+      setupA: readSelectedSetup("round1-format-a", nA),
+      setupB: nB >= 2 ? readSelectedSetup("round1-format-b", nB) : null,
+    });
+  });
+}
+
 export function renderGroupPreview(
   sorted: StandingRowWithCupRank[],
   nA: number,

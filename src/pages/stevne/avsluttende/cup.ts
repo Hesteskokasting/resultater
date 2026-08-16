@@ -1,10 +1,4 @@
-import { validRound1Setups } from "@/utils/kastemetoder-logikk";
-import {
-  renderGroupAssignment,
-  renderGroupPreview,
-  renderGroupPanelContent,
-  renderStructureListHtml,
-} from "@/organizer/gruppefordelingUi";
+import { bindGroupAssignment, renderGroupAssignment } from "@/organizer/gruppefordelingUi";
 import { generateFinaleAndBronzeFinal } from "@/services/kampGenereringCupService";
 import { openGenerateRoundDialog } from "./_avslCupGenererRundeDialog";
 import { openThreeSideConfirmDialog } from "./_avslCupTreSpelarDialog";
@@ -18,7 +12,6 @@ import { errorMessage } from "@/utils/errorMessage";
 import { logError } from "@/utils/logError";
 import { showToast } from "@/components/Toast";
 import { confirmDialog } from "@/components/ConfirmDialog";
-import type { RoundSetup } from "@/types";
 import { type FinalMatchRow } from "@/services/kampService";
 import {
   fetchCupSideTotals,
@@ -192,93 +185,7 @@ const cupVariant: FinalPhaseVariant = {
     });
 
     if (!hasGroupAssignment) {
-      const n =
-        parseInt(
-          container.querySelector<HTMLElement>("#group-assignment-wrapper")?.dataset.n ?? "0",
-        ) || standings.length;
-
-      function readSelectedSetup(radioName: string, nGroup: number): RoundSetup | null {
-        const selectedRadio = container.querySelector<HTMLInputElement>(
-          `input[name="${radioName}"]:checked`,
-        );
-        if (selectedRadio?.dataset.oppsett) {
-          try {
-            return JSON.parse(selectedRadio.dataset.oppsett) as RoundSetup;
-          } catch {
-            /* fall through */
-          }
-        }
-        return validRound1Setups(nGroup)[0] ?? null;
-      }
-
-      function updateGroupPreview(
-        nA: number,
-        setupA: RoundSetup | null,
-        setupB: RoundSetup | null,
-      ): void {
-        const prevEl = container.querySelector("#group-preview");
-        if (!prevEl) return;
-        prevEl.innerHTML = renderGroupPreview(
-          standings.map((r, i) => ({ ...r, cupPlassering: i + 1 })),
-          nA,
-          setupA?.walkovers ?? 0,
-          setupB?.walkovers ?? 0,
-        );
-      }
-
-      const panelsEl = container.querySelector<HTMLElement>("#group-panels");
-      if (panelsEl) {
-        panelsEl.addEventListener("change", (e) => {
-          const target = e.target as HTMLInputElement;
-          if (!target.matches('input[name^="round1-format"]')) return;
-          const nA = parseInt(
-            container.querySelector<HTMLInputElement>('input[name="group-split"]:checked')?.value ??
-              String(n),
-          );
-          const nB = n - nA;
-          const setupA = readSelectedSetup("round1-format-a", nA);
-          const setupB = readSelectedSetup("round1-format-b", nB);
-          if (target.name === "round1-format-a") {
-            const strEl = container.querySelector("#structure-a");
-            if (strEl) strEl.outerHTML = renderStructureListHtml(nA, setupA, "a");
-          } else {
-            const strEl = container.querySelector("#structure-b");
-            if (strEl) strEl.outerHTML = renderStructureListHtml(nB, setupB, "b");
-          }
-          updateGroupPreview(nA, setupA, setupB);
-        });
-      }
-
-      container.querySelectorAll<HTMLInputElement>('input[name="group-split"]').forEach((radio) => {
-        radio.addEventListener("change", () => {
-          const nA = parseInt(radio.value);
-          const nB = n - nA;
-          const setupA = validRound1Setups(nA)[0] ?? null;
-          const setupB = nB >= 2 ? (validRound1Setups(nB)[0] ?? null) : null;
-          if (panelsEl) {
-            panelsEl.innerHTML =
-              `<div id="group-panel-a" class="final-group-col">
-                ${renderGroupPanelContent("Gruppe A", nA, "round1-format-a", setupA)}
-              </div>` +
-              (nB >= 2
-                ? `<div id="group-panel-b" class="final-group-col">
-                ${renderGroupPanelContent("Gruppe B", nB, "round1-format-b", setupB)}
-              </div>`
-                : "");
-          }
-          updateGroupPreview(nA, setupA, setupB);
-        });
-      });
-
-      container.querySelector("#confirm-group-btn")?.addEventListener("click", async () => {
-        const selected = container.querySelector<HTMLInputElement>(
-          'input[name="group-split"]:checked',
-        );
-        if (!selected) return;
-        const nA = parseInt(selected.value);
-        const nB = n - nA;
-        const setupA = readSelectedSetup("round1-format-a", nA);
-        const setupB = nB >= 2 ? readSelectedSetup("round1-format-b", nB) : null;
+      bindGroupAssignment(container, standings, async ({ nA, setupA, setupB }) => {
         const { error: fmtErr } = await setRound1Format(stevneid, { A: setupA, B: setupB, nA });
         if (fmtErr) {
           showToast("Feil ved lagring av format: " + errorMessage(fmtErr), "error");
