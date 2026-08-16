@@ -1,6 +1,7 @@
 import {
   calcRingInfo,
   buildRankingList,
+  filterRanking,
   MIN_STEVNER,
   type EventInfo,
 } from "@/utils/norgesrankingLogikk";
@@ -201,5 +202,30 @@ describe("buildRankingList", () => {
       expect(liste[0]!.erGyldig).toBe(true);
       expect(liste[1]!.erGyldig).toBe(false);
     });
+  });
+});
+
+// ── filterRanking ─────────────────────────────────────────────────────────────
+
+describe("filterRanking", () => {
+  const list = [
+    { navn: "Kari Nordmann", klubb: "Bergen HK" },
+    { navn: "Ola Hansen", klubb: "Oslo HK" },
+  ] as never as Parameters<typeof filterRanking>[0];
+
+  it("returns the same list when the search is blank", () => {
+    expect(filterRanking(list, "   ")).toBe(list);
+  });
+
+  it("matches on thrower name, case-insensitively", () => {
+    expect(filterRanking(list, "kari")).toHaveLength(1);
+  });
+
+  it("matches on club too", () => {
+    expect(filterRanking(list, "oslo")[0]!.navn).toBe("Ola Hansen");
+  });
+
+  it("gives an empty list when nothing matches", () => {
+    expect(filterRanking(list, "trondheim")).toEqual([]);
   });
 });

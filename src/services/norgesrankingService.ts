@@ -1,6 +1,7 @@
 import type { QueryData } from "@supabase/supabase-js";
 import { supabase } from "@/supabase";
 import { logError } from "@/utils/logError";
+import { yearCache } from "@/utils/yearCache";
 
 const _rankingStevneQuery = supabase
   .from("stevne")
@@ -64,3 +65,27 @@ export async function getTournamentsAndResults(ar: number): Promise<{
 
   return { stevner, resultater, error: null };
 }
+
+// ── Årsbuffer ─────────────────────────────────────────────────────────────────
+
+export interface RankingYear {
+  tournaments: RankingTournamentRow[];
+  results: RankingResultRow[];
+}
+
+const cache = yearCache<RankingYear>(async (year) => {
+  try {
+    const { stevner, resultater, error } = await getTournamentsAndResults(year);
+    if (error) return null;
+    return { tournaments: stevner, results: resultater };
+  } catch (err) {
+    logError("loadRankingYear", err);
+    return null;
+  }
+});
+
+/** Drops the buffer so a fresh page mount refetches instead of reusing a stale season. */
+export const clearRankingYearCache = cache.clear;
+
+/** Every ranking stevne and its results for one season. Null on failure. */
+export const loadRankingYear = cache.get;

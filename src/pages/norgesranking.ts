@@ -6,53 +6,41 @@ import { createInfoTooltip } from "@/components/InfoTooltip";
 import { bindRankingDetails, detailTableHtml, rankingListHtml } from "@/components/RankingList";
 import { createSearchInput } from "@/components/SearchInput";
 import { logError } from "@/utils/logError";
-import { getTournamentsAndResults } from "@/services/norgesrankingService";
-import type { RankingTournamentRow, RankingResultRow } from "@/services/norgesrankingService";
-import { MIN_STEVNER, buildEventsMap, buildRankingList } from "@/utils/norgesrankingLogikk";
+import { loadRankingYear, clearRankingYearCache } from "@/services/norgesrankingService";
+import type { RankingYear } from "@/services/norgesrankingService";
+import {
+  MIN_STEVNER,
+  buildEventsMap,
+  buildRankingList,
+  filterRanking,
+} from "@/utils/norgesrankingLogikk";
 import type { RingInfo, RankingItem } from "@/utils/norgesrankingLogikk";
 
 const FIRST_YEAR = 2018;
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
-interface Cache {
-  year: number | null;
-  tournaments: RankingTournamentRow[];
-  results: RankingResultRow[];
-}
-
 const filter = {
   year: new Date().getFullYear(),
   searchText: "",
 };
 
-let cache: Cache = { year: null, tournaments: [], results: [] };
+// Built once per loaded season: the search only narrows this list, it never
+// changes how the ranking itself is computed.
+let ranking: RankingItem[] = [];
 
-// ── Data buffer ───────────────────────────────────────────────────────────────
-
-async function fetchAndBufferData(year: number): Promise<boolean> {
-  if (cache.year === year) return true;
-
-  try {
-    const { stevner, resultater, error } = await getTournamentsAndResults(year);
-    if (error) return false;
-
-    cache.year = year;
-    cache.tournaments = stevner;
-    cache.results = resultater;
-    return true;
-  } catch (err) {
-    logError("fetchAndBufferData", err);
-    return false;
-  }
+/** Loads a season and rebuilds the ranking. False when the fetch failed. */
+async function loadSeason(year: number): Promise<boolean> {
+  const season: RankingYear | null = await loadRankingYear(year);
+  if (!season) return false;
+  ranking = buildRankingList(season.results, buildEventsMap(season.tournaments));
+  return true;
 }
 
 // ── Excel export ──────────────────────────────────────────────────────────────
 
 async function exportExcel(): Promise<void> {
-  const tournamentsMap = buildEventsMap(cache.tournaments);
-  const list = buildRankingList(cache.results, tournamentsMap);
-  const rows = list.map((k) => ({
+  const rows = ranking.map((k) => ({
     Plass: k.erGyldig ? k.plassering : "–",
     Kaster: k.navn,
     Klubb: k.klubb,
@@ -89,17 +77,11 @@ function detailHtml(item: RankingItem): string {
   );
 }
 
-function listHtml(list: RankingItem[], searchText: string): string | null {
-  const search = searchText.trim().toLowerCase();
-  const filtered = search
-    ? list.filter(
-        (k) => k.navn.toLowerCase().includes(search) || k.klubb.toLowerCase().includes(search),
-      )
-    : list;
+/** Null when the search matched nothing — the caller shows an empty state instead. */
+function listHtml(list: RankingItem[]): string | null {
+  if (list.length === 0) return null;
 
-  if (filtered.length === 0) return null;
-
-  return rankingListHtml<RankingItem>(filtered, {
+  return rankingListHtml<RankingItem>(list, {
     idPrefix: "nr",
     placement: (item) => (item.erGyldig ? String(item.plassering ?? "–") : "–"),
     name: (item) => item.navn,
@@ -142,13 +124,12 @@ function pageSkeletonHtml(year: number, isNative: boolean): string {
 export async function render(container: HTMLElement): Promise<void> {
   filter.year = new Date().getFullYear();
   filter.searchText = "";
-  cache = { year: null, tournaments: [], results: [] };
+  clearRankingYearCache();
 
   container.replaceChildren(createLoadingState("Laster Norgesranking…"));
 
   try {
-    const ok = await fetchAndBufferData(filter.year);
-    if (!ok) {
+    if (!(await loadSeason(filter.year))) {
       container.replaceChildren(createErrorBanner("Kunne ikkje laste data for Norgesranking."));
       return;
     }
@@ -157,10 +138,8 @@ export async function render(container: HTMLElement): Promise<void> {
     container.innerHTML = pageSkeletonHtml(filter.year, isNative);
 
     function updateTable(): void {
-      const tournamentsMap = buildEventsMap(cache.tournaments);
-      const list = buildRankingList(cache.results, tournamentsMap);
       const tableEl = container.querySelector<HTMLElement>("#nr-table-container")!;
-      const html = listHtml(list, filter.searchText);
+      const html = listHtml(filterRanking(ranking, filter.searchText));
       if (html === null) {
         tableEl.replaceChildren(createEmptyState("Ingen resultater funnet."));
         return;
@@ -196,8 +175,7 @@ export async function render(container: HTMLElement): Promise<void> {
         .querySelector("#nr-table-container")!
         .replaceChildren(createLoadingState("Laster..."));
       try {
-        const ok = await fetchAndBufferData(filter.year);
-        if (!ok) {
+        if (!(await loadSeason(filter.year))) {
           container
             .querySelector("#nr-table-container")!
             .replaceChildren(createErrorBanner("Feil ved henting av data."));

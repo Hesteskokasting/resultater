@@ -3,6 +3,7 @@ import type { Tables } from "@/types";
 import { supabase } from "@/supabase";
 import { logError } from "@/utils/logError";
 import { fetchAllRows } from "@/utils/fetchAllRows";
+import { yearCache } from "@/utils/yearCache";
 
 // ── Type-inferens-buildarar ───────────────────────────────────────────────────
 
@@ -82,31 +83,22 @@ export interface CupYear {
   results: ResultWithRelations[];
 }
 
-// One year at a time: the page shows a single year, and toggling back and forth
-// between two of them is the only repeat worth sparing.
-let cached: { year: number; data: CupYear } | null = null;
-
-/** Drops the buffer so a fresh page mount refetches instead of reusing a stale season. */
-export function clearCupYearCache(): void {
-  cached = null;
-}
-
-/** Everything the Norgescup lists are built from, for one season. Null on failure. */
-export async function loadCupYear(year: number): Promise<CupYear | null> {
-  if (cached?.year === year) return cached.data;
-
+const cache = yearCache<CupYear>(async (year) => {
   try {
     const [{ data: rules, error: e1 }, { stevner, resultater, error: e2 }] = await Promise.all([
       getRules(year),
       getTournamentsAndResults(year),
     ]);
     if (e1 || e2) return null;
-
-    const data: CupYear = { rules, tournaments: stevner, results: resultater };
-    cached = { year, data };
-    return data;
+    return { rules, tournaments: stevner, results: resultater };
   } catch (err) {
     logError("loadCupYear", err);
     return null;
   }
-}
+});
+
+/** Drops the buffer so a fresh page mount refetches instead of reusing a stale season. */
+export const clearCupYearCache = cache.clear;
+
+/** Everything the Norgescup lists are built from, for one season. Null on failure. */
+export const loadCupYear = cache.get;
