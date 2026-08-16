@@ -122,6 +122,11 @@ function filterData(data: TournamentRow[]): TournamentRow[] {
   return filterSchedule(data, filter, _nmTypeId);
 }
 
+/** Nothing upcoming (a past year) means Ferdige is the whole list — open it. */
+function autoExpandFerdige(): void {
+  ferdigeExpanded = countRows(groupSchedule(filterData(allData), todayIso()).upcoming) === 0;
+}
+
 // ── Excel export ──────────────────────────────────────────────────────────────
 
 async function exportToExcel(filtered: TournamentRow[]): Promise<void> {
@@ -416,6 +421,7 @@ export async function render(container: HTMLElement): Promise<void> {
     }
 
     setData(data ?? []);
+    autoExpandFerdige();
 
     const isNative = Capacitor.isNativePlatform();
     const excelSlotHtml = isNative ? "" : '<span id="tl-excel-slot"></span>';
@@ -601,7 +607,6 @@ export async function render(container: HTMLElement): Promise<void> {
     window.addEventListener("resize", handleResize);
 
     async function reloadYear(logContext: string): Promise<boolean> {
-      ferdigeExpanded = false;
       container.querySelector(".tl-title")!.textContent = `Terminliste ${filter.year}`;
       container
         .querySelector(".tl-list-container")!
@@ -616,6 +621,7 @@ export async function render(container: HTMLElement): Promise<void> {
       }
       setData(newData ?? []);
       refreshFilterSelects();
+      autoExpandFerdige();
       return true;
     }
 
