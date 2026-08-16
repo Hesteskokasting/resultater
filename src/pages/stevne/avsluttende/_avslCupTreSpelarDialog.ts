@@ -1,14 +1,8 @@
-import {
-  confirmMatch,
-  toConfirmSide,
-  type FinalMatchRow,
-  type FinalMatchPlayerRow,
-} from "@/services/kampService";
+import { confirmMatch, toConfirmSide, type FinalMatchRow } from "@/services/kampService";
+import type { FinalMatchPlayerKnown } from "@/services/cupKampService";
 import { sideNameHtml } from "@/organizer/org-shared";
 import type { MatchSide } from "@/utils/kamp";
 import { showToast } from "@/components/Toast";
-
-type FinalMatchPlayerKnown = FinalMatchPlayerRow & { kasterid: number };
 
 /**
  * Confirm a 3-side cup match: pick the two sides that advance, the remaining

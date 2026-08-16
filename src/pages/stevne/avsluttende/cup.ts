@@ -9,7 +9,7 @@ import { generateFinaleAndBronzeFinal } from "@/services/kampGenereringCupServic
 import { openGenerateRoundDialog } from "./_avslCupGenererRundeDialog";
 import { openThreeSideConfirmDialog } from "./_avslCupTreSpelarDialog";
 import { showNumberpad } from "@/components/ScoreNumberpad";
-import { matchScoreForPlayer, sideScore, getAllMatchSides, type MatchSide } from "@/utils/kamp";
+import { sideScore, getAllMatchSides, type MatchSide } from "@/utils/kamp";
 import { bindScoreboardClicks, sideNameHtml, type StandingRow } from "@/organizer/org-shared";
 import { scoreboardButtonHtml } from "@/components/ScoreboardButton";
 import { showScoreEditor } from "@/organizer/scoreEditor";
@@ -19,17 +19,15 @@ import { logError } from "@/utils/logError";
 import { showToast } from "@/components/Toast";
 import { confirmDialog } from "@/components/ConfirmDialog";
 import type { RoundSetup } from "@/types";
+import { type FinalMatchRow } from "@/services/kampService";
 import {
-  confirmMatch,
-  toConfirmSide,
-  updateWinnerLoser,
-  updateMatchPlayerScoreFast,
-  deleteMatchRounds,
-  getMatchPlayers,
-  setMatchPlayerPlacements,
-  type FinalMatchRow,
-  type FinalMatchPlayerRow,
-} from "@/services/kampService";
+  fetchCupSideTotals,
+  rescoreCupMatch,
+  settleCupMatch,
+  writeCupSideScores,
+  type CupRescoreStep,
+  type FinalMatchPlayerKnown,
+} from "@/services/cupKampService";
 import { updateTournamentPhase, setRound1Format } from "@/services/stevneService";
 import { isInnledendeComplete } from "@/services/xkastKongelagService";
 import { isXkastMethodName } from "@/utils/kastemetode";
@@ -37,8 +35,6 @@ import { setGroupAssignment, clearGroupAssignment } from "@/services/resultatSer
 import { createFinalPhaseRenderer, type FinalPhaseVariant } from "./avsluttendeBase";
 
 // ── Side helpers (Par/Mix: one side = a pair, grouped by startnummer) ─────────
-
-type FinalMatchPlayerKnown = FinalMatchPlayerRow & { kasterid: number };
 
 function matchSides(
   kamp: FinalMatchRow,
@@ -544,6 +540,13 @@ function renderMatchBlock(
 
 // ── Match event binding ───────────────────────────────────────────────────────
 
+const RESCORE_ERROR: Record<CupRescoreStep, string> = {
+  omgangar: "DB-feil ved sletting av omgangar",
+  score: "DB-feil ved oppdatering av score",
+  plassering: "DB-feil ved oppdatering av plassering",
+  bracket: "DB-feil ved oppdatering av cupstigen",
+};
+
 function bindMatchEventsLocal(
   container: HTMLElement,
   stevneid: number,
@@ -558,34 +561,9 @@ function bindMatchEventsLocal(
     const sides = matchSides(kamp, startNumberMap, positionMap);
     const side1 = sides[0] ?? null;
     const side2 = sides[1] ?? null;
-    const p1 = side1?.rep ?? null;
-    const p2 = side2?.rep ?? null;
     const p1Name = sideNameHtml(side1, false);
     const p2Name = sideNameHtml(side2, false);
     const playerIds = sides.flatMap((s) => s.members.map((m) => m.id));
-
-    // Quick-score writes the side total to the rep; partner rows are zeroed
-    // so the side sum is not polluted by stale per-player values.
-    const writeSideScore = async (
-      newS1: number,
-      newS2: number,
-    ): Promise<{ error: unknown } | null> => {
-      const updates: Promise<{ error: unknown }>[] = [];
-      if (p1?.id) updates.push(updateMatchPlayerScoreFast(p1.id, newS1));
-      if (p2?.id) updates.push(updateMatchPlayerScoreFast(p2.id, newS2));
-      for (const side of [side1, side2]) {
-        for (const member of side?.members.slice(1) ?? []) {
-          updates.push(updateMatchPlayerScoreFast(member.id, 0));
-        }
-      }
-      try {
-        const results = await Promise.all(updates);
-        return results.find((r) => r.error) ?? null;
-      } catch (e) {
-        logError("cup:writeSideScore", e);
-        return { error: e };
-      }
-    };
 
     /** Unconfirmed: entering the score settles the match, no separate Bekreft step. */
     const scoreAndConfirm = (): void => {
@@ -599,7 +577,7 @@ function bindMatchEventsLocal(
         playerIds,
         hasRounds: kamp.spelarar.some((s) => (s.omgangar?.length ?? 0) > 0),
         logPrefix: "cup",
-        onSave: writeSideScore,
+        onSave: (newS1, newS2) => writeCupSideScores(side1, side2, newS1, newS2),
         onSaved: async () => {
           if (!(await confirmCupMatch2Sides(stevneid, kamp, sides, reload))) await reload();
         },
@@ -611,7 +589,6 @@ function bindMatchEventsLocal(
     });
 
     if (isAdminLocal && !kamp.er_tre_spelarar && !kamp.er_walkover) {
-      const allKasterids = sides.flatMap((s) => s.members.map((m) => m.kasterid));
       /** Confirmed: a correction, so the placements and the bracket move with it. */
       const rescore = (): void => {
         showNumberpad(
@@ -620,39 +597,18 @@ function bindMatchEventsLocal(
             { name: p2Name, score: sideSum(side2, kamp) },
           ],
           async ([newS1 = 0, newS2 = 0]) => {
-            if (playerIds.length) {
-              const { error } = await deleteMatchRounds(playerIds);
-              if (error) {
-                showToast("DB-feil ved sletting av omgangar", "error");
-                return false;
-              }
-            }
-            const feil = await writeSideScore(newS1, newS2);
-            if (feil) {
-              showToast("DB-feil ved oppdatering av score", "error");
-              return false;
-            }
-            const newWinner = newS1 >= newS2 ? side1 : side2;
-            const newLoser = newS1 >= newS2 ? side2 : side1;
-            const newWinnerIds = newWinner?.members.map((m) => m.kasterid) ?? [];
-            const newLoserIds = newLoser?.members.map((m) => m.kasterid) ?? [];
-            const newPlacements = [
-              ...newWinnerIds.map((kasterid) => ({ kasterid, plassering: 1 })),
-              ...newLoserIds.map((kasterid) => ({ kasterid, plassering: 2 })),
-            ];
-            const { error: plErr } = await setMatchPlayerPlacements(kamp.id, newPlacements);
-            if (plErr) {
-              showToast("DB-feil ved oppdatering av plassering", "error");
-              return false;
-            }
-            await updateWinnerLoser({
+            const { error, step } = await rescoreCupMatch({
               stevneId: stevneid,
-              roundNumber: kamp.runde_nummer,
-              roundName: kamp.runde_navn,
-              allThrowerIds: allKasterids,
-              newWinnerIds,
-              newLoserIds,
+              kamp,
+              sides,
+              s1: newS1,
+              s2: newS2,
             });
+            if (error) {
+              logError(`cup:rescore:${step}`, error);
+              showToast(RESCORE_ERROR[step ?? "score"], "error");
+              return false;
+            }
             await reload();
             return true;
           },
@@ -678,20 +634,7 @@ async function confirmCupMatch2Sides(
   sides: MatchSide<FinalMatchPlayerKnown>[],
   reload: () => Promise<void>,
 ): Promise<boolean> {
-  const side1 = sides[0] ?? null;
-  const side2 = sides[1] ?? null;
-
-  // Re-fetch fresh scores — the rendered rows may be stale. The match is still
-  // unconfirmed here, so the live omgangar decide the result.
-  const { data: currentPlayers } = await getMatchPlayers(kamp.id);
-  const freshSideSum = (side: MatchSide<FinalMatchPlayerKnown> | null): number =>
-    side?.members.reduce((sum, m) => {
-      const fresh = currentPlayers.find((s) => s.id === m.id);
-      return sum + matchScoreForPlayer(fresh ?? m, false);
-    }, 0) ?? 0;
-
-  const s1 = freshSideSum(side1);
-  const s2 = freshSideSum(side2);
+  const { s1, s2 } = await fetchCupSideTotals(kamp.id, sides[0] ?? null, sides[1] ?? null);
 
   if (
     s1 === 0 &&
@@ -703,23 +646,7 @@ async function confirmCupMatch2Sides(
   )
     return false;
 
-  const winner = s1 >= s2 ? side1 : side2;
-  const loser = s1 >= s2 ? side2 : side1;
-  const allKasterids = sides.flatMap((s) => s.members.map((m) => m.kasterid));
-
-  const { error } = await confirmMatch({
-    kampId: kamp.id,
-    sides: [toConfirmSide(side1), toConfirmSide(side2)],
-    outcome: {
-      type: "cup-ranked",
-      stevneId: stevneid,
-      roundNumber: kamp.runde_nummer,
-      roundName: kamp.runde_navn,
-      allThrowerIds: allKasterids,
-      eliminatedIds: loser?.members.map((m) => m.kasterid) ?? [],
-      advancingSides: winner ? [winner.members.map((m) => m.kasterid)] : [],
-    },
-  });
+  const { error } = await settleCupMatch({ stevneId: stevneid, kamp, sides, s1, s2 });
   if (error) {
     showToast("DB-feil ved bekreft", "error");
     return false;
