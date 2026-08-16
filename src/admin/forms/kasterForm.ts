@@ -1,4 +1,4 @@
-import { formRowHtml, showSaveError, showSuccess } from "@/utils/adminForms";
+import { formRowHtml, showAlert } from "@/utils/adminForms";
 import { errorMessage } from "@/utils/errorMessage";
 import { isAdmin, isClubAdmin } from "@/services/authService";
 import { escHtml } from "@/utils/escHtml";
@@ -107,10 +107,10 @@ export async function mountThrowerForm(host: AdminFormHost, id?: number): Promis
       : await createThrower(payload);
 
     if (error) {
-      showSaveError(wrapper, errorMessage(error));
+      showAlert(wrapper, errorMessage(error), "danger");
       return;
     }
-    showSuccess(wrapper, "Utøvaren er lagra.");
+    showAlert(wrapper, "Utøvaren er lagra.", "success");
     host.onSaved?.(saved?.id ?? id!, !id);
   });
 

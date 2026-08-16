@@ -1,5 +1,5 @@
 import { confirmDialog } from "@/components/ConfirmDialog";
-import { showSaveError } from "@/utils/adminForms";
+import { showAlert } from "@/utils/adminForms";
 import { errorMessage } from "@/utils/errorMessage";
 import type { AdminFormHost } from "./_formHost";
 
@@ -32,7 +32,7 @@ export function bindDeleteButton(wrapper: HTMLElement, binding: DeleteBinding): 
 
       const { error } = await binding.remove();
       if (error) {
-        showSaveError(wrapper, errorMessage(error));
+        showAlert(wrapper, errorMessage(error), "danger");
         return;
       }
       binding.onDeleted?.();
