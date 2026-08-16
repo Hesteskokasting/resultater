@@ -1,10 +1,10 @@
-import { startcardTemplate } from "@/utils/startcard/startcard-template";
+import { startcardTemplate } from "@/print/startcard-template";
 import {
   buildRoundInfos,
   hentKlubbNamn,
   type PrintMatch,
-} from "@/utils/startcard/roundInfoBuilder";
-import type { RoundInfo } from "@/utils/startcard/startcard-template";
+  type RoundInfo,
+} from "@/print/roundInfoBuilder";
 import { logError } from "@/utils/logError";
 
 interface PrintStandingsRow {
@@ -24,7 +24,7 @@ interface PrintPlayerData {
   roundInfos: RoundInfo[];
 }
 
-const CSS_URL = new URL("../utils/startcard/startcard.css", import.meta.url).href;
+const CSS_URL = new URL("../print/startcard.css", import.meta.url).href;
 
 export function printStartCard(
   stevne: PrintTournament,

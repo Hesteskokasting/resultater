@@ -1,11 +1,4 @@
-export interface RoundInfo {
-  court?: number | string | null;
-  matchPoints?: string;
-  playerScore?: string;
-  opponentId?: number | string | null;
-  opponentName?: string;
-  opponentScore?: string;
-}
+import type { RoundInfo } from "./roundInfoBuilder";
 
 function createHeader(playerId: number | string, tournamentName: string): HTMLDivElement {
   const header = document.createElement("div");

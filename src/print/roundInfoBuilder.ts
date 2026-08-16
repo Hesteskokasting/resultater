@@ -1,5 +1,14 @@
-import type { RoundInfo } from "./startcard-template";
 import { getMatchSides } from "@/utils/kamp";
+
+/** One round on a start card, as both the receipt and the A4 sheet print it. */
+export interface RoundInfo {
+  court?: number | string | null;
+  matchPoints?: string;
+  playerScore?: string;
+  opponentId?: number | string | null;
+  opponentName?: string;
+  opponentScore?: string;
+}
 
 export interface PrintKlubb {
   kortnavn?: string | null;

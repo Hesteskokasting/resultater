@@ -5,9 +5,9 @@ import { getInitialRoundMatches } from "@/services/kampService";
 import { getResultsForInitialRound } from "@/services/resultatService";
 import { getPairsForTournament } from "@/services/pameldingService";
 import type { RegistrationPair } from "@/services/pameldingService";
-import { buildRoundInfos, hentKlubbNamn } from "@/utils/startcard/roundInfoBuilder";
-import type { PrintMatch } from "@/utils/startcard/roundInfoBuilder";
-import { formatStartkortReceipt } from "@/utils/receipt/receiptFormat";
+import { buildRoundInfos, hentKlubbNamn } from "@/print/roundInfoBuilder";
+import type { PrintMatch } from "@/print/roundInfoBuilder";
+import { formatStartkortReceipt } from "@/print/receiptFormat";
 import {
   isWebSerialSupported,
   isPrinterConnected,

@@ -1,4 +1,4 @@
-import { textLine, charSize, RECEIPT_COLS } from "@/utils/receipt/escpos";
+import { textLine, charSize, RECEIPT_COLS } from "@/print/escpos";
 
 const LF = 0x0a;
 

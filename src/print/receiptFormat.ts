@@ -1,4 +1,4 @@
-import type { RoundInfo } from "@/utils/startcard/startcard-template";
+import type { RoundInfo } from "./roundInfoBuilder";
 import {
   RECEIPT_COLS,
   init,
