@@ -8,7 +8,7 @@ import {
 import { throwerNameShort } from "@/utils/kaster";
 import { escHtml } from "@/utils/escHtml";
 import { coalesceReload } from "@/utils/coalesceReload";
-import { bindExpandableRows, makeRowsFocusable } from "@/utils/expandableRows";
+import { bindExpandableRows, makeRowsFocusable } from "@/components/expandableRows";
 import type { Tables, Json, Round1FormatTyped } from "@/types";
 import { createTable, type ColumnDef } from "@/components/Table";
 import type { BannerMenuItem } from "@/components/BannerMenu";

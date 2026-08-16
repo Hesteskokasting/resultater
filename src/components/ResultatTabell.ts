@@ -6,7 +6,7 @@
 // from one list, so the three cannot drift apart.
 
 import { escHtml } from "@/utils/escHtml";
-import { bindExpandableRows } from "@/utils/expandableRows";
+import { bindExpandableRows } from "@/components/expandableRows";
 
 export interface ResultatKolonnar {
   /** X-kast innledende: Poeng + Ringar, scored per court. */

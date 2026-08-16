@@ -6,7 +6,7 @@
 // instead. The panel markup itself is shared by card and table row.
 
 import { escHtml } from "@/utils/escHtml";
-import { bindExpandableRows } from "@/utils/expandableRows";
+import { bindExpandableRows } from "@/components/expandableRows";
 
 export interface RankingColumn<T> {
   label: string;

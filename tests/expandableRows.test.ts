@@ -5,7 +5,7 @@
  */
 
 import { beforeEach, describe, expect, it } from "vite-plus/test";
-import { bindExpandableRows, makeRowsFocusable } from "@/utils/expandableRows";
+import { bindExpandableRows, makeRowsFocusable } from "@/components/expandableRows";
 import { bindStandingDetails } from "@/organizer/org-shared";
 
 function host(html: string): HTMLElement {
