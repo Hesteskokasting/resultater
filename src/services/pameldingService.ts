@@ -1,7 +1,7 @@
 import type { QueryData, RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "@/supabase";
 import { logError } from "@/utils/logError";
-import { verifyRowsAffected, verifyRowsAffectedReturning } from "@/utils/verifiedWrite";
+import { verifyRowsAffected } from "@/utils/verifiedWrite";
 
 const _pameldingQuery = supabase.from("pamelding").select(`
       id,
@@ -232,7 +232,7 @@ export async function setRegistrationConfirmedForThrower(
   kasterid: number,
   confirmed: boolean,
 ): Promise<{ bekreftetAt: string | null; error: unknown }> {
-  const { data, error } = await verifyRowsAffectedReturning<{ bekreftet_at: string | null }>(
+  const { data, error } = await verifyRowsAffected<{ bekreftet_at: string | null }>(
     supabase
       .from("pamelding")
       .update({ er_bekreftet: confirmed })
