@@ -169,3 +169,85 @@ export function ringsForPlayer(sp: PlayerRings | null | undefined): number {
 export function calcRingCount(score: number): number {
   return score === 6 ? 2 : score === 3 || score === 4 ? 1 : 0;
 }
+
+// ── Scoreboard rules ──────────────────────────────────────────────────────────
+
+/** Score that ends a match. */
+const WIN_SCORE = 21;
+
+/** Scored without a ringer. Landing one closes the omgang for everyone else. */
+const NON_RING_POINTS = [1, 2, 4];
+
+/** Scored with a ringer. Only another ringer can answer it. */
+const RING_POINTS = [3, 6];
+
+/**
+ * Whether a total wins. `bestOpponent` is whoever the caller measures against —
+ * the other side in a 2-player match, the weakest still-active player in a
+ * 3-player one. Innledende plays to 21 flat; every other fase needs two clear
+ * points.
+ */
+export function hasWon(total: number, bestOpponent: number, requireTwoAhead: boolean): boolean {
+  return total >= WIN_SCORE && (!requireTwoAhead || total - bestOpponent >= 2);
+}
+
+/** Whether a 2-player match is over on score alone (walkover/confirm are separate). */
+export function matchIsDecided(t1: number, t2: number, fase: string | null | undefined): boolean {
+  const twoAhead = fase !== "innledende";
+  return hasWon(t1, t2, twoAhead) || hasWon(t2, t1, twoAhead);
+}
+
+/**
+ * Index of a still-active player who has finished, or null. Measured against the
+ * weakest remaining player, so the field empties from the top as each one lands.
+ * A single remaining player never finishes this way — the caller places them.
+ */
+export function findFinishedPlayer(active: Iterable<number>, totals: number[]): number | null {
+  const idxar = [...active];
+  for (const i of idxar) {
+    const others = idxar.filter((j) => j !== i);
+    if (!others.length) continue;
+    const weakest = Math.min(...others.map((j) => totals[j] ?? 0));
+    if (hasWon(totals[i] ?? 0, weakest, true)) return i;
+  }
+  return null;
+}
+
+/**
+ * Which point buttons each player cannot press, given what is already selected
+ * this omgang. One selection locks the rest: a non-ring score closes the omgang
+ * for everyone who has not answered, a ringer still allows another ringer. A
+ * player's own selection stays pressable so it can be undone.
+ *
+ * `activeIdxar` defaults to every player; the 3-player board passes only those
+ * still in the match, leaving the finished ones with no locks at all.
+ */
+export function pointButtonLocks(
+  values: (number | null)[],
+  pointValues: number[],
+  activeIdxar: number[] = values.map((_, i) => i),
+): Set<number>[] {
+  const locks = values.map(() => new Set<number>());
+
+  const selected = activeIdxar.map((i) => values[i]).filter((v): v is number => v != null);
+  if (!selected.length) return locks;
+
+  const hasNonRing = selected.some((v) => NON_RING_POINTS.includes(v));
+  const hasRing = selected.some((v) => RING_POINTS.includes(v));
+
+  for (const i of activeIdxar) {
+    const lock = locks[i];
+    if (!lock) continue;
+    const own = values[i];
+    if (own != null) {
+      pointValues.forEach((n) => {
+        if (n !== own) lock.add(n);
+      });
+    } else if (hasNonRing) {
+      pointValues.forEach((n) => lock.add(n));
+    } else if (hasRing) {
+      NON_RING_POINTS.forEach((n) => lock.add(n));
+    }
+  }
+  return locks;
+}

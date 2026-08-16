@@ -1,10 +1,17 @@
 // Shared helpers (spelarNamn, lagAsyncKnapp, lagBekreftKnapp, setupScoreboardRealtime)
 // serve both renderScoreboard (2-player) and renderScoreboard3 (3-player) — fixes to
 // realtime, button behaviour, or DOM utilities apply once. Genuine divergences:
-// tegn/tegn3, bereknKnappStatus/bereknKnappStatus3, nesteOmgang/nesteOmgang3,
-// and OmgangRad[] vs MatchRoundRow[] state structures.
+// tegn/tegn3, nesteOmgang/nesteOmgang3, and OmgangRad[] vs MatchRoundRow[] state
+// structures. The scoring rules themselves live in utils/kamp.
 import type { MatchRoundRow, MatchRow, MatchPlayerInMatch } from "@/services/kampService";
-import { calcRingCount, getOmgangThrowerId, getOmgangStarterIndex } from "@/utils/kamp";
+import {
+  calcRingCount,
+  findFinishedPlayer,
+  getOmgangThrowerId,
+  getOmgangStarterIndex,
+  matchIsDecided,
+  pointButtonLocks,
+} from "@/utils/kamp";
 import { createEl } from "@/utils/createEl";
 import {
   getMatchRounds,
@@ -127,7 +134,7 @@ export async function renderScoreboard(
     omgangar = Object.values(omgMap).sort((a, b) => a.omgang - b.omgang);
 
     const [t1, t2] = beregnEffektiveTotalar();
-    kampFerdig = erVinnarKondisjon(t1, t2) || kamp.er_bekreftet || kamp.er_walkover;
+    kampFerdig = matchIsDecided(t1, t2, kamp.fase) || kamp.er_bekreftet || kamp.er_walkover;
   }
 
   function beregnTotalar(): [number, number] {
@@ -143,48 +150,16 @@ export async function renderScoreboard(
     return [omgangar.reduce((s, o) => s + o.r1, 0), omgangar.reduce((s, o) => s + o.r2, 0)];
   }
 
-  function erVinnarKondisjon(t1: number, t2: number): boolean {
-    if (kamp.fase === "innledende") return t1 >= 21 || t2 >= 21;
-    return (t1 >= 21 && t1 - t2 >= 2) || (t2 >= 21 && t2 - t1 >= 2);
-  }
-
   function noverAndeOmgang(): number {
     const last = omgangar[omgangar.length - 1];
     return last ? last.omgang + 1 : 1;
   }
 
-  function bereknKnappStatus(
-    v1: number | null,
-    v2: number | null,
-  ): { p1Dis: Set<number>; p2Dis: Set<number> } {
-    const p1Dis = new Set<number>();
-    const p2Dis = new Set<number>();
-
-    if (v1 !== null) {
-      pointValues.forEach((n) => {
-        if (n !== v1) p1Dis.add(n);
-      });
-      if ([1, 2, 4].includes(v1)) pointValues.forEach((n) => p2Dis.add(n));
-      else [1, 2, 4].forEach((n) => p2Dis.add(n));
-    }
-
-    if (v2 !== null) {
-      pointValues.forEach((n) => {
-        if (n !== v2) p2Dis.add(n);
-      });
-      if ([1, 2, 4].includes(v2)) pointValues.forEach((n) => p1Dis.add(n));
-      else [1, 2, 4].forEach((n) => p1Dis.add(n));
-    }
-
-    // The selected value must always be clickable so the user can deselect it.
-    if (v1 !== null) p1Dis.delete(v1);
-    if (v2 !== null) p2Dis.delete(v2);
-
-    return { p1Dis, p2Dis };
-  }
-
   function beregnDisabledSets(): { p1Dis: Set<number>; p2Dis: Set<number> } {
-    const { p1Dis, p2Dis } = bereknKnappStatus(val1, val2);
+    const [p1Dis = new Set<number>(), p2Dis = new Set<number>()] = pointButtonLocks(
+      [val1, val2],
+      pointValues,
+    );
     // Edit mode: a player's saved value stays locked until they actively change it
     if (isEditMode) {
       if (val1 !== null && !modifiedPlayers.has(1))
@@ -408,7 +383,7 @@ export async function renderScoreboard(
     }
     omgangar.push({ ...rad, omgang: nr });
     const [newT1, newT2] = beregnEffektiveTotalar();
-    kampFerdig = erVinnarKondisjon(newT1, newT2);
+    kampFerdig = matchIsDecided(newT1, newT2, kamp.fase);
     return true;
   }
 
@@ -562,17 +537,6 @@ async function renderScoreboard3(
       .reduce((s, o) => s + (o.score ?? 0), 0);
   }
 
-  /** Index of a still-active player who has won (≥21 and ≥2 ahead of the rest), or null. */
-  function finnFerdigSpelar(aktive: Set<number>, totalar: number[]): number | null {
-    for (const i of aktive) {
-      const andreAktive = [...aktive].filter((j) => j !== i);
-      const minAndre = Math.min(...andreAktive.map((j) => totalar[j] ?? 0));
-      const total = totalar[i] ?? 0;
-      if (total >= 21 && total - minAndre >= 2) return i;
-    }
-    return null;
-  }
-
   function beregnVinnRekkefolge(): number[] {
     if (!omgangData.length) return [];
     const maxOmgang = Math.max(...omgangData.map((o) => o.omgang));
@@ -586,11 +550,11 @@ async function renderScoreboard3(
         if (rad) totalar[i] = (totalar[i] ?? 0) + (rad.score ?? 0);
       }
       // Repeat: a finished player leaving can make the next one finished too
-      let ferdig = finnFerdigSpelar(aktive, totalar);
+      let ferdig = findFinishedPlayer(aktive, totalar);
       while (ferdig !== null && aktive.size > 1) {
         rekkefolge.push(ferdig);
         aktive.delete(ferdig);
-        ferdig = finnFerdigSpelar(aktive, totalar);
+        ferdig = findFinishedPlayer(aktive, totalar);
       }
     }
     if (aktive.size === 1 && rekkefolge.length === 2) rekkefolge.push(...aktive);
@@ -616,35 +580,12 @@ async function renderScoreboard3(
     onKampBekreft,
   );
 
-  function bereknKnappStatus3(
-    aktiveIdxar: number[],
-    effectiveVals: (number | null)[],
-  ): Set<number>[] {
-    const disabledSets = spelarar.map(() => new Set<number>());
-    const selectedIdxar = aktiveIdxar.filter((i) => effectiveVals[i] !== null);
-    if (!selectedIdxar.length) return disabledSets;
-
-    const harNonRing = selectedIdxar.some((i) => [1, 2, 4].includes(effectiveVals[i] as number));
-    const harRing = selectedIdxar.some((i) => [3, 6].includes(effectiveVals[i] as number));
-
-    for (const i of aktiveIdxar) {
-      const disabled = disabledSets[i];
-      if (!disabled) continue;
-      if (effectiveVals[i] !== null) {
-        pointValues.forEach((n) => {
-          if (n !== effectiveVals[i]) disabled.add(n);
-        });
-      } else if (harNonRing) {
-        pointValues.forEach((n) => disabled.add(n));
-      } else if (harRing) {
-        [1, 2, 4].forEach((n) => disabled.add(n));
-      }
-    }
-    return disabledSets;
-  }
-
   function beregnDisabledSets3(editIdxar: number[]): Set<number>[] {
-    const disabledSets = bereknKnappStatus3(editIdxar, vals);
+    const disabledSets = pointButtonLocks(
+      spelarar.map((_, i) => vals[i] ?? null),
+      pointValues,
+      editIdxar,
+    );
     // Edit mode: a player's saved value stays locked until they actively change it
     if (isEditMode3) {
       editIdxar.forEach((i) => {
