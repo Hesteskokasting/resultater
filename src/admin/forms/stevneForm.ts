@@ -1,4 +1,5 @@
-import { formRowHtml, showAlert } from "@/utils/adminForms";
+import { showToast } from "@/components/Toast";
+import { formRowHtml, showFormError } from "@/utils/adminForms";
 import { errorMessage } from "@/utils/errorMessage";
 import { confirmDialog } from "@/components/ConfirmDialog";
 import { isAdmin, isClubAdmin } from "@/services/authService";
@@ -334,10 +335,10 @@ export async function mountTournamentForm(host: AdminFormHost, id?: number): Pro
         : await createTournament(payload);
 
       if (error) {
-        showAlert(wrapper, errorMessage(error), "danger");
+        showFormError(wrapper, errorMessage(error));
         return;
       }
-      showAlert(wrapper, "Stevnet er lagra.", "success");
+      showToast(id ? "Stevnet er lagra." : "Stevnet er oppretta.", "success");
       host.onSaved?.(saved?.id ?? id!, !id);
     });
 
@@ -366,7 +367,7 @@ export async function mountTournamentForm(host: AdminFormHost, id?: number): Pro
         ? await completeSncParent(id!)
         : await setTournamentCompleted(id!);
       if (error) {
-        showAlert(wrapper, errorMessage(error), "danger");
+        showFormError(wrapper, errorMessage(error));
         return;
       }
       await mountTournamentForm(host, id);
@@ -387,7 +388,7 @@ export async function mountTournamentForm(host: AdminFormHost, id?: number): Pro
         return;
       const { error } = isSncParent ? await reopenSncParent(id!) : await reopenTournament(id!);
       if (error) {
-        showAlert(wrapper, errorMessage(error), "danger");
+        showFormError(wrapper, errorMessage(error));
         return;
       }
       await mountTournamentForm(host, id);

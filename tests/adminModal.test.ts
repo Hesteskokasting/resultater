@@ -172,21 +172,16 @@ describe("entity editors", () => {
     expect(mocks.mountThrowerForm).toHaveBeenCalledWith(expect.any(Object), undefined);
   });
 
-  it("closes, confirms and refreshes the panel after a save", () => {
+  it("closes and refreshes the panel after a save, leaving the message to the form", () => {
     const onChanged = vi.fn();
     openTournamentEditor(3, onChanged);
 
     hostOf(mocks.mountTournamentForm).onSaved?.(3, false);
 
     expect(modalEl()).toBeNull();
-    expect(mocks.showToast).toHaveBeenCalledWith("Stevnet er lagra.", "success");
     expect(onChanged).toHaveBeenCalledTimes(1);
-  });
-
-  it("reports a create differently from an update", () => {
-    openTournamentEditor(undefined, vi.fn());
-    hostOf(mocks.mountTournamentForm).onSaved?.(9, true);
-    expect(mocks.showToast).toHaveBeenCalledWith("Stevnet er oppretta.", "success");
+    // The form has already toasted; a second one here would double up.
+    expect(mocks.showToast).not.toHaveBeenCalled();
   });
 
   it("closes and refreshes after a delete", () => {

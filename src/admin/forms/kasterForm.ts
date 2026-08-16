@@ -1,4 +1,5 @@
-import { formRowHtml, showAlert } from "@/utils/adminForms";
+import { showToast } from "@/components/Toast";
+import { formRowHtml, showFormError } from "@/utils/adminForms";
 import { errorMessage } from "@/utils/errorMessage";
 import { isAdmin, isClubAdmin } from "@/services/authService";
 import { escHtml } from "@/utils/escHtml";
@@ -107,10 +108,10 @@ export async function mountThrowerForm(host: AdminFormHost, id?: number): Promis
       : await createThrower(payload);
 
     if (error) {
-      showAlert(wrapper, errorMessage(error), "danger");
+      showFormError(wrapper, errorMessage(error));
       return;
     }
-    showAlert(wrapper, "Utøvaren er lagra.", "success");
+    showToast(id ? "Utøvaren er lagra." : "Utøvaren er oppretta.", "success");
     host.onSaved?.(saved?.id ?? id!, !id);
   });
 

@@ -1,4 +1,5 @@
-import { formRowHtml, showAlert } from "@/utils/adminForms";
+import { showToast } from "@/components/Toast";
+import { formRowHtml, showFormError } from "@/utils/adminForms";
 import { errorMessage } from "@/utils/errorMessage";
 import { isAdmin, isClubAdmin } from "@/services/authService";
 import { escHtml } from "@/utils/escHtml";
@@ -76,20 +77,20 @@ export async function mountClubForm(host: AdminFormHost, id?: number): Promise<v
     if (id) {
       const { error } = await updateClub(id, payload);
       if (error) {
-        showAlert(wrapper, errorMessage(error), "danger");
+        showFormError(wrapper, errorMessage(error));
         return;
       }
-      showAlert(wrapper, "Klubben er lagra.", "success");
+      showToast("Klubben er lagra.", "success");
       host.onSaved?.(id, false);
       return;
     }
 
     const { data: saved, error } = await createClub(payload);
     if (error) {
-      showAlert(wrapper, errorMessage(error), "danger");
+      showFormError(wrapper, errorMessage(error));
       return;
     }
-    showAlert(wrapper, "Klubben er oppretta.", "success");
+    showToast("Klubben er oppretta.", "success");
     host.onSaved?.(saved!.id, true);
   });
 

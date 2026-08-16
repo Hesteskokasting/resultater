@@ -15,7 +15,6 @@ type Mount = (host: AdminFormHost, id?: number) => Promise<void>;
 
 interface EditorProps {
   title: (isNew: boolean) => string;
-  savedMessage: (isNew: boolean) => string;
   deletedMessage: string;
 }
 
@@ -38,7 +37,11 @@ function openEditor(
   void mount(
     {
       container: modal.body,
-      onSaved: (_savedId, created) => finish(props.savedMessage(created), onChanged),
+      // The form announces the save itself; the overlay only has to get out of the way.
+      onSaved: () => {
+        modal.close();
+        onChanged();
+      },
       // A caller viewing the deleted row itself has to leave, not just refresh.
       onDeleted: () => finish(props.deletedMessage, onDeleted ?? onChanged),
       onCancel: () => modal.close(),
@@ -56,7 +59,6 @@ export function openTournamentEditor(
     mountTournamentForm,
     {
       title: (isNew) => (isNew ? "Nytt stevne" : "Rediger stevne"),
-      savedMessage: (created) => (created ? "Stevnet er oppretta." : "Stevnet er lagra."),
       deletedMessage: "Stevnet er sletta.",
     },
     id,
@@ -70,7 +72,6 @@ export function openThrowerEditor(id: number | undefined, onChanged: () => void)
     mountThrowerForm,
     {
       title: (isNew) => (isNew ? "Ny utøvar" : "Rediger utøvar"),
-      savedMessage: (created) => (created ? "Utøvaren er oppretta." : "Utøvaren er lagra."),
       deletedMessage: "Utøvaren er sletta.",
     },
     id,
@@ -83,7 +84,6 @@ export function openClubEditor(id: number | undefined, onChanged: () => void): v
     mountClubForm,
     {
       title: (isNew) => (isNew ? "Ny klubb" : "Rediger klubb"),
-      savedMessage: (created) => (created ? "Klubben er oppretta." : "Klubben er lagra."),
       deletedMessage: "Klubben er sletta.",
     },
     id,
