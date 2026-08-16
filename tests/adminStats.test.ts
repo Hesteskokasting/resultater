@@ -3,10 +3,9 @@ import {
   countThrowersPerClub,
   countTournamentsPerYear,
   countUsersByRole,
-  monthOf,
   summarizeTournaments,
-  yearOf,
 } from "@/utils/adminStats";
+import { monthOf, yearOf } from "@/utils/shared";
 
 describe("yearOf / monthOf", () => {
   it("reads year and month from an ISO date", () => {

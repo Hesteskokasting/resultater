@@ -1,4 +1,4 @@
-import { formatDate } from "@/utils/shared";
+import { formatDate, yearOf } from "@/utils/shared";
 import type { ResultDetailRow } from "@/services/kasterService";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -8,10 +8,6 @@ const MAX_RING = { kongelag: 40, minimatch: 60, halvmatch: 100, heilmatch: 200 }
 export type MethodName = keyof typeof MAX_RING;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-export function getYear(datoStr: string | null | undefined): number | null {
-  return datoStr ? parseInt(datoStr.substring(0, 4)) : null;
-}
 
 function average(vals: number[]): number | null {
   if (!vals.length) return null;
@@ -79,7 +75,7 @@ export function resultFilterOptions(rows: FilterableResult[]): {
   types: [number, string][];
 } {
   const years = [
-    ...new Set(rows.map((r) => getYear(r.stevne?.dato)).filter((a): a is number => a !== null)),
+    ...new Set(rows.map((r) => yearOf(r.stevne?.dato)).filter((a): a is number => a !== null)),
   ].sort((a, b) => b - a);
   const types = [
     ...new Map(
@@ -99,7 +95,7 @@ export function filterResults<T extends FilterableResult>(
   typeFilter: string,
 ): T[] {
   return rows.filter((r) => {
-    if (yearFilter !== "alle" && String(getYear(r.stevne?.dato)) !== yearFilter) return false;
+    if (yearFilter !== "alle" && String(yearOf(r.stevne?.dato)) !== yearFilter) return false;
     if (typeFilter !== "alle" && String(r.stevne?.stevnetype?.id) !== typeFilter) return false;
     return true;
   });
@@ -137,7 +133,7 @@ export function calcStatistics(resultater: ResultDetailRow[]) {
     const avgPoints = average(rader.map((r) => poengFn(r)));
 
     const ringFrom2017 = rader.filter(
-      (r) => ringFn(r) != null && (getYear(r.stevne?.dato) ?? 0) >= FIRST_RING_YEAR,
+      (r) => ringFn(r) != null && (yearOf(r.stevne?.dato) ?? 0) >= FIRST_RING_YEAR,
     );
     const avgPercent = ringFrom2017.length
       ? Math.round(
@@ -188,7 +184,7 @@ export function buildChartData(
 ) {
   const filtered = [...resultater]
     .filter((r) => {
-      const year = getYear(r.stevne?.dato);
+      const year = yearOf(r.stevne?.dato);
       if (fra && (year ?? 0) < fra) return false;
       if (til && (year ?? 0) > til) return false;
       return calcChartValue(r, metric, method) != null;

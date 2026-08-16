@@ -16,6 +16,20 @@ export function todayIso(): string {
   return new Date(now.getTime() - now.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
 }
 
+/** "2026-08-02" → 2026. Null/garbage dates yield null so callers can skip them. */
+export function yearOf(dato: string | null | undefined): number | null {
+  if (!dato) return null;
+  const year = Number(dato.slice(0, 4));
+  return Number.isFinite(year) && year > 1900 ? year : null;
+}
+
+/** 1-based month (1–12) from an ISO date, or null when unparseable. */
+export function monthOf(dato: string | null | undefined): number | null {
+  if (!dato || dato.length < 7) return null;
+  const month = Number(dato.slice(5, 7));
+  return Number.isInteger(month) && month >= 1 && month <= 12 ? month : null;
+}
+
 const dateFmtShort = new Intl.DateTimeFormat("nb-NO", {
   day: "2-digit",
   month: "2-digit",
