@@ -45,7 +45,7 @@ export default defineConfig({
           groups: [
             { test: /node_modules\/xlsx/, name: "xlsx" },
             { test: /node_modules\/chart\.js/, name: "charts" },
-            { test: /node_modules\/(@supabase|bootstrap)/, name: "vendor" },
+            { test: /node_modules\/@supabase/, name: "vendor" },
           ],
         },
       },

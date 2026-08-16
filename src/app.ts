@@ -1,4 +1,3 @@
-import "bootstrap";
 import { App } from "@capacitor/app";
 import { render as renderHome } from "./pages/home";
 import { getUser, isAdmin, isClubAdmin, signOut } from "./services/authService";
