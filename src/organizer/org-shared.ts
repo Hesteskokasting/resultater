@@ -1,5 +1,4 @@
 import {
-  scoreForPlayer,
   matchScoreForPlayer,
   sideScore,
   getMatchSides,
@@ -166,24 +165,6 @@ function renderPlayerMatchDetails(
     </tr>`;
     })
     .join("");
-}
-
-export function canConfirmMatch(
-  kamp: OrgMatch,
-  sp: OrgMatchPlayer[],
-  hasRounds: boolean,
-  hcpMap: Record<number, number> = {},
-): boolean {
-  if (kamp.er_bekreftet) return false;
-  if (kamp.er_walkover) return true;
-  if (hasRounds) return false;
-  const kasterid1 = sp[0]?.kasterid;
-  const kasterid2 = sp[1]?.kasterid;
-  const hcp1 = (kasterid1 != null ? hcpMap[kasterid1] : undefined) ?? 0;
-  const hcp2 = (kasterid2 != null ? hcpMap[kasterid2] : undefined) ?? 0;
-  const s1 = scoreForPlayer(sp[0]);
-  const s2 = sp[1] ? scoreForPlayer(sp[1]) : 0;
-  return s1 + hcp1 >= 21 || s2 + hcp2 >= 21;
 }
 
 export function renderMainContent(matchesHtml: string, standingHtml: string): string {

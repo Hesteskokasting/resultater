@@ -106,7 +106,7 @@ function toOrgMatch(matches: FinalMatchRow[]): OrgMatch[] {
   }));
 }
 
-export function toOrgPlayer(sp: FinalMatchPlayerRow[]) {
+function toOrgPlayer(sp: FinalMatchPlayerRow[]) {
   return sp.map((s) => ({
     kasterid: s.kasterid ?? 0,
     kamp_poeng: s.kamp_poeng ?? 0,

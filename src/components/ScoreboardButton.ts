@@ -6,11 +6,6 @@ const ICON =
   '<line x1="12" y1="17" x2="12" y2="21"/>' +
   "</svg>";
 
-/** The monitor glyph marking every "open the scoreboard" control. */
-export function scoreboardIconHtml(): string {
-  return ICON;
-}
-
 /**
  * Icon-only scoreboard button. Carries data-scoreboard-kamp-id, so the
  * delegated handler bindScoreboardClicks installs picks it up unchanged.

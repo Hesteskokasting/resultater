@@ -47,11 +47,11 @@ export interface StevneInfoSource {
 // ── Field derivation ──────────────────────────────────────────────────────────
 
 /** Stevnetype and kategori read as one label: "SNC Singel". */
-export function typeAndCategoryLabel(stevne: StevneInfoSource): string {
+function typeAndCategoryLabel(stevne: StevneInfoSource): string {
   return [stevne.stevnetype?.navn, stevne.kategori?.navn].filter(Boolean).join(" ") || "—";
 }
 
-export function contactName(stevne: StevneInfoSource): string {
+function contactName(stevne: StevneInfoSource): string {
   if (!stevne.kontakt) return "";
   return `${stevne.kontakt.fornavn ?? ""} ${stevne.kontakt.etternavn ?? ""}`.trim();
 }

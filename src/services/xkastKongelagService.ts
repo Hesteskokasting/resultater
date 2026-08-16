@@ -378,17 +378,6 @@ export async function createCourts(
   return { error: participantError };
 }
 
-/** Removes all courts for one fase (cascade deletes participants and omganger). */
-export async function deleteCourts(stevneid: number, fase: CourtFase): Promise<{ error: unknown }> {
-  const { error } = await supabase
-    .from("xkast_kongelag")
-    .delete()
-    .eq("stevneid", stevneid)
-    .eq("fase", fase);
-  if (error) logError("deleteCourts", error);
-  return { error };
-}
-
 // ── Omgang writes ─────────────────────────────────────────────────────────────
 
 export async function saveOmgang(

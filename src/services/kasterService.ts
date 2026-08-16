@@ -215,7 +215,7 @@ export async function getThrowerForAdmin(
  * Drop the cached thrower lists so the next read hits the database.
  * Called after every write below; export it for callers that mutate `kaster` by other means.
  */
-export function invalidateThrowerListCache(): void {
+function invalidateThrowerListCache(): void {
   _kasterListeAktivCache = null;
   _kasterListeAlleCache = null;
   _kasterAdminListeCache = null;

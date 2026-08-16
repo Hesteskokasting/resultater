@@ -79,7 +79,7 @@ function tekst(verdi: number | null | undefined): string {
 }
 
 /** "20 %" / "33,33 %" — the carried share, and the header of the column it fills. */
-export function carryLabel(prosent: number): string {
+function carryLabel(prosent: number): string {
   return `${String(prosent).replace(".", ",")} %`;
 }
 
@@ -88,7 +88,7 @@ export function carryLabel(prosent: number): string {
  * kamppoeng as thrown (Gloppen/NHM carry theirs unrounded). Null when innledende
  * carries nothing.
  */
-export function carryVerdi(row: ResultatRad, cols: ResultatKolonnar): number | null {
+function carryVerdi(row: ResultatRad, cols: ResultatKolonnar): number | null {
   if (cols.carryFactor != null) return Math.round((row.poengInnl ?? 0) * cols.carryFactor);
   if (cols.visKpSp && cols.visAvslPoeng) return row.kampPoeng ?? 0;
   return null;
@@ -102,7 +102,7 @@ export function radTotal(row: ResultatRad, cols: ResultatKolonnar): number {
  * Drawn a prize. The table has a column of its own to head the mark, so an X
  * carries it there; the mobile card has no header and spells it out instead.
  */
-export function premieHtml(row: ResultatRad, merke: "X" | "PREMIE"): string {
+function premieHtml(row: ResultatRad, merke: "X" | "PREMIE"): string {
   return row.erpremie ? `<span class="res-premie" title="Trekt premie">${merke}</span>` : "";
 }
 

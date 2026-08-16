@@ -122,7 +122,7 @@ function rowHtml<T>(row: T, i: number, columns: Col<T>[], spec: RankingListSpec<
   return `${tr}<tr class="rank-detalj-rad" id="${panelId}" hidden><td colspan="${columns.length}">${detail}</td></tr>`;
 }
 
-export function rankingTableHtml<T>(rows: T[], spec: RankingListSpec<T>): string {
+function rankingTableHtml<T>(rows: T[], spec: RankingListSpec<T>): string {
   const columns = buildColumns(spec);
   const head = columns
     .map(

@@ -31,7 +31,7 @@ function fullName(person: { fornavn?: string | null; etternavn?: string | null }
   return `${person.fornavn ?? ""} ${person.etternavn ?? ""}`.trim();
 }
 
-export function printFactsHtml(facts: Fakta[]): string {
+function printFactsHtml(facts: Fakta[]): string {
   const pairs = facts
     .map(
       ([label, value]) => `

@@ -4,8 +4,8 @@
 // before a rejected insert.
 
 export const SHOES_PER_OMGANG = 4;
-export const RINGER_POENG = 5;
-export const MAX_SHOE_POENG_WITHOUT_RINGER = 3;
+const RINGER_POENG = 5;
+const MAX_SHOE_POENG_WITHOUT_RINGER = 3;
 export const OMGANG_MAX_POENG = SHOES_PER_OMGANG * RINGER_POENG;
 export const OMGANG_MAX_RINGER = SHOES_PER_OMGANG;
 
@@ -50,7 +50,7 @@ export function isValidOmgangEntry(poeng: number, antallRinger: number): boolean
 }
 
 /** Total shoes thrown across a whole X-kast/Kongelag (4 shoes per omgang). */
-export function totalShoes(antallOmganger: number): number {
+function totalShoes(antallOmganger: number): number {
   return SHOES_PER_OMGANG * antallOmganger;
 }
 
