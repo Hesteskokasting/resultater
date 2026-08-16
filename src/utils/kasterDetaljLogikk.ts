@@ -52,6 +52,59 @@ export function sortResults<T extends SortableResult>(rows: T[], sort: ResultSor
   });
 }
 
+/**
+ * Clicking a header: the same column flips direction, a new one starts on its
+ * own sensible default — newest first for date, best first for placement.
+ */
+export function nextResultSort(sort: ResultSort, column: ResultSortColumn): ResultSort {
+  if (sort.column === column) {
+    return { column, direction: sort.direction === "asc" ? "desc" : "asc" };
+  }
+  return { column, direction: column === "plassering" ? "asc" : "desc" };
+}
+
+// ── Result filtering ──────────────────────────────────────────────────────────
+
+/** Shape the year/type filter and its dropdowns need. */
+type FilterableResult = {
+  stevne: { dato: string | null; stevnetype: { id: number; navn: string } | null } | null;
+};
+
+/**
+ * The year and stevnetype dropdowns list only what this thrower has actually
+ * competed in — years newest first, types alphabetical.
+ */
+export function resultFilterOptions(rows: FilterableResult[]): {
+  years: number[];
+  types: [number, string][];
+} {
+  const years = [
+    ...new Set(rows.map((r) => getYear(r.stevne?.dato)).filter((a): a is number => a !== null)),
+  ].sort((a, b) => b - a);
+  const types = [
+    ...new Map(
+      rows
+        .map((r) => r.stevne?.stevnetype)
+        .filter((t): t is { id: number; navn: string } => t != null)
+        .map((t) => [t.id, t.navn] as [number, string]),
+    ).entries(),
+  ].sort((a, b) => a[1].localeCompare(b[1]));
+  return { years, types };
+}
+
+/** Both filters carry the sentinel "alle", which keeps everything. */
+export function filterResults<T extends FilterableResult>(
+  rows: T[],
+  yearFilter: string,
+  typeFilter: string,
+): T[] {
+  return rows.filter((r) => {
+    if (yearFilter !== "alle" && String(getYear(r.stevne?.dato)) !== yearFilter) return false;
+    if (typeFilter !== "alle" && String(r.stevne?.stevnetype?.id) !== typeFilter) return false;
+    return true;
+  });
+}
+
 // ── Statistics ────────────────────────────────────────────────────────────────
 
 function hasMethod(r: ResultDetailRow, metode: string): boolean {
