@@ -1,4 +1,5 @@
-import { formRowHtml, showSaveError, showSuccess, errMsg } from "@/utils/adminForms";
+import { formRowHtml, showSaveError, showSuccess } from "@/utils/adminForms";
+import { errorMessage } from "@/utils/errorMessage";
 import { isAdmin, isClubAdmin } from "@/services/authService";
 import { escHtml } from "@/utils/escHtml";
 import { createErrorBanner } from "@/components/ErrorBanner";
@@ -75,7 +76,7 @@ export async function mountClubForm(host: AdminFormHost, id?: number): Promise<v
     if (id) {
       const { error } = await updateClub(id, payload);
       if (error) {
-        showSaveError(wrapper, errMsg(error));
+        showSaveError(wrapper, errorMessage(error));
         return;
       }
       showSuccess(wrapper, "Klubben er lagra.");
@@ -85,7 +86,7 @@ export async function mountClubForm(host: AdminFormHost, id?: number): Promise<v
 
     const { data: saved, error } = await createClub(payload);
     if (error) {
-      showSaveError(wrapper, errMsg(error));
+      showSaveError(wrapper, errorMessage(error));
       return;
     }
     showSuccess(wrapper, "Klubben er oppretta.");

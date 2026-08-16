@@ -2,7 +2,7 @@ import { createEmptyState } from "@/components/EmptyState";
 import { createErrorBanner } from "@/components/ErrorBanner";
 import { createLoadingState } from "@/components/LoadingState";
 import { createEl } from "@/utils/createEl";
-import { errMsg } from "@/utils/adminForms";
+import { errorMessage } from "@/utils/errorMessage";
 import { logError } from "@/utils/logError";
 import {
   addClubAdminAccess,
@@ -61,7 +61,7 @@ export async function render(el: HTMLElement): Promise<void> {
     alert.hide();
     const { error } = await action;
     if (error) {
-      alert.show(errMsg(error));
+      alert.show(errorMessage(error));
       return;
     }
     await render(el);

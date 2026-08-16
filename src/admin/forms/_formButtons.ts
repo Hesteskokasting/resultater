@@ -1,5 +1,6 @@
 import { confirmDialog } from "@/components/ConfirmDialog";
-import { errMsg, showSaveError } from "@/utils/adminForms";
+import { showSaveError } from "@/utils/adminForms";
+import { errorMessage } from "@/utils/errorMessage";
 import type { AdminFormHost } from "./_formHost";
 
 /** Wiring shared by the entity forms' secondary buttons. */
@@ -31,7 +32,7 @@ export function bindDeleteButton(wrapper: HTMLElement, binding: DeleteBinding): 
 
       const { error } = await binding.remove();
       if (error) {
-        showSaveError(wrapper, errMsg(error));
+        showSaveError(wrapper, errorMessage(error));
         return;
       }
       binding.onDeleted?.();
