@@ -172,6 +172,19 @@ function sortValue(s: SortableScheduleRow, column: ScheduleSortColumn): string {
   }
 }
 
+/**
+ * Clicking a header: the same column flips direction, a new one starts ascending.
+ * Mutates in place — each table owns one long-lived sort object.
+ */
+export function toggleSort(sort: ScheduleSort, column: ScheduleSortColumn): void {
+  if (sort.column === column) {
+    sort.direction = sort.direction === "asc" ? "desc" : "asc";
+    return;
+  }
+  sort.column = column;
+  sort.direction = "asc";
+}
+
 export function sortSchedule<T extends SortableScheduleRow>(rows: T[], sort: ScheduleSort): T[] {
   return [...rows].sort((a, b) => {
     const cmp = sortValue(a, sort.column).localeCompare(sortValue(b, sort.column), "nb");
@@ -190,6 +203,11 @@ export interface MonthGroup<T> {
 export interface ScheduleGroups<T> {
   upcoming: MonthGroup<T>[];
   past: MonthGroup<T>[];
+}
+
+/** Rows across all month groups — the section count pill. */
+export function countGroupedRows<T>(groups: MonthGroup<T>[]): number {
+  return groups.reduce((n, g) => n + g.rows.length, 0);
 }
 
 interface GroupableScheduleRow {

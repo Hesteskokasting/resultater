@@ -30,6 +30,8 @@ import {
   filterSchedule,
   canRegisterForTournament,
   countSncLocals,
+  countGroupedRows,
+  toggleSort,
   filterOptionsFromRows,
   type ScheduleFilterOptions,
   type FilterOption,
@@ -76,10 +78,6 @@ function trailingActionHtml(s: TournamentRow): string {
     : "";
 }
 
-function countRows(groups: MonthGroup<TournamentRow>[]): number {
-  return groups.reduce((n, g) => n + g.rows.length, 0);
-}
-
 // ── Filter state ──────────────────────────────────────────────────────────────
 
 const filter = {
@@ -124,7 +122,7 @@ function filterData(data: TournamentRow[]): TournamentRow[] {
 
 /** Nothing upcoming (a past year) means Ferdige is the whole list — open it. */
 function autoExpandFerdige(): void {
-  ferdigeExpanded = countRows(groupSchedule(filterData(allData), todayIso()).upcoming) === 0;
+  ferdigeExpanded = countGroupedRows(groupSchedule(filterData(allData), todayIso()).upcoming) === 0;
 }
 
 // ── Excel export ──────────────────────────────────────────────────────────────
@@ -269,8 +267,8 @@ function tableHtml(
   expanded: boolean,
   today: string,
 ): string {
-  const upcomingCount = countRows(groups.upcoming);
-  const pastCount = countRows(groups.past);
+  const upcomingCount = countGroupedRows(groups.upcoming);
+  const pastCount = countGroupedRows(groups.past);
   if (upcomingCount === 0 && pastCount === 0)
     return '<p class="empty-state">Ingen stevner funnet med valgte filtre.</p>';
 
@@ -369,8 +367,8 @@ function buildList(
   expanded: boolean,
   today: string,
 ): HTMLElement {
-  const upcomingCount = countRows(groups.upcoming);
-  const pastCount = countRows(groups.past);
+  const upcomingCount = countGroupedRows(groups.upcoming);
+  const pastCount = countGroupedRows(groups.past);
   if (upcomingCount === 0 && pastCount === 0) {
     return createEmptyState("Ingen stevner funnet med valgte filtre.");
   }
@@ -409,9 +407,10 @@ export async function render(container: HTMLElement): Promise<void> {
       getUser(),
     ]);
     _auth = auth;
+    const throwerId = linkedThrowerId(auth);
     _registrations =
-      auth?.profil?.kasterid != null
-        ? await getRegistrationsForThrower(auth.profil.kasterid)
+      throwerId !== null
+        ? await getRegistrationsForThrower(throwerId)
         : emptyThrowerRegistrations();
 
     if (error) {
@@ -508,8 +507,7 @@ export async function render(container: HTMLElement): Promise<void> {
       else listEl.replaceChildren(view);
       const countEl = container.querySelector(".tl-count");
       if (countEl) countEl.textContent = `${filtered.length} stevner`;
-      const throwerId = _auth?.profil?.kasterid;
-      if (throwerId != null) bindRegistrationSlots(listEl, throwerId, _registrations.byTournament);
+      if (throwerId !== null) bindRegistrationSlots(listEl, throwerId, _registrations.byTournament);
       return filtered;
     }
 
@@ -562,12 +560,7 @@ export async function render(container: HTMLElement): Promise<void> {
       if (th) {
         const column = th.dataset.column as ScheduleSortColumn;
         const sort = th.closest("table")?.id === "tl-table-ferdige" ? sortFerdige : sortKommande;
-        if (sort.column === column) {
-          sort.direction = sort.direction === "asc" ? "desc" : "asc";
-        } else {
-          sort.column = column;
-          sort.direction = "asc";
-        }
+        toggleSort(sort, column);
         updateList();
         return;
       }

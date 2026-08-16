@@ -6,6 +6,8 @@ import {
   filterSchedule,
   canRegisterForTournament,
   countSncLocals,
+  countGroupedRows,
+  toggleSort,
   filterOptionsFromRows,
   type ScheduleSort,
 } from "@/utils/terminlisteLogikk";
@@ -366,5 +368,33 @@ describe("linkedThrowerId", () => {
     }
     expect(linkedThrowerId(null)).toBeNull();
     expect(linkedThrowerId({ user: {}, profil: null, clubs: [] } as never)).toBeNull();
+  });
+});
+
+describe("toggleSort", () => {
+  it("flips the direction when the same column is clicked again", () => {
+    const sort: ScheduleSort = { column: "dato", direction: "asc" };
+    toggleSort(sort, "dato");
+    expect(sort).toEqual({ column: "dato", direction: "desc" });
+    toggleSort(sort, "dato");
+    expect(sort).toEqual({ column: "dato", direction: "asc" });
+  });
+
+  it("starts a new column ascending, whatever the previous direction was", () => {
+    const sort: ScheduleSort = { column: "dato", direction: "desc" };
+    toggleSort(sort, "navn");
+    expect(sort).toEqual({ column: "navn", direction: "asc" });
+  });
+});
+
+describe("countGroupedRows", () => {
+  it("sums the rows across every month group", () => {
+    expect(
+      countGroupedRows([
+        { key: "2026-01", label: "JANUAR 2026", rows: [1, 2, 3] },
+        { key: "2026-02", label: "FEBRUAR 2026", rows: [4] },
+      ]),
+    ).toBe(4);
+    expect(countGroupedRows([])).toBe(0);
   });
 });
