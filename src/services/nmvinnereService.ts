@@ -27,10 +27,26 @@ export type NMResultRow = QueryData<typeof _nmResultatQuery>[number];
 
 const _dataCache = new Map<string, { data: NMResultRow[]; error: unknown }>();
 let _genderCache: { id: number; navn: string }[] | null = null;
+let _nmClassCache: number[] | null = null;
 
 // ── Private helpers ───────────────────────────────────────────────────────────
 
-const ALL_VALID_CLASSES = [1, 3, 4, 13, 16, 21, 23, 24, 27, 29, 32];
+/**
+ * Only some classes are ever a championship — a B-cup or a Rekrutt winner is not
+ * a Norgesmester. `klasse.har_nm_vinnere` is the authority; asking the database
+ * keeps this list in one place instead of a hardcoded copy per caller.
+ */
+async function getNMClassIds(): Promise<number[]> {
+  if (_nmClassCache) return _nmClassCache;
+  const { data, error } = await supabase.from("klasse").select("id").eq("har_nm_vinnere", true);
+  if (error) {
+    // Not cached, so the next category retries instead of serving an empty list forever.
+    logError("getNMClassIds", error);
+    return [];
+  }
+  _nmClassCache = data.map((k) => k.id);
+  return _nmClassCache;
+}
 
 async function getGenderIds(): Promise<{ id: number; navn: string }[]> {
   if (_genderCache) return _genderCache;
@@ -97,7 +113,9 @@ export async function getNMData(
     .select(`id, klasseid, ${kasterJoin}, klubb:klubbid(id, navn), stevne:stevneid(id, dato)`)
     .eq("plassering", 1)
     .in("stevneid", ids)
-    .in("klasseid", ALL_VALID_CLASSES)
+    .in("klasseid", await getNMClassIds())
+    // gruppe 2 is B — a B-final winner is not a Norgesmester. No flag on `gruppe`
+    // to lean on the way klasse.har_nm_vinnere does, so the id stays hardcoded.
     .or("gruppeid.is.null,gruppeid.neq.2");
 
   if (filterByGender) {
