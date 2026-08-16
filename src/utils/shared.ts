@@ -1,3 +1,5 @@
+import { escHtml } from "@/utils/escHtml";
+
 // ── Date formatting ───────────────────────────────────────────────────────────
 
 // Bare date strings (YYYY-MM-DD) are parsed as UTC midnight by JS, which shifts
@@ -135,7 +137,23 @@ export async function downloadExcelRows(
   XLSX.writeFile(book, fileName);
 }
 
-// ── Year dropdown ─────────────────────────────────────────────────────────────
+// ── Dropdowns ─────────────────────────────────────────────────────────────────
+
+/** A `<select>` with the matching option pre-selected. Labels and values are escaped. */
+export function selectHtml(
+  id: string,
+  options: { value: string; label: string }[],
+  selected: string,
+  className = "tl-select",
+): string {
+  const opts = options
+    .map(
+      (o) =>
+        `<option value="${escHtml(o.value)}"${o.value === selected ? " selected" : ""}>${escHtml(o.label)}</option>`,
+    )
+    .join("");
+  return `<select id="${id}" class="${className}">${opts}</select>`;
+}
 
 export function yearOptions(selected: number, from: number, to = new Date().getFullYear()): string {
   let html = "";

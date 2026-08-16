@@ -2,6 +2,7 @@ import { buildThrowerSlug, throwerName } from "@/utils/kaster";
 import { createErrorBanner, createLoadingState, createEmptyState } from "@/components/states";
 import { createTable } from "@/components/Table";
 import { escHtml } from "@/utils/escHtml";
+import { selectHtml } from "@/utils/shared";
 import { logError } from "@/utils/logError";
 import { getNMData } from "@/services/nmvinnereService";
 import {
@@ -75,16 +76,6 @@ function createNMTable(list: WinnersEntry[]): HTMLElement {
     }),
   );
   return wrapper;
-}
-
-function selectHtml(id: string, options: { value: string; label: string }[], selected: string) {
-  const opts = options
-    .map(
-      (o) =>
-        `<option value="${escHtml(o.value)}"${o.value === selected ? " selected" : ""}>${escHtml(o.label)}</option>`,
-    )
-    .join("");
-  return `<select id="${id}" class="tl-select">${opts}</select>`;
 }
 
 function pageSkeletonHtml(category: NMCategoryConfig, maxYear: number): string {

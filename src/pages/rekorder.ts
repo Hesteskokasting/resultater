@@ -2,108 +2,48 @@ import { throwerName, buildThrowerSlug } from "@/utils/kaster";
 import { createErrorBanner, createLoadingState, createEmptyState } from "@/components/states";
 import { createTable } from "@/components/Table";
 import { createSearchInput } from "@/components/SearchInput";
-import { escHtml } from "@/utils/escHtml";
+import { selectHtml } from "@/utils/shared";
 import { logError } from "@/utils/logError";
 import { registerRefetch } from "@/utils/refetchRegistry";
-import { getAllRecords } from "@/services/rekorderService";
-import type { RecordRow } from "@/services/rekorderService";
-
-// ── Constants ─────────────────────────────────────────────────────────────────
-
-interface MethodConfig {
-  value: string;
-  label: string;
-  maxPoints: number;
-}
-
-const METHODS: MethodConfig[] = [
-  { value: "kongelag", label: "Kongelag", maxPoints: 200 },
-  { value: "minimatch", label: "Minimatch", maxPoints: 300 },
-  { value: "halvmatch", label: "Halvmatch", maxPoints: 500 },
-  { value: "heilmatch", label: "Heilmatch", maxPoints: 1000 },
-];
-
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-interface RecordsFilter {
-  method: string;
-  gender: "alle" | "herrer" | "damer";
-  searchText: string;
-}
-
-type RankedRow = RecordRow & { placement: number };
+import { getAllRecords, clearRecordsCache } from "@/services/rekorderService";
+import {
+  RECORD_METHODS,
+  findRecordMethod,
+  isFemale,
+  recordThrower,
+  filterAndRankRecords,
+} from "@/utils/rekorderLogikk";
+import type { RankedRecord, RecordsFilter } from "@/utils/rekorderLogikk";
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
 const filter: RecordsFilter = { method: "kongelag", gender: "alle", searchText: "" };
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function isFemale(item: RecordRow): boolean {
-  return (item.kjonn_navn ?? "").toLowerCase().includes("dame");
-}
-
-// ── Filtering and ranking ─────────────────────────────────────────────────────
-
-function buildAndFilterList(allData: RecordRow[]): RankedRow[] {
-  const search = filter.searchText.trim().toLowerCase();
-
-  const filtered = allData.filter((item) => {
-    if (item.metode !== filter.method) return false;
-    if (filter.gender === "damer" && !isFemale(item)) return false;
-    if (filter.gender === "herrer" && isFemale(item)) return false;
-    if (search) {
-      const name = throwerName({
-        fornavn: item.fornavn ?? "",
-        etternavn: item.etternavn ?? "",
-      }).toLowerCase();
-      const club = (item.klubb_navn ?? "").toLowerCase();
-      if (!name.includes(search) && !club.includes(search)) return false;
-    }
-    return true;
-  });
-
-  filtered.sort((a, b) => (b.poeng ?? 0) - (a.poeng ?? 0));
-
-  let pl = 1;
-  return filtered.map((item, i) => {
-    if (i > 0 && (item.poeng ?? 0) < (filtered[i - 1]?.poeng ?? 0)) pl = i + 1;
-    return { ...item, placement: pl };
-  });
-}
-
 // ── HTML builders ─────────────────────────────────────────────────────────────
 
-function createRecordTable(list: RankedRow[]): HTMLElement {
+function createRecordTable(list: RankedRecord[]): HTMLElement {
   if (!list.length) return createEmptyState("Ingen rekorder funnet.");
 
   const wrapper = document.createElement("div");
   wrapper.className = "record-table-wrapper";
   wrapper.appendChild(
-    createTable<RankedRow>({
+    createTable<RankedRecord>({
       rows: list,
       rowClass: (item) => (isFemale(item) ? "record-female-row" : undefined),
       columns: [
         {
           label: "Pl.",
           thClass: "record-th-placement",
-          render: (item) => String(item.placement),
+          render: (item) => String(item.plassering),
         },
         {
           label: "Navn",
           render: (item) => {
-            const slug = buildThrowerSlug({
-              id: item.kasterid ?? 0,
-              fornavn: item.fornavn ?? "",
-              etternavn: item.etternavn ?? "",
-            });
+            const kaster = recordThrower(item);
             const a = document.createElement("a");
-            a.href = `#/kastere/${slug}`;
+            a.href = `#/kastere/${buildThrowerSlug(kaster)}`;
             a.className = "tl-link";
-            a.textContent = throwerName({
-              fornavn: item.fornavn ?? "",
-              etternavn: item.etternavn ?? "",
-            });
+            a.textContent = throwerName(kaster);
             return a;
           },
         },
@@ -136,22 +76,20 @@ function createRecordTable(list: RankedRow[]): HTMLElement {
 }
 
 function pageSkeletonHtml(): string {
-  const methodOptions = METHODS.map(
-    (m) =>
-      `<option value="${m.value}"${m.value === filter.method ? " selected" : ""}>${escHtml(m.label)}</option>`,
-  ).join("");
+  const methods = RECORD_METHODS.map((m) => ({ value: m.value, label: m.label }));
+  const genders = [
+    { value: "alle", label: "Alle" },
+    { value: "herrer", label: "Herrer" },
+    { value: "damer", label: "Damer" },
+  ];
 
   return `
     <div class="content-page">
       <h1 class="record-title">Rekorder</h1>
       <p id="record-max-text" class="record-max-text"></p>
       <div class="nc-filter-rad">
-        <select id="record-method" class="tl-select">${methodOptions}</select>
-        <select id="record-gender" class="tl-select">
-          <option value="alle">Alle</option>
-          <option value="herrer">Herrer</option>
-          <option value="damer">Damer</option>
-        </select>
+        ${selectHtml("record-method", methods, filter.method)}
+        ${selectHtml("record-gender", genders, filter.gender)}
         <span id="record-search-slot"></span>
       </div>
       <div id="record-table-container"></div>
@@ -162,9 +100,10 @@ function pageSkeletonHtml(): string {
 
 export async function render(container: HTMLElement): Promise<void> {
   registerRefetch(() => render(container));
-  filter.method = "kongelag";
+  filter.method = RECORD_METHODS[0]!.value;
   filter.gender = "alle";
   filter.searchText = "";
+  clearRecordsCache();
 
   container.replaceChildren(createLoadingState("Laster rekorder…"));
 
@@ -177,16 +116,15 @@ export async function render(container: HTMLElement): Promise<void> {
 
     container.innerHTML = pageSkeletonHtml();
 
+    const tableContainer = container.querySelector<HTMLElement>("#record-table-container")!;
+
     function updateMaxText(): void {
-      const method = METHODS.find((m) => m.value === filter.method)!;
       container.querySelector<HTMLElement>("#record-max-text")!.textContent =
-        `(Maks poengsum: ${method.maxPoints})`;
+        `(Maks poengsum: ${findRecordMethod(filter.method).maxPoints})`;
     }
 
     function updateTable(): void {
-      container
-        .querySelector<HTMLElement>("#record-table-container")!
-        .replaceChildren(createRecordTable(buildAndFilterList(data)));
+      tableContainer.replaceChildren(createRecordTable(filterAndRankRecords(data, filter)));
     }
 
     updateMaxText();
@@ -214,7 +152,9 @@ export async function render(container: HTMLElement): Promise<void> {
       onInput: updateTable,
     });
 
-    container.addEventListener("click", (e) => {
+    // Delegated on the table container, not on `container` — a refetch replaces
+    // this element, so the listener goes with it instead of stacking up.
+    tableContainer.addEventListener("click", (e) => {
       const cell = (e.target as Element).closest<HTMLElement>(".record-points-cell");
       if (cell?.dataset.tournamentId) {
         location.hash = `#/stevne/${cell.dataset.tournamentId}/resultat`;

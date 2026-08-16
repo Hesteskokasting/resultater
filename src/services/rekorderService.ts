@@ -17,6 +17,11 @@ export type RecordRow = QueryData<typeof _rekorderQuery>[number];
 
 let _cache: RecordRow[] | null = null;
 
+/** Drops the buffer so a pull-to-refresh actually re-reads the view. */
+export function clearRecordsCache(): void {
+  _cache = null;
+}
+
 // ── Eksportert funksjon ───────────────────────────────────────────────────────
 
 export async function getAllRecords(): Promise<{ data: RecordRow[]; error: unknown }> {
