@@ -110,7 +110,7 @@ function sideRawScore(
 }
 
 /** Displayed scores: an unconfirmed walkover shows 21–0; otherwise the raw side totals. */
-function calcRowScores(
+export function calcRowScores(
   kamp: InitialMatchRow,
   side1: MatchSide<InitialMatchPlayerRow> | null,
   side2: MatchSide<InitialMatchPlayerRow> | null,
