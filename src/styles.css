@@ -2258,13 +2258,6 @@ th.standing-sp-th {
   max-width: none;
 }
 
-#nc-singel-seksjon {
-  margin-bottom: 32px;
-}
-#nc-lag-seksjon {
-  margin-bottom: 32px;
-}
-
 /* Sits directly above the list, so it ends where the list ends. */
 .nc-class-tabs-wrapper {
   display: flex;
