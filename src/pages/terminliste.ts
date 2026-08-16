@@ -451,9 +451,9 @@ export async function render(container: HTMLElement): Promise<void> {
           ${desktopSel.year}
           <span id="tl-text-slot"></span>
           ${desktopSel.tournamentType}
+          ${desktopSel.category}
           ${desktopSel.throwingMethod}
           ${desktopSel.organizer}
-          ${desktopSel.category}
           ${excelSlotHtml}
         </div>
 
@@ -480,14 +480,14 @@ export async function render(container: HTMLElement): Promise<void> {
           <label class="tl-label">Stevnetype
             ${mobileSel.tournamentType}
           </label>
+          <label class="tl-label">Kategori
+            ${mobileSel.category}
+          </label>
           <label class="tl-label">Kastemetode
             ${mobileSel.throwingMethod}
           </label>
           <label class="tl-label">Arrangør
             ${mobileSel.organizer}
-          </label>
-          <label class="tl-label">Kategori
-            ${mobileSel.category}
           </label>
           <div class="tl-sheet-buttons">
             <button class="tl-reset-button" id="tl-reset">Tilbakestill</button>
