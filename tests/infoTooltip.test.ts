@@ -18,7 +18,8 @@ function mount(html = "<p>Forklaring</p>"): {
   document.body.replaceChildren(host);
 
   const tip = createInfoTooltip({ slot: host.querySelector("#slot")!, label: "Om lista", html });
-  const wrapper = tip.element;
+  // Reached the way a page reaches it: the tooltip replaced the slot in place.
+  const wrapper = host.querySelector<HTMLElement>(".info-tip")!;
   return {
     wrapper,
     button: wrapper.querySelector("button")!,
@@ -86,14 +87,6 @@ describe("createInfoTooltip", () => {
     const { panel, tip } = mount();
     tip.setHtml("<p>Ny tekst</p>");
     expect(panel.textContent).toContain("Ny tekst");
-  });
-
-  it("opens and closes through the returned handles", () => {
-    const { panel, tip } = mount();
-    tip.open();
-    expect(panel.hidden).toBe(false);
-    tip.close();
-    expect(panel.hidden).toBe(true);
   });
 
   it("stops listening once its page has been replaced", () => {

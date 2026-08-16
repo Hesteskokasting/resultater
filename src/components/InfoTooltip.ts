@@ -12,12 +12,8 @@ export interface InfoTooltipProps {
 }
 
 export interface InfoTooltip {
-  /** The wrapper holding both the button and its panel. */
-  element: HTMLElement;
   /** Replaces the contents, for pages whose explanation follows the filters. */
   setHtml: (html: string) => void;
-  open: () => void;
-  close: () => void;
 }
 
 const INFO_SVG =
@@ -95,11 +91,8 @@ export function createInfoTooltip({
   slot.replaceWith(wrapper);
 
   return {
-    element: wrapper,
     setHtml: (next) => {
       panel.innerHTML = next;
     },
-    open: () => setOpen(true),
-    close: () => setOpen(false),
   };
 }
