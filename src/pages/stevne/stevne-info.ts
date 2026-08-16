@@ -1,4 +1,5 @@
 import { getUser } from "@/services/authService";
+import { linkedThrowerId } from "@/utils/kaster";
 import { createErrorBanner, createLoadingState } from "@/components/states";
 import {
   heroActionSlot,
@@ -174,10 +175,8 @@ export async function render(
     // ── Action buttons ────────────────────────────────────────────────────────
 
     const actionButtons = container.querySelector<HTMLElement>("#info-handling-knapper")!;
-    if (auth?.profil?.kobling_status === "godkjent" && isNotStarted) {
-      const kasterid = auth.profil.kasterid;
-      if (kasterid === null) return;
-
+    const kasterid = linkedThrowerId(auth);
+    if (kasterid !== null && isNotStarted) {
       const myRegistration = (await getMyRegistrationForTournament(id, kasterid)).data;
 
       const registrationButton = createRegistrationButton({

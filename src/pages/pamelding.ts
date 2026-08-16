@@ -1,4 +1,5 @@
 import { getUser } from "@/services/authService";
+import { linkedThrowerId } from "@/utils/kaster";
 import { confirmDialog } from "@/components/ConfirmDialog";
 import { formatDate, formatTime } from "@/utils/shared";
 import { createErrorBanner, createLoadingState } from "@/components/states";
@@ -310,7 +311,7 @@ export async function render(container: HTMLElement, params: Params = {}): Promi
     const pairs = pairsResult.data;
 
     const kasterid = auth?.profil?.kasterid ?? null;
-    const isLinked = auth?.profil?.kobling_status === "godkjent";
+    const isLinked = linkedThrowerId(auth) !== null;
     const isRegistered = kasterid != null && registrations.some((p) => p.kasterid === kasterid);
     const dateStr = tournament.dato ? formatDate(tournament.dato) : "";
     const metaParts = [

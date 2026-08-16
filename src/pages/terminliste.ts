@@ -1,6 +1,7 @@
 import { Capacitor } from "@capacitor/core";
 import type { AuthUser } from "@/types";
 import { getUser } from "@/services/authService";
+import { linkedThrowerId } from "@/utils/kaster";
 import {
   getScheduleTournaments,
   getFilterOptions,
@@ -51,8 +52,7 @@ const sortFerdige: ScheduleSort = { column: "dato", direction: "desc" };
 let ferdigeExpanded = false;
 
 function canRegisterRow(s: TournamentRow): boolean {
-  const isLinked = _auth?.profil?.kobling_status === "godkjent";
-  return canRegisterForTournament(s, isLinked, todayIso());
+  return canRegisterForTournament(s, linkedThrowerId(_auth) !== null, todayIso());
 }
 
 /** SNC: the thrower must pick a local stevne first, so the button navigates. */
@@ -305,25 +305,15 @@ function cardNode(s: TournamentRow, nearestLabel: string | undefined): HTMLEleme
   });
 }
 
+/** Card variant of the same head — one markup source for both views. */
 function sectionHeadNode(
   title: string,
   count: number,
   toggle?: { controlsId: string; expanded: boolean },
 ): HTMLElement {
-  const head = document.createElement("div");
-  head.className = "tl-section-head";
-  head.innerHTML = `<span class="tl-section-title">${escHtml(title)}</span><span class="tl-section-count-pill">${count}</span>`;
-  if (toggle) {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "tl-toggle-text-btn";
-    btn.id = "tl-ferdige-toggle";
-    btn.setAttribute("aria-expanded", String(toggle.expanded));
-    btn.setAttribute("aria-controls", toggle.controlsId);
-    btn.innerHTML = `${toggle.expanded ? "Skjul" : "Vis"} <span class="tl-toggle-icon" aria-hidden="true">${toggle.expanded ? "▲" : "▼"}</span>`;
-    head.appendChild(btn);
-  }
-  return head;
+  const wrap = document.createElement("div");
+  wrap.innerHTML = sectionHeadHtml(title, count, toggle);
+  return wrap.firstElementChild as HTMLElement;
 }
 
 function monthHeaderNode(label: string, count: number): HTMLElement {
@@ -650,13 +640,21 @@ export async function render(container: HTMLElement): Promise<void> {
       });
     }
 
+    // The sheet is not a ModalBase dialog (own CSS, slides up from the bottom),
+    // so Escape is wired up here. The listener only exists while the sheet is
+    // open, so it cannot outlive the render.
+    const onSheetKeydown = (e: KeyboardEvent): void => {
+      if (e.key === "Escape") closeSheet();
+    };
     function openSheet() {
       sheet.classList.add("active");
       backdrop.classList.add("active");
+      document.addEventListener("keydown", onSheetKeydown);
     }
     function closeSheet() {
       sheet.classList.remove("active");
       backdrop.classList.remove("active");
+      document.removeEventListener("keydown", onSheetKeydown);
     }
 
     const filterButton = document.createElement("button");

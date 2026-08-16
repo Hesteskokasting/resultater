@@ -1,4 +1,14 @@
-import type { Kaster, Klubb } from "@/types";
+import type { AuthUser, Kaster, Klubb } from "@/types";
+
+/**
+ * The thrower this account may act as: the linked kasterid, but only once the
+ * link is approved. A pending request keeps its thrower in kobling_kasterid, so
+ * reading kasterid alone is not enough of a gate.
+ */
+export function linkedThrowerId(auth: AuthUser | null): number | null {
+  if (auth?.profil?.kobling_status !== "godkjent") return null;
+  return auth.profil.kasterid;
+}
 
 export function throwerName(
   k: { fornavn?: string | null; etternavn?: string | null } | null | undefined,

@@ -3,6 +3,7 @@
 // so picking another is always a switch — unregister first, then register.
 
 import { getUser } from "@/services/authService";
+import { linkedThrowerId } from "@/utils/kaster";
 import { confirmDialog } from "@/components/ConfirmDialog";
 import { createErrorBanner, createLoadingState, createEmptyState } from "@/components/states";
 import { createStevneCard } from "@/components/StevneCard";
@@ -158,7 +159,7 @@ export async function render(
     const parent = parentResult.data;
     const locals = localsResult.data;
 
-    const kasterid = auth?.profil?.kobling_status === "godkjent" ? auth.profil.kasterid : null;
+    const kasterid = linkedThrowerId(auth);
     const summary = await getRegistrationsAcrossTournaments(
       locals.map((l) => l.id),
       kasterid,

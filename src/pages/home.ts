@@ -9,6 +9,7 @@ import type { ListedTournamentRow } from "@/services/stevneService";
 import { logError } from "@/utils/logError";
 import { mergeSncUmbrellas, collectSncParentIds } from "@/utils/sncUmbrella";
 import { getUser } from "@/services/authService";
+import { linkedThrowerId } from "@/utils/kaster";
 import { getRegistrationsForThrower, emptyThrowerRegistrations } from "@/services/stevneService";
 import type { ThrowerRegistrations } from "@/services/stevneService";
 import { bindRegistrationSlots } from "@/components/PameldingKnapp";
@@ -100,7 +101,7 @@ export async function render(container: HTMLElement): Promise<void> {
     const ongoing = r5.filter((s) => !s.erfullfort);
     const sncParentIds = collectSncParentIds(ongoing);
     const throwerId = auth?.profil?.kasterid ?? null;
-    const showSlot = throwerId !== null && auth?.profil?.kobling_status === "godkjent";
+    const showSlot = linkedThrowerId(auth) !== null;
 
     // Both depend only on data already in hand, so they run together rather than
     // adding a second serial round-trip before the upcoming list can paint.

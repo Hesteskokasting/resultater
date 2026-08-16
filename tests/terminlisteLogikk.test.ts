@@ -1,3 +1,4 @@
+import { linkedThrowerId } from "@/utils/kaster";
 import {
   groupSchedule,
   sortSchedule,
@@ -333,5 +334,22 @@ describe("countSncLocals", () => {
       [90, 2],
       [91, 1],
     ]);
+  });
+});
+
+describe("linkedThrowerId", () => {
+  const profil = { kasterid: 12, kobling_status: "godkjent", kobling_kasterid: null };
+
+  it("gives the kasterid once the link is approved", () => {
+    expect(linkedThrowerId({ user: {}, profil, clubs: [] } as never)).toBe(12);
+  });
+
+  it("refuses a pending or rejected link, and a missing profile", () => {
+    for (const status of ["venter", "avvist", "ingen", null]) {
+      const auth = { user: {}, profil: { ...profil, kobling_status: status }, clubs: [] };
+      expect(linkedThrowerId(auth as never)).toBeNull();
+    }
+    expect(linkedThrowerId(null)).toBeNull();
+    expect(linkedThrowerId({ user: {}, profil: null, clubs: [] } as never)).toBeNull();
   });
 });
