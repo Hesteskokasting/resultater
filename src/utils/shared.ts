@@ -1,6 +1,10 @@
-import { parseLocalDate } from "./parseLocalDate";
-
 // ── Date formatting ───────────────────────────────────────────────────────────
+
+// Bare date strings (YYYY-MM-DD) are parsed as UTC midnight by JS, which shifts
+// the display date by one day for Norwegian users (UTC+1/+2). Use local noon instead.
+function parseLocalDate(datoStr: string): Date {
+  return datoStr.length === 10 ? new Date(datoStr + "T12:00:00") : new Date(datoStr);
+}
 
 const dateFmtShort = new Intl.DateTimeFormat("nb-NO", {
   day: "2-digit",
