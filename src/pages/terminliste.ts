@@ -4,7 +4,6 @@ import { getUser } from "@/services/authService";
 import { linkedThrowerId } from "@/utils/kaster";
 import {
   getScheduleTournaments,
-  getFilterOptions,
   getRegistrationsForThrower,
   emptyThrowerRegistrations,
 } from "@/services/stevneService";
@@ -31,6 +30,9 @@ import {
   filterSchedule,
   canRegisterForTournament,
   countSncLocals,
+  filterOptionsFromRows,
+  type ScheduleFilterOptions,
+  type FilterOption,
   type ScheduleSort,
   type ScheduleSortColumn,
   type MonthGroup,
@@ -95,6 +97,20 @@ let _registrations: ThrowerRegistrations = emptyThrowerRegistrations();
 // "NM" is one of the stevnetype options, but ernm is the authoritative NM flag
 let _nmTypeId: number | undefined;
 let _sncLocalCounts: Map<number, number> = new Map();
+let _filterOptions: ScheduleFilterOptions = {
+  stevnetyper: [],
+  kastemetoder: [],
+  klubber: [],
+  kategorier: [],
+};
+
+/** Everything derived from the loaded year, refreshed whenever the year changes. */
+function setData(rows: TournamentRow[]): void {
+  allData = rows;
+  _sncLocalCounts = countSncLocals(rows);
+  _filterOptions = filterOptionsFromRows(rows);
+  _nmTypeId = _filterOptions.stevnetyper.find((t) => t.navn === "NM")?.id;
+}
 
 function sncLocalCountLabel(s: TournamentRow): string | null {
   if (!s.er_snc_hovudstevne) return null;
@@ -383,12 +399,10 @@ export async function render(container: HTMLElement): Promise<void> {
   container.replaceChildren(createLoadingState("Laster terminliste…"));
 
   try {
-    const [{ data, error }, { data: filterOptions }, auth] = await Promise.all([
+    const [{ data, error }, auth] = await Promise.all([
       getScheduleTournaments(filter.year),
-      getFilterOptions(),
       getUser(),
     ]);
-    _nmTypeId = filterOptions.stevnetyper.find((t) => t.navn === "NM")?.id;
     _auth = auth;
     _registrations =
       auth?.profil?.kasterid != null
@@ -401,8 +415,7 @@ export async function render(container: HTMLElement): Promise<void> {
       return;
     }
 
-    allData = data ?? [];
-    _sncLocalCounts = countSncLocals(allData);
+    setData(data ?? []);
 
     const isNative = Capacitor.isNativePlatform();
     const excelSlotHtml = isNative ? "" : '<span id="tl-excel-slot"></span>';
@@ -414,10 +427,10 @@ export async function render(container: HTMLElement): Promise<void> {
     ): Record<"year" | "tournamentType" | "throwingMethod" | "organizer" | "category", string> {
       return {
         year: `<select class="tl-select" id="tl-year${suffix}">${yearOptions(filter.year, 1983, new Date().getFullYear() + 1)}</select>`,
-        tournamentType: `<select class="tl-select" id="tl-tournamenttype${suffix}">${buildDropdownOptions(filterOptions.stevnetyper, filter.tournamentTypeId, "Alle typer")}</select>`,
-        throwingMethod: `<select class="tl-select" id="tl-throwingmethod${suffix}">${buildDropdownOptions(filterOptions.kastemetoder, filter.throwingMethodId, "Alle metoder")}</select>`,
-        organizer: `<select class="tl-select" id="tl-organizer${suffix}">${buildDropdownOptions(filterOptions.klubber, filter.clubId, "Alle arrangører")}</select>`,
-        category: `<select class="tl-select" id="tl-category${suffix}">${buildDropdownOptions(filterOptions.kategorier, filter.categoryId, "Alle kategorier")}</select>`,
+        tournamentType: `<select class="tl-select" id="tl-tournamenttype${suffix}">${buildDropdownOptions(_filterOptions.stevnetyper, filter.tournamentTypeId, "Alle typer")}</select>`,
+        throwingMethod: `<select class="tl-select" id="tl-throwingmethod${suffix}">${buildDropdownOptions(_filterOptions.kastemetoder, filter.throwingMethodId, "Alle metoder")}</select>`,
+        organizer: `<select class="tl-select" id="tl-organizer${suffix}">${buildDropdownOptions(_filterOptions.klubber, filter.clubId, "Alle arrangører")}</select>`,
+        category: `<select class="tl-select" id="tl-category${suffix}">${buildDropdownOptions(_filterOptions.kategorier, filter.categoryId, "Alle kategorier")}</select>`,
       };
     }
     const desktopSel = filterSelects("");
@@ -601,9 +614,50 @@ export async function render(container: HTMLElement): Promise<void> {
           .replaceChildren(createErrorBanner("Feil ved henting."));
         return false;
       }
-      allData = newData ?? [];
-      _sncLocalCounts = countSncLocals(allData);
+      setData(newData ?? []);
+      refreshFilterSelects();
       return true;
+    }
+
+    // A value the new year has no stevne for is dropped, so the user is never
+    // left on a filter that can only give an empty list.
+    function refreshSelect(
+      selects: HTMLSelectElement[],
+      options: FilterOption[],
+      value: string,
+      emptyLabel: string,
+    ): string {
+      const kept = options.some((o) => String(o.id) === value) ? value : "";
+      const html = buildDropdownOptions(options, kept, emptyLabel);
+      selects.forEach((s) => (s.innerHTML = html));
+      return kept;
+    }
+
+    function refreshFilterSelects(): void {
+      filter.tournamentTypeId = refreshSelect(
+        [tournamentTypeSelect, tournamentTypeMobSelect],
+        _filterOptions.stevnetyper,
+        filter.tournamentTypeId,
+        "Alle typer",
+      );
+      filter.throwingMethodId = refreshSelect(
+        [throwingMethodSelect, throwingMethodMobSelect],
+        _filterOptions.kastemetoder,
+        filter.throwingMethodId,
+        "Alle metoder",
+      );
+      filter.clubId = refreshSelect(
+        [organizerSelect, organizerMobSelect],
+        _filterOptions.klubber,
+        filter.clubId,
+        "Alle arrangører",
+      );
+      filter.categoryId = refreshSelect(
+        [categorySelect, categoryMobSelect],
+        _filterOptions.kategorier,
+        filter.categoryId,
+        "Alle kategorier",
+      );
     }
 
     yearSelect.addEventListener("change", async () => {

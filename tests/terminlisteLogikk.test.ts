@@ -6,6 +6,7 @@ import {
   filterSchedule,
   canRegisterForTournament,
   countSncLocals,
+  filterOptionsFromRows,
   type ScheduleSort,
 } from "@/utils/terminlisteLogikk";
 
@@ -296,6 +297,20 @@ describe("filterSchedule", () => {
     const rows = [filterRow()];
     const filter = { ...noFilter, clubId: "3", categoryId: "99" };
     expect(filterSchedule(rows, filter, undefined)).toEqual([]);
+  });
+});
+
+describe("filterOptionsFromRows", () => {
+  it("lists each used value once, sorted, and skips local SNC rows", () => {
+    const options = filterOptionsFromRows([
+      filterRow(),
+      filterRow({ stevnetype: named(2, "Åpent"), klubb: null, avsluttende: named(6, "Gloppen") }),
+      filterRow({ snc_hovudstevne_id: 90, klubb: named(99, "Skjult HK") }),
+    ]);
+    expect(options.stevnetyper.map((o) => o.navn)).toEqual(["Lokalt", "Åpent"]);
+    expect(options.kastemetoder.map((o) => o.navn)).toEqual(["Cup", "Gloppen"]);
+    expect(options.klubber.map((o) => o.id)).toEqual([3]);
+    expect(options.kategorier.map((o) => o.id)).toEqual([5]);
   });
 });
 

@@ -65,6 +65,40 @@ export function filterSchedule<T extends FilterableScheduleRow>(
   });
 }
 
+export interface FilterOption {
+  id: number;
+  navn: string | null;
+}
+
+export interface ScheduleFilterOptions {
+  stevnetyper: FilterOption[];
+  kastemetoder: FilterOption[];
+  klubber: FilterOption[];
+  kategorier: FilterOption[];
+}
+
+function uniqueSorted(values: (FilterOption | null)[]): FilterOption[] {
+  const byId = new Map<number, FilterOption>();
+  for (const v of values) if (v) byId.set(v.id, v);
+  return [...byId.values()].sort((a, b) => (a.navn ?? "").localeCompare(b.navn ?? "", "nb"));
+}
+
+/**
+ * The filter dropdowns list only values some visible row actually uses — the
+ * lookup tables still hold retired stevnetypar, klubbar and metodar that would
+ * otherwise be offered and always give an empty result. Local SNC stevner are
+ * skipped for the same reason `filterSchedule` hides them.
+ */
+export function filterOptionsFromRows(rows: FilterableScheduleRow[]): ScheduleFilterOptions {
+  const visible = rows.filter((s) => s.snc_hovudstevne_id == null);
+  return {
+    stevnetyper: uniqueSorted(visible.map((s) => s.stevnetype)),
+    kastemetoder: uniqueSorted(visible.flatMap((s) => [s.innledende, s.avsluttende])),
+    klubber: uniqueSorted(visible.map((s) => s.klubb)),
+    kategorier: uniqueSorted(visible.map((s) => s.kategori)),
+  };
+}
+
 interface RegisterableScheduleRow {
   dato: string;
   stevne_fase: string | null;

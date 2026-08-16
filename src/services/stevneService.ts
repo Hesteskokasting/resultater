@@ -439,15 +439,6 @@ export async function reopenSncParent(hovudstevneId: number): Promise<{ error: u
 
 // ── Terminliste ───────────────────────────────────────────────────────────────
 
-export type ClubRow = Pick<Tables<"klubb">, "id" | "navn">;
-
-export interface FilterOptions {
-  stevnetyper: TournamentTypeRow[];
-  kastemetoder: ThrowingMethodRow[];
-  klubber: ClubRow[];
-  kategorier: CategoryRow[];
-}
-
 const _terminlisteStevneQuery = supabase.from("stevne").select(`
     id, navn, sted, dato, tid, ernm, erfullfort, stevne_fase, resultaturl,
     er_snc_hovudstevne, snc_hovudstevne_id,
@@ -479,26 +470,6 @@ export async function getScheduleTournaments(
     .order("dato");
   if (error) logError("getScheduleTournaments", error);
   return { data: data ?? [], error };
-}
-
-export async function getFilterOptions(): Promise<{ data: FilterOptions; error: unknown }> {
-  const [r1, r2, r3, r4] = await Promise.all([
-    supabase.from("stevnetype").select("id, navn").order("navn"),
-    supabase.from("kastemetode").select("id, navn").order("navn"),
-    supabase.from("klubb").select("id, navn").order("navn"),
-    supabase.from("kategori").select("id, navn").order("navn"),
-  ]);
-  const firstError = r1.error ?? r2.error ?? r3.error ?? r4.error ?? null;
-  if (firstError) logError("getFilterOptions", firstError);
-  return {
-    data: {
-      stevnetyper: r1.data ?? [],
-      kastemetoder: r2.data ?? [],
-      klubber: r3.data ?? [],
-      kategorier: r4.data ?? [],
-    },
-    error: firstError,
-  };
 }
 
 // ── Stevne-side header ────────────────────────────────────────────────────────
