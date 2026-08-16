@@ -104,6 +104,17 @@ export async function signIn(email: string, password: string) {
   return supabase.auth.signInWithPassword({ email, password });
 }
 
+/**
+ * Supabase reports a wrong email and a wrong password as the same opaque English
+ * string — deliberately, so a failed attempt says nothing about which half was
+ * right. Anything else is already a sentence worth showing.
+ */
+export function signInErrorMessage(error: { message: string }): string {
+  return error.message === "Invalid login credentials"
+    ? "Feil e-post eller passord."
+    : error.message;
+}
+
 export const GOOGLE_SIGN_IN_PENDING_KEY = "googleSignInPending";
 
 // Google blocks its OAuth consent screen from loading inside a WebView (error

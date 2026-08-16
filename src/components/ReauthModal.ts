@@ -1,6 +1,7 @@
 import { createModalEl, createModalLifecycle } from "@/components/ModalBase";
-import { signIn, getLastKnownEmail } from "@/services/authService";
+import { signIn, signInErrorMessage, getLastKnownEmail } from "@/services/authService";
 import { showToast } from "@/components/Toast";
+import { logError } from "@/utils/logError";
 
 let _el: HTMLElement | null = null;
 let _isOpen = false;
@@ -43,7 +44,7 @@ function getEl(): HTMLElement {
   });
 
   _el.querySelector("#reauth-cancel")!.addEventListener("click", () => {
-    dismiss();
+    close();
   });
   _el.querySelector("#reauth-form")!.addEventListener("submit", (e) => {
     e.preventDefault();
@@ -62,24 +63,24 @@ async function handleSubmit(): Promise<void> {
   errorEl.classList.add("d-none");
   submitBtn.disabled = true;
 
-  const { error } = await signIn(email, password);
-
-  if (error) {
-    errorEl.textContent =
-      error.message === "Invalid login credentials" ? "Feil e-post eller passord." : error.message;
+  try {
+    const { error } = await signIn(email, password);
+    if (error) {
+      errorEl.textContent = signInErrorMessage(error);
+      errorEl.classList.remove("d-none");
+      return;
+    }
+    close();
+    showToast("Du er logga inn igjen.", "success");
+  } catch (err) {
+    // signIn reports a rejected login as an error value, so this is the network
+    // failing. Leaving the button disabled would trap the user in the modal.
+    logError("ReauthModal", err);
+    errorEl.textContent = "Fekk ikkje kontakt. Prøv igjen.";
     errorEl.classList.remove("d-none");
+  } finally {
     submitBtn.disabled = false;
-    return;
   }
-
-  submitBtn.disabled = false;
-  close();
-  showToast("Du er logga inn igjen.", "success");
-}
-
-/** Dismisses without re-authenticating (e.g. a logged-out viewer just browsing). */
-function dismiss(): void {
-  close();
 }
 
 function close(): void {
@@ -90,7 +91,10 @@ function close(): void {
   _modal.close(_el);
 }
 
-/** Opens the in-place re-auth modal. Idempotent: a no-op while already open. */
+/**
+ * Opens the in-place re-auth modal. Idempotent: a no-op while already open.
+ * Cancelling just closes it — a logged-out viewer may only be browsing.
+ */
 export function showReauthModal(): void {
   if (_isOpen) return;
   const el = getEl();
@@ -99,7 +103,7 @@ export function showReauthModal(): void {
   _modal.open(el, {
     focus: "#reauth-password",
     onEscape: () => {
-      dismiss();
+      close();
     },
   });
 }

@@ -5,6 +5,7 @@ import {
   getUser,
   isAdmin,
   signIn,
+  signInErrorMessage,
   signInWithApple,
   signInWithGoogle,
   signUp,
@@ -190,10 +191,7 @@ export async function render(container: HTMLElement): Promise<void> {
     );
 
     if (signInError) {
-      error.textContent =
-        signInError.message === "Invalid login credentials"
-          ? "Feil e-post eller passord."
-          : signInError.message;
+      error.textContent = signInErrorMessage(signInError);
       error.classList.remove("d-none");
       button.disabled = false;
       return;
