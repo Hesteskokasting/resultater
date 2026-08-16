@@ -18,7 +18,6 @@ import {
 } from "@/components/StevneCard";
 import { sncUmbrellaActionLink } from "@/utils/sncRegistration";
 import { createExcelButton } from "@/components/ExcelButton";
-import { createFilterButton } from "@/components/FilterButton";
 import { escHtml } from "@/utils/escHtml";
 import { logError } from "@/utils/logError";
 import { registerRefetch } from "@/utils/refetchRegistry";
@@ -184,6 +183,17 @@ const tableColumns = [
   { id: "organizer", label: "Arrangør" },
 ];
 const TABLE_COLUMN_COUNT = tableColumns.length + 1; // + trailing action column
+
+// Bootstrap Icons isn't loaded in this app — inline SVG, matching StevneCard's chevron convention.
+// ponytail: lives here because this page is the only caller; move back to
+// components/FilterButton.ts the moment a second page needs it.
+const FILTER_SVG =
+  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+  'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+  '<line x1="4" y1="6" x2="20" y2="6"/><circle cx="9" cy="6" r="2" fill="currentColor" stroke="none"/>' +
+  '<line x1="4" y1="12" x2="20" y2="12"/><circle cx="15" cy="12" r="2" fill="currentColor" stroke="none"/>' +
+  '<line x1="4" y1="18" x2="20" y2="18"/><circle cx="7" cy="18" r="2" fill="currentColor" stroke="none"/>' +
+  "</svg>";
 
 function sortIconHtml(sort: ScheduleSort, column: string): string {
   if (sort.column !== column) return '<span class="tl-sort-icon">↕</span>';
@@ -701,7 +711,13 @@ export async function render(container: HTMLElement): Promise<void> {
       backdrop.classList.remove("active");
     }
 
-    createFilterButton({ slot: container.querySelector("#tl-filter-slot")!, onClick: openSheet });
+    const filterButton = document.createElement("button");
+    filterButton.type = "button";
+    filterButton.className = "tl-filter-button";
+    filterButton.innerHTML = `${FILTER_SVG} Filter`;
+    filterButton.addEventListener("click", openSheet);
+    container.querySelector("#tl-filter-slot")!.replaceWith(filterButton);
+
     backdrop.addEventListener("click", closeSheet);
 
     resetBtn.addEventListener("click", () => {
