@@ -14,9 +14,9 @@ import { createErrorBanner, createLoadingState, createEmptyState } from "@/compo
 import {
   createTournamentCard,
   actionLinkHtml,
+  sncUmbrellaActionLink,
   type StevneCardActionLink,
 } from "@/components/StevneCard";
-import { sncUmbrellaActionLink } from "@/utils/sncRegistration";
 import { createExcelButton } from "@/components/ExcelButton";
 import { escHtml } from "@/utils/escHtml";
 import { logError } from "@/utils/logError";

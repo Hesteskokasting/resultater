@@ -1,4 +1,4 @@
-import { sncUmbrellaActionLink } from "@/utils/sncRegistration";
+import { sncUmbrellaActionLink } from "@/components/StevneCard";
 
 describe("sncUmbrellaActionLink", () => {
   it("invites registration when the thrower is in no local stevne under the umbrella", () => {

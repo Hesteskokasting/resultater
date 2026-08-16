@@ -11,8 +11,7 @@ import { getUser } from "@/services/authService";
 import { getRegistrationsForThrower, emptyThrowerRegistrations } from "@/services/stevneService";
 import type { ThrowerRegistrations } from "@/services/stevneService";
 import { bindRegistrationSlots } from "@/components/PameldingKnapp";
-import { createTournamentCard } from "@/components/StevneCard";
-import { sncUmbrellaActionLink } from "@/utils/sncRegistration";
+import { createTournamentCard, sncUmbrellaActionLink } from "@/components/StevneCard";
 
 // ── HTML builders ─────────────────────────────────────────────────────────────
 
