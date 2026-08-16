@@ -196,10 +196,9 @@ const FILTER_SVG =
   "</svg>";
 
 function sortIconHtml(sort: ScheduleSort, column: string): string {
-  if (sort.column !== column) return '<span class="tl-sort-icon">↕</span>';
-  return sort.direction === "asc"
-    ? '<span class="tl-sort-icon active">↑</span>'
-    : '<span class="tl-sort-icon active">↓</span>';
+  const active = sort.column === column;
+  const glyph = !active ? "↕" : sort.direction === "asc" ? "↑" : "↓";
+  return `<span class="tl-sort-icon${active ? " active" : ""}" aria-hidden="true">${glyph}</span>`;
 }
 
 // The single nearest not-yet-started upcoming row gets "I DAG" (dated today) or
