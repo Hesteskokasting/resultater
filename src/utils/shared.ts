@@ -6,6 +6,16 @@ function parseLocalDate(datoStr: string): Date {
   return datoStr.length === 10 ? new Date(datoStr + "T12:00:00") : new Date(datoStr);
 }
 
+/**
+ * Today as YYYY-MM-DD in the user's own timezone. toISOString() would answer in
+ * UTC, which names yesterday between midnight and 01/02 Norwegian time — the
+ * dato columns this is compared against are local dates.
+ */
+export function todayIso(): string {
+  const now = new Date();
+  return new Date(now.getTime() - now.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
+}
+
 const dateFmtShort = new Intl.DateTimeFormat("nb-NO", {
   day: "2-digit",
   month: "2-digit",

@@ -1,7 +1,13 @@
 import { createErrorBanner, createLoadingState, createEmptyState } from "@/components/states";
 import { createSearchInput } from "@/components/SearchInput";
 import { createEl } from "@/utils/createEl";
-import { formatDate, formatDayOfMonth, formatTime, formatWeekdayShort } from "@/utils/shared";
+import {
+  formatDate,
+  formatDayOfMonth,
+  formatTime,
+  formatWeekdayShort,
+  todayIso,
+} from "@/utils/shared";
 import {
   countBy,
   countTournamentsPerMonth,
@@ -239,7 +245,7 @@ export async function render(el: HTMLElement): Promise<void> {
         ernm: r.ernm,
       })),
       registrations,
-      new Date().toISOString().slice(0, 10),
+      todayIso(),
     );
 
     statsSlot.replaceChildren(createStatGrid(tiles(summary, filter.year), true));

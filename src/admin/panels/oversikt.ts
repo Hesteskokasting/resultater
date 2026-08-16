@@ -1,4 +1,5 @@
 import { createErrorBanner } from "@/components/states";
+import { todayIso } from "@/utils/shared";
 import { createEl } from "@/utils/createEl";
 import { logError } from "@/utils/logError";
 import {
@@ -43,7 +44,7 @@ function statTiles(
   year: number,
   registrations: number,
 ): StatTile[] {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayIso();
   const thisYear = tournaments.filter((t) => (t.dato ?? "").startsWith(String(year)));
   const summary = summarizeTournaments(thisYear, today);
 

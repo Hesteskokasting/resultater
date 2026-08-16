@@ -1,5 +1,6 @@
 import type { QueryData } from "@supabase/supabase-js";
 import { supabase } from "@/supabase";
+import { todayIso } from "@/utils/shared";
 import { logError } from "@/utils/logError";
 import { verifyRowsAffected } from "@/utils/verifiedWrite";
 import { generateInitialRoundMatches } from "@/services/kampGenereringInnledendeService";
@@ -80,7 +81,7 @@ export type RelatedTournamentRow = Pick<Tables<"stevne">, "id" | "navn" | "dato"
 // The home page shows an SNC round as one event. Local stevner are filtered out
 // in the query, not the client, because limit(5) would otherwise fill up with them.
 export async function getLatestResults(): Promise<{ data: ListedTournamentRow[]; error: unknown }> {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayIso();
   const { data, error } = await supabase
     .from("stevne")
     .select(CARD_COLUMNS)
@@ -125,7 +126,7 @@ export async function getUpcomingTournaments(): Promise<{
   data: ListedTournamentRow[];
   error: unknown;
 }> {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayIso();
   const { data, error } = await supabase
     .from("stevne")
     .select(CARD_COLUMNS)

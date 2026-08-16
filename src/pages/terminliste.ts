@@ -8,7 +8,7 @@ import {
   emptyThrowerRegistrations,
 } from "@/services/stevneService";
 import type { ScheduleTournamentRow, ThrowerRegistrations } from "@/services/stevneService";
-import { yearOptions, downloadExcel } from "@/utils/shared";
+import { yearOptions, downloadExcel, todayIso } from "@/utils/shared";
 import { buildDropdownOptions } from "@/utils/buildDropdownOptions";
 import { createErrorBanner, createLoadingState, createEmptyState } from "@/components/states";
 import {
@@ -27,6 +27,9 @@ import {
   sortSchedule,
   groupSchedule,
   findNearestUpcomingId,
+  filterSchedule,
+  canRegisterForTournament,
+  countSncLocals,
   type ScheduleSort,
   type ScheduleSortColumn,
   type MonthGroup,
@@ -47,20 +50,14 @@ const sortKommande: ScheduleSort = { column: "dato", direction: "asc" };
 const sortFerdige: ScheduleSort = { column: "dato", direction: "desc" };
 let ferdigeExpanded = false;
 
-function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function canRegisterRow(s: TournamentRow, auth: AuthUser | null): boolean {
-  const isUpcoming = new Date(s.dato + "T12:00:00") > new Date();
-  const notStarted = s.stevne_fase === null || s.stevne_fase === "ikke_startet";
-  const hasAccess = auth?.profil?.kobling_status === "godkjent";
-  return hasAccess === true && isUpcoming && notStarted && !s.erfullfort;
+function canRegisterRow(s: TournamentRow): boolean {
+  const isLinked = _auth?.profil?.kobling_status === "godkjent";
+  return canRegisterForTournament(s, isLinked, todayIso());
 }
 
 /** SNC: the thrower must pick a local stevne first, so the button navigates. */
 function sncRegistrationLink(s: TournamentRow): StevneCardActionLink | undefined {
-  if (!s.er_snc_hovudstevne || !canRegisterRow(s, _auth)) return undefined;
+  if (!s.er_snc_hovudstevne || !canRegisterRow(s)) return undefined;
   return sncUmbrellaActionLink(s.id, _registrations.sncParentIds.has(s.id));
 }
 
@@ -72,7 +69,7 @@ function rowHref(s: TournamentRow): string {
 function trailingActionHtml(s: TournamentRow): string {
   const sncLink = sncRegistrationLink(s);
   if (sncLink) return actionLinkHtml(sncLink);
-  return canRegisterRow(s, _auth) && !s.er_snc_hovudstevne
+  return canRegisterRow(s) && !s.er_snc_hovudstevne
     ? `<span data-registration-slot="${s.id}"></span>`
     : "";
 }
@@ -97,19 +94,7 @@ let _auth: AuthUser | null = null;
 let _registrations: ThrowerRegistrations = emptyThrowerRegistrations();
 // "NM" is one of the stevnetype options, but ernm is the authoritative NM flag
 let _nmTypeId: number | undefined;
-// Local stevner are hidden from the schedule — they are parts of one event, and
-// the choice between them belongs on the umbrella's page.
 let _sncLocalCounts: Map<number, number> = new Map();
-
-function countSncLocals(data: TournamentRow[]): Map<number, number> {
-  const counts = new Map<number, number>();
-  for (const s of data) {
-    if (s.snc_hovudstevne_id != null) {
-      counts.set(s.snc_hovudstevne_id, (counts.get(s.snc_hovudstevne_id) ?? 0) + 1);
-    }
-  }
-  return counts;
-}
 
 function sncLocalCountLabel(s: TournamentRow): string | null {
   if (!s.er_snc_hovudstevne) return null;
@@ -117,42 +102,8 @@ function sncLocalCountLabel(s: TournamentRow): string | null {
   return count === 1 ? "1 lokalt stevne" : `${count} lokale stevne`;
 }
 
-// ── Client-side filtering ─────────────────────────────────────────────────────
-
 function filterData(data: TournamentRow[]): TournamentRow[] {
-  return data.filter((s) => {
-    if (s.snc_hovudstevne_id != null) return false;
-
-    if (filter.searchText) {
-      const search = filter.searchText.toLowerCase();
-      const matched = [
-        s.navn,
-        s.sted,
-        s.klubb?.navn,
-        s.stevnetype?.navn,
-        s.kategori?.navn,
-        s.innledende?.navn,
-        s.avsluttende?.navn,
-      ].some((field) => field?.toLowerCase().includes(search));
-      if (!matched) return false;
-    }
-
-    if (filter.tournamentTypeId) {
-      const isNmOption = _nmTypeId != null && filter.tournamentTypeId === String(_nmTypeId);
-      if (isNmOption ? !s.ernm : String(s.stevnetype?.id) !== filter.tournamentTypeId) return false;
-    }
-
-    if (filter.throwingMethodId) {
-      const id = filter.throwingMethodId;
-      const matched = String(s.innledende?.id) === id || String(s.avsluttende?.id) === id;
-      if (!matched) return false;
-    }
-
-    if (filter.clubId && String(s.klubb?.id) !== filter.clubId) return false;
-    if (filter.categoryId && String(s.kategori?.id) !== filter.categoryId) return false;
-
-    return true;
-  });
+  return filterSchedule(data, filter, _nmTypeId);
 }
 
 // ── Excel export ──────────────────────────────────────────────────────────────
@@ -349,7 +300,7 @@ function cardNode(s: TournamentRow, nearestLabel: string | undefined): HTMLEleme
     href: rowHref(s),
     placeOverride: sncLocalCountLabel(s),
     nearestLabel,
-    registrationSlotId: canRegisterRow(s, _auth) && !s.er_snc_hovudstevne ? s.id : undefined,
+    registrationSlotId: canRegisterRow(s) && !s.er_snc_hovudstevne ? s.id : undefined,
     actionLink: sncRegistrationLink(s),
   });
 }
