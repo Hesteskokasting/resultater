@@ -56,6 +56,8 @@ function bestSplit(n: number): { c3: number; c2: number } {
 // Returnerer [{walkovers, c3, c2}], sortert aukande walkovers, c3 synkande
 export function validRound1Setups(n: number): RoundSetup[] {
   if (n < 2) return [];
+  // 2 in a group = the match itself; canReachTwo can't express "already there".
+  if (n === 2) return [{ walkovers: 0, c3: 0, c2: 1 }];
   const setups: RoundSetup[] = [];
   const halfN = Math.floor(n / 2);
 
@@ -163,7 +165,9 @@ export function calcCupRoundPairings(
 
   // Walkover: only in round 1
   if (isRunde1) {
-    const wCount = runde1Oppsett?.walkovers ?? walkoverTall ?? active.length % 3;
+    let wCount = runde1Oppsett?.walkovers ?? walkoverTall ?? active.length % 3;
+    // Never walk over so many that no match is left to play.
+    if (active.length - wCount < 2) wCount = 0;
     if (wCount > 0) {
       const walkoverPlayers = active.slice(0, wCount); // top-ranked
       active = active.slice(wCount);
@@ -180,7 +184,7 @@ export function calcCupRoundPairings(
     c2 = runde1Oppsett.c2;
   } else if (isRunde1) {
     c3 = Math.floor(n / 3);
-    c2 = 0;
+    c2 = c3 === 0 ? Math.floor(n / 2) : 0;
   } else {
     const s = bestSplit(n);
     c3 = s.c3;
