@@ -1,8 +1,9 @@
-// Shared helpers (spelarNamn, lagAsyncKnapp, lagBekreftKnapp, setupScoreboardRealtime)
-// serve both renderScoreboard (2-player) and renderScoreboard3 (3-player) — fixes to
-// realtime, button behaviour, or DOM utilities apply once. Genuine divergences:
-// tegn/tegn3, nesteOmgang/nesteOmgang3, and OmgangRad[] vs MatchRoundRow[] state
-// structures. The scoring rules themselves live in utils/kamp.
+// Shared helpers (spelarNamn, lagAsyncKnapp, lagBekreftKnapp, lagAngreRad,
+// setupScoreboardRealtime) serve both renderScoreboard (2-player) and
+// renderScoreboard3 (3-player) — fixes to realtime, button behaviour, or DOM
+// utilities apply once. The `3` twins that remain are genuine divergences, not
+// copies: see the comment above renderScoreboard3. Scoring rules live in
+// utils/kamp.
 import type { MatchRoundRow, MatchRow, MatchPlayerInMatch } from "@/services/kampService";
 import {
   calcRingCount,
@@ -192,25 +193,6 @@ export async function renderScoreboard(
     tegn();
   }
 
-  function lagAngreRad(): HTMLElement {
-    const angreRad = createEl("div", null, "sb-angre-rad");
-    const angreBtn = createEl("button", "↩", "sb-angre-btn");
-    if (isEditMode) {
-      angreBtn.title = "Avbryt endring";
-      angreBtn.addEventListener("click", avbrytEditMode);
-      angreRad.appendChild(angreBtn);
-      const avbrytBtn = createEl("button", "Avbryt endring", "sb-avbryt-btn");
-      avbrytBtn.addEventListener("click", avbrytEditMode);
-      angreRad.appendChild(avbrytBtn);
-    } else {
-      angreBtn.title = "Endre siste omgang";
-      angreBtn.disabled = omgangar.length === 0;
-      angreBtn.addEventListener("click", startEditMode);
-      angreRad.appendChild(angreBtn);
-    }
-    return angreRad;
-  }
-
   function bindPoengKnappar(): void {
     container.querySelectorAll<HTMLButtonElement>("[data-spelar]").forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -290,7 +272,15 @@ export async function renderScoreboard(
     );
     container.appendChild(wrap);
 
-    if (kanRedigere && !kamp.er_bekreftet) container.appendChild(lagAngreRad());
+    if (kanRedigere && !kamp.er_bekreftet)
+      container.appendChild(
+        lagAngreRad({
+          isEditMode,
+          hasOmgangar: omgangar.length > 0,
+          onCancel: avbrytEditMode,
+          onStart: startEditMode,
+        }),
+      );
 
     if (kanBekrefte) {
       container.appendChild(lagBekreftKnapp(() => onBekreft!()));
@@ -432,6 +422,28 @@ function lagBekreftKnapp(onBekreft: () => Promise<void>): HTMLButtonElement {
   return lagAsyncKnapp("Bekreft kamp", "sb-neste-btn sb-neste-btn--bekreft", onBekreft);
 }
 
+/** ↩ to edit the last omgang; while editing, ↩ and a spelled-out cancel that both back out. */
+function lagAngreRad(o: {
+  isEditMode: boolean;
+  hasOmgangar: boolean;
+  onCancel: () => void;
+  onStart: () => void;
+}): HTMLElement {
+  const angreRad = createEl("div", null, "sb-angre-rad");
+  const angreBtn = createEl("button", "↩", "sb-angre-btn");
+  angreBtn.title = o.isEditMode ? "Avbryt endring" : "Endre siste omgang";
+  angreBtn.disabled = !o.isEditMode && !o.hasOmgangar;
+  angreBtn.addEventListener("click", o.isEditMode ? o.onCancel : o.onStart);
+  angreRad.appendChild(angreBtn);
+
+  if (o.isEditMode) {
+    const avbrytBtn = createEl("button", "Avbryt endring", "sb-avbryt-btn");
+    avbrytBtn.addEventListener("click", o.onCancel);
+    angreRad.appendChild(avbrytBtn);
+  }
+  return angreRad;
+}
+
 function setupScoreboardRealtime(
   kamp: MatchRow,
   spelarIds: number[],
@@ -462,9 +474,11 @@ function setupScoreboardRealtime(
 
 // ── 3-player scoreboard ───────────────────────────────────────────────────────
 
-// ponytail: 11 functions here twin the 2-player half with a `3` suffix, so every
-// rule change lands twice. Generalize renderScoreboard to N sides the next time
-// one of them has to change.
+// Deliberately a separate board, not a generalization of the 2-player one. A
+// cup match of three is a placement race — players drop out one by one and get a
+// rank — where a duel is a race to 21 with handicap and ring statistics. They
+// share a visual language and the helpers above, nothing else: merging them
+// would take six config flags to keep the two behaviours apart.
 async function renderScoreboard3(
   container: HTMLElement,
   kamp: MatchRow,
@@ -624,25 +638,6 @@ async function renderScoreboard3(
     tegn3();
   }
 
-  function lagAngreRad3(): HTMLElement {
-    const angreRad = createEl("div", null, "sb-angre-rad");
-    const angreBtn = createEl("button", "↩", "sb-angre-btn");
-    if (isEditMode3) {
-      angreBtn.title = "Avbryt endring";
-      angreBtn.addEventListener("click", avbrytEditMode3);
-      angreRad.appendChild(angreBtn);
-      const avbrytBtn = createEl("button", "Avbryt endring", "sb-avbryt-btn");
-      avbrytBtn.addEventListener("click", avbrytEditMode3);
-      angreRad.appendChild(avbrytBtn);
-    } else {
-      angreBtn.title = "Endre siste omgang";
-      angreBtn.disabled = omgangData.length === 0;
-      angreBtn.addEventListener("click", startEditMode3);
-      angreRad.appendChild(angreBtn);
-    }
-    return angreRad;
-  }
-
   function lagPoengKnappar3(i: number, disabledSet: Set<number> | undefined): HTMLElement {
     const knappar = createEl("div", null, "sb-knappar");
     for (const n of pointValues) {
@@ -746,7 +741,14 @@ async function renderScoreboard3(
     container.appendChild(wrap);
 
     if (kanRedigere && !kamp.er_bekreftet) {
-      container.appendChild(lagAngreRad3());
+      container.appendChild(
+        lagAngreRad({
+          isEditMode: isEditMode3,
+          hasOmgangar: omgangData.length > 0,
+          onCancel: avbrytEditMode3,
+          onStart: startEditMode3,
+        }),
+      );
 
       if (isEditMode3 || !erFerdig) {
         const nesteBtn = lagAsyncKnapp(
