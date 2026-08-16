@@ -4,6 +4,7 @@ import { logError } from "@/utils/logError";
 import { verifyRowsAffected } from "@/utils/verifiedWrite";
 import { generateInitialRoundMatches } from "@/services/kampGenereringInnledendeService";
 import { generateKongelagCourts } from "@/services/xkastKongelagService";
+import { writePlacements } from "@/services/resultatService";
 import type { Tables, Json, Round1FormatTyped } from "@/types";
 
 // ── Admin-typar ───────────────────────────────────────────────────────────────
@@ -199,6 +200,24 @@ export async function updateTournamentPhase(
   const { error } = await supabase.from("stevne").update({ stevne_fase: phase }).eq("id", id);
   if (error) logError("updateTournamentPhase", error);
   return { error };
+}
+
+export type CompleteStep = "plassering" | "fullfor";
+
+/**
+ * Writes the final placements and marks the stevne completed. Two writes with
+ * no transaction between them, so a failure on "fullfor" leaves the placements
+ * stored on an open stevne — the caller has to say which step gave way.
+ */
+export async function completeTournament(
+  stevneid: number,
+  placements: { kasterid: number }[],
+): Promise<{ error: unknown; step: CompleteStep | null }> {
+  const { error: placementError } = await writePlacements(stevneid, placements);
+  if (placementError) return { error: placementError, step: "plassering" };
+  const { error } = await setTournamentCompleted(stevneid);
+  if (error) return { error, step: "fullfor" };
+  return { error: null, step: null };
 }
 
 export type StartStep = "fase" | "kampar" | "kongelag";

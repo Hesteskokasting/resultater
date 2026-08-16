@@ -23,13 +23,18 @@ import {
   getActiveTab,
   setActiveTab,
   createChangeHandler,
+  bindAutoComplete,
+  bindCompleteTournament,
 } from "../faseView";
-import { buildFinalStandings, type StandingRow, type StandingMatch } from "@/utils/stilling";
+import {
+  buildFinalStandings,
+  orderStandingsByGroup,
+  type StandingRow,
+  type StandingMatch,
+} from "@/utils/stilling";
 import { parseRound1Format } from "@/utils/kastemetoder-logikk";
 import { renderBannerMenu, bindBannerMenu } from "@/components/BannerMenu";
 import { createErrorBanner, createLoadingState } from "@/components/states";
-import { showToast } from "@/components/Toast";
-import { confirmDialog } from "@/components/ConfirmDialog";
 import { logError } from "@/utils/logError";
 import { unsubscribeChannel } from "@/utils/realtime";
 import { buildParticipantMaps } from "@/utils/participantMaps";
@@ -41,14 +46,12 @@ import {
 } from "@/services/kampService";
 import {
   getFinalPhaseTournament,
-  setTournamentCompleted,
   getTournamentRegistrationCount,
   type FinalPhaseTournamentRow,
 } from "@/services/stevneService";
 import {
   getResultsForFinalRound,
   getGroups,
-  writePlacements,
   type FinalResultRow,
 } from "@/services/resultatService";
 import { getPairsForTournament } from "@/services/pameldingService";
@@ -275,48 +278,26 @@ export function createFinalPhaseRenderer(variant: FinalPhaseVariant) {
         container.innerHTML = variant.renderSetupHtml(ctx);
       }
 
-      bannerSlot?.querySelector("#test-auto-complete-btn")?.addEventListener("click", async (e) => {
-        const btn = e.currentTarget as HTMLButtonElement;
-        if (
-          !(await confirmDialog({
+      if (bannerSlot) {
+        bindAutoComplete(
+          bannerSlot,
+          {
             title: "Autofullfør kampar",
             message: "Autofullfør alle ubekrefta avsluttande kampar?",
-          }))
-        )
-          return;
-        btn.disabled = true;
-        await autoCompleteFinalMatches(stevneid);
-        await loadAndRender(container, stevneid);
-      });
+          },
+          async () => {
+            await autoCompleteFinalMatches(stevneid);
+            await loadAndRender(container, stevneid);
+          },
+        );
 
-      bannerSlot?.querySelector("#complete-tournament-btn")?.addEventListener("click", async () => {
-        if (
-          !(await confirmDialog({
-            title: "Fullfør turnering",
-            message: "Vil du fullføre turneringa? Dette kan ikkje angrast.",
-            danger: true,
-          }))
-        )
-          return;
-        // Sort by gruppe so A gets 1..nA, B gets nA+1..nA+nB.
-        // sortStandings mixes groups together; filtering preserves correct within-group order.
-        const standingsByGroup = [
-          ...standings.filter((r) => r.gruppe?.navn === "A"),
-          ...standings.filter((r) => r.gruppe?.navn === "B"),
-          ...standings.filter((r) => r.gruppe?.navn !== "A" && r.gruppe?.navn !== "B"),
-        ];
-        const { error: plErr } = await writePlacements(stevneid, standingsByGroup);
-        if (plErr) {
-          showToast("Feil ved lagring av plasseringar", "error");
-          return;
-        }
-        const { error } = await setTournamentCompleted(stevneid);
-        if (error) {
-          showToast("Feil ved fullføring av turnering", "error");
-          return;
-        }
-        await loadAndRender(container, stevneid);
-      });
+        bindCompleteTournament(
+          bannerSlot,
+          stevneid,
+          () => orderStandingsByGroup(standings),
+          () => loadAndRender(container, stevneid),
+        );
+      }
 
       variant.bindHeaderEvents(bannerSlot, ctx);
     } catch (err) {

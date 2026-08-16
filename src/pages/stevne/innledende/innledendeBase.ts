@@ -21,7 +21,6 @@
 //
 import { showScoreEditor } from "@/components/ScoreEditor";
 import { showToast } from "@/components/Toast";
-import { confirmDialog } from "@/components/ConfirmDialog";
 import { getMatchSides, groupStandingsByPair, sideScore } from "@/utils/kamp";
 import { applyFlashClasses, renderMatchLegend, renderRound } from "./innledendeView";
 import { autoCompleteInitialRoundMatches } from "@/services/testDataService";
@@ -37,6 +36,8 @@ import {
   renderStandingTable,
   sideNameHtml,
   bindScoreboardClicks,
+  bindAutoComplete,
+  bindCompleteTournament,
 } from "../faseView";
 import { buildInitialPlayerMap, sortStandings, type StandingRow } from "@/utils/stilling";
 import { parseRound1Format } from "@/utils/kastemetoder-logikk";
@@ -57,16 +58,12 @@ import {
 } from "@/services/kampService";
 import {
   getInitialPhaseTournament,
-  setTournamentCompleted,
   type InitialPhaseTournamentRow,
 } from "@/services/stevneService";
 import { unsubscribeChannel } from "@/utils/realtime";
 import { buildParticipantMaps } from "@/utils/participantMaps";
-import {
-  getResultsForInitialRound,
-  writePlacements,
-  type InitialResultRow,
-} from "@/services/resultatService";
+import { groupBy } from "@/utils/groupBy";
+import { getResultsForInitialRound, type InitialResultRow } from "@/services/resultatService";
 
 // ── Variant API ───────────────────────────────────────────────────────────────
 
@@ -140,7 +137,7 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
       for (const kamp of allMatches) for (const sp of kamp.spelarar) ownedSpelarIds.add(sp.id);
 
       const { startNumberMap, hcpMap, positionMap, isTeam } = buildParticipantMaps(resultat);
-      const roundMap = buildRoundMap(allMatches);
+      const roundMap = groupBy(allMatches, (kamp) => kamp.runde_nummer);
       const standing = buildStanding(allMatches, resultat, startNumberMap, positionMap, isTeam);
       const idsToFlash = calcFlashIds(allMatches);
 
@@ -239,41 +236,16 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
     bindBannerMenu(bannerSlot);
     variant.bindBannerExtra(bannerSlot, ctx);
 
-    bannerSlot.querySelector("#complete-tournament-btn")?.addEventListener("click", async () => {
-      if (
-        !(await confirmDialog({
-          title: "Fullfør turnering",
-          message: "Vil du fullføre turneringa? Dette kan ikkje angrast.",
-          danger: true,
-        }))
-      )
-        return;
-      const { error: plErr } = await writePlacements(ctx.stevneid, ctx.standing);
-      if (plErr) {
-        showToast("Feil ved lagring av plasseringar", "error");
-        return;
-      }
-      const { error } = await setTournamentCompleted(ctx.stevneid);
-      if (error) {
-        showToast("Feil ved lagring", "error");
-        return;
-      }
-      await ctx.reload();
-    });
+    bindCompleteTournament(bannerSlot, ctx.stevneid, () => ctx.standing, ctx.reload);
 
-    bannerSlot.querySelector("#test-auto-complete-btn")?.addEventListener("click", async (e) => {
-      const btn = e.currentTarget as HTMLButtonElement;
-      if (
-        !(await confirmDialog({
-          title: "Autofullfør kampar",
-          message: "Autofullfør alle ubekreftede innleiande kampar?",
-        }))
-      )
-        return;
-      btn.disabled = true;
-      await autoCompleteInitialRoundMatches(ctx.stevneid);
-      await ctx.reload();
-    });
+    bindAutoComplete(
+      bannerSlot,
+      { title: "Autofullfør kampar", message: "Autofullfør alle ubekreftede innleiande kampar?" },
+      async () => {
+        await autoCompleteInitialRoundMatches(ctx.stevneid);
+        await ctx.reload();
+      },
+    );
   }
 
   function bindScoreEdit(
@@ -415,15 +387,6 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
 }
 
 // ── Data-bygging (pure — no closure state) ────────────────────────────────────
-
-function buildRoundMap(allMatches: InitialMatchRow[]): Map<number, InitialMatchRow[]> {
-  const roundMap = new Map<number, InitialMatchRow[]>();
-  for (const kamp of allMatches) {
-    if (!roundMap.has(kamp.runde_nummer)) roundMap.set(kamp.runde_nummer, []);
-    roundMap.get(kamp.runde_nummer)!.push(kamp);
-  }
-  return roundMap;
-}
 
 function buildStanding(
   allMatches: InitialMatchRow[],

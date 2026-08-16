@@ -30,6 +30,8 @@ import {
   getActiveTab,
   setActiveTab,
   setBannerMeta,
+  bindAutoComplete,
+  bindCompleteTournament,
 } from "./faseView";
 import { renderBannerMenu, bindBannerMenu, type BannerMenuItem } from "@/components/BannerMenu";
 import {
@@ -46,8 +48,6 @@ import {
   type CourtPhaseConfig,
   type KongelagCarryOverInfo,
 } from "@/services/xkastKongelagService";
-import { writePlacements } from "@/services/resultatService";
-import { setTournamentCompleted } from "@/services/stevneService";
 import { autoCompleteCourts } from "@/services/testDataService";
 import { buildXkastStanding, type XkastStandingRow } from "@/utils/xkastStilling";
 import { buildKongelagStanding, type KongelagStandingRow } from "@/utils/kongelagStilling";
@@ -663,42 +663,20 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
     bannerSlot.innerHTML = renderBannerMenu(items);
     bindBannerMenu(bannerSlot);
 
-    bannerSlot.querySelector("#test-auto-complete-btn")?.addEventListener("click", async (e) => {
-      const btn = e.currentTarget as HTMLButtonElement;
-      if (
-        !(await confirmDialog({
-          title: "Autofullfør banar",
-          message: "Fylle alle manglande omganger med tilfeldige resultat og bekrefte banane?",
-        }))
-      )
-        return;
-      btn.disabled = true;
-      await autoCompleteCourts(s.stevneid, variant.fase, s.antallOmganger);
-      await reload(container);
-    });
+    bindAutoComplete(
+      bannerSlot,
+      {
+        title: "Autofullfør banar",
+        message: "Fylle alle manglande omganger med tilfeldige resultat og bekrefte banane?",
+      },
+      async () => {
+        await autoCompleteCourts(s.stevneid, variant.fase, s.antallOmganger);
+        await reload(container);
+      },
+    );
 
-    bannerSlot.querySelector("#complete-tournament-btn")?.addEventListener("click", async () => {
-      if (
-        !(await confirmDialog({
-          title: "Fullfør turnering",
-          message: "Vil du fullføre turneringa? Dette kan ikkje angrast.",
-          danger: true,
-        }))
-      )
-        return;
-      // Same ranking as the displayed standing — includes carry-over when present
-      const { error: plErr } = await writePlacements(s.stevneid, computeStanding());
-      if (plErr) {
-        showToast("Feil ved lagring av plasseringar", "error");
-        return;
-      }
-      const { error } = await setTournamentCompleted(s.stevneid);
-      if (error) {
-        showToast("Feil ved fullføring av turnering", "error");
-        return;
-      }
-      await reload(container);
-    });
+    // Same ranking as the displayed standing — includes carry-over when present
+    bindCompleteTournament(bannerSlot, s.stevneid, computeStanding, () => reload(container));
   }
 
   // ── Player swap (tap one player, tap the other) ─────────────────────────────

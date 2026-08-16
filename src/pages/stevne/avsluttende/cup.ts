@@ -9,6 +9,7 @@ import type { StandingRow } from "@/utils/stilling";
 import { scoreboardButtonHtml } from "@/components/ScoreboardButton";
 import { showScoreEditor } from "@/components/ScoreEditor";
 import { escHtml } from "@/utils/escHtml";
+import { groupBy } from "@/utils/groupBy";
 import { errorMessage } from "@/utils/errorMessage";
 import { logError } from "@/utils/logError";
 import { showToast } from "@/components/Toast";
@@ -311,13 +312,7 @@ function renderGroupColumn(
   unitLabel: string,
   isAdminLocal = true,
 ): string {
-  const roundMap = new Map<number, FinalMatchRow[]>();
-  for (const k of matches) {
-    if (!roundMap.has(k.runde_nummer)) roundMap.set(k.runde_nummer, []);
-    roundMap.get(k.runde_nummer)!.push(k);
-  }
-
-  const roundsHtml = [...roundMap.entries()]
+  const roundsHtml = [...groupBy(matches, (k) => k.runde_nummer)]
     .reverse()
     .map(([nr, roundMatches]) => {
       const title = roundMatches[0]?.runde_navn ?? `Runde ${nr}`;

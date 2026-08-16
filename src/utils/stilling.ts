@@ -131,6 +131,20 @@ export function buildFinalStandings(
 }
 
 /**
+ * Placement order for a two-group cup: A takes 1..nA, then B, then anyone
+ * ungrouped. sortStandings interleaves the groups, and filtering keeps each
+ * group's own order intact.
+ */
+export function orderStandingsByGroup(standings: StandingRow[]): StandingRow[] {
+  const inGroup = (row: StandingRow, navn: string): boolean => row.gruppe?.navn === navn;
+  return [
+    ...standings.filter((r) => inGroup(r, "A")),
+    ...standings.filter((r) => inGroup(r, "B")),
+    ...standings.filter((r) => !inGroup(r, "A") && !inGroup(r, "B")),
+  ];
+}
+
+/**
  * Head-to-head points within one tied block: kamp_poeng from the confirmed
  * matches where at least two members of the block met, as a mini round-robin.
  * Deliberately one number per player rather than a pairwise comparison — A beats

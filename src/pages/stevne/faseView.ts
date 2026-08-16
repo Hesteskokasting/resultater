@@ -14,6 +14,10 @@ import type { Tables } from "@/types";
 import { createTable, type ColumnDef } from "@/components/Table";
 import type { BannerMenuItem } from "@/components/BannerMenu";
 import { openInNewTab } from "@/services/navigationService";
+import { completeTournament, type CompleteStep } from "@/services/stevneService";
+import { confirmDialog } from "@/components/ConfirmDialog";
+import { showToast } from "@/components/Toast";
+import { errorMessage } from "@/utils/errorMessage";
 import type { StandingMatch, StandingRow } from "@/utils/stilling";
 
 /**
@@ -478,4 +482,51 @@ export function finalMenuItems(
     });
 
   return items;
+}
+
+// ── Banner menu actions ───────────────────────────────────────────────────────
+
+const COMPLETE_ERROR: Record<CompleteStep, string> = {
+  plassering: "Feil ved lagring av plasseringar",
+  fullfor: "Feil ved fullføring av turnering",
+};
+
+/**
+ * Binds the Fullfør turnering entry. The placements are read at click time —
+ * the standing is rebuilt on every reload, so a captured array goes stale.
+ */
+export function bindCompleteTournament(
+  bannerSlot: HTMLElement,
+  stevneid: number,
+  placements: () => { kasterid: number }[],
+  reload: () => Promise<void>,
+): void {
+  bannerSlot.querySelector("#complete-tournament-btn")?.addEventListener("click", async () => {
+    const ok = await confirmDialog({
+      title: "Fullfør turnering",
+      message: "Vil du fullføre turneringa? Dette kan ikkje angrast.",
+      danger: true,
+    });
+    if (!ok) return;
+    const { error, step } = await completeTournament(stevneid, placements());
+    if (error) {
+      showToast(`${COMPLETE_ERROR[step!]}: ${errorMessage(error)}`, "error");
+      return;
+    }
+    await reload();
+  });
+}
+
+/** Binds the TEST: Autofullfør entry. Dev builds only — see the menu items above. */
+export function bindAutoComplete(
+  bannerSlot: HTMLElement,
+  confirm: { title: string; message: string },
+  run: () => Promise<void>,
+): void {
+  bannerSlot.querySelector("#test-auto-complete-btn")?.addEventListener("click", async (e) => {
+    const button = e.currentTarget as HTMLButtonElement;
+    if (!(await confirmDialog(confirm))) return;
+    button.disabled = true;
+    await run();
+  });
 }

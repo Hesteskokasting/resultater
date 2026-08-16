@@ -4,6 +4,7 @@ import { errorMessage } from "@/utils/errorMessage";
 import { getInitialRoundMatches } from "@/services/kampService";
 import { getResultsForInitialRound } from "@/services/resultatService";
 import { buildParticipantMaps } from "@/utils/participantMaps";
+import { groupBy } from "@/utils/groupBy";
 import { getPairsForTournament } from "@/services/pameldingService";
 import type { RegistrationPair } from "@/services/pameldingService";
 import { buildRoundInfos, hentKlubbNamn } from "@/print/roundInfoBuilder";
@@ -75,19 +76,18 @@ export function createPrinterBanner(props: Props): PrinterBanner {
 
     const { startNumberMap } = buildParticipantMaps(resultRes.data);
 
-    const allMatchesPrint: PrintMatch[] = [];
-    const roundMap = new Map<number, PrintMatch[]>();
-    for (const kamp of matchesRes.data) {
-      const pm: PrintMatch = {
-        spelarar: kamp.spelarar,
-        er_walkover: kamp.er_walkover,
-        bane_nummer: kamp.bane_nummer,
-      };
-      allMatchesPrint.push(pm);
-      const list = roundMap.get(kamp.runde_nummer) ?? [];
-      list.push(pm);
-      roundMap.set(kamp.runde_nummer, list);
-    }
+    const toPrintMatch = (kamp: (typeof matchesRes.data)[number]): PrintMatch => ({
+      spelarar: kamp.spelarar,
+      er_walkover: kamp.er_walkover,
+      bane_nummer: kamp.bane_nummer,
+    });
+    const allMatchesPrint = matchesRes.data.map(toPrintMatch);
+    const roundMap = new Map(
+      [...groupBy(matchesRes.data, (k) => k.runde_nummer)].map(([runde, kampar]) => [
+        runde,
+        kampar.map(toPrintMatch),
+      ]),
+    );
 
     initialRoundData = {
       allMatchesPrint,
