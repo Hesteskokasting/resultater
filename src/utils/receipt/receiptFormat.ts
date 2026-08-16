@@ -63,7 +63,7 @@ export function formatStartkortReceipt(data: ReceiptPlayerData): Uint8Array {
   push(separator());
 
   // ── Player info ─────────────────────────────────────────────────────────────
-  push(charSize(1, 2));
+  push(charSize(1, 3));
   push(textLine(data.namn ?? ""));
   push(charSize(1, 1));
 
@@ -85,6 +85,8 @@ export function formatStartkortReceipt(data: ReceiptPlayerData): Uint8Array {
   push(bold(false));
 
   // ── Round rows ──────────────────────────────────────────────────────────────
+  // Double height keeps the 32-column grid but makes opponent names readable.
+  push(charSize(1, 2));
   data.roundInfos.forEach((info, i) => {
     const rnd = pad(i + 1, 3);
     const bane = pad(info.court ?? "", 4);
@@ -92,6 +94,7 @@ export function formatStartkortReceipt(data: ReceiptPlayerData): Uint8Array {
     const motNamn = field(info.opponentName ?? "", nameWidth);
     push(textLine(`${rnd} ${bane} ${motNr}  ${motNamn}`));
   });
+  push(charSize(1, 1));
 
   push(separator());
   push(align("center"));

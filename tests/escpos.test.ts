@@ -1,4 +1,4 @@
-import { textLine, RECEIPT_COLS } from "@/utils/receipt/escpos";
+import { textLine, charSize, RECEIPT_COLS } from "@/utils/receipt/escpos";
 
 const LF = 0x0a;
 
@@ -28,5 +28,14 @@ describe("textLine", () => {
   it("truncates to RECEIPT_COLS before the LF", () => {
     const out = textLine("x".repeat(RECEIPT_COLS + 10));
     expect(out.length).toBe(RECEIPT_COLS + 1);
+  });
+});
+
+describe("charSize", () => {
+  it("packs width in the high nibble and height in the low nibble", () => {
+    expect(Array.from(charSize(1, 1))).toEqual([0x1d, 0x21, 0x00]);
+    expect(Array.from(charSize(1, 2))).toEqual([0x1d, 0x21, 0x01]);
+    expect(Array.from(charSize(1, 3))).toEqual([0x1d, 0x21, 0x02]);
+    expect(Array.from(charSize(2, 2))).toEqual([0x1d, 0x21, 0x11]);
   });
 });

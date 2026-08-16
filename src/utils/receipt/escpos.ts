@@ -28,12 +28,15 @@ export function bold(on: boolean): Uint8Array {
   return bytes(ESC, 0x21, on ? 0x08 : 0x00);
 }
 
+/** Character size multiplier: 1 = normal, up to 8× per ESC/POS GS ! */
+export type SizeMul = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
+
 /**
  * GS ! n — select character size, independent of bold (ESC !).
- * widthMul/heightMul: 1 = normal, 2 = double.
- * Double-height only (1, 2) keeps the 32-column line limit intact.
+ * Keeping widthMul at 1 preserves the 32-column line limit; a wider
+ * setting scales the glyphs but halves (or worse) the columns that fit.
  */
-export function charSize(widthMul: 1 | 2, heightMul: 1 | 2): Uint8Array {
+export function charSize(widthMul: SizeMul, heightMul: SizeMul): Uint8Array {
   const n = ((widthMul - 1) << 4) | (heightMul - 1);
   return bytes(GS, 0x21, n);
 }
