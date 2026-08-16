@@ -28,3 +28,29 @@ export function formShell(host: AdminFormHost): { wrapper: HTMLElement; headingH
     headingHtml: host.heading ? `<h2 class="mb-4">${escHtml(host.heading)}</h2>` : "",
   };
 }
+
+export function formRowHtml(label: string, inputHtml: string): string {
+  return `<div class="mb-3"><label class="form-label fw-semibold">${escHtml(label)}</label>${inputHtml}</div>`;
+}
+
+/**
+ * A save error, anchored in the form and scrolled into view: it names a field
+ * the user has to go back and fix, so it stays put until the next save rather
+ * than floating past as a toast. Success goes through showToast instead — the
+ * form is usually closed or navigated away from by then.
+ *
+ * Fire-and-forget rather than an `InlineAlert` handle: the fields are built as
+ * an HTML string, so there is no element for the caller to hold on to.
+ */
+export function showFormError(container: HTMLElement, message: string): void {
+  let el = container.querySelector<HTMLDivElement>(".admin-feil");
+  if (!el) {
+    el = document.createElement("div");
+    el.className = "alert alert-danger admin-feil mt-3 d-none";
+    el.setAttribute("role", "alert");
+    container.querySelector("form")?.append(el);
+  }
+  el.textContent = message;
+  el.classList.remove("d-none");
+  el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}

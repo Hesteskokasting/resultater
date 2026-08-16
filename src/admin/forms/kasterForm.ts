@@ -1,5 +1,4 @@
 import { showToast } from "@/components/Toast";
-import { formRowHtml, showFormError } from "@/utils/adminForms";
 import { errorMessage } from "@/utils/errorMessage";
 import { isAdmin, isClubAdmin } from "@/services/authService";
 import { escHtml } from "@/utils/escHtml";
@@ -17,7 +16,7 @@ import {
   type ThrowerAdminRow,
 } from "@/services/kasterService";
 import { getClubs } from "@/services/klubbService";
-import { formShell } from "./_formHost";
+import { formShell, formRowHtml, showFormError } from "./_formHost";
 import type { AdminFormHost } from "./_formHost";
 import { bindCancelButton, bindDeleteButton } from "./_formButtons";
 

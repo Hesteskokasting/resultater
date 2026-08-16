@@ -1,6 +1,6 @@
 import { confirmDialog } from "@/components/ConfirmDialog";
-import { showFormError } from "@/utils/adminForms";
 import { errorMessage } from "@/utils/errorMessage";
+import { showFormError } from "./_formHost";
 import type { AdminFormHost } from "./_formHost";
 
 /** Wiring shared by the entity forms' secondary buttons. */
