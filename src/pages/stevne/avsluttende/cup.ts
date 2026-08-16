@@ -1,12 +1,13 @@
-import { bindGroupAssignment, renderGroupAssignment } from "@/organizer/gruppefordelingUi";
+import { bindGroupAssignment, renderGroupAssignment } from "./gruppefordelingUi";
 import { generateFinaleAndBronzeFinal } from "@/services/kampGenereringCupService";
 import { openGenerateRoundDialog } from "./_avslCupGenererRundeDialog";
 import { openThreeSideConfirmDialog } from "./_avslCupTreSpelarDialog";
 import { showNumberpad } from "@/components/ScoreNumberpad";
 import { sideScore, getAllMatchSides, type MatchSide } from "@/utils/kamp";
-import { bindScoreboardClicks, sideNameHtml, type StandingRow } from "@/organizer/org-shared";
+import { bindScoreboardClicks, sideNameHtml } from "../faseView";
+import type { StandingRow } from "@/utils/stilling";
 import { scoreboardButtonHtml } from "@/components/ScoreboardButton";
-import { showScoreEditor } from "@/organizer/scoreEditor";
+import { showScoreEditor } from "@/components/ScoreEditor";
 import { escHtml } from "@/utils/escHtml";
 import { errorMessage } from "@/utils/errorMessage";
 import { logError } from "@/utils/logError";

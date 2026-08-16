@@ -1,4 +1,4 @@
-import { calcRowScores } from "@/organizer/innledendeKampView";
+import { calcRowScores } from "@/pages/stevne/innledende/innledendeView";
 
 // calcRowScores only reads score_poeng and omgangar off the members, and
 // er_bekreftet / er_walkover off the match.

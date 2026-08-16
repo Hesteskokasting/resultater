@@ -6,7 +6,7 @@
 
 import { beforeEach, describe, expect, it } from "vite-plus/test";
 import { bindExpandableRows, makeRowsFocusable } from "@/components/expandableRows";
-import { bindStandingDetails } from "@/organizer/org-shared";
+import { bindStandingDetails } from "@/pages/stevne/faseView";
 
 function host(html: string): HTMLElement {
   const el = document.createElement("div");

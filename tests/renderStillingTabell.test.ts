@@ -1,4 +1,5 @@
-import { renderStandingTable, type StandingRow, type OrgMatch } from "@/organizer/org-shared";
+import { renderStandingTable } from "@/pages/stevne/faseView";
+import type { StandingRow, StandingMatch } from "@/utils/stilling";
 
 function parse(html: string): HTMLElement {
   const div = document.createElement("div");
@@ -20,7 +21,7 @@ function player(
   };
 }
 
-const NO_KAMPER: OrgMatch[] = [];
+const NO_KAMPER: StandingMatch[] = [];
 const NO_STARTNR: Record<number, number> = {};
 
 describe("renderStandingTable", () => {

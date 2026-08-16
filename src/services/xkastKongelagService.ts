@@ -85,7 +85,7 @@ export async function getMyCourts(
 
 // ── Stevne config ─────────────────────────────────────────────────────────────
 
-/** Shared config for the X-kast/Kongelag court views (see @/organizer/xkastKongelagView). */
+/** Shared config for the X-kast/Kongelag court views (see @/pages/stevne/xkastKongelagView). */
 export interface CourtPhaseConfig {
   /** Kastemetode name for this fase — shown as the banner meta line. */
   metodeNavn: string | null;

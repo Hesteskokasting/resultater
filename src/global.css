@@ -382,7 +382,7 @@ textarea:focus {
 }
 
 /* Theme-aware table header — dark bg in dark mode, white bg in light mode */
-.org-thead th {
+.stevne-thead th {
   background: var(--header-bg);
   color: var(--tekst);
 }

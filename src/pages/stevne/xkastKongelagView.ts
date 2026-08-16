@@ -30,7 +30,7 @@ import {
   getActiveTab,
   setActiveTab,
   setBannerMeta,
-} from "@/organizer/org-shared";
+} from "./faseView";
 import { renderBannerMenu, bindBannerMenu, type BannerMenuItem } from "@/components/BannerMenu";
 import {
   getCourts,
@@ -507,7 +507,7 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
         <h6 class="text-center fw-bold mb-1">${escHtml(puljeLabel)}${puljeRegisterBtn}</h6>
         <div class="table-scroll">
           <table class="table table-sm match-table mb-0">
-            <thead class="org-thead">
+            <thead class="stevne-thead">
               <tr>
                 <th class="th-36 text-center">B</th>
                 <th>NAMN</th>
@@ -577,7 +577,7 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
         <h6 class="text-center fw-bold mb-1">${standing.length} spelarar${percentSuffix}</h6>
         <div class="table-scroll">
           <table class="table table-sm match-table mb-0">
-            <thead class="org-thead">
+            <thead class="stevne-thead">
               <tr>
                 <th class="th-32">#</th>
                 <th>NAMN</th>

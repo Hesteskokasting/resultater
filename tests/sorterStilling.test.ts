@@ -1,4 +1,4 @@
-import { sortStandings, type StandingRow, type MatchForSorting } from "@/organizer/org-shared";
+import { sortStandings, type StandingRow, type MatchForSorting } from "@/utils/stilling";
 
 function p(kasterid: number, overrides: Partial<StandingRow> = {}): StandingRow {
   return { kasterid, ...overrides };

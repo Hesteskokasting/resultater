@@ -14,20 +14,18 @@
 //
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import {
-  buildFinalStandings,
   renderStandingTable,
   renderMainContent,
   finalMenuItems,
   setBannerMeta,
-  parseRound1Format,
   bindStandingDetails,
   bindTabToggle,
   getActiveTab,
   setActiveTab,
   createChangeHandler,
-  type StandingRow,
-  type OrgMatch,
-} from "@/organizer/org-shared";
+} from "../faseView";
+import { buildFinalStandings, type StandingRow, type StandingMatch } from "@/utils/stilling";
+import { parseRound1Format } from "@/utils/kastemetoder-logikk";
 import { renderBannerMenu, bindBannerMenu } from "@/components/BannerMenu";
 import { createErrorBanner, createLoadingState } from "@/components/states";
 import { showToast } from "@/components/Toast";
@@ -96,17 +94,17 @@ export interface FinalPhaseVariant {
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
 
-function toOrgMatch(matches: FinalMatchRow[]): OrgMatch[] {
+function toStandingMatch(matches: FinalMatchRow[]): StandingMatch[] {
   return matches.map((k) => ({
     er_bekreftet: k.er_bekreftet,
     er_walkover: k.er_walkover,
     runde_nummer: k.runde_nummer,
     bane_nummer: k.bane_nummer,
-    spelarar: toOrgPlayer(k.spelarar),
+    spelarar: toStandingPlayer(k.spelarar),
   }));
 }
 
-function toOrgPlayer(sp: FinalMatchPlayerRow[]) {
+function toStandingPlayer(sp: FinalMatchPlayerRow[]) {
   return sp.map((s) => ({
     kasterid: s.kasterid ?? 0,
     kamp_poeng: s.kamp_poeng ?? 0,
@@ -200,9 +198,9 @@ export function createFinalPhaseRenderer(variant: FinalPhaseVariant) {
         }
       }
 
-      const initialMatchesOrg = toOrgMatch(initialMatches);
+      const standingMatches = toStandingMatch(initialMatches);
       const standings = buildFinalStandings(
-        initialMatchesOrg,
+        standingMatches,
         typedResults,
         nameMap,
         startNumberMap,
@@ -270,7 +268,7 @@ export function createFinalPhaseRenderer(variant: FinalPhaseVariant) {
       const activeTab = getActiveTab(container);
 
       if (hasGroupAssignment) {
-        const standingHtml = renderStandingTable(standings, initialMatchesOrg, startNumberMap, {
+        const standingHtml = renderStandingTable(standings, standingMatches, startNumberMap, {
           tableId: "standing-final",
           hasGroups: true,
           hasElimination: true,

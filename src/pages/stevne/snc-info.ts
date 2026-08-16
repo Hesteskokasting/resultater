@@ -167,7 +167,7 @@ export async function render(
 
     container.innerHTML = `
       ${overviewHtml(parent, locals, totalRegistrations)}
-      <div class="org-max-480">
+      <div class="stevne-max-480">
         ${ownRegistrationNoticeHtml(locals, summary, canRegister, auth != null, id)}
         <h6 class="mb-2">Lokale stevne (${locals.length})</h6>
         <div id="snc-locals" class="stevne-kort-liste"></div>

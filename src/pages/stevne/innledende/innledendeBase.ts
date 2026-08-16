@@ -19,18 +19,15 @@
 // an InnledendeVariant and exports `createInnledendeRenderer(variant)`.
 // See gloppen.ts (no-Swiss) and nordhordland.ts (Swiss) for examples.
 //
-import { showScoreEditor } from "@/organizer/scoreEditor";
+import { showScoreEditor } from "@/components/ScoreEditor";
 import { showToast } from "@/components/Toast";
 import { confirmDialog } from "@/components/ConfirmDialog";
 import { getMatchSides, groupStandingsByPair, sideScore } from "@/utils/kamp";
-import { applyFlashClasses, renderMatchLegend, renderRound } from "@/organizer/innledendeKampView";
+import { applyFlashClasses, renderMatchLegend, renderRound } from "./innledendeView";
 import { autoCompleteInitialRoundMatches } from "@/services/testDataService";
 import {
-  buildInitialPlayerMap,
-  sortStandings,
   initialMenuItems,
   setBannerMeta,
-  parseRound1Format,
   createChangeHandler,
   bindStandingDetails,
   renderMainContent,
@@ -40,8 +37,9 @@ import {
   renderStandingTable,
   sideNameHtml,
   bindScoreboardClicks,
-  type StandingRow,
-} from "@/organizer/org-shared";
+} from "../faseView";
+import { buildInitialPlayerMap, sortStandings, type StandingRow } from "@/utils/stilling";
+import { parseRound1Format } from "@/utils/kastemetoder-logikk";
 import { renderBannerMenu, bindBannerMenu, type BannerMenuItem } from "@/components/BannerMenu";
 import { createErrorBanner, createLoadingState } from "@/components/states";
 import { errorMessage } from "@/utils/errorMessage";

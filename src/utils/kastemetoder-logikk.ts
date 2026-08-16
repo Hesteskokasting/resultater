@@ -1,6 +1,12 @@
 // Cup avsluttende kastemetode — ren logikk (ingen DB-kall)
 
-import type { RoundSetup, CupRound, CupPairing } from "@/types";
+import type { RoundSetup, CupRound, CupPairing, Json, Round1FormatTyped } from "@/types";
+
+/** stevne.runde1_format holds the avsluttande A/B split; nA is the group-A size. */
+export function parseRound1Format(json: Json | null): Round1FormatTyped | null {
+  if (json == null || typeof json !== "object" || Array.isArray(json)) return null;
+  return json as unknown as Round1FormatTyped;
+}
 
 interface Player {
   kasterid: number | string;

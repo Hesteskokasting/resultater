@@ -1274,7 +1274,7 @@
 
 /* ── Organizer felles ── */
 
-#app:has(.org-shell) {
+#app:has(.stevne-shell) {
   max-width: none;
   padding: 0;
   /* Full-bleed shell, but still clear of the Android nav bar / home indicator */
@@ -1283,7 +1283,7 @@
 
 /* Title strip for the tabs that don't own a hero. Page chrome on the ordinary
    surface — an accent rule carries the identity, not a solid colour band. */
-.org-fase-header {
+.stevne-fase-header {
   background: var(--flate);
   color: var(--tekst);
   padding: 0.3rem 1rem;
@@ -1291,35 +1291,35 @@
   border-bottom: 1px solid var(--kant);
   margin-bottom: 0.75rem;
 }
-.org-fase-header h5 {
+.stevne-fase-header h5 {
   font-size: 1.05rem;
   font-weight: 600;
   overflow-wrap: anywhere;
 }
-[data-theme="light"] .org-fase-header {
+[data-theme="light"] .stevne-fase-header {
   /* --kant reads heavier on the light surface; soften it to the same
      perceived weight as in dark. */
   border-bottom-color: color-mix(in srgb, var(--kant) 45%, var(--flate));
 }
-.org-fase-header__title {
+.stevne-fase-header__title {
   display: flex;
   align-items: baseline;
   flex-wrap: wrap;
   gap: 0.5rem;
   min-width: 0;
 }
-.org-fase-header__meta {
+.stevne-fase-header__meta {
   font-size: 0.8rem;
   color: var(--tekst-2);
 }
 
 /* Banner overflow menu — every phase action lives behind the ⋯ button, so the
    banner stays a title strip at any width. */
-.org-banner-menu {
+.stevne-banner-menu {
   position: relative;
   flex: 0 0 auto;
 }
-.org-banner-menu__trigger {
+.stevne-banner-menu__trigger {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1333,17 +1333,17 @@
   font-size: 1.15rem;
   line-height: 1;
 }
-.org-banner-menu__trigger:hover,
-.org-banner-menu__trigger[aria-expanded="true"] {
+.stevne-banner-menu__trigger:hover,
+.stevne-banner-menu__trigger[aria-expanded="true"] {
   background: var(--primaer-hover);
 }
 @media (pointer: coarse) {
-  .org-banner-menu__trigger {
+  .stevne-banner-menu__trigger {
     width: 44px;
     height: 44px;
   }
 }
-.org-banner-menu__panel {
+.stevne-banner-menu__panel {
   display: flex;
   flex-direction: column;
   position: absolute;
@@ -1357,13 +1357,13 @@
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
   z-index: 150;
 }
-.org-banner-menu__panel[hidden] {
+.stevne-banner-menu__panel[hidden] {
   display: none;
 }
-[data-theme="light"] .org-banner-menu__panel {
+[data-theme="light"] .stevne-banner-menu__panel {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
 }
-.org-banner-menu__item {
+.stevne-banner-menu__item {
   padding: 0.55rem 0.75rem;
   background: transparent;
   border: 0;
@@ -1373,26 +1373,26 @@
   text-align: left;
   white-space: nowrap;
 }
-.org-banner-menu__item:hover:not(:disabled) {
+.stevne-banner-menu__item:hover:not(:disabled) {
   background: var(--primaer-hover);
 }
-.org-banner-menu__item:disabled {
+.stevne-banner-menu__item:disabled {
   color: var(--tekst-3);
 }
-.org-banner-menu__item--success {
+.stevne-banner-menu__item--success {
   color: var(--kamp-stripe-ferdig);
 }
-.org-banner-menu__item--warning {
+.stevne-banner-menu__item--warning {
   color: var(--kamp-stripe-pagaar);
 }
 
-.org-max-480 {
+.stevne-max-480 {
   max-width: 480px;
 }
 /* Kampar / Stilling switch — a segmented control in the theme palette rather
    than a pair of solid Bootstrap buttons. Spans the content width with no side
    inset, so the table below lines up with its edges. */
-.org-tab-buttons {
+.stevne-tab-buttons {
   display: none;
   width: 100%;
   background: var(--flate);
@@ -1400,7 +1400,7 @@
   border-radius: 8px;
   overflow: hidden;
 }
-.org-tab-btn {
+.stevne-tab-btn {
   flex: 1;
   min-width: 0;
   padding: 0.45rem 0.75rem;
@@ -1410,46 +1410,46 @@
   font-size: 0.9rem;
   font-weight: 600;
 }
-.org-tab-btn + .org-tab-btn {
+.stevne-tab-btn + .stevne-tab-btn {
   border-left: 1px solid var(--kant);
 }
-.org-tab-btn:hover {
+.stevne-tab-btn:hover {
   color: var(--tekst);
 }
 /* Tinted fill rather than a solid --primaer block: the saturated blue reads far
    sharper on the light surface than anything else on the page. */
-.org-tab-btn[aria-selected="true"] {
+.stevne-tab-btn[aria-selected="true"] {
   background: var(--primaer-aktiv);
   color: var(--tekst);
 }
-.org-tab-btn:focus-visible {
+.stevne-tab-btn:focus-visible {
   outline: 2px solid var(--lenke);
   outline-offset: -2px;
 }
-[data-theme="light"] .org-tab-buttons,
-[data-theme="light"] .org-tab-btn + .org-tab-btn {
+[data-theme="light"] .stevne-tab-buttons,
+[data-theme="light"] .stevne-tab-btn + .stevne-tab-btn {
   border-color: color-mix(in srgb, var(--kant) 45%, var(--flate));
 }
 
-.org-standing-col {
+.stevne-standing-col {
   width: 100%;
   max-width: 500px;
   flex-shrink: 0;
 }
 
 @media (min-width: 1200px) {
-  .org-standing-col {
+  .stevne-standing-col {
     position: sticky;
     top: 0;
     max-height: 100vh;
     overflow-y: auto;
     scrollbar-width: none;
   }
-  .org-standing-col::-webkit-scrollbar {
+  .stevne-standing-col::-webkit-scrollbar {
     display: none;
   }
 }
-.org-matches-panel {
+.stevne-matches-panel {
   min-width: 0;
 }
 .tournament-nav {
@@ -1467,14 +1467,14 @@
 }
 
 @media (max-width: 1199px) {
-  /* Cancel the px-3 inset #org-subpage puts on us, so the switch and the table
+  /* Cancel the px-3 inset #stevne-subpage puts on us, so the switch and the table
      under it run to the shell edges like the title strip above them. */
-  .org-main-content {
+  .stevne-main-content {
     margin-inline: -1rem;
   }
   /* Sits flush under the title strip — the negative top margin cancels the
      header's own bottom margin, and the shared edge keeps a single border. */
-  .org-tab-buttons {
+  .stevne-tab-buttons {
     display: flex;
     margin-top: -0.75rem;
     margin-bottom: 0.75rem;
@@ -1484,17 +1484,17 @@
   }
   /* Single column below the split layout, so the standing table fills the same
      width as the switch above it instead of stopping at the sidebar cap. */
-  .org-standing-col {
+  .stevne-standing-col {
     width: 100%;
     max-width: none;
   }
-  .org-main-content .org-standing-col {
+  .stevne-main-content .stevne-standing-col {
     display: none;
   }
-  .org-main-content.org-show-standing .org-matches-panel {
+  .stevne-main-content.stevne-show-standing .stevne-matches-panel {
     display: none !important;
   }
-  .org-main-content.org-show-standing .org-standing-col {
+  .stevne-main-content.stevne-show-standing .stevne-standing-col {
     display: block;
   }
 }
@@ -1562,7 +1562,7 @@
   border-bottom: none;
 }
 
-.org-thead th {
+.stevne-thead th {
   background: var(--flate-2) !important;
   color: var(--tekst-3);
   font-size: 11px;
@@ -1860,7 +1860,7 @@
 }
 
 /* Stilling table — KP/SP visual hierarchy */
-/* th prefix needed to match .org-thead th specificity (0,1,1) and win by source order */
+/* th prefix needed to match .stevne-thead th specificity (0,1,1) and win by source order */
 th.standing-kp-th {
   background: var(--standing-kp-th) !important;
   color: #fff !important;
@@ -3445,7 +3445,7 @@ th.initial-score-th {
 }
 
 /* Divider opening the summary columns (R/%/… ) in the court and standing
-   tables. th prefix needed to win over .org-thead th on specificity. */
+   tables. th prefix needed to win over .stevne-thead th on specificity. */
 .match-table td.table-summary-start,
 .match-table th.table-summary-start {
   border-left: 1px solid var(--kant-2);
@@ -5869,8 +5869,8 @@ body:has(.modal.show) {
   .sidepanel,
   .meny-bakgrunn,
   .tournament-nav,
-  .org-fase-header,
-  .org-banner-menu,
+  .stevne-fase-header,
+  .stevne-banner-menu,
   .res-mobil-blokk,
   .res-detalj-btn,
   .res-filter,

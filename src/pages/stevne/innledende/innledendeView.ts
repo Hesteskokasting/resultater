@@ -1,4 +1,4 @@
-// ── Match rows for the innledende phase ───────────────────────────────────────
+// ── View half of the innledende phase ─────────────────────────────────────────
 //
 // Pure view: every function here takes rows and maps and returns HTML (or adds a
 // class to already-rendered HTML). No fetching, no closure state, no writes —
@@ -9,7 +9,7 @@
 // never disagree between the layouts.
 //
 import { getMatchSides, sideScore, type MatchSide } from "@/utils/kamp";
-import { sideNameHtml } from "@/organizer/org-shared";
+import { sideNameHtml } from "../faseView";
 import { scoreboardButtonHtml } from "@/components/ScoreboardButton";
 import { livePillHtml } from "@/components/LivePill";
 import type { InitialMatchRow, InitialMatchPlayerRow } from "@/services/kampService";
@@ -59,7 +59,7 @@ export function renderRound(
     <div class="mb-3">
       <h6 class="text-center fw-bold mb-1">Runde ${nr}</h6>
       <table class="table table-sm match-table mb-0 match-table--desktop">
-        <thead class="org-thead">
+        <thead class="stevne-thead">
           <tr>
             <th class="th-36 text-center">B</th>
             <th>P1</th>

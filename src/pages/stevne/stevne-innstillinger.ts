@@ -79,7 +79,7 @@ export async function render(
     container.innerHTML = `
       <div>
         <h4 class="mb-3">Innstillingar</h4>
-        <form id="innstillingar-form" class="org-max-480">
+        <form id="innstillingar-form" class="stevne-max-480">
           <div class="mb-3">
             <label class="form-label fw-semibold">Kastemetode innleiande</label>
             <select id="innl-metode" class="form-select"${methodsLocked}>

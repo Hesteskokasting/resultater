@@ -264,7 +264,7 @@ export function renderGroupPreview(
   }
 
   const tableHeader = `
-    <thead class="org-thead"><tr>
+    <thead class="stevne-thead"><tr>
       <th class="th-32">#</th><th>NAMN</th>
       <th class="th-44 text-center">${isXkast ? "R" : "KP"}</th>
       <th class="th-44 text-center">${isXkast ? "X" : "SP"}</th>

@@ -1,18 +1,20 @@
-import {
-  matchScoreForPlayer,
-  sideScore,
-  getMatchSides,
-  groupStandingsByPair,
-  type MatchSide,
-} from "@/utils/kamp";
+// ── Shared chrome for a stevne fase subpage ───────────────────────────────────
+//
+// The Kampar/Stilling tab pair, the standing table, the banner meta line and the
+// banner menus — everything the innledende, avsluttende and bane views draw
+// around their own content. How the standing is derived and ranked is not here;
+// that lives in @/utils/stilling.
+//
+import { sideScore, getMatchSides, type MatchSide } from "@/utils/kamp";
 import { throwerNameShort } from "@/utils/kaster";
 import { escHtml } from "@/utils/escHtml";
 import { coalesceReload } from "@/utils/coalesceReload";
 import { bindExpandableRows, makeRowsFocusable } from "@/components/expandableRows";
-import type { Tables, Json, Round1FormatTyped } from "@/types";
+import type { Tables } from "@/types";
 import { createTable, type ColumnDef } from "@/components/Table";
 import type { BannerMenuItem } from "@/components/BannerMenu";
 import { openInNewTab } from "@/services/navigationService";
+import type { StandingMatch, StandingRow } from "@/utils/stilling";
 
 /**
  * Delegated click handler for every element carrying data-scoreboard-kamp-id.
@@ -31,51 +33,6 @@ export function bindScoreboardClicks(container: HTMLElement): void {
   });
 }
 
-// Minimal shapes for organizer kamp data (spelarar is an aliased join from kamp_spelar)
-export interface OrgMatchPlayer {
-  kasterid: number;
-  kamp_poeng: number;
-  score_poeng: number;
-  antall_ringer?: number | null;
-  omgangar?: Pick<Tables<"kamp_omgang">, "score" | "antall_ringer">[] | null;
-  kaster?: { fornavn: string; etternavn: string } | null;
-}
-
-export interface OrgMatch extends Pick<
-  Tables<"kamp">,
-  "er_bekreftet" | "er_walkover" | "runde_nummer" | "bane_nummer"
-> {
-  spelarar?: OrgMatchPlayer[] | null;
-}
-
-export interface MatchForSorting {
-  er_bekreftet: boolean;
-  spelarar?:
-    | {
-        kasterid: number | null;
-        kamp_poeng: number | null;
-        score_poeng?: number | null;
-        omgangar?: { score?: number | null }[] | null;
-      }[]
-    | null;
-}
-
-export interface StandingRow {
-  kasterid: number;
-  navn?: string | null;
-  startnummer?: number | null;
-  kamp_poeng?: number | null;
-  score_poeng?: number | null;
-  /** X-kast innledande poeng/ringere — present when the cup is fed by an X-kast format. */
-  poeng_xkast?: number | null;
-  antall_ring_xkast?: number | null;
-  runde_eliminert?: number | null;
-  plassering?: number | null;
-  hcp?: number | null;
-  gruppe?: { navn: string } | null;
-  antall_kamper?: number | null;
-}
-
 interface StandingOptions {
   tableId?: string;
   hasGroups?: boolean;
@@ -88,12 +45,6 @@ interface StandingOptions {
    * cut line under that row. Ignored once the table is itself split by group.
    */
   qualifyCutoff?: number | null;
-}
-
-/** stevne.runde1_format holds the avsluttande A/B split; nA is the group-A size. */
-export function parseRound1Format(json: Json | null): Round1FormatTyped | null {
-  if (json == null || typeof json !== "object" || Array.isArray(json)) return null;
-  return json as unknown as Round1FormatTyped;
 }
 
 /**
@@ -118,7 +69,7 @@ export function sideNameHtml<T extends { kaster?: { fornavn: string; etternavn: 
 
 function renderPlayerMatchDetails(
   kasterid: number,
-  matches: OrgMatch[] | null | undefined,
+  matches: StandingMatch[] | null | undefined,
   startNumberMap: Record<number, number>,
   positionMap: Record<number, number> = {},
 ): string {
@@ -169,38 +120,38 @@ function renderPlayerMatchDetails(
 
 export function renderMainContent(matchesHtml: string, standingHtml: string): string {
   return `
-    <div class="org-main-content">
-      <div class="org-tab-buttons" role="tablist">
-        <button type="button" class="org-tab-btn" role="tab" data-tab="matches"
-                aria-selected="true" aria-controls="org-panel-matches">Kampar</button>
-        <button type="button" class="org-tab-btn" role="tab" data-tab="standing"
-                aria-selected="false" aria-controls="org-panel-standing">Stilling</button>
+    <div class="stevne-main-content">
+      <div class="stevne-tab-buttons" role="tablist">
+        <button type="button" class="stevne-tab-btn" role="tab" data-tab="matches"
+                aria-selected="true" aria-controls="stevne-panel-matches">Kampar</button>
+        <button type="button" class="stevne-tab-btn" role="tab" data-tab="standing"
+                aria-selected="false" aria-controls="stevne-panel-standing">Stilling</button>
       </div>
-      <div class="d-flex gap-3 align-items-start org-content-row">
-        <div id="org-panel-matches" class="flex-grow-1 org-matches-panel">${matchesHtml}</div>
-        <div id="org-panel-standing" class="org-standing-col">${standingHtml}</div>
+      <div class="d-flex gap-3 align-items-start stevne-content-row">
+        <div id="stevne-panel-matches" class="flex-grow-1 stevne-matches-panel">${matchesHtml}</div>
+        <div id="stevne-panel-standing" class="stevne-standing-col">${standingHtml}</div>
       </div>
     </div>`;
 }
 
 export function getActiveTab(container: HTMLElement): "matches" | "standing" {
-  return container.querySelector(".org-main-content")?.classList.contains("org-show-standing")
+  return container.querySelector(".stevne-main-content")?.classList.contains("stevne-show-standing")
     ? "standing"
     : "matches";
 }
 
 export function setActiveTab(container: HTMLElement, tab: "matches" | "standing"): void {
-  const wrapper = container.querySelector<HTMLElement>(".org-main-content");
+  const wrapper = container.querySelector<HTMLElement>(".stevne-main-content");
   if (!wrapper) return;
-  wrapper.classList.toggle("org-show-standing", tab === "standing");
-  container.querySelectorAll<HTMLButtonElement>(".org-tab-btn").forEach((btn) => {
+  wrapper.classList.toggle("stevne-show-standing", tab === "standing");
+  container.querySelectorAll<HTMLButtonElement>(".stevne-tab-btn").forEach((btn) => {
     btn.setAttribute("aria-selected", String(btn.dataset.tab === tab));
   });
 }
 
 export function bindTabToggle(container: HTMLElement): void {
-  if (!container.querySelector(".org-main-content")) return;
-  container.querySelectorAll<HTMLButtonElement>(".org-tab-btn").forEach((btn) => {
+  if (!container.querySelector(".stevne-main-content")) return;
+  container.querySelectorAll<HTMLButtonElement>(".stevne-tab-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       setActiveTab(container, btn.dataset.tab === "standing" ? "standing" : "matches");
     });
@@ -211,7 +162,7 @@ type FlatStandingRow = StandingRow & { posInGroup: number };
 
 export function renderStandingTable(
   standings: StandingRow[],
-  matches: OrgMatch[],
+  matches: StandingMatch[],
   startNumberMap: Record<number, number>,
   opts: StandingOptions = {},
 ): string {
@@ -348,7 +299,7 @@ export function renderStandingTable(
     columns,
     rows: flatList,
     tableClass: "table table-sm match-table mb-0",
-    theadClass: "org-thead",
+    theadClass: "stevne-thead",
     rowClass: (r) =>
       cutoffRow != null && r.posInGroup === cutoffRow
         ? "standing-player-row standing-cutoff"
@@ -447,8 +398,8 @@ export function createChangeHandler(
 /** Writes the secondary meta line beside the stevne name in the banner. */
 export function setBannerMeta(bannerSlot: HTMLElement | null, text: string): void {
   const meta = bannerSlot
-    ?.closest(".org-fase-header")
-    ?.querySelector<HTMLElement>(".org-fase-header__meta");
+    ?.closest(".stevne-fase-header")
+    ?.querySelector<HTMLElement>(".stevne-fase-header__meta");
   if (meta) meta.textContent = text;
 }
 
@@ -527,190 +478,4 @@ export function finalMenuItems(
     });
 
   return items;
-}
-
-export interface PlayerMapRow {
-  kasterid: number;
-  navn: string;
-  startnummer: number | null;
-  kamp_poeng: number;
-  score_poeng: number;
-  antall_kamper: number;
-}
-
-export function buildInitialPlayerMap(
-  allMatches: OrgMatch[],
-  startNumberMap: Record<number, number>,
-): { playerMap: Record<number, PlayerMapRow>; realThrowerIds: Set<number> } {
-  const playerMap: Record<number, PlayerMapRow> = {};
-  const realThrowerIds = new Set<number>();
-
-  for (const match of allMatches) {
-    // In a walkover only the bye side counts — exclude any phantom opposing side
-    // (side-based: the bye pair's own partner shares the startnummer and stays in).
-    const [, byeSide2] = match.er_walkover
-      ? getMatchSides(match.spelarar, startNumberMap)
-      : [null, null];
-    for (const sp of match.spelarar ?? []) {
-      if (!sp.kasterid || !sp.kaster) continue;
-      if (match.er_walkover && byeSide2?.members.some((m) => m.kasterid === sp.kasterid)) continue;
-      realThrowerIds.add(sp.kasterid);
-      const playerRow = (playerMap[sp.kasterid] ??= {
-        kasterid: sp.kasterid,
-        navn: `${sp.kaster.fornavn} ${sp.kaster.etternavn}`,
-        startnummer: startNumberMap[sp.kasterid] ?? null,
-        kamp_poeng: 0,
-        score_poeng: 0,
-        antall_kamper: 0,
-      });
-      if (match.er_bekreftet) {
-        playerRow.kamp_poeng += sp.kamp_poeng;
-        playerRow.score_poeng += sp.score_poeng;
-        playerRow.antall_kamper += 1;
-      }
-    }
-  }
-
-  return { playerMap, realThrowerIds };
-}
-
-export function buildFinalStandings(
-  initialRoundMatches: OrgMatch[],
-  resultat: Array<{
-    kasterid: number;
-    startnummer: number | null;
-    plassering: number | null;
-    runde_eliminert: number | null;
-    gruppe: { navn: string } | null;
-    poeng_xkast?: number | null;
-    antall_ring_xkast?: number | null;
-  }>,
-  nameMap: Record<number, string>,
-  startNumberMap: Record<number, number>,
-  positionMap: Record<number, number> = {},
-): StandingRow[] {
-  const { playerMap } = buildInitialPlayerMap(initialRoundMatches, startNumberMap);
-  const rows = resultat.map((r) => ({
-    kasterid: r.kasterid,
-    navn: nameMap[r.kasterid] ?? `Spelar ${r.kasterid}`,
-    startnummer: r.startnummer,
-    plassering: r.plassering,
-    runde_eliminert: r.runde_eliminert,
-    kamp_poeng: playerMap[r.kasterid]?.kamp_poeng ?? 0,
-    score_poeng: playerMap[r.kasterid]?.score_poeng ?? 0,
-    // X-kast innledande scores live on resultat, not in kamp rows
-    poeng_xkast: r.poeng_xkast ?? null,
-    antall_ring_xkast: r.antall_ring_xkast ?? null,
-    gruppe: r.gruppe,
-  }));
-  // Par/Mix: one row per pair (no-op for Singel — every startnummer is unique)
-  return sortStandings(groupStandingsByPair(rows, positionMap), initialRoundMatches);
-}
-
-/**
- * Head-to-head points within one tied block: kamp_poeng from the confirmed
- * matches where at least two members of the block met, as a mini round-robin.
- * Deliberately one number per player rather than a pairwise comparison — A beats
- * B, B beats C, C beats A is an ordinary result, and a comparator that can
- * contradict itself lets Array.sort land on an order no ranking rule justifies.
- *
- * NB: the written rules drop head-to-head entirely once three or more are tied.
- * We keep it as this mini round-robin instead, which stays decisive in the cases
- * the rules leave to the scores alone. Deliberate — to follow the rules to the
- * letter, skip the block when it holds more than two rows.
- */
-function headToHeadPoints(block: StandingRow[], confirmed: MatchForSorting[]): Map<number, number> {
-  const points = new Map<number, number>(block.map((r) => [r.kasterid, 0]));
-  for (const kamp of confirmed) {
-    const met = (kamp.spelarar ?? []).filter((s) => s.kasterid != null && points.has(s.kasterid));
-    if (met.length < 2) continue;
-    for (const sp of met) {
-      points.set(sp.kasterid!, (points.get(sp.kasterid!) ?? 0) + (sp.kamp_poeng ?? 0));
-    }
-  }
-  return points;
-}
-
-export function sortStandings(standings: StandingRow[], matches: MatchForSorting[]): StandingRow[] {
-  const confirmed = matches.filter((k) => k.er_bekreftet);
-
-  // X-kast innledande ranks on poeng_xkast → ringere, kamp-based innledande on
-  // kamp_poeng → score_poeng. Decided once for the table, as the columns are.
-  const useXkast = standings.some((r) => r.poeng_xkast != null);
-  const primaryOf = (r: StandingRow): number =>
-    useXkast ? (r.poeng_xkast ?? 0) : (r.kamp_poeng ?? 0);
-  const secondaryOf = (r: StandingRow): number =>
-    useXkast ? (r.antall_ring_xkast ?? 0) : (r.score_poeng ?? 0);
-
-  // Each player's confirmed match scores, best first. Every match here is
-  // confirmed, so this reads the stored totals the SP column adds up.
-  const scoreCache = new Map<number, number[]>();
-  const scoresFor = (kasterid: number): number[] => {
-    let scores = scoreCache.get(kasterid);
-    if (!scores) {
-      scores = confirmed
-        .flatMap((k) => k.spelarar?.filter((s) => s.kasterid === kasterid) ?? [])
-        .map((s) => matchScoreForPlayer(s, true))
-        .sort((x, y) => y - x);
-      scoreCache.set(kasterid, scores);
-    }
-    return scores;
-  };
-
-  const ordered = [...standings].sort((a, b) => {
-    // Players with a final plassering (1–4) always rank above non-plassered players.
-    if (a.plassering != null && b.plassering != null) return a.plassering - b.plassering;
-    if (a.plassering != null) return -1;
-    if (b.plassering != null) return 1;
-
-    // Active players (runde_eliminert == null) always come first
-    const aActive = a.runde_eliminert == null;
-    const bActive = b.runde_eliminert == null;
-    if (aActive !== bActive) return aActive ? -1 : 1;
-
-    // For eliminated: later round = better placement
-    if (!aActive) {
-      const roundDiff = (b.runde_eliminert ?? 0) - (a.runde_eliminert ?? 0);
-      if (roundDiff !== 0) return roundDiff;
-    }
-
-    const primaryDiff = primaryOf(b) - primaryOf(a);
-    if (primaryDiff !== 0) return primaryDiff;
-    const secondaryDiff = secondaryOf(b) - secondaryOf(a);
-    if (secondaryDiff !== 0) return secondaryDiff;
-
-    // Highest score in a single match, then next-highest. A match the other
-    // player does not have counts as 0, so unequal match counts still compare
-    // the same way round whichever order the pair arrives in.
-    const sA = scoresFor(a.kasterid);
-    const sB = scoresFor(b.kasterid);
-    for (let i = 0; i < Math.max(sA.length, sB.length); i++) {
-      const scoreDiff = (sB[i] ?? 0) - (sA[i] ?? 0);
-      if (scoreDiff !== 0) return scoreDiff;
-    }
-
-    return (a.startnummer ?? Infinity) - (b.startnummer ?? Infinity) || a.kasterid - b.kasterid;
-  });
-
-  // Head-to-head outranks the single-match scores, so it is applied afterwards
-  // to each block the criteria above left tied. Rows with a final plassering are
-  // ranked by it alone and never join a block.
-  const blockKey = (r: StandingRow): string | null =>
-    r.plassering != null ? null : `${r.runde_eliminert ?? ""}|${primaryOf(r)}|${secondaryOf(r)}`;
-
-  const resolved: StandingRow[] = [];
-  for (let i = 0; i < ordered.length;) {
-    const key = blockKey(ordered[i]!);
-    let end = i + 1;
-    if (key != null) while (end < ordered.length && blockKey(ordered[end]!) === key) end++;
-    const block = ordered.slice(i, end);
-    if (block.length > 1) {
-      const points = headToHeadPoints(block, confirmed);
-      // Stable sort: players level on h2h keep the order the criteria above gave them
-      block.sort((a, b) => (points.get(b.kasterid) ?? 0) - (points.get(a.kasterid) ?? 0));
-    }
-    resolved.push(...block);
-    i = end;
-  }
-  return resolved;
 }
