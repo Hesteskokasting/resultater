@@ -7,7 +7,7 @@ import { buildThrowerSlug, throwerName } from "@/utils/kaster";
 import { countBy, summarizeThrowers } from "@/utils/adminEntityStats";
 import { getThrowerAdminList } from "@/services/kasterService";
 import type { ThrowerAdminListRow } from "@/services/kasterService";
-import { drawBarChart, drawShareBar } from "../_adminCharts";
+import { drawBarChart } from "../_adminCharts";
 import { openThrowerEditor } from "../_adminEdit";
 import {
   createAdminList,
@@ -18,7 +18,7 @@ import {
   createStatGrid,
   createStatGridSkeleton,
   createToolbar,
-  fillShareLegend,
+  renderShareCard,
 } from "../_adminUi";
 import type { AdminBadge, AdminListItem, StatTile } from "../_adminUi";
 
@@ -214,8 +214,7 @@ export async function render(el: HTMLElement): Promise<void> {
     // Three slots max on a share bar; genders are two plus an unknown bucket.
     const perGender = countBy(active, (row) => row.kjonn?.navn, { top: 3, fallback: "Ukjend" });
     if (perGender.entries.length) {
-      await drawShareBar(genderChart.canvas, perGender.entries);
-      fillShareLegend(genderChart.legend, perGender.entries, genderChart.card);
+      renderShareCard(genderChart, perGender.entries);
     } else {
       genderChart.showEmpty("Ingen aktive utøvarar.");
     }

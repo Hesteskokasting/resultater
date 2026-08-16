@@ -106,6 +106,8 @@ export function createStatGridSkeleton(count: number): HTMLElement {
 export interface ChartCard {
   card: HTMLElement;
   canvas: HTMLCanvasElement;
+  /** The fixed-height plot box. A share bar replaces the canvas inside it. */
+  wrap: HTMLElement;
   legend: HTMLElement;
   /** Replaces the canvas with a message when there is nothing to plot. */
   showEmpty: (message: string) => void;
@@ -129,6 +131,7 @@ export function createChartCard(title: string, subtitle?: string): ChartCard {
   return {
     card,
     canvas,
+    wrap,
     legend,
     showEmpty: (message: string) => {
       wrap.replaceChildren(createEmptyState(message));
@@ -144,11 +147,40 @@ export function createChartGrid(cards: ChartCard[]): HTMLElement {
 }
 
 /**
+ * Part-to-whole card: one stacked bar plus the legend that carries the numbers.
+ * The bar is decorative (aria-hidden) — every value it encodes is spelled out in
+ * the legend below it, which is the accessible reading of the same data.
+ *
+ * Segment colours come straight from the `--chart-s*` custom properties, so a
+ * theme switch repaints them with no redraw. Zero-count entries are skipped so
+ * they don't spend a gap, but keep their palette slot so the colours stay put.
+ */
+export function renderShareCard(
+  { wrap, legend, card }: ChartCard,
+  data: LabelCount[],
+  labelOf?: (label: string) => string,
+): void {
+  const bar = createEl("div", null, "admin-sharebar");
+  bar.setAttribute("aria-hidden", "true");
+
+  data.forEach((entry, i) => {
+    if (entry.count <= 0) return;
+    const seg = createEl("div", null, "admin-sharebar__seg");
+    seg.style.flexGrow = String(entry.count);
+    seg.style.background = `var(--chart-s${(i % 3) + 1})`;
+    bar.appendChild(seg);
+  });
+
+  wrap.replaceChildren(bar);
+  fillShareLegend(legend, data, card, labelOf);
+}
+
+/**
  * Legend doubling as the value table: swatch, label, count and share. Share-bar
  * fills sit below 3:1 against the light surface, so these labels — not the
  * colours — are what carry the numbers.
  */
-export function fillShareLegend(
+function fillShareLegend(
   legend: HTMLElement,
   data: LabelCount[],
   host: Element,

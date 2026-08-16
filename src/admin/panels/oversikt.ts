@@ -16,7 +16,7 @@ import {
   getTournamentStatRows,
 } from "@/services/adminStatsService";
 import { getActiveThrowerList } from "@/services/kasterService";
-import { drawBarChart, drawLineChart, drawShareBar } from "../_adminCharts";
+import { drawBarChart, drawLineChart } from "../_adminCharts";
 import { openClubEditor, openThrowerEditor, openTournamentEditor } from "../_adminEdit";
 import {
   createChartCard,
@@ -25,7 +25,7 @@ import {
   createSectionTitle,
   createStatGrid,
   createStatGridSkeleton,
-  fillShareLegend,
+  renderShareCard,
 } from "../_adminUi";
 import type { StatTile } from "../_adminUi";
 
@@ -193,13 +193,7 @@ export async function render(el: HTMLElement): Promise<void> {
       }
 
       if (perRole.some((d) => d.count > 0)) {
-        await drawShareBar(roleChart.canvas, perRole);
-        fillShareLegend(
-          roleChart.legend,
-          perRole,
-          roleChart.card,
-          (label) => ROLE_LABEL[label] ?? label,
-        );
+        renderShareCard(roleChart, perRole, (label) => ROLE_LABEL[label] ?? label);
       } else {
         roleChart.showEmpty("Ingen brukarar.");
       }

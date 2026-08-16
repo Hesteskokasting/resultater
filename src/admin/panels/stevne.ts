@@ -14,7 +14,7 @@ import {
 import { getScheduleTournaments } from "@/services/stevneService";
 import type { ScheduleTournamentRow } from "@/services/stevneService";
 import { getRegistrationCountsForTournaments } from "@/services/adminStatsService";
-import { drawBarChart, drawShareBar } from "../_adminCharts";
+import { drawBarChart } from "../_adminCharts";
 import { openTournamentEditor } from "../_adminEdit";
 import {
   createChartCard,
@@ -24,7 +24,7 @@ import {
   createStatGrid,
   createStatGridSkeleton,
   createToolbar,
-  fillShareLegend,
+  renderShareCard,
 } from "../_adminUi";
 import { createAdminList } from "../_adminUi";
 import type { AdminBadge, AdminListItem, StatTile } from "../_adminUi";
@@ -205,8 +205,7 @@ export async function render(el: HTMLElement): Promise<void> {
 
     const share = tournamentStatusShare(rows);
     if (share.some((d) => d.count > 0)) {
-      await drawShareBar(statusChart.canvas, share);
-      fillShareLegend(statusChart.legend, share, statusChart.card);
+      renderShareCard(statusChart, share);
     } else {
       statusChart.showEmpty("Ingen stevne dette året.");
     }

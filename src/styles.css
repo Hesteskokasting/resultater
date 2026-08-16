@@ -5309,6 +5309,21 @@ a.admin-stat:hover {
   margin-top: 12px;
 }
 
+/* Part-to-whole bar. Segments are sized by flex-grow, so the widths are the
+   counts themselves and the browser does the percentage arithmetic. Centred in
+   the 220px plot box the real charts fill. */
+.admin-sharebar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 100%;
+}
+
+.admin-sharebar__seg {
+  height: 28px;
+  border-radius: 4px;
+}
+
 /* Single-series cards leave their legend slot empty — collapse it so it doesn't
    pad the bottom of those cards. */
 .admin-legend:not(:empty) {

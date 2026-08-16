@@ -163,39 +163,3 @@ export async function drawLineChart(
     options: baseScales(theme, false),
   });
 }
-
-/**
- * Part-to-whole as a single horizontal stacked bar. Segments are separated by a
- * 2px gap in the surface colour; the caller renders the labelled legend.
- */
-export async function drawShareBar(canvas: HTMLCanvasElement, data: LabelCount[]): Promise<void> {
-  await loadChartLib();
-  const theme = readTheme(canvas);
-
-  create(canvas, {
-    type: "bar",
-    data: {
-      labels: [""],
-      datasets: data.map((d, i) => ({
-        label: d.label,
-        data: [d.count],
-        backgroundColor: theme.series[i % theme.series.length],
-        borderColor: theme.surface,
-        borderWidth: 2,
-        borderRadius: 4,
-        maxBarThickness: 28,
-      })),
-    },
-    options: {
-      indexAxis: "y",
-      responsive: true,
-      maintainAspectRatio: false,
-      layout: { padding: { top: 4, bottom: 4 } },
-      scales: {
-        x: { stacked: true, display: false, beginAtZero: true },
-        y: { stacked: true, display: false },
-      },
-      plugins: { legend: { display: false } },
-    },
-  });
-}
