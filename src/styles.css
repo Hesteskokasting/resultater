@@ -2639,10 +2639,6 @@ th.standing-sp-th {
 
 /* ── Rekorder ── */
 
-.record-female-row {
-  background-color: rgba(220, 80, 100, 0.12) !important;
-}
-
 .score-editable {
   cursor: pointer;
 }

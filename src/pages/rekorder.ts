@@ -9,7 +9,6 @@ import { getAllRecords, clearRecordsCache } from "@/services/rekorderService";
 import {
   RECORD_METHODS,
   findRecordMethod,
-  isFemale,
   recordThrower,
   filterAndRankRecords,
 } from "@/utils/rekorderLogikk";
@@ -29,7 +28,6 @@ function createRecordTable(list: RankedRecord[]): HTMLElement {
   wrapper.appendChild(
     createTable<RankedRecord>({
       rows: list,
-      rowClass: (item) => (isFemale(item) ? "record-female-row" : undefined),
       columns: [
         {
           label: "Pl.",
