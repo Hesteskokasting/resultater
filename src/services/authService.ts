@@ -204,44 +204,51 @@ export async function updatePassword(newPassword: string) {
   return supabase.auth.updateUser({ password: newPassword });
 }
 
-// Abonner på auth-endringar. Tømer cache og sender DOM-event.
-supabase.auth.onAuthStateChange((event, session) => {
-  if (event === "SIGNED_OUT") {
-    _cache = null;
-    _inflight = null;
-    // SIGNED_IN: no cache clear needed — before real login _cache is already null (cleared by signOut());
-    // for session restore on page load, the cache is valid and clearing it causes a redundant DB fetch.
-    void syncPushLogout();
-  }
-  if (
-    session &&
-    (event === "SIGNED_IN" ||
-      event === "TOKEN_REFRESHED" ||
-      event === "INITIAL_SESSION" ||
-      event === "USER_UPDATED")
-  ) {
-    _hasActiveSession = true;
-    void syncPushLogin(session.user.id);
-  }
-  const intentional = _intentionalSignOut;
-  // Captured before reset: true only when an authenticated session was actually live.
-  // On a SIGNED_OUT this also de-dupes — the reset means a second failed-refresh
-  // SIGNED_OUT reports hadSession=false, so the "session expired" toast fires once.
-  const hadSession = _hasActiveSession;
-  if (event === "SIGNED_OUT") {
-    _intentionalSignOut = false;
-    _hasActiveSession = false;
-    if (!intentional && hadSession) {
-      // Log context to help diagnose unexpected sign-outs (token refresh failure, multi-tab, etc.)
-      console.warn("[auth] Unexpected SIGNED_OUT event", {
-        hadSession: session !== null,
-        hadCache: _cache !== null,
-        userAgent: navigator.userAgent,
-        url: window.location.href,
-      });
+/**
+ * Subscribes to auth changes: clears the cache and re-broadcasts as an
+ * `authStateChanged` DOM event. Called once from app.ts, after the listener for
+ * that event is in place — importing this module must not start it, or nothing
+ * that merely reads from here can be loaded without a live Supabase client.
+ */
+export function initAuthListener(): void {
+  supabase.auth.onAuthStateChange((event, session) => {
+    if (event === "SIGNED_OUT") {
+      _cache = null;
+      _inflight = null;
+      // SIGNED_IN: no cache clear needed — before real login _cache is already null (cleared by signOut());
+      // for session restore on page load, the cache is valid and clearing it causes a redundant DB fetch.
+      void syncPushLogout();
     }
-  }
-  document.dispatchEvent(
-    new CustomEvent("authStateChanged", { detail: { event, intentional, hadSession } }),
-  );
-});
+    if (
+      session &&
+      (event === "SIGNED_IN" ||
+        event === "TOKEN_REFRESHED" ||
+        event === "INITIAL_SESSION" ||
+        event === "USER_UPDATED")
+    ) {
+      _hasActiveSession = true;
+      void syncPushLogin(session.user.id);
+    }
+    const intentional = _intentionalSignOut;
+    // Captured before reset: true only when an authenticated session was actually live.
+    // On a SIGNED_OUT this also de-dupes — the reset means a second failed-refresh
+    // SIGNED_OUT reports hadSession=false, so the "session expired" toast fires once.
+    const hadSession = _hasActiveSession;
+    if (event === "SIGNED_OUT") {
+      _intentionalSignOut = false;
+      _hasActiveSession = false;
+      if (!intentional && hadSession) {
+        // Log context to help diagnose unexpected sign-outs (token refresh failure, multi-tab, etc.)
+        console.warn("[auth] Unexpected SIGNED_OUT event", {
+          hadSession: session !== null,
+          hadCache: _cache !== null,
+          userAgent: navigator.userAgent,
+          url: window.location.href,
+        });
+      }
+    }
+    document.dispatchEvent(
+      new CustomEvent("authStateChanged", { detail: { event, intentional, hadSession } }),
+    );
+  });
+}

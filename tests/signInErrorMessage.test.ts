@@ -1,6 +1,4 @@
-// authService subscribes to auth changes at import time, so the stub needs that
-// much of the client before the module will load at all.
-vi.mock("@/supabase", () => ({ supabase: { auth: { onAuthStateChange: () => {} } } }));
+vi.mock("@/supabase", () => ({ supabase: {} }));
 
 import { signInErrorMessage } from "@/services/authService";
 

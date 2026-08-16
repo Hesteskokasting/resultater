@@ -1,6 +1,6 @@
 import { App } from "@capacitor/app";
 import { render as renderHome } from "./pages/home";
-import { getUser, isAdmin, isClubAdmin, signOut } from "./services/authService";
+import { getUser, initAuthListener, isAdmin, isClubAdmin, signOut } from "./services/authService";
 import { createErrorBanner } from "@/components/states";
 import { showReauthModal } from "./components/ReauthModal";
 import { setPageTitle } from "@/utils/pageTitle";
@@ -335,3 +335,6 @@ document.addEventListener("authStateChanged", (e) => {
     showReauthModal();
   }
 });
+
+// Last: the first event Supabase emits must not land before the listener above.
+initAuthListener();
