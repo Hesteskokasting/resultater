@@ -1,7 +1,12 @@
 import { showToast } from "@/components/Toast";
 import { errorMessage } from "@/utils/errorMessage";
 import { setRegistrationConfirmedForThrower } from "@/services/pameldingService";
-import { attendanceOpensAt, formatClock, isAttendanceOpen } from "@/utils/oppmote";
+import {
+  attendanceOpenDelay,
+  attendanceOpensAt,
+  formatClock,
+  isAttendanceOpen,
+} from "@/utils/oppmote";
 
 export interface OppmoteButtonProps {
   tournamentId: number;
@@ -25,6 +30,7 @@ export function createOppmoteButton(props: OppmoteButtonProps): OppmoteButtonHan
   let confirmed = props.confirmed;
   let confirmedAt = props.confirmedAt;
   let busy = false;
+  let openTimer: ReturnType<typeof setTimeout> | undefined;
 
   const opensAt = attendanceOpensAt(dato, tid);
 
@@ -106,8 +112,23 @@ export function createOppmoteButton(props: OppmoteButtonProps): OppmoteButtonHan
   }
 
   function render(): void {
-    if (confirmed) renderConfirmed();
-    else renderPending();
+    clearTimeout(openTimer);
+    openTimer = undefined;
+
+    if (confirmed) {
+      renderConfirmed();
+      return;
+    }
+
+    renderPending();
+
+    // Unlock the button on its own, so someone waiting on the stevne page does
+    // not sit in front of a locked button after the window has opened.
+    const delay = attendanceOpenDelay(opensAt);
+    if (delay === null) return;
+    openTimer = setTimeout(() => {
+      if (element.isConnected) render();
+    }, delay);
   }
 
   render();

@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vite-plus/test";
-import { attendanceOpensAt, formatClock, isAttendanceOpen } from "@/utils/oppmote";
+import {
+  attendanceOpenDelay,
+  attendanceOpensAt,
+  formatClock,
+  isAttendanceOpen,
+} from "@/utils/oppmote";
 
 describe("attendanceOpensAt", () => {
   it("opens two hours before a stevne with a start time", () => {
@@ -58,5 +63,33 @@ describe("formatClock", () => {
   it("renders nothing for a missing or unparseable value", () => {
     expect(formatClock(null)).toBe("");
     expect(formatClock("not a date")).toBe("");
+  });
+});
+
+describe("attendanceOpenDelay", () => {
+  const now = new Date("2026-08-07T08:00:00");
+
+  it("waits until the window opens", () => {
+    expect(attendanceOpenDelay(new Date("2026-08-07T09:00:00"), now)).toBe(60 * 60 * 1000);
+  });
+
+  it("arms nothing once the window is already open", () => {
+    expect(attendanceOpenDelay(new Date("2026-08-07T07:59:59"), now)).toBe(null);
+    expect(attendanceOpenDelay(now, now)).toBe(null);
+  });
+
+  it("arms nothing when the opening moment is unknown", () => {
+    expect(attendanceOpenDelay(null, now)).toBe(null);
+  });
+
+  it("still arms for a stevne later the same day", () => {
+    expect(attendanceOpenDelay(new Date("2026-08-08T07:00:00"), now)).toBe(23 * 60 * 60 * 1000);
+  });
+
+  // setTimeout takes a 32-bit delay: anything longer wraps and fires at once,
+  // which would spin the button in a render loop.
+  it("arms nothing for a stevne further out than setTimeout can hold", () => {
+    expect(attendanceOpenDelay(new Date("2026-08-09T09:00:00"), now)).toBe(null);
+    expect(attendanceOpenDelay(new Date("2027-01-01T09:00:00"), now)).toBe(null);
   });
 });

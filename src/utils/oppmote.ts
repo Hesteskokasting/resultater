@@ -22,6 +22,21 @@ export function isAttendanceOpen(opensAt: Date | null, now: Date = new Date()): 
   return opensAt !== null && now.getTime() >= opensAt.getTime();
 }
 
+/** setTimeout overflows past ~24 days and fires at once; nothing that far out needs a live button. */
+const MAX_WAIT_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Milliseconds to wait before the locked button should unlock itself, or null
+ * when arming a timer is pointless: the window is already open, the opening
+ * moment is unknown, or the stevne is more than a day away.
+ */
+export function attendanceOpenDelay(opensAt: Date | null, now: Date = new Date()): number | null {
+  if (!opensAt) return null;
+  const wait = opensAt.getTime() - now.getTime();
+  if (wait <= 0 || wait > MAX_WAIT_MS) return null;
+  return wait;
+}
+
 /** "09:41" in the viewer's locale-independent 24h form, matching the rest of the app. */
 export function formatClock(value: Date | string | null): string {
   if (!value) return "";
