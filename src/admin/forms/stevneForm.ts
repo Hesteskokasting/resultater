@@ -8,8 +8,7 @@ import { buildDropdownOptions } from "@/utils/buildDropdownOptions";
 import { createSearchSelect } from "@/components/SearchSelect";
 import { formNum } from "@/utils/formNum";
 import { logError } from "@/utils/logError";
-import { createErrorBanner } from "@/components/ErrorBanner";
-import { createLoadingState } from "@/components/LoadingState";
+import { createErrorBanner, createLoadingState } from "@/components/states";
 import {
   getTournamentForAdmin,
   getTournamentTypes,

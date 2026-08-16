@@ -1,7 +1,5 @@
 import { throwerName, buildThrowerSlug } from "@/utils/kaster";
-import { createErrorBanner } from "@/components/ErrorBanner";
-import { createLoadingState } from "@/components/LoadingState";
-import { createEmptyState } from "@/components/EmptyState";
+import { createErrorBanner, createLoadingState, createEmptyState } from "@/components/states";
 import { createTable } from "@/components/Table";
 import { createSearchInput } from "@/components/SearchInput";
 import { escHtml } from "@/utils/escHtml";

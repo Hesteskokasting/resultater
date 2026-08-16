@@ -43,8 +43,7 @@ import {
 } from "@/organizer/org-shared";
 import { renderBannerMenu, bindBannerMenu, type BannerMenuItem } from "@/components/BannerMenu";
 import { scoreboardButtonHtml } from "@/components/ScoreboardButton";
-import { createLoadingState } from "@/components/LoadingState";
-import { createErrorBanner } from "@/components/ErrorBanner";
+import { createErrorBanner, createLoadingState } from "@/components/states";
 import { errorMessage } from "@/utils/errorMessage";
 import { logError } from "@/utils/logError";
 import type { RealtimeChannel } from "@supabase/supabase-js";

@@ -29,8 +29,7 @@ import {
   type OrgMatch,
 } from "@/organizer/org-shared";
 import { renderBannerMenu, bindBannerMenu } from "@/components/BannerMenu";
-import { createLoadingState } from "@/components/LoadingState";
-import { createErrorBanner } from "@/components/ErrorBanner";
+import { createErrorBanner, createLoadingState } from "@/components/states";
 import { showToast } from "@/components/Toast";
 import { confirmDialog } from "@/components/ConfirmDialog";
 import { logError } from "@/utils/logError";

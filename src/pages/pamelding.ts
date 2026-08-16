@@ -1,8 +1,7 @@
 import { getUser } from "@/services/authService";
 import { confirmDialog } from "@/components/ConfirmDialog";
 import { formatDate, formatTime } from "@/utils/shared";
-import { createErrorBanner } from "@/components/ErrorBanner";
-import { createLoadingState } from "@/components/LoadingState";
+import { createErrorBanner, createLoadingState } from "@/components/states";
 import { showToast } from "@/components/Toast";
 import { escHtml } from "@/utils/escHtml";
 import { errorMessage } from "@/utils/errorMessage";

@@ -1,9 +1,7 @@
 import { Capacitor } from "@capacitor/core";
 import { formatDate, yearOptions, downloadExcel, formatPercent } from "@/utils/shared";
 import { createExcelButton } from "@/components/ExcelButton";
-import { createErrorBanner } from "@/components/ErrorBanner";
-import { createLoadingState } from "@/components/LoadingState";
-import { createEmptyState } from "@/components/EmptyState";
+import { createErrorBanner, createLoadingState, createEmptyState } from "@/components/states";
 import { createInfoTooltip } from "@/components/InfoTooltip";
 import { bindRankingDetails, detailTableHtml, rankingListHtml } from "@/components/RankingList";
 import { createSearchInput } from "@/components/SearchInput";

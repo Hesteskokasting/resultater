@@ -1,7 +1,7 @@
 import { App } from "@capacitor/app";
 import { render as renderHome } from "./pages/home";
 import { getUser, isAdmin, isClubAdmin, signOut } from "./services/authService";
-import { createErrorBanner } from "./components/ErrorBanner";
+import { createErrorBanner } from "@/components/states";
 import { showReauthModal } from "./components/ReauthModal";
 import { setPageTitle } from "@/utils/pageTitle";
 import {

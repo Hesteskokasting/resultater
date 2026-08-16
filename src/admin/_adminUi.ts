@@ -1,5 +1,5 @@
 import { createEl } from "@/utils/createEl";
-import { createEmptyState } from "@/components/EmptyState";
+import { createEmptyState } from "@/components/states";
 import type { LabelCount } from "@/utils/adminStats";
 
 /**

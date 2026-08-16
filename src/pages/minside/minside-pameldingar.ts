@@ -1,6 +1,6 @@
 import { getMyRegistrations } from "@/services/pameldingService";
 import { bindRegistrationSlots } from "@/components/PameldingKnapp";
-import { createEmptyState } from "@/components/EmptyState";
+import { createEmptyState } from "@/components/states";
 import { createTournamentCard } from "@/components/StevneCard";
 import { renderSectionCard } from "./_sectionCard";
 import type { MinSideContext } from "./_linkState";

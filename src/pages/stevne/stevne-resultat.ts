@@ -2,9 +2,7 @@
 // score columns appear follows from the kastemetodar thrown; see ResultatTabell.
 
 import { throwerName, buildThrowerSlug } from "@/utils/kaster";
-import { createErrorBanner } from "@/components/ErrorBanner";
-import { createLoadingState } from "@/components/LoadingState";
-import { createEmptyState } from "@/components/EmptyState";
+import { createErrorBanner, createLoadingState, createEmptyState } from "@/components/states";
 import { escHtml } from "@/utils/escHtml";
 import { logError } from "@/utils/logError";
 import {

@@ -1,4 +1,4 @@
-import { createErrorBanner } from "@/components/ErrorBanner";
+import { createErrorBanner } from "@/components/states";
 import { createTournamentCard } from "@/components/StevneCard";
 import { createLogoutButton } from "@/components/LogoutButton";
 import { createEl } from "@/utils/createEl";

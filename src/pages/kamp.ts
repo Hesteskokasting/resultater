@@ -1,8 +1,7 @@
 import { Capacitor } from "@capacitor/core";
 import { getUser } from "@/services/authService";
 import { logError } from "@/utils/logError";
-import { createErrorBanner } from "@/components/ErrorBanner";
-import { createLoadingState } from "@/components/LoadingState";
+import { createErrorBanner, createLoadingState } from "@/components/states";
 import { escHtml } from "@/utils/escHtml";
 import { errorMessage } from "@/utils/errorMessage";
 import { renderScoreboard, type ScoreboardOptions } from "@/components/Scoreboard";

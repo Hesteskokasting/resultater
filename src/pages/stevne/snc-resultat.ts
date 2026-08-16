@@ -3,9 +3,7 @@
 // local standing (Kongelag + carried-over X-kast) so the order is readable.
 
 import { throwerName, buildThrowerSlug } from "@/utils/kaster";
-import { createErrorBanner } from "@/components/ErrorBanner";
-import { createLoadingState } from "@/components/LoadingState";
-import { createEmptyState } from "@/components/EmptyState";
+import { createErrorBanner, createLoadingState, createEmptyState } from "@/components/states";
 import { escHtml } from "@/utils/escHtml";
 import { logError } from "@/utils/logError";
 import { renderBannerMenu, bindBannerMenu } from "@/components/BannerMenu";

@@ -1,6 +1,4 @@
-import { createEmptyState } from "@/components/EmptyState";
-import { createErrorBanner } from "@/components/ErrorBanner";
-import { createLoadingState } from "@/components/LoadingState";
+import { createErrorBanner, createLoadingState, createEmptyState } from "@/components/states";
 import { createSearchInput } from "@/components/SearchInput";
 import { createEl } from "@/utils/createEl";
 import { buildClubSlug } from "@/utils/kaster";

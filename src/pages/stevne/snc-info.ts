@@ -4,9 +4,7 @@
 
 import { getUser } from "@/services/authService";
 import { confirmDialog } from "@/components/ConfirmDialog";
-import { createErrorBanner } from "@/components/ErrorBanner";
-import { createLoadingState } from "@/components/LoadingState";
-import { createEmptyState } from "@/components/EmptyState";
+import { createErrorBanner, createLoadingState, createEmptyState } from "@/components/states";
 import { createStevneCard } from "@/components/StevneCard";
 import {
   heroActionSlot,

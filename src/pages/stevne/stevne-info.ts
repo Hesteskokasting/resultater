@@ -1,6 +1,5 @@
 import { getUser } from "@/services/authService";
-import { createErrorBanner } from "@/components/ErrorBanner";
-import { createLoadingState } from "@/components/LoadingState";
+import { createErrorBanner, createLoadingState } from "@/components/states";
 import {
   heroActionSlot,
   stevneDetails,

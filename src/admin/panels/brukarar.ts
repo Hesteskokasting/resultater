@@ -1,7 +1,5 @@
 import { confirmDialog } from "@/components/ConfirmDialog";
-import { createEmptyState } from "@/components/EmptyState";
-import { createErrorBanner } from "@/components/ErrorBanner";
-import { createLoadingState } from "@/components/LoadingState";
+import { createErrorBanner, createLoadingState, createEmptyState } from "@/components/states";
 import { createSearchInput } from "@/components/SearchInput";
 import { showToast } from "@/components/Toast";
 import { createEl } from "@/utils/createEl";

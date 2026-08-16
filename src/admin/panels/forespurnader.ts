@@ -1,6 +1,4 @@
-import { createEmptyState } from "@/components/EmptyState";
-import { createErrorBanner } from "@/components/ErrorBanner";
-import { createLoadingState } from "@/components/LoadingState";
+import { createErrorBanner, createLoadingState, createEmptyState } from "@/components/states";
 import { errorMessage } from "@/utils/errorMessage";
 import { throwerName } from "@/utils/kaster";
 import { getPendingLinks, updateLinkStatus } from "@/services/adminService";

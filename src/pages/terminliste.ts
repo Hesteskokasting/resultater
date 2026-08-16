@@ -10,9 +10,7 @@ import {
 import type { ScheduleTournamentRow, ThrowerRegistrations } from "@/services/stevneService";
 import { yearOptions, downloadExcel } from "@/utils/shared";
 import { buildDropdownOptions } from "@/utils/buildDropdownOptions";
-import { createErrorBanner } from "@/components/ErrorBanner";
-import { createLoadingState } from "@/components/LoadingState";
-import { createEmptyState } from "@/components/EmptyState";
+import { createErrorBanner, createLoadingState, createEmptyState } from "@/components/states";
 import {
   createTournamentCard,
   actionLinkHtml,

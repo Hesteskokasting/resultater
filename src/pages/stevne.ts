@@ -1,7 +1,6 @@
 import { isAdmin, isClubAdmin } from "@/services/authService";
 import { getTournamentHeader } from "@/services/stevneService";
-import { createErrorBanner } from "@/components/ErrorBanner";
-import { createLoadingState } from "@/components/LoadingState";
+import { createErrorBanner, createLoadingState } from "@/components/states";
 import { logError } from "@/utils/logError";
 import { escHtml } from "@/utils/escHtml";
 import { setPageTitle } from "@/utils/pageTitle";

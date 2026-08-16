@@ -1,5 +1,4 @@
-import { createLoadingState } from "@/components/LoadingState";
-import { createErrorBanner } from "@/components/ErrorBanner";
+import { createErrorBanner, createLoadingState } from "@/components/states";
 import { showToast } from "@/components/Toast";
 import { logError } from "@/utils/logError";
 import { errorMessage } from "@/utils/errorMessage";

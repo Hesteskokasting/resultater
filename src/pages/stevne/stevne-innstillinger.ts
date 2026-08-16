@@ -3,8 +3,7 @@ import { errorMessage } from "@/utils/errorMessage";
 import { showToast } from "@/components/Toast";
 import { confirmDialog } from "@/components/ConfirmDialog";
 import { escHtml } from "@/utils/escHtml";
-import { createErrorBanner } from "@/components/ErrorBanner";
-import { createLoadingState } from "@/components/LoadingState";
+import { createErrorBanner, createLoadingState } from "@/components/states";
 import {
   getTournamentSettings,
   getActiveThrowingMethods,

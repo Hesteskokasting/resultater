@@ -1,7 +1,6 @@
 import { throwerName, buildThrowerSlug as buildSlug } from "@/utils/kaster";
 import { prependAdminLinkBar } from "@/components/AdminLinkBar";
-import { createErrorBanner } from "@/components/ErrorBanner";
-import { createLoadingState } from "@/components/LoadingState";
+import { createErrorBanner, createLoadingState } from "@/components/states";
 import { createSearchInput } from "@/components/SearchInput";
 import { escHtml } from "@/utils/escHtml";
 import { logError } from "@/utils/logError";

@@ -1,4 +1,4 @@
-import { createErrorBanner } from "@/components/ErrorBanner";
+import { createErrorBanner } from "@/components/states";
 import { createEl } from "@/utils/createEl";
 import { logError } from "@/utils/logError";
 import {
