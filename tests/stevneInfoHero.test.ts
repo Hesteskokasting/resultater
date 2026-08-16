@@ -7,12 +7,11 @@
 
 const mocks = vi.hoisted(() => ({
   getInfoTournament: vi.fn(),
-  updateTournamentPhase: vi.fn(),
+  startTournament: vi.fn(),
   getRegistrationCount: vi.fn(),
   getPairCount: vi.fn(),
   getUnconfirmedCount: vi.fn(),
   getMyRegistrationForTournament: vi.fn(),
-  generateInitialRoundMatches: vi.fn(),
   createRegistrationButton: vi.fn(),
   getUser: vi.fn(),
   confirmDialog: vi.fn(),
@@ -22,7 +21,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/supabase", () => ({ supabase: {} }));
 vi.mock("@/services/stevneService", () => ({
   getInfoTournament: mocks.getInfoTournament,
-  updateTournamentPhase: mocks.updateTournamentPhase,
+  startTournament: mocks.startTournament,
 }));
 vi.mock("@/services/pameldingService", () => ({
   getRegistrationCount: mocks.getRegistrationCount,
@@ -33,10 +32,6 @@ vi.mock("@/services/pameldingService", () => ({
 vi.mock("@/components/PameldingKnapp", () => ({
   createRegistrationButton: mocks.createRegistrationButton,
 }));
-vi.mock("@/services/kampGenereringInnledendeService", () => ({
-  generateInitialRoundMatches: mocks.generateInitialRoundMatches,
-}));
-vi.mock("@/services/xkastKongelagService", () => ({ generateKongelagCourts: vi.fn() }));
 vi.mock("@/services/authService", () => ({ getUser: mocks.getUser }));
 vi.mock("@/components/ConfirmDialog", () => ({ confirmDialog: mocks.confirmDialog }));
 vi.mock("@/components/Toast", () => ({ showToast: mocks.showToast }));
@@ -170,7 +165,7 @@ describe("stevne-info hero", () => {
     await vi.waitFor(() => expect(mocks.showToast).toHaveBeenCalled());
 
     expect(mocks.showToast.mock.calls[0]![0]).toContain("maks 5 rundar");
-    expect(mocks.generateInitialRoundMatches).not.toHaveBeenCalled();
+    expect(mocks.startTournament).not.toHaveBeenCalled();
   });
 
   it("starts Gloppen when the rundar sit on the cap", async () => {
@@ -180,14 +175,20 @@ describe("stevne-info hero", () => {
     });
     mocks.getRegistrationCount.mockResolvedValue(10);
     mocks.getUnconfirmedCount.mockResolvedValue(0);
-    mocks.updateTournamentPhase.mockResolvedValue({ error: null });
+    mocks.startTournament.mockResolvedValue({ error: null, step: null, phase: "innledende" });
     const el = host();
     await renderInfo(el, { id: 5, isAdmin: true });
 
     slot(el).querySelector<HTMLButtonElement>("#start-stevne-btn")!.click();
-    await vi.waitFor(() => expect(mocks.generateInitialRoundMatches).toHaveBeenCalled());
+    await vi.waitFor(() => expect(mocks.startTournament).toHaveBeenCalled());
 
-    expect(mocks.generateInitialRoundMatches).toHaveBeenCalledWith(5, "Gloppen", 5, false);
+    expect(mocks.startTournament).toHaveBeenCalledWith({
+      stevneid: 5,
+      methodName: "Gloppen",
+      roundCount: 5,
+      isTeam: false,
+      isStandaloneKongelag: false,
+    });
   });
 
   it("leaves the slot empty for a visitor with nothing to do", async () => {

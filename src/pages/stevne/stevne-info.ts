@@ -13,7 +13,7 @@ import { logError } from "@/utils/logError";
 import { errorMessage } from "@/utils/errorMessage";
 import { showToast } from "@/components/Toast";
 import { confirmDialog } from "@/components/ConfirmDialog";
-import { getInfoTournament, updateTournamentPhase } from "@/services/stevneService";
+import { getInfoTournament, startTournament, type StartStep } from "@/services/stevneService";
 import {
   getRegistrationCount,
   getPairCount,
@@ -22,18 +22,21 @@ import {
 } from "@/services/pameldingService";
 import { createRegistrationButton } from "@/components/PameldingKnapp";
 import { createOppmoteButton } from "@/components/OppmoteKnapp";
-import { generateInitialRoundMatches } from "@/services/kampGenereringInnledendeService";
-import { generateKongelagCourts } from "@/services/xkastKongelagService";
 import { registerRefetch } from "@/utils/refetchRegistry";
 import {
-  cascadeRoundLimitMessage,
   isCascadeMethodName,
   isKongelagMethodName,
-  maxCascadeRounds,
   usesInitialRoundCount,
 } from "@/utils/kastemetode";
+import { canStartTournament } from "@/utils/stevneStart";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+const START_ERROR: Record<StartStep, string> = {
+  fase: "Feil ved oppdatering av fase",
+  kampar: "Feil ved kampgenerering",
+  kongelag: "Feil ved generering av Kongelag-banar",
+};
 
 function statusBadge(fase: string | null, erfullfort: boolean | null): StevneHeroOptions["status"] {
   if (erfullfort) return { text: "Fullført", variant: "ok" };
@@ -122,35 +125,18 @@ export async function render(
       actionSlot.innerHTML = `<button id="start-stevne-btn" class="btn btn-sm btn-success">Start stevne</button>`;
       const startBtn = actionSlot.querySelector<HTMLButtonElement>("#start-stevne-btn")!;
       startBtn.addEventListener("click", async () => {
-        if (!stevne.kastemetodeInnl && !isStandaloneKongelag) {
-          showToast(
-            "Du må velje kastemetode for innleiande fase. Gå til Innstillingar for å endre.",
-            "error",
-          );
-          return;
-        }
-        if (isTeam ? count < 4 : count < 2) {
-          showToast(
-            isTeam
-              ? "Stevnet treng minst 2 par (4 spelarar) for å startast."
-              : "Stevnet må ha minst 2 spelarar for å startast.",
-            "error",
-          );
-          return;
-        }
-        if (isRoundBased && !stevne.antall_runder_innl) {
-          showToast(
-            "Du må setje antal rundar for innleiande fase. Gå til Innstillingar for å endre.",
-            "error",
-          );
-          return;
-        }
-        const entryCount = isTeam ? pairCount : count;
-        if (isCascade && (stevne.antall_runder_innl ?? 0) > maxCascadeRounds(entryCount)) {
-          showToast(
-            cascadeRoundLimitMessage(entryCount, stevne.antall_runder_innl ?? 0, isTeam),
-            "error",
-          );
+        const blocked = canStartTournament({
+          hasInitialMethod: Boolean(stevne.kastemetodeInnl),
+          isStandaloneKongelag,
+          isTeam,
+          playerCount: count,
+          pairCount,
+          isRoundBased,
+          isCascade,
+          roundCount: stevne.antall_runder_innl,
+        });
+        if (blocked) {
+          showToast(blocked, "error");
           return;
         }
         const unconfirmedCount = await getUnconfirmedCount(id);
@@ -164,46 +150,24 @@ export async function render(
         startBtn.disabled = true;
         startBtn.textContent = "Starter…";
 
-        if (isStandaloneKongelag) {
-          // Phase first: if generation fails, the avsluttende tab still shows
-          // the Start Kongelag panel as a retry path.
-          const { error: phaseError } = await updateTournamentPhase(id, "avsluttende");
-          if (phaseError) {
-            showToast("Feil ved oppdatering av fase.", "error");
-            startBtn.disabled = false;
-            startBtn.textContent = "Start stevne";
-            return;
-          }
-          const { error: generateError } = await generateKongelagCourts(id);
-          if (generateError) {
-            showToast(
-              "Feil ved generering av Kongelag-banar: " + errorMessage(generateError),
-              "error",
-            );
-            startBtn.disabled = false;
-            startBtn.textContent = "Start stevne";
-            return;
-          }
-          location.hash = `#/stevne/${id}/avsluttende`;
-          return;
-        }
-
-        try {
-          await generateInitialRoundMatches(id, methodName, stevne.antall_runder_innl ?? 1, isTeam);
-        } catch (err) {
-          showToast("Feil ved kampgenerering: " + errorMessage(err), "error");
+        const {
+          error,
+          step,
+          phase: startedPhase,
+        } = await startTournament({
+          stevneid: id,
+          methodName,
+          roundCount: stevne.antall_runder_innl ?? 1,
+          isTeam,
+          isStandaloneKongelag,
+        });
+        if (error) {
+          showToast(`${START_ERROR[step!]}: ${errorMessage(error)}`, "error");
           startBtn.disabled = false;
           startBtn.textContent = "Start stevne";
           return;
         }
-        const { error: phaseError } = await updateTournamentPhase(id, "innledende");
-        if (phaseError) {
-          showToast("Feil ved oppdatering av fase.", "error");
-          startBtn.disabled = false;
-          startBtn.textContent = "Start stevne";
-          return;
-        }
-        location.hash = `#/stevne/${id}/innledende`;
+        location.hash = `#/stevne/${id}/${startedPhase}`;
       });
     }
 

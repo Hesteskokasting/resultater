@@ -2,6 +2,8 @@ import type { QueryData } from "@supabase/supabase-js";
 import { supabase } from "@/supabase";
 import { logError } from "@/utils/logError";
 import { verifyRowsAffected } from "@/utils/verifiedWrite";
+import { generateInitialRoundMatches } from "@/services/kampGenereringInnledendeService";
+import { generateKongelagCourts } from "@/services/xkastKongelagService";
 import type { Tables, Json, Round1FormatTyped } from "@/types";
 
 // ── Admin-typar ───────────────────────────────────────────────────────────────
@@ -197,6 +199,41 @@ export async function updateTournamentPhase(
   const { error } = await supabase.from("stevne").update({ stevne_fase: phase }).eq("id", id);
   if (error) logError("updateTournamentPhase", error);
   return { error };
+}
+
+export type StartStep = "fase" | "kampar" | "kongelag";
+
+/**
+ * Starts a stevne: generates the first round and moves the phase. Standalone
+ * Kongelag moves the phase first, so a failed generation still leaves the
+ * avsluttende tab showing its Start Kongelag panel as a retry path.
+ */
+export async function startTournament(params: {
+  stevneid: number;
+  methodName: string;
+  roundCount: number;
+  isTeam: boolean;
+  isStandaloneKongelag: boolean;
+}): Promise<{ error: unknown; step: StartStep | null; phase: "innledende" | "avsluttende" }> {
+  const { stevneid, methodName, roundCount, isTeam, isStandaloneKongelag } = params;
+  const phase = isStandaloneKongelag ? "avsluttende" : "innledende";
+
+  if (isStandaloneKongelag) {
+    const { error: phaseError } = await updateTournamentPhase(stevneid, phase);
+    if (phaseError) return { error: phaseError, step: "fase", phase };
+    const { error: generateError } = await generateKongelagCourts(stevneid);
+    if (generateError) return { error: generateError, step: "kongelag", phase };
+    return { error: null, step: null, phase };
+  }
+
+  try {
+    await generateInitialRoundMatches(stevneid, methodName, roundCount, isTeam);
+  } catch (err) {
+    return { error: err, step: "kampar", phase };
+  }
+  const { error: phaseError } = await updateTournamentPhase(stevneid, phase);
+  if (phaseError) return { error: phaseError, step: "fase", phase };
+  return { error: null, step: null, phase };
 }
 
 // ── Oppslag for admin-skjema ──────────────────────────────────────────────────
