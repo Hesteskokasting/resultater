@@ -1,1 +1,0 @@
-function e(e){let t=document.createElement(`p`);return t.className=`empty-state`,t.textContent=e,t}export{e as t};

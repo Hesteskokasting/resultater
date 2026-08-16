@@ -1,1 +1,0 @@
-import{n as e}from"./logError-CB4-2Lin.js";async function t(t){await e.removeChannel(t)}function n(e){window.addEventListener(`hashchange`,e,{once:!0})}export{t as n,n as t};
