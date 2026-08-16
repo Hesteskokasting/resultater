@@ -549,9 +549,7 @@ export async function render(container: HTMLElement): Promise<void> {
       const countEl = container.querySelector(".tl-count");
       if (countEl) countEl.textContent = `${filtered.length} stevner`;
       const throwerId = _auth?.profil?.kasterid;
-      const userId = _auth?.user.id;
-      if (throwerId != null && userId)
-        bindRegistrationSlots(listEl, throwerId, userId, _registrations.byTournament);
+      if (throwerId != null) bindRegistrationSlots(listEl, throwerId, _registrations.byTournament);
       return filtered;
     }
 

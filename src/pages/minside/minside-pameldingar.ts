@@ -50,5 +50,5 @@ export async function render(container: HTMLElement, ctx: MinSideContext): Promi
 
   const { node, registeredMap } = await buildRegistrationContent(shell.throwerId);
   shell.slot.replaceChildren(node);
-  bindRegistrationSlots(container, shell.throwerId, ctx.user.id, registeredMap);
+  bindRegistrationSlots(container, shell.throwerId, registeredMap);
 }

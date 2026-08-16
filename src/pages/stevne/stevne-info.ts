@@ -219,7 +219,6 @@ export async function render(
       const registrationButton = createRegistrationButton({
         tournamentId: id,
         throwerId: kasterid,
-        userId: auth.user.id,
         isRegistered: myRegistration !== null,
         registrationId: myRegistration?.id,
         onAction: () => {

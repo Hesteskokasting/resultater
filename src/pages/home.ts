@@ -147,7 +147,7 @@ export async function render(container: HTMLElement): Promise<void> {
     if (showSlot && throwerId !== null && auth) {
       // The page has already painted; a binding failure must not replace it with an error.
       try {
-        bindRegistrationSlots(upcomingSection, throwerId, auth.user.id, registrations.byTournament);
+        bindRegistrationSlots(upcomingSection, throwerId, registrations.byTournament);
       } catch (err) {
         logError("home.bindRegistrationSlots", err);
       }

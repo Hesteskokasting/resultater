@@ -1,6 +1,7 @@
 import { confirmDialog } from "@/components/ConfirmDialog";
 import { showToast } from "@/components/Toast";
 import { errorMessage } from "@/utils/errorMessage";
+import { logError } from "@/utils/logError";
 import {
   registerForTournament,
   removeRegistration,
@@ -10,7 +11,6 @@ import {
 export interface RegistrationButtonProps {
   tournamentId: number;
   throwerId: number;
-  userId: string;
   isRegistered: boolean;
   registrationId: number | undefined;
   onAction?: (isNowRegistered: boolean, registrationId: number | undefined) => void;
@@ -28,53 +28,64 @@ export function createRegistrationButton(props: RegistrationButtonProps): HTMLBu
 
   update();
 
-  btn.addEventListener("click", async () => {
-    btn.disabled = true;
+  /** Returns false when nothing changed, so the caller skips the onAction callback. */
+  async function unregister(): Promise<boolean> {
+    const ok = await confirmDialog({
+      title: "Meld av",
+      message: "Er du sikker på at du vil melde deg av stevnet?",
+    });
+    if (!ok) return false;
 
-    if (isRegistered) {
-      const ok = await confirmDialog({
-        title: "Meld av",
-        message: "Er du sikker på at du vil melde deg av stevnet?",
-      });
-      if (!ok) {
-        btn.disabled = false;
-        return;
+    // Cards built from a shared registrations map carry the id; a card built
+    // straight from a tournament row has to look it up first.
+    if (registrationId === undefined) {
+      const { data } = await getMyRegistrationForTournament(props.tournamentId, props.throwerId);
+      if (!data) {
+        showToast("Kunne ikkje finne påmeldinga.", "error");
+        return false;
       }
-
-      if (registrationId === undefined) {
-        const { data } = await getMyRegistrationForTournament(props.tournamentId, props.throwerId);
-        if (!data) {
-          showToast("Kunne ikkje finne påmeldinga.", "error");
-          btn.disabled = false;
-          return;
-        }
-        registrationId = data.id;
-      }
-
-      const { error } = await removeRegistration(registrationId);
-      if (error) {
-        showToast("Kunne ikkje melde av: " + errorMessage(error), "error");
-        btn.disabled = false;
-        return;
-      }
-      isRegistered = false;
-      registrationId = undefined;
-      showToast("Du er meldt av stevnet.", "success");
-    } else {
-      const { error, id } = await registerForTournament(props.tournamentId, props.throwerId);
-      if (error) {
-        showToast("Kunne ikkje melde på: " + errorMessage(error), "error");
-        btn.disabled = false;
-        return;
-      }
-      isRegistered = true;
-      registrationId = id ?? undefined;
-      showToast("Du er meldt på stevnet.", "success");
+      registrationId = data.id;
     }
 
-    props.onAction?.(isRegistered, registrationId);
-    update();
-    btn.disabled = false;
+    const { error } = await removeRegistration(registrationId);
+    if (error) {
+      showToast("Kunne ikkje melde av: " + errorMessage(error), "error");
+      return false;
+    }
+
+    isRegistered = false;
+    registrationId = undefined;
+    showToast("Du er meldt av stevnet.", "success");
+    return true;
+  }
+
+  async function register(): Promise<boolean> {
+    const { error, id } = await registerForTournament(props.tournamentId, props.throwerId);
+    if (error) {
+      showToast("Kunne ikkje melde på: " + errorMessage(error), "error");
+      return false;
+    }
+
+    isRegistered = true;
+    registrationId = id ?? undefined;
+    showToast("Du er meldt på stevnet.", "success");
+    return true;
+  }
+
+  btn.addEventListener("click", async () => {
+    btn.disabled = true;
+    try {
+      if (!(await (isRegistered ? unregister() : register()))) return;
+      props.onAction?.(isRegistered, registrationId);
+      update();
+    } catch (err) {
+      // The services return errors rather than throwing, so this is the network
+      // layer failing outright. Without it the click is lost in silence.
+      logError("PameldingKnapp", err);
+      showToast("Noko gjekk gale. Prøv igjen.", "error");
+    } finally {
+      btn.disabled = false;
+    }
   });
 
   return btn;
@@ -83,7 +94,6 @@ export function createRegistrationButton(props: RegistrationButtonProps): HTMLBu
 export function bindRegistrationSlots(
   container: HTMLElement,
   throwerId: number,
-  userId: string,
   registrationsMap: Map<number, number>,
 ): void {
   container.querySelectorAll<HTMLElement>("[data-registration-slot]").forEach((slot) => {
@@ -92,7 +102,6 @@ export function bindRegistrationSlots(
     const button = createRegistrationButton({
       tournamentId,
       throwerId,
-      userId,
       isRegistered: registrationId !== undefined,
       registrationId,
       onAction: (isNow, newId) => {
