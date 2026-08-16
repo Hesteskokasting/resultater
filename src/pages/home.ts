@@ -7,6 +7,7 @@ import {
 } from "@/services/stevneService";
 import type { ListedTournamentRow } from "@/services/stevneService";
 import { logError } from "@/utils/logError";
+import { mergeSncUmbrellas, collectSncParentIds } from "@/utils/sncUmbrella";
 import { getUser } from "@/services/authService";
 import { getRegistrationsForThrower, emptyThrowerRegistrations } from "@/services/stevneService";
 import type { ThrowerRegistrations } from "@/services/stevneService";
@@ -96,15 +97,8 @@ export async function render(container: HTMLElement): Promise<void> {
       return;
     }
 
-    // Show a running SNC round once, as the umbrella, not once per local stevne.
     const ongoing = r5.filter((s) => !s.erfullfort);
-    const sncParentIds = [
-      ...new Set(
-        ongoing
-          .map((s) => s.snc_hovudstevne_id)
-          .filter((parentId): parentId is number => parentId != null),
-      ),
-    ];
+    const sncParentIds = collectSncParentIds(ongoing);
     const throwerId = auth?.profil?.kasterid ?? null;
     const showSlot = throwerId !== null && auth?.profil?.kobling_status === "godkjent";
 
@@ -117,16 +111,7 @@ export async function render(container: HTMLElement): Promise<void> {
         : Promise.resolve(emptyThrowerRegistrations()),
     ]);
     if (!isCurrent()) return;
-    // Re-sorted: concatenating the umbrellas onto the plain stevner would
-    // otherwise drop the date order the query established.
-    const plainLive = ongoing.filter((s) => s.snc_hovudstevne_id == null);
-    const plainLiveIds = new Set(plainLive.map((s) => s.id));
-    const live = [
-      ...plainLive,
-      // A finished umbrella must not reappear as live just because a local is still running,
-      // and one with its own live phase is already in plainLive.
-      ...sncParents.filter((s) => !s.erfullfort && !plainLiveIds.has(s.id)),
-    ].sort((a, b) => (a.dato ?? "").localeCompare(b.dato ?? ""));
+    const live = mergeSncUmbrellas(ongoing, sncParents);
 
     // Update sections in-place to avoid layout shift
     if (live.length) {
