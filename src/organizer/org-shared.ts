@@ -515,6 +515,9 @@ export function finalMenuItems(
     items.push({ id: "edit-group-assignment-btn", label: "Endre gruppeinndeling" });
   }
 
+  if (import.meta.env.VITE_ENV === "dev" && hasFinalMatches && !allMatchesConfirmed)
+    items.push({ id: "test-auto-complete-btn", label: "TEST: Autofullfør" });
+
   if (allMatchesConfirmed)
     items.push({
       id: "complete-tournament-btn",

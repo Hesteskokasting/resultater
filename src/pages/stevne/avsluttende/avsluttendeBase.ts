@@ -53,6 +53,7 @@ import {
   type FinalResultRow,
 } from "@/services/resultatService";
 import { getPairsForTournament } from "@/services/pameldingService";
+import { autoCompleteFinalMatches } from "@/services/testDataService";
 import type { Round1FormatTyped } from "@/types";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -285,6 +286,20 @@ export function createFinalPhaseRenderer(variant: FinalPhaseVariant) {
       } else {
         container.innerHTML = variant.renderSetupHtml(ctx);
       }
+
+      bannerSlot?.querySelector("#test-auto-complete-btn")?.addEventListener("click", async (e) => {
+        const btn = e.currentTarget as HTMLButtonElement;
+        if (
+          !(await confirmDialog({
+            title: "Autofullfør kampar",
+            message: "Autofullfør alle ubekrefta avsluttande kampar?",
+          }))
+        )
+          return;
+        btn.disabled = true;
+        await autoCompleteFinalMatches(stevneid);
+        await loadAndRender(container, stevneid);
+      });
 
       bannerSlot?.querySelector("#complete-tournament-btn")?.addEventListener("click", async () => {
         if (
