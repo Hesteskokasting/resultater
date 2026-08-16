@@ -38,6 +38,7 @@ import {
   getRegistrationsAcrossTournaments,
   registerForTournament,
   removeRegistration,
+  switchRegistration,
 } from "@/services/pameldingService";
 import type { TournamentRegistrationSummary } from "@/services/pameldingService";
 
@@ -241,6 +242,7 @@ function actionButton(
 
     if (isSwitch) {
       if (
+        summary.ownRegistrationId == null ||
         !(await confirmDialog({
           title: "Byt lokalt stevne",
           message:
@@ -249,16 +251,17 @@ function actionButton(
       )
         return;
       button.disabled = true;
-      if (summary.ownRegistrationId != null) {
-        const { error } = await removeRegistration(summary.ownRegistrationId);
-        if (error) {
-          showToast("Kunne ikkje melde av det gamle lokalstevnet: " + errorMessage(error), "error");
-          button.disabled = false;
-          return;
-        }
+      const { error, step } = await switchRegistration(
+        summary.ownRegistrationId,
+        local.id,
+        kasterid,
+      );
+      if (step === "avmelding") {
+        showToast("Kunne ikkje melde av det gamle lokalstevnet: " + errorMessage(error), "error");
+        button.disabled = false;
+        return;
       }
-      const { error } = await registerForTournament(local.id, kasterid);
-      if (error) {
+      if (step === "pamelding") {
         // Unregistered but not re-registered: say so, or the thrower assumes
         // they are entered at the new local stevne.
         showToast(

@@ -3,6 +3,7 @@ import { showToast } from "@/components/Toast";
 import { errorMessage } from "@/utils/errorMessage";
 import { getInitialRoundMatches } from "@/services/kampService";
 import { getResultsForInitialRound } from "@/services/resultatService";
+import { buildParticipantMaps } from "@/utils/participantMaps";
 import { getPairsForTournament } from "@/services/pameldingService";
 import type { RegistrationPair } from "@/services/pameldingService";
 import { buildRoundInfos, hentKlubbNamn } from "@/print/roundInfoBuilder";
@@ -72,10 +73,7 @@ export function createPrinterBanner(props: Props): PrinterBanner {
       return null;
     }
 
-    const startNumberMap: Record<number, number> = {};
-    for (const r of resultRes.data) {
-      if (r.kasterid != null) startNumberMap[r.kasterid] = r.startnummer ?? 0;
-    }
+    const { startNumberMap } = buildParticipantMaps(resultRes.data);
 
     const allMatchesPrint: PrintMatch[] = [];
     const roundMap = new Map<number, PrintMatch[]>();

@@ -32,6 +32,7 @@ import { showToast } from "@/components/Toast";
 import { confirmDialog } from "@/components/ConfirmDialog";
 import { logError } from "@/utils/logError";
 import { unsubscribeChannel } from "@/utils/realtime";
+import { buildParticipantMaps } from "@/utils/participantMaps";
 import {
   getFinalRoundMatches,
   subscribeToMatchChanges,
@@ -168,18 +169,7 @@ export function createFinalPhaseRenderer(variant: FinalPhaseVariant) {
       const initialMatches = rawMatches.filter((k) => k.fase === "innledende");
       const finalMatches = rawMatches.filter((k) => k.fase === "avsluttende");
 
-      const startNumberMap: Record<number, number> = {};
-      const positionMap: Record<number, number> = {};
-      const snrCount = new Map<number, number>();
-      for (const r of typedResults) {
-        if (r.startnummer != null) {
-          startNumberMap[r.kasterid] = r.startnummer;
-          snrCount.set(r.startnummer, (snrCount.get(r.startnummer) ?? 0) + 1);
-        }
-        if (r.posisjon != null) positionMap[r.kasterid] = r.posisjon;
-      }
-      // Par/Mix: two players share a startnummer
-      const isTeam = [...snrCount.values()].some((c) => c > 1);
+      const { startNumberMap, positionMap, isTeam } = buildParticipantMaps(typedResults);
 
       const nameMap: Record<number, string> = {};
       for (const k of rawMatches) {

@@ -61,6 +61,7 @@ import {
   type InitialPhaseTournamentRow,
 } from "@/services/stevneService";
 import { unsubscribeChannel } from "@/utils/realtime";
+import { buildParticipantMaps } from "@/utils/participantMaps";
 import {
   getResultsForInitialRound,
   writePlacements,
@@ -414,36 +415,6 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
 }
 
 // ── Data-bygging (pure — no closure state) ────────────────────────────────────
-
-interface ParticipantMaps {
-  startNumberMap: Record<number, number>;
-  hcpMap: Record<number, number>;
-  positionMap: Record<number, number>;
-  /** Par/Mix: two players share a startnummer */
-  isTeam: boolean;
-}
-
-function buildParticipantMaps(resultat: InitialResultRow[]): ParticipantMaps {
-  const startNumberMap: Record<number, number> = Object.fromEntries(
-    resultat.filter((r) => r.kasterid != null).map((r) => [r.kasterid!, r.startnummer ?? 0]),
-  );
-  const hcpMap: Record<number, number> = Object.fromEntries(
-    resultat
-      .filter((r) => r.kasterid != null && (r.hcp ?? 0) > 0)
-      .map((r) => [r.kasterid!, r.hcp ?? 0]),
-  );
-  const positionMap: Record<number, number> = Object.fromEntries(
-    resultat
-      .filter((r) => r.kasterid != null && r.posisjon != null)
-      .map((r) => [r.kasterid!, r.posisjon!]),
-  );
-  const snrCount = new Map<number, number>();
-  for (const r of resultat) {
-    if (r.kasterid == null || r.startnummer == null) continue;
-    snrCount.set(r.startnummer, (snrCount.get(r.startnummer) ?? 0) + 1);
-  }
-  return { startNumberMap, hcpMap, positionMap, isTeam: [...snrCount.values()].some((c) => c > 1) };
-}
 
 function buildRoundMap(allMatches: InitialMatchRow[]): Map<number, InitialMatchRow[]> {
   const roundMap = new Map<number, InitialMatchRow[]>();

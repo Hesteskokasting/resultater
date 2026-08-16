@@ -117,6 +117,26 @@ export async function removeRegistration(pameldingId: number): Promise<{ error: 
   return { error };
 }
 
+export type SwitchStep = "avmelding" | "pamelding";
+
+/**
+ * Moves a thrower to another local stevne. Only one local stevne per SNC round
+ * is allowed (trigger pamelding_snc_ein_stad), so the old registration has to go
+ * first — which means a failure on step "pamelding" leaves the thrower entered
+ * nowhere. The caller must say so rather than report a plain failure.
+ */
+export async function switchRegistration(
+  fromRegistrationId: number,
+  toStevneId: number,
+  kasterid: number,
+): Promise<{ error: unknown; step: SwitchStep | null }> {
+  const { error: removeError } = await removeRegistration(fromRegistrationId);
+  if (removeError) return { error: removeError, step: "avmelding" };
+  const { error } = await registerForTournament(toStevneId, kasterid);
+  if (error) return { error, step: "pamelding" };
+  return { error: null, step: null };
+}
+
 export interface TournamentRegistrationSummary {
   /** Påmeldingar per stevne. */
   counts: Map<number, number>;
