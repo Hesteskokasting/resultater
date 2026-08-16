@@ -755,14 +755,6 @@
 
 /* ── Resultatside ── */
 
-.res-tittel {
-  text-align: center;
-  font-size: 1.2rem;
-  font-weight: bold;
-  margin-bottom: 6px;
-}
-
-.res-dato-sted,
 .res-klassifisering {
   text-align: center;
   font-size: 0.85rem;
@@ -1091,32 +1083,6 @@
 .res-table--gruppert tbody td.res-td-tot {
   font-size: 0.95rem;
   font-weight: bold;
-}
-
-/* Desktop-infotabell */
-
-.res-info-tabell {
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: 14px;
-  font-size: 0.85rem;
-}
-
-.res-info-tabell td {
-  padding: 6px 10px;
-  border: 1px solid var(--kant);
-}
-
-.res-info-label {
-  background: var(--primaer);
-  color: var(--primaer-text);
-  font-weight: bold;
-  white-space: nowrap;
-}
-
-.res-info-verdi {
-  background: var(--flate);
-  color: var(--tekst-2);
 }
 
 /* Desktop result table */
@@ -1486,10 +1452,6 @@
 .org-matches-panel {
   min-width: 0;
 }
-.btn-confirm {
-  min-width: 5rem;
-}
-
 .tournament-nav {
   font-size: 0.875rem;
 }
@@ -3902,13 +3864,6 @@ button.bane-omgang-chip:hover {
   background: var(--sb-bekreft-hover);
 }
 
-.sb-positiv {
-  color: var(--sb-positiv);
-}
-.sb-negativ {
-  color: var(--sb-negativ);
-}
-
 @media (min-width: 801px) {
   .sb-score {
     font-size: min(clamp(8rem, 20vw, 26rem), 38vh);
@@ -4113,9 +4068,6 @@ button.bane-omgang-chip:hover {
 .th-44 {
   width: 44px;
 }
-.th-48 {
-  width: 48px;
-}
 .th-50 {
   width: 50px;
 }
@@ -4127,9 +4079,6 @@ button.bane-omgang-chip:hover {
 }
 .th-96 {
   width: 96px;
-}
-.th-120 {
-  width: 120px;
 }
 .th-148 {
   width: 148px;
@@ -4320,14 +4269,6 @@ button.bane-omgang-chip:hover {
     width: 100%;
   }
 }
-.avsl-stilling-einzel {
-  max-width: 500px;
-}
-.avsl-maks-600 {
-  max-width: 600px;
-  margin-inline: auto;
-}
-
 /* Eliminated standing row: solid under the position cell, then fading from the
    first pixel of the name cell all the way to the points columns. */
 .final-elim-position {
@@ -4612,16 +4553,6 @@ button.bane-omgang-chip:hover {
 .admin-form-lg {
   max-width: 640px;
 }
-.admin-form-xl {
-  max-width: 860px;
-}
-.sel-auto {
-  width: auto;
-}
-.btn-close-xs {
-  font-size: 0.6rem;
-}
-
 /* ── Skeleton-plasshaldrar ────────────────────────────────────────────────── */
 .skeleton-block {
   background: linear-gradient(

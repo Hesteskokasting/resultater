@@ -382,10 +382,3 @@ textarea:focus {
   background: var(--header-bg);
   color: var(--tekst);
 }
-
-.dev-banner {
-  color: red;
-  font-size: 1.5rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-}
