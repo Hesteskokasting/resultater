@@ -21,6 +21,11 @@ export interface ScoreEditorOptions {
   playerIds: number[];
   /** True when a side has live omgangar — gates the delete-warning dialog. */
   hasRounds: boolean;
+  /**
+   * Rejects a score pair before anything is written or deleted. Returns the
+   * message to show, or null to accept.
+   */
+  validate?: (s1: number, s2: number) => string | null;
   /** Persists the entered side scores. Return a non-null error to abort. */
   onSave: (s1: number, s2: number) => Promise<{ error: unknown } | null>;
   /** Re-renders after a successful save. */
@@ -51,6 +56,11 @@ export async function showScoreEditor(opts: ScoreEditorOptions): Promise<void> {
       { name: opts.side2Name, score: opts.currentS2 },
     ],
     async ([s1 = 0, s2 = 0]) => {
+      const invalid = opts.validate?.(s1, s2);
+      if (invalid) {
+        showToast(invalid, "error");
+        return false;
+      }
       try {
         if (opts.hasRounds && opts.playerIds.length) {
           const { error } = await deleteMatchRounds(opts.playerIds);

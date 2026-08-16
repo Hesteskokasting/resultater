@@ -30,7 +30,13 @@ export interface CupRanking {
   placements: { kasterid: number; plassering: number }[];
 }
 
-/** Highest side total wins; a tie falls to side 1, the way the numberpad reads. */
+/**
+ * A cup match has to produce a winner — a draw would leave the bracket with no
+ * one to advance and no one to eliminate. Both entry points below refuse one.
+ */
+export const CUP_TIE_MESSAGE = "Ein cupkamp kan ikkje ende uavgjort. Ei side må ha fleire poeng.";
+
+/** Highest side total wins. Equal totals are rejected before this is reached. */
 export function cupRanking(side1: CupSide, side2: CupSide, s1: number, s2: number): CupRanking {
   const winner = s1 >= s2 ? side1 : side2;
   const loser = s1 >= s2 ? side2 : side1;
@@ -100,6 +106,8 @@ export async function settleCupMatch(params: {
   s2: number;
 }): Promise<{ error: unknown }> {
   const { stevneId, kamp, sides, s1, s2 } = params;
+  if (s1 === s2) return { error: new Error(CUP_TIE_MESSAGE) };
+
   const side1 = sides[0] ?? null;
   const side2 = sides[1] ?? null;
   const { winnerIds, loserIds } = cupRanking(side1, side2, s1, s2);
@@ -120,7 +128,7 @@ export async function settleCupMatch(params: {
 }
 
 /** Which step of a rescore failed, so the caller can name it in its message. */
-export type CupRescoreStep = "omgangar" | "score" | "plassering" | "bracket";
+export type CupRescoreStep = "uavgjort" | "omgangar" | "score" | "plassering" | "bracket";
 
 /**
  * Corrects an already-confirmed 2-side cup match. The typed-in total replaces any
@@ -135,6 +143,10 @@ export async function rescoreCupMatch(params: {
   s2: number;
 }): Promise<{ error: unknown; step: CupRescoreStep | null }> {
   const { stevneId, kamp, sides, s1, s2 } = params;
+  // Checked before the omgangar are deleted — a rejected correction must leave
+  // the stored match exactly as it was.
+  if (s1 === s2) return { error: new Error(CUP_TIE_MESSAGE), step: "uavgjort" };
+
   const side1 = sides[0] ?? null;
   const side2 = sides[1] ?? null;
   const playerIds = sides.flatMap((s) => s.members.map((m) => m.id));

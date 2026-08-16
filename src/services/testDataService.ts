@@ -23,7 +23,8 @@ function randomScore(): [number, number] {
     if (Math.random() < 0.5) return [Math.floor(Math.random() * 6) + 21, s2];
     return [s1, Math.floor(Math.random() * 6) + 21];
   }
-  return [s1, s2];
+  // A cup match can't end level, so a drawn draw gets nudged apart.
+  return s1 === s2 ? [s1 + 2, s2] : [s1, s2];
 }
 
 /** startnummer/posisjon lookups, so kamp_spelar rows can be grouped into sides. */

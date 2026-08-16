@@ -1,4 +1,11 @@
-import { cupRanking, type CupSide } from "@/services/cupKampService";
+import {
+  cupRanking,
+  rescoreCupMatch,
+  settleCupMatch,
+  CUP_TIE_MESSAGE,
+  type CupSide,
+} from "@/services/cupKampService";
+import { errorMessage } from "@/utils/errorMessage";
 
 // cupRanking only reads members[].kasterid, so a bare id row is enough
 function side(...kasterids: number[]): CupSide {
@@ -11,12 +18,6 @@ describe("cupRanking", () => {
     const r = cupRanking(side(1), side(2), 15, 21);
     expect(r.winnerIds).toEqual([2]);
     expect(r.loserIds).toEqual([1]);
-  });
-
-  it("gives a tie to side 1", () => {
-    const r = cupRanking(side(1), side(2), 21, 21);
-    expect(r.winnerIds).toEqual([1]);
-    expect(r.loserIds).toEqual([2]);
   });
 
   it("ranks both members of a pair together", () => {
@@ -34,5 +35,29 @@ describe("cupRanking", () => {
     expect(r.winnerIds).toEqual([1]);
     expect(r.loserIds).toEqual([]);
     expect(r.placements).toEqual([{ kasterid: 1, plassering: 1 }]);
+  });
+});
+
+// A draw leaves the bracket with no one to advance, so both write paths refuse
+// one before they touch the database.
+
+describe("cup draw guard", () => {
+  const kamp = { id: 1, runde_nummer: 2, runde_navn: null } as never;
+  const sides = [side(1), side(2)] as never;
+
+  it("settleCupMatch refuses equal totals", async () => {
+    const { error } = await settleCupMatch({ stevneId: 9, kamp, sides, s1: 21, s2: 21 });
+    expect(errorMessage(error)).toBe(CUP_TIE_MESSAGE);
+  });
+
+  it("settleCupMatch refuses a scoreless match", async () => {
+    const { error } = await settleCupMatch({ stevneId: 9, kamp, sides, s1: 0, s2: 0 });
+    expect(errorMessage(error)).toBe(CUP_TIE_MESSAGE);
+  });
+
+  it("rescoreCupMatch refuses equal totals before deleting omgangar", async () => {
+    const { error, step } = await rescoreCupMatch({ stevneId: 9, kamp, sides, s1: 15, s2: 15 });
+    expect(step).toBe("uavgjort");
+    expect(errorMessage(error)).toBe(CUP_TIE_MESSAGE);
   });
 });

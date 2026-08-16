@@ -25,6 +25,7 @@ import {
   rescoreCupMatch,
   settleCupMatch,
   writeCupSideScores,
+  CUP_TIE_MESSAGE,
   type CupRescoreStep,
   type FinalMatchPlayerKnown,
 } from "@/services/cupKampService";
@@ -540,7 +541,13 @@ function renderMatchBlock(
 
 // ── Match event binding ───────────────────────────────────────────────────────
 
+/** Blocks a draw at the pad, before the editor deletes any omgang detail. */
+function noTie(s1: number, s2: number): string | null {
+  return s1 === s2 ? CUP_TIE_MESSAGE : null;
+}
+
 const RESCORE_ERROR: Record<CupRescoreStep, string> = {
+  uavgjort: CUP_TIE_MESSAGE,
   omgangar: "DB-feil ved sletting av omgangar",
   score: "DB-feil ved oppdatering av score",
   plassering: "DB-feil ved oppdatering av plassering",
@@ -577,6 +584,7 @@ function bindMatchEventsLocal(
         playerIds,
         hasRounds: kamp.spelarar.some((s) => (s.omgangar?.length ?? 0) > 0),
         logPrefix: "cup",
+        validate: noTie,
         onSave: (newS1, newS2) => writeCupSideScores(side1, side2, newS1, newS2),
         onSaved: async () => {
           if (!(await confirmCupMatch2Sides(stevneid, kamp, sides, reload))) await reload();
@@ -636,19 +644,11 @@ async function confirmCupMatch2Sides(
 ): Promise<boolean> {
   const { s1, s2 } = await fetchCupSideTotals(kamp.id, sides[0] ?? null, sides[1] ?? null);
 
-  if (
-    s1 === 0 &&
-    s2 === 0 &&
-    !(await confirmDialog({
-      title: "Ingen score registrert",
-      message: "Vil du bekrefte kampen likevel?",
-    }))
-  )
-    return false;
-
+  // A draw — 0–0 included — is refused by settleCupMatch, so the message it
+  // returns is what the arrangør needs to see here.
   const { error } = await settleCupMatch({ stevneId: stevneid, kamp, sides, s1, s2 });
   if (error) {
-    showToast("DB-feil ved bekreft", "error");
+    showToast(errorMessage(error), "error");
     return false;
   }
 
