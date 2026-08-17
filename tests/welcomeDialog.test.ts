@@ -34,6 +34,14 @@ describe("maybeShowWelcomeDialog", () => {
     expect(isOpen()).toBe(true);
   });
 
+  it("warns up front that the app is unfinished until 2027", async () => {
+    await maybeShowWelcomeDialog();
+
+    const notice = dialog()!.querySelector("#wd-body .alert-warning")!;
+    expect(notice.textContent).toContain("under utvikling");
+    expect(notice.textContent).toContain("2027");
+  });
+
   it("splits the advice between utøvarar and publikum", async () => {
     await maybeShowWelcomeDialog();
 

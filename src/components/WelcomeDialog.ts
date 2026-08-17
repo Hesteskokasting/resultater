@@ -8,6 +8,8 @@ import { getUser } from "@/services/authService";
 const SEEN_KEY = "welcome-seen";
 
 const BODY_HTML = `
+  <div class="alert alert-warning">Sida er framleis under utvikling og kan difor innehalde feil.
+     Det vil også kome ein del endringar fram til systemet blir tatt i bruk for fullt frå 2027.</div>
   <p>Her finn du terminliste, live resultat, Norgescup, Norgesranking og rekordar.
      Alt dette er ope for alle — du treng ingen konto for å følgje eit stevne.</p>
   <div class="card mb-3">
