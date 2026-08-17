@@ -686,7 +686,10 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
       bannerSlot,
       {
         title: "Autofullfør banar",
-        message: "Fylle alle manglande omganger med tilfeldige resultat og bekrefte banane?",
+        message:
+          variant.fase === "innledende"
+            ? "Fylle alle manglande omganger med tilfeldige resultat og bekrefte banane?"
+            : "Fylle alle manglande omganger med tilfeldige resultat? Banane blir ikkje bekrefta.",
       },
       async () => {
         await autoCompleteCourts(s.stevneid, variant.fase, s.antallOmganger);
