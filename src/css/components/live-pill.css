@@ -1,0 +1,46 @@
+/* Rendered by components/LivePill.ts. */
+
+/* The pulsing dot marking something ongoing. Every consumer goes through
+   liveDotHtml(), so this rule and that function move together. */
+.live-prikk {
+  position: relative;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--live-prikk);
+  flex-shrink: 0;
+}
+
+.live-prikk::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: rgba(231, 76, 60, 0.5);
+  animation: live-pulse 1.5s ease-out infinite;
+}
+
+@keyframes live-pulse {
+  0% {
+    transform: scale(0.8);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+/* The pill that frames the dot — the innledende match rows use it; the stevne
+   card and the cup card render the bare dot. */
+.live-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--tekst);
+  border: 1px solid var(--kant-2);
+  border-radius: 6px;
+  padding: 2px 8px;
+}

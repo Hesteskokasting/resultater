@@ -1,4 +1,5 @@
 import { escHtml } from "@/utils/escHtml";
+import { liveDotHtml } from "@/components/LivePill";
 import {
   formatDateLong,
   formatDateWeekday,
@@ -100,8 +101,7 @@ export function createStevneCard(props: StevneCardProps): HTMLElement {
   const card = document.createElement("div");
   card.className = `stevne-kort stevne-kort--${props.status}`;
 
-  const liveDot =
-    props.status === "live" ? '<span class="live-prikk" aria-hidden="true"></span>' : "";
+  const liveDot = props.status === "live" ? liveDotHtml() : "";
   const nmMedal = props.isNm
     ? `<span class="stevne-kort__nm" role="img" aria-label="${NM_LABEL}" title="${NM_LABEL}">🥇</span>`
     : "";

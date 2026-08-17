@@ -7,6 +7,7 @@ import { sideScore, getAllMatchSides, type MatchSide } from "@/utils/kamp";
 import { bindScoreboardClicks, sideNameHtml } from "../faseView";
 import type { StandingRow } from "@/utils/stilling";
 import { scoreboardButtonHtml } from "@/components/ScoreboardButton";
+import { liveDotHtml } from "@/components/LivePill";
 import { showScoreEditor } from "@/components/ScoreEditor";
 import { escHtml } from "@/utils/escHtml";
 import { groupBy } from "@/utils/groupBy";
@@ -435,7 +436,7 @@ function renderMatchBlock(
       <div class="cup-card__header">
         <span class="cup-card__lane">Bane ${kamp.bane_nummer}</span>
         ${scoreboardBtn}
-        ${hasRounds && !isConfirmed ? '<span class="live-prikk cup-card__live"></span>' : ""}
+        ${hasRounds && !isConfirmed ? liveDotHtml("cup-card__live") : ""}
       </div>
       <div class="cup-card__rows">${playerRowsHtml(kamp, sides, flags)}</div>
       ${placementBtn}
