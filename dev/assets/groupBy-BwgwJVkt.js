@@ -1,1 +1,0 @@
-function e(e,t){let n=new Map;for(let r of e){let e=n.get(t(r));e?e.push(r):n.set(t(r),[r])}return n}export{e as t};
