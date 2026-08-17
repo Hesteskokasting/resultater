@@ -1,5 +1,5 @@
 /* Terminliste
-   Rendered by admin/_adminUi.ts, admin/forms/kasterForm.ts, admin/forms/klubbForm.ts and 16 more. */
+   Rendered by admin/_adminUi.ts, admin/panels/klubbtilgang.ts, components/SearchInput.ts and 5 more. */
 
 /* Backdrop for the mobile filter sheet. Same shape as the slideout menu's
    backdrop in chrome/meny.css, but its own rule — sharing a selector would put
@@ -17,21 +17,7 @@
 }
 /* ── Terminliste ── */
 
-.tl-title,
-.nc-main-title {
-  text-align: center;
-  font-size: 1.15rem;
-  font-weight: bold;
-  margin-bottom: 14px;
-}
-
-.tl-filter-row,
-.nc-filter-rad {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
+/* Overrides .filter-row's default margin — the terminliste row sits tighter. */
 .tl-filter-row {
   margin-bottom: 12px;
 }
@@ -108,6 +94,10 @@
   font-size: 0.85rem;
 }
 
+/* Also overridden by .filter-row--smal > .app-select in pages/sesongtabell.css,
+   which now comes first alphabetically. Harmless: .tl-label only exists in this
+   page's filter sheet and .filter-row--smal only on norgescupen/norgesranking,
+   so no element matches both. Don't "fix" the order — check that first. */
 .tl-label .app-select {
   flex: unset;
   width: 100%;

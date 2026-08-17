@@ -1,10 +1,5 @@
-/* Rendered by components/StevneHero.ts, pages/stevne/stevne-info.ts. */
+/* Rendered by components/StevneHero.ts. */
 
-/* The hero slot stretches a lone .btn to fill the row; next to the attendance
-   control that button has to keep its natural width instead. */
-.stevne-hero__handling .oppmote-row .btn {
-  width: auto;
-}
 /* ============================================================================
    StevneHero — the info tab's header. A single column at every width, capped
    to the same 480px as the content below it, so the page stays one narrow

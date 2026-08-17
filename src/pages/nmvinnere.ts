@@ -85,7 +85,7 @@ function pageSkeletonHtml(category: NMCategoryConfig, maxYear: number): string {
 
   return `
     <div class="content-page">
-      <div class="nc-filter-rad">
+      <div class="filter-row">
         ${selectHtml("nm-category", categories, String(filter.categoryId))}
         ${genders.length ? selectHtml("nm-gender", genders, filter.gender) : ""}
       </div>

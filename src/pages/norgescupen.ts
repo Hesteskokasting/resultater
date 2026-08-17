@@ -122,10 +122,10 @@ function teamListHtml(teamList: TeamListRow[]): string {
 function pageSkeletonHtml(year: number, cupType: string): string {
   return `
     <div class="content-page res-side">
-      <h1 class="nc-main-title">
+      <h1 class="page-title">
         <span id="nc-title-text">Norgescupen ${year}</span><span id="nc-info-slot"></span>
       </h1>
-      <div class="nc-filter-rad nc-filter-rad--smal">
+      <div class="filter-row filter-row--smal">
         <select id="nc-year" class="app-select">${yearOptions(year, FIRST_YEAR)}</select>
         <select id="nc-cuptype" class="app-select${year < FIRST_MULTI_CUP_YEAR ? " d-none" : ""}">
           <option value="NC"${cupType === "NC" ? " selected" : ""}>NC</option>

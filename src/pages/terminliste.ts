@@ -443,10 +443,10 @@ export async function render(container: HTMLElement): Promise<void> {
 
     container.innerHTML = `
       <div class="terminliste">
-        <h1 class="tl-title">Terminliste ${filter.year}</h1>
+        <h1 class="page-title">Terminliste ${filter.year}</h1>
 
         <!-- Desktop filter row -->
-        <div class="tl-filter-row">
+        <div class="filter-row tl-filter-row">
           ${desktopSel.year}
           <span id="tl-text-slot"></span>
           ${desktopSel.tournamentType}
@@ -600,7 +600,7 @@ export async function render(container: HTMLElement): Promise<void> {
     window.addEventListener("resize", handleResize);
 
     async function reloadYear(logContext: string): Promise<boolean> {
-      container.querySelector(".tl-title")!.textContent = `Terminliste ${filter.year}`;
+      container.querySelector(".page-title")!.textContent = `Terminliste ${filter.year}`;
       container
         .querySelector(".tl-list-container")!
         .replaceChildren(createLoadingState("Laster..."));

@@ -1,63 +1,79 @@
-/* Cascade order, not an index — a rule late in this list beats an earlier one,
-   so a file sits where its rules must land, not where it would read best. The
-   src/css/ tree is the map; this is the sequence. Every file is named after the
-   module that renders it, and states that module in its own header.
+/* Layered cascade: each layer may override the ones above it, never the
+   reverse. Within a layer, files are alphabetical and independent — no rule
+   here relies on another file in the same layer coming first.
 
    Verified by a cascade check: for every class, the ordered run of rules that
-   mention it is unchanged from before the split. */
+   mention it is unchanged. Adding a file that breaks that means the rule
+   belongs in a different layer, not that the order needs a special case. */
 
+/* Foundation */
 @import "./css/base.css";
 @import "./css/elements.css";
-@import "./css/components/toast.css";
-@import "./css/chrome/header.css";
-@import "./css/chrome/theme-switch.css";
-@import "./css/chrome/pull-to-refresh.css";
-@import "./css/components/search-input.css";
-@import "./css/pages/terminliste.css";
-@import "./css/chrome/meny.css";
 @import "./css/layout.css";
-@import "./css/pages/home.css";
-@import "./css/components/excel-button.css";
-@import "./css/stevne/resultat.css";
-@import "./css/components/resultat-tabell.css";
-@import "./css/stevne/snc.css";
-@import "./css/components/ranking-list.css";
-@import "./css/pages/norgesranking.css";
-@import "./css/components/states.css";
-@import "./css/stevne/felles.css";
-@import "./css/components/banner-menu.css";
-@import "./css/stevne/kampliste.css";
-@import "./css/stevne/innledende.css";
 @import "./css/tables.css";
-@import "./css/components/scoreboard-button.css";
-@import "./css/pages/minside.css";
-@import "./css/stevne/xkast-kongelag.css";
-@import "./css/components/oppmote-knapp.css";
-@import "./css/components/stevne-hero.css";
-@import "./css/components/player-table.css";
-@import "./css/stevne/deltakere.css";
-@import "./css/pages/sesongtabell.css";
-@import "./css/pages/norgescupen.css";
+
+/* App chrome */
+@import "./css/chrome/header.css";
+@import "./css/chrome/meny.css";
+@import "./css/chrome/pull-to-refresh.css";
+@import "./css/chrome/theme-switch.css";
+
+/* Components — one file per component */
+@import "./css/components/banner-menu.css";
+@import "./css/components/excel-button.css";
 @import "./css/components/info-tooltip.css";
-@import "./css/pages/rekorder.css";
-@import "./css/pages/nmvinnere.css";
-@import "./css/pages/pamelding.css";
-@import "./css/components/thrower-grid.css";
-@import "./css/pages/kastere.css";
-@import "./css/pages/kaster-detalj.css";
-@import "./css/components/numberpad.css";
-@import "./css/pages/kamp.css";
-@import "./css/components/scoreboard.css";
-@import "./css/stevne/avsluttende.css";
-@import "./css/pages/logginn.css";
 @import "./css/components/modal.css";
-@import "./css/pages/klubb-detalj.css";
-@import "./css/admin/forms.css";
-@import "./css/components/skeleton.css";
-@import "./css/stevne/stats.css";
-@import "./css/components/stevne-kort.css";
-@import "./css/admin/dashboard.css";
-@import "./css/components/search-select.css";
-@import "./css/components/resultat-print.css";
-@import "./css/print.css";
+@import "./css/components/numberpad.css";
+@import "./css/components/omgang-numberpad.css";
+@import "./css/components/oppmote-knapp.css";
+@import "./css/components/player-table.css";
 @import "./css/components/premie-dialog.css";
+@import "./css/components/ranking-list.css";
+@import "./css/components/resultat-print.css";
+@import "./css/components/resultat-tabell.css";
+@import "./css/components/scoreboard-button.css";
+@import "./css/components/scoreboard.css";
+@import "./css/components/search-input.css";
+@import "./css/components/search-select.css";
+@import "./css/components/skeleton.css";
+@import "./css/components/states.css";
+@import "./css/components/stevne-hero.css";
+@import "./css/components/stevne-kort.css";
+@import "./css/components/thrower-grid.css";
+@import "./css/components/toast.css";
+
+/* Pages — one file per route */
+@import "./css/pages/home.css";
+@import "./css/pages/kamp.css";
+@import "./css/pages/kaster-detalj.css";
+@import "./css/pages/kastere.css";
+@import "./css/pages/klubb-detalj.css";
+@import "./css/pages/logginn.css";
+@import "./css/pages/minside.css";
+@import "./css/pages/nmvinnere.css";
+@import "./css/pages/norgescupen.css";
+@import "./css/pages/norgesranking.css";
+@import "./css/pages/pamelding.css";
+@import "./css/pages/rekorder.css";
+@import "./css/pages/sesongtabell.css";
+@import "./css/pages/terminliste.css";
+
+/* Stevne — the tournament sub-app */
+@import "./css/stevne/avsluttende.css";
+@import "./css/stevne/deltakere.css";
+@import "./css/stevne/felles.css";
+@import "./css/stevne/innledende.css";
+@import "./css/stevne/kampliste.css";
+@import "./css/stevne/resultat.css";
+@import "./css/stevne/snc.css";
+@import "./css/stevne/stats.css";
+@import "./css/stevne/xkast-kongelag.css";
+
+/* Admin */
+@import "./css/admin/forms.css";
+@import "./css/admin/klubbtilgang.css";
+@import "./css/admin/shell.css";
+@import "./css/admin/ui.css";
+
+/* Print */
+@import "./css/print.css";

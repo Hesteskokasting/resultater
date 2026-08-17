@@ -30,7 +30,7 @@ function listSkeletonHtml(): string {
   return `
     <div class="content-page">
       <div class="thrower-list-controls">
-        <div class="nc-filter-rad"><span id="thrower-search-slot"></span></div>
+        <div class="filter-row"><span id="thrower-search-slot"></span></div>
         <div class="mt-2">
           <label class="thrower-checkbox-label">
             <input type="checkbox" id="thrower-active-only"${filterList.showAll ? "" : " checked"}>

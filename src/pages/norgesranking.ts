@@ -104,10 +104,10 @@ function listHtml(list: RankingItem[]): string | null {
 function pageSkeletonHtml(year: number, isNative: boolean): string {
   return `
     <div class="content-page res-side">
-      <h1 class="nc-main-title">
+      <h1 class="page-title">
         <span id="nr-title-text">Norgesranking ${year}</span><span id="nr-info-slot"></span>
       </h1>
-      <div class="nc-filter-rad nc-filter-rad--smal">
+      <div class="filter-row filter-row--smal">
         <select id="nr-year" class="app-select">${yearOptions(year, FIRST_YEAR)}</select>
         <span id="nr-search-slot"></span>
         ${isNative ? "" : '<span id="nr-excel-slot"></span>'}

@@ -27,7 +27,7 @@ function listSkeletonHtml(): string {
   return `
     <div class="content-page">
       <div class="thrower-list-controls">
-        <div class="nc-filter-rad"><span id="club-search-slot"></span></div>
+        <div class="filter-row"><span id="club-search-slot"></span></div>
       </div>
       <div id="club-grid" class="thrower-grid"></div>
     </div>`;

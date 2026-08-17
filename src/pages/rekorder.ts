@@ -85,7 +85,7 @@ function pageSkeletonHtml(): string {
     <div class="content-page">
       <h1 class="record-title">Rekorder</h1>
       <p id="record-max-text" class="record-max-text"></p>
-      <div class="nc-filter-rad">
+      <div class="filter-row">
         ${selectHtml("record-method", methods, filter.method)}
         ${selectHtml("record-gender", genders, filter.gender)}
         <span id="record-search-slot"></span>

@@ -3,11 +3,11 @@
 /* A filter row that leads its list: the fields carry the same width whatever
    they hold, and the row stops well short of the table it heads. An icon-only
    button in the row keeps its own size. */
-.nc-filter-rad--smal {
+.filter-row--smal {
   max-width: var(--filter-maks);
 }
 
-.nc-filter-rad--smal > .app-select {
+.filter-row--smal > .app-select {
   flex: 1 1 0;
   min-width: 0;
   max-width: none;
@@ -16,13 +16,4 @@
 .info-tip__tittel {
   color: var(--tekst);
   font-weight: bold;
-}
-
-/* The hint belongs to the desktop table. The cards below the breakpoint carry a
-   "Vis detaljar" button of their own and need no telling. */
-@media (max-width: 699px) {
-  .click-hint,
-  .click-hint-row {
-    display: none;
-  }
 }

@@ -28,7 +28,7 @@ function detailSkeletonHtml(club: ClubListRow, count: number): string {
         <h1 class="club-detail-title">${escHtml(club.navn)}</h1>
       </div>
       <h3 class="mb-2">Aktive utøvarar (${count})</h3>
-      <div class="nc-filter-rad mb-3"><span id="club-detail-search-slot"></span></div>
+      <div class="filter-row mb-3"><span id="club-detail-search-slot"></span></div>
       <div id="club-detail-list"></div>
     </div>`;
 }

@@ -1,4 +1,4 @@
-/* Rendered by pages/stevne.ts, pages/stevne/faseView.ts, pages/stevne/innledende/innledendeView.ts and 4 more. */
+/* Rendered by components/StevneHero.ts, pages/stevne.ts, pages/stevne/faseView.ts and 5 more. */
 
 /* ── Stevne felles ── */
 
@@ -206,6 +206,14 @@
   flex: 0 0 auto;
   min-height: var(--oppmote-hoegd);
   padding-inline: 1rem;
+}
+
+/* The hero slot stretches a lone .btn to fill the row; next to the attendance
+   control that button has to keep its natural width instead. Kept beside the
+   rule it overrides rather than in the hero's own file — an override that lives
+   apart from its base is an ordering trap. */
+.stevne-hero__handling .oppmote-row .btn {
+  width: auto;
 }
 
 /* Eliminated standing row: solid under the position cell, then fading from the

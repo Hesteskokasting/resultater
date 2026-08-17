@@ -14,3 +14,12 @@
 #live-section:not(:empty) {
   margin-bottom: 24px;
 }
+
+/* Centred heading above a list page. Was two identical classes, .tl-title and
+   .nc-main-title, one per page that happened to need it. */
+.page-title {
+  text-align: center;
+  font-size: 1.15rem;
+  font-weight: bold;
+  margin-bottom: 14px;
+}

@@ -1,4 +1,4 @@
-/* Rendered by admin/_adminUi.ts, admin/admin.ts, admin/panels/klubbtilgang.ts and 14 more. */
+/* Rendered by admin/_adminUi.ts, admin/admin.ts, admin/panels/klubbtilgang.ts and 17 more. */
 
 /* Generelle input/select i mørk modus */
 
@@ -65,6 +65,29 @@ textarea:focus {
   text-align: right;
   margin-bottom: 4px;
   max-width: var(--tabell-maks);
+}
+
+/* The hint belongs to the desktop table. The cards below the breakpoint carry a
+   "Vis detaljar" button of their own and need no telling. */
+@media (max-width: 699px) {
+  .click-hint,
+  .click-hint-row {
+    display: none;
+  }
+}
+
+/* A cell whose value can be edited by tapping it. */
+.score-editable {
+  cursor: pointer;
+}
+
+/* A filter row that leads a list: fields keep the same width whatever they hold,
+   and the row stops short of the table it heads. */
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 16px;
 }
 
 /* Live indicator — a pulsing dot marking an ongoing tournament. */

@@ -67,7 +67,7 @@ function detailSkeletonHtml(thrower: ThrowerDetailRow, results: ResultDetailRow[
       <hr>
 
       <div id="kd-tab-resultater" class="kd-tab${filterDetail.active === "resultater" ? "" : " kd-hidden"}">
-        <div class="nc-filter-rad mb-3">
+        <div class="filter-row mb-3">
           <select id="kd-year" class="app-select">
             <option value="alle">Vel årstal</option>
             ${years.map((a) => `<option value="${a}"${filterDetail.year == String(a) ? " selected" : ""}>${a}</option>`).join("")}
@@ -85,7 +85,7 @@ function detailSkeletonHtml(thrower: ThrowerDetailRow, results: ResultDetailRow[
       </div>
 
       <div id="kd-tab-graf" class="kd-tab${filterDetail.active === "graf" ? "" : " kd-hidden"}">
-        <div class="nc-filter-rad mb-3">
+        <div class="filter-row mb-3">
           <select id="kd-chart-metric" class="app-select">
             <option value="plassering"${filterDetail.chartMetric === "plassering" ? " selected" : ""}>Plassering</option>
             <option value="prosent"${filterDetail.chartMetric === "prosent" ? " selected" : ""}>% Ring (frå 2017)</option>

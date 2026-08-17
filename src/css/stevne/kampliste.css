@@ -1,4 +1,4 @@
-/* Rendered by pages/stevne/avsluttende/cup.ts, pages/stevne/avsluttende/gruppefordelingUi.ts, pages/stevne/faseView.ts and 2 more. */
+/* Rendered by pages/stevne/avsluttende/gruppefordelingUi.ts, pages/stevne/faseView.ts, pages/stevne/innledende/innledendeView.ts and 1 more. */
 
 .standing-player-row {
   cursor: pointer;
@@ -121,7 +121,3 @@ th.standing-sp-th {
   }
 }
 /* ── Innleiande: SCORE-kolonne ── */
-
-.score-editable {
-  cursor: pointer;
-}
