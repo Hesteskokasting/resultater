@@ -1,5 +1,19 @@
 /* Rendered by admin/forms/kasterForm.ts, admin/forms/klubbForm.ts, admin/panels/klubbar.ts and 3 more. */
 
+/* Dims the page behind the slideout. Kept above .sidepanel so its .aktiv rule
+   still precedes the panel's. */
+.meny-bakgrunn {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 200;
+}
+
+.meny-bakgrunn.aktiv {
+  display: block;
+}
+
 .sidepanel {
   position: fixed;
   top: 0;

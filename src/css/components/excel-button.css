@@ -1,8 +1,24 @@
 /* Rendered by components/ExcelButton.ts. */
 
-/* Icon-only, Excel-brand-tinted (the icon reuses .tl-filter-button's border/hover shape). */
-.tl-excel-button {
+/* Same shape as .tl-filter-button in the terminliste filter row, carried here as
+   its own rule so the component does not depend on a page's selector. Icon-only,
+   so the padding is square, and the Excel green replaces the filter button's
+   --primaer border and --lenke text. */
+.excel-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 7px;
-  border-color: var(--excel-gronn);
+  border: 1px solid var(--excel-gronn);
+  border-radius: 4px;
+  background: var(--input-bg);
   color: var(--excel-gronn);
+  font-size: 0.85rem;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.excel-button:hover {
+  background: var(--primaer-hover);
 }

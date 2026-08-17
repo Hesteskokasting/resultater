@@ -1,7 +1,9 @@
 /* Terminliste
    Rendered by admin/_adminUi.ts, admin/forms/kasterForm.ts, admin/forms/klubbForm.ts and 16 more. */
 
-.meny-bakgrunn,
+/* Backdrop for the mobile filter sheet. Same shape as the slideout menu's
+   backdrop in chrome/meny.css, but its own rule — sharing a selector would put
+   app chrome in a page file. */
 .tl-sheet-backdrop {
   display: none;
   position: fixed;
@@ -10,7 +12,6 @@
   z-index: 200;
 }
 
-.meny-bakgrunn.aktiv,
 .tl-sheet-backdrop.active {
   display: block;
 }
@@ -42,8 +43,7 @@
   align-items: center;
 }
 
-.tl-filter-button,
-.tl-excel-button {
+.tl-filter-button {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -58,8 +58,7 @@
   flex-shrink: 0;
 }
 
-.tl-filter-button:hover,
-.tl-excel-button:hover {
+.tl-filter-button:hover {
   background: var(--primaer-hover);
 }
 
