@@ -16,6 +16,7 @@
     "test:run": "vp test run",
     "preview": "vp preview --host",
     "test:db": "supabase test db",
+    "css:check": "node scripts/css-check.mjs",
     "types:gen": "node scripts/gen-types.mjs --linked",
     "types:gen:local": "node scripts/gen-types.mjs --local",
     "android:sync": "cap sync android",
