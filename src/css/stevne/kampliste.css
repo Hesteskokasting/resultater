@@ -1,24 +1,11 @@
-/* ── Kampliste - felles ─────────────────────────────────────────────────────── */
+/* Rendered by pages/stevne/avsluttende/cup.ts, pages/stevne/avsluttende/gruppefordelingUi.ts, pages/stevne/faseView.ts and 2 more. */
 
-/* Responsive show/hide */
-@media (max-width: 699px) {
-  .match-table--desktop {
-    display: none !important;
-  }
-}
-@media (min-width: 700px) {
-  .match-list-mobile {
-    display: none !important;
-  }
+.standing-player-row {
+  cursor: pointer;
 }
 
-/* A wide table (many omgang columns) scrolls inside its own box instead of
-   widening the document — a horizontally scrolled page drags the sticky header
-   and every fixed overlay off-screen with it. */
-.table-scroll {
-  max-width: 100%;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
+.standing-player-row:hover td {
+  background-color: var(--primaer-aktiv) !important;
 }
 
 /* Table shared styles (match table + stilling table) */
@@ -27,6 +14,7 @@
   width: 100%;
   background: var(--flate);
 }
+
 .match-table td,
 .match-table th {
   border: none;
@@ -35,6 +23,7 @@
      to the plain surface, so the standing table stays untinted. */
   background: var(--rad-bg, var(--flate));
 }
+
 .match-table tbody tr:last-child td {
   border-bottom: none;
 }
@@ -54,120 +43,17 @@
   border-left: 3px solid var(--kamp-stripe-ikke);
   padding-left: 9px;
 }
+
 .match-row-desktop[data-status="in-progress"] > td:first-child {
   border-left-color: var(--kamp-stripe-pagaar);
 }
+
 .match-row-desktop[data-status="done"] > td:first-child {
   border-left-color: var(--kamp-stripe-ferdig);
 }
+
 .match-row-desktop > td:nth-child(2) {
   text-align: right;
-}
-
-/* Status legend */
-.match-legend {
-  display: flex;
-  gap: 14px;
-  font-size: 11px;
-  color: var(--tekst-3);
-  margin-top: 8px;
-  padding-left: 2px;
-}
-.match-legend__item {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-.match-legend__stripe {
-  width: 12px;
-  height: 3px;
-  border-radius: 1px;
-  flex-shrink: 0;
-}
-.match-legend__stripe--not-started {
-  background: var(--kamp-stripe-ikke);
-}
-.match-legend__stripe--in-progress {
-  background: var(--kamp-stripe-pagaar);
-}
-.match-legend__stripe--done {
-  background: var(--kamp-stripe-ferdig);
-}
-
-/* ── Desktop buttons ── */
-
-/* Icon-only "open the scoreboard" control (components/ScoreboardButton.ts).
-   One shape for every view that offers it: cup cards, innledende rows, minside.
-   Sized to fit inside the cup card's fixed 1.5rem header. */
-.scoreboard-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  padding: 0;
-  background: var(--flate-2);
-  color: var(--tekst-2);
-  border: 1px solid var(--kant);
-  border-radius: 5px;
-  cursor: pointer;
-}
-.scoreboard-btn:hover {
-  background: var(--primaer-hover);
-  color: var(--tekst);
-}
-/* Trailing stats column of the Min side match listing. */
-.scoreboard-btn--stats {
-  width: 32px;
-  height: 28px;
-  border-radius: 6px;
-}
-/* Where the control is a primary tap target rather than table chrome. */
-.scoreboard-btn--touch {
-  width: 38px;
-  height: 38px;
-  border-radius: 6px;
-}
-@media (pointer: coarse) {
-  .scoreboard-btn--touch {
-    width: 44px;
-    height: 44px;
-  }
-}
-
-.match-button {
-  background: transparent;
-  border: 0.5px solid var(--kant-2);
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  color: var(--tekst);
-  cursor: pointer;
-  white-space: nowrap;
-  line-height: 1.4;
-}
-.match-button + .match-button {
-  margin-left: 4px;
-}
-.match-button:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-.match-button-primary {
-  background: var(--primaer);
-  color: var(--primaer-text);
-  border-color: transparent;
-}
-.match-button-success {
-  background: #4caf50;
-  color: #fff;
-  border-color: transparent;
-}
-.match-confirmed-indicator {
-  color: var(--kamp-stripe-ferdig);
-  font-size: 0.75rem;
-  font-weight: 500;
-  white-space: nowrap;
 }
 
 @keyframes confirm-flash {
@@ -181,6 +67,7 @@
     background-color: transparent;
   }
 }
+
 @keyframes standing-confirm-flash {
   0% {
     box-shadow: inset 0 0 0 100vw rgba(76, 175, 80, 0.35);
@@ -191,143 +78,6 @@
   100% {
     box-shadow: inset 0 0 0 100vw rgba(76, 175, 80, 0);
   }
-}
-.match-newly-confirmed td {
-  animation: confirm-flash 8s linear forwards;
-}
-.match-row-mobile.match-newly-confirmed {
-  animation: confirm-flash 8s linear forwards;
-}
-.standing-new-confirmed {
-  animation: standing-confirm-flash 8s linear forwards;
-}
-
-/* ── Match list — mobile ── */
-
-.match-list-mobile {
-  list-style: none;
-  padding: 0;
-  margin: 0 auto;
-  max-width: 500px;
-  border: 1px solid var(--kant);
-  border-radius: 6px;
-  overflow: hidden;
-}
-.match-row-mobile {
-  position: relative;
-  border-bottom: 0.5px solid var(--kant);
-}
-.match-row-mobile:last-child {
-  border-bottom: none;
-}
-
-/* Status stripe via pseudo-element */
-.match-row-mobile::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  background: var(--kamp-stripe-ikke);
-}
-.match-row-mobile[data-status="in-progress"]::before {
-  background: var(--kamp-stripe-pagaar);
-}
-.match-row-mobile[data-status="done"]::before {
-  background: var(--kamp-stripe-ferdig);
-}
-
-.match-row-mobile__header {
-  display: grid;
-  grid-template-columns: 24px 1fr auto auto auto;
-  gap: 10px;
-  /* Right inset only — keeps the scoreboard icon off the list border, while the
-     lane column stays flush against the status rail on the left. */
-  padding: 6px 8px 6px 0;
-  align-items: center;
-  /* No row-wide pointer — only the score cell and the scoreboard icon act on a
-     click. The row expands too, but that panel is empty until the per-match
-     statistics land and gets its own affordance then. */
-  user-select: none;
-  -webkit-tap-highlight-color: transparent;
-}
-.match-mobile-pill-slot {
-  display: flex;
-  align-items: center;
-}
-/* Fixed width whether or not the icon is there, so the results above and below
-   stay on the same vertical line. */
-.match-mobile-sb-slot {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-}
-
-.match-mobile-lane {
-  font-size: 13px;
-  color: var(--tekst-3);
-  text-align: center;
-}
-.match-mobile-name {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-.match-mobile-name__p1 {
-  font-size: 13px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--tekst);
-}
-.match-mobile-name__p2 {
-  font-size: 13px;
-  color: var(--tekst);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.match-mobile-vs {
-  color: var(--tekst-3);
-  font-size: 0.85em;
-}
-/* Same cell treatment as the desktop SCORE column — it already renders the same
-   .initial-score-inner grid, so only the surround differs. text-align carries
-   into that grid's columns, which is what centres each number in its own track;
-   on desktop it comes from the cell's .text-center. */
-.match-mobile-result {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  align-self: stretch;
-  /* Cancels the header's vertical padding so the fill runs the full row height
-     and reads as a column, not a floating box. */
-  margin-block: -6px;
-  padding-block: 6px;
-  text-align: center;
-  font-size: 1.05rem;
-  font-weight: 600;
-  color: var(--tekst);
-  white-space: nowrap;
-  background: var(--avsl-score-bg);
-  border-left: 2px solid var(--standing-kp-th);
-  border-right: 2px solid var(--standing-kp-th);
-}
-
-/* Admin expandable buttons */
-/* Expandable detail slot — kept for the per-match statistics still to come.
-   Empty for now, so nothing renders until it has content. */
-.match-mobile-detail {
-  display: none;
-  gap: 6px;
-  padding: 8px 12px 12px;
-  border-top: 0.5px solid var(--kant);
-}
-.match-row-mobile[data-expanded="true"] .match-mobile-detail:not(:empty) {
-  display: flex;
 }
 
 /* Stilling table — tabular numbers */
@@ -342,14 +92,17 @@ th.standing-kp-th {
   background: var(--standing-kp-th) !important;
   color: #fff !important;
 }
+
 th.standing-sp-th {
   background: var(--standing-sp-th) !important;
   color: #fff !important;
 }
+
 .standing-kp-cell {
   background: var(--standing-kp-bg) !important;
   font-weight: 600;
 }
+
 .standing-sp-cell {
   background: var(--standing-sp-bg) !important;
   font-weight: 600;
@@ -366,4 +119,9 @@ th.standing-sp-th {
   .standing-table-wrap table {
     font-size: 0.88em;
   }
+}
+/* ── Innleiande: SCORE-kolonne ── */
+
+.score-editable {
+  cursor: pointer;
 }

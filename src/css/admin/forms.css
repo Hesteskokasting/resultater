@@ -1,32 +1,16 @@
-/* ── Admin: entity dashboards ──────────────────────────────────────────────
-   The per-entity tabs (Stevne, Utøvarar, Klubbar) lead with their own key
-   figures and charts, then the list. Tiles are denser here than on Oversikt —
-   six of them share the row above the charts. */
+/* Rendered by admin/_adminModal.ts, admin/forms/_formHost.ts, admin/forms/kasterForm.ts and 5 more. */
 
-.admin-stats--compact {
-  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+/* ── Admin form widths ────────────────────────────────────────────────────── */
+.admin-form-sm {
+  max-width: 520px;
 }
 
-.admin-stats--compact .admin-stat {
-  padding: 9px 11px;
+.admin-form-md {
+  max-width: 560px;
 }
 
-.admin-stats--compact .admin-stat__value {
-  font-size: 1.3rem;
-}
-
-.admin-stats--compact .admin-stat__label {
-  font-size: 0.68rem;
-}
-
-.admin-stats--compact .admin-stat__sub {
-  font-size: 0.7rem;
-  overflow-wrap: anywhere;
-}
-
-.admin-row--muted {
-  border-left-color: var(--kant);
-  opacity: 0.75;
+.admin-form-lg {
+  max-width: 640px;
 }
 
 /* ── Admin: overlay forms ──────────────────────────────────────────────────
@@ -79,11 +63,4 @@
   align-items: center;
   gap: 8px;
   margin-top: 16px;
-}
-
-/* The modal body scrolls; keep the page behind it from scrolling too. Driven by
-   the open dialog rather than by `body.modal-open`, because a confirm dialog
-   stacked on top of the form overlay drops that class when it closes. */
-body:has(.modal.show) {
-  overflow: hidden;
 }

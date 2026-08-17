@@ -52,7 +52,7 @@ function createMemberTable(members: MemberRow[], searchText: string): HTMLElemen
           render: (item) => {
             const a = document.createElement("a");
             a.href = `#/kastere/${buildThrowerSlug(item)}`;
-            a.className = "tl-link";
+            a.className = "app-link";
             a.textContent = throwerName(item);
             return a;
           },

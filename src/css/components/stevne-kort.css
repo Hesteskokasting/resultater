@@ -1,3 +1,5 @@
+/* Rendered by admin/admin.ts, components/StevneCard.ts, pages/home.ts and 3 more. */
+
 /* ============================================================================
    StevneCard — one reusable card for Forside / Terminliste / Påmeldingar.
    The whole card is a single tap target: an empty, absolutely-positioned
@@ -35,6 +37,7 @@
   align-self: stretch;
   background: var(--kant-2);
 }
+
 .stevne-kort--live .stevne-kort__stripe {
   background: var(--live-prikk);
 }
@@ -47,6 +50,7 @@
   z-index: 1;
   border-radius: inherit;
 }
+
 .stevne-kort__link:focus-visible {
   outline: 2px solid var(--primaer);
   outline-offset: -2px;
@@ -126,6 +130,7 @@
   background: var(--flate-2);
   color: var(--tekst-2);
 }
+
 .stevne-kort__type-badge b {
   color: var(--tekst);
   font-weight: 700;

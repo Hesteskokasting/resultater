@@ -1,3 +1,5 @@
+/* Rendered by pages/stevne/stevne-stats.ts. */
+
 /* ── Stevne-statistikk ────────────────────────────────────────────────────── */
 
 .stats-side {
@@ -95,6 +97,7 @@
 .stats-table tbody tr:nth-child(odd) .stats-col-sticky {
   background: var(--flate);
 }
+
 .stats-table tbody tr:nth-child(even) .stats-col-sticky {
   background: var(--flate-2);
 }
@@ -107,6 +110,7 @@
 .stats-td-pos {
   color: var(--suksess, #2ecc71);
 }
+
 .stats-td-neg {
   color: var(--feil, #e74c3c);
 }

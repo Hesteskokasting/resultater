@@ -40,7 +40,7 @@ function createRecordTable(list: RankedRecord[]): HTMLElement {
             const kaster = recordThrower(item);
             const a = document.createElement("a");
             a.href = `#/kastere/${buildThrowerSlug(kaster)}`;
-            a.className = "tl-link";
+            a.className = "app-link";
             a.textContent = throwerName(kaster);
             return a;
           },

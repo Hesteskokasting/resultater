@@ -249,7 +249,7 @@ export function createLabelledSelect(
   options: { value: string; text: string }[],
   selected: string,
 ): HTMLSelectElement {
-  const select = createEl("select", null, "tl-select admin-select");
+  const select = createEl("select", null, "app-select admin-select");
   select.setAttribute("aria-label", label);
   for (const opt of options) {
     const optionEl = createEl("option", opt.text);

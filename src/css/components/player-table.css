@@ -1,0 +1,22 @@
+/* PlayerTable — the participant table shell
+   Rendered by components/PlayerTable.ts. */
+
+.participant-table-wrapper {
+  height: 500px;
+  overflow: auto;
+}
+
+.participant-table-wrapper .table {
+  --bs-table-bg: transparent;
+}
+
+.participant-row {
+  cursor: pointer;
+}
+
+/* Compact rows: name + club stack in one cell, so trim the vertical padding */
+.participant-table-wrapper .table > tbody > tr > td {
+  padding-top: 0.3rem;
+  padding-bottom: 0.3rem;
+  vertical-align: middle;
+}

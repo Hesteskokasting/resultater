@@ -1,20 +1,9 @@
+/* Rendered by pages/kasterDetalj.ts, pages/kastere.ts, pages/klubbDetalj.ts and 5 more. */
+
 /* ── Norgescupen ── */
 
 .nc-filter-rad {
   margin-bottom: 16px;
-}
-
-/* A filter row that leads its list: the fields carry the same width whatever
-   they hold, and the row stops well short of the table it heads. An icon-only
-   button in the row keeps its own size. */
-.nc-filter-rad--smal {
-  max-width: var(--filter-maks);
-}
-
-.nc-filter-rad--smal > .tl-select {
-  flex: 1 1 0;
-  min-width: 0;
-  max-width: none;
 }
 
 /* Sits directly above the list, so it ends where the list ends. */
@@ -50,7 +39,8 @@
   color: var(--primaer-text);
 }
 
-.nc-click-hint {
-  font-size: 0.75rem;
-  color: var(--tekst-3);
+/* From 2026 the klasse tabs are gone, leaving the hint alone in the row —
+   space-between would then park it on the left. */
+.nc-class-tabs-wrapper .click-hint {
+  margin-left: auto;
 }

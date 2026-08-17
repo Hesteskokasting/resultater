@@ -1,3 +1,19 @@
+/* Terminliste
+   Rendered by admin/_adminUi.ts, admin/forms/kasterForm.ts, admin/forms/klubbForm.ts and 16 more. */
+
+.meny-bakgrunn,
+.tl-sheet-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 200;
+}
+
+.meny-bakgrunn.aktiv,
+.tl-sheet-backdrop.active {
+  display: block;
+}
 /* ── Terminliste ── */
 
 .tl-title,
@@ -17,21 +33,6 @@
 
 .tl-filter-row {
   margin-bottom: 12px;
-}
-
-.tl-select {
-  flex: 1 1 120px;
-  padding: 6px 8px;
-  border: 1px solid var(--kant-2);
-  border-radius: 4px;
-  font-size: 0.85rem;
-  background: var(--input-bg);
-  color: var(--tekst);
-}
-
-/* Live search input (SearchInput component) — capped so it doesn't span the container */
-.search-input {
-  max-width: 300px;
 }
 
 .tl-mobile-row {
@@ -60,13 +61,6 @@
 .tl-filter-button:hover,
 .tl-excel-button:hover {
   background: var(--primaer-hover);
-}
-
-/* Icon-only, Excel-brand-tinted (the icon reuses .tl-filter-button's border/hover shape). */
-.tl-excel-button {
-  padding: 7px;
-  border-color: var(--excel-gronn);
-  color: var(--excel-gronn);
 }
 
 .tl-count {
@@ -115,7 +109,7 @@
   font-size: 0.85rem;
 }
 
-.tl-label .tl-select {
+.tl-label .app-select {
   flex: unset;
   width: 100%;
 }
@@ -331,6 +325,7 @@
   background: var(--flate-2);
   color: var(--tekst-2);
 }
+
 .tl-type-badge b {
   color: var(--tekst);
   font-weight: 700;

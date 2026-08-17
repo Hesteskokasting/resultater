@@ -1,0 +1,85 @@
+/* Rendered by components/BannerMenu.ts. */
+
+/* Banner overflow menu — every phase action lives behind the ⋯ button, so the
+   banner stays a title strip at any width. */
+.stevne-banner-menu {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.stevne-banner-menu__trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  background: var(--flate-2);
+  color: var(--tekst);
+  border: 1px solid var(--kant);
+  border-radius: 8px;
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.stevne-banner-menu__trigger:hover,
+.stevne-banner-menu__trigger[aria-expanded="true"] {
+  background: var(--primaer-hover);
+}
+
+@media (pointer: coarse) {
+  .stevne-banner-menu__trigger {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+.stevne-banner-menu__panel {
+  display: flex;
+  flex-direction: column;
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 220px;
+  padding: 4px;
+  background: var(--flate);
+  border: 1px solid var(--kant);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  z-index: 150;
+}
+
+.stevne-banner-menu__panel[hidden] {
+  display: none;
+}
+
+[data-theme="light"] .stevne-banner-menu__panel {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.stevne-banner-menu__item {
+  padding: 0.55rem 0.75rem;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--tekst);
+  font-size: 0.9rem;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.stevne-banner-menu__item:hover:not(:disabled) {
+  background: var(--primaer-hover);
+}
+
+.stevne-banner-menu__item:disabled {
+  color: var(--tekst-3);
+}
+
+.stevne-banner-menu__item--success {
+  color: var(--kamp-stripe-ferdig);
+}
+
+.stevne-banner-menu__item--warning {
+  color: var(--kamp-stripe-pagaar);
+}

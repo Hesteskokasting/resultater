@@ -1,51 +1,155 @@
-/* ── SNC consolidated result: info tiles + grouped table ── */
+/* Rendered by components/RankingList.ts, components/ResultatTabell.ts, components/Table.ts and 3 more. */
 
-.res-seksjon {
-  margin-bottom: 18px;
+/* Group (mobile) */
+
+.res-group {
+  border: 1px solid var(--kant);
+  border-radius: 6px;
+  margin-bottom: 16px;
+  overflow: hidden;
 }
 
-.res-seksjon-topp {
+.res-group-title {
+  text-align: center;
+  font-size: 0.95rem;
+  font-weight: bold;
+  padding: 8px 12px;
+  background: var(--primaer);
+  color: var(--primaer-text);
+  border-bottom: 1px solid var(--kant);
+}
+
+.res-group-rows {
+  overflow: hidden;
+}
+
+.res-row {
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--kant);
+  background: var(--flate);
+  gap: 12px;
+}
+
+.res-row:last-child {
+  border-bottom: none;
+}
+
+.res-pl {
+  font-size: 1rem;
+  font-weight: bold;
+  color: var(--lenke);
+  min-width: 28px;
+}
+
+.res-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.res-navn {
+  font-size: 0.95rem;
+  font-weight: bold;
+  color: var(--lenke);
+}
+
+.res-klubb {
+  font-size: 0.8rem;
+  color: var(--tekst-2);
+}
+
+/* Result card: total on the right, details in a toggled panel below */
+
+.res-row--detalj {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  align-items: start;
+  column-gap: 12px;
+  row-gap: 10px;
+}
+
+.res-detalj-btn {
+  align-self: start;
+  margin-top: 4px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--lenke);
+  font-size: 0.8rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.res-detalj-btn:hover .res-detalj-tekst {
+  text-decoration: underline;
+}
+
+.res-tot {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+}
+
+.res-tot-label {
+  font-size: 0.65rem;
+  font-weight: bold;
+  letter-spacing: 0.08em;
+  color: var(--tekst-2);
+}
+
+.res-tot-verdi {
+  font-size: 1.9rem;
+  font-weight: bold;
+  line-height: 1.05;
+  color: var(--tekst);
+}
+
+.res-detalj {
+  grid-column: 1 / -1;
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
   gap: 8px;
-  margin-bottom: 6px;
-  max-width: var(--tabell-maks);
 }
 
-.res-seksjon-tittel {
-  margin: 0 0 6px;
-  font-size: 0.66rem;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--tekst-2);
-}
-
-.res-seksjon-topp .res-seksjon-tittel {
-  margin: 0;
-}
-
-.res-filter {
+.res-stat {
+  flex: 1 1 30%;
+  min-width: 92px;
   display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: 0;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid var(--kant);
+  border-radius: 6px;
+  background: var(--flate-2);
 }
 
-.res-filter__etikett {
-  font-size: 0.66rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
+.res-stat-label {
+  font-size: 0.62rem;
+  font-weight: bold;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--tekst-2);
 }
 
-.res-filter__vel {
-  width: auto;
-  max-width: 220px;
-  font-size: 0.8rem;
+.res-stat-verdi {
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: var(--tekst);
+}
+
+.res-stat-carry {
+  font-size: 0.9rem;
+  font-weight: normal;
+  color: var(--tekst-2);
+}
+
+.res-stat-sub {
+  font-size: 0.7rem;
+  color: var(--tekst-2);
 }
 
 .res-tabell-boks {
@@ -198,20 +302,12 @@
   font-weight: bold;
 }
 
-.res-kaster-lenke {
-  color: var(--lenke);
-  text-decoration: none;
-}
-
-.res-kaster-lenke:hover {
-  text-decoration: underline;
-}
-
 /* Responsiv: vis/skjul blokker */
 
 .res-mobil-blokk {
   display: block;
 }
+
 .res-desktop-blokk {
   display: none;
 }
@@ -223,4 +319,18 @@
   .res-desktop-blokk {
     display: block;
   }
+}
+
+/* Prize marker: an X in the table's own column, spelled out under the total on
+   mobile where there is no column header to name it. */
+.res-premie {
+  font-weight: bold;
+  line-height: 1;
+}
+
+.res-tot .res-premie {
+  margin-top: 2px;
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  color: var(--lenke);
 }

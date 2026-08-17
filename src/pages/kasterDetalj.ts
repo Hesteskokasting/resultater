@@ -68,11 +68,11 @@ function detailSkeletonHtml(thrower: ThrowerDetailRow, results: ResultDetailRow[
 
       <div id="kd-tab-resultater" class="kd-tab${filterDetail.active === "resultater" ? "" : " kd-hidden"}">
         <div class="nc-filter-rad mb-3">
-          <select id="kd-year" class="tl-select">
+          <select id="kd-year" class="app-select">
             <option value="alle">Vel årstal</option>
             ${years.map((a) => `<option value="${a}"${filterDetail.year == String(a) ? " selected" : ""}>${a}</option>`).join("")}
           </select>
-          <select id="kd-type" class="tl-select">
+          <select id="kd-type" class="app-select">
             <option value="alle">Alle stevnetypar</option>
             ${types.map(([id, n]) => `<option value="${id}">${escHtml(n)}</option>`).join("")}
           </select>
@@ -86,21 +86,21 @@ function detailSkeletonHtml(thrower: ThrowerDetailRow, results: ResultDetailRow[
 
       <div id="kd-tab-graf" class="kd-tab${filterDetail.active === "graf" ? "" : " kd-hidden"}">
         <div class="nc-filter-rad mb-3">
-          <select id="kd-chart-metric" class="tl-select">
+          <select id="kd-chart-metric" class="app-select">
             <option value="plassering"${filterDetail.chartMetric === "plassering" ? " selected" : ""}>Plassering</option>
             <option value="prosent"${filterDetail.chartMetric === "prosent" ? " selected" : ""}>% Ring (frå 2017)</option>
           </select>
-          <select id="kd-chart-method" class="tl-select${methodHidden}">
+          <select id="kd-chart-method" class="app-select${methodHidden}">
             <option value="kongelag"${filterDetail.chartMethod === "kongelag" ? " selected" : ""}>Kongelag</option>
             <option value="minimatch"${filterDetail.chartMethod === "minimatch" ? " selected" : ""}>Minimatch</option>
             <option value="halvmatch"${filterDetail.chartMethod === "halvmatch" ? " selected" : ""}>Halvmatch</option>
             <option value="heilmatch"${filterDetail.chartMethod === "heilmatch" ? " selected" : ""}>Heilmatch</option>
           </select>
-          <select id="kd-chart-from" class="tl-select">
+          <select id="kd-chart-from" class="app-select">
             <option value="">Frå år</option>
             ${years.map((a) => `<option value="${a}"${filterDetail.chartFrom == String(a) ? " selected" : ""}>${a}</option>`).join("")}
           </select>
-          <select id="kd-chart-to" class="tl-select">
+          <select id="kd-chart-to" class="app-select">
             <option value="">Til år</option>
             ${years.map((a) => `<option value="${a}"${filterDetail.chartTo == String(a) ? " selected" : ""}>${a}</option>`).join("")}
           </select>

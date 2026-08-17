@@ -89,7 +89,7 @@ export async function render(el: HTMLElement): Promise<void> {
     card.appendChild(chips);
 
     const row = createEl("div", null, "admin-access-add");
-    const select = createEl("select", null, "tl-select admin-select");
+    const select = createEl("select", null, "app-select admin-select");
     select.setAttribute("aria-label", "Vel klubb");
     const placeholder = createEl("option", "Legg til klubb…");
     placeholder.value = "";

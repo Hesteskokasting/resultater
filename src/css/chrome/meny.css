@@ -1,18 +1,4 @@
-/* ── Slideout-meny ── */
-
-.meny-bakgrunn,
-.tl-sheet-backdrop {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.4);
-  z-index: 200;
-}
-
-.meny-bakgrunn.aktiv,
-.tl-sheet-backdrop.active {
-  display: block;
-}
+/* Rendered by admin/forms/kasterForm.ts, admin/forms/klubbForm.ts, admin/panels/klubbar.ts and 3 more. */
 
 .sidepanel {
   position: fixed;

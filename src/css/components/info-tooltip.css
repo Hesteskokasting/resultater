@@ -1,3 +1,5 @@
+/* Rendered by components/InfoTooltip.ts. */
+
 /* ── Info tooltip ── */
 
 .info-tip {
@@ -57,63 +59,4 @@
 
 .info-tip__panel p:last-child {
   margin-bottom: 0;
-}
-
-.info-tip__tittel {
-  color: var(--tekst);
-  font-weight: bold;
-}
-
-.info-tip__dempa {
-  color: var(--tekst-3);
-}
-
-/* The hint belongs to the desktop table. The cards below the breakpoint carry a
-   "Vis detaljar" button of their own and need no telling. */
-@media (max-width: 699px) {
-  .nc-click-hint,
-  .nc-click-hint-row {
-    display: none;
-  }
-}
-
-/* From 2026 the klasse tabs are gone, leaving the hint alone in the row —
-   space-between would then park it on the left. */
-.nc-class-tabs-wrapper .nc-click-hint {
-  margin-left: auto;
-}
-
-.empty-state {
-  text-align: center;
-  color: var(--tekst-3);
-  margin-top: 20px;
-}
-
-.app-table tbody tr {
-  background: var(--flate);
-}
-.app-table tbody tr:nth-child(4n + 3) {
-  background: var(--flate-2);
-}
-
-.app-table td {
-  padding: 5px 10px;
-  color: var(--tekst);
-  border-bottom: 1px solid var(--kant);
-}
-
-.record-points-cell {
-  cursor: pointer;
-  color: var(--lenke);
-  font-weight: 600;
-}
-
-.record-points-cell:hover {
-  text-decoration: underline;
-}
-
-.nc-click-hint-row {
-  text-align: right;
-  margin-bottom: 4px;
-  max-width: var(--tabell-maks);
 }

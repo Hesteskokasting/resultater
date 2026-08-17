@@ -431,11 +431,11 @@ export async function render(container: HTMLElement): Promise<void> {
       suffix: "" | "-mobil",
     ): Record<"year" | "tournamentType" | "throwingMethod" | "organizer" | "category", string> {
       return {
-        year: `<select class="tl-select" id="tl-year${suffix}">${yearOptions(filter.year, 1983, new Date().getFullYear() + 1)}</select>`,
-        tournamentType: `<select class="tl-select" id="tl-tournamenttype${suffix}">${buildDropdownOptions(_filterOptions.stevnetyper, filter.tournamentTypeId, "Alle typer")}</select>`,
-        throwingMethod: `<select class="tl-select" id="tl-throwingmethod${suffix}">${buildDropdownOptions(_filterOptions.kastemetoder, filter.throwingMethodId, "Alle metoder")}</select>`,
-        organizer: `<select class="tl-select" id="tl-organizer${suffix}">${buildDropdownOptions(_filterOptions.klubber, filter.clubId, "Alle arrangører")}</select>`,
-        category: `<select class="tl-select" id="tl-category${suffix}">${buildDropdownOptions(_filterOptions.kategorier, filter.categoryId, "Alle kategorier")}</select>`,
+        year: `<select class="app-select" id="tl-year${suffix}">${yearOptions(filter.year, 1983, new Date().getFullYear() + 1)}</select>`,
+        tournamentType: `<select class="app-select" id="tl-tournamenttype${suffix}">${buildDropdownOptions(_filterOptions.stevnetyper, filter.tournamentTypeId, "Alle typer")}</select>`,
+        throwingMethod: `<select class="app-select" id="tl-throwingmethod${suffix}">${buildDropdownOptions(_filterOptions.kastemetoder, filter.throwingMethodId, "Alle metoder")}</select>`,
+        organizer: `<select class="app-select" id="tl-organizer${suffix}">${buildDropdownOptions(_filterOptions.klubber, filter.clubId, "Alle arrangører")}</select>`,
+        category: `<select class="app-select" id="tl-category${suffix}">${buildDropdownOptions(_filterOptions.kategorier, filter.categoryId, "Alle kategorier")}</select>`,
       };
     }
     const desktopSel = filterSelects("");

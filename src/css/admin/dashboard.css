@@ -1,3 +1,5 @@
+/* Rendered by admin/_adminUi.ts, admin/admin.ts, admin/panels/brukarar.ts and 8 more. */
+
 /* ══════════════════════════════════════════════════════════════════════════
    Admin
    The admin page is a dashboard first: key figures and charts on Oversikt, and
@@ -90,6 +92,7 @@
 .admin-section-title:first-child {
   margin-top: 0;
 }
+
 /* ── Quick actions ─────────────────────────────────────────────────────── */
 
 .admin-actions {
@@ -525,4 +528,34 @@ a.admin-stat:hover {
   .admin-row__control .admin-select {
     width: 100%;
   }
+}
+/* ── Admin: entity dashboards ──────────────────────────────────────────────
+   The per-entity tabs (Stevne, Utøvarar, Klubbar) lead with their own key
+   figures and charts, then the list. Tiles are denser here than on Oversikt —
+   six of them share the row above the charts. */
+
+.admin-stats--compact {
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+}
+
+.admin-stats--compact .admin-stat {
+  padding: 9px 11px;
+}
+
+.admin-stats--compact .admin-stat__value {
+  font-size: 1.3rem;
+}
+
+.admin-stats--compact .admin-stat__label {
+  font-size: 0.68rem;
+}
+
+.admin-stats--compact .admin-stat__sub {
+  font-size: 0.7rem;
+  overflow-wrap: anywhere;
+}
+
+.admin-row--muted {
+  border-left-color: var(--kant);
+  opacity: 0.75;
 }

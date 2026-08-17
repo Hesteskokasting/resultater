@@ -1,41 +1,29 @@
-/* ── Participants page ── */
+/* Rendered by components/PlayerTable.ts, pages/stevne/_deltakereColumns.ts, pages/stevne/_nySpelarForm.ts and 2 more. */
 
-.participant-table-wrapper {
-  height: 500px;
-  overflow: auto;
-}
-.participant-table-wrapper .table {
-  --bs-table-bg: transparent;
-}
 .participant-search-spacer {
   visibility: hidden;
   pointer-events: none;
 }
-.participant-row {
-  cursor: pointer;
-}
+
 /* Shared by the columns and the panel that frames them, so the header, the
    switcher and the lists all end on the same right edge. */
 :root {
   --participant-kolonne: 450px;
 }
+
 .participant-column {
   max-width: var(--participant-kolonne);
 }
+
 /* Two capped columns plus the row gutter between them */
 .participant-panel {
   max-width: calc(var(--participant-kolonne) * 2 + 1rem);
 }
+
 .participant-panel-single {
   max-width: var(--participant-kolonne);
 }
 
-/* Compact rows: name + club stack in one cell, so trim the vertical padding */
-.participant-table-wrapper .table > tbody > tr > td {
-  padding-top: 0.3rem;
-  padding-bottom: 0.3rem;
-  vertical-align: middle;
-}
 .participant-print-btn {
   width: 32px;
   height: 32px;
@@ -57,6 +45,7 @@
     background 0.15s,
     border-color 0.15s;
 }
+
 .participant-check-on {
   background: var(--kamp-stripe-ferdig);
   border-style: solid;
@@ -68,6 +57,7 @@
 .participant-registered-row {
   --bs-table-bg: color-mix(in srgb, var(--kamp-stripe-ferdig) 14%, transparent);
 }
+
 .participant-registered-row.participant-row {
   cursor: default;
 }
@@ -90,11 +80,13 @@
     background 0.15s,
     border-color 0.15s;
 }
+
 .participant-token-add:hover,
 .participant-token-add:focus-visible {
   background: var(--primaer-aktiv);
   border-color: var(--primaer-selektert);
 }
+
 .participant-token-done {
   background: color-mix(in srgb, var(--kamp-stripe-ferdig) 18%, transparent);
   border-color: color-mix(in srgb, var(--kamp-stripe-ferdig) 45%, transparent);
@@ -112,6 +104,7 @@
   padding: 0.35rem 0.85rem;
   transition: background 0.15s;
 }
+
 .participant-new-btn:hover,
 .participant-new-btn:focus-visible {
   background: var(--primaer-selektert);
@@ -127,6 +120,7 @@
   border-radius: 12px;
   background: var(--flate);
 }
+
 .participant-switch-btn {
   flex: 1;
   border: none;
@@ -139,11 +133,13 @@
     background 0.15s,
     color 0.15s;
 }
+
 .participant-switch-btn.active {
   background: var(--flate-2);
   color: var(--tekst);
   font-weight: 600;
 }
+
 .participant-switch-badge {
   display: inline-block;
   min-width: 1.4rem;
@@ -184,39 +180,9 @@
   cursor: grab;
   user-select: none;
 }
+
 .participant-table-wrapper tr[draggable="true"]:active {
   cursor: grabbing;
-}
-
-/* Remove button — colors set as real properties (not Bootstrap's --bs-btn-* vars)
-   so the Bootstrap .table cell cascade can't bleed into it inside a <td> */
-.remove-btn {
-  width: 22px;
-  height: 22px;
-  font-size: 14px;
-  background-color: var(--bs-danger);
-  border: 1px solid var(--bs-danger);
-  color: #fff;
-}
-.remove-btn:hover {
-  background-color: color-mix(in srgb, var(--bs-danger) 85%, black);
-  border-color: color-mix(in srgb, var(--bs-danger) 85%, black);
-  color: #fff;
-}
-
-/* Quiet variant — stays out of the way in a long list until you reach for it */
-.remove-btn-quiet {
-  width: 26px;
-  height: 26px;
-  font-size: 18px;
-  background: none;
-  border: none;
-  color: var(--tekst-3);
-  transition: color 0.15s;
-}
-.remove-btn-quiet:hover,
-.remove-btn-quiet:focus-visible {
-  color: var(--feil);
 }
 
 /* ── Pair/Mix tab ── */
@@ -227,11 +193,13 @@
   cursor: default;
   transition: background 0.1s;
 }
+
 .pair-cell {
   background: var(--bg-2);
   font-size: 0.9rem;
   min-width: 0;
 }
+
 /* Grid (not flex) so the two cells are content-independent equal tracks; the
    22px track lines up the remove button with the slot above it. Shared by the
    slots row and every pair row, guaranteeing column alignment between them. */
@@ -241,14 +209,17 @@
   gap: 8px;
   align-items: center;
 }
+
 .pair-slot--filled {
   background: var(--bg-3);
   font-weight: 500;
 }
+
 .pair-slot--hover {
   background: var(--bs-primary-bg-subtle);
   border-color: var(--bs-primary) !important;
 }
+
 .pair-row {
   background: var(--bg-2);
 }

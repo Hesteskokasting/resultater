@@ -1,47 +1,4 @@
-/* ── Fremsiden ── */
-
-.homepage,
-.terminliste,
-.res-side,
-.content-page {
-  padding-bottom: 40px;
-}
-
-/* Live tournaments render as StevneCard now (home.ts + admin.ts), same as
-   everywhere else; #live-section just needs its old bottom margin preserved
-   when populated. */
-#live-section:not(:empty) {
-  margin-bottom: 24px;
-}
-
-.live-prikk {
-  position: relative;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--live-prikk);
-  flex-shrink: 0;
-}
-
-.live-prikk::before {
-  content: "";
-  position: absolute;
-  inset: -4px;
-  border-radius: 50%;
-  background: rgba(231, 76, 60, 0.5);
-  animation: live-pulse 1.5s ease-out infinite;
-}
-
-@keyframes live-pulse {
-  0% {
-    transform: scale(0.8);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(2.2);
-    opacity: 0;
-  }
-}
+/* Rendered by pages/home.ts. */
 
 .homepage-grid {
   display: grid;
@@ -74,4 +31,8 @@
 
 .homepage-more-link:hover {
   text-decoration: underline;
+}
+
+.skeleton-block--list {
+  min-height: 320px;
 }

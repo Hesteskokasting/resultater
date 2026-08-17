@@ -1,3 +1,11 @@
+/* Rendered by pages/minside.ts, pages/minside/_sectionCard.ts, pages/minside/minside-innstillingar.ts and 2 more. */
+
+/* Trailing stats column of the Min side match listing. */
+.scoreboard-btn--stats {
+  width: 32px;
+  height: 28px;
+  border-radius: 6px;
+}
 /* ── Min side ── */
 
 .mypage-container {
@@ -88,6 +96,7 @@
   font-weight: 600;
   margin: 16px 0 4px;
 }
+
 .match-grid__phase {
   font-size: 0.875rem;
   color: var(--tekst-2);
@@ -109,16 +118,19 @@
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+
 .result-badge--win {
   border-color: var(--utfall-vinn-kant);
   background: var(--utfall-vinn-flate);
   color: var(--utfall-vinn-tekst);
 }
+
 .result-badge--loss {
   border-color: var(--utfall-tap-kant);
   background: var(--utfall-tap-flate);
   color: var(--utfall-tap-tekst);
 }
+
 .result-badge--draw {
   border-color: var(--utfall-uavgjort-kant);
   background: var(--utfall-uavgjort-flate);
@@ -134,6 +146,7 @@
     padding: 5px 8px;
   }
 }
+
 /* Linked login accounts table (min side -> konto).
    The email is one unbreakable token; without `anywhere` it dictates the
    table's min-content width and pushes it past the viewport on mobile. */
@@ -154,8 +167,6 @@
   margin-block: 2px;
 }
 
-/* Dialog messages interpolate user data (e-mail, names); wrap tokens that
-   would otherwise overflow the narrow modal-sm body. */
-.modal-body {
-  overflow-wrap: anywhere;
+.skeleton-block--card {
+  min-height: 140px;
 }

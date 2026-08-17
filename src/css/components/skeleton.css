@@ -1,3 +1,5 @@
+/* Rendered by pages/home.ts, pages/minside/_sectionCard.ts, pages/minside/minside-innstillingar.ts and 1 more. */
+
 /* ── Skeleton-plasshaldrar ────────────────────────────────────────────────── */
 .skeleton-block {
   background: linear-gradient(
@@ -9,13 +11,6 @@
   background-size: 200% 100%;
   animation: skeleton-shimmer 1.5s infinite;
   border-radius: 4px;
-}
-
-.skeleton-block--list {
-  min-height: 320px;
-}
-.skeleton-block--card {
-  min-height: 140px;
 }
 
 @keyframes skeleton-shimmer {

@@ -108,12 +108,12 @@ function pageSkeletonHtml(year: number, isNative: boolean): string {
         <span id="nr-title-text">Norgesranking ${year}</span><span id="nr-info-slot"></span>
       </h1>
       <div class="nc-filter-rad nc-filter-rad--smal">
-        <select id="nr-year" class="tl-select">${yearOptions(year, FIRST_YEAR)}</select>
+        <select id="nr-year" class="app-select">${yearOptions(year, FIRST_YEAR)}</select>
         <span id="nr-search-slot"></span>
         ${isNative ? "" : '<span id="nr-excel-slot"></span>'}
       </div>
-      <div class="nc-click-hint-row">
-        <span class="nc-click-hint">Klikk ein kastar for å vise detaljar</span>
+      <div class="click-hint-row">
+        <span class="click-hint">Klikk ein kastar for å vise detaljar</span>
       </div>
       <div id="nr-table-container"></div>
     </div>`;

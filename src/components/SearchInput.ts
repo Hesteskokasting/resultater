@@ -4,7 +4,7 @@ export interface SearchState {
 
 export interface SearchInputProps {
   placeholder?: string;
-  /** 'filter' matches the tl-select filter rows (default); 'form' matches bootstrap forms. */
+  /** 'filter' matches the app-select filter rows (default); 'form' matches bootstrap forms. */
   variant?: "filter" | "form";
   /** Placeholder element (from an innerHTML skeleton) that the input replaces. */
   slot?: Element;
@@ -32,7 +32,7 @@ export function createSearchInput({
   const input = document.createElement("input");
   input.type = "search";
   // Width cap (.search-input) only applies in filter rows; bootstrap forms keep full width.
-  input.className = variant === "form" ? "form-control mb-2" : "tl-select search-input";
+  input.className = variant === "form" ? "form-control mb-2" : "app-select search-input";
   input.placeholder = placeholder;
   input.setAttribute("aria-label", placeholder);
   input.value = state?.searchText ?? "";

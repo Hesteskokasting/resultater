@@ -73,7 +73,7 @@ function classTabsHtml(selectedClass: number, year: number): string {
   return `
     <div class="nc-class-tabs-wrapper">
       ${tabs}
-      <span class="nc-click-hint">Klikk ein kastar for å vise detaljar</span>
+      <span class="click-hint">Klikk ein kastar for å vise detaljar</span>
     </div>`;
 }
 
@@ -126,8 +126,8 @@ function pageSkeletonHtml(year: number, cupType: string): string {
         <span id="nc-title-text">Norgescupen ${year}</span><span id="nc-info-slot"></span>
       </h1>
       <div class="nc-filter-rad nc-filter-rad--smal">
-        <select id="nc-year" class="tl-select">${yearOptions(year, FIRST_YEAR)}</select>
-        <select id="nc-cuptype" class="tl-select${year < FIRST_MULTI_CUP_YEAR ? " d-none" : ""}">
+        <select id="nc-year" class="app-select">${yearOptions(year, FIRST_YEAR)}</select>
+        <select id="nc-cuptype" class="app-select${year < FIRST_MULTI_CUP_YEAR ? " d-none" : ""}">
           <option value="NC"${cupType === "NC" ? " selected" : ""}>NC</option>
           <option value="SNC"${cupType === "SNC" ? " selected" : ""}>SNC</option>
           <option value="DNC"${cupType === "DNC" ? " selected" : ""}>DNC (Uoffisiell)</option>
@@ -179,7 +179,7 @@ export async function render(container: HTMLElement): Promise<void> {
       info.setHtml(TEAM_INFO_HTML);
       content.innerHTML = `
         <section>
-          <div class="nc-click-hint nc-click-hint-row">Klikk ein klubb for å vise detaljar</div>
+          <div class="click-hint click-hint-row">Klikk ein klubb for å vise detaljar</div>
           <div id="nc-team-table-container"></div>
         </section>`;
 

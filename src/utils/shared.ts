@@ -144,7 +144,7 @@ export function selectHtml(
   id: string,
   options: { value: string; label: string }[],
   selected: string,
-  className = "tl-select",
+  className = "app-select",
 ): string {
   const opts = options
     .map(

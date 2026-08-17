@@ -26,13 +26,13 @@ const filter: { categoryId: number; gender: NMGender } = { categoryId: 1, gender
 function createNMTable(list: WinnersEntry[]): HTMLElement {
   if (!list.length) return createEmptyState("Ingen vinnere funnet.");
 
-  // ponytail: the same `<a class="tl-link">` to a thrower is built in klubbDetalj
+  // ponytail: the same `<a class="app-link">` to a thrower is built in klubbDetalj
   // too, and the stevne pages build an HTML-string variant. Pull it into a
   // createThrowerLink() component once a third DOM caller wants it.
   function throwerLink(k: NmThrower): HTMLAnchorElement {
     const a = document.createElement("a");
     a.href = `#/kastere/${buildThrowerSlug(k)}`;
-    a.className = "tl-link";
+    a.className = "app-link";
     a.textContent = throwerName(k);
     return a;
   }
@@ -51,7 +51,7 @@ function createNMTable(list: WinnersEntry[]): HTMLElement {
             if (!tournamentId) return String(year ?? "–");
             const a = document.createElement("a");
             a.href = `#/stevne/${tournamentId}/resultat`;
-            a.className = "tl-link";
+            a.className = "app-link";
             a.textContent = String(year ?? "–");
             return a;
           },

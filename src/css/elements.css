@@ -1,0 +1,116 @@
+/* Rendered by admin/_adminUi.ts, admin/admin.ts, admin/panels/klubbtilgang.ts and 14 more. */
+
+/* ── Elements ──────────────────────────────────────────────────────────────
+   Generic primitives: buttons, inputs, links, hints. Nothing here knows which
+   page renders it. Imported early so page and component CSS can override it.
+   ========================================================================== */
+
+/* Remove button — colors set as real properties (not Bootstrap's --bs-btn-* vars)
+   so the Bootstrap .table cell cascade can't bleed into it inside a <td> */
+.remove-btn {
+  width: 22px;
+  height: 22px;
+  font-size: 14px;
+  background-color: var(--bs-danger);
+  border: 1px solid var(--bs-danger);
+  color: #fff;
+}
+
+.remove-btn:hover {
+  background-color: color-mix(in srgb, var(--bs-danger) 85%, black);
+  border-color: color-mix(in srgb, var(--bs-danger) 85%, black);
+  color: #fff;
+}
+
+/* Quiet variant — stays out of the way in a long list until you reach for it */
+.remove-btn-quiet {
+  width: 26px;
+  height: 26px;
+  font-size: 18px;
+  background: none;
+  border: none;
+  color: var(--tekst-3);
+  transition: color 0.15s;
+}
+
+.remove-btn-quiet:hover,
+.remove-btn-quiet:focus-visible {
+  color: var(--feil);
+}
+
+/* Click hint — a muted note above a table, telling the reader the rows are
+   interactive. The row carries the table's own width cap so the hint ends
+   where the table does. */
+.click-hint {
+  font-size: 0.75rem;
+  color: var(--tekst-3);
+}
+
+.click-hint-row {
+  text-align: right;
+  margin-bottom: 4px;
+  max-width: var(--tabell-maks);
+}
+
+/* Live indicator — a pulsing dot marking an ongoing tournament. */
+.live-prikk {
+  position: relative;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--live-prikk);
+  flex-shrink: 0;
+}
+
+.live-prikk::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: rgba(231, 76, 60, 0.5);
+  animation: live-pulse 1.5s ease-out infinite;
+}
+
+@keyframes live-pulse {
+  0% {
+    transform: scale(0.8);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+/* Filter/form select. Sized to sit in a filter row without a wrapper. */
+.app-select {
+  flex: 1 1 120px;
+  padding: 6px 8px;
+  border: 1px solid var(--kant-2);
+  border-radius: 4px;
+  font-size: 0.85rem;
+  background: var(--input-bg);
+  color: var(--tekst);
+}
+
+/* Inline link inside a table cell or list row. */
+.app-link {
+  color: var(--lenke);
+  text-decoration: none;
+}
+
+.app-link:hover {
+  text-decoration: underline;
+}
+
+.live-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--tekst);
+  border: 1px solid var(--kant-2);
+  border-radius: 6px;
+  padding: 2px 8px;
+}

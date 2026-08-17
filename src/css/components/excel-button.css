@@ -1,0 +1,8 @@
+/* Rendered by components/ExcelButton.ts. */
+
+/* Icon-only, Excel-brand-tinted (the icon reuses .tl-filter-button's border/hover shape). */
+.tl-excel-button {
+  padding: 7px;
+  border-color: var(--excel-gronn);
+  color: var(--excel-gronn);
+}

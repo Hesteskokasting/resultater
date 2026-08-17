@@ -1,3 +1,14 @@
+/* Rendered by pages/rekorder.ts. */
+
+.record-points-cell {
+  cursor: pointer;
+  color: var(--lenke);
+  font-weight: 600;
+}
+
+.record-points-cell:hover {
+  text-decoration: underline;
+}
 /* ── Rekorder ── */
 
 .record-title {
@@ -6,21 +17,26 @@
   font-weight: bold;
   margin-bottom: 4px;
 }
+
 .record-max-text {
   text-align: center;
   font-size: 0.85rem;
   color: var(--tekst-3);
   margin-bottom: 14px;
 }
+
 .record-table-wrapper {
   overflow-x: auto;
 }
+
 .record-th-placement {
   width: 40px;
 }
+
 .record-th-points {
   width: 80px;
 }
+
 .record-th-year {
   width: 55px;
 }
