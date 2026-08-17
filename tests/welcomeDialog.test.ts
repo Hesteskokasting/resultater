@@ -56,7 +56,7 @@ describe("maybeShowWelcomeDialog", () => {
     await maybeShowWelcomeDialog();
 
     const body = dialog()!.querySelector("#wd-body")!;
-    expect(body.textContent).toContain("ikkje i utøvarregisteret enno");
+    expect(body.textContent).toContain("Har du ikkje delteke på eit stevne før?");
     expect(body.querySelector('a[href^="mailto:"]')).not.toBeNull();
   });
 

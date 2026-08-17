@@ -24,6 +24,9 @@ function unlinkedHtml(status: LinkStatus): string {
         <p class="card-text text-muted">Etter godkjenning kan du melde deg på stevne, sjå dine eigne kampar og få varsel når eit stevne startar.</p>
         <span id="thrower-search-slot"></span>
         <div id="thrower-error" class="alert alert-danger d-none mt-2"></div>
+        <p class="card-text text-muted small mt-3 mb-0">Har du ikkje delteke på eit stevne før? Ta
+           kontakt med klubben din — eller send e-post til
+           <a href="mailto:kontakt@hesteskokasting.no">kontakt@hesteskokasting.no</a>, så hjelper vi deg.</p>
       </div>
     </div>`;
 }

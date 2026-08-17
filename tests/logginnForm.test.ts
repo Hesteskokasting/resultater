@@ -156,7 +156,7 @@ describe("account page", () => {
     expect(mocks.signUp).not.toHaveBeenCalled();
   });
 
-  it("registers, signs straight in, and points the new user at the linking step", async () => {
+  it("registers, signs straight in, and lands on min side without a toast", async () => {
     switchButton().click();
     fill("ny@example.com", "hemmeleg1", "hemmeleg1");
     submitForm();
@@ -164,7 +164,8 @@ describe("account page", () => {
     await vi.waitFor(() => expect(location.hash).toBe("#/minside"));
     expect(mocks.signUp).toHaveBeenCalledWith("ny@example.com", "hemmeleg1");
     expect(mocks.signIn).toHaveBeenCalledWith("ny@example.com", "hemmeleg1");
-    expect(mocks.showToast.mock.calls[0]![0]).toContain("koble kontoen");
+    // The link card on min side already spells out the next step, at reading pace.
+    expect(mocks.showToast).not.toHaveBeenCalled();
   });
 
   it("falls back to login mode when the new account still needs e-mail confirmation", async () => {

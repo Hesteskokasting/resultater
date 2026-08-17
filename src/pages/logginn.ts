@@ -264,9 +264,8 @@ export async function render(container: HTMLElement): Promise<void> {
       return false;
     }
 
-    // The link to an utøvarprofil is the next step, and nothing on Min side says
-    // so before the user has read the card they land on.
-    showToast("Konto oppretta. Neste steg: koble kontoen til utøvarprofilen din.", "success");
+    // No toast about the next step: the link card the user lands on says it in
+    // full, and a toast that says the same thing is gone before it is read.
     location.hash = "#/minside";
     return true;
   }
