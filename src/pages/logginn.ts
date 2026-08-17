@@ -108,15 +108,20 @@ export async function render(container: HTMLElement): Promise<void> {
     (getRedirectParam() ? " Du blir sendt tilbake til sida du kom frå etter innlogging." : "");
   outer.appendChild(intro);
 
+  // The provider buttons carry the provider name only; applyMode writes the verb,
+  // so a user who asked to register is never told to "log in" with Google.
+  const socialButtons: HTMLButtonElement[] = [];
+
   function createSocialLoginButton(
-    label: string,
+    provider: string,
     className: string,
     signInFn: () => Promise<{ error: { message: string } | null }>,
   ): HTMLButtonElement {
     const button = document.createElement("button");
     button.type = "button";
     button.className = `btn ${className} w-100`;
-    button.textContent = label;
+    button.dataset.provider = provider;
+    socialButtons.push(button);
     button.addEventListener("click", async () => {
       button.disabled = true;
       const { error } = await signInFn();
@@ -136,22 +141,19 @@ export async function render(container: HTMLElement): Promise<void> {
     return button;
   }
 
-  // "Hald fram med", not "Logg inn med": the provider flow signs up a first-time
-  // user just as readily as it signs in a returning one, and "Logg inn" led
-  // people to believe they had to register somewhere else first.
   outer.appendChild(
-    createSocialLoginButton("Hald fram med Google", "btn-google", () =>
+    createSocialLoginButton("Google", "btn-google", () =>
       signInWithGoogle(getRedirectParam() ?? undefined),
     ),
   );
   // App Store guideline 4.8: offering Google sign-in on iOS requires offering
   // Apple sign-in too. Native-only flow, so the button is iOS-only.
   if (Capacitor.getPlatform() === "ios") {
-    outer.appendChild(
-      createSocialLoginButton("Hald fram med Apple", "btn-apple mt-2", signInWithApple),
-    );
+    outer.appendChild(createSocialLoginButton("Apple", "btn-apple mt-2", signInWithApple));
   }
 
+  // Only needed while the buttons say "Logg inn": that is where people concluded
+  // they had to register somewhere else first. Redundant in register mode.
   const socialHint = document.createElement("p");
   socialHint.className = "account-hint";
   socialHint.textContent = "Har du ikkje konto frå før, blir den oppretta automatisk.";
@@ -206,6 +208,11 @@ export async function render(container: HTMLElement): Promise<void> {
     submit.textContent = isRegister ? "Opprett konto" : "Logg inn";
     switchText.textContent = isRegister ? "Har du konto frå før?" : "Har du ikkje konto?";
     switchButton.textContent = isRegister ? "Logg inn" : "Opprett konto";
+
+    const verb = isRegister ? "Registrer deg med" : "Logg inn med";
+    for (const button of socialButtons) button.textContent = `${verb} ${button.dataset.provider}`;
+    socialHint.classList.toggle("d-none", isRegister);
+
     hideMessage();
   }
 

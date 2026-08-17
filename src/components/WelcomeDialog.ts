@@ -10,7 +10,7 @@ const SEEN_KEY = "welcome-seen";
 const BODY_HTML = `
   <div class="alert alert-warning">Sida er framleis under utvikling og kan difor innehalde feil.
      Det vil også kome ein del endringar fram til systemet blir tatt i bruk for fullt frå 2027.</div>
-  <p>Her finn du terminliste, live resultat, Norgescup, Norgesranking og rekordar.
+  <p>Terminliste, resultater og statistikk.
      Alt dette er ope for alle — du treng ingen konto for å følgje eit stevne.</p>
   <div class="card mb-3">
     <div class="card-body">
@@ -18,9 +18,8 @@ const BODY_HTML = `
       <p class="card-text">Opprett ein konto og koble den til utøvarprofilen din i registeret.
          Då kan du melde deg på stevne, sjå dine eigne kampar og få varsel når eit stevne startar.</p>
       <a class="btn btn-sm btn-primary" href="#/logginn">Logg inn eller opprett konto</a>
-      <p class="card-text text-muted small mt-3 mb-0">Har du ikkje delteke på eit stevne før, finst
-         du ikkje i utøvarregisteret enno, og har difor ingen profil å koble deg til. Klubben din
-         legg deg inn i registeret — eller send e-post til
+      <p class="card-text text-muted small mt-3 mb-0">Har du ikkje delteke på eit stevne før? Ta kontakt med klubben din
+          — eller send e-post til
          <a href="mailto:kontakt@hesteskokasting.no">kontakt@hesteskokasting.no</a>, så hjelper vi deg.</p>
     </div>
   </div>
@@ -28,7 +27,7 @@ const BODY_HTML = `
     <div class="card-body">
       <h6 class="card-title">Er du publikum?</h6>
       <p class="card-text">Då er du klar. Gå til terminlista for å følgje stevne som går no, eller
-         for å sjå resultat frå tidlegare stevne.</p>
+         for å sjå resultat og statistikk frå tidlegare stevne.</p>
       <a class="btn btn-sm btn-outline-primary" href="#/terminliste">Til terminliste og resultat</a>
     </div>
   </div>`;

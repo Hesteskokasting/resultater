@@ -44,6 +44,8 @@ const switchButton = () => el().querySelector<HTMLButtonElement>("#ac-switch")!;
 const repeatInput = () => el().querySelector<HTMLInputElement>("#ac-password2")!;
 const repeatRow = () => el().querySelector<HTMLElement>("#ac-repeat-row")!;
 const message = () => el().querySelector<HTMLElement>("#ac-message")!;
+const googleButton = () => el().querySelector<HTMLButtonElement>('[data-provider="Google"]')!;
+const hint = () => el().querySelector<HTMLElement>(".account-hint")!;
 
 function fill(email: string, password: string, repeat?: string): void {
   el().querySelector<HTMLInputElement>("#ac-email")!.value = email;
@@ -76,12 +78,21 @@ describe("account page", () => {
     expect(switchButton().textContent).toBe("Opprett konto");
   });
 
-  it("says the provider button also creates the account", () => {
-    const google = [...el().querySelectorAll("button")].find((b) =>
-      b.textContent?.includes("Google"),
-    )!;
-    expect(google.textContent).toBe("Hald fram med Google");
-    expect(el().querySelector(".account-hint")!.textContent).toContain("oppretta automatisk");
+  it("says the provider button also creates the account while it reads Logg inn", () => {
+    expect(googleButton().textContent).toBe("Logg inn med Google");
+    expect(hint().classList.contains("d-none")).toBe(false);
+    expect(hint().textContent).toContain("oppretta automatisk");
+  });
+
+  it("relabels the provider button in register mode, and drops the now-redundant hint", () => {
+    switchButton().click();
+
+    expect(googleButton().textContent).toBe("Registrer deg med Google");
+    expect(hint().classList.contains("d-none")).toBe(true);
+
+    switchButton().click();
+    expect(googleButton().textContent).toBe("Logg inn med Google");
+    expect(hint().classList.contains("d-none")).toBe(false);
   });
 
   it("starts in login mode with the repeat field out of the way and not required", () => {
