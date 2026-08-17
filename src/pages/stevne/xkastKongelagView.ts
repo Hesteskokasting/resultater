@@ -185,6 +185,8 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
 
   let state: CourtPhaseState | null = null;
   let channel: RealtimeChannel | null = null;
+  /** The coalesced reload — realtime and our own writes both queue through it. */
+  let scheduleReload: () => void = () => {};
   let bannerSlot: HTMLElement | null = null;
   const boundContainers = new WeakSet<HTMLElement>();
 
@@ -745,7 +747,7 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
     }
     s.swapSelectedId = null;
     showToast("Spelarane har bytt bane.", "success");
-    await reload(container);
+    scheduleReload();
   }
 
   // ── Score editing (admin) ───────────────────────────────────────────────────
@@ -801,7 +803,7 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
     ]);
   }
 
-  function openTotalEdit(container: HTMLElement, deltakerId: number): void {
+  function openTotalEdit(deltakerId: number): void {
     const s = state;
     if (!s) return;
     const found = findParticipant(deltakerId);
@@ -824,9 +826,10 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
             return false;
           }
           showToast("Totalsum lagra.", "success");
-          // Manual totals only touch the deltaker row; repaint without waiting
-          // for the realtime round-trip.
-          await reload(container);
+          // Manual totals only touch the deltaker row, so the realtime event may
+          // not reach us — queue the repaint rather than wait for it. It runs
+          // once the pad closes, collapsing with whatever else arrived.
+          scheduleReload();
           return true;
         },
       });
@@ -889,7 +892,7 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
 
       const totalCell = target.closest<HTMLElement>("[data-xk-total]");
       if (totalCell) {
-        openTotalEdit(container, Number(totalCell.dataset.xkTotal));
+        openTotalEdit(Number(totalCell.dataset.xkTotal));
         return;
       }
 
@@ -982,14 +985,11 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
         swapSelectedId: null,
         expandedDeltakerIds: new Set(),
       };
+      scheduleReload = coalesceReload(() => reload(container));
       renderView(container);
       bindActions(container);
-      channel = subscribeToCourtChanges(
-        id,
-        variant.channelName(id),
-        coalesceReload(() => reload(container)),
-        (deltakerId) =>
-          (state?.courts ?? []).some((c) => c.deltakarar.some((p) => p.id === deltakerId)),
+      channel = subscribeToCourtChanges(id, variant.channelName(id), scheduleReload, (deltakerId) =>
+        (state?.courts ?? []).some((c) => c.deltakarar.some((p) => p.id === deltakerId)),
       );
     } catch (err) {
       logError("xkastKongelagView.render", err);
