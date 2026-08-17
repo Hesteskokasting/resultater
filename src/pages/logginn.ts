@@ -11,15 +11,36 @@ import {
   signUp,
 } from "@/services/authService";
 import { escHtml } from "@/utils/escHtml";
-import { createTabs } from "@/components/Tabs";
 import { showToast } from "@/components/Toast";
 import { logError } from "@/utils/logError";
 
-function makePanel(html: string): HTMLElement {
-  const div = document.createElement("div");
-  div.innerHTML = html;
-  return div;
-}
+/**
+ * Log in and sign up are the same form in two modes rather than two tabs: the
+ * register tab went unnoticed, so newcomers concluded the app had no way in.
+ */
+type AccountMode = "login" | "register";
+
+const FORM_HTML = `
+  <form id="account-form">
+    <div class="mb-3">
+      <label class="form-label" for="ac-email">E-post</label>
+      <input type="email" class="form-control" id="ac-email" required autocomplete="email">
+    </div>
+    <div class="mb-3">
+      <label class="form-label" for="ac-password">Passord</label>
+      <input type="password" class="form-control" id="ac-password" required autocomplete="current-password">
+    </div>
+    <div class="mb-3 d-none" id="ac-repeat-row">
+      <label class="form-label" for="ac-password2">Gjenta passord</label>
+      <input type="password" class="form-control" id="ac-password2" autocomplete="new-password" minlength="8">
+    </div>
+    <div id="ac-message" class="alert d-none"></div>
+    <button type="submit" class="btn btn-primary w-100" id="ac-submit">Logg inn</button>
+    <p class="account-switch">
+      <span id="ac-switch-text"></span>
+      <button type="button" class="btn btn-link p-0 align-baseline" id="ac-switch"></button>
+    </p>
+  </form>`;
 
 function getHashQueryParam(name: string): string | null {
   return new URLSearchParams(location.hash.split("?")[1] ?? "").get(name);
@@ -59,38 +80,6 @@ export async function render(container: HTMLElement): Promise<void> {
       </div>`;
     return;
   }
-
-  const loginPanel = makePanel(`
-    <form id="login-form">
-      <div class="mb-3">
-        <label class="form-label" for="li-email">E-post</label>
-        <input type="email" class="form-control" id="li-email" required autocomplete="email">
-      </div>
-      <div class="mb-3">
-        <label class="form-label" for="li-password">Passord</label>
-        <input type="password" class="form-control" id="li-password" required autocomplete="current-password">
-      </div>
-      <div id="li-error" class="alert alert-danger d-none"></div>
-      <button type="submit" class="btn btn-primary w-100">Logg inn</button>
-    </form>`);
-
-  const registerPanel = makePanel(`
-    <form id="register-form">
-      <div class="mb-3">
-        <label class="form-label" for="reg-email">E-post</label>
-        <input type="email" class="form-control" id="reg-email" required autocomplete="email">
-      </div>
-      <div class="mb-3">
-        <label class="form-label" for="reg-password">Passord</label>
-        <input type="password" class="form-control" id="reg-password" required autocomplete="new-password" minlength="8">
-      </div>
-      <div class="mb-3">
-        <label class="form-label" for="reg-password2">Gjenta passord</label>
-        <input type="password" class="form-control" id="reg-password2" required autocomplete="new-password" minlength="8">
-      </div>
-      <div id="reg-error" class="alert alert-danger d-none"></div>
-      <button type="submit" class="btn btn-success w-100">Opprett konto</button>
-    </form>`);
 
   const outer = document.createElement("div");
   outer.className = "container py-4 account-container";
@@ -147,8 +136,11 @@ export async function render(container: HTMLElement): Promise<void> {
     return button;
   }
 
+  // "Hald fram med", not "Logg inn med": the provider flow signs up a first-time
+  // user just as readily as it signs in a returning one, and "Logg inn" led
+  // people to believe they had to register somewhere else first.
   outer.appendChild(
-    createSocialLoginButton("Logg inn med Google", "btn-google", () =>
+    createSocialLoginButton("Hald fram med Google", "btn-google", () =>
       signInWithGoogle(getRedirectParam() ?? undefined),
     ),
   );
@@ -156,97 +148,132 @@ export async function render(container: HTMLElement): Promise<void> {
   // Apple sign-in too. Native-only flow, so the button is iOS-only.
   if (Capacitor.getPlatform() === "ios") {
     outer.appendChild(
-      createSocialLoginButton(" Logg inn med Apple", "btn-apple mt-2", signInWithApple),
+      createSocialLoginButton("Hald fram med Apple", "btn-apple mt-2", signInWithApple),
     );
   }
+
+  const socialHint = document.createElement("p");
+  socialHint.className = "account-hint";
+  socialHint.textContent = "Har du ikkje konto frå før, blir den oppretta automatisk.";
+  outer.appendChild(socialHint);
 
   const divider = document.createElement("div");
   divider.className = "account-divider";
-  divider.textContent = "eller";
+  divider.textContent = "eller bruk e-post";
   outer.appendChild(divider);
 
-  outer.appendChild(
-    createTabs({
-      tabs: [
-        { id: "login", label: "Logg inn", panel: loginPanel },
-        { id: "register", label: "Registrer ny konto", panel: registerPanel },
-      ],
-    }),
-  );
+  const formWrap = document.createElement("div");
+  formWrap.innerHTML = FORM_HTML;
+  outer.appendChild(formWrap);
   container.replaceChildren(outer);
+
+  const form = container.querySelector<HTMLFormElement>("#account-form")!;
+  const emailInput = container.querySelector<HTMLInputElement>("#ac-email")!;
+  const passwordInput = container.querySelector<HTMLInputElement>("#ac-password")!;
+  const repeatRow = container.querySelector<HTMLElement>("#ac-repeat-row")!;
+  const repeatInput = container.querySelector<HTMLInputElement>("#ac-password2")!;
+  const message = container.querySelector<HTMLElement>("#ac-message")!;
+  const submit = container.querySelector<HTMLButtonElement>("#ac-submit")!;
+  const switchText = container.querySelector<HTMLElement>("#ac-switch-text")!;
+  const switchButton = container.querySelector<HTMLButtonElement>("#ac-switch")!;
+
+  let mode: AccountMode = "login";
+
+  function hideMessage(): void {
+    message.className = "alert d-none";
+    message.textContent = "";
+  }
+
+  function showMessage(text: string, tone: "danger" | "success"): void {
+    message.className = `alert alert-${tone}`;
+    message.textContent = text;
+  }
+
+  function applyMode(next: AccountMode): void {
+    mode = next;
+    const isRegister = next === "register";
+
+    repeatRow.classList.toggle("d-none", !isRegister);
+    // A hidden required field blocks submit on a control the user cannot see.
+    repeatInput.required = isRegister;
+    if (!isRegister) repeatInput.value = "";
+
+    passwordInput.autocomplete = isRegister ? "new-password" : "current-password";
+    // Only on sign-up: an existing password shorter than this must still get through.
+    if (isRegister) passwordInput.setAttribute("minlength", "8");
+    else passwordInput.removeAttribute("minlength");
+
+    submit.textContent = isRegister ? "Opprett konto" : "Logg inn";
+    switchText.textContent = isRegister ? "Har du konto frå før?" : "Har du ikkje konto?";
+    switchButton.textContent = isRegister ? "Logg inn" : "Opprett konto";
+    hideMessage();
+  }
+
+  applyMode("login");
+
+  switchButton.addEventListener("click", () => {
+    applyMode(mode === "login" ? "register" : "login");
+    (mode === "register" ? passwordInput : emailInput).focus();
+  });
 
   const prefillEmail = getHashQueryParam("email");
   if (prefillEmail) {
-    container.querySelector<HTMLInputElement>("#li-email")!.value = prefillEmail;
-    container.querySelector<HTMLInputElement>("#li-password")!.focus();
+    emailInput.value = prefillEmail;
+    passwordInput.focus();
   }
 
-  container.querySelector("#login-form")!.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const form = e.target as HTMLFormElement;
-    const error = container.querySelector<HTMLElement>("#li-error")!;
-    error.classList.add("d-none");
-    const button = form.querySelector<HTMLButtonElement>("[type=submit]")!;
-    button.disabled = true;
-
-    const { error: signInError } = await signIn(
-      container.querySelector<HTMLInputElement>("#li-email")!.value.trim(),
-      container.querySelector<HTMLInputElement>("#li-password")!.value,
-    );
-
-    if (signInError) {
-      error.textContent = signInErrorMessage(signInError);
-      error.classList.remove("d-none");
-      button.disabled = false;
-      return;
+  /** Resolves true once navigation is under way, so the caller leaves submit disabled. */
+  async function runLogin(email: string, password: string): Promise<boolean> {
+    const { error } = await signIn(email, password);
+    if (error) {
+      showMessage(signInErrorMessage(error), "danger");
+      return false;
     }
-
     location.hash = await resolvePostLoginDestination(getRedirectParam());
-  });
+    return true;
+  }
 
-  container.querySelector("#register-form")!.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const form = e.target as HTMLFormElement;
-    const error = container.querySelector<HTMLElement>("#reg-error")!;
-    // Reset the whole class list, not just d-none — the confirm-your-e-mail case
-    // below turns this same box green and a later failure must not stay green.
-    error.className = "alert alert-danger d-none";
-
-    const password = container.querySelector<HTMLInputElement>("#reg-password")!.value;
-    const password2 = container.querySelector<HTMLInputElement>("#reg-password2")!.value;
-    if (password !== password2) {
-      error.textContent = "Passorda er ikkje like.";
-      error.classList.remove("d-none");
-      return;
+  async function runRegister(email: string, password: string): Promise<boolean> {
+    if (password !== repeatInput.value) {
+      showMessage("Passorda er ikkje like.", "danger");
+      return false;
     }
-
-    const button = form.querySelector<HTMLButtonElement>("[type=submit]")!;
-    button.disabled = true;
-
-    const email = container.querySelector<HTMLInputElement>("#reg-email")!.value.trim();
 
     const { error: signUpError } = await signUp(email, password);
     if (signUpError) {
-      error.textContent = signUpError.message;
-      error.classList.remove("d-none");
-      button.disabled = false;
-      return;
+      showMessage(signUpError.message, "danger");
+      return false;
     }
 
     // A project that requires e-mail confirmation refuses this sign-in, and
     // #/minside would bounce straight back here without saying why.
     const { error: autoSignInError } = await signIn(email, password);
     if (autoSignInError) {
-      error.textContent =
-        "Kontoen er oppretta. Bekreft e-postadressa di, og logg deretter inn her.";
-      error.className = "alert alert-success";
-      button.disabled = false;
-      return;
+      applyMode("login");
+      showMessage(
+        "Kontoen er oppretta. Bekreft e-postadressa di, og logg deretter inn her.",
+        "success",
+      );
+      return false;
     }
 
     // The link to an utøvarprofil is the next step, and nothing on Min side says
     // so before the user has read the card they land on.
     showToast("Konto oppretta. Neste steg: koble kontoen til utøvarprofilen din.", "success");
     location.hash = "#/minside";
+    return true;
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    hideMessage();
+    submit.disabled = true;
+
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
+    const navigating =
+      mode === "register" ? await runRegister(email, password) : await runLogin(email, password);
+
+    if (!navigating) submit.disabled = false;
   });
 }

@@ -32,6 +32,23 @@
   background: var(--primaer-hover);
 }
 
+/* That the provider flow also creates the account — the button label alone was
+   read as "you must have registered somewhere else first". */
+.account-hint {
+  margin: 0.5rem 0 0;
+  color: var(--tekst-3);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+/* Log in ⇄ Opprett konto, replacing the tab pair nobody noticed. */
+.account-switch {
+  margin: 1rem 0 0;
+  color: var(--tekst-2);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
 .account-divider {
   display: flex;
   align-items: center;
