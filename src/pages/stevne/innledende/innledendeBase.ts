@@ -48,7 +48,6 @@ import { logError } from "@/utils/logError";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import {
   getInitialRoundMatches,
-  hasMatchRounds,
   confirmMatch as confirmMatchService,
   toConfirmSide,
   subscribeToMatchChanges,
@@ -102,6 +101,8 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
   let pendingAnimationIds = new Set<number>();
   /** kamp_spelar ids in view — scopes the unfiltered kamp_omgang subscription. */
   const ownedSpelarIds = new Set<number>();
+  /** The realtime handler's coalesced reload — our own writes queue through it too. */
+  let scheduleReload: (() => void) | null = null;
 
   async function render(
     container: HTMLElement,
@@ -259,7 +260,6 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
     const playerIds = [...(side1?.members ?? []), ...(side2?.members ?? [])].map((m) => m.id);
 
     const onScoreClick = async () => {
-      const hasRounds = playerIds.length ? await hasMatchRounds(playerIds) : false;
       await showScoreEditor({
         side1Name: sideNameHtml(side1, false),
         side2Name: sideNameHtml(side2, false),
@@ -268,7 +268,7 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
         baneLabel: `Bane ${kamp.bane_nummer ?? "?"}`,
         rundeLabel: `Runde ${kamp.runde_nummer}`,
         playerIds,
-        hasRounds,
+        hasRounds: kamp.spelarar.some((s) => (s.omgangar?.length ?? 0) > 0),
         logPrefix: variant.logPrefix,
         // The scores go in with the confirm below — writing them here first would
         // only have them read back and rewritten.
@@ -342,6 +342,7 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
         channel = null;
       }
     });
+    scheduleReload = onChange;
     channel = subscribeToMatchChanges(stevneid, variant.channelName(stevneid), onChange, (id) =>
       ownedSpelarIds.has(id),
     );
@@ -374,7 +375,10 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
       showToast("DB-feil ved bekreft: " + errorMessage(error), "error");
       return false;
     }
-    await loadAndRender(container, stevneid);
+    // Queued, not awaited: the numberpad closes on the write, and this reload
+    // collapses into the realtime burst our own write is about to trigger.
+    if (scheduleReload) scheduleReload();
+    else await loadAndRender(container, stevneid);
     return true;
   }
 

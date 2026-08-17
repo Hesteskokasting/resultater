@@ -98,17 +98,6 @@ export async function getInitialRoundMatches(
   return { data: data ?? [], error };
 }
 
-export async function hasMatchRounds(spelarIds: number[]): Promise<boolean> {
-  if (!spelarIds.length) return false;
-  const { data, error } = await supabase
-    .from("kamp_omgang")
-    .select("id")
-    .in("kamp_spelar_id", spelarIds)
-    .limit(1);
-  if (error) logError("hasMatchRounds", error);
-  return (data?.length ?? 0) > 0;
-}
-
 export async function deleteMatchRounds(spelarIds: number[]): Promise<{ error: unknown }> {
   if (!spelarIds.length) return { error: null };
   const { error } = await supabase.from("kamp_omgang").delete().in("kamp_spelar_id", spelarIds);
@@ -277,8 +266,9 @@ type MatchPlayerUpdateValues = { score_poeng: number; kamp_poeng: number; antall
  * One match side at confirmation. playerIds are kamp_spelar ids ordered by
  * posisjon (rep first): 1 for Singel, 2 for Par/Mix. baseScore is the directly
  * entered side total, used when the match has no omgang rows — leave it out and
- * the confirm reads the stored score instead. kasterid is the rep's, needed only
- * when the losing side has to be reported to the RPC.
+ * the confirm reads the stored score instead. Give every side one and the confirm
+ * skips its reads entirely. kasterid is the rep's, needed only when the losing
+ * side has to be reported to the RPC.
  */
 export type MatchSideConfirm = { playerIds: number[]; baseScore?: number; kasterid?: number };
 
@@ -411,7 +401,11 @@ async function _persistMatchScores(params: {
   let roundData: RoundScoreRow[] = [];
   let resolvedSides = sides;
 
-  if (!erWalkover) {
+  // A caller that hands over every side total has the final word — the omgangar
+  // it replaces were deleted on the way in, so there is nothing left to read.
+  const callerKnowsTotals = sides.every((side) => !side || side.baseScore != null);
+
+  if (!erWalkover && !callerKnowsTotals) {
     const { data: fetched, error: omgErr } = await supabase
       .from("kamp_omgang")
       .select("kamp_spelar_id, score, antall_ringer")
@@ -423,7 +417,7 @@ async function _persistMatchScores(params: {
     roundData = fetched ?? [];
 
     // Sides that carry no baseScore of their own keep whatever is stored
-    if (!roundData.length && sides.some((side) => side && side.baseScore == null)) {
+    if (!roundData.length) {
       const { data: fresh } = await supabase
         .from("kamp_spelar")
         .select("id, score_poeng")
