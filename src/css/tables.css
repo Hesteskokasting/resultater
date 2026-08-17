@@ -9,6 +9,25 @@
   -webkit-overflow-scrolling: touch;
 }
 
+/* The default table of components/Table.ts. It shares its base metrics with
+   .res-table but not its behaviour — .app-table zebra-stripes every fourth row,
+   which the result table must not inherit — so the two carry their own rules
+   rather than a shared selector that would tie this layer to a component. */
+.app-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.app-thead th {
+  background: var(--primaer);
+  color: var(--primaer-text);
+  text-align: left;
+  padding: 5px 10px;
+  font-size: 0.8rem;
+  letter-spacing: 0.03em;
+}
+
 .app-table tbody tr {
   background: var(--flate);
 }

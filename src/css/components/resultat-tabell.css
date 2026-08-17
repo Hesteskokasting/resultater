@@ -254,8 +254,7 @@
 
 /* Desktop result table */
 
-.res-table,
-.app-table {
+.res-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.85rem;
@@ -269,8 +268,7 @@
   padding: 6px 10px;
 }
 
-.res-thead-columns th,
-.app-thead th {
+.res-thead-columns th {
   background: var(--primaer);
   color: var(--primaer-text);
   text-align: left;
