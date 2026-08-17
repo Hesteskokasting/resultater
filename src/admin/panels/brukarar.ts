@@ -1,11 +1,9 @@
 import { confirmDialog } from "@/components/ConfirmDialog";
-import { createEmptyState } from "@/components/EmptyState";
-import { createErrorBanner } from "@/components/ErrorBanner";
-import { createLoadingState } from "@/components/LoadingState";
+import { createErrorBanner, createLoadingState, createEmptyState } from "@/components/states";
 import { createSearchInput } from "@/components/SearchInput";
 import { showToast } from "@/components/Toast";
 import { createEl } from "@/utils/createEl";
-import { errMsg } from "@/utils/adminForms";
+import { errorMessage } from "@/utils/errorMessage";
 import { formatDate } from "@/utils/shared";
 import { throwerName } from "@/utils/kaster";
 import { getAllUsers, updateUserRole } from "@/services/adminService";
@@ -43,7 +41,7 @@ export async function render(el: HTMLElement): Promise<void> {
 
   const [{ data, error }, auth] = await Promise.all([getAllUsers(), getUser()]);
   if (error) {
-    el.replaceChildren(createErrorBanner(errMsg(error)));
+    el.replaceChildren(createErrorBanner(errorMessage(error)));
     return;
   }
   if (!data.length) {
@@ -107,7 +105,7 @@ export async function render(el: HTMLElement): Promise<void> {
     alert.hide();
     const { error: deleteError } = await deleteUserAccount(user.id);
     if (deleteError) {
-      alert.show(errMsg(deleteError));
+      alert.show(errorMessage(deleteError));
       return;
     }
     showToast("Brukarkontoen er sletta.", "success");
@@ -147,7 +145,7 @@ export async function render(el: HTMLElement): Promise<void> {
               alert.hide();
               const { error: writeError } = await updateUserRole(user.id, select.value);
               if (writeError) {
-                alert.show(errMsg(writeError));
+                alert.show(errorMessage(writeError));
                 return;
               }
               user.rolle = select.value;

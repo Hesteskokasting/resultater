@@ -38,7 +38,7 @@ export function orderKongelagSeeding(rows: KongelagSeedingRow[]): number[] {
  * scores for them, so the field is always split across at least this many
  * puljer — independent of the lane count.
  */
-export const KONGELAG_MIN_PULJER = 2;
+const KONGELAG_MIN_PULJER = 2;
 
 /**
  * Assigns seeded kasterids to Kongelag courts: puljer sized by calcPuljeSizes,

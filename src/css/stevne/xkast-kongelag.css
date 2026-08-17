@@ -1,0 +1,343 @@
+/* Rendered by pages/stevne/faseView.ts, pages/stevne/innledende/innledendeView.ts, pages/stevne/xkastKongelagView.ts. */
+
+.match-button {
+  background: transparent;
+  border: 0.5px solid var(--kant-2);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  color: var(--tekst);
+  cursor: pointer;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+.match-button + .match-button {
+  margin-left: 4px;
+}
+
+.match-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.match-button-primary {
+  background: var(--primaer);
+  color: var(--primaer-text);
+  border-color: transparent;
+}
+
+.match-button-success {
+  background: #4caf50;
+  color: #fff;
+  border-color: transparent;
+}
+
+.match-confirmed-indicator {
+  color: var(--kamp-stripe-ferdig);
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+/* ── X-kast/Kongelag: zebra tint per bane group ── */
+/* Parity is set on every <tr> of a court by the render logic (court index
+   within its pulje), NOT via :nth-child — a solo bane would otherwise desync
+   the stripe. The left-border status accent is a separate channel. */
+.match-table tbody tr.bane-group {
+  --rad-bg: var(--bane-tint-a);
+}
+
+.match-table tbody tr.bane-group--b {
+  --rad-bg: var(--bane-tint-b);
+}
+
+/* Each bane group's lane cell spans the whole court; forcing a min block
+   height on a solo bane gives a lone kastar the visual weight of a pair. */
+.bane-lane-cell--solo {
+  height: 3.75rem;
+}
+
+/* The status stripe runs the height of the whole bane group here, not a single
+   row as in the kamp tables, so it carries more weight. */
+.match-row-desktop > td.bane-lane-cell {
+  border-left-width: 5px;
+  padding-left: 7px;
+}
+
+/* Bane total: the row's headline figure, centred in its own column. */
+.bane-tot-cell {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+/* The bane boundary uses a per-theme divider colour so its weight matches
+   across themes (--kant reads heavier on the light surface). */
+.match-table tbody tr.bane-group > td {
+  border-bottom-color: var(--bane-divider);
+}
+
+/* Faint separator between the kastar of one bane, so two players don't run
+   together, without competing with the boundary at the court's base. It applies
+   to any in-group row — a following row that is not .match-row-desktop is a
+   second kastar or a drill-down, never the start of the next court — and skips
+   the rowspanned lane cell, which draws the court boundary alone. A solo bane
+   has no following in-group row, so its boundary is left intact. */
+.match-table tbody tr.bane-group:has(+ tr:not(.match-row-desktop)) > td:not([rowspan]) {
+  border-bottom-color: color-mix(in srgb, var(--bane-divider) 45%, transparent);
+}
+
+/* Dark only, same trick as the score chips: the faint divider washes out on the
+   lighter zebra row, so there it borrows the other row's background instead. */
+:root:not([data-theme="light"])
+  .match-table
+  tbody
+  tr.bane-group--b:has(+ tr:not(.match-row-desktop))
+  > td:not([rowspan]) {
+  border-bottom-color: var(--bane-tint-a);
+}
+
+/* ── X-kast: byte spelarar mellom banar (tap–tap) ── */
+
+.court-swap-cell {
+  cursor: pointer;
+}
+
+.court-swap-selected {
+  background: var(--primaer-aktiv);
+  outline: 2px solid var(--primaer-selektert);
+  outline-offset: -2px;
+}
+
+/* ── X-kast/Kongelag: admin score editing ── */
+
+.xk-editable-cell {
+  cursor: pointer;
+}
+
+.xk-editable-cell:hover {
+  background: var(--primaer-hover);
+}
+
+/* ── X-kast: per-player omgang detail (row-level toggle) ── */
+
+/* Chevron in the name cell; rotates to point down when the table is open. */
+.bane-name-cell {
+  padding-block: 4px;
+}
+
+.bane-detail-toggle,
+.bane-name-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 4px;
+  background: none;
+  border: none;
+  color: var(--tekst);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.bane-detail-chevron {
+  display: inline-block;
+  width: 0;
+  height: 0;
+  border-left: 6px solid currentColor;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+}
+
+[aria-expanded="true"] .bane-detail-chevron {
+  transform: rotate(90deg);
+}
+
+/* The detail row's own <td> shows the court's zebra tint (via --rad-bg) as a
+   frame; the panel inside sits recessed so it reads as nested. */
+.xk-detail-row > td {
+  padding: 6px 10px;
+  border-bottom: 0.5px solid var(--bane-divider);
+}
+
+.bane-detail-panel {
+  background: var(--bane-detail-bg);
+  border-radius: 8px;
+  padding: 6px 8px;
+  overflow-x: auto;
+}
+
+.bane-detail-table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--tekst);
+}
+
+.bane-detail-table th,
+.bane-detail-table td {
+  border: none;
+  padding: 4px 8px;
+  background: transparent;
+  white-space: nowrap;
+}
+
+/* Column + row headers: readable in both themes (was too low-contrast before). */
+.bane-detail-table thead th {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--tekst-2);
+}
+
+.bane-detail-table tbody tr + tr th,
+.bane-detail-table tbody tr + tr td {
+  border-top: 0.5px solid var(--bane-divider);
+}
+
+.bane-detail-runde,
+.bane-detail-runde-head {
+  text-align: left;
+}
+
+.bane-detail-runde {
+  font-weight: 700;
+  color: var(--tekst);
+}
+
+.bane-detail-sum,
+.bane-detail-sum-head {
+  text-align: center;
+}
+
+.bane-detail-sum {
+  font-weight: 700;
+  color: var(--tekst);
+}
+
+/* Round ringer total — secondary to the poeng SUM, still readable. */
+.bane-detail-ringer-sum {
+  color: var(--tekst);
+}
+
+.bane-detail-poeng {
+  font-weight: 600;
+  color: var(--tekst);
+}
+
+.bane-detail-ringer {
+  margin-left: 3px;
+  font-size: 0.8em;
+  color: var(--tekst-2);
+}
+
+.bane-detail-dash {
+  color: var(--tekst-3);
+}
+
+/* Divider opening the summary columns (R/%/… ) in the court and standing
+   tables. th prefix needed to win over .stevne-thead th on specificity. */
+.match-table td.table-summary-start,
+.match-table th.table-summary-start {
+  border-left: 1px solid var(--kant-2);
+}
+
+.bane-detail-cell-btn {
+  min-width: 32px;
+  padding: 2px 6px;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.bane-detail-cell-btn:hover {
+  background: var(--primaer-hover);
+}
+
+/* Ringere, ringer percentage and the bane-level actions — everything the main
+   row hands off to the expanded panel. */
+.bane-detail-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 2px 4px 6px;
+}
+
+.bane-detail-stat {
+  color: var(--tekst);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.bane-detail-stat-key {
+  margin-right: 4px;
+  color: var(--tekst-3);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.bane-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-left: auto;
+}
+
+/* Main-row score chips (X-kast runder, Kongelag omganger): five per line, so
+   ten of them stack as two rows. The track is capped rather than fractional —
+   a wide screen gets more whitespace, not fatter chips — but may shrink on a
+   phone so five chips plus the name column still fit. */
+.bane-omgang-cell {
+  --chip-w: minmax(26px, 52px);
+  padding: 4px 6px !important;
+}
+
+/* Right-aligned so the chips sit next to the total instead of drifting away
+   from it; the slack a wide screen leaves lands before them, not after. */
+.bane-omgang-grid {
+  display: grid;
+  justify-content: end;
+  gap: 4px;
+}
+
+.bane-omgang-chip {
+  min-width: 0;
+  padding: 5px 2px;
+  background: var(--flate-2);
+  border: 1px solid var(--kant);
+  border-radius: 8px;
+  color: var(--tekst);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+button.bane-omgang-chip {
+  cursor: pointer;
+}
+
+/* Dark only: on the darker zebra row the shared border colour disappears into
+   the tint, so the chip borrows the other row's background to keep its edge
+   visible. In light mode that background is near-white and would erase the
+   border instead, so --kant stays. */
+:root:not([data-theme="light"]) .bane-group--b .bane-omgang-chip {
+  border-color: var(--bane-tint-a);
+}
+
+button.bane-omgang-chip:hover {
+  border-color: var(--primaer);
+}
+
+.bane-omgang-chip.is-empty {
+  color: var(--tekst-3);
+  font-weight: 400;
+}

@@ -1,0 +1,98 @@
+/* Rendered by admin/forms/kasterForm.ts, admin/forms/klubbForm.ts, admin/panels/klubbar.ts and 3 more. */
+
+/* Dims the page behind the slideout. Kept above .sidepanel so its .aktiv rule
+   still precedes the panel's. */
+.meny-bakgrunn {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 200;
+}
+
+.meny-bakgrunn.aktiv {
+  display: block;
+}
+
+.sidepanel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100%;
+  /* Widen by the landscape notch inset so the usable area stays 260px */
+  width: calc(260px + var(--sa-right));
+  background: var(--flate);
+  box-shadow: -2px 0 12px rgba(0, 0, 0, 0.3);
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+  z-index: 300;
+  overflow-y: auto;
+  padding-top: var(--sa-top);
+  padding-right: var(--sa-right);
+  /* The last menu entries must clear the Android nav bar / home indicator */
+  padding-bottom: var(--sa-bottom);
+}
+
+.sidepanel.aktiv {
+  transform: translateX(0);
+}
+
+.meny-liste {
+  list-style: none;
+  padding: 16px 0;
+}
+
+.meny-liste li a {
+  display: block;
+  padding: 12px 20px;
+  font-size: 0.95rem;
+  color: var(--lenke);
+  text-decoration: none;
+}
+
+.meny-liste li a:hover {
+  background: var(--primaer-hover);
+}
+
+.meny-skillelinje {
+  border-top: 1px solid var(--kant);
+  margin: 8px 0;
+}
+
+.menu-version {
+  padding: 12px 20px;
+  font-size: 0.75rem;
+  color: var(--tekst-3);
+}
+
+.meny-dropdown-knapp {
+  display: block;
+  width: 100%;
+  padding: 12px 20px;
+  font-size: 0.95rem;
+  color: var(--lenke);
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.meny-dropdown-knapp:hover {
+  background: var(--primaer-hover);
+}
+
+.meny-chevron {
+  float: right;
+  font-size: 0.75rem;
+  line-height: 1.6;
+}
+
+.meny-undermeny {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.meny-undermeny li a {
+  padding-left: 36px;
+}

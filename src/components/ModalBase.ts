@@ -24,6 +24,21 @@ export interface ModalLifecycle {
   close(el: HTMLElement): void;
 }
 
+const BACKDROP_Z = 1050;
+const MODAL_Z = 1055;
+const STACK_STEP = 20;
+
+/**
+ * A dialog can open on top of another one (delete confirm over the admin form).
+ * Bootstrap gives every `.modal` the same z-index, so the newest overlay would
+ * only win when it also comes last in the DOM — and a cached dialog element
+ * (ConfirmDialog reuses one) sits wherever it was first appended. Stack
+ * explicitly instead, one step per already-open dialog.
+ */
+function stackLevel(el: HTMLElement): number {
+  return [...document.querySelectorAll<HTMLElement>(".modal.show")].filter((m) => m !== el).length;
+}
+
 /** Backdrop + show/hide + Escape-key handling shared by the dialog components. */
 export function createModalLifecycle(): ModalLifecycle {
   let backdrop: HTMLElement | null = null;
@@ -31,11 +46,15 @@ export function createModalLifecycle(): ModalLifecycle {
 
   return {
     open(el, { focus, onEscape }) {
+      const level = stackLevel(el);
+
       backdrop = document.createElement("div");
       backdrop.className = "modal-backdrop show";
+      backdrop.style.zIndex = String(BACKDROP_Z + level * STACK_STEP);
       document.body.appendChild(backdrop);
       document.body.classList.add("modal-open");
 
+      el.style.zIndex = String(MODAL_Z + level * STACK_STEP);
       el.style.display = "block";
       el.classList.add("show");
       if (focus) el.querySelector<HTMLElement>(focus)?.focus();

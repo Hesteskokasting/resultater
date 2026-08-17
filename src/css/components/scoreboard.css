@@ -1,0 +1,378 @@
+/* Rendered by components/Scoreboard.ts. */
+
+.sb-wrap {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.sb-wrap--edit-mode {
+  outline: 3px solid var(--danger, #dc3545);
+  outline-offset: -3px;
+}
+
+.sb-spelar-panel {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 8px;
+  gap: 8px;
+  border-right: 1px solid var(--sb-border-subtle);
+}
+
+.sb-spelar-panel:last-child {
+  border-right: none;
+}
+
+/* All sb font/button sizes are wrapped in min(<width clamp>, Xvh): the panel
+   centers content with overflow:hidden, so on short viewports (e.g. 1600x700)
+   width-based sizes overflow the panel height and clip name/buttons. The vh
+   term only wins when height is the constraint. */
+
+.sb-spelar-navn {
+  font-size: min(clamp(2.1rem, 4vw, 2.2rem), 5vh);
+  font-weight: bold;
+  color: var(--sb-positiv);
+  text-align: center;
+}
+
+.sb-spelar-navn--starter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Invisible right mirror keeps text optically centered when dot is present */
+.sb-spelar-navn--starter::before,
+.sb-spelar-navn--starter::after {
+  content: "";
+  display: block;
+  flex-shrink: 0;
+  width: 0.5em;
+  height: 0.5em;
+}
+
+.sb-spelar-navn--starter::before {
+  background: color-mix(in srgb, var(--sb-positiv) 70%, white);
+  border-radius: 50%;
+  box-shadow: 0 0 0.5em 0.15em color-mix(in srgb, var(--sb-positiv) 35%, transparent);
+  margin-right: 0.4em;
+}
+
+.sb-spelar-navn--starter::after {
+  visibility: hidden;
+  margin-left: 0.4em;
+}
+
+/* Par/Mix: two names per side — smaller so the label fits on one line */
+.sb-spelar-navn--par {
+  font-size: min(clamp(1.3rem, 3.2vw, 1.7rem), 4vh);
+  line-height: 1.15;
+}
+
+.sb-score {
+  font-size: min(clamp(4rem, 18vw, 9rem), 13vh);
+  font-weight: bold;
+  line-height: 1;
+}
+
+.sb-ringer-info {
+  margin: 0;
+  font-size: min(clamp(0.85rem, 2.5vw, 1.1rem), 3vh);
+  color: var(--sb-tekst-subtil);
+  text-align: center;
+}
+
+.sb-knappar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 6px;
+}
+
+.sb-poeng-btn {
+  width: min(clamp(54px, 14vw, 90px), 9vh);
+  height: min(clamp(54px, 14vw, 90px), 9vh);
+  font-size: min(clamp(1.4rem, 5vw, 2.4rem), 4vh);
+  font-weight: bold;
+  background: var(--sb-knapp-bg);
+  color: var(--sb-knapp-tekst);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: opacity 0.1s;
+}
+
+.sb-poeng-btn:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+
+.sb-poeng-btn.sb-valgt {
+  background: var(--sb-positiv);
+  color: var(--sb-knapp-tekst);
+}
+
+/* ── Angre-rad (under spelar-panel, over botn-knapp) ── */
+
+.sb-angre-rad {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 6px 12px;
+  flex-shrink: 0;
+}
+
+.sb-angre-btn {
+  background: transparent;
+  border: 1px solid var(--sb-border-btn);
+  color: var(--sb-tekst);
+  border-radius: 6px;
+  padding: 4px 14px;
+  font-size: clamp(1rem, 3vw, 1.3rem);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.sb-angre-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.sb-avbryt-btn {
+  background: transparent;
+  border: 1px solid var(--sb-border-btn);
+  color: var(--sb-tekst);
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: clamp(0.85rem, 2.5vw, 1rem);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.sb-avbryt-btn:hover {
+  opacity: 0.75;
+}
+
+/* ── Botn-knapp (Neste / Bekreft) ── */
+
+.sb-neste-btn {
+  display: block;
+  width: 100%;
+  padding: clamp(12px, 3vh, 22px);
+  font-size: clamp(1.2rem, 4vw, 1.8rem);
+  font-weight: bold;
+  background: var(--sb-knapp-bg);
+  color: var(--sb-knapp-tekst);
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.sb-neste-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.sb-neste-btn--bekreft {
+  background: var(--sb-bekreft-bg);
+  color: var(--sb-bekreft-tekst);
+}
+
+.sb-neste-btn--bekreft:hover:not(:disabled) {
+  background: var(--sb-bekreft-hover);
+}
+
+@media (min-width: 801px) {
+  .sb-score {
+    font-size: min(clamp(8rem, 20vw, 26rem), 38vh);
+  }
+  .sb-poeng-btn {
+    width: min(clamp(70px, 8vw, 120px), 13vh);
+    height: min(clamp(70px, 8vw, 120px), 13vh);
+    font-size: min(clamp(1.8rem, 3.5vw, 3.5rem), 5vh);
+  }
+  .sb-spelar-navn {
+    font-size: min(clamp(2rem, 4vw, 5rem), 8vh);
+  }
+  .sb-spelar-navn--par {
+    font-size: min(clamp(1.6rem, 2.2vw, 2.8rem), 6vh);
+  }
+  .sb-ringer-info {
+    font-size: min(clamp(1rem, 2vw, 2rem), 4vh);
+  }
+}
+
+@media (min-width: 1500px) {
+  .sb-score {
+    font-size: min(clamp(14rem, 22vw, 32rem), 40vh);
+  }
+  .sb-poeng-btn {
+    width: min(clamp(100px, 9vw, 160px), 14vh);
+    height: min(clamp(100px, 9vw, 160px), 14vh);
+    font-size: min(clamp(2.5rem, 4vw, 5rem), 5vh);
+  }
+  .sb-spelar-navn {
+    font-size: min(clamp(3rem, 5vw, 7rem), 8vh);
+  }
+  .sb-spelar-navn--par {
+    font-size: min(clamp(2rem, 2.6vw, 3.8rem), 6vh);
+  }
+  .sb-ringer-info {
+    font-size: min(clamp(1.5rem, 2.5vw, 3rem), 4vh);
+  }
+}
+
+@media (max-width: 800px) {
+  .sb-wrap {
+    flex-direction: column;
+  }
+  .sb-spelar-panel {
+    border-right: none;
+    border-bottom: 1px solid var(--sb-border-subtle);
+  }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .sb-wrap {
+    flex-direction: row;
+  }
+  .sb-spelar-panel {
+    padding: 4px 8px;
+    gap: 4px;
+    border-right: 1px solid var(--sb-border-subtle);
+    border-bottom: none;
+  }
+  .sb-spelar-panel:last-child {
+    border-right: none;
+  }
+  .sb-spelar-navn {
+    font-size: clamp(1.5rem, 8vh, 3rem);
+  }
+  .sb-spelar-navn--par {
+    font-size: clamp(1.1rem, 5vh, 1.8rem);
+  }
+  .sb-score {
+    font-size: clamp(4rem, 32vh, 12rem);
+  }
+  .sb-ringer-info {
+    display: none;
+  }
+  .sb-knappar {
+    width: 90%;
+    gap: 4px;
+    flex-wrap: nowrap;
+  }
+  .sb-poeng-btn {
+    flex: 1;
+    width: auto;
+    height: clamp(44px, 13vh, 80px);
+    font-size: clamp(1.1rem, 5vh, 1.8rem);
+  }
+  .sb-angre-rad {
+    padding: 2px 8px;
+  }
+  .sb-neste-btn {
+    padding: clamp(6px, 1.5vh, 10px);
+    font-size: clamp(0.9rem, 2.5vh, 1.1rem);
+  }
+}
+
+/* ── 3-spelar scoreboard ── */
+
+.sb-wrap--3p .sb-spelar-panel--vann {
+  background: var(--sb-vann-bg);
+  color: var(--sb-vann-tekst);
+  /* Name and plass badge read --sb-positiv, which is too dark on the green bg
+     in light theme — remap it inside the winner panel only */
+  --sb-positiv: var(--sb-vann-positiv);
+}
+
+.sb-plass-badge {
+  font-size: clamp(1rem, 2.5vw, 1.5rem);
+  font-weight: bold;
+  color: var(--sb-positiv);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+@media (max-width: 800px) {
+  .sb-wrap--3p {
+    flex-direction: row !important;
+  }
+  .sb-wrap--3p .sb-spelar-panel {
+    border-right: 1px solid var(--sb-border-subtle);
+    border-bottom: none;
+  }
+  .sb-wrap--3p .sb-spelar-panel:last-child {
+    border-right: none;
+  }
+}
+
+.sb-wrap--3p .sb-poeng-btn {
+  width: min(clamp(42px, 9vw, 68px), 9vh);
+  height: min(clamp(42px, 9vw, 68px), 9vh);
+  font-size: min(clamp(1rem, 3.5vw, 1.7rem), 4vh);
+}
+
+@media (min-width: 801px) {
+  .sb-wrap--3p .sb-poeng-btn {
+    width: min(clamp(50px, 5vw, 85px), 12vh);
+    height: min(clamp(50px, 5vw, 85px), 12vh);
+    font-size: min(clamp(1.3rem, 2.3vw, 2.5rem), 5vh);
+  }
+}
+
+.sb-wrap--3p .sb-score {
+  font-size: min(clamp(3rem, 10vw, 6rem), 13vh);
+}
+
+@media (min-width: 801px) {
+  .sb-wrap--3p .sb-score {
+    font-size: min(clamp(5rem, 12vw, 18rem), 36vh);
+  }
+}
+
+/* Fixed-height column name block: wrapping names and the starter dot must
+   not push the score/buttons out of alignment across the three panels */
+.sb-wrap--3p .sb-spelar-navn {
+  font-size: min(clamp(1.2rem, 2.5vw, 2rem), 5vh);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.2;
+  min-height: 4.2em; /* two text lines + dot row above and mirror below */
+}
+
+/* Panels are narrow — the starter dot sits above the name; the invisible
+   mirror below keeps the text vertically centered so scores stay aligned */
+.sb-wrap--3p .sb-spelar-navn--starter::before {
+  margin-right: 0;
+  margin-bottom: 0.35em;
+}
+
+.sb-wrap--3p .sb-spelar-navn--starter::after {
+  margin-left: 0;
+  margin-top: 0.35em;
+}
+
+.sb-wrap--3p .sb-spelar-navn--par {
+  font-size: min(clamp(1rem, 1.8vw, 1.5rem), 4vh);
+}
+
+@media (min-width: 801px) {
+  .sb-wrap--3p .sb-spelar-navn {
+    font-size: min(clamp(1.8rem, 2.5vw, 4rem), 7vh);
+  }
+  .sb-wrap--3p .sb-spelar-navn--par {
+    font-size: min(clamp(1.3rem, 1.8vw, 2.6rem), 5vh);
+  }
+}

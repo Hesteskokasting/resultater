@@ -32,12 +32,10 @@ export async function renderFormRoute(
       container,
       heading: props.heading(id === undefined),
       wrapperClass: props.wrapperClass,
+      // The form's toast outlives the navigation, so a fresh entity can go
+      // straight to its edit route.
       onSaved: (savedId, created) => {
-        if (!created) return;
-        // A beat so the success message is readable before the URL changes.
-        setTimeout(() => {
-          location.hash = props.createdHash(savedId);
-        }, 1500);
+        if (created) location.hash = props.createdHash(savedId);
       },
       onDeleted: props.deletedHash
         ? () => {

@@ -1,0 +1,116 @@
+/* Rendered by pages/stevne/stevne-stats.ts. */
+
+/* ── Stevne-statistikk ────────────────────────────────────────────────────── */
+
+.stats-side {
+  padding-bottom: 40px;
+}
+
+.stats-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  cursor: grab;
+  user-select: none;
+  max-width: 650px;
+}
+
+.stats-table-wrap.is-grabbing {
+  cursor: grabbing;
+}
+
+@media (min-width: 650px) {
+  .stats-table-wrap,
+  .stats-table-wrap.is-grabbing {
+    cursor: default;
+  }
+}
+
+.stats-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.stats-table thead tr {
+  background: var(--primaer);
+  color: var(--primaer-text);
+}
+
+.stats-table th {
+  padding: 6px 10px;
+  font-weight: 600;
+  font-size: 0.78rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  border-bottom: 2px solid var(--kant);
+}
+
+.stats-table tbody tr {
+  background: var(--flate);
+}
+
+.stats-table tbody tr:nth-child(even) {
+  background: var(--flate-2);
+}
+
+.stats-table td {
+  padding: 5px 10px;
+  color: var(--tekst);
+  border-bottom: 1px solid var(--kant);
+}
+
+.stats-th-name,
+.stats-td-name {
+  text-align: left;
+  min-width: 120px;
+}
+
+.stats-th-num,
+.stats-td-num {
+  text-align: right;
+}
+
+.stats-th-diff,
+.stats-td-diff {
+  text-align: right;
+  font-weight: 600;
+}
+
+.stats-th-ringer,
+.stats-td-ringer {
+  font-weight: 700;
+}
+
+.stats-col-sticky {
+  position: sticky;
+  left: var(--col-left, 0);
+  z-index: 1;
+}
+
+.stats-table thead .stats-col-sticky {
+  background: var(--primaer);
+  z-index: 2;
+}
+
+.stats-table tbody tr:nth-child(odd) .stats-col-sticky {
+  background: var(--flate);
+}
+
+.stats-table tbody tr:nth-child(even) .stats-col-sticky {
+  background: var(--flate-2);
+}
+
+.stats-col-sticky-last {
+  border-right: 2px solid var(--kant-2);
+  box-shadow: 3px 0 6px -2px rgba(0, 0, 0, 0.35);
+}
+
+.stats-td-pos {
+  color: var(--suksess, #2ecc71);
+}
+
+.stats-td-neg {
+  color: var(--feil, #e74c3c);
+}

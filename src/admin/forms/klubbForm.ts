@@ -1,8 +1,8 @@
-import { formRowHtml, showSaveError, showSuccess, errMsg } from "@/utils/adminForms";
+import { showToast } from "@/components/Toast";
+import { errorMessage } from "@/utils/errorMessage";
 import { isAdmin, isClubAdmin } from "@/services/authService";
 import { escHtml } from "@/utils/escHtml";
-import { createErrorBanner } from "@/components/ErrorBanner";
-import { createLoadingState } from "@/components/LoadingState";
+import { createErrorBanner, createLoadingState } from "@/components/states";
 import {
   createClub,
   getClubForAdmin,
@@ -10,7 +10,7 @@ import {
   type ClubAdminPayload,
   type ClubAdminRow,
 } from "@/services/klubbService";
-import { formShell } from "./_formHost";
+import { formShell, formRowHtml, showFormError } from "./_formHost";
 import type { AdminFormHost } from "./_formHost";
 import { bindCancelButton } from "./_formButtons";
 
@@ -75,20 +75,20 @@ export async function mountClubForm(host: AdminFormHost, id?: number): Promise<v
     if (id) {
       const { error } = await updateClub(id, payload);
       if (error) {
-        showSaveError(wrapper, errMsg(error));
+        showFormError(wrapper, errorMessage(error));
         return;
       }
-      showSuccess(wrapper, "Klubben er lagra.");
+      showToast("Klubben er lagra.", "success");
       host.onSaved?.(id, false);
       return;
     }
 
     const { data: saved, error } = await createClub(payload);
     if (error) {
-      showSaveError(wrapper, errMsg(error));
+      showFormError(wrapper, errorMessage(error));
       return;
     }
-    showSuccess(wrapper, "Klubben er oppretta.");
+    showToast("Klubben er oppretta.", "success");
     host.onSaved?.(saved!.id, true);
   });
 

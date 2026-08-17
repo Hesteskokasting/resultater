@@ -1,0 +1,122 @@
+/* Kamp — the match page around the scoreboard
+   Rendered by components/PullToRefresh.ts, pages/kamp.ts. */
+
+/* ── Kamp-scoreboard fullskjerm-modus ── */
+
+#app.sb-fullskjerm-modus {
+  padding: 0;
+  max-width: none;
+  margin: 0;
+}
+
+.sb-kamp-wrapper {
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--sb-bg);
+  color: var(--sb-tekst);
+  display: flex;
+  flex-direction: column;
+  /* Edge-to-edge native app: keep the bottom button clear of the Android
+     nav bar / iOS home indicator, and panels clear of a landscape notch */
+  padding-bottom: var(--sa-bottom);
+  padding-left: var(--sa-left);
+  padding-right: var(--sa-right);
+}
+
+.sb-kamp-topbar {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding: 6px 10px;
+  /* Keep the topbar below the status bar/notch, like .top-header */
+  padding-top: calc(6px + var(--sa-top));
+  flex-shrink: 0;
+  background: var(--sb-topbar-bg);
+  border-bottom: 1px solid var(--sb-border);
+  gap: 8px;
+}
+
+.sb-kamp-topbar-venstre {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.sb-tilbake-btn {
+  background: transparent;
+  border: 1px solid var(--sb-border-btn);
+  color: var(--sb-tekst);
+  border-radius: 6px;
+  padding: 2px 10px;
+  font-size: 1.1rem;
+  line-height: 1.4;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.sb-kamp-stevnenavn {
+  font-size: 0.9rem;
+  color: var(--sb-tekst-subtil);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sb-kamp-topbar-midten {
+  font-size: 1.1rem;
+  font-weight: bold;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.sb-kamp-topbar-høgre {
+  display: flex;
+  justify-content: flex-end;
+  font-size: 0.85rem;
+  color: var(--sb-tekst-subtil-2);
+  white-space: nowrap;
+}
+
+.sb-kamp-info-full {
+  display: inline;
+}
+
+.sb-kamp-info-kort {
+  display: none;
+}
+
+@media (max-width: 420px) {
+  .sb-kamp-info-full {
+    display: none;
+  }
+  .sb-kamp-info-kort {
+    display: inline;
+  }
+}
+
+.sb-waiting-content {
+  padding: 20px;
+}
+
+.sb-waiting-text {
+  font-size: 1.4rem;
+}
+
+.sb-waiting-refresh {
+  margin-top: 12px;
+  font-size: 1.2rem;
+  padding: 14px;
+}
+
+/* ── Felles scoreboard ── */
+
+.sb-page {
+  background: var(--sb-bg);
+  color: var(--sb-tekst);
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}

@@ -1,9 +1,9 @@
-import "bootstrap";
 import { App } from "@capacitor/app";
 import { render as renderHome } from "./pages/home";
-import { getUser, isAdmin, isClubAdmin, signOut } from "./services/authService";
-import { createErrorBanner } from "./components/ErrorBanner";
+import { getUser, initAuthListener, isAdmin, isClubAdmin, signOut } from "./services/authService";
+import { createErrorBanner } from "@/components/states";
 import { showReauthModal } from "./components/ReauthModal";
+import { maybeShowWelcomeDialog } from "./components/WelcomeDialog";
 import { setPageTitle } from "@/utils/pageTitle";
 import {
   hasRefetch,
@@ -71,6 +71,19 @@ function beginNavigation(): number {
   return scrollPositions.get(existingId) ?? 0;
 }
 
+/** Says which role the page needs and where to go instead — "Ingen tilgang." alone left the user stuck. */
+function renderNoAccess(cont: HTMLElement, requiredRole: Role): void {
+  const needed = requiredRole === "admin" ? "administrator" : "klubbadmin eller administrator";
+  const banner = createErrorBanner(
+    `Denne sida krev tilgang som ${needed}. Skal du arrangere stevne, be om tilgang på kontakt@hesteskokasting.no.`,
+  );
+  const back = document.createElement("a");
+  back.href = "#/minside";
+  back.className = "btn btn-sm btn-outline-primary";
+  back.textContent = "Gå til Min side";
+  cont.replaceChildren(banner, back);
+}
+
 function authGuard(requiredRole: Role, renderFn: PageRenderFn): PageRenderFn {
   return async (cont, params) => {
     const auth = await getUser();
@@ -78,12 +91,12 @@ function authGuard(requiredRole: Role, renderFn: PageRenderFn): PageRenderFn {
       location.hash = "#/logginn";
       return;
     }
-    if (requiredRole === "admin" && !(await isAdmin())) {
-      cont.replaceChildren(createErrorBanner("Ingen tilgang."));
-      return;
-    }
-    if (requiredRole === "klubbadmin" && !(await isAdmin()) && !(await isClubAdmin())) {
-      cont.replaceChildren(createErrorBanner("Ingen tilgang."));
+    const allowed =
+      requiredRole === "bruker" ||
+      (await isAdmin()) ||
+      (requiredRole === "klubbadmin" && (await isClubAdmin()));
+    if (!allowed) {
+      renderNoAccess(cont, requiredRole);
       return;
     }
     await renderFn(cont, params);
@@ -97,6 +110,14 @@ const routes: Route[] = [
     page: lazy(() => import("./pages/logginn")),
     params: () => ({}),
     title: "Logg inn",
+  },
+  // No authGuard: the recovery link may have failed to produce a session, and the
+  // page has to say so rather than be bounced to logginn without explanation.
+  {
+    pattern: /^\/nytt-passord$/,
+    page: lazy(() => import("./pages/nyttPassord")),
+    params: () => ({}),
+    title: "Nytt passord",
   },
   {
     pattern: /^\/minside(?:\/([^/]*))?$/,
@@ -320,6 +341,7 @@ document.addEventListener("DOMContentLoaded", () => {
   void updateAuthMenu();
   void navigate();
   void initPushNotifications();
+  void maybeShowWelcomeDialog();
 });
 
 document.addEventListener("authStateChanged", (e) => {
@@ -336,3 +358,6 @@ document.addEventListener("authStateChanged", (e) => {
     showReauthModal();
   }
 });
+
+// Last: the first event Supabase emits must not land before the listener above.
+initAuthListener();

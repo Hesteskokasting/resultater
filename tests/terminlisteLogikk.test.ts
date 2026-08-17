@@ -1,7 +1,14 @@
+import { linkedThrowerId } from "@/utils/kaster";
 import {
   groupSchedule,
   sortSchedule,
   findNearestUpcomingId,
+  filterSchedule,
+  canRegisterForTournament,
+  countSncLocals,
+  countGroupedRows,
+  toggleSort,
+  filterOptionsFromRows,
   type ScheduleSort,
 } from "@/utils/terminlisteLogikk";
 
@@ -229,5 +236,165 @@ describe("findNearestUpcomingId", () => {
       { key: "2026-08", label: "AUGUST 2026", rows: [nearestRow(2, "2026-08-01")] },
     ];
     expect(findNearestUpcomingId(groups)).toBe(1);
+  });
+});
+
+// ── Filtering ─────────────────────────────────────────────────────────────────
+
+function named(id: number, navn: string) {
+  return { id, navn };
+}
+
+function filterRow(overrides: Record<string, unknown> = {}) {
+  return {
+    navn: "Vinterstevnet",
+    sted: "Førde",
+    ernm: false,
+    snc_hovudstevne_id: null,
+    klubb: named(3, "Førde HK"),
+    stevnetype: named(4, "Lokalt"),
+    kategori: named(5, "Singel"),
+    innledende: named(6, "Gloppen"),
+    avsluttende: named(7, "Cup"),
+    ...overrides,
+  };
+}
+
+const noFilter = {
+  searchText: "",
+  tournamentTypeId: "",
+  throwingMethodId: "",
+  clubId: "",
+  categoryId: "",
+};
+
+describe("filterSchedule", () => {
+  it("always hides local SNC stevner", () => {
+    const rows = [filterRow(), filterRow({ snc_hovudstevne_id: 90 })];
+    expect(filterSchedule(rows, noFilter, undefined)).toHaveLength(1);
+  });
+
+  it("searches across name, place, club, type, category and both metoder", () => {
+    const rows = [filterRow()];
+    for (const text of ["vinter", "førde hk", "lokalt", "singel", "gloppen", "cup"]) {
+      expect(filterSchedule(rows, { ...noFilter, searchText: text }, undefined)).toHaveLength(1);
+    }
+    expect(filterSchedule(rows, { ...noFilter, searchText: "kongelag" }, undefined)).toEqual([]);
+  });
+
+  it("filters on the ernm flag when the NM type option is picked", () => {
+    // The NM option's own id is 9, but the flag is what decides.
+    const rows = [filterRow({ ernm: true, stevnetype: named(4, "Lokalt") }), filterRow()];
+    expect(filterSchedule(rows, { ...noFilter, tournamentTypeId: "9" }, 9)).toHaveLength(1);
+  });
+
+  it("matches a kastemetode in either fase", () => {
+    const rows = [filterRow()];
+    expect(filterSchedule(rows, { ...noFilter, throwingMethodId: "6" }, undefined)).toHaveLength(1);
+    expect(filterSchedule(rows, { ...noFilter, throwingMethodId: "7" }, undefined)).toHaveLength(1);
+    expect(filterSchedule(rows, { ...noFilter, throwingMethodId: "8" }, undefined)).toEqual([]);
+  });
+
+  it("combines filters — every one has to match", () => {
+    const rows = [filterRow()];
+    const filter = { ...noFilter, clubId: "3", categoryId: "99" };
+    expect(filterSchedule(rows, filter, undefined)).toEqual([]);
+  });
+});
+
+describe("filterOptionsFromRows", () => {
+  it("lists each used value once, sorted, and skips local SNC rows", () => {
+    const options = filterOptionsFromRows([
+      filterRow(),
+      filterRow({ stevnetype: named(2, "Åpent"), klubb: null, avsluttende: named(6, "Gloppen") }),
+      filterRow({ snc_hovudstevne_id: 90, klubb: named(99, "Skjult HK") }),
+    ]);
+    expect(options.stevnetyper.map((o) => o.navn)).toEqual(["Lokalt", "Åpent"]);
+    expect(options.kastemetoder.map((o) => o.navn)).toEqual(["Cup", "Gloppen"]);
+    expect(options.klubber.map((o) => o.id)).toEqual([3]);
+    expect(options.kategorier.map((o) => o.id)).toEqual([5]);
+  });
+});
+
+describe("canRegisterForTournament", () => {
+  const row = { dato: "2026-08-20", stevne_fase: null, erfullfort: false };
+
+  it("allows registration on the day of the stevne, while it has not started", () => {
+    expect(canRegisterForTournament(row, true, "2026-08-20")).toBe(true);
+  });
+
+  it("refuses a stevne that has been and gone", () => {
+    expect(canRegisterForTournament(row, true, "2026-08-21")).toBe(false);
+  });
+
+  it("refuses a started or closed stevne", () => {
+    expect(
+      canRegisterForTournament({ ...row, stevne_fase: "innledende" }, true, "2026-08-01"),
+    ).toBe(false);
+    expect(canRegisterForTournament({ ...row, erfullfort: true }, true, "2026-08-01")).toBe(false);
+  });
+
+  it("refuses anyone without an approved thrower link", () => {
+    expect(canRegisterForTournament(row, false, "2026-08-01")).toBe(false);
+  });
+});
+
+describe("countSncLocals", () => {
+  it("counts the locals per umbrella and ignores plain stevner", () => {
+    const counts = countSncLocals([
+      { snc_hovudstevne_id: 90 },
+      { snc_hovudstevne_id: 90 },
+      { snc_hovudstevne_id: 91 },
+      { snc_hovudstevne_id: null },
+    ]);
+    expect([...counts]).toEqual([
+      [90, 2],
+      [91, 1],
+    ]);
+  });
+});
+
+describe("linkedThrowerId", () => {
+  const profil = { kasterid: 12, kobling_status: "godkjent", kobling_kasterid: null };
+
+  it("gives the kasterid once the link is approved", () => {
+    expect(linkedThrowerId({ user: {}, profil, clubs: [] } as never)).toBe(12);
+  });
+
+  it("refuses a pending or rejected link, and a missing profile", () => {
+    for (const status of ["venter", "avvist", "ingen", null]) {
+      const auth = { user: {}, profil: { ...profil, kobling_status: status }, clubs: [] };
+      expect(linkedThrowerId(auth as never)).toBeNull();
+    }
+    expect(linkedThrowerId(null)).toBeNull();
+    expect(linkedThrowerId({ user: {}, profil: null, clubs: [] } as never)).toBeNull();
+  });
+});
+
+describe("toggleSort", () => {
+  it("flips the direction when the same column is clicked again", () => {
+    const sort: ScheduleSort = { column: "dato", direction: "asc" };
+    toggleSort(sort, "dato");
+    expect(sort).toEqual({ column: "dato", direction: "desc" });
+    toggleSort(sort, "dato");
+    expect(sort).toEqual({ column: "dato", direction: "asc" });
+  });
+
+  it("starts a new column ascending, whatever the previous direction was", () => {
+    const sort: ScheduleSort = { column: "dato", direction: "desc" };
+    toggleSort(sort, "navn");
+    expect(sort).toEqual({ column: "navn", direction: "asc" });
+  });
+});
+
+describe("countGroupedRows", () => {
+  it("sums the rows across every month group", () => {
+    expect(
+      countGroupedRows([
+        { key: "2026-01", label: "JANUAR 2026", rows: [1, 2, 3] },
+        { key: "2026-02", label: "FEBRUAR 2026", rows: [4] },
+      ]),
+    ).toBe(4);
+    expect(countGroupedRows([])).toBe(0);
   });
 });

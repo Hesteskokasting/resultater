@@ -1,0 +1,82 @@
+/* Rendered by pages/logginn.ts, and the shared .account-container shell by
+   pages/nyttPassord.ts. */
+
+/* ── Logg inn / Konto ────────────────────────────────────────────────────────── */
+
+.account-container {
+  max-width: 480px;
+}
+
+/* What an account is for — the heading alone says "Konto" and nothing more. */
+.account-intro {
+  margin-bottom: 1.25rem;
+  color: var(--tekst-2);
+  font-size: 0.9rem;
+}
+
+.google-play-badge img {
+  display: block;
+  width: 150px;
+  max-width: 40vw;
+  height: auto;
+}
+
+.btn-google,
+.btn-apple {
+  background: var(--flate);
+  color: var(--tekst);
+  border: 1px solid var(--kant);
+}
+
+.btn-google:hover,
+.btn-apple:hover {
+  background: var(--primaer-hover);
+}
+
+/* That the provider flow also creates the account — the button label alone was
+   read as "you must have registered somewhere else first". */
+.account-hint {
+  margin: 0.5rem 0 0;
+  color: var(--tekst-3);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+/* Way into reset mode. Sits between the submit button and the mode switch, so it
+   shares their centred, quiet treatment rather than competing with either. */
+.account-forgot {
+  margin: 0.75rem 0 0;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+/* Log in ⇄ Opprett konto, replacing the tab pair nobody noticed. */
+.account-switch {
+  margin: 0.5rem 0 0;
+  color: var(--tekst-2);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.account-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: var(--tekst-3);
+  margin: 1rem 0;
+}
+
+.account-divider::before,
+.account-divider::after {
+  content: "";
+  flex: 1;
+  border-bottom: 1px solid var(--kant);
+}
+
+.account-divider::before {
+  margin-right: 0.75rem;
+}
+
+.account-divider::after {
+  margin-left: 0.75rem;
+}

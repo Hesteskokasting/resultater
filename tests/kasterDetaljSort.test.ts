@@ -1,4 +1,10 @@
-import { sortResults, type ResultSort } from "@/utils/kasterDetaljLogikk";
+import {
+  sortResults,
+  nextResultSort,
+  resultFilterOptions,
+  filterResults,
+  type ResultSort,
+} from "@/utils/kasterDetaljLogikk";
 
 // Minimal rows matching the shape sortResults needs (ResultDetailRow satisfies it too).
 function row(plassering: number | null, dato: string | null) {
@@ -70,5 +76,77 @@ describe("sortResults", () => {
     const before = [...rows];
     sortResults(rows, { column: "plassering", direction: "asc" });
     expect(rows).toEqual(before);
+  });
+});
+
+// ── nextResultSort ────────────────────────────────────────────────────────────
+
+describe("nextResultSort", () => {
+  it("flips the direction on the same column", () => {
+    expect(nextResultSort({ column: "dato", direction: "desc" }, "dato")).toEqual({
+      column: "dato",
+      direction: "asc",
+    });
+  });
+
+  it("starts placement best-first and date newest-first", () => {
+    expect(nextResultSort({ column: "dato", direction: "asc" }, "plassering")).toEqual({
+      column: "plassering",
+      direction: "asc",
+    });
+    expect(nextResultSort({ column: "plassering", direction: "asc" }, "dato")).toEqual({
+      column: "dato",
+      direction: "desc",
+    });
+  });
+});
+
+// ── Result filtering ──────────────────────────────────────────────────────────
+
+function filterRow(dato: string | null, typeId: number | null, typeName = "NC") {
+  return {
+    stevne:
+      dato === null
+        ? null
+        : { dato, stevnetype: typeId === null ? null : { id: typeId, navn: typeName } },
+  };
+}
+
+describe("resultFilterOptions", () => {
+  it("lists each year once, newest first", () => {
+    const { years } = resultFilterOptions([
+      filterRow("2024-05-01", 1),
+      filterRow("2026-05-01", 1),
+      filterRow("2024-09-01", 1),
+    ]);
+    expect(years).toEqual([2026, 2024]);
+  });
+
+  it("lists each type once, alphabetically, and skips rows without one", () => {
+    const { types } = resultFilterOptions([
+      filterRow("2026-05-01", 2, "SNC"),
+      filterRow("2026-05-02", 1, "NC"),
+      filterRow("2026-05-03", 2, "SNC"),
+      filterRow("2026-05-04", null),
+      filterRow(null, null),
+    ]);
+    expect(types).toEqual([
+      [1, "NC"],
+      [2, "SNC"],
+    ]);
+  });
+});
+
+describe("filterResults", () => {
+  const rows = [filterRow("2025-05-01", 1, "NC"), filterRow("2026-05-01", 2, "SNC")];
+
+  it("keeps everything on the alle sentinel", () => {
+    expect(filterResults(rows, "alle", "alle")).toHaveLength(2);
+  });
+
+  it("filters on year and on type, and combines both", () => {
+    expect(filterResults(rows, "2026", "alle")).toHaveLength(1);
+    expect(filterResults(rows, "alle", "1")).toHaveLength(1);
+    expect(filterResults(rows, "2026", "1")).toHaveLength(0);
   });
 });

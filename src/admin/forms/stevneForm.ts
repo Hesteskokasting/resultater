@@ -1,4 +1,5 @@
-import { formRowHtml, showSaveError, showSuccess, errMsg } from "@/utils/adminForms";
+import { showToast } from "@/components/Toast";
+import { errorMessage } from "@/utils/errorMessage";
 import { confirmDialog } from "@/components/ConfirmDialog";
 import { isAdmin, isClubAdmin } from "@/services/authService";
 import { escHtml } from "@/utils/escHtml";
@@ -6,8 +7,7 @@ import { buildDropdownOptions } from "@/utils/buildDropdownOptions";
 import { createSearchSelect } from "@/components/SearchSelect";
 import { formNum } from "@/utils/formNum";
 import { logError } from "@/utils/logError";
-import { createErrorBanner } from "@/components/ErrorBanner";
-import { createLoadingState } from "@/components/LoadingState";
+import { createErrorBanner, createLoadingState } from "@/components/states";
 import {
   getTournamentForAdmin,
   getTournamentTypes,
@@ -30,7 +30,7 @@ import { getAllThrowerList, type ThrowerListRow } from "@/services/kasterService
 import { throwerNameLastFirst } from "@/utils/kaster";
 import { isKongelagMethodName, isXkastMethodName } from "@/utils/kastemetode";
 import { formatDate } from "@/utils/shared";
-import { formShell } from "./_formHost";
+import { formShell, formRowHtml, showFormError } from "./_formHost";
 import type { AdminFormHost } from "./_formHost";
 import { bindCancelButton, bindDeleteButton } from "./_formButtons";
 
@@ -333,10 +333,10 @@ export async function mountTournamentForm(host: AdminFormHost, id?: number): Pro
         : await createTournament(payload);
 
       if (error) {
-        showSaveError(wrapper, errMsg(error));
+        showFormError(wrapper, errorMessage(error));
         return;
       }
-      showSuccess(wrapper, "Stevnet er lagra.");
+      showToast(id ? "Stevnet er lagra." : "Stevnet er oppretta.", "success");
       host.onSaved?.(saved?.id ?? id!, !id);
     });
 
@@ -365,7 +365,7 @@ export async function mountTournamentForm(host: AdminFormHost, id?: number): Pro
         ? await completeSncParent(id!)
         : await setTournamentCompleted(id!);
       if (error) {
-        showSaveError(wrapper, errMsg(error));
+        showFormError(wrapper, errorMessage(error));
         return;
       }
       await mountTournamentForm(host, id);
@@ -386,7 +386,7 @@ export async function mountTournamentForm(host: AdminFormHost, id?: number): Pro
         return;
       const { error } = isSncParent ? await reopenSncParent(id!) : await reopenTournament(id!);
       if (error) {
-        showSaveError(wrapper, errMsg(error));
+        showFormError(wrapper, errorMessage(error));
         return;
       }
       await mountTournamentForm(host, id);

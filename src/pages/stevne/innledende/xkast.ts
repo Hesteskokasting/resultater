@@ -5,7 +5,7 @@ import {
   sortedParticipants,
   type CourtPhaseVariant,
   type EntrySlot,
-} from "@/organizer/xkastKongelagView";
+} from "../xkastKongelagView";
 
 const OMGANGER_PER_RUNDE = 5;
 

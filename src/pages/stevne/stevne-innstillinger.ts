@@ -3,8 +3,7 @@ import { errorMessage } from "@/utils/errorMessage";
 import { showToast } from "@/components/Toast";
 import { confirmDialog } from "@/components/ConfirmDialog";
 import { escHtml } from "@/utils/escHtml";
-import { createErrorBanner } from "@/components/ErrorBanner";
-import { createLoadingState } from "@/components/LoadingState";
+import { createErrorBanner, createLoadingState } from "@/components/states";
 import {
   getTournamentSettings,
   getActiveThrowingMethods,
@@ -80,7 +79,7 @@ export async function render(
     container.innerHTML = `
       <div>
         <h4 class="mb-3">Innstillingar</h4>
-        <form id="innstillingar-form" class="org-max-480">
+        <form id="innstillingar-form" class="stevne-max-480">
           <div class="mb-3">
             <label class="form-label fw-semibold">Kastemetode innleiande</label>
             <select id="innl-metode" class="form-select"${methodsLocked}>

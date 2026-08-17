@@ -1,0 +1,6 @@
+/* Rendered by components/SearchInput.ts. */
+
+/* Live search input (SearchInput component) — capped so it doesn't span the container */
+.search-input {
+  max-width: 300px;
+}

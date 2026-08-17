@@ -27,10 +27,26 @@ export type NMResultRow = QueryData<typeof _nmResultatQuery>[number];
 
 const _dataCache = new Map<string, { data: NMResultRow[]; error: unknown }>();
 let _genderCache: { id: number; navn: string }[] | null = null;
+let _nmClassCache: number[] | null = null;
 
 // ── Private helpers ───────────────────────────────────────────────────────────
 
-const ALL_VALID_CLASSES = [1, 3, 4, 13, 16, 21, 23, 24, 27, 29, 32];
+/**
+ * Only some classes are ever a championship — a B-cup or a Rekrutt winner is not
+ * a Norgesmester. `klasse.har_nm_vinnere` is the authority; asking the database
+ * keeps this list in one place instead of a hardcoded copy per caller.
+ */
+async function getNMClassIds(): Promise<number[]> {
+  if (_nmClassCache) return _nmClassCache;
+  const { data, error } = await supabase.from("klasse").select("id").eq("har_nm_vinnere", true);
+  if (error) {
+    // Not cached, so the next category retries instead of serving an empty list forever.
+    logError("getNMClassIds", error);
+    return [];
+  }
+  _nmClassCache = data.map((k) => k.id);
+  return _nmClassCache;
+}
 
 async function getGenderIds(): Promise<{ id: number; navn: string }[]> {
   if (_genderCache) return _genderCache;
@@ -40,12 +56,13 @@ async function getGenderIds(): Promise<{ id: number; navn: string }[]> {
   return _genderCache;
 }
 
+/** `kjonn.navn` holds the single-letter code M/K, not a spelled-out label. */
 function findGenderId(
   genderList: { id: number; navn: string }[],
   gender: NMGender,
 ): number | undefined {
-  const needle = gender === "women" ? "dame" : "herre";
-  return genderList.find((k) => k.navn.toLowerCase().includes(needle))?.id;
+  const code = gender === "women" ? "k" : "m";
+  return genderList.find((k) => k.navn.trim().toLowerCase() === code)?.id;
 }
 
 // ── Exported function ─────────────────────────────────────────────────────────
@@ -97,13 +114,21 @@ export async function getNMData(
     .select(`id, klasseid, ${kasterJoin}, klubb:klubbid(id, navn), stevne:stevneid(id, dato)`)
     .eq("plassering", 1)
     .in("stevneid", ids)
-    .in("klasseid", ALL_VALID_CLASSES)
+    .in("klasseid", await getNMClassIds())
+    // gruppe 2 is B — a B-final winner is not a Norgesmester. No flag on `gruppe`
+    // to lean on the way klasse.har_nm_vinnere does, so the id stays hardcoded.
     .or("gruppeid.is.null,gruppeid.neq.2");
 
   if (filterByGender) {
-    const genderList = await getGenderIds();
-    const genderId = findGenderId(genderList, gender);
-    if (genderId) resultatQuery = resultatQuery.eq("kaster.kjonnid", genderId);
+    const genderId = findGenderId(await getGenderIds(), gender);
+    // Skipping the filter on a miss silently listed both genders under a
+    // gendered heading. An error is better than a wrong list.
+    if (genderId == null) {
+      const err = new Error(`Fann ingen kjønns-id for "${gender}"`);
+      logError("getNMData.gender", err);
+      return { data: [], error: err };
+    }
+    resultatQuery = resultatQuery.eq("kaster.kjonnid", genderId);
   }
 
   if (category.genderFilter === "historical" && gender === "open") {

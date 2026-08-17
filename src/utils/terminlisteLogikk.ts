@@ -1,3 +1,135 @@
+// ── Filtering ─────────────────────────────────────────────────────────────────
+
+export interface ScheduleFilter {
+  searchText: string;
+  tournamentTypeId: string;
+  throwingMethodId: string;
+  clubId: string;
+  categoryId: string;
+}
+
+interface FilterableScheduleRow {
+  navn: string | null;
+  sted: string | null;
+  ernm: boolean;
+  snc_hovudstevne_id: number | null;
+  klubb: { id: number; navn: string | null } | null;
+  stevnetype: { id: number; navn: string | null } | null;
+  kategori: { id: number; navn: string | null } | null;
+  innledende: { id: number; navn: string | null } | null;
+  avsluttende: { id: number; navn: string | null } | null;
+}
+
+/**
+ * Client-side filtering of the schedule. Local SNC stevner never appear: they
+ * are parts of one event, and the choice between them belongs on the umbrella's
+ * page. `nmTypeId` is the id of the "NM" stevnetype option — picking it filters
+ * on the authoritative `ernm` flag rather than on the type itself.
+ */
+export function filterSchedule<T extends FilterableScheduleRow>(
+  rows: T[],
+  filter: ScheduleFilter,
+  nmTypeId: number | undefined,
+): T[] {
+  const search = filter.searchText.toLowerCase();
+  return rows.filter((s) => {
+    if (s.snc_hovudstevne_id != null) return false;
+
+    if (search) {
+      const matched = [
+        s.navn,
+        s.sted,
+        s.klubb?.navn,
+        s.stevnetype?.navn,
+        s.kategori?.navn,
+        s.innledende?.navn,
+        s.avsluttende?.navn,
+      ].some((field) => field?.toLowerCase().includes(search));
+      if (!matched) return false;
+    }
+
+    if (filter.tournamentTypeId) {
+      const isNmOption = nmTypeId != null && filter.tournamentTypeId === String(nmTypeId);
+      if (isNmOption ? !s.ernm : String(s.stevnetype?.id) !== filter.tournamentTypeId) return false;
+    }
+
+    if (filter.throwingMethodId) {
+      const id = filter.throwingMethodId;
+      if (String(s.innledende?.id) !== id && String(s.avsluttende?.id) !== id) return false;
+    }
+
+    if (filter.clubId && String(s.klubb?.id) !== filter.clubId) return false;
+    if (filter.categoryId && String(s.kategori?.id) !== filter.categoryId) return false;
+
+    return true;
+  });
+}
+
+export interface FilterOption {
+  id: number;
+  navn: string | null;
+}
+
+export interface ScheduleFilterOptions {
+  stevnetyper: FilterOption[];
+  kastemetoder: FilterOption[];
+  klubber: FilterOption[];
+  kategorier: FilterOption[];
+}
+
+function uniqueSorted(values: (FilterOption | null)[]): FilterOption[] {
+  const byId = new Map<number, FilterOption>();
+  for (const v of values) if (v) byId.set(v.id, v);
+  return [...byId.values()].sort((a, b) => (a.navn ?? "").localeCompare(b.navn ?? "", "nb"));
+}
+
+/**
+ * The filter dropdowns list only values some visible row actually uses — the
+ * lookup tables still hold retired stevnetypar, klubbar and metodar that would
+ * otherwise be offered and always give an empty result. Local SNC stevner are
+ * skipped for the same reason `filterSchedule` hides them.
+ */
+export function filterOptionsFromRows(rows: FilterableScheduleRow[]): ScheduleFilterOptions {
+  const visible = rows.filter((s) => s.snc_hovudstevne_id == null);
+  return {
+    stevnetyper: uniqueSorted(visible.map((s) => s.stevnetype)),
+    kastemetoder: uniqueSorted(visible.flatMap((s) => [s.innledende, s.avsluttende])),
+    klubber: uniqueSorted(visible.map((s) => s.klubb)),
+    kategorier: uniqueSorted(visible.map((s) => s.kategori)),
+  };
+}
+
+interface RegisterableScheduleRow {
+  dato: string;
+  stevne_fase: string | null;
+  erfullfort: boolean;
+}
+
+/**
+ * Whether the Meld på action belongs on a row: the stevne is still ahead, has
+ * not started, and is not closed. `isLinked` is the caller's own gate — only an
+ * approved thrower link can register at all.
+ */
+export function canRegisterForTournament(
+  s: RegisterableScheduleRow,
+  isLinked: boolean,
+  todayIso: string,
+): boolean {
+  const notStarted = s.stevne_fase === null || s.stevne_fase === "ikke_startet";
+  return isLinked && s.dato >= todayIso && notStarted && !s.erfullfort;
+}
+
+/** How many local stevner each SNC umbrella has, keyed by umbrella id. */
+export function countSncLocals(rows: { snc_hovudstevne_id: number | null }[]): Map<number, number> {
+  const counts = new Map<number, number>();
+  for (const s of rows) {
+    if (s.snc_hovudstevne_id != null) {
+      counts.set(s.snc_hovudstevne_id, (counts.get(s.snc_hovudstevne_id) ?? 0) + 1);
+    }
+  }
+  return counts;
+}
+
 // ── Sorting ───────────────────────────────────────────────────────────────────
 
 export type ScheduleSortColumn = "navn" | "dato" | "sted" | "metode" | "organizer" | "type";
@@ -40,6 +172,19 @@ function sortValue(s: SortableScheduleRow, column: ScheduleSortColumn): string {
   }
 }
 
+/**
+ * Clicking a header: the same column flips direction, a new one starts ascending.
+ * Mutates in place — each table owns one long-lived sort object.
+ */
+export function toggleSort(sort: ScheduleSort, column: ScheduleSortColumn): void {
+  if (sort.column === column) {
+    sort.direction = sort.direction === "asc" ? "desc" : "asc";
+    return;
+  }
+  sort.column = column;
+  sort.direction = "asc";
+}
+
 export function sortSchedule<T extends SortableScheduleRow>(rows: T[], sort: ScheduleSort): T[] {
   return [...rows].sort((a, b) => {
     const cmp = sortValue(a, sort.column).localeCompare(sortValue(b, sort.column), "nb");
@@ -58,6 +203,11 @@ export interface MonthGroup<T> {
 export interface ScheduleGroups<T> {
   upcoming: MonthGroup<T>[];
   past: MonthGroup<T>[];
+}
+
+/** Rows across all month groups — the section count pill. */
+export function countGroupedRows<T>(groups: MonthGroup<T>[]): number {
+  return groups.reduce((n, g) => n + g.rows.length, 0);
 }
 
 interface GroupableScheduleRow {

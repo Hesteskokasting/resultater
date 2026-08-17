@@ -3,16 +3,12 @@
 // to a real one unless the affected rows are checked explicitly.
 const NO_ROWS_AFFECTED_MESSAGE = "Ingen rader blei endra (ikkje funne eller ikkje tillatt).";
 
+/**
+ * Turns "matched nothing" into an error, and hands back the first affected row
+ * for the callers that need a trigger-set column. Most only read `.error` and
+ * let `data` fall away.
+ */
 export async function verifyRowsAffected<T>(
-  query: PromiseLike<{ data: T[] | null; error: unknown }>,
-  notFoundMessage: string = NO_ROWS_AFFECTED_MESSAGE,
-): Promise<{ error: unknown }> {
-  const { error } = await verifyRowsAffectedReturning(query, notFoundMessage);
-  return { error };
-}
-
-/** Same guarantee, but hands back the first affected row (e.g. a trigger-set column). */
-export async function verifyRowsAffectedReturning<T>(
   query: PromiseLike<{ data: T[] | null; error: unknown }>,
   notFoundMessage: string = NO_ROWS_AFFECTED_MESSAGE,
 ): Promise<{ data: T | null; error: unknown }> {

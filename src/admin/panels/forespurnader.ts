@@ -1,7 +1,5 @@
-import { createEmptyState } from "@/components/EmptyState";
-import { createErrorBanner } from "@/components/ErrorBanner";
-import { createLoadingState } from "@/components/LoadingState";
-import { errMsg } from "@/utils/adminForms";
+import { createErrorBanner, createLoadingState, createEmptyState } from "@/components/states";
+import { errorMessage } from "@/utils/errorMessage";
 import { throwerName } from "@/utils/kaster";
 import { getPendingLinks, updateLinkStatus } from "@/services/adminService";
 import { createAdminList, createInlineAlert } from "../_adminUi";
@@ -17,7 +15,7 @@ export async function render(el: HTMLElement): Promise<void> {
 
   const { data, error } = await getPendingLinks();
   if (error) {
-    el.replaceChildren(createErrorBanner(errMsg(error)));
+    el.replaceChildren(createErrorBanner(errorMessage(error)));
     return;
   }
   if (!data.length) {
@@ -36,7 +34,7 @@ export async function render(el: HTMLElement): Promise<void> {
     alert.hide();
     const { error: writeError } = await updateLinkStatus(userId, kasterid, status);
     if (writeError) {
-      alert.show(errMsg(writeError));
+      alert.show(errorMessage(writeError));
       return;
     }
     await render(el);

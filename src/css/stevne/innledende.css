@@ -1,0 +1,239 @@
+/* Innleiande fase
+   Rendered by pages/stevne/innledende/innledendeBase.ts, pages/stevne/innledende/innledendeView.ts. */
+
+/* Responsive show/hide */
+@media (max-width: 699px) {
+  .match-table--desktop {
+    display: none !important;
+  }
+}
+
+@media (min-width: 700px) {
+  .match-list-mobile {
+    display: none !important;
+  }
+}
+
+/* Status legend */
+.match-legend {
+  display: flex;
+  gap: 14px;
+  font-size: 11px;
+  color: var(--tekst-3);
+  margin-top: 8px;
+  padding-left: 2px;
+}
+
+.match-legend__item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.match-legend__stripe {
+  width: 12px;
+  height: 3px;
+  border-radius: 1px;
+  flex-shrink: 0;
+}
+
+.match-legend__stripe--not-started {
+  background: var(--kamp-stripe-ikke);
+}
+
+.match-legend__stripe--in-progress {
+  background: var(--kamp-stripe-pagaar);
+}
+
+.match-legend__stripe--done {
+  background: var(--kamp-stripe-ferdig);
+}
+
+.match-newly-confirmed td {
+  animation: confirm-flash 8s linear forwards;
+}
+
+.match-row-mobile.match-newly-confirmed {
+  animation: confirm-flash 8s linear forwards;
+}
+
+.standing-new-confirmed {
+  animation: standing-confirm-flash 8s linear forwards;
+}
+
+/* ── Match list — mobile ── */
+
+.match-list-mobile {
+  list-style: none;
+  padding: 0;
+  margin: 0 auto;
+  max-width: 500px;
+  border: 1px solid var(--kant);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.match-row-mobile {
+  position: relative;
+  border-bottom: 0.5px solid var(--kant);
+}
+
+.match-row-mobile:last-child {
+  border-bottom: none;
+}
+
+/* Status stripe via pseudo-element */
+.match-row-mobile::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--kamp-stripe-ikke);
+}
+
+.match-row-mobile[data-status="in-progress"]::before {
+  background: var(--kamp-stripe-pagaar);
+}
+
+.match-row-mobile[data-status="done"]::before {
+  background: var(--kamp-stripe-ferdig);
+}
+
+.match-row-mobile__header {
+  display: grid;
+  grid-template-columns: 24px 1fr auto auto auto;
+  gap: 10px;
+  /* Right inset only — keeps the scoreboard icon off the list border, while the
+     lane column stays flush against the status rail on the left. */
+  padding: 6px 8px 6px 0;
+  align-items: center;
+  /* No row-wide pointer — only the score cell and the scoreboard icon act on a
+     click. The row expands too, but that panel is empty until the per-match
+     statistics land and gets its own affordance then. */
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.match-mobile-pill-slot {
+  display: flex;
+  align-items: center;
+}
+
+/* Fixed width whether or not the icon is there, so the results above and below
+   stay on the same vertical line. */
+.match-mobile-sb-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+}
+
+.match-mobile-lane {
+  font-size: 13px;
+  color: var(--tekst-3);
+  text-align: center;
+}
+
+.match-mobile-name {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.match-mobile-name__p1 {
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--tekst);
+}
+
+.match-mobile-name__p2 {
+  font-size: 13px;
+  color: var(--tekst);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.match-mobile-vs {
+  color: var(--tekst-3);
+  font-size: 0.85em;
+}
+
+/* Same cell treatment as the desktop SCORE column — it already renders the same
+   .initial-score-inner grid, so only the surround differs. text-align carries
+   into that grid's columns, which is what centres each number in its own track;
+   on desktop it comes from the cell's .text-center. */
+.match-mobile-result {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  /* Cancels the header's vertical padding so the fill runs the full row height
+     and reads as a column, not a floating box. */
+  margin-block: -6px;
+  padding-block: 6px;
+  text-align: center;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--tekst);
+  white-space: nowrap;
+  background: var(--avsl-score-bg);
+  border-left: 2px solid var(--standing-kp-th);
+  border-right: 2px solid var(--standing-kp-th);
+}
+
+/* Admin expandable buttons */
+/* Expandable detail slot — kept for the per-match statistics still to come.
+   Empty for now, so nothing renders until it has content. */
+.match-mobile-detail {
+  display: none;
+  gap: 6px;
+  padding: 8px 12px 12px;
+  border-top: 0.5px solid var(--kant);
+}
+
+.match-row-mobile[data-expanded="true"] .match-mobile-detail:not(:empty) {
+  display: flex;
+}
+
+/* Initial round — merged SCORE column */
+th.initial-score-th {
+  background: var(--standing-kp-th) !important;
+  color: #fff !important;
+  border-left: 2px solid var(--standing-kp-th) !important;
+  border-right: 2px solid var(--standing-kp-th) !important;
+}
+
+.initial-score-cell {
+  font-weight: 600;
+  font-size: 1.05em;
+  background: var(--avsl-score-bg) !important;
+  border-left: 2px solid var(--standing-kp-th) !important;
+  border-right: 2px solid var(--standing-kp-th) !important;
+  vertical-align: middle !important;
+}
+
+.initial-score-inner {
+  display: inline-grid !important;
+  grid-template-columns: 36px 20px 36px !important;
+  align-items: center;
+}
+
+.initial-s1 {
+  font-variant-numeric: tabular-nums;
+}
+
+.initial-sep {
+  text-align: center;
+  font-weight: 400;
+  color: var(--tekst-2);
+}
+
+.initial-s2 {
+  font-variant-numeric: tabular-nums;
+}

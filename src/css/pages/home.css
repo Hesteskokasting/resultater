@@ -1,0 +1,38 @@
+/* Rendered by pages/home.ts. */
+
+.homepage-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .homepage-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.homepage-section-title {
+  text-align: center;
+  font-size: 1.05rem;
+  font-weight: bold;
+  margin-bottom: 12px;
+}
+
+.homepage-more-link {
+  display: block;
+  text-align: center;
+  margin-top: 12px;
+  font-size: 0.85rem;
+  color: var(--lenke);
+  text-decoration: none;
+}
+
+.homepage-more-link:hover {
+  text-decoration: underline;
+}
+
+.skeleton-block--list {
+  min-height: 320px;
+}

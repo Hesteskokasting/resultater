@@ -1,18 +1,17 @@
 /**
  * The info tab's hero owns the stevne name and the one primary action. Which
  * button lands in that slot depends on who is looking, so that choice is what
- * these tests pin down — the shell drops its own header on this tab, and an
- * empty slot means a visitor gets no call to action at all.
+ * these tests pin down — the shell drops its own header on this tab, and the
+ * slot is only ever empty when there is genuinely nothing for the viewer to do.
  */
 
 const mocks = vi.hoisted(() => ({
   getInfoTournament: vi.fn(),
-  updateTournamentPhase: vi.fn(),
+  startTournament: vi.fn(),
   getRegistrationCount: vi.fn(),
   getPairCount: vi.fn(),
   getUnconfirmedCount: vi.fn(),
   getMyRegistrationForTournament: vi.fn(),
-  generateInitialRoundMatches: vi.fn(),
   createRegistrationButton: vi.fn(),
   getUser: vi.fn(),
   confirmDialog: vi.fn(),
@@ -22,7 +21,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/supabase", () => ({ supabase: {} }));
 vi.mock("@/services/stevneService", () => ({
   getInfoTournament: mocks.getInfoTournament,
-  updateTournamentPhase: mocks.updateTournamentPhase,
+  startTournament: mocks.startTournament,
 }));
 vi.mock("@/services/pameldingService", () => ({
   getRegistrationCount: mocks.getRegistrationCount,
@@ -33,10 +32,6 @@ vi.mock("@/services/pameldingService", () => ({
 vi.mock("@/components/PameldingKnapp", () => ({
   createRegistrationButton: mocks.createRegistrationButton,
 }));
-vi.mock("@/services/kampGenereringInnledendeService", () => ({
-  generateInitialRoundMatches: mocks.generateInitialRoundMatches,
-}));
-vi.mock("@/services/xkastKongelagService", () => ({ generateKongelagCourts: vi.fn() }));
 vi.mock("@/services/authService", () => ({ getUser: mocks.getUser }));
 vi.mock("@/components/ConfirmDialog", () => ({ confirmDialog: mocks.confirmDialog }));
 vi.mock("@/components/Toast", () => ({ showToast: mocks.showToast }));
@@ -111,6 +106,26 @@ describe("stevne-info hero", () => {
     expect(facts.join("|")).toContain("Kongelag");
   });
 
+  it("lists juryleiaren right after kontaktpersonen, and only when there is one", async () => {
+    const el = host();
+    await renderInfo(el, { id: 5 });
+
+    const labels = [...el.querySelectorAll(".stevne-hero__detalj dt")].map((dt) => dt.textContent);
+    expect(labels).not.toContain("Juryleiar");
+
+    mocks.getInfoTournament.mockResolvedValue({
+      data: row({ juryleder: "Kari Kasting" }),
+      error: null,
+    });
+    await renderInfo(el, { id: 5 });
+
+    const details = [...el.querySelectorAll(".stevne-hero__detalj")].map((d) =>
+      d.textContent?.replace(/\s+/g, " ").trim(),
+    );
+    const kontakt = details.findIndex((d) => d?.startsWith("Kontaktperson"));
+    expect(details[kontakt + 1]).toBe("Juryleiar Kari Kasting");
+  });
+
   it("gives the admin Start stevne in the hero slot", async () => {
     const el = host();
     await renderInfo(el, { id: 5, isAdmin: true });
@@ -136,7 +151,7 @@ describe("stevne-info hero", () => {
     expect(el.querySelector("#info-handling-knapper .pamelding-knapp")).not.toBeNull();
   });
 
-  it("refuses to start Gloppen with more rundar than the field can pair", async () => {
+  it("refuses to start Gloppen with more rundar than the field can pair, and says so before the click", async () => {
     mocks.getInfoTournament.mockResolvedValue({
       data: row({ antall_runder_innl: 7, kastemetodeInnl: { id: 1, navn: "Gloppen" } }),
       error: null,
@@ -146,11 +161,14 @@ describe("stevne-info hero", () => {
     const el = host();
     await renderInfo(el, { id: 5, isAdmin: true });
 
-    slot(el).querySelector<HTMLButtonElement>("#start-stevne-btn")!.click();
-    await vi.waitFor(() => expect(mocks.showToast).toHaveBeenCalled());
+    const startBtn = slot(el).querySelector<HTMLButtonElement>("#start-stevne-btn")!;
+    expect(startBtn.disabled).toBe(true);
+    expect(slot(el).querySelector(".stevne-start-hindring")!.textContent).toContain(
+      "maks 5 rundar",
+    );
 
-    expect(mocks.showToast.mock.calls[0]![0]).toContain("maks 5 rundar");
-    expect(mocks.generateInitialRoundMatches).not.toHaveBeenCalled();
+    startBtn.click();
+    expect(mocks.startTournament).not.toHaveBeenCalled();
   });
 
   it("starts Gloppen when the rundar sit on the cap", async () => {
@@ -160,21 +178,39 @@ describe("stevne-info hero", () => {
     });
     mocks.getRegistrationCount.mockResolvedValue(10);
     mocks.getUnconfirmedCount.mockResolvedValue(0);
-    mocks.updateTournamentPhase.mockResolvedValue({ error: null });
+    mocks.startTournament.mockResolvedValue({ error: null, step: null, phase: "innledende" });
     const el = host();
     await renderInfo(el, { id: 5, isAdmin: true });
 
     slot(el).querySelector<HTMLButtonElement>("#start-stevne-btn")!.click();
-    await vi.waitFor(() => expect(mocks.generateInitialRoundMatches).toHaveBeenCalled());
+    await vi.waitFor(() => expect(mocks.startTournament).toHaveBeenCalled());
 
-    expect(mocks.generateInitialRoundMatches).toHaveBeenCalledWith(5, "Gloppen", 5, false);
+    expect(mocks.startTournament).toHaveBeenCalledWith({
+      stevneid: 5,
+      methodName: "Gloppen",
+      roundCount: 5,
+      isTeam: false,
+      isStandaloneKongelag: false,
+    });
   });
 
-  it("leaves the slot empty for a visitor with nothing to do", async () => {
+  it("invites a signed-out visitor to log in instead of leaving the slot empty", async () => {
     const el = host();
     await renderInfo(el, { id: 5 });
 
-    expect(slot(el).innerHTML).toBe("");
+    const cta = slot(el).querySelector("a")!;
+    expect(cta.textContent).toBe("Logg inn");
+    expect(cta.getAttribute("href")).toBe("#/logginn?redirect=%2Fstevne%2F5%2Finfo");
+  });
+
+  it("asks an unlinked account to link a profile rather than to log in again", async () => {
+    mocks.getUser.mockResolvedValue({ user: { id: "u1" }, profil: { kobling_status: "ingen" } });
+    const el = host();
+    await renderInfo(el, { id: 5 });
+
+    const cta = slot(el).querySelector("a")!;
+    expect(cta.textContent).toBe("Koble profil");
+    expect(cta.getAttribute("href")).toBe("#/minside/kampar");
   });
 
   it("drops the start button once the stevne is running", async () => {

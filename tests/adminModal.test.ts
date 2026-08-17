@@ -17,6 +17,7 @@ vi.mock("@/admin/forms/kasterForm", () => ({ mountThrowerForm: mocks.mountThrowe
 vi.mock("@/admin/forms/stevneForm", () => ({ mountTournamentForm: mocks.mountTournamentForm }));
 vi.mock("@/components/Toast", () => ({ showToast: mocks.showToast }));
 
+import { confirmDialog } from "@/components/ConfirmDialog";
 import { openAdminModal } from "@/admin/_adminModal";
 import { openClubEditor, openThrowerEditor, openTournamentEditor } from "@/admin/_adminEdit";
 import type { AdminFormHost } from "@/admin/forms/_formHost";
@@ -123,6 +124,35 @@ describe("openAdminModal", () => {
   });
 });
 
+describe("stacked confirm dialog", () => {
+  function zIndexOf(el: Element | null): number {
+    return Number((el as HTMLElement | null)?.style.zIndex ?? 0);
+  }
+
+  function cancelConfirm(): void {
+    document.querySelector<HTMLButtonElement>("#cd-cancel")!.click();
+  }
+
+  it("paints the delete confirm above the form overlay it opened from", async () => {
+    // The dialog element is reused, so an earlier confirm leaves it in the DOM
+    // before the form overlay — it must still stack on top.
+    const first = confirmDialog({ title: "T", message: "M" });
+    cancelConfirm();
+    await first;
+
+    const modal = openAdminModal({ title: "Rediger stevne" });
+    const pending = confirmDialog({ title: "Slett stevne", message: "Sikker?", danger: true });
+
+    const dialog = document.querySelector("[role='alertdialog']");
+    expect(dialog).not.toBeNull();
+    expect(zIndexOf(dialog)).toBeGreaterThan(zIndexOf(document.querySelector("[role='dialog']")));
+
+    cancelConfirm();
+    await expect(pending).resolves.toBe(false);
+    modal.close();
+  });
+});
+
 describe("entity editors", () => {
   function hostOf(mock: typeof mocks.mountClubForm): AdminFormHost {
     return mock.mock.calls[0]?.[0] as AdminFormHost;
@@ -142,21 +172,16 @@ describe("entity editors", () => {
     expect(mocks.mountThrowerForm).toHaveBeenCalledWith(expect.any(Object), undefined);
   });
 
-  it("closes, confirms and refreshes the panel after a save", () => {
+  it("closes and refreshes the panel after a save, leaving the message to the form", () => {
     const onChanged = vi.fn();
     openTournamentEditor(3, onChanged);
 
     hostOf(mocks.mountTournamentForm).onSaved?.(3, false);
 
     expect(modalEl()).toBeNull();
-    expect(mocks.showToast).toHaveBeenCalledWith("Stevnet er lagra.", "success");
     expect(onChanged).toHaveBeenCalledTimes(1);
-  });
-
-  it("reports a create differently from an update", () => {
-    openTournamentEditor(undefined, vi.fn());
-    hostOf(mocks.mountTournamentForm).onSaved?.(9, true);
-    expect(mocks.showToast).toHaveBeenCalledWith("Stevnet er oppretta.", "success");
+    // The form has already toasted; a second one here would double up.
+    expect(mocks.showToast).not.toHaveBeenCalled();
   });
 
   it("closes and refreshes after a delete", () => {

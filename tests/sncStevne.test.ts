@@ -21,6 +21,7 @@ const mocks = vi.hoisted(() => ({
   getRegistrationsAcrossTournaments: vi.fn(),
   registerForTournament: vi.fn(),
   removeRegistration: vi.fn(),
+  switchRegistration: vi.fn(),
   getRegistrationCount: vi.fn(),
   getPairCount: vi.fn(),
   getUser: vi.fn(),
@@ -49,6 +50,7 @@ vi.mock("@/services/pameldingService", () => ({
   getRegistrationsAcrossTournaments: mocks.getRegistrationsAcrossTournaments,
   registerForTournament: mocks.registerForTournament,
   removeRegistration: mocks.removeRegistration,
+  switchRegistration: mocks.switchRegistration,
   getRegistrationCount: mocks.getRegistrationCount,
   getPairCount: mocks.getPairCount,
 }));
@@ -69,6 +71,8 @@ const {
   getRegistrationsAcrossTournaments,
   registerForTournament,
   removeRegistration,
+  switchRegistration,
+  showToast,
   getUser,
   confirmDialog,
 } = mocks;
@@ -161,6 +165,7 @@ beforeEach(() => {
   confirmDialog.mockResolvedValue(true);
   registerForTournament.mockResolvedValue({ error: null, id: 99 });
   removeRegistration.mockResolvedValue({ error: null });
+  switchRegistration.mockResolvedValue({ error: null, step: null });
   completeSncParent.mockResolvedValue({ error: null });
   reopenSncParent.mockResolvedValue({ error: null });
   mocks.getRegistrationCount.mockResolvedValue(0);
@@ -190,6 +195,20 @@ describe("SNC umbrella info tab", () => {
     await renderSncInfo(el, { id: 10 });
 
     expect(el.querySelector('a[href*="logginn"]')).not.toBeNull();
+    expect(buttonWithText(el, "Meld på")).toBeUndefined();
+  });
+
+  it("sends a signed-in but unlinked account to koble profil, not back to logg inn", async () => {
+    getUser.mockResolvedValue({
+      user: { id: "u2", email: "ny@example.com" },
+      profil: { role: "bruker", kasterid: null, kobling_status: "ingen" },
+      clubs: [],
+    });
+    const el = host();
+    await renderSncInfo(el, { id: 10 });
+
+    expect(el.querySelector('a[href*="logginn"]')).toBeNull();
+    expect(el.querySelector<HTMLAnchorElement>('a[href="#/minside/kampar"]')).not.toBeNull();
     expect(buttonWithText(el, "Meld på")).toBeUndefined();
   });
 
@@ -227,7 +246,7 @@ describe("SNC umbrella info tab", () => {
     expect(own.querySelector(".stevne-kort__nearest-merke")?.textContent).toBe("PÅMELD");
   });
 
-  it("switches venue by unregistering the old one first", async () => {
+  it("switches venue from the old registration to the clicked one", async () => {
     getUser.mockResolvedValue(linkedUser());
     getRegistrationsAcrossTournaments.mockResolvedValue(
       summary({ ownStevneId: 11, ownRegistrationId: 500 }),
@@ -236,9 +255,22 @@ describe("SNC umbrella info tab", () => {
     await renderSncInfo(el, { id: 10 });
 
     el.querySelector<HTMLButtonElement>(".snc-byt")!.click();
-    await vi.waitFor(() => expect(registerForTournament).toHaveBeenCalled());
-    expect(removeRegistration).toHaveBeenCalledWith(500);
-    expect(registerForTournament).toHaveBeenCalledWith(12, 77);
+    await vi.waitFor(() => expect(switchRegistration).toHaveBeenCalled());
+    expect(switchRegistration).toHaveBeenCalledWith(500, 12, 77);
+  });
+
+  it("says the thrower is entered nowhere when the new påmelding fails", async () => {
+    getUser.mockResolvedValue(linkedUser());
+    getRegistrationsAcrossTournaments.mockResolvedValue(
+      summary({ ownStevneId: 11, ownRegistrationId: 500 }),
+    );
+    switchRegistration.mockResolvedValue({ error: new Error("nei"), step: "pamelding" });
+    const el = host();
+    await renderSncInfo(el, { id: 10 });
+
+    el.querySelector<HTMLButtonElement>(".snc-byt")!.click();
+    await vi.waitFor(() => expect(showToast).toHaveBeenCalled());
+    expect(showToast.mock.calls[0]![0]).toContain("meldt av det gamle");
   });
 
   it("closes registration on a venue that has already started", async () => {

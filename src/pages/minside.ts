@@ -1,6 +1,5 @@
 import { getUser } from "@/services/authService";
-import { createErrorBanner } from "@/components/ErrorBanner";
-import { createLoadingState } from "@/components/LoadingState";
+import { createErrorBanner, createLoadingState } from "@/components/states";
 import { createLogoutButton } from "@/components/LogoutButton";
 import { escHtml } from "@/utils/escHtml";
 import { logError } from "@/utils/logError";

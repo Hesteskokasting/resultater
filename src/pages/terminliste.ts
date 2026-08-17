@@ -1,34 +1,23 @@
 import { Capacitor } from "@capacitor/core";
 import type { AuthUser } from "@/types";
 import { getUser } from "@/services/authService";
+import { linkedThrowerId } from "@/utils/kaster";
 import {
   getScheduleTournaments,
-  getFilterOptions,
   getRegistrationsForThrower,
   emptyThrowerRegistrations,
 } from "@/services/stevneService";
 import type { ScheduleTournamentRow, ThrowerRegistrations } from "@/services/stevneService";
-import {
-  formatDateLong,
-  formatDateWeekday,
-  formatWeekdayShort,
-  formatDayOfMonth,
-  yearOptions,
-  downloadExcel,
-} from "@/utils/shared";
+import { yearOptions, downloadExcel, todayIso } from "@/utils/shared";
 import { buildDropdownOptions } from "@/utils/buildDropdownOptions";
-import { createErrorBanner } from "@/components/ErrorBanner";
-import { createLoadingState } from "@/components/LoadingState";
-import { createEmptyState } from "@/components/EmptyState";
+import { createErrorBanner, createLoadingState, createEmptyState } from "@/components/states";
 import {
-  createStevneCard,
+  createTournamentCard,
   actionLinkHtml,
-  type StevneCardTypeBadge,
+  sncUmbrellaActionLink,
   type StevneCardActionLink,
 } from "@/components/StevneCard";
-import { sncUmbrellaActionLink } from "@/utils/sncRegistration";
 import { createExcelButton } from "@/components/ExcelButton";
-import { createFilterButton } from "@/components/FilterButton";
 import { escHtml } from "@/utils/escHtml";
 import { logError } from "@/utils/logError";
 import { registerRefetch } from "@/utils/refetchRegistry";
@@ -38,6 +27,14 @@ import {
   sortSchedule,
   groupSchedule,
   findNearestUpcomingId,
+  filterSchedule,
+  canRegisterForTournament,
+  countSncLocals,
+  countGroupedRows,
+  toggleSort,
+  filterOptionsFromRows,
+  type ScheduleFilterOptions,
+  type FilterOption,
   type ScheduleSort,
   type ScheduleSortColumn,
   type MonthGroup,
@@ -58,20 +55,13 @@ const sortKommande: ScheduleSort = { column: "dato", direction: "asc" };
 const sortFerdige: ScheduleSort = { column: "dato", direction: "desc" };
 let ferdigeExpanded = false;
 
-function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function canRegisterRow(s: TournamentRow, auth: AuthUser | null): boolean {
-  const isUpcoming = new Date(s.dato + "T12:00:00") > new Date();
-  const notStarted = s.stevne_fase === null || s.stevne_fase === "ikke_startet";
-  const hasAccess = auth?.profil?.kobling_status === "godkjent";
-  return hasAccess === true && isUpcoming && notStarted && !s.erfullfort;
+function canRegisterRow(s: TournamentRow): boolean {
+  return canRegisterForTournament(s, linkedThrowerId(_auth) !== null, todayIso());
 }
 
 /** SNC: the thrower must pick a local stevne first, so the button navigates. */
 function sncRegistrationLink(s: TournamentRow): StevneCardActionLink | undefined {
-  if (!s.er_snc_hovudstevne || !canRegisterRow(s, _auth)) return undefined;
+  if (!s.er_snc_hovudstevne || !canRegisterRow(s)) return undefined;
   return sncUmbrellaActionLink(s.id, _registrations.sncParentIds.has(s.id));
 }
 
@@ -83,13 +73,9 @@ function rowHref(s: TournamentRow): string {
 function trailingActionHtml(s: TournamentRow): string {
   const sncLink = sncRegistrationLink(s);
   if (sncLink) return actionLinkHtml(sncLink);
-  return canRegisterRow(s, _auth) && !s.er_snc_hovudstevne
+  return canRegisterRow(s) && !s.er_snc_hovudstevne
     ? `<span data-registration-slot="${s.id}"></span>`
     : "";
-}
-
-function countRows(groups: MonthGroup<TournamentRow>[]): number {
-  return groups.reduce((n, g) => n + g.rows.length, 0);
 }
 
 // ── Filter state ──────────────────────────────────────────────────────────────
@@ -108,18 +94,20 @@ let _auth: AuthUser | null = null;
 let _registrations: ThrowerRegistrations = emptyThrowerRegistrations();
 // "NM" is one of the stevnetype options, but ernm is the authoritative NM flag
 let _nmTypeId: number | undefined;
-// Local stevner are hidden from the schedule — they are parts of one event, and
-// the choice between them belongs on the umbrella's page.
 let _sncLocalCounts: Map<number, number> = new Map();
+let _filterOptions: ScheduleFilterOptions = {
+  stevnetyper: [],
+  kastemetoder: [],
+  klubber: [],
+  kategorier: [],
+};
 
-function countSncLocals(data: TournamentRow[]): Map<number, number> {
-  const counts = new Map<number, number>();
-  for (const s of data) {
-    if (s.snc_hovudstevne_id != null) {
-      counts.set(s.snc_hovudstevne_id, (counts.get(s.snc_hovudstevne_id) ?? 0) + 1);
-    }
-  }
-  return counts;
+/** Everything derived from the loaded year, refreshed whenever the year changes. */
+function setData(rows: TournamentRow[]): void {
+  allData = rows;
+  _sncLocalCounts = countSncLocals(rows);
+  _filterOptions = filterOptionsFromRows(rows);
+  _nmTypeId = _filterOptions.stevnetyper.find((t) => t.navn === "NM")?.id;
 }
 
 function sncLocalCountLabel(s: TournamentRow): string | null {
@@ -128,42 +116,13 @@ function sncLocalCountLabel(s: TournamentRow): string | null {
   return count === 1 ? "1 lokalt stevne" : `${count} lokale stevne`;
 }
 
-// ── Client-side filtering ─────────────────────────────────────────────────────
-
 function filterData(data: TournamentRow[]): TournamentRow[] {
-  return data.filter((s) => {
-    if (s.snc_hovudstevne_id != null) return false;
+  return filterSchedule(data, filter, _nmTypeId);
+}
 
-    if (filter.searchText) {
-      const search = filter.searchText.toLowerCase();
-      const matched = [
-        s.navn,
-        s.sted,
-        s.klubb?.navn,
-        s.stevnetype?.navn,
-        s.kategori?.navn,
-        s.innledende?.navn,
-        s.avsluttende?.navn,
-      ].some((field) => field?.toLowerCase().includes(search));
-      if (!matched) return false;
-    }
-
-    if (filter.tournamentTypeId) {
-      const isNmOption = _nmTypeId != null && filter.tournamentTypeId === String(_nmTypeId);
-      if (isNmOption ? !s.ernm : String(s.stevnetype?.id) !== filter.tournamentTypeId) return false;
-    }
-
-    if (filter.throwingMethodId) {
-      const id = filter.throwingMethodId;
-      const matched = String(s.innledende?.id) === id || String(s.avsluttende?.id) === id;
-      if (!matched) return false;
-    }
-
-    if (filter.clubId && String(s.klubb?.id) !== filter.clubId) return false;
-    if (filter.categoryId && String(s.kategori?.id) !== filter.categoryId) return false;
-
-    return true;
-  });
+/** Nothing upcoming (a past year) means Ferdige is the whole list — open it. */
+function autoExpandFerdige(): void {
+  ferdigeExpanded = countGroupedRows(groupSchedule(filterData(allData), todayIso()).upcoming) === 0;
 }
 
 // ── Excel export ──────────────────────────────────────────────────────────────
@@ -195,11 +154,21 @@ const tableColumns = [
 ];
 const TABLE_COLUMN_COUNT = tableColumns.length + 1; // + trailing action column
 
+// Bootstrap Icons isn't loaded in this app — inline SVG, matching StevneCard's chevron convention.
+// ponytail: lives here because this page is the only caller; move back to
+// components/FilterButton.ts the moment a second page needs it.
+const FILTER_SVG =
+  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+  'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+  '<line x1="4" y1="6" x2="20" y2="6"/><circle cx="9" cy="6" r="2" fill="currentColor" stroke="none"/>' +
+  '<line x1="4" y1="12" x2="20" y2="12"/><circle cx="15" cy="12" r="2" fill="currentColor" stroke="none"/>' +
+  '<line x1="4" y1="18" x2="20" y2="18"/><circle cx="7" cy="18" r="2" fill="currentColor" stroke="none"/>' +
+  "</svg>";
+
 function sortIconHtml(sort: ScheduleSort, column: string): string {
-  if (sort.column !== column) return '<span class="tl-sort-icon">↕</span>';
-  return sort.direction === "asc"
-    ? '<span class="tl-sort-icon active">↑</span>'
-    : '<span class="tl-sort-icon active">↓</span>';
+  const active = sort.column === column;
+  const glyph = !active ? "↕" : sort.direction === "asc" ? "↑" : "↓";
+  return `<span class="tl-sort-icon${active ? " active" : ""}" aria-hidden="true">${glyph}</span>`;
 }
 
 // The single nearest not-yet-started upcoming row gets "I DAG" (dated today) or
@@ -298,8 +267,8 @@ function tableHtml(
   expanded: boolean,
   today: string,
 ): string {
-  const upcomingCount = countRows(groups.upcoming);
-  const pastCount = countRows(groups.past);
+  const upcomingCount = countGroupedRows(groups.upcoming);
+  const pastCount = countGroupedRows(groups.past);
   if (upcomingCount === 0 && pastCount === 0)
     return '<p class="empty-state">Ingen stevner funnet med valgte filtre.</p>';
 
@@ -346,57 +315,24 @@ function buildView(
 // ── Card (mobile) ─────────────────────────────────────────────────────────────
 
 function cardNode(s: TournamentRow, nearestLabel: string | undefined): HTMLElement {
-  const isLive =
-    (s.stevne_fase === "innledende" || s.stevne_fase === "avsluttende") && !s.erfullfort;
-  const isUpcoming = !s.erfullfort && new Date(s.dato + "T12:00:00") > new Date();
-
-  const localCount = sncLocalCountLabel(s);
-  const stedArrangor = [localCount ?? s.sted, s.klubb?.navn]
-    .filter((v): v is string => Boolean(v))
-    .join(" · ");
-  const meta = stedArrangor ? [stedArrangor] : [];
-
-  const typeBadge: StevneCardTypeBadge | undefined = s.stevnetype?.navn
-    ? { type: s.stevnetype.navn, kategori: s.kategori?.navn ?? undefined }
-    : undefined;
-
-  return createStevneCard({
-    title: s.navn ?? "",
+  return createTournamentCard(s, {
     href: rowHref(s),
-    date: formatDateWeekday(s.dato),
-    dateIso: s.dato,
-    dateFull: formatDateLong(s.dato),
-    dateWeekday: formatWeekdayShort(s.dato),
-    dateDay: formatDayOfMonth(s.dato),
-    status: isLive ? "live" : isUpcoming ? "upcoming" : "done",
-    meta,
-    typeBadge,
-    isNm: s.ernm,
+    placeOverride: sncLocalCountLabel(s),
     nearestLabel,
-    registrationSlotId: canRegisterRow(s, _auth) && !s.er_snc_hovudstevne ? s.id : undefined,
+    registrationSlotId: canRegisterRow(s) && !s.er_snc_hovudstevne ? s.id : undefined,
     actionLink: sncRegistrationLink(s),
   });
 }
 
+/** Card variant of the same head — one markup source for both views. */
 function sectionHeadNode(
   title: string,
   count: number,
   toggle?: { controlsId: string; expanded: boolean },
 ): HTMLElement {
-  const head = document.createElement("div");
-  head.className = "tl-section-head";
-  head.innerHTML = `<span class="tl-section-title">${escHtml(title)}</span><span class="tl-section-count-pill">${count}</span>`;
-  if (toggle) {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "tl-toggle-text-btn";
-    btn.id = "tl-ferdige-toggle";
-    btn.setAttribute("aria-expanded", String(toggle.expanded));
-    btn.setAttribute("aria-controls", toggle.controlsId);
-    btn.innerHTML = `${toggle.expanded ? "Skjul" : "Vis"} <span class="tl-toggle-icon" aria-hidden="true">${toggle.expanded ? "▲" : "▼"}</span>`;
-    head.appendChild(btn);
-  }
-  return head;
+  const wrap = document.createElement("div");
+  wrap.innerHTML = sectionHeadHtml(title, count, toggle);
+  return wrap.firstElementChild as HTMLElement;
 }
 
 function monthHeaderNode(label: string, count: number): HTMLElement {
@@ -431,8 +367,8 @@ function buildList(
   expanded: boolean,
   today: string,
 ): HTMLElement {
-  const upcomingCount = countRows(groups.upcoming);
-  const pastCount = countRows(groups.past);
+  const upcomingCount = countGroupedRows(groups.upcoming);
+  const pastCount = countGroupedRows(groups.past);
   if (upcomingCount === 0 && pastCount === 0) {
     return createEmptyState("Ingen stevner funnet med valgte filtre.");
   }
@@ -466,16 +402,15 @@ export async function render(container: HTMLElement): Promise<void> {
   container.replaceChildren(createLoadingState("Laster terminliste…"));
 
   try {
-    const [{ data, error }, { data: filterOptions }, auth] = await Promise.all([
+    const [{ data, error }, auth] = await Promise.all([
       getScheduleTournaments(filter.year),
-      getFilterOptions(),
       getUser(),
     ]);
-    _nmTypeId = filterOptions.stevnetyper.find((t) => t.navn === "NM")?.id;
     _auth = auth;
+    const throwerId = linkedThrowerId(auth);
     _registrations =
-      auth?.profil?.kasterid != null
-        ? await getRegistrationsForThrower(auth.profil.kasterid)
+      throwerId !== null
+        ? await getRegistrationsForThrower(throwerId)
         : emptyThrowerRegistrations();
 
     if (error) {
@@ -484,8 +419,8 @@ export async function render(container: HTMLElement): Promise<void> {
       return;
     }
 
-    allData = data ?? [];
-    _sncLocalCounts = countSncLocals(allData);
+    setData(data ?? []);
+    autoExpandFerdige();
 
     const isNative = Capacitor.isNativePlatform();
     const excelSlotHtml = isNative ? "" : '<span id="tl-excel-slot"></span>';
@@ -496,11 +431,11 @@ export async function render(container: HTMLElement): Promise<void> {
       suffix: "" | "-mobil",
     ): Record<"year" | "tournamentType" | "throwingMethod" | "organizer" | "category", string> {
       return {
-        year: `<select class="tl-select" id="tl-year${suffix}">${yearOptions(filter.year, 1983, new Date().getFullYear() + 1)}</select>`,
-        tournamentType: `<select class="tl-select" id="tl-tournamenttype${suffix}">${buildDropdownOptions(filterOptions.stevnetyper, filter.tournamentTypeId, "Alle typer")}</select>`,
-        throwingMethod: `<select class="tl-select" id="tl-throwingmethod${suffix}">${buildDropdownOptions(filterOptions.kastemetoder, filter.throwingMethodId, "Alle metoder")}</select>`,
-        organizer: `<select class="tl-select" id="tl-organizer${suffix}">${buildDropdownOptions(filterOptions.klubber, filter.clubId, "Alle arrangører")}</select>`,
-        category: `<select class="tl-select" id="tl-category${suffix}">${buildDropdownOptions(filterOptions.kategorier, filter.categoryId, "Alle kategorier")}</select>`,
+        year: `<select class="app-select" id="tl-year${suffix}">${yearOptions(filter.year, 1983, new Date().getFullYear() + 1)}</select>`,
+        tournamentType: `<select class="app-select" id="tl-tournamenttype${suffix}">${buildDropdownOptions(_filterOptions.stevnetyper, filter.tournamentTypeId, "Alle typer")}</select>`,
+        throwingMethod: `<select class="app-select" id="tl-throwingmethod${suffix}">${buildDropdownOptions(_filterOptions.kastemetoder, filter.throwingMethodId, "Alle metoder")}</select>`,
+        organizer: `<select class="app-select" id="tl-organizer${suffix}">${buildDropdownOptions(_filterOptions.klubber, filter.clubId, "Alle arrangører")}</select>`,
+        category: `<select class="app-select" id="tl-category${suffix}">${buildDropdownOptions(_filterOptions.kategorier, filter.categoryId, "Alle kategorier")}</select>`,
       };
     }
     const desktopSel = filterSelects("");
@@ -508,16 +443,16 @@ export async function render(container: HTMLElement): Promise<void> {
 
     container.innerHTML = `
       <div class="terminliste">
-        <h1 class="tl-title">Terminliste ${filter.year}</h1>
+        <h1 class="page-title">Terminliste ${filter.year}</h1>
 
         <!-- Desktop filter row -->
-        <div class="tl-filter-row">
+        <div class="filter-row tl-filter-row">
           ${desktopSel.year}
           <span id="tl-text-slot"></span>
           ${desktopSel.tournamentType}
+          ${desktopSel.category}
           ${desktopSel.throwingMethod}
           ${desktopSel.organizer}
-          ${desktopSel.category}
           ${excelSlotHtml}
         </div>
 
@@ -544,14 +479,14 @@ export async function render(container: HTMLElement): Promise<void> {
           <label class="tl-label">Stevnetype
             ${mobileSel.tournamentType}
           </label>
+          <label class="tl-label">Kategori
+            ${mobileSel.category}
+          </label>
           <label class="tl-label">Kastemetode
             ${mobileSel.throwingMethod}
           </label>
           <label class="tl-label">Arrangør
             ${mobileSel.organizer}
-          </label>
-          <label class="tl-label">Kategori
-            ${mobileSel.category}
           </label>
           <div class="tl-sheet-buttons">
             <button class="tl-reset-button" id="tl-reset">Tilbakestill</button>
@@ -572,10 +507,7 @@ export async function render(container: HTMLElement): Promise<void> {
       else listEl.replaceChildren(view);
       const countEl = container.querySelector(".tl-count");
       if (countEl) countEl.textContent = `${filtered.length} stevner`;
-      const throwerId = _auth?.profil?.kasterid;
-      const userId = _auth?.user.id;
-      if (throwerId != null && userId)
-        bindRegistrationSlots(listEl, throwerId, userId, _registrations.byTournament);
+      if (throwerId !== null) bindRegistrationSlots(listEl, throwerId, _registrations.byTournament);
       return filtered;
     }
 
@@ -628,12 +560,7 @@ export async function render(container: HTMLElement): Promise<void> {
       if (th) {
         const column = th.dataset.column as ScheduleSortColumn;
         const sort = th.closest("table")?.id === "tl-table-ferdige" ? sortFerdige : sortKommande;
-        if (sort.column === column) {
-          sort.direction = sort.direction === "asc" ? "desc" : "asc";
-        } else {
-          sort.column = column;
-          sort.direction = "asc";
-        }
+        toggleSort(sort, column);
         updateList();
         return;
       }
@@ -673,8 +600,7 @@ export async function render(container: HTMLElement): Promise<void> {
     window.addEventListener("resize", handleResize);
 
     async function reloadYear(logContext: string): Promise<boolean> {
-      ferdigeExpanded = false;
-      container.querySelector(".tl-title")!.textContent = `Terminliste ${filter.year}`;
+      container.querySelector(".page-title")!.textContent = `Terminliste ${filter.year}`;
       container
         .querySelector(".tl-list-container")!
         .replaceChildren(createLoadingState("Laster..."));
@@ -686,9 +612,51 @@ export async function render(container: HTMLElement): Promise<void> {
           .replaceChildren(createErrorBanner("Feil ved henting."));
         return false;
       }
-      allData = newData ?? [];
-      _sncLocalCounts = countSncLocals(allData);
+      setData(newData ?? []);
+      refreshFilterSelects();
+      autoExpandFerdige();
       return true;
+    }
+
+    // A value the new year has no stevne for is dropped, so the user is never
+    // left on a filter that can only give an empty list.
+    function refreshSelect(
+      selects: HTMLSelectElement[],
+      options: FilterOption[],
+      value: string,
+      emptyLabel: string,
+    ): string {
+      const kept = options.some((o) => String(o.id) === value) ? value : "";
+      const html = buildDropdownOptions(options, kept, emptyLabel);
+      selects.forEach((s) => (s.innerHTML = html));
+      return kept;
+    }
+
+    function refreshFilterSelects(): void {
+      filter.tournamentTypeId = refreshSelect(
+        [tournamentTypeSelect, tournamentTypeMobSelect],
+        _filterOptions.stevnetyper,
+        filter.tournamentTypeId,
+        "Alle typer",
+      );
+      filter.throwingMethodId = refreshSelect(
+        [throwingMethodSelect, throwingMethodMobSelect],
+        _filterOptions.kastemetoder,
+        filter.throwingMethodId,
+        "Alle metoder",
+      );
+      filter.clubId = refreshSelect(
+        [organizerSelect, organizerMobSelect],
+        _filterOptions.klubber,
+        filter.clubId,
+        "Alle arrangører",
+      );
+      filter.categoryId = refreshSelect(
+        [categorySelect, categoryMobSelect],
+        _filterOptions.kategorier,
+        filter.categoryId,
+        "Alle kategorier",
+      );
     }
 
     yearSelect.addEventListener("change", async () => {
@@ -725,16 +693,30 @@ export async function render(container: HTMLElement): Promise<void> {
       });
     }
 
+    // The sheet is not a ModalBase dialog (own CSS, slides up from the bottom),
+    // so Escape is wired up here. The listener only exists while the sheet is
+    // open, so it cannot outlive the render.
+    const onSheetKeydown = (e: KeyboardEvent): void => {
+      if (e.key === "Escape") closeSheet();
+    };
     function openSheet() {
       sheet.classList.add("active");
       backdrop.classList.add("active");
+      document.addEventListener("keydown", onSheetKeydown);
     }
     function closeSheet() {
       sheet.classList.remove("active");
       backdrop.classList.remove("active");
+      document.removeEventListener("keydown", onSheetKeydown);
     }
 
-    createFilterButton({ slot: container.querySelector("#tl-filter-slot")!, onClick: openSheet });
+    const filterButton = document.createElement("button");
+    filterButton.type = "button";
+    filterButton.className = "tl-filter-button";
+    filterButton.innerHTML = `${FILTER_SVG} Filter`;
+    filterButton.addEventListener("click", openSheet);
+    container.querySelector("#tl-filter-slot")!.replaceWith(filterButton);
+
     backdrop.addEventListener("click", closeSheet);
 
     resetBtn.addEventListener("click", () => {

@@ -1,5 +1,4 @@
-import { createLoadingState } from "@/components/LoadingState";
-import { createErrorBanner } from "@/components/ErrorBanner";
+import { createErrorBanner, createLoadingState } from "@/components/states";
 import { getFinalMethodName } from "@/services/stevneService";
 
 export async function render(

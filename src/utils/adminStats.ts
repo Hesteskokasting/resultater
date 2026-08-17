@@ -3,6 +3,8 @@
  * Kept free of DOM and Supabase so the numbers can be unit-tested directly.
  */
 
+import { yearOf, monthOf } from "@/utils/shared";
+
 export interface LabelCount {
   label: string;
   count: number;
@@ -22,20 +24,6 @@ export interface TournamentSummary {
 }
 
 const monthFmt = new Intl.DateTimeFormat("nb-NO", { month: "short" });
-
-/** "2026-08-02" → 2026. Null/garbage dates yield null so callers can skip them. */
-export function yearOf(dato: string | null | undefined): number | null {
-  if (!dato) return null;
-  const year = Number(dato.slice(0, 4));
-  return Number.isFinite(year) && year > 1900 ? year : null;
-}
-
-/** 1-based month (1–12) from an ISO date, or null when unparseable. */
-export function monthOf(dato: string | null | undefined): number | null {
-  if (!dato || dato.length < 7) return null;
-  const month = Number(dato.slice(5, 7));
-  return Number.isInteger(month) && month >= 1 && month <= 12 ? month : null;
-}
 
 /**
  * Tournaments per calendar year, oldest first, for the `years` years ending at

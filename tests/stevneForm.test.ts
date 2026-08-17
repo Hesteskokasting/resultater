@@ -184,6 +184,8 @@ describe("stevneForm, ordinary tournament", () => {
         snc_hovudstevne_id: null,
       }),
     );
+    // The form announces the save itself, and words a create differently.
+    expect(document.querySelector(".toast-item")?.textContent).toBe("Stevnet er oppretta.");
   });
 
   it("sends the chosen kontaktperson on create", async () => {

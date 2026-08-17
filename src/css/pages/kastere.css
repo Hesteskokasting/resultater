@@ -1,0 +1,30 @@
+/* Rendered by pages/kastere.ts. */
+
+.thrower-checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.88rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.thrower-club {
+  font-size: 0.78rem;
+  color: var(--tekst-2);
+  text-align: center;
+}
+
+.thrower-pagination {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0;
+  flex-wrap: wrap;
+}
+
+.pag-info {
+  font-size: 0.85rem;
+  color: var(--tekst-2);
+  padding: 0 4px;
+}

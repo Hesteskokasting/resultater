@@ -1,6 +1,7 @@
 import type { QueryData } from "@supabase/supabase-js";
 import { supabase } from "@/supabase";
-import { calcMatchPoints, getMatchSides } from "@/utils/kamp";
+import { calcMatchPoints, getAllMatchSides, getMatchSides, type MatchSide } from "@/utils/kamp";
+import { confirmMatch, toConfirmSide } from "@/services/kampService";
 import { logError } from "@/utils/logError";
 import type { CourtFase } from "@/services/xkastKongelagService";
 import { SHOES_PER_OMGANG } from "@/utils/omgangValidation";
@@ -22,7 +23,37 @@ function randomScore(): [number, number] {
     if (Math.random() < 0.5) return [Math.floor(Math.random() * 6) + 21, s2];
     return [s1, Math.floor(Math.random() * 6) + 21];
   }
-  return [s1, s2];
+  // A cup match can't end level, so a drawn draw gets nudged apart.
+  return s1 === s2 ? [s1 + 2, s2] : [s1, s2];
+}
+
+/** startnummer/posisjon lookups, so kamp_spelar rows can be grouped into sides. */
+async function fetchSideMaps(
+  stevneid: number,
+): Promise<{ startnrMap: Record<number, number>; posisjonMap: Record<number, number> } | null> {
+  const { data, error } = await supabase
+    .from("resultat")
+    .select("kasterid, startnummer, posisjon")
+    .eq("stevneid", stevneid);
+  if (error) {
+    logError("testData:sideMaps", error);
+    return null;
+  }
+  const startnrMap: Record<number, number> = {};
+  const posisjonMap: Record<number, number> = {};
+  for (const r of data ?? []) {
+    if (r.kasterid == null) continue;
+    if (r.startnummer != null) startnrMap[r.kasterid] = r.startnummer;
+    if (r.posisjon != null) posisjonMap[r.kasterid] = r.posisjon;
+  }
+  return { startnrMap, posisjonMap };
+}
+
+/** The generated totals replace the scoreboard, so a partial breakdown must go. */
+async function deleteRoundsFor(spelarIds: number[], logKey: string): Promise<void> {
+  if (!spelarIds.length) return;
+  const { error } = await supabase.from("kamp_omgang").delete().in("kamp_spelar_id", spelarIds);
+  if (error) logError(logKey, error);
 }
 
 // ── Service functions ─────────────────────────────────────────────────────────
@@ -43,22 +74,9 @@ export async function autoCompleteInitialRoundMatches(stevneid: number): Promise
 
   // Side grouping via startnummer so Par matches (4 kamp_spelar rows) get the
   // side total on the rep and 0 on the partner — not random per-row scores.
-  const { data: resultat, error: resErr } = await supabase
-    .from("resultat")
-    .select("kasterid, startnummer")
-    .eq("stevneid", stevneid);
-  if (resErr) {
-    logError("autoCompleteInitialRoundMatches:resultat", resErr);
-    return;
-  }
-  const startnrMap: Record<number, number> = Object.fromEntries(
-    (resultat ?? [])
-      .filter(
-        (r): r is typeof r & { kasterid: number; startnummer: number } =>
-          r.kasterid != null && r.startnummer != null,
-      )
-      .map((r) => [r.kasterid, r.startnummer]),
-  );
+  const maps = await fetchSideMaps(stevneid);
+  if (!maps) return;
+  const { startnrMap } = maps;
 
   for (const kamp of kamper as TestMatchRow[]) {
     const spelarar = (kamp.spelarar ?? []).filter(
@@ -69,16 +87,10 @@ export async function autoCompleteInitialRoundMatches(stevneid: number): Promise
     const [kp1, kp2] = calcMatchPoints(s1, s2);
 
     try {
-      // Drop any omgangar already registered on the scoreboard — the generated
-      // totals replace them, and a partial breakdown would contradict them.
-      const spelarIds = spelarar.map((s) => s.id);
-      if (spelarIds.length) {
-        const { error: omgErr } = await supabase
-          .from("kamp_omgang")
-          .delete()
-          .in("kamp_spelar_id", spelarIds);
-        if (omgErr) logError("autoCompleteInitialRoundMatches:omgang", omgErr);
-      }
+      await deleteRoundsFor(
+        spelarar.map((s) => s.id),
+        "autoCompleteInitialRoundMatches:omgang",
+      );
 
       const updates: PromiseLike<unknown>[] = [
         supabase.from("kamp").update({ er_bekreftet: true }).eq("id", kamp.id),
@@ -100,6 +112,84 @@ export async function autoCompleteInitialRoundMatches(stevneid: number): Promise
     } catch (e) {
       logError("autoCompleteInitialRoundMatches:update", e);
     }
+  }
+}
+
+type CupPlayerRow = { id: number; kasterid: number };
+
+/**
+ * Dev helper: settles every unconfirmed avsluttende cup match. A 2-side match
+ * gets a random score; a 3-side match carries no score of its own, so it is
+ * settled by placement only — two random sides advance, the third is out.
+ * Rounds are processed in order, so eliminations land before the next round.
+ */
+export async function autoCompleteFinalMatches(stevneid: number): Promise<void> {
+  const { data: kamper, error } = await supabase
+    .from("kamp")
+    .select("id, runde_nummer, runde_navn, er_tre_spelarar, spelarar:kamp_spelar(id, kasterid)")
+    .eq("stevneid", stevneid)
+    .eq("fase", "avsluttende")
+    .eq("er_bekreftet", false)
+    .order("runde_nummer");
+
+  if (error) {
+    logError("autoCompleteFinalMatches", error);
+    return;
+  }
+  if (!kamper?.length) return;
+
+  const maps = await fetchSideMaps(stevneid);
+  if (!maps) return;
+
+  for (const kamp of kamper) {
+    const spelarar = (kamp.spelarar ?? []).filter(
+      (s): s is CupPlayerRow => s.kasterid != null,
+    ) as CupPlayerRow[];
+    const sides = getAllMatchSides(spelarar, maps.startnrMap, maps.posisjonMap);
+    if (sides.length < 2) continue;
+
+    await deleteRoundsFor(
+      spelarar.map((s) => s.id),
+      "autoCompleteFinalMatches:omgang",
+    );
+
+    // Best side first: random draw for 3 sides, random score decides for 2.
+    let ranked: MatchSide<CupPlayerRow>[];
+    if (kamp.er_tre_spelarar) {
+      ranked = [...sides].sort(() => Math.random() - 0.5);
+    } else {
+      const [s1, s2] = randomScore();
+      ranked = s1 >= s2 ? [sides[0]!, sides[1]!] : [sides[1]!, sides[0]!];
+      const scoreUpdates = ranked.flatMap((side, i) =>
+        side.members.map((m) =>
+          supabase
+            .from("kamp_spelar")
+            .update({ score_poeng: m === side.rep ? (i === 0 ? s1 : s2) : 0 })
+            .eq("id", m.id),
+        ),
+      );
+      const scoreErr = (await Promise.all(scoreUpdates)).find((r) => r.error)?.error;
+      if (scoreErr) {
+        logError("autoCompleteFinalMatches:score", scoreErr);
+        continue;
+      }
+    }
+
+    const eliminated = ranked[ranked.length - 1]!;
+    const { error: confirmErr } = await confirmMatch({
+      kampId: kamp.id,
+      sides: sides.map(toConfirmSide),
+      outcome: {
+        type: "cup-ranked",
+        stevneId: stevneid,
+        roundNumber: kamp.runde_nummer,
+        roundName: kamp.runde_navn,
+        allThrowerIds: spelarar.map((s) => s.kasterid),
+        eliminatedIds: eliminated.members.map((m) => m.kasterid),
+        advancingSides: ranked.slice(0, -1).map((side) => side.members.map((m) => m.kasterid)),
+      },
+    });
+    if (confirmErr) logError("autoCompleteFinalMatches:confirm", confirmErr);
   }
 }
 

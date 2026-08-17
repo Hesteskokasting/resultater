@@ -1,6 +1,5 @@
 import { createEl } from "@/utils/createEl";
-import { createEmptyState } from "@/components/EmptyState";
-import { seriesColor } from "./_adminCharts";
+import { createEmptyState } from "@/components/states";
 import type { LabelCount } from "@/utils/adminStats";
 
 /**
@@ -106,6 +105,8 @@ export function createStatGridSkeleton(count: number): HTMLElement {
 export interface ChartCard {
   card: HTMLElement;
   canvas: HTMLCanvasElement;
+  /** The fixed-height plot box. A share bar replaces the canvas inside it. */
+  wrap: HTMLElement;
   legend: HTMLElement;
   /** Replaces the canvas with a message when there is nothing to plot. */
   showEmpty: (message: string) => void;
@@ -129,6 +130,7 @@ export function createChartCard(title: string, subtitle?: string): ChartCard {
   return {
     card,
     canvas,
+    wrap,
     legend,
     showEmpty: (message: string) => {
       wrap.replaceChildren(createEmptyState(message));
@@ -144,14 +146,52 @@ export function createChartGrid(cards: ChartCard[]): HTMLElement {
 }
 
 /**
+ * Part-to-whole card: one stacked bar plus the legend that carries the numbers.
+ * The bar is decorative (aria-hidden) — every value it encodes is spelled out in
+ * the legend below it, which is the accessible reading of the same data.
+ *
+ * Segment colours come straight from the `--chart-s*` custom properties, so a
+ * theme switch repaints them with no redraw. Zero-count entries are skipped so
+ * they don't spend a gap, but keep their palette slot so the colours stay put.
+ */
+export function renderShareCard(
+  { wrap, legend }: ChartCard,
+  data: LabelCount[],
+  labelOf?: (label: string) => string,
+): void {
+  const bar = createEl("div", null, "admin-sharebar");
+  bar.setAttribute("aria-hidden", "true");
+
+  data.forEach((entry, i) => {
+    if (entry.count <= 0) return;
+    const seg = createEl("div", null, "admin-sharebar__seg");
+    seg.style.flexGrow = String(entry.count);
+    seg.style.background = seriesVar(i);
+    bar.appendChild(seg);
+  });
+
+  wrap.replaceChildren(bar);
+  fillShareLegend(legend, data, labelOf);
+}
+
+/**
+ * Palette slot for entry `i`, cycling through the three series colours. Bar
+ * segments and legend swatches both go through here, so a share with more
+ * entries than colours repeats them identically in the two places — and cycling
+ * (rather than clamping to the last colour) keeps neighbouring segments apart.
+ */
+function seriesVar(i: number): string {
+  return `var(--chart-s${(i % 3) + 1})`;
+}
+
+/**
  * Legend doubling as the value table: swatch, label, count and share. Share-bar
  * fills sit below 3:1 against the light surface, so these labels — not the
  * colours — are what carry the numbers.
  */
-export function fillShareLegend(
+function fillShareLegend(
   legend: HTMLElement,
   data: LabelCount[],
-  host: Element,
   labelOf: (label: string) => string = (l) => l,
 ): void {
   const total = data.reduce((sum, d) => sum + d.count, 0);
@@ -160,7 +200,7 @@ export function fillShareLegend(
   data.forEach((entry, i) => {
     const item = createEl("div", null, "admin-legend__item");
     const swatch = createEl("span", null, "admin-legend__swatch");
-    swatch.style.background = seriesColor(host, i + 1);
+    swatch.style.background = seriesVar(i);
     item.appendChild(swatch);
     item.appendChild(createEl("span", labelOf(entry.label), "admin-legend__label"));
     item.appendChild(createEl("span", String(entry.count), "admin-legend__value"));
@@ -209,7 +249,7 @@ export function createLabelledSelect(
   options: { value: string; text: string }[],
   selected: string,
 ): HTMLSelectElement {
-  const select = createEl("select", null, "tl-select admin-select");
+  const select = createEl("select", null, "app-select admin-select");
   select.setAttribute("aria-label", label);
   for (const opt of options) {
     const optionEl = createEl("option", opt.text);

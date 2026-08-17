@@ -1,5 +1,5 @@
 import { throwerName } from "@/utils/kaster";
-import { createErrorBanner } from "@/components/ErrorBanner";
+import { createErrorBanner, createLoadingState } from "@/components/states";
 import { logError } from "@/utils/logError";
 import { getActiveThrowerList } from "@/services/kasterService";
 import type { ThrowerListRow } from "@/services/kasterService";
@@ -15,7 +15,6 @@ import { createPrinterBanner } from "@/pages/stevne/PrinterBanner";
 import type { PrinterBanner } from "@/pages/stevne/PrinterBanner";
 import { createAvailableColumn, createRegisteredColumn } from "@/pages/stevne/_deltakereColumns";
 import type { AvailableColumnHandle } from "@/pages/stevne/_deltakereColumns";
-import { createLoadingState } from "@/components/LoadingState";
 import { createTabs } from "@/components/Tabs";
 import { createPairTab } from "@/pages/stevne/parTab";
 import { createNewPlayerForm } from "@/pages/stevne/_nySpelarForm";

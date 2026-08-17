@@ -1,4 +1,4 @@
-import { createEmptyState } from "@/components/EmptyState";
+import { createEmptyState } from "@/components/states";
 import { createEl } from "@/utils/createEl";
 
 export interface SearchSelectItem {

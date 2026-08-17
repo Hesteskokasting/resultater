@@ -1,0 +1,66 @@
+/* Rendered by admin/_adminModal.ts, admin/forms/_formHost.ts, admin/forms/kasterForm.ts and 5 more. */
+
+/* ── Admin form widths ────────────────────────────────────────────────────── */
+.admin-form-sm {
+  max-width: 520px;
+}
+
+.admin-form-md {
+  max-width: 560px;
+}
+
+.admin-form-lg {
+  max-width: 640px;
+}
+
+/* ── Admin: overlay forms ──────────────────────────────────────────────────
+   Create/edit runs in an overlay so the admin keeps their tab, filters and
+   scroll position. Same form module as the standalone routes. */
+
+.admin-modal .modal-content {
+  background: var(--flate);
+  color: var(--tekst);
+  border: 1px solid var(--kant);
+}
+
+.admin-modal .modal-header,
+.admin-modal .modal-footer {
+  border-color: var(--kant);
+}
+
+/* Fullscreen dialog, but the form itself stays a readable column. */
+.admin-modal .modal-body {
+  overflow-y: auto;
+}
+
+.admin-modal .admin-form-modal {
+  max-width: 760px;
+  margin-inline: auto;
+}
+
+/* Sticky action bar: bleeds into the body padding so scrolled content passes
+   behind an opaque bar instead of showing through around it. */
+.admin-form-modal .admin-form-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  margin: 16px calc(-1 * var(--bs-modal-padding, 1rem)) calc(-1 * var(--bs-modal-padding, 1rem));
+  padding: 12px var(--bs-modal-padding, 1rem);
+  background: var(--flate);
+  border-top: 1px solid var(--kant);
+}
+
+/* Two fields per line once there is room; one per line on a phone. */
+.admin-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 0 12px;
+}
+
+.admin-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+}

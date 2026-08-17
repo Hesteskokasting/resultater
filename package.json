@@ -1,6 +1,6 @@
 {
   "name": "resultater",
-  "version": "0.9.14",
+  "version": "0.9.15",
   "description": "",
   "license": "ISC",
   "repository": {
@@ -16,6 +16,7 @@
     "test:run": "vp test run",
     "preview": "vp preview --host",
     "test:db": "supabase test db",
+    "css:check": "node scripts/css-check.mjs",
     "types:gen": "node scripts/gen-types.mjs --linked",
     "types:gen:local": "node scripts/gen-types.mjs --local",
     "android:sync": "cap sync android",
@@ -25,7 +26,6 @@
     "ios:sync": "cap sync ios",
     "ios:sync:dev": "cross-env CAPACITOR_SERVER_URL=https://res.hesteskokasting.no/dev cap sync ios",
     "ios:sync:local": "cross-env CAPACITOR_SERVER_URL=http://localhost:5173 cap sync ios",
-    "postinstall": "patch-package",
     "prepare": "vp config"
   },
   "dependencies": {
@@ -47,7 +47,6 @@
     "@capacitor/assets": "^3.0.5",
     "cross-env": "^10.1.0",
     "happy-dom": "^20.10.1",
-    "patch-package": "^8.0.1",
     "supabase": "^2.93.0",
     "typescript": "^7.0.2",
     "vite": "npm:@voidzero-dev/vite-plus-core@0.2.8",

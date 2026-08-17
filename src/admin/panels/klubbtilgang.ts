@@ -1,8 +1,6 @@
-import { createEmptyState } from "@/components/EmptyState";
-import { createErrorBanner } from "@/components/ErrorBanner";
-import { createLoadingState } from "@/components/LoadingState";
+import { createErrorBanner, createLoadingState, createEmptyState } from "@/components/states";
 import { createEl } from "@/utils/createEl";
-import { errMsg } from "@/utils/adminForms";
+import { errorMessage } from "@/utils/errorMessage";
 import { logError } from "@/utils/logError";
 import {
   addClubAdminAccess,
@@ -61,7 +59,7 @@ export async function render(el: HTMLElement): Promise<void> {
     alert.hide();
     const { error } = await action;
     if (error) {
-      alert.show(errMsg(error));
+      alert.show(errorMessage(error));
       return;
     }
     await render(el);
@@ -91,7 +89,7 @@ export async function render(el: HTMLElement): Promise<void> {
     card.appendChild(chips);
 
     const row = createEl("div", null, "admin-access-add");
-    const select = createEl("select", null, "tl-select admin-select");
+    const select = createEl("select", null, "app-select admin-select");
     select.setAttribute("aria-label", "Vel klubb");
     const placeholder = createEl("option", "Legg til klubb…");
     placeholder.value = "";

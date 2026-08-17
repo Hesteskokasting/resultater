@@ -1,0 +1,40 @@
+/* Rendered by pages/stevne/snc-resultat.ts, pages/stevne/stevne-resultat.ts. */
+
+/* ── Resultatside ── */
+
+.res-klassifisering {
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--tekst-2);
+  margin-bottom: 2px;
+}
+
+.res-pdf-lenke {
+  display: block;
+  color: var(--lenke);
+  font-size: 0.85rem;
+  text-decoration: none;
+  margin-bottom: 6px;
+}
+
+.res-pdf-lenke:hover {
+  text-decoration: underline;
+}
+
+.res-antall {
+  font-size: 0.95rem;
+  margin-bottom: 14px;
+}
+
+.res-felles {
+  margin: 12px 0;
+}
+
+.res-kaster-lenke {
+  color: var(--lenke);
+  text-decoration: none;
+}
+
+.res-kaster-lenke:hover {
+  text-decoration: underline;
+}

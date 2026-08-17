@@ -39,6 +39,7 @@ export interface StevneInfoSource {
   kategori?: NamedRow | null;
   klubb?: NamedRow | null;
   kontakt?: { fornavn?: string | null; etternavn?: string | null } | null;
+  juryleder?: string | null;
   kastemetodeInnl?: NamedRow | null;
   kastemetodeAvsl?: NamedRow | null;
 }
@@ -46,11 +47,11 @@ export interface StevneInfoSource {
 // ── Field derivation ──────────────────────────────────────────────────────────
 
 /** Stevnetype and kategori read as one label: "SNC Singel". */
-export function typeAndCategoryLabel(stevne: StevneInfoSource): string {
+function typeAndCategoryLabel(stevne: StevneInfoSource): string {
   return [stevne.stevnetype?.navn, stevne.kategori?.navn].filter(Boolean).join(" ") || "—";
 }
 
-export function contactName(stevne: StevneInfoSource): string {
+function contactName(stevne: StevneInfoSource): string {
   if (!stevne.kontakt) return "";
   return `${stevne.kontakt.fornavn ?? ""} ${stevne.kontakt.etternavn ?? ""}`.trim();
 }
@@ -76,11 +77,15 @@ export function stevneMethodFacts(stevne: StevneInfoSource): StevneHeroFact[] {
   ];
 }
 
-/** Arrangør and kontaktperson — the details every stevne carries. */
+/**
+ * Arrangør and kontaktperson — the details every stevne carries. Juryleiar joins
+ * them when the stevne has one; most do not, so an empty row would be noise.
+ */
 export function stevneDetails(stevne: StevneInfoSource): StevneHeroFact[] {
   return [
     { label: "Arrangør", html: escHtml(stevne.klubb?.navn ?? "—") },
     { label: "Kontaktperson", html: escHtml(contactName(stevne) || "—") },
+    ...(stevne.juryleder ? [{ label: "Juryleiar", html: escHtml(stevne.juryleder) }] : []),
   ];
 }
 

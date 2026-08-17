@@ -17,7 +17,7 @@ import {
   type CourtPhaseContext,
   type CourtPhaseVariant,
   type EntrySlot,
-} from "@/organizer/xkastKongelagView";
+} from "../xkastKongelagView";
 
 /** Omganger per line in the main-row grid and per row in the breakdown. */
 const OMGANGER_PER_ROW = 5;

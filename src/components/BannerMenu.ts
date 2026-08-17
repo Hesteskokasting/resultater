@@ -21,24 +21,24 @@ export function renderBannerMenu(items: BannerMenuItem[]): string {
     .map(
       (item) => `
       <button type="button" role="menuitem" id="${item.id}"
-        class="org-banner-menu__item${item.tone ? ` org-banner-menu__item--${item.tone}` : ""}"
+        class="stevne-banner-menu__item${item.tone ? ` stevne-banner-menu__item--${item.tone}` : ""}"
         ${item.hint ? `title="${escHtml(item.hint)}"` : ""}
         ${item.disabled ? "disabled" : ""}>${escHtml(item.label)}</button>`,
     )
     .join("");
   return `
-    <div class="org-banner-menu">
-      <button type="button" class="org-banner-menu__trigger" aria-haspopup="true"
+    <div class="stevne-banner-menu">
+      <button type="button" class="stevne-banner-menu__trigger" aria-haspopup="true"
         aria-expanded="false" aria-label="Handlingar">⋯</button>
-      <div class="org-banner-menu__panel" role="menu" hidden>${itemsHtml}</div>
+      <div class="stevne-banner-menu__panel" role="menu" hidden>${itemsHtml}</div>
     </div>`;
 }
 
 export function bindBannerMenu(bannerSlot: HTMLElement | null): void {
-  const root = bannerSlot?.querySelector<HTMLElement>(".org-banner-menu");
+  const root = bannerSlot?.querySelector<HTMLElement>(".stevne-banner-menu");
   if (!root) return;
-  const trigger = root.querySelector<HTMLButtonElement>(".org-banner-menu__trigger");
-  const panel = root.querySelector<HTMLElement>(".org-banner-menu__panel");
+  const trigger = root.querySelector<HTMLButtonElement>(".stevne-banner-menu__trigger");
+  const panel = root.querySelector<HTMLElement>(".stevne-banner-menu__panel");
   if (!trigger || !panel) return;
 
   function close(): void {
@@ -72,6 +72,6 @@ export function bindBannerMenu(bannerSlot: HTMLElement | null): void {
   });
 
   panel.addEventListener("click", (e) => {
-    if ((e.target as HTMLElement).closest(".org-banner-menu__item")) close();
+    if ((e.target as HTMLElement).closest(".stevne-banner-menu__item")) close();
   });
 }

@@ -1,0 +1,22 @@
+/* Rendered by components/PremieDialog.ts. */
+
+/* Prize draw dialog: percentage or exact count, one of the two. */
+
+.premie-dialog__hjelp {
+  margin-bottom: 10px;
+  font-size: 0.8rem;
+  color: var(--tekst-2);
+}
+
+.premie-dialog__val + .premie-dialog__val {
+  margin-top: 10px;
+}
+
+.premie-dialog__rad {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}

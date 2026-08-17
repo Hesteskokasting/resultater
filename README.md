@@ -129,6 +129,7 @@ Vite+ legg eigne shims for `node`, `npm` og `npx` i `~/.vite-plus/bin`, og desse
 | `vp run test:run`       | Eingongskøyring av alle testar — bruk dette før commit og i CI                                          |
 | `vp run typecheck:test` | Typesjekkjer testfilene (Vitest brukar esbuild, ikkje tsc — dette er einaste typesjekkinga av `tests/`) |
 | `vp run test:db`        | Køyrer pgTAP-integrasjonstestane mot lokal Supabase-stack (krev `vp exec supabase start` fyrst)         |
+| `vp run css:check`      | Kontrollerer strukturen i `src/css` — sjå [CSS-struktur](#css-struktur)                                 |
 
 **Du treng ikkje køyre `build` eller `dev` før du pushar.** GitHub Actions byggjer automatisk når du pushar:
 
@@ -544,16 +545,16 @@ src/
 │   └── panels/             # Ei fil per fane (oversikt, stevne, utøvarar, …)
 ├── components/             # Gjenbrukbare UI-faktoriar (create<Name>)
 │   ├── ConfirmDialog.ts
-│   ├── EmptyState.ts
-│   ├── ErrorBanner.ts
-│   ├── LoadingState.ts
-│   ├── PromptDialog.ts
+│   ├── ModalBase.ts        # Backdrop, show/hide og Escape delt av dialogane
 │   ├── Scoreboard.ts
 │   ├── ScoreNumberpad.ts
+│   ├── states.ts           # .loading / .error-banner / .empty-state
 │   ├── Table.ts
 │   ├── Tabs.ts
 │   └── Toast.ts
-├── organizer/              # Stevne-arrangør-verktøy (gruppefordeling, startkort)
+├── global.css              # Bootstrap-import + design-tokens (`:root`, `[data-theme="light"]`)
+├── styles.css              # Lagdelt importliste for css/ — rekkefølgja er kaskaden
+├── css/                    # Ei fil per side/komponent — sjå [CSS-struktur](#css-struktur)
 ├── pages/                  # Tynne rutehandterar; koplar komponentar + tenester
 │   └── stevne/             # Stevne-undersider
 │       ├── innledende/     # Kastemetode-spesifikk innledende-logikk
@@ -570,3 +571,43 @@ tests/                      # Vitest-testar for rein logikk (utils og service-fu
 android/                    # Nativt Android-prosjekt (Capacitor) — sjå eigen seksjon ovanfor
 capacitor.config.ts         # Capacitor-konfig (app-id, webDir, server.url)
 ```
+
+## CSS-struktur
+
+All styling ligg i `src/css/`, med **ei fil per side eller komponent, namngjeven etter modulen som renderar den**. Kvar fil opnar med kven som renderar den, så du finn styling ved å gå frå TS-fila til fila med same namn — `components/PlayerTable.ts` → `css/components/player-table.css`.
+
+`src/styles.css` er ikkje ei innhaldsliste, det er **kaskaden**. Importane er delte i lag, og eit lag får overstyre laga over seg, aldri omvendt:
+
+| Lag                                    | Kva som bur der                                                                        |
+| -------------------------------------- | -------------------------------------------------------------------------------------- |
+| `base`, `elements`, `layout`, `tables` | Grunnmur: reset, generiske primitivar (knappar, input, lenker), sideskal, tabellmøblar |
+| `chrome/`                              | App-kromet frå `index.html` — header, meny, tema-brytar                                |
+| `components/`                          | Ei fil per komponent                                                                   |
+| `pages/`                               | Ei fil per rute                                                                        |
+| `stevne/`                              | Turneringsdelen (mange undervisningar deler mykje)                                     |
+| `admin/`                               | Admin-delen                                                                            |
+| `print`                                | `@media print`                                                                         |
+
+Innanfor eit lag er filene alfabetiske og uavhengige — ingen regel skal vere avhengig av at ei anna fil i same lag kjem fyrst.
+
+**`global.css` er berre Bootstrap og design-tokens.** Den blir lenka før `styles.css` i `index.html`, så alt som ligg der vinn kaskaden feil veg: ein global regel kan ikkje overstyrast av komponentfila som eig den. Tokens er trygge fordi dei berre blir lesne. Alt som _stylar_ noko høyrer i `src/css/`.
+
+### Køyr `vp run css:check` når du har flytta CSS
+
+```bash
+vp run css:check
+```
+
+Sjekkar at kvar fil er importert nøyaktig éin gong, at ingen regel er død (ingenting renderar klassane i den), at ingen `--variabel` er ulesen, og at ingen fil manglar topptekst. Han rapporterar òg to ting som krev menneskeleg vurdering utan å feile: same selektor i fleire filer, og grupperte selektorar (`.a, .b { … }`) der halvdelane blir renderaste av ulike modular. Kjende og godkjende unntak står i `ALLOW` i `scripts/css-check.mjs`, med grunngjeving.
+
+### Flyttar du reglar? Snapshot fyrst
+
+Å flytte CSS kan endre kva regel som vinn. Skriptet svarer på det spørsmålet direkte — to reglar konkurrerer berre når dei kan treffe same element _og_ set same eigenskap til ulik verdi:
+
+```bash
+node scripts/css-check.mjs --snapshot .css-baseline.json
+# flytt reglar
+node scripts/css-check.mjs --against .css-baseline.json
+```
+
+`Equivalent` tyder at ingen klasse har fått verdirekkja si endra for nokon eigenskap — då ser sidene like ut, uansett kor filene ligg. Døypte du om ei klasse undervegs, gi han eit kart så gamle namn blir folda inn i dei nye: `--renames renames.json` med `{"gamalt-namn": "nytt-namn"}`.

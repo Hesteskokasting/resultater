@@ -3,11 +3,10 @@
 // so picking another is always a switch — unregister first, then register.
 
 import { getUser } from "@/services/authService";
+import { linkedThrowerId } from "@/utils/kaster";
 import { confirmDialog } from "@/components/ConfirmDialog";
-import { createErrorBanner } from "@/components/ErrorBanner";
-import { createLoadingState } from "@/components/LoadingState";
-import { createEmptyState } from "@/components/EmptyState";
-import { createStevneCard } from "@/components/StevneCard";
+import { createErrorBanner, createLoadingState, createEmptyState } from "@/components/states";
+import { createStevneCard, registrationCtaLink } from "@/components/StevneCard";
 import {
   heroActionSlot,
   stevneDetails,
@@ -40,8 +39,10 @@ import {
   getRegistrationsAcrossTournaments,
   registerForTournament,
   removeRegistration,
+  switchRegistration,
 } from "@/services/pameldingService";
 import type { TournamentRegistrationSummary } from "@/services/pameldingService";
+import type { AuthUser } from "@/types";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -91,13 +92,19 @@ function ownRegistrationNoticeHtml(
   locals: SncLocalTournamentRow[],
   summary: TournamentRegistrationSummary,
   canRegister: boolean,
-  isLoggedIn: boolean,
+  auth: AuthUser | null,
   parentId: number,
+  isFinished: boolean,
 ): string {
-  if (!isLoggedIn) {
-    return `<div class="alert alert-info">
-      <a href="#/logginn?redirect=/stevne/${parentId}/info">Logg inn</a> for å melde deg på eitt av dei lokale stevna.
-    </div>`;
+  // Signed out and signed-in-but-unlinked both end up here; the shared helper
+  // decides which of the two is missing so this page doesn't word it its own way.
+  if (!canRegister && !isFinished) {
+    const cta = registrationCtaLink(parentId, auth);
+    if (cta) {
+      return `<div class="alert alert-info">
+        <a href="${escHtml(cta.href)}">${escHtml(cta.title ?? cta.label)}</a>
+      </div>`;
+    }
   }
   if (!canRegister) return "";
   if (summary.ownStevneId == null) {
@@ -159,7 +166,7 @@ export async function render(
     const parent = parentResult.data;
     const locals = localsResult.data;
 
-    const kasterid = auth?.profil?.kobling_status === "godkjent" ? auth.profil.kasterid : null;
+    const kasterid = linkedThrowerId(auth);
     const summary = await getRegistrationsAcrossTournaments(
       locals.map((l) => l.id),
       kasterid,
@@ -169,8 +176,8 @@ export async function render(
 
     container.innerHTML = `
       ${overviewHtml(parent, locals, totalRegistrations)}
-      <div class="org-max-480">
-        ${ownRegistrationNoticeHtml(locals, summary, canRegister, auth != null, id)}
+      <div class="stevne-max-480">
+        ${ownRegistrationNoticeHtml(locals, summary, canRegister, auth, id, parent.erfullfort === true)}
         <h6 class="mb-2">Lokale stevne (${locals.length})</h6>
         <div id="snc-locals" class="stevne-kort-liste"></div>
         ${
@@ -243,6 +250,7 @@ function actionButton(
 
     if (isSwitch) {
       if (
+        summary.ownRegistrationId == null ||
         !(await confirmDialog({
           title: "Byt lokalt stevne",
           message:
@@ -251,16 +259,17 @@ function actionButton(
       )
         return;
       button.disabled = true;
-      if (summary.ownRegistrationId != null) {
-        const { error } = await removeRegistration(summary.ownRegistrationId);
-        if (error) {
-          showToast("Kunne ikkje melde av det gamle lokalstevnet: " + errorMessage(error), "error");
-          button.disabled = false;
-          return;
-        }
+      const { error, step } = await switchRegistration(
+        summary.ownRegistrationId,
+        local.id,
+        kasterid,
+      );
+      if (step === "avmelding") {
+        showToast("Kunne ikkje melde av det gamle lokalstevnet: " + errorMessage(error), "error");
+        button.disabled = false;
+        return;
       }
-      const { error } = await registerForTournament(local.id, kasterid);
-      if (error) {
+      if (step === "pamelding") {
         // Unregistered but not re-registered: say so, or the thrower assumes
         // they are entered at the new local stevne.
         showToast(

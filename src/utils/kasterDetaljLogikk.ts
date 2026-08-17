@@ -1,4 +1,4 @@
-import { formatDate } from "@/utils/shared";
+import { formatDate, yearOf } from "@/utils/shared";
 import type { ResultDetailRow } from "@/services/kasterService";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -8,10 +8,6 @@ const MAX_RING = { kongelag: 40, minimatch: 60, halvmatch: 100, heilmatch: 200 }
 export type MethodName = keyof typeof MAX_RING;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-export function getYear(datoStr: string | null | undefined): number | null {
-  return datoStr ? parseInt(datoStr.substring(0, 4)) : null;
-}
 
 function average(vals: number[]): number | null {
   if (!vals.length) return null;
@@ -52,6 +48,59 @@ export function sortResults<T extends SortableResult>(rows: T[], sort: ResultSor
   });
 }
 
+/**
+ * Clicking a header: the same column flips direction, a new one starts on its
+ * own sensible default — newest first for date, best first for placement.
+ */
+export function nextResultSort(sort: ResultSort, column: ResultSortColumn): ResultSort {
+  if (sort.column === column) {
+    return { column, direction: sort.direction === "asc" ? "desc" : "asc" };
+  }
+  return { column, direction: column === "plassering" ? "asc" : "desc" };
+}
+
+// ── Result filtering ──────────────────────────────────────────────────────────
+
+/** Shape the year/type filter and its dropdowns need. */
+type FilterableResult = {
+  stevne: { dato: string | null; stevnetype: { id: number; navn: string } | null } | null;
+};
+
+/**
+ * The year and stevnetype dropdowns list only what this thrower has actually
+ * competed in — years newest first, types alphabetical.
+ */
+export function resultFilterOptions(rows: FilterableResult[]): {
+  years: number[];
+  types: [number, string][];
+} {
+  const years = [
+    ...new Set(rows.map((r) => yearOf(r.stevne?.dato)).filter((a): a is number => a !== null)),
+  ].sort((a, b) => b - a);
+  const types = [
+    ...new Map(
+      rows
+        .map((r) => r.stevne?.stevnetype)
+        .filter((t): t is { id: number; navn: string } => t != null)
+        .map((t) => [t.id, t.navn] as [number, string]),
+    ).entries(),
+  ].sort((a, b) => a[1].localeCompare(b[1]));
+  return { years, types };
+}
+
+/** Both filters carry the sentinel "alle", which keeps everything. */
+export function filterResults<T extends FilterableResult>(
+  rows: T[],
+  yearFilter: string,
+  typeFilter: string,
+): T[] {
+  return rows.filter((r) => {
+    if (yearFilter !== "alle" && String(yearOf(r.stevne?.dato)) !== yearFilter) return false;
+    if (typeFilter !== "alle" && String(r.stevne?.stevnetype?.id) !== typeFilter) return false;
+    return true;
+  });
+}
+
 // ── Statistics ────────────────────────────────────────────────────────────────
 
 function hasMethod(r: ResultDetailRow, metode: string): boolean {
@@ -84,7 +133,7 @@ export function calcStatistics(resultater: ResultDetailRow[]) {
     const avgPoints = average(rader.map((r) => poengFn(r)));
 
     const ringFrom2017 = rader.filter(
-      (r) => ringFn(r) != null && (getYear(r.stevne?.dato) ?? 0) >= FIRST_RING_YEAR,
+      (r) => ringFn(r) != null && (yearOf(r.stevne?.dato) ?? 0) >= FIRST_RING_YEAR,
     );
     const avgPercent = ringFrom2017.length
       ? Math.round(
@@ -135,7 +184,7 @@ export function buildChartData(
 ) {
   const filtered = [...resultater]
     .filter((r) => {
-      const year = getYear(r.stevne?.dato);
+      const year = yearOf(r.stevne?.dato);
       if (fra && (year ?? 0) < fra) return false;
       if (til && (year ?? 0) > til) return false;
       return calcChartValue(r, metric, method) != null;

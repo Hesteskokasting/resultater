@@ -1,0 +1,166 @@
+/* Rendered by admin/_adminUi.ts, admin/forms/kasterForm.ts, admin/forms/klubbForm.ts and 14 more. */
+
+/* ── Header ── */
+
+.top-header.hidden {
+  display: none;
+}
+
+.top-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  /* Keep the header below the iOS status bar/notch; 0 everywhere else */
+  padding-top: calc(10px + var(--sa-top));
+  background: var(--header-bg);
+  border-bottom: 1px solid var(--kant);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-tittel {
+  font-size: 0.95rem;
+  font-weight: bold;
+}
+
+.header-kontroller {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ── Header nav (wide screens only) ── */
+
+.header-nav {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .header-nav {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex: 1;
+    padding: 0 12px;
+  }
+
+  .meny-knapp {
+    display: none;
+  }
+}
+
+.header-nav__link {
+  padding: 4px 8px;
+  font-size: 0.85rem;
+  color: var(--tekst-2);
+  text-decoration: none;
+  border-radius: 5px;
+  white-space: nowrap;
+  background: none;
+  border: none;
+  cursor: pointer;
+  line-height: 1.4;
+}
+
+.header-nav__link:hover {
+  background: var(--primaer-hover);
+  color: var(--tekst);
+}
+
+.header-nav__dropdown {
+  position: relative;
+}
+
+.header-nav__dropdown-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.header-nav__dropdown-menu {
+  display: none;
+  position: absolute;
+  /* Flush against the button: a gap here is a dead zone the pointer crosses,
+     which drops :hover and closes the menu before it can be clicked. */
+  top: 100%;
+  left: 0;
+  background: var(--flate);
+  border: 1px solid var(--kant);
+  border-radius: 6px;
+  padding: 4px 0;
+  min-width: 140px;
+  z-index: 150;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.header-nav__dropdown:hover .header-nav__dropdown-menu,
+.header-nav__dropdown:focus-within .header-nav__dropdown-menu {
+  display: block;
+}
+
+.header-nav__dropdown-item {
+  display: block;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  color: var(--lenke);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.header-nav__dropdown-item:hover {
+  background: var(--primaer-hover);
+}
+
+/* ── Header email ── */
+
+.header-email {
+  font-size: 0.8rem;
+  color: var(--tekst-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+  text-decoration: none;
+}
+
+.header-email:hover {
+  color: var(--tekst);
+  text-decoration: underline;
+}
+
+.meny-knapp {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 28px;
+  height: 20px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.meny-knapp span {
+  display: block;
+  width: 100%;
+  height: 2px;
+  background: var(--tekst);
+  border-radius: 2px;
+  transition:
+    transform 0.25s,
+    opacity 0.25s;
+}
+
+.meny-knapp.aktiv span:nth-child(1) {
+  transform: translateY(9px) rotate(45deg);
+}
+
+.meny-knapp.aktiv span:nth-child(2) {
+  opacity: 0;
+}
+
+.meny-knapp.aktiv span:nth-child(3) {
+  transform: translateY(-9px) rotate(-45deg);
+}

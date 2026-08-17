@@ -29,3 +29,6 @@ supabase/.temp/
 supabase/seed.sql
 current-sql-schema.sql
 .claude/settings.local.json
+
+# CSS-kaskade-snapshot frå `node scripts/css-check.mjs --snapshot`
+.css-baseline.json

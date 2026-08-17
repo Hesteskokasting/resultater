@@ -1,0 +1,16 @@
+/* Rendered by components/RankingList.ts, components/ResultatTabell.ts, pages/norgesranking.ts. */
+
+/* Not yet valid: fewer counting stevner than the rules ask for. Held back rather
+   than flagged — the season is unfinished, not wrong. */
+.rank-rad--ugyldig,
+.rank-table tbody tr.rank-rad--ugyldig td,
+.rank-rad--ugyldig .res-navn,
+.rank-rad--ugyldig .res-pl,
+.rank-rad--ugyldig .res-tot-verdi {
+  color: var(--tekst-2);
+  font-weight: normal;
+}
+
+.info-tip__dempa {
+  color: var(--tekst-3);
+}

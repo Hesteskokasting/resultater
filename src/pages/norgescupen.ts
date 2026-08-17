@@ -1,33 +1,26 @@
 import { throwerName } from "@/utils/kaster";
-import { logError } from "@/utils/logError";
-import { bindExpandableRows } from "@/utils/expandableRows";
-import { formaterPoeng, buildSingleList, buildTeamList } from "@/utils/norgescup";
-import { getRules, getTournamentsAndResults } from "@/services/norgescupService";
+import { hasSeparateClasses } from "@/utils/klasse";
+import {
+  formaterPoeng,
+  buildSingleList,
+  buildTeamList,
+  normalizeCupFilter,
+  FIRST_MULTI_CUP_YEAR,
+} from "@/utils/norgescup";
+import { loadCupYear, clearCupYearCache } from "@/services/norgescupService";
 import { formatDate, yearOptions } from "@/utils/shared";
-import { createErrorBanner } from "@/components/ErrorBanner";
-import { createLoadingState } from "@/components/LoadingState";
-import { createEmptyState } from "@/components/EmptyState";
-import { createTable } from "@/components/Table";
+import { createErrorBanner, createLoadingState, createEmptyState } from "@/components/states";
+import { createInfoTooltip } from "@/components/InfoTooltip";
+import { bindRankingDetails, detailTableHtml, rankingListHtml } from "@/components/RankingList";
 import type { Tables } from "@/types";
-import type { ResultWithRelations, TournamentForNC } from "@/services/norgescupService";
-import type { SingleListRow, TeamListRow } from "@/utils/norgescup";
+import type { CupYear } from "@/services/norgescupService";
+import type { SingleListRow, TeamListRow, CupFilter } from "@/utils/norgescup";
 import { escHtml } from "@/utils/escHtml";
 
 const FIRST_YEAR = 2007;
-const FIRST_MULTI_CUP_YEAR = 2024;
 
-interface Filter {
-  year: number;
-  cupType: string;
+interface Filter extends CupFilter {
   classNum: number;
-  view: "singel" | "lag";
-}
-
-interface NCCache {
-  year: number | null;
-  rules: Tables<"antallTellendeNc"> | null;
-  tournaments: TournamentForNC[];
-  results: ResultWithRelations[];
 }
 
 const filter: Filter = {
@@ -37,36 +30,7 @@ const filter: Filter = {
   view: "singel",
 };
 
-let cache: NCCache = {
-  year: null,
-  rules: null,
-  tournaments: [],
-  results: [],
-};
-
-// ── Data fetching ─────────────────────────────────────────────────────────────
-
-async function fetchAndBufferData(year: number): Promise<boolean> {
-  if (cache.year === year) return true;
-
-  try {
-    const [{ data: rules, error: e1 }, { stevner, resultater, error: e2 }] = await Promise.all([
-      getRules(year),
-      getTournamentsAndResults(year),
-    ]);
-
-    if (e1 || e2) return false;
-
-    cache.year = year;
-    cache.rules = rules;
-    cache.tournaments = stevner;
-    cache.results = resultater;
-    return true;
-  } catch (err) {
-    logError("fetchAndBufferData", err);
-    return false;
-  }
-}
+let season: CupYear = { rules: null, tournaments: [], results: [] };
 
 // ── HTML builders ─────────────────────────────────────────────────────────────
 
@@ -74,6 +38,21 @@ function descriptionText(rules: Tables<"antallTellendeNc">, cupType: string): st
   if (cupType === "SNC") return `Dei ${rules.max_snc} beste SNC-stevna er teljande`;
   if (cupType === "DNC") return `Dei ${rules.max_dnc} beste DNC-stevna er teljande`;
   return `Dei ${rules.maxtotal} beste stevna, herav maks ${rules.max_nc_total} NC-stevner og ${rules.max_snc_total} SNC-stevner er teljande`;
+}
+
+const TEAM_INFO_HTML = `
+  <p class="info-tip__tittel">NC Lag</p>
+  <p>Kun klasse 1. Dei 4 beste poengsummene frå kvar klubb er teljande.</p>`;
+
+/** What the singles list is made of — follows the cup type and the year's rules. */
+function singleInfoHtml(
+  rules: Tables<"antallTellendeNc"> | null,
+  cupType: string,
+  year: number,
+): string {
+  return `
+    <p class="info-tip__tittel">${escHtml(cupType)} Singel ${year}</p>
+    <p>${escHtml(rules ? descriptionText(rules, cupType) : `Ingen telleregel funnet for ${year}`)}</p>`;
 }
 
 function viewTabsHtml(selectedView: string): string {
@@ -85,115 +64,70 @@ function viewTabsHtml(selectedView: string): string {
 }
 
 function classTabsHtml(selectedClass: number, year: number): string {
-  const tabs =
-    year <= 2025
-      ? `<div class="nc-class-tabs">
+  const tabs = hasSeparateClasses(year)
+    ? `<div class="nc-class-tabs">
         <button class="nc-class-tab${selectedClass === 1 ? " active" : ""}" data-class="1">Klasse 1</button>
         <button class="nc-class-tab${selectedClass === 2 ? " active" : ""}" data-class="2">Klasse 2</button>
       </div>`
-      : "";
+    : "";
   return `
     <div class="nc-class-tabs-wrapper">
       ${tabs}
-      <span class="nc-click-hint">Klikk poengsum for å vise detaljer</span>
+      <span class="click-hint">Klikk ein kastar for å vise detaljar</span>
     </div>`;
 }
 
-function teamPointsCellContent(points: number): DocumentFragment {
-  const frag = document.createDocumentFragment();
-  frag.appendChild(document.createTextNode(formaterPoeng(points)));
-  const chevron = document.createElement("span");
-  chevron.className = "nc-chevron";
-  chevron.textContent = " ▼";
-  frag.appendChild(chevron);
-  return frag;
-}
-
-function createSingleTable(list: SingleListRow[]): HTMLElement {
-  if (list.length === 0) return createEmptyState("Ingen resultater funnet.");
-
-  return createTable<SingleListRow>({
-    rows: list,
-    rowClass: "nc-single-row",
-    rowAttrs: (_, i) => ({ "data-idx": String(i) }),
-    detailRowClass: "nc-detail-row d-none",
-    detailRow: (item) =>
-      createTable({
-        rows: item.detaljRader,
-        tableClass: "detalj-tabell",
-        theadClass: "",
-        columns: [
-          { label: "Dato", render: (r) => formatDate(r._stevne?.dato) },
-          { label: "Type", render: (r) => r._stevne?.typeNavn ?? "–" },
-          { label: "Stevne", render: (r) => r._stevne?.navn ?? "–" },
-          { label: "Pl.", render: (r) => String(r.plassering ?? "–") },
-          { label: "Poeng", render: (r) => formaterPoeng(r.nc_poeng) },
+function singleListHtml(list: SingleListRow[]): string {
+  return rankingListHtml<SingleListRow>(list, {
+    idPrefix: "nc-singel",
+    placement: (item) => String(item.plassering),
+    name: (item) => item.navn,
+    club: (item) => item.klubb,
+    mainLabel: "POENG",
+    main: (item) => formaterPoeng(item.totalPoeng),
+    detail: (item) =>
+      detailTableHtml(
+        [
+          { label: "Dato", value: (r) => formatDate(r._stevne?.dato) },
+          { label: "Type", value: (r) => r._stevne?.typeNavn ?? "–" },
+          { label: "Stevne", value: (r) => r._stevne?.navn ?? "–" },
+          { label: "Pl.", cellClass: "res-tal", value: (r) => String(r.plassering ?? "–") },
+          { label: "Poeng", cellClass: "res-tal", value: (r) => formaterPoeng(r.nc_poeng) },
         ],
-      }),
-    columns: [
-      {
-        label: "Pl.",
-        thClass: "nc-td-pl",
-        cellClass: "nc-td-pl",
-        render: (item) => String(item.plassering),
-      },
-      { label: "Navn", render: (item) => item.navn },
-      { label: "Klubb", render: (item) => item.klubb },
-      {
-        label: "Poeng",
-        thClass: "nc-td-points",
-        cellClass: "nc-td-points nc-points-cell",
-        cellAttrs: (_, i) => ({ "data-idx": String(i) }),
-        render: (item) => teamPointsCellContent(item.totalPoeng),
-      },
-    ],
+        item.detaljRader,
+      ),
   });
 }
 
-function createTeamTable(teamList: TeamListRow[]): HTMLElement {
-  if (teamList.length === 0) return createEmptyState("Ingen lag funnet.");
-
-  return createTable<TeamListRow>({
-    rows: teamList,
-    rowClass: "nc-team-row",
-    rowAttrs: (_, i) => ({ "data-team-idx": String(i) }),
-    detailRowClass: "nc-team-detail-row d-none",
-    detailRow: (item) =>
-      createTable({
-        rows: item.bidragsytere,
-        tableClass: "detalj-tabell",
-        showHeader: false,
-        columns: [
-          { label: "", render: (b) => throwerName(b.kaster) },
-          { label: "", cellClass: "nc-td-points", render: (b) => formaterPoeng(b.sum) },
+function teamListHtml(teamList: TeamListRow[]): string {
+  return rankingListHtml<TeamListRow>(teamList, {
+    idPrefix: "nc-lag",
+    placement: (item) => String(item.plassering),
+    nameLabel: "KLUBB",
+    name: (item) => item.klubb?.navn ?? "–",
+    meta: (item) => `${item.bidragsytere.length} kastarar`,
+    mainLabel: "POENG",
+    main: (item) => formaterPoeng(item.lagTotal),
+    detail: (item) =>
+      detailTableHtml(
+        [
+          { label: "Kastar", value: (b) => throwerName(b.kaster) },
+          { label: "Poeng", cellClass: "res-tal", value: (b) => formaterPoeng(b.sum) },
         ],
-      }),
-    columns: [
-      {
-        label: "Pl.",
-        thClass: "nc-td-pl",
-        cellClass: "nc-td-pl",
-        render: (item) => String(item.plassering),
-      },
-      { label: "Klubb", render: (item) => item.klubb?.navn ?? "–" },
-      {
-        label: "Poeng",
-        thClass: "nc-td-points",
-        cellClass: "nc-td-points nc-team-points-cell",
-        cellAttrs: (_, i) => ({ "data-team-idx": String(i) }),
-        render: (item) => teamPointsCellContent(item.lagTotal),
-      },
-    ],
+        item.bidragsytere,
+      ),
   });
 }
 
 function pageSkeletonHtml(year: number, cupType: string): string {
   return `
-    <div class="content-page">
-      <h1 class="nc-main-title">Norgescupen ${year}</h1>
-      <div class="nc-filter-rad">
-        <select id="nc-year" class="tl-select">${yearOptions(year, FIRST_YEAR)}</select>
-        <select id="nc-cuptype" class="tl-select${year < FIRST_MULTI_CUP_YEAR ? " d-none" : ""}">
+    <div class="content-page res-side">
+      <h1 class="page-title">
+        <span id="nc-title-text">Norgescupen ${year}</span><span id="nc-info-slot"></span>
+      </h1>
+      <div class="filter-row filter-row--smal">
+        <select id="nc-year" class="app-select">${yearOptions(year, FIRST_YEAR)}</select>
+        <select id="nc-cuptype" class="app-select${year < FIRST_MULTI_CUP_YEAR ? " d-none" : ""}">
           <option value="NC"${cupType === "NC" ? " selected" : ""}>NC</option>
           <option value="SNC"${cupType === "SNC" ? " selected" : ""}>SNC</option>
           <option value="DNC"${cupType === "DNC" ? " selected" : ""}>DNC (Uoffisiell)</option>
@@ -211,79 +145,73 @@ export async function render(container: HTMLElement): Promise<void> {
   filter.cupType = "NC";
   filter.classNum = 1;
   filter.view = "singel";
-  cache = { year: null, rules: null, tournaments: [], results: [] };
+  clearCupYearCache();
 
   container.replaceChildren(createLoadingState("Laster Norgescupen..."));
 
-  const ok = await fetchAndBufferData(filter.year);
-  if (!ok) {
+  const loaded = await loadCupYear(filter.year);
+  if (!loaded) {
     container.replaceChildren(createErrorBanner("Kunne ikkje laste data for Norgescupen."));
     return;
   }
+  season = loaded;
 
   container.innerHTML = pageSkeletonHtml(filter.year, filter.cupType);
 
+  const info = createInfoTooltip({
+    slot: container.querySelector("#nc-info-slot")!,
+    label: "Om denne lista",
+    html: "",
+  });
+
   function updateView(): void {
     const { year, cupType, classNum, view } = filter;
-    const { rules } = cache;
+    const { rules } = season;
     const content = container.querySelector<HTMLElement>("#nc-content")!;
 
-    (container.querySelector(".nc-main-title") as HTMLElement).textContent = `Norgescupen ${year}`;
+    container.querySelector("#nc-title-text")!.textContent = `Norgescupen ${year}`;
     container.querySelector("#nc-cuptype")!.classList.toggle("d-none", year < FIRST_MULTI_CUP_YEAR);
 
     container.querySelector("#nc-view-tabs-container")!.innerHTML =
       cupType === "NC" ? viewTabsHtml(view) : "";
 
     if (view === "lag" && cupType === "NC") {
+      info.setHtml(TEAM_INFO_HTML);
       content.innerHTML = `
         <section>
-          <h2 class="nc-section-title">NC Lag ${year} (Kun klasse 1)</h2>
-          <p class="nc-description">Dei 4 beste poengsummene frå kvar klubb.</p>
-          <div class="nc-click-hint nc-click-hint-row">Klikk poengsum for å vise detaljar</div>
+          <div class="click-hint click-hint-row">Klikk ein klubb for å vise detaljar</div>
           <div id="nc-team-table-container"></div>
         </section>`;
 
       const teamContainer = content.querySelector<HTMLElement>("#nc-team-table-container")!;
-      if (!rules) {
-        teamContainer.replaceChildren(createEmptyState("Ingen data."));
+      const teamList = rules ? buildTeamList(season.results, season.tournaments, rules, year) : [];
+      if (!teamList.length) {
+        teamContainer.replaceChildren(
+          createEmptyState(rules ? "Ingen lag funnet." : "Ingen data."),
+        );
       } else {
-        const teamList = buildTeamList(cache.results, cache.tournaments, rules, year < 2026);
-        teamContainer.replaceChildren(createTeamTable(teamList));
-        bindExpandableRows(teamContainer, {
-          triggerSel: ".nc-team-points-cell",
-          idAttr: "team-idx",
-          detailSel: ".nc-team-detail-row",
-          lookupRoot: content,
-        });
+        teamContainer.innerHTML = teamListHtml(teamList);
+        bindRankingDetails(teamContainer);
       }
     } else {
+      info.setHtml(singleInfoHtml(rules, cupType, year));
       content.innerHTML = `
         <section id="nc-single-section">
-          <h2 class="nc-section-title">${escHtml(cupType)} Singel ${year}${year <= 2025 ? ` - Klasse ${classNum}` : ""}</h2>
-          <p class="nc-description">${rules ? descriptionText(rules, cupType) : `Ingen telleregel funnet for ${year}`}</p>
           <div id="nc-class-tabs-container">${classTabsHtml(classNum, year)}</div>
           <div id="nc-single-table-container"></div>
         </section>`;
 
       const singleContainer = content.querySelector<HTMLElement>("#nc-single-table-container")!;
-      if (!rules) {
-        singleContainer.replaceChildren(createEmptyState("Ingen data."));
-      } else {
-        const singleList = buildSingleList(
-          cache.results,
-          cache.tournaments,
-          rules,
-          cupType,
-          classNum,
-          year < 2026,
+      const singleList = rules
+        ? buildSingleList(season.results, season.tournaments, rules, cupType, classNum, year)
+        : [];
+      if (!singleList.length) {
+        singleContainer.replaceChildren(
+          createEmptyState(rules ? "Ingen resultater funnet." : "Ingen data."),
         );
-        singleContainer.replaceChildren(createSingleTable(singleList));
-        bindExpandableRows(singleContainer, {
-          triggerSel: ".nc-points-cell",
-          idAttr: "idx",
-          detailSel: ".nc-detail-row",
-          lookupRoot: content,
-        });
+      } else {
+        singleContainer.innerHTML = singleListHtml(singleList);
+        bindRankingDetails(singleContainer);
       }
 
       content.querySelector("#nc-single-section")!.addEventListener("click", (e) => {
@@ -300,26 +228,24 @@ export async function render(container: HTMLElement): Promise<void> {
   container.querySelector<HTMLSelectElement>("#nc-year")!.addEventListener("change", async (e) => {
     filter.year = Number((e.target as HTMLSelectElement).value);
     filter.classNum = 1;
-    if (filter.year < FIRST_MULTI_CUP_YEAR) {
-      filter.cupType = "NC";
-      filter.view = "singel";
-      container.querySelector<HTMLSelectElement>("#nc-cuptype")!.value = "NC";
-    }
+    normalizeCupFilter(filter);
+    container.querySelector<HTMLSelectElement>("#nc-cuptype")!.value = filter.cupType;
     container.querySelector<HTMLElement>("#nc-content")!.replaceChildren(createLoadingState());
-    const ok = await fetchAndBufferData(filter.year);
-    if (!ok) {
+    const loaded = await loadCupYear(filter.year);
+    if (!loaded) {
       container
         .querySelector<HTMLElement>("#nc-content")!
         .replaceChildren(createErrorBanner("Feil ved henting av data."));
       return;
     }
+    season = loaded;
     updateView();
   });
 
   container.querySelector<HTMLSelectElement>("#nc-cuptype")!.addEventListener("change", (e) => {
     filter.cupType = (e.target as HTMLSelectElement).value;
     filter.classNum = 1;
-    if (filter.cupType !== "NC") filter.view = "singel";
+    normalizeCupFilter(filter);
     updateView();
   });
 

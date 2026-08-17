@@ -1,0 +1,62 @@
+/* Rendered by components/InfoTooltip.ts. */
+
+/* ── Info tooltip ── */
+
+.info-tip {
+  position: relative;
+  display: inline-flex;
+  vertical-align: middle;
+  margin-left: 6px;
+}
+
+.info-tip__knapp {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  border: none;
+  background: none;
+  color: var(--tekst-3);
+  cursor: pointer;
+  line-height: 0;
+}
+
+.info-tip__knapp:hover,
+.info-tip__knapp[aria-expanded="true"] {
+  color: var(--lenke);
+}
+
+.info-tip__knapp:focus-visible {
+  outline: 2px solid var(--lenke);
+  outline-offset: 2px;
+  border-radius: 50%;
+}
+
+/* Anchored to the button, centred under it, and kept inside a narrow screen. */
+.info-tip__panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  width: max-content;
+  max-width: min(320px, 80vw);
+  padding: 10px 12px;
+  border: 1px solid var(--kant);
+  border-radius: 6px;
+  background: var(--flate-2);
+  box-shadow: 0 4px 14px rgb(0 0 0 / 35%);
+  color: var(--tekst-2);
+  font-size: 0.78rem;
+  font-weight: normal;
+  text-align: left;
+  white-space: normal;
+}
+
+.info-tip__panel p {
+  margin-bottom: 6px;
+}
+
+.info-tip__panel p:last-child {
+  margin-bottom: 0;
+}

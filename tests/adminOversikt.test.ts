@@ -12,7 +12,6 @@ const mocks = vi.hoisted(() => ({
   getAllUsers: vi.fn(),
   drawBarChart: vi.fn(),
   drawLineChart: vi.fn(),
-  drawShareBar: vi.fn(),
   openTournamentEditor: vi.fn(),
   openThrowerEditor: vi.fn(),
   openClubEditor: vi.fn(),
@@ -38,8 +37,6 @@ vi.mock("@/admin/_adminEdit", () => ({
 vi.mock("@/admin/_adminCharts", () => ({
   drawBarChart: mocks.drawBarChart,
   drawLineChart: mocks.drawLineChart,
-  drawShareBar: mocks.drawShareBar,
-  seriesColor: () => "#2a78d6",
   destroyAdminCharts: vi.fn(),
 }));
 
@@ -160,12 +157,18 @@ describe("oversikt dashboard", () => {
     expect(perClub[0]).toEqual({ label: "Oslo HK", count: 2 });
     expect(mocks.drawBarChart.mock.calls[1]?.[2]).toMatchObject({ horizontal: true });
 
-    const perRole = mocks.drawShareBar.mock.calls[0]?.[1] as { label: string; count: number }[];
-    expect(perRole).toEqual([
-      { label: "admin", count: 1 },
-      { label: "klubbadmin", count: 0 },
-      { label: "bruker", count: 2 },
-    ]);
+    // The share bar is plain DOM, so its series is read back off the legend it
+    // renders: every role in order, the empty one included.
+    const legends = [...el.querySelectorAll(".admin-legend")];
+    const roleLegend = legends[legends.length - 1]!;
+    const read = (cls: string): string[] =>
+      [...roleLegend.querySelectorAll(cls)].map((n) => n.textContent ?? "");
+    expect(read(".admin-legend__label")).toEqual(["Admin", "Klubbadmin", "Brukar"]);
+    expect(read(".admin-legend__value")).toEqual(["1", "0", "2"]);
+
+    // Only the two non-empty roles get a segment, sized by their counts.
+    const segs = [...el.querySelectorAll<HTMLElement>(".admin-sharebar__seg")];
+    expect(segs.map((s) => s.style.flexGrow)).toEqual(["1", "2"]);
   });
 
   it("labels the share legend with counts and percentages", async () => {

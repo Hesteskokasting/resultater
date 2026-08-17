@@ -1,9 +1,7 @@
 import { throwerName } from "@/utils/kaster";
 import { escHtml } from "@/utils/escHtml";
 import { logError } from "@/utils/logError";
-import { createLoadingState } from "@/components/LoadingState";
-import { createErrorBanner } from "@/components/ErrorBanner";
-import { createEmptyState } from "@/components/EmptyState";
+import { createErrorBanner, createLoadingState, createEmptyState } from "@/components/states";
 import { getMatchesForStats, getPositionForTournament } from "@/services/stevneStatsService";
 import type { StatsMatchRow } from "@/services/stevneStatsService";
 

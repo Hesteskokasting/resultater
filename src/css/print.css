@@ -1,0 +1,147 @@
+/* Rendered by components/BannerMenu.ts, components/PullToRefresh.ts, components/RankingList.ts and 10 more. */
+
+@media print {
+  /* Light tokens for paper, whichever theme the screen is in. --primaer stays a
+     grey so the highlighted total column prints as a tint, not as ink. */
+  :root {
+    --bg: #fff;
+    --flate: #fff;
+    --flate-2: #f1f1f1;
+    --kant: #999;
+    --kant-2: #777;
+    --tekst: #000;
+    --tekst-2: #333;
+    --tekst-3: #555;
+    --primaer: #b4b4b4;
+    --primaer-text: #000;
+    --lenke: #000;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 12mm;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  .top-header,
+  .sidepanel,
+  .meny-bakgrunn,
+  .tournament-nav,
+  .stevne-fase-header,
+  .stevne-banner-menu,
+  .res-mobil-blokk,
+  .res-detalj-btn,
+  .res-filter,
+  /* The pdf link, the SNC cross-link and the count: screen navigation, and the
+     print header carries the count itself. */
+  .res-felles {
+    display: none !important;
+  }
+
+  .res-print-blokk {
+    display: block;
+    margin-bottom: 10px;
+  }
+
+  /* Locals follow straight on from the merged list. No forced page break: it left
+     the rest of the previous page blank before every single local. */
+  .res-print-lokal {
+    margin-top: 12px;
+  }
+
+  /* No trailing whitespace after the last table either. */
+  .res-side {
+    padding-bottom: 0;
+  }
+
+  .res-seksjon {
+    margin-bottom: 0;
+  }
+
+  .res-print-tittel {
+    margin: 0 0 6px;
+    font-size: 1.3rem;
+    font-weight: bold;
+  }
+
+  .res-print-undertittel {
+    margin: 0 0 6px;
+    font-size: 1.05rem;
+    font-weight: bold;
+  }
+
+  /* A local's heading and facts stay with the first rows of its own table. */
+  .res-print-undertittel,
+  .res-print-fakta {
+    break-after: avoid;
+  }
+
+  /* Facts as label/value pairs across the page, three to a line. */
+  .res-print-fakta {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1px 14px;
+    margin: 0;
+    font-size: 0.75rem;
+  }
+
+  .res-print-fakta__par {
+    display: flex;
+    gap: 5px;
+  }
+
+  .res-print-fakta dt {
+    color: #333;
+    font-weight: 400;
+  }
+
+  .res-print-fakta dt::after {
+    content: ":";
+  }
+
+  .res-print-fakta dd {
+    margin: 0;
+    font-weight: 600;
+  }
+
+  /* Print the table even when the screen was showing the mobile cards. */
+  .res-desktop-blokk {
+    display: block !important;
+  }
+
+  .res-tabell-boks {
+    max-width: none;
+    border: none;
+    overflow: visible;
+  }
+
+  .res-table--gruppert {
+    font-size: 0.7rem;
+  }
+
+  /* Repeat the two header rows on every page, and never split a thrower's row. */
+  .res-table--gruppert thead {
+    display: table-header-group;
+  }
+
+  .res-table--gruppert tr {
+    break-inside: avoid;
+  }
+
+  .res-table--gruppert tbody tr:nth-child(even) {
+    background: #f7f7f7;
+  }
+
+  .res-table--gruppert th,
+  .res-table--gruppert td {
+    border-bottom: 1px solid #ccc;
+  }
+
+  .res-kaster-lenke {
+    color: #000;
+    text-decoration: none;
+  }
+}

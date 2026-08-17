@@ -1,0 +1,123 @@
+/* Rendered by pages/stevne/avsluttende/gruppefordelingUi.ts, pages/stevne/faseView.ts, pages/stevne/innledende/innledendeView.ts and 1 more. */
+
+.standing-player-row {
+  cursor: pointer;
+}
+
+.standing-player-row:hover td {
+  background-color: var(--primaer-aktiv) !important;
+}
+
+/* Table shared styles (match table + stilling table) */
+.match-table {
+  border-collapse: collapse;
+  width: 100%;
+  background: var(--flate);
+}
+
+.match-table td,
+.match-table th {
+  border: none;
+  border-bottom: 0.5px solid var(--kant);
+  /* --rad-bg lets bane-group rows tint themselves; everything else falls back
+     to the plain surface, so the standing table stays untinted. */
+  background: var(--rad-bg, var(--flate));
+}
+
+.match-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.stevne-thead th {
+  background: var(--flate-2) !important;
+  color: var(--tekst-3);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-bottom: 1px solid var(--kant) !important;
+}
+
+/* Status stripe on desktop table rows */
+.match-row-desktop > td:first-child {
+  border-left: 3px solid var(--kamp-stripe-ikke);
+  padding-left: 9px;
+}
+
+.match-row-desktop[data-status="in-progress"] > td:first-child {
+  border-left-color: var(--kamp-stripe-pagaar);
+}
+
+.match-row-desktop[data-status="done"] > td:first-child {
+  border-left-color: var(--kamp-stripe-ferdig);
+}
+
+.match-row-desktop > td:nth-child(2) {
+  text-align: right;
+}
+
+@keyframes confirm-flash {
+  0% {
+    background-color: rgba(76, 175, 80, 0.35);
+  }
+  62.5% {
+    background-color: rgba(76, 175, 80, 0.35);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+@keyframes standing-confirm-flash {
+  0% {
+    box-shadow: inset 0 0 0 100vw rgba(76, 175, 80, 0.35);
+  }
+  62.5% {
+    box-shadow: inset 0 0 0 100vw rgba(76, 175, 80, 0.35);
+  }
+  100% {
+    box-shadow: inset 0 0 0 100vw rgba(76, 175, 80, 0);
+  }
+}
+
+/* Stilling table — tabular numbers */
+.standing-number {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Stilling table — KP/SP visual hierarchy */
+/* th prefix needed to match .stevne-thead th specificity (0,1,1) and win by source order */
+th.standing-kp-th {
+  background: var(--standing-kp-th) !important;
+  color: #fff !important;
+}
+
+th.standing-sp-th {
+  background: var(--standing-sp-th) !important;
+  color: #fff !important;
+}
+
+.standing-kp-cell {
+  background: var(--standing-kp-bg) !important;
+  font-weight: 600;
+}
+
+.standing-sp-cell {
+  background: var(--standing-sp-bg) !important;
+  font-weight: 600;
+}
+
+/* Standing table — deemphasise position and match-count columns */
+.standing-dim-cell {
+  font-size: 0.82em;
+  color: var(--tekst-3);
+  text-align: center;
+}
+
+@media (max-width: 480px) {
+  .standing-table-wrap table {
+    font-size: 0.88em;
+  }
+}
+/* ── Innleiande: SCORE-kolonne ── */

@@ -1,7 +1,12 @@
 @import "bootstrap/dist/css/bootstrap.min.css";
 
-/* CSS-variablar — :root er mørk modus; lys modus (standard, satt via
-   data-theme="light" på <html>) overstyrer under */
+/* Bootstrap and the design tokens — nothing else. index.html links this before
+   styles.css, so every rule here wins the wrong way round against the component
+   and page files; anything that styles something belongs in src/css/ instead.
+   Tokens are safe here because they are only read, never overridden downstream.
+
+   :root er mørk modus; lys modus (standard, satt via data-theme="light" på
+   <html>) overstyrer under. */
 
 :root {
   --bg: #111318;
@@ -22,12 +27,10 @@
   --input-bg: #1c1f2a;
   --feil: #ff6b6b;
   --match-eliminated-bg: color-mix(in srgb, #ff6b6b 22%, var(--flate));
-  /* Cup match card. The rails are the saturated accent; the row and score fills
-     stay mixed well down toward --flate so --tekst keeps its contrast on them. */
+  /* Cup match card. The rails are the saturated accent; the score fills stay
+     mixed well down toward --flate so --tekst keeps its contrast on them. */
   --cup-rail-vinnar: #4caf50;
   --cup-rail-tapar: #ff6b6b;
-  --cup-flate-vinnar: color-mix(in srgb, #4caf50 11%, var(--flate));
-  --cup-flate-tapar: color-mix(in srgb, #ff6b6b 11%, var(--flate));
   --cup-score-vinnar: color-mix(in srgb, #4caf50 26%, var(--flate));
   --cup-score-tapar: color-mix(in srgb, #ff6b6b 26%, var(--flate));
   /* Darkest end of the name gradient, at the rail. */
@@ -46,6 +49,20 @@
   /* Omgang detail panel — recessed below the row's zebra tint (toward the page
      colour in dark) so it reads as nested. */
   --bane-detail-bg: color-mix(in srgb, var(--flate) 58%, var(--bg) 42%);
+  /* Match outcome pill (Min side → Kampar). Saturated ink on a low-alpha fill of
+     the same hue, so the pill reads as a tint of the row rather than a button. */
+  --utfall-vinn-tekst: #5ddc93;
+  --utfall-vinn-flate: rgba(46, 160, 90, 0.16);
+  --utfall-vinn-kant: rgba(46, 160, 90, 0.5);
+  --utfall-tap-tekst: #ff8a8a;
+  --utfall-tap-flate: rgba(214, 64, 64, 0.14);
+  --utfall-tap-kant: rgba(214, 64, 64, 0.5);
+  --utfall-uavgjort-tekst: #f2d06b;
+  --utfall-uavgjort-flate: rgba(214, 178, 48, 0.14);
+  --utfall-uavgjort-kant: rgba(214, 178, 48, 0.5);
+  --utfall-noytral-tekst: var(--tekst);
+  --utfall-noytral-flate: var(--flate-2);
+  --utfall-noytral-kant: var(--kant);
   --standing-kp-bg: color-mix(in srgb, var(--primaer) 40%, var(--flate));
   --standing-kp-th: var(--primaer);
   --standing-sp-bg: color-mix(in srgb, #4caf50 22%, var(--flate));
@@ -71,8 +88,6 @@
 
   /* Intentionally fixed in both themes */
   --live-prikk: #e74c3c;
-  --gull: #d4af37;
-  --gull-tekst: #fff;
   --excel-gronn: #217346;
 
   /* Score-nummerpad (kamp, omgang og total) — follows the theme; only the
@@ -104,11 +119,8 @@
   --sb-tekst-subtil: #ccc;
   --sb-tekst-subtil-2: #aaa;
   --sb-positiv: #4cff4c;
-  --sb-negativ: #ff6b6b;
   --sb-knapp-bg: #fff;
   --sb-knapp-tekst: #111;
-  --sb-knapp-dis-bg: #333;
-  --sb-knapp-slett-hover: #c0392b;
   /* Bekreft-knapp — intentionally identical in both themes */
   --sb-bekreft-bg: #1a8f2d;
   --sb-bekreft-hover: #157a24;
@@ -150,8 +162,6 @@
      them is the near-black --tekst. */
   --cup-rail-vinnar: #2e7d32;
   --cup-rail-tapar: #b30000;
-  --cup-flate-vinnar: #e6f5e6;
-  --cup-flate-tapar: #fbe6e6;
   --cup-score-vinnar: #c8f0c8;
   --cup-score-tapar: #f8d0d0;
   --cup-grad-vinnar: #a5d8a5;
@@ -167,6 +177,17 @@
   /* Light: --bg is lighter than the surface, so recess toward the text colour
      (a touch below the zebra tint step) instead. */
   --bane-detail-bg: color-mix(in srgb, var(--flate) 88%, var(--tekst) 12%);
+  /* Light: the ink has to carry the contrast on a near-white surface, so the
+     hues go dark and the fills become pale tints. */
+  --utfall-vinn-tekst: #10633a;
+  --utfall-vinn-flate: #d8f0e2;
+  --utfall-vinn-kant: #2e7d32;
+  --utfall-tap-tekst: #9d1c1c;
+  --utfall-tap-flate: #fadcdc;
+  --utfall-tap-kant: #b30000;
+  --utfall-uavgjort-tekst: #6d5000;
+  --utfall-uavgjort-flate: #f7ecc8;
+  --utfall-uavgjort-kant: #a37c00;
   --standing-kp-bg: #d0e4f7;
   --standing-kp-th: #2563eb;
   --standing-sp-bg: #c8f0c8;
@@ -208,159 +229,7 @@
   --sb-tekst-subtil: #222222;
   --sb-tekst-subtil-2: #555555;
   --sb-positiv: #005500;
-  --sb-negativ: #b30000;
   --sb-knapp-bg: #000000;
   --sb-knapp-tekst: #ffffff;
-  --sb-knapp-dis-bg: #cccccc;
-  --sb-knapp-slett-hover: #7a0000;
   --sb-vann-bg: rgba(0, 80, 0, 0.9);
-}
-
-body {
-  background: var(--bg);
-  color: var(--tekst);
-  /* No double-tap zoom on iOS; pinch-zoom and panning stay intact. */
-  touch-action: manipulation;
-}
-
-/* Theme switch */
-
-.theme-switch {
-  position: relative;
-  flex-shrink: 0;
-  width: 44px;
-  height: 24px;
-  border: 1px solid var(--kant-2);
-  border-radius: 12px;
-  background: var(--flate-2);
-  cursor: pointer;
-  padding: 0;
-}
-
-.theme-switch:hover {
-  border-color: var(--tekst-3);
-}
-
-.theme-switch__thumb {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: var(--bg);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-  color: var(--tekst-2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transform: translateX(20px);
-  transition: transform 0.2s ease;
-}
-
-.theme-switch:hover .theme-switch__thumb {
-  color: var(--tekst);
-}
-
-/* Dark (default): thumb right with moon */
-.theme-switch__icon--sun {
-  display: none;
-}
-
-/* Light: thumb left with sun */
-[data-theme="light"] .theme-switch__thumb {
-  transform: translateX(0);
-}
-[data-theme="light"] .theme-switch__icon--sun {
-  display: block;
-}
-[data-theme="light"] .theme-switch__icon--moon {
-  display: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .theme-switch__thumb {
-    transition: none;
-  }
-}
-
-/* Generelle input/select i mørk modus */
-
-input:not([type="checkbox"]):not([type="radio"]),
-select,
-textarea {
-  background: var(--input-bg);
-  color: var(--tekst);
-}
-
-input:not([type="checkbox"]):not([type="radio"]):focus,
-select:focus,
-textarea:focus {
-  outline-color: var(--lenke);
-}
-
-/* ── Toast ─────────────────────────────────────────────────────────────────── */
-#toast-container {
-  position: fixed;
-  bottom: calc(1rem + var(--sa-bottom));
-  right: calc(1rem + var(--sa-right));
-  z-index: 9999;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  max-width: 320px;
-  pointer-events: none;
-}
-.toast-item {
-  padding: 0.625rem 1rem;
-  border-radius: 6px;
-  border-left: 4px solid;
-  font-size: 0.875rem;
-  line-height: 1.4;
-  cursor: pointer;
-  pointer-events: all;
-  animation: toast-in 0.2s ease;
-}
-@keyframes toast-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-.toast-error {
-  background: color-mix(in srgb, #ff6b6b 15%, var(--flate));
-  border-color: #ff6b6b;
-  color: var(--tekst);
-}
-.toast-success {
-  background: color-mix(in srgb, #4caf50 15%, var(--flate));
-  border-color: #4caf50;
-  color: var(--tekst);
-}
-.toast-info {
-  background: color-mix(in srgb, var(--primaer) 15%, var(--flate));
-  border-color: var(--primaer);
-  color: var(--tekst);
-}
-.toast-warning {
-  background: color-mix(in srgb, #f59e0b 15%, var(--flate));
-  border-color: #f59e0b;
-  color: var(--tekst);
-}
-
-/* Theme-aware table header — dark bg in dark mode, white bg in light mode */
-.org-thead th {
-  background: var(--header-bg);
-  color: var(--tekst);
-}
-
-.dev-banner {
-  color: red;
-  font-size: 1.5rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
 }

@@ -1,0 +1,21 @@
+/* Rendered by admin/_adminModal.ts, components/states.ts, pages/kasterDetalj.ts and 7 more. */
+
+/* ── Loading / error ── */
+
+.loading {
+  text-align: center;
+  color: var(--tekst-3);
+  margin-top: 40px;
+}
+
+.error-banner {
+  text-align: center;
+  color: var(--feil);
+  margin-top: 40px;
+}
+
+.empty-state {
+  text-align: center;
+  color: var(--tekst-3);
+  margin-top: 20px;
+}

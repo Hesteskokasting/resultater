@@ -143,3 +143,12 @@ export function buildRankingList(
 
   return [...valid, ...invalid];
 }
+
+/** Free-text match on thrower or club. An empty search keeps the whole list. */
+export function filterRanking(list: RankingItem[], searchText: string): RankingItem[] {
+  const search = searchText.trim().toLowerCase();
+  if (!search) return list;
+  return list.filter(
+    (k) => k.navn.toLowerCase().includes(search) || k.klubb.toLowerCase().includes(search),
+  );
+}

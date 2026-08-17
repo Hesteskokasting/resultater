@@ -1,4 +1,4 @@
-import { buildSingleList, buildTeamList } from "@/utils/norgescup";
+import { buildSingleList, buildTeamList, normalizeCupFilter } from "@/utils/norgescup";
 import type { ResultWithRelations, TournamentForNC } from "@/utils/norgescup";
 import type { Tables } from "@/types";
 
@@ -81,7 +81,7 @@ describe("buildSingleList", () => {
       // 3 NC results: 100, 80, 60. With max_nc_total=2, only 100+80=180 should count.
       const resultater = [mkRes(1, 1, 100), mkRes(1, 2, 80), mkRes(1, 3, 60)];
       const regler = mkRegler({ max_nc_total: 2, maxtotal: 99 });
-      const liste = buildSingleList(resultater, allStevner, regler, "NC", 1, true);
+      const liste = buildSingleList(resultater, allStevner, regler, "NC", 1, 2025);
       expect(liste[0]!.totalPoeng).toBe(180);
     });
   });
@@ -90,7 +90,7 @@ describe("buildSingleList", () => {
     it("counts only the best N SNC events when player has more than max_snc_total", () => {
       const resultater = [mkRes(1, 4, 100), mkRes(1, 5, 60)];
       const regler = mkRegler({ max_snc_total: 1, maxtotal: 99 });
-      const liste = buildSingleList(resultater, allStevner, regler, "NC", 1, true);
+      const liste = buildSingleList(resultater, allStevner, regler, "NC", 1, 2025);
       expect(liste[0]!.totalPoeng).toBe(100);
     });
   });
@@ -99,7 +99,7 @@ describe("buildSingleList", () => {
     it("counts only the best N DNC events when player has more than max_dnc_total", () => {
       const resultater = [mkRes(1, 6, 100), mkRes(1, 7, 60)];
       const regler = mkRegler({ max_dnc_total: 1, maxtotal: 99 });
-      const liste = buildSingleList(resultater, allStevner, regler, "NC", 1, true);
+      const liste = buildSingleList(resultater, allStevner, regler, "NC", 1, 2025);
       expect(liste[0]!.totalPoeng).toBe(100);
     });
   });
@@ -120,7 +120,7 @@ describe("buildSingleList", () => {
         mkRes(1, 5, 70),
       ];
       const regler = mkRegler({ max_nc_total: 2, maxtotal: 3 });
-      const liste = buildSingleList(resultater, allStevner, regler, "NC", 1, true);
+      const liste = buildSingleList(resultater, allStevner, regler, "NC", 1, 2025);
       expect(liste[0]!.totalPoeng).toBe(270);
     });
   });
@@ -131,7 +131,7 @@ describe("buildSingleList", () => {
       // With maxtotal=3, only top 3 count: 50+40+30=120.
       const resultater = [mkRes(1, 1, 50), mkRes(1, 2, 40), mkRes(1, 4, 30), mkRes(1, 5, 20)];
       const regler = mkRegler({ max_nc_total: 99, max_snc_total: 99, maxtotal: 3 });
-      const liste = buildSingleList(resultater, allStevner, regler, "NC", 1, true);
+      const liste = buildSingleList(resultater, allStevner, regler, "NC", 1, 2025);
       expect(liste[0]!.totalPoeng).toBe(120);
     });
   });
@@ -140,16 +140,16 @@ describe("buildSingleList", () => {
     it("only includes results from the requested class", () => {
       const resultater = [mkRes(1, 1, 100, "Klasse 1"), mkRes(1, 2, 80, "Klasse 2")];
       const regler = mkRegler();
-      const listeK1 = buildSingleList(resultater, allStevner, regler, "NC", 1, true);
+      const listeK1 = buildSingleList(resultater, allStevner, regler, "NC", 1, 2025);
       expect(listeK1[0]!.totalPoeng).toBe(100);
 
-      const listeK2 = buildSingleList(resultater, allStevner, regler, "NC", 2, true);
+      const listeK2 = buildSingleList(resultater, allStevner, regler, "NC", 2, 2025);
       expect(listeK2[0]!.totalPoeng).toBe(80);
     });
   });
 
   describe("class filtering (2026+, no class distinction)", () => {
-    it("includes results regardless of klasse when isBefore2026 is false", () => {
+    it("includes results regardless of klasse from 2026, when the classes merged", () => {
       const ncStevne2026 = mkStevne(8, "NC", 2026);
       const resultater = [mkRes(1, 8, 100, "Klasse 1"), mkRes(1, 8, 80, "Klasse 2")];
       const regler = mkRegler({ max_nc_total: 99, maxtotal: 99 });
@@ -159,7 +159,7 @@ describe("buildSingleList", () => {
         regler,
         "NC",
         1,
-        false,
+        2026,
       );
       expect(liste[0]!.totalPoeng).toBe(180);
     });
@@ -169,7 +169,7 @@ describe("buildSingleList", () => {
     it("returns players sorted by totalPoeng descending", () => {
       const resultater = [mkRes(1, 1, 50), mkRes(2, 2, 80), mkRes(3, 3, 30)];
       const regler = mkRegler();
-      const liste = buildSingleList(resultater, allStevner, regler, "NC", 1, true);
+      const liste = buildSingleList(resultater, allStevner, regler, "NC", 1, 2025);
       expect(liste.map((r) => r.totalPoeng)).toEqual([80, 50, 30]);
     });
   });
@@ -178,7 +178,7 @@ describe("buildSingleList", () => {
     it("assigns the same plassering to players with equal totalPoeng", () => {
       const resultater = [mkRes(1, 1, 100), mkRes(2, 2, 100), mkRes(3, 3, 80)];
       const regler = mkRegler();
-      const liste = buildSingleList(resultater, allStevner, regler, "NC", 1, true);
+      const liste = buildSingleList(resultater, allStevner, regler, "NC", 1, 2025);
       expect(liste[0]!.plassering).toBe(1);
       expect(liste[1]!.plassering).toBe(1);
       expect(liste[2]!.plassering).toBe(3);
@@ -192,7 +192,7 @@ describe("buildSingleList", () => {
         mkRes(1, 4, 50), // SNC event — should count
       ];
       const regler = mkRegler({ max_snc: 99 });
-      const liste = buildSingleList(resultater, allStevner, regler, "SNC", 1, true);
+      const liste = buildSingleList(resultater, allStevner, regler, "SNC", 1, 2025);
       expect(liste[0]!.totalPoeng).toBe(50);
     });
   });
@@ -204,7 +204,7 @@ describe("buildSingleList", () => {
         mkRes(1, 6, 70), // DNC event — should count
       ];
       const regler = mkRegler({ max_dnc: 99 });
-      const liste = buildSingleList(resultater, allStevner, regler, "DNC", 1, true);
+      const liste = buildSingleList(resultater, allStevner, regler, "DNC", 1, 2025);
       expect(liste[0]!.totalPoeng).toBe(70);
     });
   });
@@ -220,7 +220,7 @@ describe("buildTeamList", () => {
         mkRes(kid, 1, [100, 80, 60, 40, 20][i]!, "Klasse 1", 10, "Klubb A"),
       );
       const regler = mkRegler({ max_nc_total: 99, maxtotal: 99 });
-      const liste = buildTeamList(resultater, [ncStevne1], regler, true);
+      const liste = buildTeamList(resultater, [ncStevne1], regler, 2025);
       expect(liste[0]!.lagTotal).toBe(280);
       expect(liste[0]!.bidragsytere).toHaveLength(4);
     });
@@ -233,7 +233,7 @@ describe("buildTeamList", () => {
         mkRes(2, 1, 200, "Klasse 1", 20, "Klubb B"),
       ];
       const regler = mkRegler();
-      const liste = buildTeamList(resultater, [ncStevne1], regler, true);
+      const liste = buildTeamList(resultater, [ncStevne1], regler, 2025);
       expect(liste[0]!.klubb.navn).toBe("Klubb B");
       expect(liste[1]!.klubb.navn).toBe("Klubb A");
     });
@@ -247,7 +247,7 @@ describe("buildTeamList", () => {
         mkRes(3, 1, 60, "Klasse 1", 30, "Klubb C"),
       ];
       const regler = mkRegler();
-      const liste = buildTeamList(resultater, [ncStevne1], regler, true);
+      const liste = buildTeamList(resultater, [ncStevne1], regler, 2025);
       expect(liste[0]!.plassering).toBe(1);
       expect(liste[1]!.plassering).toBe(1);
       expect(liste[2]!.plassering).toBe(3);
@@ -262,21 +262,49 @@ describe("buildTeamList", () => {
         mkRes(2, 1, 200, "Klasse 2", 10, "Klubb A"),
       ];
       const regler = mkRegler();
-      const liste = buildTeamList(resultater, [ncStevne1], regler, true);
+      const liste = buildTeamList(resultater, [ncStevne1], regler, 2025);
       expect(liste[0]!.lagTotal).toBe(50);
     });
   });
 
   describe("class filtering (2026+, no class distinction)", () => {
-    it("includes results regardless of klasse when isBefore2026 is false", () => {
+    it("includes results regardless of klasse from 2026, when the classes merged", () => {
       const ncStevne2026 = mkStevne(8, "NC", 2026);
       const resultater = [
         mkRes(1, 8, 50, "Klasse 1", 10, "Klubb A"),
         mkRes(2, 8, 200, "Klasse 2", 10, "Klubb A"),
       ];
       const regler = mkRegler();
-      const liste = buildTeamList(resultater, [ncStevne2026], regler, false);
+      const liste = buildTeamList(resultater, [ncStevne2026], regler, 2026);
       expect(liste[0]!.lagTotal).toBe(250);
     });
+  });
+});
+
+// ── normalizeCupFilter ────────────────────────────────────────────────────────
+
+describe("normalizeCupFilter", () => {
+  it("falls back to NC for a year before the cup was split", () => {
+    const filter = { year: 2020, cupType: "SNC", view: "singel" as const };
+    normalizeCupFilter(filter);
+    expect(filter.cupType).toBe("NC");
+  });
+
+  it("drops the lag view when the cup type has none", () => {
+    const filter = { year: 2025, cupType: "DNC", view: "lag" as const };
+    normalizeCupFilter(filter);
+    expect(filter.view).toBe("singel");
+  });
+
+  it("keeps the lag view when the fallback lands on NC anyway", () => {
+    const filter = { year: 2020, cupType: "NC", view: "lag" as const };
+    normalizeCupFilter(filter);
+    expect(filter).toEqual({ year: 2020, cupType: "NC", view: "lag" });
+  });
+
+  it("leaves a valid NC lag selection alone", () => {
+    const filter = { year: 2025, cupType: "NC", view: "lag" as const };
+    normalizeCupFilter(filter);
+    expect(filter.view).toBe("lag");
   });
 });

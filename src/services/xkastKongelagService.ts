@@ -52,7 +52,7 @@ const _myCourtsQuery = supabase.from("xkast_kongelag_deltaker").select(`
     id, stevneid, fase, bane_nummer, er_bekreftet,
     stevne:stevneid(id, navn, dato, erfullfort),
     deltakarar:xkast_kongelag_deltaker(
-      id, kasterid, poeng,
+      id, kasterid, poeng, antall_ringer,
       kaster:kasterid(id, fornavn, etternavn)
     )
   )
@@ -73,7 +73,7 @@ export async function getMyCourts(
         id, stevneid, fase, bane_nummer, er_bekreftet,
         stevne:stevneid(id, navn, dato, erfullfort),
         deltakarar:xkast_kongelag_deltaker(
-          id, kasterid, poeng,
+          id, kasterid, poeng, antall_ringer,
           kaster:kasterid(id, fornavn, etternavn)
         )
       )
@@ -85,7 +85,7 @@ export async function getMyCourts(
 
 // ── Stevne config ─────────────────────────────────────────────────────────────
 
-/** Shared config for the X-kast/Kongelag court views (see @/organizer/xkastKongelagView). */
+/** Shared config for the X-kast/Kongelag court views (see @/pages/stevne/xkastKongelagView). */
 export interface CourtPhaseConfig {
   /** Kastemetode name for this fase — shown as the banner meta line. */
   metodeNavn: string | null;
@@ -376,17 +376,6 @@ export async function createCourts(
     .insert(participants);
   if (participantError) logError("createCourts", participantError);
   return { error: participantError };
-}
-
-/** Removes all courts for one fase (cascade deletes participants and omganger). */
-export async function deleteCourts(stevneid: number, fase: CourtFase): Promise<{ error: unknown }> {
-  const { error } = await supabase
-    .from("xkast_kongelag")
-    .delete()
-    .eq("stevneid", stevneid)
-    .eq("fase", fase);
-  if (error) logError("deleteCourts", error);
-  return { error };
 }
 
 // ── Omgang writes ─────────────────────────────────────────────────────────────

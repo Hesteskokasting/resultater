@@ -1,7 +1,9 @@
 import type { QueryData } from "@supabase/supabase-js";
+import type { Tables } from "@/types";
 import { supabase } from "@/supabase";
 import { logError } from "@/utils/logError";
 import { fetchAllRows } from "@/utils/fetchAllRows";
+import { yearCache } from "@/utils/yearCache";
 
 // ── Type-inferens-buildarar ───────────────────────────────────────────────────
 
@@ -72,3 +74,31 @@ export async function getTournamentsAndResults(ar: number) {
 
   return { stevner: [...stevnerMap.values()], resultater, error: null };
 }
+
+// ── Årsbuffer ─────────────────────────────────────────────────────────────────
+
+export interface CupYear {
+  rules: Tables<"antallTellendeNc"> | null;
+  tournaments: TournamentForNC[];
+  results: ResultWithRelations[];
+}
+
+const cache = yearCache<CupYear>(async (year) => {
+  try {
+    const [{ data: rules, error: e1 }, { stevner, resultater, error: e2 }] = await Promise.all([
+      getRules(year),
+      getTournamentsAndResults(year),
+    ]);
+    if (e1 || e2) return null;
+    return { rules, tournaments: stevner, results: resultater };
+  } catch (err) {
+    logError("loadCupYear", err);
+    return null;
+  }
+});
+
+/** Drops the buffer so a fresh page mount refetches instead of reusing a stale season. */
+export const clearCupYearCache = cache.clear;
+
+/** Everything the Norgescup lists are built from, for one season. Null on failure. */
+export const loadCupYear = cache.get;

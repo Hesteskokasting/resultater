@@ -1,4 +1,4 @@
-import { createErrorBanner } from "@/components/ErrorBanner";
+import { createErrorBanner } from "@/components/states";
 
 export async function render(
   container: HTMLElement,

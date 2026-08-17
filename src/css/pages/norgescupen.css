@@ -1,0 +1,42 @@
+/* Rendered by pages/norgescupen.ts, pages/norgesranking.ts. */
+
+/* ── Norgescupen ── */
+
+/* Sits directly above the list, so it ends where the list ends. */
+.nc-class-tabs-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  max-width: var(--tabell-maks);
+}
+
+.nc-class-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.nc-view-tabs {
+  margin-bottom: 12px;
+}
+
+.nc-class-tab {
+  padding: 4px 12px;
+  border: 1px solid var(--primaer);
+  border-radius: 4px 4px 0 0;
+  background: var(--flate);
+  color: var(--lenke);
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.nc-class-tab.active {
+  background: var(--primaer);
+  color: var(--primaer-text);
+}
+
+/* From 2026 the klasse tabs are gone, leaving the hint alone in the row —
+   space-between would then park it on the left. */
+.nc-class-tabs-wrapper .click-hint {
+  margin-left: auto;
+}

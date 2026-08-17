@@ -20,9 +20,13 @@ function unlinkedHtml(status: LinkStatus): string {
     <div class="card mb-4">
       <div class="card-body">
         <h5 class="card-title">Koble til utøvarprofil</h5>
-        <p class="card-text text-muted">Søk etter deg sjølv i registeret og send ein forespørsel. Etter godkjenning kan du melde deg på stevner.</p>
+        <p class="card-text text-muted">Søk etter deg sjølv i registeret og send ein forespørsel. Ein administrator godkjenner koblinga manuelt, så det kan ta litt tid.</p>
+        <p class="card-text text-muted">Etter godkjenning kan du melde deg på stevne, sjå dine eigne kampar og få varsel når eit stevne startar.</p>
         <span id="thrower-search-slot"></span>
         <div id="thrower-error" class="alert alert-danger d-none mt-2"></div>
+        <p class="card-text text-muted small mt-3 mb-0">Har du ikkje delteke på eit stevne før? Ta
+           kontakt med klubben din — eller send e-post til
+           <a href="mailto:kontakt@hesteskokasting.no">kontakt@hesteskokasting.no</a>, så hjelper vi deg.</p>
       </div>
     </div>`;
 }
@@ -30,7 +34,8 @@ function unlinkedHtml(status: LinkStatus): string {
 function pendingHtml(): string {
   return `
     <div class="alert alert-info mb-4">
-      <p class="mb-1">Koblingforespørselen din<span id="pending-name"></span> ventar på godkjenning.</p>
+      <p class="mb-1">Koblingforespørselen din<span id="pending-name"></span> ventar på godkjenning frå ein administrator.</p>
+      <p class="mb-1 small">Mens du ventar kan du klikke deg inn på dei forskjellige sidene for å gjere deg kjent med det nye systemet.</p>
       <p class="mb-0 small">Feil kobling? Send e-post til <a href="mailto:kontakt@hesteskokasting.no">kontakt@hesteskokasting.no</a></p>
     </div>`;
 }

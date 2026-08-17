@@ -1,0 +1,334 @@
+/* Rendered by components/RankingList.ts, components/ResultatTabell.ts, pages/norgescupen.ts and 1 more. */
+
+/* Group (mobile) */
+
+.res-group {
+  border: 1px solid var(--kant);
+  border-radius: 6px;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.res-group-title {
+  text-align: center;
+  font-size: 0.95rem;
+  font-weight: bold;
+  padding: 8px 12px;
+  background: var(--primaer);
+  color: var(--primaer-text);
+  border-bottom: 1px solid var(--kant);
+}
+
+.res-group-rows {
+  overflow: hidden;
+}
+
+.res-row {
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--kant);
+  background: var(--flate);
+  gap: 12px;
+}
+
+.res-row:last-child {
+  border-bottom: none;
+}
+
+.res-pl {
+  font-size: 1rem;
+  font-weight: bold;
+  color: var(--lenke);
+  min-width: 28px;
+}
+
+.res-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.res-navn {
+  font-size: 0.95rem;
+  font-weight: bold;
+  color: var(--lenke);
+}
+
+.res-klubb {
+  font-size: 0.8rem;
+  color: var(--tekst-2);
+}
+
+/* Result card: total on the right, details in a toggled panel below */
+
+.res-row--detalj {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  align-items: start;
+  column-gap: 12px;
+  row-gap: 10px;
+}
+
+.res-detalj-btn {
+  align-self: start;
+  margin-top: 4px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--lenke);
+  font-size: 0.8rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.res-detalj-btn:hover .res-detalj-tekst {
+  text-decoration: underline;
+}
+
+.res-tot {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+}
+
+.res-tot-label {
+  font-size: 0.65rem;
+  font-weight: bold;
+  letter-spacing: 0.08em;
+  color: var(--tekst-2);
+}
+
+.res-tot-verdi {
+  font-size: 1.9rem;
+  font-weight: bold;
+  line-height: 1.05;
+  color: var(--tekst);
+}
+
+.res-detalj {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.res-stat {
+  flex: 1 1 30%;
+  min-width: 92px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid var(--kant);
+  border-radius: 6px;
+  background: var(--flate-2);
+}
+
+.res-stat-label {
+  font-size: 0.62rem;
+  font-weight: bold;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--tekst-2);
+}
+
+.res-stat-verdi {
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: var(--tekst);
+}
+
+.res-stat-carry {
+  font-size: 0.9rem;
+  font-weight: normal;
+  color: var(--tekst-2);
+}
+
+.res-stat-sub {
+  font-size: 0.7rem;
+  color: var(--tekst-2);
+}
+
+.res-tabell-boks {
+  max-width: var(--tabell-maks);
+  border: 1px solid var(--kant);
+  border-radius: 8px;
+  overflow-x: auto;
+}
+
+.res-table--gruppert {
+  font-size: 0.8rem;
+}
+
+.res-table--gruppert th,
+.res-table--gruppert td {
+  padding: 3px 8px;
+  white-space: nowrap;
+}
+
+/* Group row: one label above each method's Poeng/Ringar pair. */
+.res-thead-grupper th {
+  background: var(--flate-2);
+  color: var(--tekst-2);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: center;
+  padding: 3px 8px;
+  border-bottom: 1px solid var(--kant);
+}
+
+.res-table--gruppert .res-thead-columns th {
+  background: var(--flate-2);
+  color: var(--tekst-2);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  padding: 3px 8px;
+  border-bottom: 1px solid var(--kant);
+}
+
+/* Figures sit centred under their own headers — tabular digits keep the columns
+   lining up despite the centring. */
+.res-table--gruppert .res-tal {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The figures that carry the result. Weight rather than colour alone: in dark
+   mode the contrast against the dimmed columns reads as bold on its own, in light
+   mode it does not. */
+.res-table--gruppert tbody td.res-tal:not(.res-tal--dempa) {
+  font-weight: 600;
+}
+
+/* A grouped list repeats its header rows per section, inside a tbody of their
+   own — they must not pick up the body's cell styling, or split across pages. */
+.res-tbody-hovud {
+  break-inside: avoid;
+}
+
+.res-table--gruppert .res-tal--dempa {
+  color: var(--tekst-2);
+}
+
+/* Vertical rule after each group, so the pairs read as blocks. */
+.res-table--gruppert .res-kol-slutt {
+  border-right: 1px solid var(--kant);
+}
+
+.res-table--gruppert .res-td-pl {
+  width: auto;
+  color: var(--lenke);
+  font-weight: bold;
+  text-align: right;
+}
+
+.res-table--gruppert .res-td-navn {
+  font-weight: 600;
+}
+
+.res-table--gruppert .res-td-klubb {
+  color: var(--tekst-2);
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The one column the eye should land on. */
+.res-table--gruppert .res-td-tot {
+  background: color-mix(in srgb, var(--primaer) 32%, var(--flate));
+  color: var(--tekst);
+  border-left: 1px solid var(--kant);
+  border-right: 1px solid var(--kant);
+}
+
+.res-table--gruppert tbody td.res-td-tot {
+  font-size: 0.95rem;
+  font-weight: bold;
+}
+
+/* Desktop result table */
+
+.res-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.res-thead-group td {
+  background: var(--primaer);
+  color: var(--primaer-text);
+  font-weight: bold;
+  text-align: center;
+  padding: 6px 10px;
+}
+
+.res-thead-columns th {
+  background: var(--primaer);
+  color: var(--primaer-text);
+  text-align: left;
+  padding: 5px 10px;
+  font-size: 0.8rem;
+  letter-spacing: 0.03em;
+}
+
+.res-table tbody tr {
+  border-bottom: 1px solid var(--kant);
+  background: var(--flate);
+}
+
+.res-table tbody tr:nth-child(even) {
+  background: var(--flate-2);
+}
+
+.res-table td {
+  padding: 5px 10px;
+  color: var(--tekst);
+}
+
+.res-td-pl {
+  width: 40px;
+}
+
+.res-thead-columns th.res-td-tot,
+.res-table td.res-td-tot {
+  font-weight: bold;
+}
+
+/* Responsiv: vis/skjul blokker */
+
+.res-mobil-blokk {
+  display: block;
+}
+
+.res-desktop-blokk {
+  display: none;
+}
+
+@media (min-width: 700px) {
+  .res-mobil-blokk {
+    display: none;
+  }
+  .res-desktop-blokk {
+    display: block;
+  }
+}
+
+/* Prize marker: an X in the table's own column, spelled out under the total on
+   mobile where there is no column header to name it. */
+.res-premie {
+  font-weight: bold;
+  line-height: 1;
+}
+
+.res-tot .res-premie {
+  margin-top: 2px;
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  color: var(--lenke);
+}

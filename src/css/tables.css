@@ -1,0 +1,84 @@
+/* Rendered by components/PlayerTable.ts, components/Table.ts, pages/kasterDetalj.ts and 4 more. */
+
+/* A wide table (many omgang columns) scrolls inside its own box instead of
+   widening the document — a horizontally scrolled page drags the sticky header
+   and every fixed overlay off-screen with it. */
+.table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* The default table of components/Table.ts. It shares its base metrics with
+   .res-table but not its behaviour — .app-table zebra-stripes every fourth row,
+   which the result table must not inherit — so the two carry their own rules
+   rather than a shared selector that would tie this layer to a component. */
+.app-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.app-thead th {
+  background: var(--primaer);
+  color: var(--primaer-text);
+  text-align: left;
+  padding: 5px 10px;
+  font-size: 0.8rem;
+  letter-spacing: 0.03em;
+}
+
+.app-table tbody tr {
+  background: var(--flate);
+}
+
+.app-table tbody tr:nth-child(4n + 3) {
+  background: var(--flate-2);
+}
+
+.app-table td {
+  padding: 5px 10px;
+  color: var(--tekst);
+  border-bottom: 1px solid var(--kant);
+}
+/* ── Tabellkolonne-breidder (delt) ── */
+
+.th-28 {
+  width: 28px;
+}
+
+.th-32 {
+  width: 32px;
+}
+
+.th-36 {
+  width: 36px;
+}
+
+.th-40 {
+  width: 40px;
+}
+
+.th-44 {
+  width: 44px;
+}
+
+.th-50 {
+  width: 50px;
+}
+
+.th-56 {
+  width: 56px;
+}
+
+.th-80 {
+  width: 80px;
+}
+
+.th-96 {
+  width: 96px;
+}
+
+.th-148 {
+  width: 148px;
+}

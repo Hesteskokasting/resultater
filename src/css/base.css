@@ -1,0 +1,36 @@
+/* Shared foundation — no single owner. */
+
+body {
+  background: var(--bg);
+  color: var(--tekst);
+  /* No double-tap zoom on iOS; pinch-zoom and panning stay intact. */
+  touch-action: manipulation;
+}
+
+/* Shared foundation — no single owner. */
+
+/* Bootstrap 5 reboot håndterer box-sizing, margin/padding-reset og body-basisstiler */
+
+:root {
+  /* How wide a result or standings list may grow. Whatever sits above such a
+     list — section headings, filters, click hints — lines up with this, so the
+     hint's right edge meets the table's. */
+  --tabell-maks: 1000px;
+  /* Filter rows lead a list rather than span it. */
+  --filter-maks: 420px;
+}
+
+/* One cap for every viewport. A narrower cap below the 700px breakpoint used to
+   hold the column at 500px right up to 699px and then release it to 1400px, so
+   the page snapped from a narrow centred column to edge-to-edge in one pixel —
+   on top of the mobile/desktop content swap that already happens there. */
+#app {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px 16px;
+  /* Edge-to-edge native app: keep content clear of the Android nav bar /
+     iOS home indicator and of a landscape notch; 0 everywhere else */
+  padding-bottom: calc(20px + var(--sa-bottom));
+  padding-left: calc(16px + var(--sa-left));
+  padding-right: calc(16px + var(--sa-right));
+}

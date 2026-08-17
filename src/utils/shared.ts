@@ -1,6 +1,36 @@
-import { parseLocalDate } from "./parseLocalDate";
+import { escHtml } from "@/utils/escHtml";
 
 // ── Date formatting ───────────────────────────────────────────────────────────
+
+// Bare date strings (YYYY-MM-DD) are parsed as UTC midnight by JS, which shifts
+// the display date by one day for Norwegian users (UTC+1/+2). Use local noon instead.
+function parseLocalDate(datoStr: string): Date {
+  return datoStr.length === 10 ? new Date(datoStr + "T12:00:00") : new Date(datoStr);
+}
+
+/**
+ * Today as YYYY-MM-DD in the user's own timezone. toISOString() would answer in
+ * UTC, which names yesterday between midnight and 01/02 Norwegian time — the
+ * dato columns this is compared against are local dates.
+ */
+export function todayIso(): string {
+  const now = new Date();
+  return new Date(now.getTime() - now.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
+}
+
+/** "2026-08-02" → 2026. Null/garbage dates yield null so callers can skip them. */
+export function yearOf(dato: string | null | undefined): number | null {
+  if (!dato) return null;
+  const year = Number(dato.slice(0, 4));
+  return Number.isFinite(year) && year > 1900 ? year : null;
+}
+
+/** 1-based month (1–12) from an ISO date, or null when unparseable. */
+export function monthOf(dato: string | null | undefined): number | null {
+  if (!dato || dato.length < 7) return null;
+  const month = Number(dato.slice(5, 7));
+  return Number.isInteger(month) && month >= 1 && month <= 12 ? month : null;
+}
 
 const dateFmtShort = new Intl.DateTimeFormat("nb-NO", {
   day: "2-digit",
@@ -107,7 +137,23 @@ export async function downloadExcelRows(
   XLSX.writeFile(book, fileName);
 }
 
-// ── Year dropdown ─────────────────────────────────────────────────────────────
+// ── Dropdowns ─────────────────────────────────────────────────────────────────
+
+/** A `<select>` with the matching option pre-selected. Labels and values are escaped. */
+export function selectHtml(
+  id: string,
+  options: { value: string; label: string }[],
+  selected: string,
+  className = "app-select",
+): string {
+  const opts = options
+    .map(
+      (o) =>
+        `<option value="${escHtml(o.value)}"${o.value === selected ? " selected" : ""}>${escHtml(o.label)}</option>`,
+    )
+    .join("");
+  return `<select id="${id}" class="${className}">${opts}</select>`;
+}
 
 export function yearOptions(selected: number, from: number, to = new Date().getFullYear()): string {
   let html = "";

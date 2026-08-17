@@ -1,65 +1,59 @@
-import { formatDateLong } from "@/utils/shared";
-import { createErrorBanner } from "@/components/ErrorBanner";
+import { createErrorBanner } from "@/components/states";
 import {
   getLatestResults,
   getLiveTournaments,
   getTournamentsByIds,
   getUpcomingTournaments,
 } from "@/services/stevneService";
-import type {
-  LatestResultRow,
-  LiveTournamentRow,
-  UpcomingTournamentRow,
-} from "@/services/stevneService";
+import type { ListedTournamentRow } from "@/services/stevneService";
 import { logError } from "@/utils/logError";
+import { mergeSncUmbrellas, collectSncParentIds } from "@/utils/sncUmbrella";
 import { getUser } from "@/services/authService";
+import { linkedThrowerId } from "@/utils/kaster";
 import { getRegistrationsForThrower, emptyThrowerRegistrations } from "@/services/stevneService";
 import type { ThrowerRegistrations } from "@/services/stevneService";
 import { bindRegistrationSlots } from "@/components/PameldingKnapp";
-import { createStevneCard } from "@/components/StevneCard";
-import { sncUmbrellaActionLink } from "@/utils/sncRegistration";
+import {
+  createTournamentCard,
+  registrationCtaLink,
+  sncUmbrellaActionLink,
+} from "@/components/StevneCard";
+import type { AuthUser } from "@/types";
 
 // ── HTML builders ─────────────────────────────────────────────────────────────
 
-// Same card component as terminliste — the live-prikk dot on `status: 'live'` is
-// the only "ongoing" indicator, consistent across both pages.
-function liveCard(s: LiveTournamentRow): HTMLElement {
+// Same card builder as terminliste and min side — status comes from the stevne's
+// own fields, so the live-prikk dot appears here exactly as it does there.
+function liveCard(s: ListedTournamentRow): HTMLElement {
   const tab = s.stevne_fase === "avsluttende" ? "avsluttende" : "innledende";
-  return createStevneCard({
-    title: s.navn,
+  return createTournamentCard(s, {
     href: `#/stevne/${s.id}/${s.er_snc_hovudstevne ? "info" : tab}`,
-    date: formatDateLong(s.dato),
-    status: "live",
   });
 }
 
-function resultCard(s: LatestResultRow): HTMLElement {
-  return createStevneCard({
-    title: s.navn,
-    href: `#/stevne/${s.id}/resultat`,
-    date: formatDateLong(s.dato),
-    status: "done",
-  });
+function resultCard(s: ListedTournamentRow): HTMLElement {
+  return createTournamentCard(s, { href: `#/stevne/${s.id}/resultat` });
 }
 
 function upcomingCard(
-  s: UpcomingTournamentRow,
+  s: ListedTournamentRow,
   showSlot: boolean,
   registrations: ThrowerRegistrations,
+  auth: AuthUser | null,
 ): HTMLElement {
   // getUpcomingTournaments already constrains erfullfort and stevne_fase, so showSlot is the only gate left.
   const canRegister = showSlot;
-  return createStevneCard({
-    title: s.navn,
+  return createTournamentCard(s, {
     href: `#/stevne/${s.id}/info`,
-    date: formatDateLong(s.dato),
-    status: "upcoming",
     // SNC: the thrower must pick a local stevne first, so the button navigates.
     registrationSlotId: canRegister && !s.er_snc_hovudstevne ? s.id : undefined,
-    actionLink:
-      canRegister && s.er_snc_hovudstevne
+    // Without a link there is no button to show, so the slot explains what is
+    // missing instead of leaving the card looking like registration doesn't exist.
+    actionLink: canRegister
+      ? s.er_snc_hovudstevne
         ? sncUmbrellaActionLink(s.id, registrations.sncParentIds.has(s.id))
-        : undefined,
+        : undefined
+      : registrationCtaLink(s.id, auth),
   });
 }
 
@@ -113,17 +107,10 @@ export async function render(container: HTMLElement): Promise<void> {
       return;
     }
 
-    // Show a running SNC round once, as the umbrella, not once per local stevne.
     const ongoing = r5.filter((s) => !s.erfullfort);
-    const sncParentIds = [
-      ...new Set(
-        ongoing
-          .map((s) => s.snc_hovudstevne_id)
-          .filter((parentId): parentId is number => parentId != null),
-      ),
-    ];
+    const sncParentIds = collectSncParentIds(ongoing);
     const throwerId = auth?.profil?.kasterid ?? null;
-    const showSlot = throwerId !== null && auth?.profil?.kobling_status === "godkjent";
+    const showSlot = linkedThrowerId(auth) !== null;
 
     // Both depend only on data already in hand, so they run together rather than
     // adding a second serial round-trip before the upcoming list can paint.
@@ -134,16 +121,7 @@ export async function render(container: HTMLElement): Promise<void> {
         : Promise.resolve(emptyThrowerRegistrations()),
     ]);
     if (!isCurrent()) return;
-    // Re-sorted: concatenating the umbrellas onto the plain stevner would
-    // otherwise drop the date order the query established.
-    const plainLive = ongoing.filter((s) => s.snc_hovudstevne_id == null);
-    const plainLiveIds = new Set(plainLive.map((s) => s.id));
-    const live = [
-      ...plainLive,
-      // A finished umbrella must not reappear as live just because a local is still running,
-      // and one with its own live phase is already in plainLive.
-      ...sncParents.filter((s) => !s.erfullfort && !plainLiveIds.has(s.id)),
-    ].sort((a, b) => (a.dato ?? "").localeCompare(b.dato ?? ""));
+    const live = mergeSncUmbrellas(ongoing, sncParents);
 
     // Update sections in-place to avoid layout shift
     if (live.length) {
@@ -158,13 +136,13 @@ export async function render(container: HTMLElement): Promise<void> {
     const upcomingSection = container.querySelector<HTMLElement>(".homepage-upcoming")!;
     container
       .querySelector<HTMLElement>("#upcoming-content")!
-      .replaceWith(cardList(r2.map((s) => upcomingCard(s, showSlot, registrations))));
+      .replaceWith(cardList(r2.map((s) => upcomingCard(s, showSlot, registrations, auth))));
 
     // Same gate as the slots themselves — binding must not outlive what upcomingCard rendered.
     if (showSlot && throwerId !== null && auth) {
       // The page has already painted; a binding failure must not replace it with an error.
       try {
-        bindRegistrationSlots(upcomingSection, throwerId, auth.user.id, registrations.byTournament);
+        bindRegistrationSlots(upcomingSection, throwerId, registrations.byTournament);
       } catch (err) {
         logError("home.bindRegistrationSlots", err);
       }

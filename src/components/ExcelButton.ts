@@ -16,7 +16,7 @@ const EXCEL_SVG =
 export function createExcelButton({ slot, onClick }: ExcelButtonProps): HTMLButtonElement {
   const btn = document.createElement("button");
   btn.type = "button";
-  btn.className = "tl-excel-button";
+  btn.className = "excel-button";
   btn.setAttribute("aria-label", "Last ned Excel");
   btn.title = "Last ned Excel";
   btn.innerHTML = EXCEL_SVG;

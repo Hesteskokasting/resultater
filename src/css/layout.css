@@ -1,0 +1,25 @@
+/* Layout — the page shells every route renders into
+   Rendered by admin/admin.ts, admin/panels/oversikt.ts, admin/stevneadmin.ts and 20 more. */
+
+.homepage,
+.terminliste,
+.res-side,
+.content-page {
+  padding-bottom: 40px;
+}
+
+/* Live tournaments render as StevneCard now (home.ts + admin.ts), same as
+   everywhere else; #live-section just needs its old bottom margin preserved
+   when populated. */
+#live-section:not(:empty) {
+  margin-bottom: 24px;
+}
+
+/* Centred heading above a list page. Was two identical classes, .tl-title and
+   .nc-main-title, one per page that happened to need it. */
+.page-title {
+  text-align: center;
+  font-size: 1.15rem;
+  font-weight: bold;
+  margin-bottom: 14px;
+}

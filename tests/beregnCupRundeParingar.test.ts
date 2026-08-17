@@ -119,6 +119,15 @@ describe("calcCupRoundPairings", () => {
       }
     });
 
+    it("a 2-player group plays one match instead of two walkovers", () => {
+      for (const opts of [{}, { runde1Oppsett: { walkovers: 0, c3: 0, c2: 1 } }]) {
+        const parings = calcCupRoundPairings(players(2), { isRunde1: true, ...opts });
+        expect(parings).toHaveLength(1);
+        expect(parings[0]!.isWalkover).toBe(false);
+        expect(parings[0]!.players).toHaveLength(2);
+      }
+    });
+
     it("runde1Oppsett.walkovers controls the number of walkovers", () => {
       // 10 players, 2 walkovers: the 2 top seeds walk over
       const parings = calcCupRoundPairings(players(10), {

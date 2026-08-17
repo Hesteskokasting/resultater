@@ -1,0 +1,172 @@
+/* Rendered by pages/minside.ts, pages/minside/_sectionCard.ts, pages/minside/minside-innstillingar.ts and 2 more. */
+
+/* Trailing stats column of the Min side match listing. */
+.scoreboard-btn--stats {
+  width: 32px;
+  height: 28px;
+  border-radius: 6px;
+}
+/* ── Min side ── */
+
+.mypage-container {
+  max-width: 640px;
+}
+
+.mypage-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+/* ── Min side → Kampar: match listing ──
+   Fixed column widths, repeated on the header row and every data row, so the
+   columns line up across every stevne and fase group on the page. */
+.match-grid {
+  --match-cols: 78px 1fr 124px 44px;
+  margin-bottom: 16px;
+}
+
+.match-grid__head,
+.match-grid__row {
+  display: grid;
+  grid-template-columns: var(--match-cols);
+  align-items: center;
+  gap: 8px;
+}
+
+.match-grid__head {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--tekst-2);
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--kant);
+}
+
+.match-grid__row {
+  min-height: 54px;
+  border-bottom: 1px solid var(--kant);
+}
+
+.match-grid__slot {
+  font-weight: 700;
+  color: var(--tekst);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.match-grid__round {
+  font-weight: 500;
+  color: var(--tekst-2);
+}
+
+.match-grid__name {
+  font-weight: 600;
+  color: var(--tekst);
+  overflow-wrap: anywhere;
+}
+
+/* The two trailing columns centre their contents, header included, so the label
+   sits directly above the badge or the ring count whatever their width. */
+.match-grid__result,
+.match-grid__stats {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.match-grid__rings {
+  font-weight: 600;
+  color: var(--tekst-2);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Stands in for the missing opponent of a walkover. */
+.match-grid__bye {
+  font-weight: 500;
+  color: var(--tekst-2);
+  font-style: italic;
+}
+
+/* Stevne name above each group, and the fase label inside it. */
+.match-grid__stevne {
+  font-weight: 600;
+  margin: 16px 0 4px;
+}
+
+.match-grid__phase {
+  font-size: 0.875rem;
+  color: var(--tekst-2);
+  margin: 0 0 4px;
+}
+
+/* Outcome pill replacing the old "Vis" button. */
+.result-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 88px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--utfall-noytral-kant);
+  background: var(--utfall-noytral-flate);
+  color: var(--utfall-noytral-tekst);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.result-badge--win {
+  border-color: var(--utfall-vinn-kant);
+  background: var(--utfall-vinn-flate);
+  color: var(--utfall-vinn-tekst);
+}
+
+.result-badge--loss {
+  border-color: var(--utfall-tap-kant);
+  background: var(--utfall-tap-flate);
+  color: var(--utfall-tap-tekst);
+}
+
+.result-badge--draw {
+  border-color: var(--utfall-uavgjort-kant);
+  background: var(--utfall-uavgjort-flate);
+  color: var(--utfall-uavgjort-tekst);
+}
+
+@media (max-width: 480px) {
+  .match-grid {
+    --match-cols: 70px 1fr 100px 40px;
+  }
+  .result-badge {
+    min-width: 72px;
+    padding: 5px 8px;
+  }
+}
+
+/* Linked login accounts table (min side -> konto).
+   The email is one unbreakable token; without `anywhere` it dictates the
+   table's min-content width and pushes it past the viewport on mobile. */
+.linked-accounts-table {
+  width: 100%;
+}
+
+.linked-accounts-table__email {
+  overflow-wrap: anywhere;
+}
+
+.linked-accounts-table__date {
+  white-space: nowrap;
+}
+
+.linked-accounts-table__actions .btn {
+  white-space: nowrap;
+  margin-block: 2px;
+}
+
+.skeleton-block--card {
+  min-height: 140px;
+}

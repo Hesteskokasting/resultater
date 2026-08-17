@@ -1,7 +1,6 @@
 import { isAdmin, isClubAdmin } from "@/services/authService";
 import { getTournamentHeader } from "@/services/stevneService";
-import { createErrorBanner } from "@/components/ErrorBanner";
-import { createLoadingState } from "@/components/LoadingState";
+import { createErrorBanner, createLoadingState } from "@/components/states";
 import { logError } from "@/utils/logError";
 import { escHtml } from "@/utils/escHtml";
 import { setPageTitle } from "@/utils/pageTitle";
@@ -120,24 +119,24 @@ export async function render(container: HTMLElement, params: Params): Promise<vo
     const ownsHeader = activeTab === "info";
 
     container.innerHTML = `
-      <div class="org-shell pb-3 pt-1">
+      <div class="stevne-shell pb-3 pt-1">
         ${renderNav(id, activeTab, tabs)}
         ${
           ownsHeader
             ? ""
-            : `<div class="org-fase-header d-flex align-items-center justify-content-between gap-2">
-          <div class="org-fase-header__title">
+            : `<div class="stevne-fase-header d-flex align-items-center justify-content-between gap-2">
+          <div class="stevne-fase-header__title">
             <h5 class="mb-0">${escHtml(tournament.navn)}</h5>
-            <span class="org-fase-header__meta"></span>
+            <span class="stevne-fase-header__meta"></span>
           </div>
-          <div id="org-banner-buttons"></div>
+          <div id="stevne-banner-buttons"></div>
         </div>`
         }
-        <div id="org-subpage" class="px-3${ownsHeader ? " pt-3" : ""}"></div>
+        <div id="stevne-subpage" class="px-3${ownsHeader ? " pt-3" : ""}"></div>
       </div>`;
 
-    const bannerSlot = container.querySelector<HTMLElement>("#org-banner-buttons");
-    const subpage = container.querySelector<HTMLElement>("#org-subpage")!;
+    const bannerSlot = container.querySelector<HTMLElement>("#stevne-banner-buttons");
+    const subpage = container.querySelector<HTMLElement>("#stevne-subpage")!;
     const renderFn =
       (isSncParent ? SNC_PARENT_RENDER[activeTab] : undefined) ??
       TAB_RENDER[activeTab] ??

@@ -14,27 +14,30 @@
 //
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import {
-  buildFinalStandings,
   renderStandingTable,
   renderMainContent,
   finalMenuItems,
   setBannerMeta,
-  parseRound1Format,
   bindStandingDetails,
   bindTabToggle,
   getActiveTab,
   setActiveTab,
   createChangeHandler,
+  bindAutoComplete,
+  bindCompleteTournament,
+} from "../faseView";
+import {
+  buildFinalStandings,
+  orderStandingsByGroup,
   type StandingRow,
-  type OrgMatch,
-} from "@/organizer/org-shared";
+  type StandingMatch,
+} from "@/utils/stilling";
+import { parseRound1Format } from "@/utils/kastemetoder-logikk";
 import { renderBannerMenu, bindBannerMenu } from "@/components/BannerMenu";
-import { createLoadingState } from "@/components/LoadingState";
-import { createErrorBanner } from "@/components/ErrorBanner";
-import { showToast } from "@/components/Toast";
-import { confirmDialog } from "@/components/ConfirmDialog";
+import { createErrorBanner, createLoadingState } from "@/components/states";
 import { logError } from "@/utils/logError";
 import { unsubscribeChannel } from "@/utils/realtime";
+import { buildParticipantMaps } from "@/utils/participantMaps";
 import {
   getFinalRoundMatches,
   subscribeToMatchChanges,
@@ -43,17 +46,16 @@ import {
 } from "@/services/kampService";
 import {
   getFinalPhaseTournament,
-  setTournamentCompleted,
   getTournamentRegistrationCount,
   type FinalPhaseTournamentRow,
 } from "@/services/stevneService";
 import {
   getResultsForFinalRound,
   getGroups,
-  writePlacements,
   type FinalResultRow,
 } from "@/services/resultatService";
 import { getPairsForTournament } from "@/services/pameldingService";
+import { autoCompleteFinalMatches } from "@/services/testDataService";
 import type { Round1FormatTyped } from "@/types";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -96,17 +98,17 @@ export interface FinalPhaseVariant {
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
 
-function toOrgMatch(matches: FinalMatchRow[]): OrgMatch[] {
+function toStandingMatch(matches: FinalMatchRow[]): StandingMatch[] {
   return matches.map((k) => ({
     er_bekreftet: k.er_bekreftet,
     er_walkover: k.er_walkover,
     runde_nummer: k.runde_nummer,
     bane_nummer: k.bane_nummer,
-    spelarar: toOrgPlayer(k.spelarar),
+    spelarar: toStandingPlayer(k.spelarar),
   }));
 }
 
-export function toOrgPlayer(sp: FinalMatchPlayerRow[]) {
+function toStandingPlayer(sp: FinalMatchPlayerRow[]) {
   return sp.map((s) => ({
     kasterid: s.kasterid ?? 0,
     kamp_poeng: s.kamp_poeng ?? 0,
@@ -170,18 +172,7 @@ export function createFinalPhaseRenderer(variant: FinalPhaseVariant) {
       const initialMatches = rawMatches.filter((k) => k.fase === "innledende");
       const finalMatches = rawMatches.filter((k) => k.fase === "avsluttende");
 
-      const startNumberMap: Record<number, number> = {};
-      const positionMap: Record<number, number> = {};
-      const snrCount = new Map<number, number>();
-      for (const r of typedResults) {
-        if (r.startnummer != null) {
-          startNumberMap[r.kasterid] = r.startnummer;
-          snrCount.set(r.startnummer, (snrCount.get(r.startnummer) ?? 0) + 1);
-        }
-        if (r.posisjon != null) positionMap[r.kasterid] = r.posisjon;
-      }
-      // Par/Mix: two players share a startnummer
-      const isTeam = [...snrCount.values()].some((c) => c > 1);
+      const { startNumberMap, positionMap, isTeam } = buildParticipantMaps(typedResults);
 
       const nameMap: Record<number, string> = {};
       for (const k of rawMatches) {
@@ -200,9 +191,9 @@ export function createFinalPhaseRenderer(variant: FinalPhaseVariant) {
         }
       }
 
-      const initialMatchesOrg = toOrgMatch(initialMatches);
+      const standingMatches = toStandingMatch(initialMatches);
       const standings = buildFinalStandings(
-        initialMatchesOrg,
+        standingMatches,
         typedResults,
         nameMap,
         startNumberMap,
@@ -270,7 +261,7 @@ export function createFinalPhaseRenderer(variant: FinalPhaseVariant) {
       const activeTab = getActiveTab(container);
 
       if (hasGroupAssignment) {
-        const standingHtml = renderStandingTable(standings, initialMatchesOrg, startNumberMap, {
+        const standingHtml = renderStandingTable(standings, standingMatches, startNumberMap, {
           tableId: "standing-final",
           hasGroups: true,
           hasElimination: true,
@@ -287,34 +278,26 @@ export function createFinalPhaseRenderer(variant: FinalPhaseVariant) {
         container.innerHTML = variant.renderSetupHtml(ctx);
       }
 
-      bannerSlot?.querySelector("#complete-tournament-btn")?.addEventListener("click", async () => {
-        if (
-          !(await confirmDialog({
-            title: "Fullfør turnering",
-            message: "Vil du fullføre turneringa? Dette kan ikkje angrast.",
-            danger: true,
-          }))
-        )
-          return;
-        // Sort by gruppe so A gets 1..nA, B gets nA+1..nA+nB.
-        // sortStandings mixes groups together; filtering preserves correct within-group order.
-        const standingsByGroup = [
-          ...standings.filter((r) => r.gruppe?.navn === "A"),
-          ...standings.filter((r) => r.gruppe?.navn === "B"),
-          ...standings.filter((r) => r.gruppe?.navn !== "A" && r.gruppe?.navn !== "B"),
-        ];
-        const { error: plErr } = await writePlacements(stevneid, standingsByGroup);
-        if (plErr) {
-          showToast("Feil ved lagring av plasseringar", "error");
-          return;
-        }
-        const { error } = await setTournamentCompleted(stevneid);
-        if (error) {
-          showToast("Feil ved fullføring av turnering", "error");
-          return;
-        }
-        await loadAndRender(container, stevneid);
-      });
+      if (bannerSlot) {
+        bindAutoComplete(
+          bannerSlot,
+          {
+            title: "Autofullfør kampar",
+            message: "Autofullfør alle ubekrefta avsluttande kampar?",
+          },
+          async () => {
+            await autoCompleteFinalMatches(stevneid);
+            await loadAndRender(container, stevneid);
+          },
+        );
+
+        bindCompleteTournament(
+          bannerSlot,
+          stevneid,
+          () => orderStandingsByGroup(standings),
+          () => loadAndRender(container, stevneid),
+        );
+      }
 
       variant.bindHeaderEvents(bannerSlot, ctx);
     } catch (err) {

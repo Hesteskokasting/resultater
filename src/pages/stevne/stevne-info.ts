@@ -1,6 +1,7 @@
 import { getUser } from "@/services/authService";
-import { createErrorBanner } from "@/components/ErrorBanner";
-import { createLoadingState } from "@/components/LoadingState";
+import { escHtml } from "@/utils/escHtml";
+import { linkedThrowerId } from "@/utils/kaster";
+import { createErrorBanner, createLoadingState } from "@/components/states";
 import {
   heroActionSlot,
   stevneDetails,
@@ -14,7 +15,7 @@ import { logError } from "@/utils/logError";
 import { errorMessage } from "@/utils/errorMessage";
 import { showToast } from "@/components/Toast";
 import { confirmDialog } from "@/components/ConfirmDialog";
-import { getInfoTournament, updateTournamentPhase } from "@/services/stevneService";
+import { getInfoTournament, startTournament, type StartStep } from "@/services/stevneService";
 import {
   getRegistrationCount,
   getPairCount,
@@ -22,19 +23,23 @@ import {
   getMyRegistrationForTournament,
 } from "@/services/pameldingService";
 import { createRegistrationButton } from "@/components/PameldingKnapp";
+import { actionLinkHtml, registrationCtaLink } from "@/components/StevneCard";
 import { createOppmoteButton } from "@/components/OppmoteKnapp";
-import { generateInitialRoundMatches } from "@/services/kampGenereringInnledendeService";
-import { generateKongelagCourts } from "@/services/xkastKongelagService";
 import { registerRefetch } from "@/utils/refetchRegistry";
 import {
-  cascadeRoundLimitMessage,
   isCascadeMethodName,
   isKongelagMethodName,
-  maxCascadeRounds,
   usesInitialRoundCount,
 } from "@/utils/kastemetode";
+import { canStartTournament } from "@/utils/stevneStart";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+const START_ERROR: Record<StartStep, string> = {
+  fase: "Feil ved oppdatering av fase",
+  kampar: "Feil ved kampgenerering",
+  kongelag: "Feil ved generering av Kongelag-banar",
+};
 
 function statusBadge(fase: string | null, erfullfort: boolean | null): StevneHeroOptions["status"] {
   if (erfullfort) return { text: "Fullført", variant: "ok" };
@@ -107,7 +112,7 @@ export async function render(
             : []),
         ],
       })}
-      <div id="info-handling-knapper" class="mb-3 d-flex gap-2 flex-wrap org-max-480"></div>`;
+      <div id="info-handling-knapper" class="mb-3 d-flex gap-2 flex-wrap stevne-max-480"></div>`;
 
     const actionSlot = heroActionSlot(container);
 
@@ -120,38 +125,32 @@ export async function render(
 
     const showStartButton = isNotStarted && isAdmin;
     if (showStartButton) {
-      actionSlot.innerHTML = `<button id="start-stevne-btn" class="btn btn-sm btn-success">Start stevne</button>`;
+      // Every input is already in hand, so the organizer is told what is missing
+      // up front instead of discovering it in a toast after clicking.
+      const blocked = canStartTournament({
+        hasInitialMethod: Boolean(stevne.kastemetodeInnl),
+        isStandaloneKongelag,
+        isTeam,
+        playerCount: count,
+        pairCount,
+        isRoundBased,
+        isCascade,
+        roundCount: stevne.antall_runder_innl,
+      });
+
+      const startButtonHtml =
+        `<button id="start-stevne-btn" class="btn btn-sm btn-success"` +
+        `${blocked ? ` disabled title="${escHtml(blocked)}"` : ""}>Start stevne</button>`;
+      // Blocked: button and reason stack as one flex item in the hero row, the
+      // same shape .oppmote-row uses. Unblocked, the button stays a direct child.
+      actionSlot.innerHTML = blocked
+        ? `<div class="stevne-start-boks">${startButtonHtml}` +
+          `<p class="stevne-start-hindring">${escHtml(blocked)}</p></div>`
+        : startButtonHtml;
       const startBtn = actionSlot.querySelector<HTMLButtonElement>("#start-stevne-btn")!;
       startBtn.addEventListener("click", async () => {
-        if (!stevne.kastemetodeInnl && !isStandaloneKongelag) {
-          showToast(
-            "Du må velje kastemetode for innleiande fase. Gå til Innstillingar for å endre.",
-            "error",
-          );
-          return;
-        }
-        if (isTeam ? count < 4 : count < 2) {
-          showToast(
-            isTeam
-              ? "Stevnet treng minst 2 par (4 spelarar) for å startast."
-              : "Stevnet må ha minst 2 spelarar for å startast.",
-            "error",
-          );
-          return;
-        }
-        if (isRoundBased && !stevne.antall_runder_innl) {
-          showToast(
-            "Du må setje antal rundar for innleiande fase. Gå til Innstillingar for å endre.",
-            "error",
-          );
-          return;
-        }
-        const entryCount = isTeam ? pairCount : count;
-        if (isCascade && (stevne.antall_runder_innl ?? 0) > maxCascadeRounds(entryCount)) {
-          showToast(
-            cascadeRoundLimitMessage(entryCount, stevne.antall_runder_innl ?? 0, isTeam),
-            "error",
-          );
+        if (blocked) {
+          showToast(blocked, "error");
           return;
         }
         const unconfirmedCount = await getUnconfirmedCount(id);
@@ -165,72 +164,54 @@ export async function render(
         startBtn.disabled = true;
         startBtn.textContent = "Starter…";
 
-        if (isStandaloneKongelag) {
-          // Phase first: if generation fails, the avsluttende tab still shows
-          // the Start Kongelag panel as a retry path.
-          const { error: phaseError } = await updateTournamentPhase(id, "avsluttende");
-          if (phaseError) {
-            showToast("Feil ved oppdatering av fase.", "error");
-            startBtn.disabled = false;
-            startBtn.textContent = "Start stevne";
-            return;
-          }
-          const { error: generateError } = await generateKongelagCourts(id);
-          if (generateError) {
-            showToast(
-              "Feil ved generering av Kongelag-banar: " + errorMessage(generateError),
-              "error",
-            );
-            startBtn.disabled = false;
-            startBtn.textContent = "Start stevne";
-            return;
-          }
-          location.hash = `#/stevne/${id}/avsluttende`;
-          return;
-        }
-
-        try {
-          await generateInitialRoundMatches(id, methodName, stevne.antall_runder_innl ?? 1, isTeam);
-        } catch (err) {
-          showToast("Feil ved kampgenerering: " + errorMessage(err), "error");
+        const {
+          error,
+          step,
+          phase: startedPhase,
+        } = await startTournament({
+          stevneid: id,
+          methodName,
+          roundCount: stevne.antall_runder_innl ?? 1,
+          isTeam,
+          isStandaloneKongelag,
+        });
+        if (error) {
+          showToast(`${START_ERROR[step!]}: ${errorMessage(error)}`, "error");
           startBtn.disabled = false;
           startBtn.textContent = "Start stevne";
           return;
         }
-        const { error: phaseError } = await updateTournamentPhase(id, "innledende");
-        if (phaseError) {
-          showToast("Feil ved oppdatering av fase.", "error");
-          startBtn.disabled = false;
-          startBtn.textContent = "Start stevne";
-          return;
-        }
-        location.hash = `#/stevne/${id}/innledende`;
+        location.hash = `#/stevne/${id}/${startedPhase}`;
       });
     }
 
     // ── Action buttons ────────────────────────────────────────────────────────
 
     const actionButtons = container.querySelector<HTMLElement>("#info-handling-knapper")!;
-    if (auth?.profil?.kobling_status === "godkjent" && isNotStarted) {
-      const kasterid = auth.profil.kasterid;
-      if (kasterid === null) return;
+    const kasterid = linkedThrowerId(auth);
 
+    // The hero slot is the primary action; an admin already fills it with
+    // Start stevne, so registration controls join the row below.
+    const registrationTarget = showStartButton ? actionButtons : actionSlot;
+
+    // Without an approved thrower link there is no registration button to show.
+    // Say what is missing rather than leaving the page looking like registration
+    // isn't a thing here at all.
+    const cta = isNotStarted ? registrationCtaLink(id, auth) : undefined;
+    if (cta) registrationTarget.insertAdjacentHTML("beforeend", actionLinkHtml(cta));
+
+    if (kasterid !== null && isNotStarted) {
       const myRegistration = (await getMyRegistrationForTournament(id, kasterid)).data;
 
       const registrationButton = createRegistrationButton({
         tournamentId: id,
         throwerId: kasterid,
-        userId: auth.user.id,
         isRegistered: myRegistration !== null,
         registrationId: myRegistration?.id,
         onAction: () => {
           void render(container, { id, isAdmin });
         },
       });
-
-      // The hero slot is the primary action; an admin already fills it with
-      // Start stevne, so their own registration button joins the row below.
-      const target = showStartButton ? actionButtons : actionSlot;
 
       // Registered players confirm their own attendance from here; the button
       // itself stays locked until two hours before start.
@@ -246,9 +227,9 @@ export async function render(
         const row = document.createElement("div");
         row.className = "oppmote-row";
         row.append(attendance.element, registrationButton);
-        target.appendChild(row);
+        registrationTarget.appendChild(row);
       } else {
-        target.appendChild(registrationButton);
+        registrationTarget.appendChild(registrationButton);
       }
     }
 

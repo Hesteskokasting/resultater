@@ -43,7 +43,7 @@ export type ClubAdminPayload = Omit<ClubAdminRow, "id">;
  * Drop the cached active-club list so the next read hits the database.
  * Called after every write below, since a rename or a deactivation changes it.
  */
-export function invalidateClubCache(): void {
+function invalidateClubCache(): void {
   _clubCache = null;
 }
 

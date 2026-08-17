@@ -1,11 +1,11 @@
-import { formRowHtml, showSaveError, showSuccess, errMsg } from "@/utils/adminForms";
+import { showToast } from "@/components/Toast";
+import { errorMessage } from "@/utils/errorMessage";
 import { isAdmin, isClubAdmin } from "@/services/authService";
 import { escHtml } from "@/utils/escHtml";
 import { buildDropdownOptions } from "@/utils/buildDropdownOptions";
 import { formNum } from "@/utils/formNum";
 import { logError } from "@/utils/logError";
-import { createErrorBanner } from "@/components/ErrorBanner";
-import { createLoadingState } from "@/components/LoadingState";
+import { createErrorBanner, createLoadingState } from "@/components/states";
 import {
   getThrowerForAdmin,
   getClasses,
@@ -16,7 +16,7 @@ import {
   type ThrowerAdminRow,
 } from "@/services/kasterService";
 import { getClubs } from "@/services/klubbService";
-import { formShell } from "./_formHost";
+import { formShell, formRowHtml, showFormError } from "./_formHost";
 import type { AdminFormHost } from "./_formHost";
 import { bindCancelButton, bindDeleteButton } from "./_formButtons";
 
@@ -106,10 +106,10 @@ export async function mountThrowerForm(host: AdminFormHost, id?: number): Promis
       : await createThrower(payload);
 
     if (error) {
-      showSaveError(wrapper, errMsg(error));
+      showFormError(wrapper, errorMessage(error));
       return;
     }
-    showSuccess(wrapper, "Utøvaren er lagra.");
+    showToast(id ? "Utøvaren er lagra." : "Utøvaren er oppretta.", "success");
     host.onSaved?.(saved?.id ?? id!, !id);
   });
 

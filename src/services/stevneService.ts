@@ -1,7 +1,11 @@
 import type { QueryData } from "@supabase/supabase-js";
 import { supabase } from "@/supabase";
+import { todayIso } from "@/utils/shared";
 import { logError } from "@/utils/logError";
 import { verifyRowsAffected } from "@/utils/verifiedWrite";
+import { generateInitialRoundMatches } from "@/services/kampGenereringInnledendeService";
+import { generateKongelagCourts } from "@/services/xkastKongelagService";
+import { writePlacements } from "@/services/resultatService";
 import type { Tables, Json, Round1FormatTyped } from "@/types";
 
 // ── Admin-typar ───────────────────────────────────────────────────────────────
@@ -48,21 +52,23 @@ const _infoStevneQuery = supabase.from("stevne").select(`
 
 export type InfoTournamentRow = QueryData<typeof _infoStevneQuery>[number];
 
-export type LatestResultRow = Pick<Tables<"stevne">, "id" | "navn" | "dato">;
-export type LiveTournamentRow = Pick<
-  Tables<"stevne">,
-  | "id"
-  | "navn"
-  | "dato"
-  | "stevne_fase"
-  | "erfullfort"
-  | "er_snc_hovudstevne"
-  | "snc_hovudstevne_id"
->;
-export type UpcomingTournamentRow = Pick<
-  Tables<"stevne">,
-  "id" | "navn" | "dato" | "stevne_fase" | "erfullfort" | "er_snc_hovudstevne"
->;
+/**
+ * Everything createTournamentCard reads, plus the SNC flags the list views need.
+ * Selected verbatim by every query feeding a stevne card, so the cards on the
+ * home page, terminliste and min side are built from the same shape.
+ */
+const CARD_COLUMNS = `
+    id, navn, dato, sted, ernm, erfullfort, stevne_fase,
+    er_snc_hovudstevne, snc_hovudstevne_id,
+    klubb:klubbid(id, navn),
+    stevnetype:stevnetypeid(id, navn),
+    kategori:kategoriid(id, navn)
+  `;
+
+const _cardStevneQuery = supabase.from("stevne").select(CARD_COLUMNS);
+
+/** A stevne as the card list views read it. */
+export type ListedTournamentRow = QueryData<typeof _cardStevneQuery>[number];
 const _pameldingStevneQuery = supabase
   .from("stevne")
   .select(
@@ -74,11 +80,11 @@ export type RelatedTournamentRow = Pick<Tables<"stevne">, "id" | "navn" | "dato"
 
 // The home page shows an SNC round as one event. Local stevner are filtered out
 // in the query, not the client, because limit(5) would otherwise fill up with them.
-export async function getLatestResults(): Promise<{ data: LatestResultRow[]; error: unknown }> {
-  const today = new Date().toISOString().slice(0, 10);
+export async function getLatestResults(): Promise<{ data: ListedTournamentRow[]; error: unknown }> {
+  const today = todayIso();
   const { data, error } = await supabase
     .from("stevne")
-    .select("id, navn, dato")
+    .select(CARD_COLUMNS)
     .lte("dato", today)
     .eq("erfullfort", true)
     .is("snc_hovudstevne_id", null)
@@ -89,10 +95,13 @@ export async function getLatestResults(): Promise<{ data: LatestResultRow[]; err
 }
 
 /** Includes SNC local stevner — the admin overview needs them. */
-export async function getLiveTournaments(): Promise<{ data: LiveTournamentRow[]; error: unknown }> {
+export async function getLiveTournaments(): Promise<{
+  data: ListedTournamentRow[];
+  error: unknown;
+}> {
   const { data, error } = await supabase
     .from("stevne")
-    .select("id, navn, dato, stevne_fase, erfullfort, er_snc_hovudstevne, snc_hovudstevne_id")
+    .select(CARD_COLUMNS)
     .in("stevne_fase", ["innledende", "avsluttende"])
     .order("dato", { ascending: true });
   if (error) logError("getLiveTournaments", error);
@@ -102,11 +111,11 @@ export async function getLiveTournaments(): Promise<{ data: LiveTournamentRow[];
 /** Used by the home page to swap live local stevner for their umbrella. */
 export async function getTournamentsByIds(
   ids: number[],
-): Promise<{ data: LiveTournamentRow[]; error: unknown }> {
+): Promise<{ data: ListedTournamentRow[]; error: unknown }> {
   if (!ids.length) return { data: [], error: null };
   const { data, error } = await supabase
     .from("stevne")
-    .select("id, navn, dato, stevne_fase, erfullfort, er_snc_hovudstevne, snc_hovudstevne_id")
+    .select(CARD_COLUMNS)
     .in("id", ids)
     .order("dato", { ascending: true });
   if (error) logError("getTournamentsByIds", error);
@@ -114,13 +123,13 @@ export async function getTournamentsByIds(
 }
 
 export async function getUpcomingTournaments(): Promise<{
-  data: UpcomingTournamentRow[];
+  data: ListedTournamentRow[];
   error: unknown;
 }> {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayIso();
   const { data, error } = await supabase
     .from("stevne")
-    .select("id, navn, dato, stevne_fase, erfullfort, er_snc_hovudstevne")
+    .select(CARD_COLUMNS)
     .gte("dato", today)
     .eq("erfullfort", false)
     .is("snc_hovudstevne_id", null)
@@ -171,7 +180,7 @@ export async function getInfoTournament(
     .from("stevne")
     .select(`
       id, navn, dato, tid, sted, stevne_fase, antall_runder_innl, erfullfort, klubbid, tilgjengelige_baner,
-      snc_hovudstevne_id,
+      snc_hovudstevne_id, juryleder,
       kastemetodeInnl:kastemetode!stevne_innledendekastemetodeid_fkey(id, navn),
       kastemetodeAvsl:kastemetode!stevne_avsluttendekastemetodeid_fkey(id, navn),
       kategori:kategoriid(erlagbasert, navn),
@@ -192,6 +201,59 @@ export async function updateTournamentPhase(
   const { error } = await supabase.from("stevne").update({ stevne_fase: phase }).eq("id", id);
   if (error) logError("updateTournamentPhase", error);
   return { error };
+}
+
+export type CompleteStep = "plassering" | "fullfor";
+
+/**
+ * Writes the final placements and marks the stevne completed. Two writes with
+ * no transaction between them, so a failure on "fullfor" leaves the placements
+ * stored on an open stevne — the caller has to say which step gave way.
+ */
+export async function completeTournament(
+  stevneid: number,
+  placements: { kasterid: number }[],
+): Promise<{ error: unknown; step: CompleteStep | null }> {
+  const { error: placementError } = await writePlacements(stevneid, placements);
+  if (placementError) return { error: placementError, step: "plassering" };
+  const { error } = await setTournamentCompleted(stevneid);
+  if (error) return { error, step: "fullfor" };
+  return { error: null, step: null };
+}
+
+export type StartStep = "fase" | "kampar" | "kongelag";
+
+/**
+ * Starts a stevne: generates the first round and moves the phase. Standalone
+ * Kongelag moves the phase first, so a failed generation still leaves the
+ * avsluttende tab showing its Start Kongelag panel as a retry path.
+ */
+export async function startTournament(params: {
+  stevneid: number;
+  methodName: string;
+  roundCount: number;
+  isTeam: boolean;
+  isStandaloneKongelag: boolean;
+}): Promise<{ error: unknown; step: StartStep | null; phase: "innledende" | "avsluttende" }> {
+  const { stevneid, methodName, roundCount, isTeam, isStandaloneKongelag } = params;
+  const phase = isStandaloneKongelag ? "avsluttende" : "innledende";
+
+  if (isStandaloneKongelag) {
+    const { error: phaseError } = await updateTournamentPhase(stevneid, phase);
+    if (phaseError) return { error: phaseError, step: "fase", phase };
+    const { error: generateError } = await generateKongelagCourts(stevneid);
+    if (generateError) return { error: generateError, step: "kongelag", phase };
+    return { error: null, step: null, phase };
+  }
+
+  try {
+    await generateInitialRoundMatches(stevneid, methodName, roundCount, isTeam);
+  } catch (err) {
+    return { error: err, step: "kampar", phase };
+  }
+  const { error: phaseError } = await updateTournamentPhase(stevneid, phase);
+  if (phaseError) return { error: phaseError, step: "fase", phase };
+  return { error: null, step: null, phase };
 }
 
 // ── Oppslag for admin-skjema ──────────────────────────────────────────────────
@@ -377,15 +439,6 @@ export async function reopenSncParent(hovudstevneId: number): Promise<{ error: u
 
 // ── Terminliste ───────────────────────────────────────────────────────────────
 
-export type ClubRow = Pick<Tables<"klubb">, "id" | "navn">;
-
-export interface FilterOptions {
-  stevnetyper: TournamentTypeRow[];
-  kastemetoder: ThrowingMethodRow[];
-  klubber: ClubRow[];
-  kategorier: CategoryRow[];
-}
-
 const _terminlisteStevneQuery = supabase.from("stevne").select(`
     id, navn, sted, dato, tid, ernm, erfullfort, stevne_fase, resultaturl,
     er_snc_hovudstevne, snc_hovudstevne_id,
@@ -417,26 +470,6 @@ export async function getScheduleTournaments(
     .order("dato");
   if (error) logError("getScheduleTournaments", error);
   return { data: data ?? [], error };
-}
-
-export async function getFilterOptions(): Promise<{ data: FilterOptions; error: unknown }> {
-  const [r1, r2, r3, r4] = await Promise.all([
-    supabase.from("stevnetype").select("id, navn").order("navn"),
-    supabase.from("kastemetode").select("id, navn").order("navn"),
-    supabase.from("klubb").select("id, navn").order("navn"),
-    supabase.from("kategori").select("id, navn").order("navn"),
-  ]);
-  const firstError = r1.error ?? r2.error ?? r3.error ?? r4.error ?? null;
-  if (firstError) logError("getFilterOptions", firstError);
-  return {
-    data: {
-      stevnetyper: r1.data ?? [],
-      kastemetoder: r2.data ?? [],
-      klubber: r3.data ?? [],
-      kategorier: r4.data ?? [],
-    },
-    error: firstError,
-  };
 }
 
 // ── Stevne-side header ────────────────────────────────────────────────────────

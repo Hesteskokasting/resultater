@@ -1,11 +1,17 @@
 import type { QueryData, RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "@/supabase";
 import { logError } from "@/utils/logError";
-import { verifyRowsAffected, verifyRowsAffectedReturning } from "@/utils/verifiedWrite";
+import { verifyRowsAffected } from "@/utils/verifiedWrite";
 
-const _pameldingQuery = supabase
-  .from("pamelding")
-  .select("id, stevne:stevneid(id, navn, dato, erfullfort)");
+const _pameldingQuery = supabase.from("pamelding").select(`
+      id,
+      stevne:stevneid(
+        id, navn, dato, sted, ernm, erfullfort, stevne_fase,
+        klubb:klubbid(id, navn),
+        stevnetype:stevnetypeid(id, navn),
+        kategori:kategoriid(id, navn)
+      )
+    `);
 const _pameldingMedKasterQuery = supabase
   .from("pamelding")
   .select("id, kasterid, kaster:kasterid(id, fornavn, etternavn, klubb:klubbid(navn))");
@@ -43,7 +49,15 @@ export async function getMyRegistrations(
 ): Promise<{ data: RegistrationRow[]; error: unknown }> {
   const { data, error } = await supabase
     .from("pamelding")
-    .select("id, stevne:stevneid(id, navn, dato, erfullfort)")
+    .select(`
+      id,
+      stevne:stevneid(
+        id, navn, dato, sted, ernm, erfullfort, stevne_fase,
+        klubb:klubbid(id, navn),
+        stevnetype:stevnetypeid(id, navn),
+        kategori:kategoriid(id, navn)
+      )
+    `)
     .eq("kasterid", kasterid)
     .limit(50);
   if (error) logError("getMyRegistrations", error);
@@ -101,6 +115,26 @@ export async function removeRegistration(pameldingId: number): Promise<{ error: 
   );
   if (error) logError("removeRegistration", error);
   return { error };
+}
+
+export type SwitchStep = "avmelding" | "pamelding";
+
+/**
+ * Moves a thrower to another local stevne. Only one local stevne per SNC round
+ * is allowed (trigger pamelding_snc_ein_stad), so the old registration has to go
+ * first — which means a failure on step "pamelding" leaves the thrower entered
+ * nowhere. The caller must say so rather than report a plain failure.
+ */
+export async function switchRegistration(
+  fromRegistrationId: number,
+  toStevneId: number,
+  kasterid: number,
+): Promise<{ error: unknown; step: SwitchStep | null }> {
+  const { error: removeError } = await removeRegistration(fromRegistrationId);
+  if (removeError) return { error: removeError, step: "avmelding" };
+  const { error } = await registerForTournament(toStevneId, kasterid);
+  if (error) return { error, step: "pamelding" };
+  return { error: null, step: null };
 }
 
 export interface TournamentRegistrationSummary {
@@ -218,7 +252,7 @@ export async function setRegistrationConfirmedForThrower(
   kasterid: number,
   confirmed: boolean,
 ): Promise<{ bekreftetAt: string | null; error: unknown }> {
-  const { data, error } = await verifyRowsAffectedReturning<{ bekreftet_at: string | null }>(
+  const { data, error } = await verifyRowsAffected<{ bekreftet_at: string | null }>(
     supabase
       .from("pamelding")
       .update({ er_bekreftet: confirmed })

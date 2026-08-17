@@ -1,10 +1,18 @@
-// Shared helpers (spelarNamn, lagAsyncKnapp, lagBekreftKnapp, setupScoreboardRealtime)
-// serve both renderScoreboard (2-player) and renderScoreboard3 (3-player) — fixes to
-// realtime, button behaviour, or DOM utilities apply once. Genuine divergences:
-// tegn/tegn3, bereknKnappStatus/bereknKnappStatus3, nesteOmgang/nesteOmgang3,
-// and OmgangRad[] vs MatchRoundRow[] state structures.
+// Shared helpers (spelarNamn, lagAsyncKnapp, lagBekreftKnapp, lagAngreRad,
+// setupScoreboardRealtime) serve both renderScoreboard (2-player) and
+// renderScoreboard3 (3-player) — fixes to realtime, button behaviour, or DOM
+// utilities apply once. The `3` twins that remain are genuine divergences, not
+// copies: see the comment above renderScoreboard3. Scoring rules live in
+// utils/kamp.
 import type { MatchRoundRow, MatchRow, MatchPlayerInMatch } from "@/services/kampService";
-import { calcRingCount, getOmgangThrowerId, getOmgangStarterIndex } from "@/utils/kamp";
+import {
+  calcRingCount,
+  findFinishedPlayer,
+  getOmgangThrowerId,
+  getOmgangStarterIndex,
+  matchIsDecided,
+  pointButtonLocks,
+} from "@/utils/kamp";
 import { createEl } from "@/utils/createEl";
 import {
   getMatchRounds,
@@ -127,7 +135,7 @@ export async function renderScoreboard(
     omgangar = Object.values(omgMap).sort((a, b) => a.omgang - b.omgang);
 
     const [t1, t2] = beregnEffektiveTotalar();
-    kampFerdig = erVinnarKondisjon(t1, t2) || kamp.er_bekreftet || kamp.er_walkover;
+    kampFerdig = matchIsDecided(t1, t2, kamp.fase) || kamp.er_bekreftet || kamp.er_walkover;
   }
 
   function beregnTotalar(): [number, number] {
@@ -143,48 +151,16 @@ export async function renderScoreboard(
     return [omgangar.reduce((s, o) => s + o.r1, 0), omgangar.reduce((s, o) => s + o.r2, 0)];
   }
 
-  function erVinnarKondisjon(t1: number, t2: number): boolean {
-    if (kamp.fase === "innledende") return t1 >= 21 || t2 >= 21;
-    return (t1 >= 21 && t1 - t2 >= 2) || (t2 >= 21 && t2 - t1 >= 2);
-  }
-
   function noverAndeOmgang(): number {
     const last = omgangar[omgangar.length - 1];
     return last ? last.omgang + 1 : 1;
   }
 
-  function bereknKnappStatus(
-    v1: number | null,
-    v2: number | null,
-  ): { p1Dis: Set<number>; p2Dis: Set<number> } {
-    const p1Dis = new Set<number>();
-    const p2Dis = new Set<number>();
-
-    if (v1 !== null) {
-      pointValues.forEach((n) => {
-        if (n !== v1) p1Dis.add(n);
-      });
-      if ([1, 2, 4].includes(v1)) pointValues.forEach((n) => p2Dis.add(n));
-      else [1, 2, 4].forEach((n) => p2Dis.add(n));
-    }
-
-    if (v2 !== null) {
-      pointValues.forEach((n) => {
-        if (n !== v2) p2Dis.add(n);
-      });
-      if ([1, 2, 4].includes(v2)) pointValues.forEach((n) => p1Dis.add(n));
-      else [1, 2, 4].forEach((n) => p1Dis.add(n));
-    }
-
-    // The selected value must always be clickable so the user can deselect it.
-    if (v1 !== null) p1Dis.delete(v1);
-    if (v2 !== null) p2Dis.delete(v2);
-
-    return { p1Dis, p2Dis };
-  }
-
   function beregnDisabledSets(): { p1Dis: Set<number>; p2Dis: Set<number> } {
-    const { p1Dis, p2Dis } = bereknKnappStatus(val1, val2);
+    const [p1Dis = new Set<number>(), p2Dis = new Set<number>()] = pointButtonLocks(
+      [val1, val2],
+      pointValues,
+    );
     // Edit mode: a player's saved value stays locked until they actively change it
     if (isEditMode) {
       if (val1 !== null && !modifiedPlayers.has(1))
@@ -215,25 +191,6 @@ export async function renderScoreboard(
     isEditMode = true;
     modifiedPlayers = new Set();
     tegn();
-  }
-
-  function lagAngreRad(): HTMLElement {
-    const angreRad = createEl("div", null, "sb-angre-rad");
-    const angreBtn = createEl("button", "↩", "sb-angre-btn");
-    if (isEditMode) {
-      angreBtn.title = "Avbryt endring";
-      angreBtn.addEventListener("click", avbrytEditMode);
-      angreRad.appendChild(angreBtn);
-      const avbrytBtn = createEl("button", "Avbryt endring", "sb-avbryt-btn");
-      avbrytBtn.addEventListener("click", avbrytEditMode);
-      angreRad.appendChild(avbrytBtn);
-    } else {
-      angreBtn.title = "Endre siste omgang";
-      angreBtn.disabled = omgangar.length === 0;
-      angreBtn.addEventListener("click", startEditMode);
-      angreRad.appendChild(angreBtn);
-    }
-    return angreRad;
   }
 
   function bindPoengKnappar(): void {
@@ -315,7 +272,15 @@ export async function renderScoreboard(
     );
     container.appendChild(wrap);
 
-    if (kanRedigere && !kamp.er_bekreftet) container.appendChild(lagAngreRad());
+    if (kanRedigere && !kamp.er_bekreftet)
+      container.appendChild(
+        lagAngreRad({
+          isEditMode,
+          hasOmgangar: omgangar.length > 0,
+          onCancel: avbrytEditMode,
+          onStart: startEditMode,
+        }),
+      );
 
     if (kanBekrefte) {
       container.appendChild(lagBekreftKnapp(() => onBekreft!()));
@@ -408,7 +373,7 @@ export async function renderScoreboard(
     }
     omgangar.push({ ...rad, omgang: nr });
     const [newT1, newT2] = beregnEffektiveTotalar();
-    kampFerdig = erVinnarKondisjon(newT1, newT2);
+    kampFerdig = matchIsDecided(newT1, newT2, kamp.fase);
     return true;
   }
 
@@ -457,6 +422,28 @@ function lagBekreftKnapp(onBekreft: () => Promise<void>): HTMLButtonElement {
   return lagAsyncKnapp("Bekreft kamp", "sb-neste-btn sb-neste-btn--bekreft", onBekreft);
 }
 
+/** ↩ to edit the last omgang; while editing, ↩ and a spelled-out cancel that both back out. */
+function lagAngreRad(o: {
+  isEditMode: boolean;
+  hasOmgangar: boolean;
+  onCancel: () => void;
+  onStart: () => void;
+}): HTMLElement {
+  const angreRad = createEl("div", null, "sb-angre-rad");
+  const angreBtn = createEl("button", "↩", "sb-angre-btn");
+  angreBtn.title = o.isEditMode ? "Avbryt endring" : "Endre siste omgang";
+  angreBtn.disabled = !o.isEditMode && !o.hasOmgangar;
+  angreBtn.addEventListener("click", o.isEditMode ? o.onCancel : o.onStart);
+  angreRad.appendChild(angreBtn);
+
+  if (o.isEditMode) {
+    const avbrytBtn = createEl("button", "Avbryt endring", "sb-avbryt-btn");
+    avbrytBtn.addEventListener("click", o.onCancel);
+    angreRad.appendChild(avbrytBtn);
+  }
+  return angreRad;
+}
+
 function setupScoreboardRealtime(
   kamp: MatchRow,
   spelarIds: number[],
@@ -487,6 +474,11 @@ function setupScoreboardRealtime(
 
 // ── 3-player scoreboard ───────────────────────────────────────────────────────
 
+// Deliberately a separate board, not a generalization of the 2-player one. A
+// cup match of three is a placement race — players drop out one by one and get a
+// rank — where a duel is a race to 21 with handicap and ring statistics. They
+// share a visual language and the helpers above, nothing else: merging them
+// would take six config flags to keep the two behaviours apart.
 async function renderScoreboard3(
   container: HTMLElement,
   kamp: MatchRow,
@@ -562,17 +554,6 @@ async function renderScoreboard3(
       .reduce((s, o) => s + (o.score ?? 0), 0);
   }
 
-  /** Index of a still-active player who has won (≥21 and ≥2 ahead of the rest), or null. */
-  function finnFerdigSpelar(aktive: Set<number>, totalar: number[]): number | null {
-    for (const i of aktive) {
-      const andreAktive = [...aktive].filter((j) => j !== i);
-      const minAndre = Math.min(...andreAktive.map((j) => totalar[j] ?? 0));
-      const total = totalar[i] ?? 0;
-      if (total >= 21 && total - minAndre >= 2) return i;
-    }
-    return null;
-  }
-
   function beregnVinnRekkefolge(): number[] {
     if (!omgangData.length) return [];
     const maxOmgang = Math.max(...omgangData.map((o) => o.omgang));
@@ -586,11 +567,11 @@ async function renderScoreboard3(
         if (rad) totalar[i] = (totalar[i] ?? 0) + (rad.score ?? 0);
       }
       // Repeat: a finished player leaving can make the next one finished too
-      let ferdig = finnFerdigSpelar(aktive, totalar);
+      let ferdig = findFinishedPlayer(aktive, totalar);
       while (ferdig !== null && aktive.size > 1) {
         rekkefolge.push(ferdig);
         aktive.delete(ferdig);
-        ferdig = finnFerdigSpelar(aktive, totalar);
+        ferdig = findFinishedPlayer(aktive, totalar);
       }
     }
     if (aktive.size === 1 && rekkefolge.length === 2) rekkefolge.push(...aktive);
@@ -616,35 +597,12 @@ async function renderScoreboard3(
     onKampBekreft,
   );
 
-  function bereknKnappStatus3(
-    aktiveIdxar: number[],
-    effectiveVals: (number | null)[],
-  ): Set<number>[] {
-    const disabledSets = spelarar.map(() => new Set<number>());
-    const selectedIdxar = aktiveIdxar.filter((i) => effectiveVals[i] !== null);
-    if (!selectedIdxar.length) return disabledSets;
-
-    const harNonRing = selectedIdxar.some((i) => [1, 2, 4].includes(effectiveVals[i] as number));
-    const harRing = selectedIdxar.some((i) => [3, 6].includes(effectiveVals[i] as number));
-
-    for (const i of aktiveIdxar) {
-      const disabled = disabledSets[i];
-      if (!disabled) continue;
-      if (effectiveVals[i] !== null) {
-        pointValues.forEach((n) => {
-          if (n !== effectiveVals[i]) disabled.add(n);
-        });
-      } else if (harNonRing) {
-        pointValues.forEach((n) => disabled.add(n));
-      } else if (harRing) {
-        [1, 2, 4].forEach((n) => disabled.add(n));
-      }
-    }
-    return disabledSets;
-  }
-
   function beregnDisabledSets3(editIdxar: number[]): Set<number>[] {
-    const disabledSets = bereknKnappStatus3(editIdxar, vals);
+    const disabledSets = pointButtonLocks(
+      spelarar.map((_, i) => vals[i] ?? null),
+      pointValues,
+      editIdxar,
+    );
     // Edit mode: a player's saved value stays locked until they actively change it
     if (isEditMode3) {
       editIdxar.forEach((i) => {
@@ -678,25 +636,6 @@ async function renderScoreboard3(
     isEditMode3 = true;
     modifiedPlayers3 = new Set();
     tegn3();
-  }
-
-  function lagAngreRad3(): HTMLElement {
-    const angreRad = createEl("div", null, "sb-angre-rad");
-    const angreBtn = createEl("button", "↩", "sb-angre-btn");
-    if (isEditMode3) {
-      angreBtn.title = "Avbryt endring";
-      angreBtn.addEventListener("click", avbrytEditMode3);
-      angreRad.appendChild(angreBtn);
-      const avbrytBtn = createEl("button", "Avbryt endring", "sb-avbryt-btn");
-      avbrytBtn.addEventListener("click", avbrytEditMode3);
-      angreRad.appendChild(avbrytBtn);
-    } else {
-      angreBtn.title = "Endre siste omgang";
-      angreBtn.disabled = omgangData.length === 0;
-      angreBtn.addEventListener("click", startEditMode3);
-      angreRad.appendChild(angreBtn);
-    }
-    return angreRad;
   }
 
   function lagPoengKnappar3(i: number, disabledSet: Set<number> | undefined): HTMLElement {
@@ -802,7 +741,14 @@ async function renderScoreboard3(
     container.appendChild(wrap);
 
     if (kanRedigere && !kamp.er_bekreftet) {
-      container.appendChild(lagAngreRad3());
+      container.appendChild(
+        lagAngreRad({
+          isEditMode: isEditMode3,
+          hasOmgangar: omgangData.length > 0,
+          onCancel: avbrytEditMode3,
+          onStart: startEditMode3,
+        }),
+      );
 
       if (isEditMode3 || !erFerdig) {
         const nesteBtn = lagAsyncKnapp(
