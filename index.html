@@ -41,12 +41,13 @@
     </script>
     <link rel="preconnect" href="https://urtvpewjlevhlevtnvkf.supabase.co" crossorigin />
     <link rel="icon" type="image/svg+xml" href="/assets/NHF_logo_original_oppskalert-CHgQrqP2.svg" />
-    <script type="module" crossorigin src="/assets/index-DXJSs_ua.js"></script>
-    <link rel="modulepreload" crossorigin href="/assets/rolldown-runtime-DK3Fl9T5.js">
-    <link rel="modulepreload" crossorigin href="/assets/vendor-B24C_aok.js">
-    <link rel="modulepreload" crossorigin href="/assets/logError-CB4-2Lin.js">
-    <link rel="modulepreload" crossorigin href="/assets/verifiedWrite-dJ27H7z9.js">
-    <link rel="stylesheet" crossorigin href="/assets/index-3rz0JV7l.css">
+    <script type="module" crossorigin src="/assets/index-DrqrIQ7w.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/preload-helper-Czpn1I53.js">
+    <link rel="modulepreload" crossorigin href="/assets/vendor-YaH9uqxj.js">
+    <link rel="modulepreload" crossorigin href="/assets/logError-CTQ3euge.js">
+    <link rel="modulepreload" crossorigin href="/assets/escHtml-CfOHO0aD.js">
+    <link rel="modulepreload" crossorigin href="/assets/verifiedWrite-DY57lQG_.js">
+    <link rel="stylesheet" crossorigin href="/assets/index-CVBQVzcR.css">
   </head>
   <body>
     <header class="top-header">
@@ -172,7 +173,7 @@
           </button>
         </li>
         <li class="meny-skillelinje"></li>
-        <li class="menu-version">v0.9.14</li>
+        <li class="menu-version">v0.9.15</li>
       </ul>
     </nav>
 
@@ -231,6 +232,12 @@
         if (!desktopDropdown.contains(e.relatedTarget)) {
           desktopDropdownBtn.setAttribute("aria-expanded", "false");
         }
+      });
+
+      // The menu is held open by :focus-within, so a picked link keeps it
+      // hanging over the page it just navigated to. Drop the focus.
+      desktopDropdown.querySelectorAll(".header-nav__dropdown-item").forEach((a) => {
+        a.addEventListener("click", () => a.blur());
       });
 
       document.getElementById("statistikk-knapp").addEventListener("click", () => {

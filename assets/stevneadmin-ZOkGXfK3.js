@@ -1,1 +1,0 @@
-import{t as e}from"./stevneForm-6BFH6H24.js";import{t}from"./_formRoute-DiYnNHqu.js";function n(n,r={}){return t(n,r,{mount:e,heading:e=>e?`Nytt stevne`:`Rediger stevne`,wrapperClass:`container py-4 admin-form-lg`,createdHash:e=>`#/stevne/${e}/rediger`,deletedHash:`#/terminliste`,nameFields:[`navn`]})}export{n as render};

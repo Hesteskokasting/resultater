@@ -1,0 +1,1 @@
+function e(e){return new URLSearchParams(location.hash.split(`?`)[1]??``).get(e)??new URLSearchParams(location.search).get(e)}function t(e){window.addEventListener(`hashchange`,e,{once:!0})}export{t as n,e as t};
