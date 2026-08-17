@@ -68,6 +68,17 @@ describe("buildMatchPlayerUpdates — Singel", () => {
       expect(res.updates.get(P2_ID)?.antall_ringer).toBe(0);
     });
 
+    it("treats a side with no baseScore as 0", () => {
+      const res = buildMatchPlayerUpdates({
+        roundData: [],
+        sides: [{ playerIds: [P1_ID] }, { playerIds: [P2_ID], baseScore: 10 }],
+        ...NO_HCP,
+        erWalkover: false,
+      });
+      expect(res.updates.get(P1_ID)?.score_poeng).toBe(0);
+      expect(res.totals).toEqual([0, 10]);
+    });
+
     it("does NOT add HCP to a directly-entered baseScore — baseScore is already the final value", () => {
       // Regression: HCP was previously added unconditionally, causing double-counting
       // when a score was set directly (no scoreboard rounds).

@@ -92,8 +92,12 @@ export interface CourtPhaseVariant {
    * omgang as a five-wide grid (Kongelag), so ten omganger read as two rows.
    */
   mainScore: "runder" | "omganger";
-  /** 'court': Registrer per court (X-kast). 'pulje': one Registrer per pulje (Kongelag). */
-  registerScope: "court" | "pulje";
+  /**
+   * Where Registrer/Bekreft live. 'court': one pair of buttons per bane
+   * (X-kast). 'pulje': one Registrer and one Bekreft for the whole pulje,
+   * in its heading (Kongelag).
+   */
+  actionScope: "court" | "pulje";
   /** Numberpad entry order over the given courts (recorded omganger are filtered out later). */
   entryOrder: (courts: CourtRow[], antallOmganger: number) => EntrySlot[];
   /**
@@ -160,6 +164,12 @@ function hasOpenEntries(courts: CourtRow[], antallOmganger: number): boolean {
   return courts.some((c) => !c.er_bekreftet && !isCourtComplete(c, antallOmganger));
 }
 
+/** Courts of a pulje still to confirm — non-empty only once every player is done. */
+function courtsToConfirm(courts: CourtRow[], antallOmganger: number): CourtRow[] {
+  if (hasOpenEntries(courts, antallOmganger)) return [];
+  return courts.filter((c) => !c.er_bekreftet);
+}
+
 // ── Factory ───────────────────────────────────────────────────────────────────
 
 export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
@@ -185,6 +195,8 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
 
   let state: CourtPhaseState | null = null;
   let channel: RealtimeChannel | null = null;
+  /** The coalesced reload — realtime and our own writes both queue through it. */
+  let scheduleReload: () => void = () => {};
   let bannerSlot: HTMLElement | null = null;
   const boundContainers = new WeakSet<HTMLElement>();
 
@@ -270,13 +282,12 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
       return '<span class="match-confirmed-indicator">✓ Bekreftet</span>';
     }
     if (!canScoreCourt(court)) return "";
+    // Pulje scope drives both actions from the pulje heading; per-bane buttons
+    // would only duplicate them.
+    if (variant.actionScope === "pulje") return "";
     const canConfirm = isCourtComplete(court, s.antallOmganger);
     const bane = court.bane_nummer ?? "?";
-    const registerBtn =
-      variant.registerScope === "court"
-        ? `<button class="match-button match-button-primary" data-xk-register="${court.id}">Registrer bane ${bane}</button>`
-        : "";
-    return `${registerBtn}<button class="match-button${canConfirm ? " match-button-success" : ""}" data-xk-confirm="${court.id}"${canConfirm ? "" : " disabled"}>Bekreft bane ${bane}</button>`;
+    return `<button class="match-button match-button-primary" data-xk-register="${court.id}">Registrer bane ${bane}</button><button class="match-button${canConfirm ? " match-button-success" : ""}" data-xk-confirm="${court.id}"${canConfirm ? "" : " disabled"}>Bekreft bane ${bane}</button>`;
   }
 
   /** Variant/role gate on top of canSwapSeat, which owns the row-level rules. */
@@ -497,14 +508,20 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
 
   function puljeSectionHtml(pulje: number, courts: CourtRow[], puljeLabel: string): string {
     const s = state!;
-    const puljeRegisterBtn =
-      s.isAdmin && variant.registerScope === "pulje" && hasOpenEntries(courts, s.antallOmganger)
-        ? ` <button class="match-button match-button-primary ms-2" data-xk-register-pulje="${pulje}">Registrer</button>`
+    // Registrer while omganger are missing, Bekreft once none are — the same
+    // slot in the heading, never both at once.
+    const puljeActionBtn =
+      s.isAdmin && variant.actionScope === "pulje"
+        ? hasOpenEntries(courts, s.antallOmganger)
+          ? ` <button class="match-button match-button-primary ms-2" data-xk-register-pulje="${pulje}">Registrer</button>`
+          : courtsToConfirm(courts, s.antallOmganger).length
+            ? ` <button class="match-button match-button-success ms-2" data-xk-confirm-pulje="${pulje}">Bekreft pulje</button>`
+            : ""
         : "";
 
     return `
       <div class="mb-3">
-        <h6 class="text-center fw-bold mb-1">${escHtml(puljeLabel)}${puljeRegisterBtn}</h6>
+        <h6 class="text-center fw-bold mb-1">${escHtml(puljeLabel)}${puljeActionBtn}</h6>
         <div class="table-scroll">
           <table class="table table-sm match-table mb-0">
             <thead class="stevne-thead">
@@ -560,10 +577,12 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
     const standing = computeStanding();
     if (!standing.length) return "";
 
-    // With carry-over: X = innleiande carry-over, K = kongelag poeng,
-    // R = ringar, TOT = X + K
+    // With carry-over: the carry-over column is named after the innleiande
+    // metode — X for X-kast, KP for kamp-based (Gloppen/NHM) — then
+    // K = kongelag poeng, R = ringar, TOT = carry-over + K
+    const carryLabel = s.carryOver?.isXkast ? "X" : "KP";
     const scoreHeaders = s.carryOver
-      ? `<th class="th-44 standing-number table-summary-start">X</th>
+      ? `<th class="th-44 standing-number table-summary-start">${carryLabel}</th>
             <th class="th-44 standing-number">K</th>
             <th class="th-44 standing-number standing-kp-th">R</th>
             <th class="th-50 standing-number standing-sp-th">TOT</th>`
@@ -667,7 +686,10 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
       bannerSlot,
       {
         title: "Autofullfør banar",
-        message: "Fylle alle manglande omganger med tilfeldige resultat og bekrefte banane?",
+        message:
+          variant.fase === "innledende"
+            ? "Fylle alle manglande omganger med tilfeldige resultat og bekrefte banane?"
+            : "Fylle alle manglande omganger med tilfeldige resultat? Banane blir ikkje bekrefta.",
       },
       async () => {
         await autoCompleteCourts(s.stevneid, variant.fase, s.antallOmganger);
@@ -745,7 +767,7 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
     }
     s.swapSelectedId = null;
     showToast("Spelarane har bytt bane.", "success");
-    await reload(container);
+    scheduleReload();
   }
 
   // ── Score editing (admin) ───────────────────────────────────────────────────
@@ -801,7 +823,7 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
     ]);
   }
 
-  function openTotalEdit(container: HTMLElement, deltakerId: number): void {
+  function openTotalEdit(deltakerId: number): void {
     const s = state;
     if (!s) return;
     const found = findParticipant(deltakerId);
@@ -824,9 +846,10 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
             return false;
           }
           showToast("Totalsum lagra.", "success");
-          // Manual totals only touch the deltaker row; repaint without waiting
-          // for the realtime round-trip.
-          await reload(container);
+          // Manual totals only touch the deltaker row, so the realtime event may
+          // not reach us — queue the repaint rather than wait for it. It runs
+          // once the pad closes, collapsing with whatever else arrived.
+          scheduleReload();
           return true;
         },
       });
@@ -875,6 +898,29 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
         return;
       }
 
+      const puljeConfirmBtn = target.closest<HTMLElement>("[data-xk-confirm-pulje]");
+      if (puljeConfirmBtn) {
+        const pulje = Number(puljeConfirmBtn.dataset.xkConfirmPulje);
+        const pending = courtsToConfirm(
+          s.courts.filter((c) => (c.pulje ?? 0) === pulje),
+          s.antallOmganger,
+        );
+        if (!pending.length) return;
+        const ok = await confirmDialog({
+          title: "Bekreft pulje",
+          message: `Bekrefte resultata for ${pending.length} banar i pulje ${pulje}? Dette låser banane.`,
+        });
+        if (!ok) return;
+        const results = await Promise.all(pending.map((c) => confirmCourt(c.id)));
+        if (results.some((r) => r.error)) {
+          showToast("Feil ved bekrefting av resultat.", "error");
+          scheduleReload();
+          return;
+        }
+        showToast("Resultata er bekrefta.", "success");
+        return;
+      }
+
       const toggleBtn = target.closest<HTMLElement>("[data-xk-toggle-detail]");
       if (toggleBtn) {
         toggleDetail(container, Number(toggleBtn.dataset.xkToggleDetail));
@@ -889,7 +935,7 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
 
       const totalCell = target.closest<HTMLElement>("[data-xk-total]");
       if (totalCell) {
-        openTotalEdit(container, Number(totalCell.dataset.xkTotal));
+        openTotalEdit(Number(totalCell.dataset.xkTotal));
         return;
       }
 
@@ -982,14 +1028,11 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
         swapSelectedId: null,
         expandedDeltakerIds: new Set(),
       };
+      scheduleReload = coalesceReload(() => reload(container));
       renderView(container);
       bindActions(container);
-      channel = subscribeToCourtChanges(
-        id,
-        variant.channelName(id),
-        coalesceReload(() => reload(container)),
-        (deltakerId) =>
-          (state?.courts ?? []).some((c) => c.deltakarar.some((p) => p.id === deltakerId)),
+      channel = subscribeToCourtChanges(id, variant.channelName(id), scheduleReload, (deltakerId) =>
+        (state?.courts ?? []).some((c) => c.deltakarar.some((p) => p.id === deltakerId)),
       );
     } catch (err) {
       logError("xkastKongelagView.render", err);

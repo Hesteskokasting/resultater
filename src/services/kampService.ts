@@ -98,17 +98,6 @@ export async function getInitialRoundMatches(
   return { data: data ?? [], error };
 }
 
-export async function hasMatchRounds(spelarIds: number[]): Promise<boolean> {
-  if (!spelarIds.length) return false;
-  const { data, error } = await supabase
-    .from("kamp_omgang")
-    .select("id")
-    .in("kamp_spelar_id", spelarIds)
-    .limit(1);
-  if (error) logError("hasMatchRounds", error);
-  return (data?.length ?? 0) > 0;
-}
-
 export async function deleteMatchRounds(spelarIds: number[]): Promise<{ error: unknown }> {
   if (!spelarIds.length) return { error: null };
   const { error } = await supabase.from("kamp_omgang").delete().in("kamp_spelar_id", spelarIds);
@@ -276,20 +265,23 @@ type MatchPlayerUpdateValues = { score_poeng: number; kamp_poeng: number; antall
 /**
  * One match side at confirmation. playerIds are kamp_spelar ids ordered by
  * posisjon (rep first): 1 for Singel, 2 for Par/Mix. baseScore is the directly
- * entered side total, used when the match has no omgang rows. kasterid is the
- * rep's, needed only when the losing side has to be reported to the RPC.
+ * entered side total, used when the match has no omgang rows — leave it out and
+ * the confirm reads the stored score instead. Give every side one and the confirm
+ * skips its reads entirely. kasterid is the rep's, needed only when the losing
+ * side has to be reported to the RPC.
  */
-export type MatchSideConfirm = { playerIds: number[]; baseScore: number; kasterid?: number };
+export type MatchSideConfirm = { playerIds: number[]; baseScore?: number; kasterid?: number };
 
 /** A grouped match side as the confirm needs it: members by posisjon, rep first. */
-export function toConfirmSide<
-  T extends { id: number; kasterid: number; score_poeng?: number | null },
->(side: MatchSide<T> | null | undefined): MatchSideConfirm | null {
+export function toConfirmSide<T extends { id: number; kasterid: number }>(
+  side: MatchSide<T> | null | undefined,
+  baseScore?: number,
+): MatchSideConfirm | null {
   if (!side) return null;
   return {
     playerIds: side.members.map((m) => m.id),
     kasterid: side.rep.kasterid,
-    baseScore: side.members.reduce((sum, m) => sum + (m.score_poeng ?? 0), 0),
+    ...(baseScore != null ? { baseScore } : {}),
   };
 }
 
@@ -356,9 +348,9 @@ export function buildMatchPlayerUpdates(params: {
     // Quick-score fallback: the directly-entered side total lives on the rep row
     sides.forEach((side, i) => {
       if (!side) return;
-      totals[i] = side.baseScore;
+      totals[i] = side.baseScore ?? 0;
       const rep = repOf(i);
-      if (rep != null) updates.get(rep)!.score_poeng = side.baseScore;
+      if (rep != null) updates.get(rep)!.score_poeng = side.baseScore ?? 0;
     });
   }
 
@@ -393,42 +385,47 @@ export function losingSideKasterid(
 const ALREADY_CONFIRMED_MESSAGE = "Kampen er allereie stadfesta av ein annan deltakar.";
 
 /**
- * Writes every player's score to kamp_spelar. Runs before er_bekreftet is set,
- * which is what makes one implementation serve both phases: participants may
- * write kamp_spelar right up until the match is confirmed.
+ * Works out what every player's score row should become, reading the omgangar
+ * and the stored scores only when the caller has not supplied the totals.
+ * Writes nothing — the two outcomes below persist it in different ways.
  */
-async function _persistMatchScores(params: {
+async function _resolveMatchScores(params: {
   sides: (MatchSideConfirm | null)[];
   hcp?: number[];
   erWalkover: boolean;
-}): Promise<{ error: unknown; totals: number[] }> {
+}): Promise<{ error: unknown; updates: MatchPlayerUpdates["updates"]; totals: number[] }> {
   const { sides, hcp, erWalkover } = params;
   const allIds = sides.flatMap((side) => side?.playerIds ?? []);
-  if (!allIds.length) return { error: null, totals: sides.map(() => 0) };
+  const empty = { updates: new Map<number, MatchPlayerUpdateValues>(), totals: sides.map(() => 0) };
+  if (!allIds.length) return { error: null, ...empty };
 
   let roundData: RoundScoreRow[] = [];
   let resolvedSides = sides;
 
-  if (!erWalkover) {
+  // A caller that hands over every side total has the final word — the omgangar
+  // it replaces were deleted on the way in, so there is nothing left to read.
+  const callerKnowsTotals = sides.every((side) => !side || side.baseScore != null);
+
+  if (!erWalkover && !callerKnowsTotals) {
     const { data: fetched, error: omgErr } = await supabase
       .from("kamp_omgang")
       .select("kamp_spelar_id, score, antall_ringer")
       .in("kamp_spelar_id", allIds);
     if (omgErr) {
       logError("confirmMatch:omgangar", omgErr);
-      return { error: omgErr, totals: sides.map(() => 0) };
+      return { error: omgErr, ...empty };
     }
     roundData = fetched ?? [];
 
+    // Sides that carry no baseScore of their own keep whatever is stored
     if (!roundData.length) {
-      // Re-read the stored scores — a baseScore captured at render time may be stale
       const { data: fresh } = await supabase
         .from("kamp_spelar")
         .select("id, score_poeng")
         .in("id", allIds);
       const scoreById = new Map((fresh ?? []).map((s) => [s.id, s.score_poeng ?? 0]));
       resolvedSides = sides.map((side) => {
-        if (!side) return null;
+        if (!side || side.baseScore != null) return side;
         const known = side.playerIds.filter((id) => scoreById.has(id));
         if (!known.length) return side;
         return { ...side, baseScore: known.reduce((sum, id) => sum + scoreById.get(id)!, 0) };
@@ -442,7 +439,16 @@ async function _persistMatchScores(params: {
     hcp,
     erWalkover,
   });
+  return { error: null, updates, totals };
+}
 
+/**
+ * One PATCH per player. Runs before er_bekreftet is set — participants may write
+ * kamp_spelar right up until the match is confirmed, and not a moment after.
+ */
+async function _writeMatchPlayerScores(
+  updates: MatchPlayerUpdates["updates"],
+): Promise<{ error: unknown }> {
   const results = await Promise.all(
     [...updates.entries()].map(([id, values]) =>
       verifyRowsAffected(
@@ -453,7 +459,7 @@ async function _persistMatchScores(params: {
   );
   const error = results.find((r) => r.error)?.error ?? null;
   if (error) logError("confirmMatch:spelarar", error);
-  return { error, totals };
+  return { error };
 }
 
 /** What happens to a match beyond its scores, once those are stored. */
@@ -501,17 +507,31 @@ export async function confirmMatch(params: {
 }): Promise<{ error: unknown }> {
   const { kampId, sides, hcp, erWalkover = false, outcome } = params;
 
-  const { error: scoreErr, totals } = await _persistMatchScores({ sides, hcp, erWalkover });
+  const {
+    error: scoreErr,
+    updates,
+    totals,
+  } = await _resolveMatchScores({ sides, hcp, erWalkover });
   if (scoreErr) return { error: scoreErr };
 
+  // Innledende writes the scores and the confirm flag in one RPC — the two
+  // steps are ordered by RLS (kamp_spelar first), so they cannot be batched
+  // from the client.
   if (outcome.type === "innledende") {
-    const { error } = await verifyRowsAffected(
-      supabase.from("kamp").update({ er_bekreftet: true }).eq("id", kampId).select("id"),
-      ALREADY_CONFIRMED_MESSAGE,
-    );
-    if (error) logError("confirmMatch:kamp", error);
+    const { data, error } = await supabase.rpc("bekreft_innledende_kamp", {
+      p_kamp_id: kampId,
+      p_scores: [...updates.entries()].map(([id, values]) => ({
+        kamp_spelar_id: id,
+        ...values,
+      })),
+    });
+    if (error) logError("confirmMatch:innledende", error);
+    if (!error && data === false) return { error: new Error(ALREADY_CONFIRMED_MESSAGE) };
     return { error };
   }
+
+  const { error: writeErr } = await _writeMatchPlayerScores(updates);
+  if (writeErr) return { error: writeErr };
 
   if (outcome.type === "cup-derived") {
     const eliminatedId =
@@ -848,12 +868,6 @@ export async function updateMatchRound(
     logError("updateMatchRound", e);
     return { error: e };
   }
-}
-
-export async function unconfirmMatch(kampId: number): Promise<{ error: unknown }> {
-  const { error } = await supabase.from("kamp").update({ er_bekreftet: false }).eq("id", kampId);
-  if (error) logError("unconfirmMatch", error);
-  return { error };
 }
 
 // ── Realtime ──────────────────────────────────────────────────────────────────

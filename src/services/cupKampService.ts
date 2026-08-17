@@ -12,12 +12,11 @@ import {
   updateWinnerLoser,
   updateMatchPlayerScoreFast,
   deleteMatchRounds,
-  getMatchPlayers,
   setMatchPlayerPlacements,
   type FinalMatchRow,
   type FinalMatchPlayerRow,
 } from "@/services/kampService";
-import { matchScoreForPlayer, type MatchSide } from "@/utils/kamp";
+import { type MatchSide } from "@/utils/kamp";
 import { logError } from "@/utils/logError";
 
 export type FinalMatchPlayerKnown = FinalMatchPlayerRow & { kasterid: number };
@@ -79,24 +78,6 @@ export async function writeCupSideScores(
   }
 }
 
-/**
- * Re-reads the stored scores for a match. The rendered rows may be stale, and an
- * unconfirmed match is decided by whatever its live omgangar add up to.
- */
-export async function fetchCupSideTotals(
-  kampId: number,
-  side1: CupSide,
-  side2: CupSide,
-): Promise<{ s1: number; s2: number }> {
-  const { data: currentPlayers } = await getMatchPlayers(kampId);
-  const freshSideSum = (side: CupSide): number =>
-    side?.members.reduce((sum, m) => {
-      const fresh = currentPlayers.find((s) => s.id === m.id);
-      return sum + matchScoreForPlayer(fresh ?? m, false);
-    }, 0) ?? 0;
-  return { s1: freshSideSum(side1), s2: freshSideSum(side2) };
-}
-
 /** Settles an unconfirmed 2-side cup match: the loser is out, the winner advances. */
 export async function settleCupMatch(params: {
   stevneId: number;
@@ -114,7 +95,7 @@ export async function settleCupMatch(params: {
 
   return confirmMatch({
     kampId: kamp.id,
-    sides: [toConfirmSide(side1), toConfirmSide(side2)],
+    sides: [toConfirmSide(side1, s1), toConfirmSide(side2, s2)],
     outcome: {
       type: "cup-ranked",
       stevneId,

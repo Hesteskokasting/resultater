@@ -208,8 +208,10 @@ function randomOmgangEntry(): { poeng: number; antall_ringer: number } {
 
 /**
  * Dev helper: fills every missing omgang on unconfirmed X-kast/Kongelag courts
- * with random valid scores, then confirms each court via the RPC (which writes
- * the resultat columns — so carry-over can be tested end to end).
+ * with random valid scores. Innledende courts are also confirmed via the RPC
+ * (which writes the resultat columns — so carry-over can be tested end to end);
+ * avsluttende (Kongelag) courts are left open so the Bekreft pulje flow can be
+ * tested on filled-in scores.
  */
 export async function autoCompleteCourts(
   stevneid: number,
@@ -253,6 +255,8 @@ export async function autoCompleteCourts(
       return;
     }
   }
+
+  if (fase !== "innledende") return;
 
   for (const court of courts) {
     const { error: confirmError } = await supabase.rpc("confirm_xkast_kongelag", {

@@ -105,7 +105,7 @@ const xkastVariant: CourtPhaseVariant = {
       };
     }),
   mainScore: "runder",
-  registerScope: "court",
+  actionScope: "court",
   entryOrder,
   padHeader,
   canSwapPlayers: true,

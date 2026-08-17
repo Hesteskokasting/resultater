@@ -108,9 +108,9 @@ th.standing-sp-th {
   font-weight: 600;
 }
 
-/* Standing table — deemphasise position and match-count columns */
+/* Standing table — deemphasise position and match-count columns by colour only,
+   so every value in the table shares one font size */
 .standing-dim-cell {
-  font-size: 0.82em;
   color: var(--tekst-3);
   text-align: center;
 }

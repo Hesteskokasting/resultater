@@ -26,10 +26,8 @@ export interface ScoreEditorOptions {
    * message to show, or null to accept.
    */
   validate?: (s1: number, s2: number) => string | null;
-  /** Persists the entered side scores. Return a non-null error to abort. */
-  onSave: (s1: number, s2: number) => Promise<{ error: unknown } | null>;
-  /** Re-renders after a successful save. */
-  onSaved: () => Promise<void>;
+  /** Stores the entered side scores and re-renders. */
+  onSaved: (s1: number, s2: number) => Promise<void>;
   /** logError context prefix for the owning variant. */
   logPrefix: string;
 }
@@ -69,17 +67,12 @@ export async function showScoreEditor(opts: ScoreEditorOptions): Promise<void> {
             return false;
           }
         }
-        const result = await opts.onSave(s1, s2);
-        if (result?.error) {
-          showToast("Feil ved lagring av score", "error");
-          return false;
-        }
       } catch (err) {
         logError(`${opts.logPrefix}:showScoreEditor`, err);
         showToast("Feil ved lagring av score", "error");
         return false;
       }
-      await opts.onSaved();
+      await opts.onSaved(s1, s2);
       return true;
     },
     { baneLabel: opts.baneLabel, rundeLabel: opts.rundeLabel },

@@ -161,7 +161,7 @@ const kongelagVariant: CourtPhaseVariant = {
       };
     }),
   mainScore: "omganger",
-  registerScope: "pulje",
+  actionScope: "pulje",
   entryOrder,
   padHeader,
   emptyHint: () => "Kongelag er ikkje starta enno.",

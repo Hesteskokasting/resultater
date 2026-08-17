@@ -1029,6 +1029,10 @@ export type Database = {
         Args: { p_eliminert_kasterid?: number; p_kamp_id: number }
         Returns: undefined
       }
+      bekreft_innledende_kamp: {
+        Args: { p_kamp_id: number; p_scores: Json }
+        Returns: boolean
+      }
       clear_snc_premiar: { Args: { p_stevneid: number }; Returns: number }
       complete_snc_hovudstevne: {
         Args: { p_stevneid: number }

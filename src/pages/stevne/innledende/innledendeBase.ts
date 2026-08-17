@@ -48,12 +48,9 @@ import { logError } from "@/utils/logError";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import {
   getInitialRoundMatches,
-  hasMatchRounds,
-  updateMatchPlayerScoreFast,
   confirmMatch as confirmMatchService,
   toConfirmSide,
   subscribeToMatchChanges,
-  unconfirmMatch,
   type InitialMatchRow,
 } from "@/services/kampService";
 import {
@@ -103,6 +100,8 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
   let pendingAnimationIds = new Set<number>();
   /** kamp_spelar ids in view — scopes the unfiltered kamp_omgang subscription. */
   const ownedSpelarIds = new Set<number>();
+  /** The realtime handler's coalesced reload — our own writes queue through it too. */
+  let scheduleReload: (() => void) | null = null;
 
   async function render(
     container: HTMLElement,
@@ -257,12 +256,9 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
     positionMap: Record<number, number>,
   ): void {
     const [side1, side2] = getMatchSides(kamp.spelarar, startNumberMap, positionMap);
-    const p1 = side1?.rep ?? null;
-    const p2 = side2?.rep ?? null;
     const playerIds = [...(side1?.members ?? []), ...(side2?.members ?? [])].map((m) => m.id);
 
     const onScoreClick = async () => {
-      const hasRounds = playerIds.length ? await hasMatchRounds(playerIds) : false;
       await showScoreEditor({
         side1Name: sideNameHtml(side1, false),
         side2Name: sideNameHtml(side2, false),
@@ -271,18 +267,10 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
         baneLabel: `Bane ${kamp.bane_nummer ?? "?"}`,
         rundeLabel: `Runde ${kamp.runde_nummer}`,
         playerIds,
-        hasRounds,
+        hasRounds: kamp.spelarar.some((s) => (s.omgangar?.length ?? 0) > 0),
         logPrefix: variant.logPrefix,
-        onSave: async (newS1, newS2) => {
-          await Promise.all([
-            p1 ? updateMatchPlayerScoreFast(p1.id, newS1) : Promise.resolve({ error: null }),
-            p2 ? updateMatchPlayerScoreFast(p2.id, newS2) : Promise.resolve({ error: null }),
-            ...(kamp.er_bekreftet ? [unconfirmMatch(kamp.id)] : []),
-          ]);
-          return null;
-        },
         // Entering a score is the confirmation — there is no separate Bekreft step.
-        onSaved: async () => {
+        onSaved: async (newS1, newS2) => {
           const ok = await confirmMatch(
             container,
             stevneid,
@@ -290,6 +278,7 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
             startNumberMap,
             hcpMap,
             positionMap,
+            [newS1, newS2],
           );
           if (!ok) await loadAndRender(container, stevneid);
         },
@@ -349,6 +338,7 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
         channel = null;
       }
     });
+    scheduleReload = onChange;
     channel = subscribeToMatchChanges(stevneid, variant.channelName(stevneid), onChange, (id) =>
       ownedSpelarIds.has(id),
     );
@@ -361,6 +351,8 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
     startNumberMap: Record<number, number>,
     hcpMap: Record<number, number> = {},
     positionMap: Record<number, number> = {},
+    /** Side totals just entered on the numberpad; omitted = use the stored score. */
+    enteredScores?: [number, number],
   ): Promise<boolean> {
     const [side1, side2] = getMatchSides(kamp.spelarar, startNumberMap, positionMap);
     const p1 = side1?.rep ?? null;
@@ -370,7 +362,7 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
 
     const { error } = await confirmMatchService({
       kampId: kamp.id,
-      sides: [toConfirmSide(side1), toConfirmSide(side2)],
+      sides: [toConfirmSide(side1, enteredScores?.[0]), toConfirmSide(side2, enteredScores?.[1])],
       hcp: [hcp1, hcp2],
       erWalkover: kamp.er_walkover,
       outcome: { type: "innledende" },
@@ -379,7 +371,10 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
       showToast("DB-feil ved bekreft: " + errorMessage(error), "error");
       return false;
     }
-    await loadAndRender(container, stevneid);
+    // Queued, not awaited: the numberpad closes on the write, and this reload
+    // collapses into the realtime burst our own write is about to trigger.
+    if (scheduleReload) scheduleReload();
+    else await loadAndRender(container, stevneid);
     return true;
   }
 

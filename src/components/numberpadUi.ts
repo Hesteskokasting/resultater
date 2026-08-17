@@ -1,4 +1,5 @@
 import { createEl } from "@/utils/createEl";
+import { holdReloads } from "@/utils/coalesceReload";
 
 /**
  * Shared chrome for every score numberpad — the kamp pad (ScoreNumberpad), the
@@ -18,20 +19,28 @@ export interface NumberpadOverlay {
  * button closes the pad instead of leaving the page. `onClosed` runs however the
  * pad goes away — its own close button or the back button — so a caller can drop
  * listeners it set up for the pad's lifetime.
+ *
+ * Realtime reloads are held for as long as the pad is open; the view underneath
+ * is not visible, and everyone else's writes would otherwise refetch it.
  */
 export function createNumberpadOverlay(onClosed?: () => void): NumberpadOverlay {
   const overlay = document.createElement("div");
   overlay.className = "pad-overlay";
+  const releaseReloads = holdReloads();
 
   history.pushState({ numberpad: true }, "");
 
   function teardown(): void {
-    window.removeEventListener("popstate", handlePopState);
+    window.removeEventListener("popstate", handleClose);
+    // A hash route change leaves no history entry to pop, so without this the
+    // pad — and the reload hold it owns — would outlive the page it belongs to.
+    window.removeEventListener("hashchange", handleClose);
     if (document.body.contains(overlay)) document.body.removeChild(overlay);
+    releaseReloads();
     onClosed?.();
   }
 
-  function handlePopState(): void {
+  function handleClose(): void {
     teardown();
   }
 
@@ -40,7 +49,8 @@ export function createNumberpadOverlay(onClosed?: () => void): NumberpadOverlay 
     if ((history.state as { numberpad?: boolean } | null)?.numberpad) history.back();
   }
 
-  window.addEventListener("popstate", handlePopState);
+  window.addEventListener("popstate", handleClose);
+  window.addEventListener("hashchange", handleClose);
   return { overlay, close };
 }
 
