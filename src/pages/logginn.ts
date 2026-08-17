@@ -4,6 +4,7 @@ import {
   GOOGLE_SIGN_IN_PENDING_KEY,
   getUser,
   isAdmin,
+  requestPasswordReset,
   signIn,
   signInErrorMessage,
   signInWithApple,
@@ -11,14 +12,17 @@ import {
   signUp,
 } from "@/services/authService";
 import { escHtml } from "@/utils/escHtml";
+import { errorMessage } from "@/utils/errorMessage";
+import { getHashQueryParam } from "@/utils/navigation";
 import { showToast } from "@/components/Toast";
 import { logError } from "@/utils/logError";
 
 /**
- * Log in and sign up are the same form in two modes rather than two tabs: the
- * register tab went unnoticed, so newcomers concluded the app had no way in.
+ * Log in, sign up and password reset are the same form in three modes rather than
+ * separate tabs or pages: the register tab went unnoticed, so newcomers concluded
+ * the app had no way in.
  */
-type AccountMode = "login" | "register";
+type AccountMode = "login" | "register" | "reset";
 
 const FORM_HTML = `
   <form id="account-form">
@@ -26,7 +30,7 @@ const FORM_HTML = `
       <label class="form-label" for="ac-email">E-post</label>
       <input type="email" class="form-control" id="ac-email" required autocomplete="email">
     </div>
-    <div class="mb-3">
+    <div class="mb-3" id="ac-password-row">
       <label class="form-label" for="ac-password">Passord</label>
       <input type="password" class="form-control" id="ac-password" required autocomplete="current-password">
     </div>
@@ -34,17 +38,18 @@ const FORM_HTML = `
       <label class="form-label" for="ac-password2">Gjenta passord</label>
       <input type="password" class="form-control" id="ac-password2" autocomplete="new-password" minlength="8">
     </div>
+    <p class="account-hint d-none" id="ac-reset-hint">Vi sender ei lenke til e-posten din som du
+       kan velje nytt passord med.</p>
     <div id="ac-message" class="alert d-none"></div>
     <button type="submit" class="btn btn-primary w-100" id="ac-submit">Logg inn</button>
+    <p class="account-forgot" id="ac-forgot-row">
+      <button type="button" class="btn btn-link p-0 align-baseline" id="ac-forgot">Gløymt passordet?</button>
+    </p>
     <p class="account-switch">
       <span id="ac-switch-text"></span>
       <button type="button" class="btn btn-link p-0 align-baseline" id="ac-switch"></button>
     </p>
   </form>`;
-
-function getHashQueryParam(name: string): string | null {
-  return new URLSearchParams(location.hash.split("?")[1] ?? "").get(name);
-}
 
 function getRedirectParam(): string | null {
   return getHashQueryParam("redirect");
@@ -171,11 +176,15 @@ export async function render(container: HTMLElement): Promise<void> {
 
   const form = container.querySelector<HTMLFormElement>("#account-form")!;
   const emailInput = container.querySelector<HTMLInputElement>("#ac-email")!;
+  const passwordRow = container.querySelector<HTMLElement>("#ac-password-row")!;
   const passwordInput = container.querySelector<HTMLInputElement>("#ac-password")!;
   const repeatRow = container.querySelector<HTMLElement>("#ac-repeat-row")!;
   const repeatInput = container.querySelector<HTMLInputElement>("#ac-password2")!;
+  const resetHint = container.querySelector<HTMLElement>("#ac-reset-hint")!;
   const message = container.querySelector<HTMLElement>("#ac-message")!;
   const submit = container.querySelector<HTMLButtonElement>("#ac-submit")!;
+  const forgotRow = container.querySelector<HTMLElement>("#ac-forgot-row")!;
+  const forgotButton = container.querySelector<HTMLButtonElement>("#ac-forgot")!;
   const switchText = container.querySelector<HTMLElement>("#ac-switch-text")!;
   const switchButton = container.querySelector<HTMLButtonElement>("#ac-switch")!;
 
@@ -194,9 +203,13 @@ export async function render(container: HTMLElement): Promise<void> {
   function applyMode(next: AccountMode): void {
     mode = next;
     const isRegister = next === "register";
+    const isReset = next === "reset";
 
+    // A hidden required field blocks submit on a control the user cannot see, so
+    // every row toggles its own `required` alongside its visibility.
+    passwordRow.classList.toggle("d-none", isReset);
+    passwordInput.required = !isReset;
     repeatRow.classList.toggle("d-none", !isRegister);
-    // A hidden required field blocks submit on a control the user cannot see.
     repeatInput.required = isRegister;
     if (!isRegister) repeatInput.value = "";
 
@@ -205,13 +218,22 @@ export async function render(container: HTMLElement): Promise<void> {
     if (isRegister) passwordInput.setAttribute("minlength", "8");
     else passwordInput.removeAttribute("minlength");
 
-    submit.textContent = isRegister ? "Opprett konto" : "Logg inn";
-    switchText.textContent = isRegister ? "Har du konto frå før?" : "Har du ikkje konto?";
-    switchButton.textContent = isRegister ? "Logg inn" : "Opprett konto";
+    submit.textContent = isReset ? "Send lenke" : isRegister ? "Opprett konto" : "Logg inn";
+    switchText.textContent =
+      isReset || isRegister ? "Har du konto frå før?" : "Har du ikkje konto?";
+    switchButton.textContent = next === "login" ? "Opprett konto" : "Logg inn";
+    resetHint.classList.toggle("d-none", !isReset);
+    forgotRow.classList.toggle("d-none", next !== "login");
 
+    // Provider sign-in is no part of resetting a password, and a stray "Logg inn
+    // med Google" above the form invites exactly the wrong click.
     const verb = isRegister ? "Registrer deg med" : "Logg inn med";
-    for (const button of socialButtons) button.textContent = `${verb} ${button.dataset.provider}`;
-    socialHint.classList.toggle("d-none", isRegister);
+    for (const button of socialButtons) {
+      button.textContent = `${verb} ${button.dataset.provider}`;
+      button.classList.toggle("d-none", isReset);
+    }
+    socialHint.classList.toggle("d-none", isRegister || isReset);
+    divider.classList.toggle("d-none", isReset);
 
     hideMessage();
   }
@@ -221,6 +243,11 @@ export async function render(container: HTMLElement): Promise<void> {
   switchButton.addEventListener("click", () => {
     applyMode(mode === "login" ? "register" : "login");
     (mode === "register" ? passwordInput : emailInput).focus();
+  });
+
+  forgotButton.addEventListener("click", () => {
+    applyMode("reset");
+    emailInput.focus();
   });
 
   const prefillEmail = getHashQueryParam("email");
@@ -238,6 +265,23 @@ export async function render(container: HTMLElement): Promise<void> {
     }
     location.hash = await resolvePostLoginDestination(getRedirectParam());
     return true;
+  }
+
+  /** Always false: staying put lets the user resend, and there is nowhere to navigate to. */
+  async function runReset(email: string): Promise<boolean> {
+    const { error } = await requestPasswordReset(email);
+    if (error) {
+      logError("logginn.requestPasswordReset", error);
+      showMessage(`Kunne ikkje sende lenke: ${errorMessage(error)}`, "danger");
+      return false;
+    }
+    // Phrased so it reveals nothing about whether the address has an account —
+    // Supabase answers the same either way on purpose.
+    showMessage(
+      `Har du ein konto på ${email}, ligg det no ei lenke til nytt passord i innboksen.`,
+      "success",
+    );
+    return false;
   }
 
   async function runRegister(email: string, password: string): Promise<boolean> {
@@ -278,7 +322,11 @@ export async function render(container: HTMLElement): Promise<void> {
     const email = emailInput.value.trim();
     const password = passwordInput.value;
     const navigating =
-      mode === "register" ? await runRegister(email, password) : await runLogin(email, password);
+      mode === "register"
+        ? await runRegister(email, password)
+        : mode === "reset"
+          ? await runReset(email)
+          : await runLogin(email, password);
 
     if (!navigating) submit.disabled = false;
   });

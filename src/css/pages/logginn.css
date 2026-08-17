@@ -1,4 +1,5 @@
-/* Rendered by pages/logginn.ts. */
+/* Rendered by pages/logginn.ts, and the shared .account-container shell by
+   pages/nyttPassord.ts. */
 
 /* ── Logg inn / Konto ────────────────────────────────────────────────────────── */
 
@@ -41,9 +42,17 @@
   text-align: center;
 }
 
+/* Way into reset mode. Sits between the submit button and the mode switch, so it
+   shares their centred, quiet treatment rather than competing with either. */
+.account-forgot {
+  margin: 0.75rem 0 0;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
 /* Log in ⇄ Opprett konto, replacing the tab pair nobody noticed. */
 .account-switch {
-  margin: 1rem 0 0;
+  margin: 0.5rem 0 0;
   color: var(--tekst-2);
   font-size: 0.9rem;
   text-align: center;

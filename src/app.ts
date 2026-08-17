@@ -111,6 +111,14 @@ const routes: Route[] = [
     params: () => ({}),
     title: "Logg inn",
   },
+  // No authGuard: the recovery link may have failed to produce a session, and the
+  // page has to say so rather than be bounced to logginn without explanation.
+  {
+    pattern: /^\/nytt-passord$/,
+    page: lazy(() => import("./pages/nyttPassord")),
+    params: () => ({}),
+    title: "Nytt passord",
+  },
   {
     pattern: /^\/minside(?:\/([^/]*))?$/,
     page: authGuard(

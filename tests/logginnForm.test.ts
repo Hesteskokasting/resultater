@@ -1,8 +1,9 @@
 /**
- * The account page is one form in two modes, because the old register tab went
- * unnoticed and newcomers concluded there was no way to sign up. What these tests
- * hold in place is that both ways in stay visible, and that switching mode
- * actually rewires the form rather than just relabelling the button.
+ * The account page is one form in three modes — log in, register, reset — because
+ * the old register tab went unnoticed and newcomers concluded there was no way to
+ * sign up. What these tests hold in place is that every way in stays visible, and
+ * that switching mode actually rewires the form rather than just relabelling the
+ * button: a hidden field that stays `required` silently blocks submit.
  */
 
 const mocks = vi.hoisted(() => ({
@@ -13,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   signInWithGoogle: vi.fn(),
   signInWithApple: vi.fn(),
   signInErrorMessage: vi.fn(),
+  requestPasswordReset: vi.fn(),
   showToast: vi.fn(),
 }));
 
@@ -26,6 +28,7 @@ vi.mock("@/services/authService", () => ({
   signInWithGoogle: mocks.signInWithGoogle,
   signInWithApple: mocks.signInWithApple,
   signInErrorMessage: mocks.signInErrorMessage,
+  requestPasswordReset: mocks.requestPasswordReset,
 }));
 vi.mock("@/components/Toast", () => ({ showToast: mocks.showToast }));
 vi.mock("@/utils/logError", () => ({ logError: vi.fn() }));
@@ -46,6 +49,11 @@ const repeatRow = () => el().querySelector<HTMLElement>("#ac-repeat-row")!;
 const message = () => el().querySelector<HTMLElement>("#ac-message")!;
 const googleButton = () => el().querySelector<HTMLButtonElement>('[data-provider="Google"]')!;
 const hint = () => el().querySelector<HTMLElement>(".account-hint")!;
+const forgotButton = () => el().querySelector<HTMLButtonElement>("#ac-forgot")!;
+const passwordRow = () => el().querySelector<HTMLElement>("#ac-password-row")!;
+const resetHint = () => el().querySelector<HTMLElement>("#ac-reset-hint")!;
+const divider = () => el().querySelector<HTMLElement>(".account-divider")!;
+const hidden = (node: HTMLElement) => node.classList.contains("d-none");
 
 function fill(email: string, password: string, repeat?: string): void {
   el().querySelector<HTMLInputElement>("#ac-email")!.value = email;
@@ -68,6 +76,7 @@ beforeEach(async () => {
   mocks.signIn.mockResolvedValue({ error: null });
   mocks.signUp.mockResolvedValue({ error: null });
   mocks.signInErrorMessage.mockReturnValue("Feil e-post eller passord.");
+  mocks.requestPasswordReset.mockResolvedValue({ error: null });
   await renderLogin(host());
 });
 
@@ -178,6 +187,50 @@ describe("account page", () => {
     expect(message().className).toContain("alert-success");
     expect(submitButton().textContent).toBe("Logg inn");
     expect(repeatRow().classList.contains("d-none")).toBe(true);
+  });
+
+  it("strips the form down to the e-mail field in reset mode", () => {
+    forgotButton().click();
+
+    expect(hidden(passwordRow())).toBe(true);
+    expect(el().querySelector<HTMLInputElement>("#ac-password")!.required).toBe(false);
+    expect(hidden(resetHint())).toBe(false);
+    expect(submitButton().textContent).toBe("Send lenke");
+    // Provider sign-in is no part of resetting a password.
+    expect(hidden(googleButton())).toBe(true);
+    expect(hidden(divider())).toBe(true);
+    expect(hidden(hint())).toBe(true);
+  });
+
+  it("restores the password field on the way back out of reset mode", () => {
+    forgotButton().click();
+    switchButton().click();
+
+    expect(hidden(passwordRow())).toBe(false);
+    expect(el().querySelector<HTMLInputElement>("#ac-password")!.required).toBe(true);
+    expect(hidden(googleButton())).toBe(false);
+    expect(submitButton().textContent).toBe("Logg inn");
+  });
+
+  it("sends the reset link and answers without revealing whether the account exists", async () => {
+    forgotButton().click();
+    fill("kanskje@example.com", "");
+    submitForm();
+
+    await vi.waitFor(() =>
+      expect(mocks.requestPasswordReset).toHaveBeenCalledWith("kanskje@example.com"),
+    );
+    await vi.waitFor(() => expect(message().className).toContain("alert-success"));
+    expect(message().textContent).toContain("Har du ein konto");
+    expect(mocks.signIn).not.toHaveBeenCalled();
+    // Staying enabled is what lets the user resend.
+    expect(submitButton().disabled).toBe(false);
+  });
+
+  it("keeps Gløymt passordet? out of the way outside login mode", () => {
+    expect(hidden(el().querySelector<HTMLElement>("#ac-forgot-row")!)).toBe(false);
+    switchButton().click();
+    expect(hidden(el().querySelector<HTMLElement>("#ac-forgot-row")!)).toBe(true);
   });
 
   it("prefills the e-mail when min side sent the user here to switch account", async () => {

@@ -204,6 +204,30 @@ export async function updatePassword(newPassword: string) {
   return supabase.auth.updateUser({ password: newPassword });
 }
 
+/** Where the recovery mail sends the user back to. Same origin+pathname shape as the OAuth target. */
+function passwordResetTarget(): string {
+  return `${window.location.origin}${window.location.pathname}#/nytt-passord`;
+}
+
+/**
+ * Never reports whether the address has an account — Supabase answers the same
+ * either way on purpose, so the caller must not phrase its message as a lookup.
+ */
+export async function requestPasswordReset(email: string) {
+  return supabase.auth.resetPasswordForEmail(email, { redirectTo: passwordResetTarget() });
+}
+
+/**
+ * Turns a recovery token from the mail link into a session, so the new-password
+ * form can call updatePassword. Only needed for a {{ .TokenHash }} link; a
+ * {{ .ConfirmationURL }} link arrives with a ?code= that supabase-js exchanges by
+ * itself — but that exchange needs the PKCE verifier this browser stored when the
+ * reset was requested, so it fails if the mail is opened on another device.
+ */
+export async function verifyRecoveryToken(tokenHash: string) {
+  return supabase.auth.verifyOtp({ token_hash: tokenHash, type: "recovery" });
+}
+
 /**
  * Subscribes to auth changes: clears the cache and re-broadcasts as an
  * `authStateChanged` DOM event. Called once from app.ts, after the listener for
