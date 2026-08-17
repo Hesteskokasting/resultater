@@ -51,7 +51,6 @@ import {
   confirmMatch as confirmMatchService,
   toConfirmSide,
   subscribeToMatchChanges,
-  unconfirmMatch,
   type InitialMatchRow,
 } from "@/services/kampService";
 import {
@@ -270,9 +269,6 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
         playerIds,
         hasRounds: kamp.spelarar.some((s) => (s.omgangar?.length ?? 0) > 0),
         logPrefix: variant.logPrefix,
-        // The scores go in with the confirm below — writing them here first would
-        // only have them read back and rewritten.
-        onSave: async () => (kamp.er_bekreftet ? unconfirmMatch(kamp.id) : null),
         // Entering a score is the confirmation — there is no separate Bekreft step.
         onSaved: async (newS1, newS2) => {
           const ok = await confirmMatch(

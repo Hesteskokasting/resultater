@@ -870,12 +870,6 @@ export async function updateMatchRound(
   }
 }
 
-export async function unconfirmMatch(kampId: number): Promise<{ error: unknown }> {
-  const { error } = await supabase.from("kamp").update({ er_bekreftet: false }).eq("id", kampId);
-  if (error) logError("unconfirmMatch", error);
-  return { error };
-}
-
 // ── Realtime ──────────────────────────────────────────────────────────────────
 
 export type NextMatchPayload = { id: number; bane_nummer: number | null; er_walkover: boolean };

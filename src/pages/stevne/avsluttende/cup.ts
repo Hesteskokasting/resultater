@@ -487,8 +487,6 @@ function bindMatchEventsLocal(
         hasRounds: kamp.spelarar.some((s) => (s.omgangar?.length ?? 0) > 0),
         logPrefix: "cup",
         validate: noTie,
-        // The confirm writes the scores; a separate write here would only be read back.
-        onSave: async () => null,
         onSaved: async (newS1, newS2) => {
           if (!(await confirmCupMatch2Sides(stevneid, kamp, sides, newS1, newS2, reload)))
             await reload();
