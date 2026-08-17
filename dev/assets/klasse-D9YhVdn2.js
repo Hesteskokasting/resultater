@@ -1,0 +1,1 @@
+function e(e){return e<2026}export{e as t};

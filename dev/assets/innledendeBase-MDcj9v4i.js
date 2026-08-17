@@ -1,0 +1,44 @@
+import{t as e}from"./logError-DE4meABt.js";import{In as t,Jn as n,On as r,Pn as i,Vn as a,Wn as o,at as s,dr as c,fr as l,kt as u,p as d,u as f}from"./index-C5SiCpc_.js";import{S as p,_ as m,b as h,i as g,p as _,t as v,x as y}from"./kampService-BuJQm37d.js";import{n as b}from"./navigation-CqyQLA72.js";import{t as x}from"./ScoreboardButton-cO_q_Bk1.js";import{t as S}from"./groupBy-BwgwJVkt.js";import{l as C,n as w,o as T,r as E}from"./stevne-D4GLuerV.js";import{o as D,t as O}from"./ScoreEditor-BgMf6k1D.js";import{C as ee,D as te,E as k,O as A,T as j,_ as M,b as N,g as P,k as F,v as I,w as L,x as R,y as z}from"./padInput-Dnwu2Ei4.js";function B(e){return e?.members.some(e=>(e.omgangar?.length??0)>0)??!1}function V(e,t,n){return e.er_bekreftet?`done`:n||t?`in-progress`:`not-started`}function H(){return`
+    <div class="match-legend">
+      <div class="match-legend__item"><div class="match-legend__stripe match-legend__stripe--not-started"></div> Ikke startet</div>
+      <div class="match-legend__item"><div class="match-legend__stripe match-legend__stripe--in-progress"></div> Pågår</div>
+      <div class="match-legend__item"><div class="match-legend__stripe match-legend__stripe--done"></div> Ferdig</div>
+    </div>`}function U(e,t,n,r,i={},a={}){let o=t.map(e=>Z(e,n,r,i,a)).join(``),s=t.map(e=>Q(e,n,r,i,a)).join(``);return`
+    <div class="mb-3">
+      <h6 class="text-center fw-bold mb-1">Runde ${e}</h6>
+      <table class="table table-sm match-table mb-0 match-table--desktop">
+        <thead class="stevne-thead">
+          <tr>
+            <th class="th-36 text-center">B</th>
+            <th>P1</th>
+            <th class="th-96 text-center initial-score-th">SCORE</th>
+            <th>P2</th>
+            ${r?`<th class="th-148"></th>`:`<th class="th-80"></th>`}
+          </tr>
+        </thead>
+        <tbody>${o}</tbody>
+      </table>
+      <ul class="match-list-mobile list-unstyled mb-0">${s}</ul>
+    </div>`}function W(e,t,n){for(let r of t){e.querySelectorAll(`[data-kamp-id="${r}"]`).forEach(e=>e.classList.add(`match-newly-confirmed`));let t=n.find(e=>e.id===r);if(t)for(let n of t.spelarar)e.querySelectorAll(`#standing-initial tr.standing-player-row[data-kasterid="${n.kasterid}"] td`).forEach(e=>e.classList.add(`standing-new-confirmed`))}}function G(e,t,r,i){return t?n(e,!0):n(e,!1)+(r?i:0)}function K(e,t,n,r,i,a,o){let s=G(t,e.er_bekreftet,r,a),c=G(n,e.er_bekreftet,i,o),l=e.er_walkover&&!e.er_bekreftet,u=e.er_bekreftet||e.er_walkover||r||i||s>0||c>0;return{s1:l?21:s,s2:l?0:c,hasPoints:u}}function q(e,t,n,r){let[i,o]=a(e.spelarar,t,r),s=i?.rep??null,c=o?.rep??null,l=e.er_walkover&&!c?.kaster,u=B(i),d=B(o),f=u||d,{s1:p,s2:m,hasPoints:h}=K(e,i,o,u,d,n[s?.kasterid??-1]??0,n[c?.kasterid??-1]??0);return{side1:i,side2:o,p1:s,p2:c,p2IsBye:l,hasRounds:f,s1:p,s2:m,hasPoints:h,status:V(e,h,f),isLive:f&&!e.er_bekreftet,showScoreboard:!(e.er_bekreftet&&!f)}}function J(e,t,n=`–`){return`<span class="initial-score-inner"><span class="initial-s1">${e}</span><span class="initial-sep">${n}</span><span class="initial-s2">${t}</span></span>`}function Y(e,t){return t?`${e} (${t})`:e}function X(e,t,n){return`<td class="pe-2">
+        <span class="d-flex align-items-center justify-content-end gap-2">
+          ${t?f():``}
+          ${n?x(e.id):``}
+        </span>
+      </td>`}function Z(e,t,n=!0,r={},i={}){let{side1:a,side2:o,p1:s,p2:c,p2IsBye:l,s1:u,s2:d,hasPoints:f,status:p,isLive:m,showScoreboard:h}=q(e,t,r,i),g=s?.kasterid?t[s.kasterid]??``:``,_=c?.kasterid?t[c.kasterid]??``:``,v=Y(F(a,!1),g),y=Y(l?`Walkover`:F(o,!1),_),b=n&&!e.er_walkover,x=`text-center initial-score-cell${b?` score-editable`:``}`,S=b?` data-endre-score="${e.id}"`:``;return`
+    <tr class="match-row-desktop" data-kamp-id="${e.id}" data-status="${p}">
+      <td class="text-center">${e.bane_nummer??``}</td>
+      <td>${v}</td>
+      <td class="${x}"${S}>${f?J(u,d):`—`}</td>
+      <td>${y}</td>
+      ${X(e,m,h)}
+    </tr>`}function Q(e,t,n,r={},i={}){let{side1:a,side2:o,p2IsBye:s,s1:c,s2:l,hasPoints:u,status:d,isLive:p,showScoreboard:m}=q(e,t,r,i),h=F(a,!0),g=s?`Walkover`:F(o,!0),_=u?J(c,l):J(``,``,`—`),v=n&&!e.er_walkover,y=v?` id="m-score-${e.id}"`:``,b=v?` score-editable`:``;return`
+    <li class="match-row-mobile${n?``:` match-row-mobile--viewer`}" data-kamp-id="${e.id}" data-status="${d}">
+      <div class="match-row-mobile__header">
+        <span class="match-mobile-lane">${e.bane_nummer??``}</span>
+        <span class="match-mobile-name"><span class="match-mobile-name__p1">${h}</span><span class="match-mobile-name__p2"><span class="match-mobile-vs">vs</span> ${g}</span></span>
+        <span class="match-mobile-pill-slot">${p?f():``}</span>
+        <span class="match-mobile-result${b}"${y}>${_}</span>
+        <span class="match-mobile-sb-slot">${m?x(e.id):``}</span>
+      </div>
+      ${n?`<div class="match-mobile-detail"></div>`:``}
+    </li>`}function $(t){let i=null,o=null,f=!1,x=new Set,B=null,V=new Set,G=new Set;async function K(e,{id:n,isAdmin:r=!1},a=null){o=a,f=r,t.onReset?.(),i&&=(await b(i),null),e.replaceChildren(l(`Laster…`)),await q(e,n)}async function q(n,i){try{let[{data:e},{data:a},{data:o}]=await Promise.all([s(i),g(i),r(i)]);if(!e){n.replaceChildren(c(`Stevne ikkje funne.`));return}G.clear();for(let e of a)for(let t of e.spelarar)G.add(t.id);let{startNumberMap:l,hcpMap:u,positionMap:d,isTeam:p}=C(o),m=S(a,e=>e.runde_nummer),h=ne(a,o,l,d,p),_=J(a),v=a.length>0&&a.every(e=>e.er_bekreftet),y=f&&e.stevne_fase!==`avsluttende`;Y({container:n,stevneid:i,stevne:e,allMatches:a,roundMap:m,startNumberMap:l,standing:h,isAdmin:f,allMatchesConfirmed:v,reload:()=>q(n,i)});let b=[...(t.filterRounds??(e=>e))(m).entries()].map(([e,t])=>U(e,t,l,y,u,d)).join(``)+H(),w=k(h,a,l,{tableId:`standing-initial`,hasMatchCount:!0,positionMap:d,unitLabel:p?`par`:`spelarar`,qualifyCutoff:D(e.runde1_format)?.nA??null}),T=ee(n);n.innerHTML=j(b,w),N(n),T===`standing`&&te(n,`standing`),z(n,`standing-initial`,x),W(n,_,a),I(n);for(let e of a)Q(n,i,e,l,u,d,y);$(n,i)}catch(r){e(`${t.logPrefix}.loadAndRender`,r),n.replaceChildren(c(`Kunne ikkje laste innleiande fase.`))}}function J(e){let t=new Set(e.filter(e=>e.er_bekreftet).map(e=>e.id)),n=B?new Set([...t].filter(e=>!B.has(e))):new Set,r=new Set([...n,...V]);return V=new Set(n),B=t,r}function Y(e){if(A(o,t.bannerMeta(e)),!o)return;let n=t.getMenuItems(e),r=e.stevne.antall_runder_innl,i=r!=null&&e.roundMap.size>=r;o.innerHTML=E(f?L(e.stevne,{erSwiss:t.isSwiss,canGenerateRound:r==null||e.roundMap.size<r,canComplete:e.allMatchesConfirmed&&(r==null||i),extras:n}):n),w(o),t.bindBannerExtra(o,e),M(o,e.stevneid,()=>e.standing,e.reload),P(o,{title:`Autofullfør kampar`,message:`Autofullfør alle ubekreftede innleiande kampar?`},async()=>{await T(e.stevneid),await e.reload()})}function X(e,r,i,o,s,c){let[l,u]=a(i.spelarar,o,c),d=l?.rep??null,f=u?.rep??null,m=[...l?.members??[],...u?.members??[]].map(e=>e.id),h=async()=>{let a=m.length?await _(m):!1;await O({side1Name:F(l,!1),side2Name:F(u,!1),currentS1:n(l,i.er_bekreftet),currentS2:n(u,i.er_bekreftet),baneLabel:`Bane ${i.bane_nummer??`?`}`,rundeLabel:`Runde ${i.runde_nummer}`,playerIds:m,hasRounds:a,logPrefix:t.logPrefix,onSave:async(e,t)=>(await Promise.all([d?p(d.id,e):Promise.resolve({error:null}),f?p(f.id,t):Promise.resolve({error:null}),...i.er_bekreftet?[y(i.id)]:[]]),null),onSaved:async()=>{await re(e,r,i,o,s,c)||await q(e,r)}})};e.querySelectorAll(`[data-endre-score="${i.id}"]`).forEach(e=>e.addEventListener(`click`,h)),e.querySelector(`#m-score-${i.id}`)?.addEventListener(`click`,e=>{e.stopPropagation(),h()})}function Z(e,t){let n=e.querySelector(`.match-row-mobile[data-kamp-id="${t.id}"]`);n&&f&&n.querySelector(`.match-row-mobile__header`)?.addEventListener(`click`,t=>{if(t.target.closest(`[data-scoreboard-kamp-id]`))return;let r=n.dataset.expanded===`true`;e.querySelectorAll(`.match-row-mobile[data-expanded="true"]`).forEach(e=>{e.dataset.expanded=`false`}),n.dataset.expanded=r?`false`:`true`})}function Q(e,t,n,r,i,a,o){o&&X(e,t,n,r,i,a),Z(e,n)}function $(e,n){if(i)return;let r=R(n,[`innledende`],e,q,()=>{i&&=(b(i),null)});i=m(n,t.channelName(n),r,e=>G.has(e))}async function re(e,t,n,r,i={},o={}){let[s,c]=a(n.spelarar,r,o),l=s?.rep??null,f=c?.rep??null,p=i[l?.kasterid??-1]??0,m=i[f?.kasterid??-1]??0,{error:g}=await v({kampId:n.id,sides:[h(s),h(c)],hcp:[p,m],erWalkover:n.er_walkover,outcome:{type:`innledende`}});return g?(d(`DB-feil ved bekreft: `+u(g),`error`),!1):(await q(e,t),!0)}return K}function ne(e,n,r,a,s){let{playerMap:c,realThrowerIds:l}=i(e,r),u=Object.values(c).filter(e=>l.has(e.kasterid)).map(e=>({...e,hcp:n.find(t=>t.kasterid===e.kasterid)?.hcp??0}));return t(s?o(u,a):u,e)}export{$ as t};

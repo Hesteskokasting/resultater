@@ -1,0 +1,1 @@
+function e(e,t){let n=1;for(let r=0;r<e.length;r++){let i=e[r];if(i===void 0)continue;let a=e[r-1];a!==void 0&&t(i)<t(a)&&(n=r+1),i.plassering=n}}export{e as t};

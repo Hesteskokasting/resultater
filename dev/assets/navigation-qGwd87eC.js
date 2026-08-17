@@ -1,1 +1,0 @@
-import{r as e}from"./escHtml-Z0YwDf7L.js";async function t(t){await e.removeChannel(t)}function n(e){window.addEventListener(`hashchange`,e,{once:!0})}export{t as n,n as t};

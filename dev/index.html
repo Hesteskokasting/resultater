@@ -41,12 +41,12 @@
     </script>
     <link rel="preconnect" href="https://urtvpewjlevhlevtnvkf.supabase.co" crossorigin />
     <link rel="icon" type="image/svg+xml" href="/dev/assets/NHF_logo_original_oppskalert-CHgQrqP2.svg" />
-    <script type="module" crossorigin src="/dev/assets/index-CY82xwnt.js"></script>
+    <script type="module" crossorigin src="/dev/assets/index-C5SiCpc_.js"></script>
     <link rel="modulepreload" crossorigin href="/dev/assets/preload-helper-tDRSoqHn.js">
-    <link rel="modulepreload" crossorigin href="/dev/assets/vendor-CFkwocqW.js">
-    <link rel="modulepreload" crossorigin href="/dev/assets/escHtml-Z0YwDf7L.js">
+    <link rel="modulepreload" crossorigin href="/dev/assets/vendor-YaH9uqxj.js">
+    <link rel="modulepreload" crossorigin href="/dev/assets/logError-DE4meABt.js">
     <link rel="modulepreload" crossorigin href="/dev/assets/verifiedWrite-DY57lQG_.js">
-    <link rel="stylesheet" crossorigin href="/dev/assets/index--VGPQNrc.css">
+    <link rel="stylesheet" crossorigin href="/dev/assets/index-D29MuLXP.css">
   </head>
   <body>
     <header class="top-header">
@@ -231,6 +231,12 @@
         if (!desktopDropdown.contains(e.relatedTarget)) {
           desktopDropdownBtn.setAttribute("aria-expanded", "false");
         }
+      });
+
+      // The menu is held open by :focus-within, so a picked link keeps it
+      // hanging over the page it just navigated to. Drop the focus.
+      desktopDropdown.querySelectorAll(".header-nav__dropdown-item").forEach((a) => {
+        a.addEventListener("click", () => a.blur());
       });
 
       document.getElementById("statistikk-knapp").addEventListener("click", () => {
