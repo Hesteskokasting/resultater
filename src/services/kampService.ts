@@ -385,18 +385,19 @@ export function losingSideKasterid(
 const ALREADY_CONFIRMED_MESSAGE = "Kampen er allereie stadfesta av ein annan deltakar.";
 
 /**
- * Writes every player's score to kamp_spelar. Runs before er_bekreftet is set,
- * which is what makes one implementation serve both phases: participants may
- * write kamp_spelar right up until the match is confirmed.
+ * Works out what every player's score row should become, reading the omgangar
+ * and the stored scores only when the caller has not supplied the totals.
+ * Writes nothing — the two outcomes below persist it in different ways.
  */
-async function _persistMatchScores(params: {
+async function _resolveMatchScores(params: {
   sides: (MatchSideConfirm | null)[];
   hcp?: number[];
   erWalkover: boolean;
-}): Promise<{ error: unknown; totals: number[] }> {
+}): Promise<{ error: unknown; updates: MatchPlayerUpdates["updates"]; totals: number[] }> {
   const { sides, hcp, erWalkover } = params;
   const allIds = sides.flatMap((side) => side?.playerIds ?? []);
-  if (!allIds.length) return { error: null, totals: sides.map(() => 0) };
+  const empty = { updates: new Map<number, MatchPlayerUpdateValues>(), totals: sides.map(() => 0) };
+  if (!allIds.length) return { error: null, ...empty };
 
   let roundData: RoundScoreRow[] = [];
   let resolvedSides = sides;
@@ -412,7 +413,7 @@ async function _persistMatchScores(params: {
       .in("kamp_spelar_id", allIds);
     if (omgErr) {
       logError("confirmMatch:omgangar", omgErr);
-      return { error: omgErr, totals: sides.map(() => 0) };
+      return { error: omgErr, ...empty };
     }
     roundData = fetched ?? [];
 
@@ -438,7 +439,16 @@ async function _persistMatchScores(params: {
     hcp,
     erWalkover,
   });
+  return { error: null, updates, totals };
+}
 
+/**
+ * One PATCH per player. Runs before er_bekreftet is set — participants may write
+ * kamp_spelar right up until the match is confirmed, and not a moment after.
+ */
+async function _writeMatchPlayerScores(
+  updates: MatchPlayerUpdates["updates"],
+): Promise<{ error: unknown }> {
   const results = await Promise.all(
     [...updates.entries()].map(([id, values]) =>
       verifyRowsAffected(
@@ -449,7 +459,7 @@ async function _persistMatchScores(params: {
   );
   const error = results.find((r) => r.error)?.error ?? null;
   if (error) logError("confirmMatch:spelarar", error);
-  return { error, totals };
+  return { error };
 }
 
 /** What happens to a match beyond its scores, once those are stored. */
@@ -497,17 +507,31 @@ export async function confirmMatch(params: {
 }): Promise<{ error: unknown }> {
   const { kampId, sides, hcp, erWalkover = false, outcome } = params;
 
-  const { error: scoreErr, totals } = await _persistMatchScores({ sides, hcp, erWalkover });
+  const {
+    error: scoreErr,
+    updates,
+    totals,
+  } = await _resolveMatchScores({ sides, hcp, erWalkover });
   if (scoreErr) return { error: scoreErr };
 
+  // Innledende writes the scores and the confirm flag in one RPC — the two
+  // steps are ordered by RLS (kamp_spelar first), so they cannot be batched
+  // from the client.
   if (outcome.type === "innledende") {
-    const { error } = await verifyRowsAffected(
-      supabase.from("kamp").update({ er_bekreftet: true }).eq("id", kampId).select("id"),
-      ALREADY_CONFIRMED_MESSAGE,
-    );
-    if (error) logError("confirmMatch:kamp", error);
+    const { data, error } = await supabase.rpc("bekreft_innledende_kamp", {
+      p_kamp_id: kampId,
+      p_scores: [...updates.entries()].map(([id, values]) => ({
+        kamp_spelar_id: id,
+        ...values,
+      })),
+    });
+    if (error) logError("confirmMatch:innledende", error);
+    if (!error && data === false) return { error: new Error(ALREADY_CONFIRMED_MESSAGE) };
     return { error };
   }
+
+  const { error: writeErr } = await _writeMatchPlayerScores(updates);
+  if (writeErr) return { error: writeErr };
 
   if (outcome.type === "cup-derived") {
     const eliminatedId =
