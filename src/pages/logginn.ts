@@ -89,16 +89,13 @@ export async function render(container: HTMLElement): Promise<void> {
         <input type="password" class="form-control" id="reg-password2" required autocomplete="new-password" minlength="8">
       </div>
       <div id="reg-error" class="alert alert-danger d-none"></div>
-      <div id="reg-success" class="alert alert-success d-none">
-        Konto oppretta! Du kan no logge inn.
-      </div>
       <button type="submit" class="btn btn-success w-100">Opprett konto</button>
     </form>`);
 
   const outer = document.createElement("div");
   outer.className = "container py-4 account-container";
   const headingRow = document.createElement("div");
-  headingRow.className = "d-flex justify-content-between align-items-start gap-3 mb-4";
+  headingRow.className = "d-flex justify-content-between align-items-start gap-3 mb-2";
   const heading = document.createElement("h2");
   heading.className = "mb-0";
   heading.textContent = "Konto";
@@ -114,6 +111,13 @@ export async function render(container: HTMLElement): Promise<void> {
     headingRow.appendChild(badgeLink);
   }
   outer.appendChild(headingRow);
+
+  const intro = document.createElement("p");
+  intro.className = "account-intro";
+  intro.textContent =
+    "Med konto kan du melde deg på stevne, følgje dine eigne kampar og få varsel når eit stevne startar." +
+    (getRedirectParam() ? " Du blir sendt tilbake til sida du kom frå etter innlogging." : "");
+  outer.appendChild(intro);
 
   function createSocialLoginButton(
     label: string,
@@ -204,9 +208,9 @@ export async function render(container: HTMLElement): Promise<void> {
     e.preventDefault();
     const form = e.target as HTMLFormElement;
     const error = container.querySelector<HTMLElement>("#reg-error")!;
-    const success = container.querySelector<HTMLElement>("#reg-success")!;
-    error.classList.add("d-none");
-    success.classList.add("d-none");
+    // Reset the whole class list, not just d-none — the confirm-your-e-mail case
+    // below turns this same box green and a later failure must not stay green.
+    error.className = "alert alert-danger d-none";
 
     const password = container.querySelector<HTMLInputElement>("#reg-password")!.value;
     const password2 = container.querySelector<HTMLInputElement>("#reg-password2")!.value;
@@ -229,7 +233,20 @@ export async function render(container: HTMLElement): Promise<void> {
       return;
     }
 
-    await signIn(email, password);
+    // A project that requires e-mail confirmation refuses this sign-in, and
+    // #/minside would bounce straight back here without saying why.
+    const { error: autoSignInError } = await signIn(email, password);
+    if (autoSignInError) {
+      error.textContent =
+        "Kontoen er oppretta. Bekreft e-postadressa di, og logg deretter inn her.";
+      error.className = "alert alert-success";
+      button.disabled = false;
+      return;
+    }
+
+    // The link to an utøvarprofil is the next step, and nothing on Min side says
+    // so before the user has read the card they land on.
+    showToast("Konto oppretta. Neste steg: koble kontoen til utøvarprofilen din.", "success");
     location.hash = "#/minside";
   });
 }

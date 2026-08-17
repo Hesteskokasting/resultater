@@ -6,7 +6,7 @@ import { getUser } from "@/services/authService";
 import { linkedThrowerId } from "@/utils/kaster";
 import { confirmDialog } from "@/components/ConfirmDialog";
 import { createErrorBanner, createLoadingState, createEmptyState } from "@/components/states";
-import { createStevneCard } from "@/components/StevneCard";
+import { createStevneCard, registrationCtaLink } from "@/components/StevneCard";
 import {
   heroActionSlot,
   stevneDetails,
@@ -42,6 +42,7 @@ import {
   switchRegistration,
 } from "@/services/pameldingService";
 import type { TournamentRegistrationSummary } from "@/services/pameldingService";
+import type { AuthUser } from "@/types";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -91,13 +92,19 @@ function ownRegistrationNoticeHtml(
   locals: SncLocalTournamentRow[],
   summary: TournamentRegistrationSummary,
   canRegister: boolean,
-  isLoggedIn: boolean,
+  auth: AuthUser | null,
   parentId: number,
+  isFinished: boolean,
 ): string {
-  if (!isLoggedIn) {
-    return `<div class="alert alert-info">
-      <a href="#/logginn?redirect=/stevne/${parentId}/info">Logg inn</a> for å melde deg på eitt av dei lokale stevna.
-    </div>`;
+  // Signed out and signed-in-but-unlinked both end up here; the shared helper
+  // decides which of the two is missing so this page doesn't word it its own way.
+  if (!canRegister && !isFinished) {
+    const cta = registrationCtaLink(parentId, auth);
+    if (cta) {
+      return `<div class="alert alert-info">
+        <a href="${escHtml(cta.href)}">${escHtml(cta.title ?? cta.label)}</a>
+      </div>`;
+    }
   }
   if (!canRegister) return "";
   if (summary.ownStevneId == null) {
@@ -170,7 +177,7 @@ export async function render(
     container.innerHTML = `
       ${overviewHtml(parent, locals, totalRegistrations)}
       <div class="stevne-max-480">
-        ${ownRegistrationNoticeHtml(locals, summary, canRegister, auth != null, id)}
+        ${ownRegistrationNoticeHtml(locals, summary, canRegister, auth, id, parent.erfullfort === true)}
         <h6 class="mb-2">Lokale stevne (${locals.length})</h6>
         <div id="snc-locals" class="stevne-kort-liste"></div>
         ${

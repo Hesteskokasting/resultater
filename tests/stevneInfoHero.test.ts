@@ -1,8 +1,8 @@
 /**
  * The info tab's hero owns the stevne name and the one primary action. Which
  * button lands in that slot depends on who is looking, so that choice is what
- * these tests pin down — the shell drops its own header on this tab, and an
- * empty slot means a visitor gets no call to action at all.
+ * these tests pin down — the shell drops its own header on this tab, and the
+ * slot is only ever empty when there is genuinely nothing for the viewer to do.
  */
 
 const mocks = vi.hoisted(() => ({
@@ -151,7 +151,7 @@ describe("stevne-info hero", () => {
     expect(el.querySelector("#info-handling-knapper .pamelding-knapp")).not.toBeNull();
   });
 
-  it("refuses to start Gloppen with more rundar than the field can pair", async () => {
+  it("refuses to start Gloppen with more rundar than the field can pair, and says so before the click", async () => {
     mocks.getInfoTournament.mockResolvedValue({
       data: row({ antall_runder_innl: 7, kastemetodeInnl: { id: 1, navn: "Gloppen" } }),
       error: null,
@@ -161,10 +161,13 @@ describe("stevne-info hero", () => {
     const el = host();
     await renderInfo(el, { id: 5, isAdmin: true });
 
-    slot(el).querySelector<HTMLButtonElement>("#start-stevne-btn")!.click();
-    await vi.waitFor(() => expect(mocks.showToast).toHaveBeenCalled());
+    const startBtn = slot(el).querySelector<HTMLButtonElement>("#start-stevne-btn")!;
+    expect(startBtn.disabled).toBe(true);
+    expect(slot(el).querySelector(".stevne-start-hindring")!.textContent).toContain(
+      "maks 5 rundar",
+    );
 
-    expect(mocks.showToast.mock.calls[0]![0]).toContain("maks 5 rundar");
+    startBtn.click();
     expect(mocks.startTournament).not.toHaveBeenCalled();
   });
 
@@ -191,11 +194,23 @@ describe("stevne-info hero", () => {
     });
   });
 
-  it("leaves the slot empty for a visitor with nothing to do", async () => {
+  it("invites a signed-out visitor to log in instead of leaving the slot empty", async () => {
     const el = host();
     await renderInfo(el, { id: 5 });
 
-    expect(slot(el).innerHTML).toBe("");
+    const cta = slot(el).querySelector("a")!;
+    expect(cta.textContent).toBe("Logg inn");
+    expect(cta.getAttribute("href")).toBe("#/logginn?redirect=%2Fstevne%2F5%2Finfo");
+  });
+
+  it("asks an unlinked account to link a profile rather than to log in again", async () => {
+    mocks.getUser.mockResolvedValue({ user: { id: "u1" }, profil: { kobling_status: "ingen" } });
+    const el = host();
+    await renderInfo(el, { id: 5 });
+
+    const cta = slot(el).querySelector("a")!;
+    expect(cta.textContent).toBe("Koble profil");
+    expect(cta.getAttribute("href")).toBe("#/minside/kampar");
   });
 
   it("drops the start button once the stevne is running", async () => {

@@ -423,8 +423,15 @@ export function initialMenuItems(
 ): BannerMenuItem[] {
   const hasFinalPhase = tournament.avsluttendekastemetodeid != null;
   const items: BannerMenuItem[] = [];
-  if (state.erSwiss && state.canGenerateRound)
-    items.push({ id: "neste-runde-btn", label: "Generer neste runde" });
+  // Kept in the menu once every planned round exists, so the organizer reads why
+  // it is unavailable instead of hunting for an entry that silently vanished.
+  if (state.erSwiss)
+    items.push({
+      id: "neste-runde-btn",
+      label: "Generer neste runde",
+      disabled: !state.canGenerateRound,
+      hint: state.canGenerateRound ? undefined : "Alle planlagde rundar er alt genererte.",
+    });
   items.push(...(state.extras ?? []));
   if (import.meta.env.VITE_ENV === "dev")
     items.push({ id: "test-auto-complete-btn", label: "TEST: Autofullfør" });
@@ -434,9 +441,12 @@ export function initialMenuItems(
       label: "Fullfør turnering",
       tone: "success",
       disabled: tournament.erfullfort === true || !state.canComplete,
-      hint: state.canComplete
-        ? undefined
-        : "Alle rundar må vere genererte og alle kampar bekrefta.",
+      hint:
+        tournament.erfullfort === true
+          ? "Turneringa er alt fullført."
+          : state.canComplete
+            ? undefined
+            : "Alle rundar må vere genererte og alle kampar bekrefta.",
     });
   return items;
 }
@@ -461,11 +471,18 @@ export function finalMenuItems(
   const items: BannerMenuItem[] = [];
 
   if (tournament.stevne_fase !== "avsluttende") {
-    if (allMatchesConfirmed) {
-      items.push({ id: "start-final-btn", label: "Start avsluttande fase" });
-      if (hasPreconfiguredFormat)
-        items.push({ id: "edit-group-assignment-btn", label: "Endre gruppefordeling" });
-    }
+    // Listed even when it cannot run yet — the hint is the only place the
+    // organizer learns what is left before the final phase can start.
+    items.push({
+      id: "start-final-btn",
+      label: "Start avsluttande fase",
+      disabled: !allMatchesConfirmed,
+      hint: allMatchesConfirmed
+        ? undefined
+        : "Alle kampar i innleiande fase må vere bekrefta først.",
+    });
+    if (hasPreconfiguredFormat && allMatchesConfirmed)
+      items.push({ id: "edit-group-assignment-btn", label: "Endre gruppefordeling" });
   } else if (hasGroupAssignment && !hasFinalMatches) {
     items.push({ id: "edit-group-assignment-btn", label: "Endre gruppeinndeling" });
   }
@@ -473,13 +490,18 @@ export function finalMenuItems(
   if (import.meta.env.VITE_ENV === "dev" && hasFinalMatches && !allMatchesConfirmed)
     items.push({ id: "test-auto-complete-btn", label: "TEST: Autofullfør" });
 
-  if (allMatchesConfirmed)
-    items.push({
-      id: "complete-tournament-btn",
-      label: "Fullfør turnering",
-      tone: "success",
-      disabled: tournament.erfullfort === true,
-    });
+  items.push({
+    id: "complete-tournament-btn",
+    label: "Fullfør turnering",
+    tone: "success",
+    disabled: tournament.erfullfort === true || !allMatchesConfirmed,
+    hint:
+      tournament.erfullfort === true
+        ? "Turneringa er alt fullført."
+        : allMatchesConfirmed
+          ? undefined
+          : "Alle kampar må vere bekrefta før turneringa kan fullførast.",
+  });
 
   return items;
 }

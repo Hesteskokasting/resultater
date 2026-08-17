@@ -6,6 +6,13 @@
   max-width: 480px;
 }
 
+/* What an account is for — the heading alone says "Konto" and nothing more. */
+.account-intro {
+  margin-bottom: 1.25rem;
+  color: var(--tekst-2);
+  font-size: 0.9rem;
+}
+
 .google-play-badge img {
   display: block;
   width: 150px;

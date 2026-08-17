@@ -1,11 +1,13 @@
 import { escHtml } from "@/utils/escHtml";
 import { liveDotHtml } from "@/components/LivePill";
+import { linkedThrowerId } from "@/utils/kaster";
 import {
   formatDateLong,
   formatDateWeekday,
   formatWeekdayShort,
   formatDayOfMonth,
 } from "@/utils/shared";
+import type { AuthUser } from "@/types";
 
 export type StevneCardStatus = "live" | "done" | "upcoming";
 
@@ -20,12 +22,15 @@ export interface StevneCardActionLink {
   label: string;
   /** "secondary" reports a state the thrower is already in; "primary" (default) invites the action. */
   variant?: "primary" | "secondary";
+  /** Explains a label the trailing slot is too narrow to spell out. */
+  title?: string;
 }
 
 /** Shared by the card's trailing slot and terminliste's desktop table cell. */
 export function actionLinkHtml(link: StevneCardActionLink): string {
   const variantClass = link.variant === "secondary" ? "btn-outline-secondary" : "btn-primary";
-  return `<a class="btn btn-sm ${variantClass}" href="${escHtml(link.href)}">${escHtml(link.label)}</a>`;
+  const titleAttr = link.title ? ` title="${escHtml(link.title)}"` : "";
+  return `<a class="btn btn-sm ${variantClass}" href="${escHtml(link.href)}"${titleAttr}>${escHtml(link.label)}</a>`;
 }
 
 /**
@@ -41,6 +46,40 @@ export function sncUmbrellaActionLink(
   return isRegistered
     ? { href, label: "Påmeldt", variant: "secondary" }
     : { href, label: "Meld på" };
+}
+
+/**
+ * Stands in for the registration button when the account cannot register yet, so
+ * the card says what is missing instead of showing nothing at all. Returns
+ * undefined once the thrower link is approved — the real button belongs there.
+ */
+export function registrationCtaLink(
+  tournamentId: number,
+  auth: AuthUser | null,
+): StevneCardActionLink | undefined {
+  if (linkedThrowerId(auth) !== null) return undefined;
+  if (!auth) {
+    return {
+      href: `#/logginn?redirect=${encodeURIComponent(`/stevne/${tournamentId}/info`)}`,
+      label: "Logg inn",
+      title: "Logg inn for å melde deg på stevnet.",
+      variant: "secondary",
+    };
+  }
+  if (auth.profil?.kobling_status === "venter") {
+    return {
+      href: "#/minside/kampar",
+      label: "Ventar",
+      title: "Koblingforespørselen din ventar på godkjenning. Då kan du melde deg på.",
+      variant: "secondary",
+    };
+  }
+  return {
+    href: "#/minside/kampar",
+    label: "Koble profil",
+    title: "Kontoen din må koblast til ein utøvarprofil før du kan melde deg på.",
+    variant: "secondary",
+  };
 }
 
 export interface StevneCardProps {

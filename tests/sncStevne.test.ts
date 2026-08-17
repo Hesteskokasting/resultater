@@ -198,6 +198,20 @@ describe("SNC umbrella info tab", () => {
     expect(buttonWithText(el, "Meld på")).toBeUndefined();
   });
 
+  it("sends a signed-in but unlinked account to koble profil, not back to logg inn", async () => {
+    getUser.mockResolvedValue({
+      user: { id: "u2", email: "ny@example.com" },
+      profil: { role: "bruker", kasterid: null, kobling_status: "ingen" },
+      clubs: [],
+    });
+    const el = host();
+    await renderSncInfo(el, { id: 10 });
+
+    expect(el.querySelector('a[href*="logginn"]')).toBeNull();
+    expect(el.querySelector<HTMLAnchorElement>('a[href="#/minside/kampar"]')).not.toBeNull();
+    expect(buttonWithText(el, "Meld på")).toBeUndefined();
+  });
+
   it("offers a linked thrower one Meld på button per venue", async () => {
     getUser.mockResolvedValue(linkedUser());
     const el = host();

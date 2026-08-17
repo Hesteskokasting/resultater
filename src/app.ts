@@ -70,6 +70,19 @@ function beginNavigation(): number {
   return scrollPositions.get(existingId) ?? 0;
 }
 
+/** Says which role the page needs and where to go instead — "Ingen tilgang." alone left the user stuck. */
+function renderNoAccess(cont: HTMLElement, requiredRole: Role): void {
+  const needed = requiredRole === "admin" ? "administrator" : "klubbadmin eller administrator";
+  const banner = createErrorBanner(
+    `Denne sida krev tilgang som ${needed}. Skal du arrangere stevne, be om tilgang på kontakt@hesteskokasting.no.`,
+  );
+  const back = document.createElement("a");
+  back.href = "#/minside";
+  back.className = "btn btn-sm btn-outline-primary";
+  back.textContent = "Gå til Min side";
+  cont.replaceChildren(banner, back);
+}
+
 function authGuard(requiredRole: Role, renderFn: PageRenderFn): PageRenderFn {
   return async (cont, params) => {
     const auth = await getUser();
@@ -77,12 +90,12 @@ function authGuard(requiredRole: Role, renderFn: PageRenderFn): PageRenderFn {
       location.hash = "#/logginn";
       return;
     }
-    if (requiredRole === "admin" && !(await isAdmin())) {
-      cont.replaceChildren(createErrorBanner("Ingen tilgang."));
-      return;
-    }
-    if (requiredRole === "klubbadmin" && !(await isAdmin()) && !(await isClubAdmin())) {
-      cont.replaceChildren(createErrorBanner("Ingen tilgang."));
+    const allowed =
+      requiredRole === "bruker" ||
+      (await isAdmin()) ||
+      (requiredRole === "klubbadmin" && (await isClubAdmin()));
+    if (!allowed) {
+      renderNoAccess(cont, requiredRole);
       return;
     }
     await renderFn(cont, params);

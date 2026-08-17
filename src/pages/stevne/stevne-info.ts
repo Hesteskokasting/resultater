@@ -1,4 +1,5 @@
 import { getUser } from "@/services/authService";
+import { escHtml } from "@/utils/escHtml";
 import { linkedThrowerId } from "@/utils/kaster";
 import { createErrorBanner, createLoadingState } from "@/components/states";
 import {
@@ -22,6 +23,7 @@ import {
   getMyRegistrationForTournament,
 } from "@/services/pameldingService";
 import { createRegistrationButton } from "@/components/PameldingKnapp";
+import { actionLinkHtml, registrationCtaLink } from "@/components/StevneCard";
 import { createOppmoteButton } from "@/components/OppmoteKnapp";
 import { registerRefetch } from "@/utils/refetchRegistry";
 import {
@@ -123,19 +125,30 @@ export async function render(
 
     const showStartButton = isNotStarted && isAdmin;
     if (showStartButton) {
-      actionSlot.innerHTML = `<button id="start-stevne-btn" class="btn btn-sm btn-success">Start stevne</button>`;
+      // Every input is already in hand, so the organizer is told what is missing
+      // up front instead of discovering it in a toast after clicking.
+      const blocked = canStartTournament({
+        hasInitialMethod: Boolean(stevne.kastemetodeInnl),
+        isStandaloneKongelag,
+        isTeam,
+        playerCount: count,
+        pairCount,
+        isRoundBased,
+        isCascade,
+        roundCount: stevne.antall_runder_innl,
+      });
+
+      const startButtonHtml =
+        `<button id="start-stevne-btn" class="btn btn-sm btn-success"` +
+        `${blocked ? ` disabled title="${escHtml(blocked)}"` : ""}>Start stevne</button>`;
+      // Blocked: button and reason stack as one flex item in the hero row, the
+      // same shape .oppmote-row uses. Unblocked, the button stays a direct child.
+      actionSlot.innerHTML = blocked
+        ? `<div class="stevne-start-boks">${startButtonHtml}` +
+          `<p class="stevne-start-hindring">${escHtml(blocked)}</p></div>`
+        : startButtonHtml;
       const startBtn = actionSlot.querySelector<HTMLButtonElement>("#start-stevne-btn")!;
       startBtn.addEventListener("click", async () => {
-        const blocked = canStartTournament({
-          hasInitialMethod: Boolean(stevne.kastemetodeInnl),
-          isStandaloneKongelag,
-          isTeam,
-          playerCount: count,
-          pairCount,
-          isRoundBased,
-          isCascade,
-          roundCount: stevne.antall_runder_innl,
-        });
         if (blocked) {
           showToast(blocked, "error");
           return;
@@ -176,6 +189,17 @@ export async function render(
 
     const actionButtons = container.querySelector<HTMLElement>("#info-handling-knapper")!;
     const kasterid = linkedThrowerId(auth);
+
+    // The hero slot is the primary action; an admin already fills it with
+    // Start stevne, so registration controls join the row below.
+    const registrationTarget = showStartButton ? actionButtons : actionSlot;
+
+    // Without an approved thrower link there is no registration button to show.
+    // Say what is missing rather than leaving the page looking like registration
+    // isn't a thing here at all.
+    const cta = isNotStarted ? registrationCtaLink(id, auth) : undefined;
+    if (cta) registrationTarget.insertAdjacentHTML("beforeend", actionLinkHtml(cta));
+
     if (kasterid !== null && isNotStarted) {
       const myRegistration = (await getMyRegistrationForTournament(id, kasterid)).data;
 
@@ -188,10 +212,6 @@ export async function render(
           void render(container, { id, isAdmin });
         },
       });
-
-      // The hero slot is the primary action; an admin already fills it with
-      // Start stevne, so their own registration button joins the row below.
-      const target = showStartButton ? actionButtons : actionSlot;
 
       // Registered players confirm their own attendance from here; the button
       // itself stays locked until two hours before start.
@@ -207,9 +227,9 @@ export async function render(
         const row = document.createElement("div");
         row.className = "oppmote-row";
         row.append(attendance.element, registrationButton);
-        target.appendChild(row);
+        registrationTarget.appendChild(row);
       } else {
-        target.appendChild(registrationButton);
+        registrationTarget.appendChild(registrationButton);
       }
     }
 

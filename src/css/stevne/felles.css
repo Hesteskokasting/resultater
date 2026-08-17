@@ -216,6 +216,24 @@
   width: auto;
 }
 
+/* ── Start-blokkering (stevne info page) ── */
+
+/* One flex item in .stevne-hero__handling, stacking the disabled Start stevne
+   button over the reason it is disabled — same shape as .oppmote-row above. */
+.stevne-start-boks {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.stevne-start-hindring {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--tekst-2);
+}
+
 /* Eliminated standing row: solid under the position cell, then fading from the
    first pixel of the name cell all the way to the points columns. */
 .final-elim-position {
