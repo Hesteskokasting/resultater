@@ -49,7 +49,6 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 import {
   getInitialRoundMatches,
   hasMatchRounds,
-  updateMatchPlayerScoreFast,
   confirmMatch as confirmMatchService,
   toConfirmSide,
   subscribeToMatchChanges,
@@ -257,8 +256,6 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
     positionMap: Record<number, number>,
   ): void {
     const [side1, side2] = getMatchSides(kamp.spelarar, startNumberMap, positionMap);
-    const p1 = side1?.rep ?? null;
-    const p2 = side2?.rep ?? null;
     const playerIds = [...(side1?.members ?? []), ...(side2?.members ?? [])].map((m) => m.id);
 
     const onScoreClick = async () => {
@@ -273,16 +270,11 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
         playerIds,
         hasRounds,
         logPrefix: variant.logPrefix,
-        onSave: async (newS1, newS2) => {
-          await Promise.all([
-            p1 ? updateMatchPlayerScoreFast(p1.id, newS1) : Promise.resolve({ error: null }),
-            p2 ? updateMatchPlayerScoreFast(p2.id, newS2) : Promise.resolve({ error: null }),
-            ...(kamp.er_bekreftet ? [unconfirmMatch(kamp.id)] : []),
-          ]);
-          return null;
-        },
+        // The scores go in with the confirm below — writing them here first would
+        // only have them read back and rewritten.
+        onSave: async () => (kamp.er_bekreftet ? unconfirmMatch(kamp.id) : null),
         // Entering a score is the confirmation — there is no separate Bekreft step.
-        onSaved: async () => {
+        onSaved: async (newS1, newS2) => {
           const ok = await confirmMatch(
             container,
             stevneid,
@@ -290,6 +282,7 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
             startNumberMap,
             hcpMap,
             positionMap,
+            [newS1, newS2],
           );
           if (!ok) await loadAndRender(container, stevneid);
         },
@@ -361,6 +354,8 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
     startNumberMap: Record<number, number>,
     hcpMap: Record<number, number> = {},
     positionMap: Record<number, number> = {},
+    /** Side totals just entered on the numberpad; omitted = use the stored score. */
+    enteredScores?: [number, number],
   ): Promise<boolean> {
     const [side1, side2] = getMatchSides(kamp.spelarar, startNumberMap, positionMap);
     const p1 = side1?.rep ?? null;
@@ -370,7 +365,7 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
 
     const { error } = await confirmMatchService({
       kampId: kamp.id,
-      sides: [toConfirmSide(side1), toConfirmSide(side2)],
+      sides: [toConfirmSide(side1, enteredScores?.[0]), toConfirmSide(side2, enteredScores?.[1])],
       hcp: [hcp1, hcp2],
       erWalkover: kamp.er_walkover,
       outcome: { type: "innledende" },

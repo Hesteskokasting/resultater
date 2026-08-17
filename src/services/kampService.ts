@@ -276,20 +276,22 @@ type MatchPlayerUpdateValues = { score_poeng: number; kamp_poeng: number; antall
 /**
  * One match side at confirmation. playerIds are kamp_spelar ids ordered by
  * posisjon (rep first): 1 for Singel, 2 for Par/Mix. baseScore is the directly
- * entered side total, used when the match has no omgang rows. kasterid is the
- * rep's, needed only when the losing side has to be reported to the RPC.
+ * entered side total, used when the match has no omgang rows — leave it out and
+ * the confirm reads the stored score instead. kasterid is the rep's, needed only
+ * when the losing side has to be reported to the RPC.
  */
-export type MatchSideConfirm = { playerIds: number[]; baseScore: number; kasterid?: number };
+export type MatchSideConfirm = { playerIds: number[]; baseScore?: number; kasterid?: number };
 
 /** A grouped match side as the confirm needs it: members by posisjon, rep first. */
-export function toConfirmSide<
-  T extends { id: number; kasterid: number; score_poeng?: number | null },
->(side: MatchSide<T> | null | undefined): MatchSideConfirm | null {
+export function toConfirmSide<T extends { id: number; kasterid: number }>(
+  side: MatchSide<T> | null | undefined,
+  baseScore?: number,
+): MatchSideConfirm | null {
   if (!side) return null;
   return {
     playerIds: side.members.map((m) => m.id),
     kasterid: side.rep.kasterid,
-    baseScore: side.members.reduce((sum, m) => sum + (m.score_poeng ?? 0), 0),
+    ...(baseScore != null ? { baseScore } : {}),
   };
 }
 
@@ -356,9 +358,9 @@ export function buildMatchPlayerUpdates(params: {
     // Quick-score fallback: the directly-entered side total lives on the rep row
     sides.forEach((side, i) => {
       if (!side) return;
-      totals[i] = side.baseScore;
+      totals[i] = side.baseScore ?? 0;
       const rep = repOf(i);
-      if (rep != null) updates.get(rep)!.score_poeng = side.baseScore;
+      if (rep != null) updates.get(rep)!.score_poeng = side.baseScore ?? 0;
     });
   }
 
@@ -420,15 +422,15 @@ async function _persistMatchScores(params: {
     }
     roundData = fetched ?? [];
 
-    if (!roundData.length) {
-      // Re-read the stored scores — a baseScore captured at render time may be stale
+    // Sides that carry no baseScore of their own keep whatever is stored
+    if (!roundData.length && sides.some((side) => side && side.baseScore == null)) {
       const { data: fresh } = await supabase
         .from("kamp_spelar")
         .select("id, score_poeng")
         .in("id", allIds);
       const scoreById = new Map((fresh ?? []).map((s) => [s.id, s.score_poeng ?? 0]));
       resolvedSides = sides.map((side) => {
-        if (!side) return null;
+        if (!side || side.baseScore != null) return side;
         const known = side.playerIds.filter((id) => scoreById.has(id));
         if (!known.length) return side;
         return { ...side, baseScore: known.reduce((sum, id) => sum + scoreById.get(id)!, 0) };

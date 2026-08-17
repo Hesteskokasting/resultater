@@ -17,10 +17,8 @@ import { showToast } from "@/components/Toast";
 import { confirmDialog } from "@/components/ConfirmDialog";
 import { type FinalMatchRow } from "@/services/kampService";
 import {
-  fetchCupSideTotals,
   rescoreCupMatch,
   settleCupMatch,
-  writeCupSideScores,
   CUP_TIE_MESSAGE,
   type CupRescoreStep,
   type FinalMatchPlayerKnown,
@@ -489,9 +487,11 @@ function bindMatchEventsLocal(
         hasRounds: kamp.spelarar.some((s) => (s.omgangar?.length ?? 0) > 0),
         logPrefix: "cup",
         validate: noTie,
-        onSave: (newS1, newS2) => writeCupSideScores(side1, side2, newS1, newS2),
-        onSaved: async () => {
-          if (!(await confirmCupMatch2Sides(stevneid, kamp, sides, reload))) await reload();
+        // The confirm writes the scores; a separate write here would only be read back.
+        onSave: async () => null,
+        onSaved: async (newS1, newS2) => {
+          if (!(await confirmCupMatch2Sides(stevneid, kamp, sides, newS1, newS2, reload)))
+            await reload();
         },
       });
     };
@@ -544,10 +544,10 @@ async function confirmCupMatch2Sides(
   stevneid: number,
   kamp: FinalMatchRow,
   sides: MatchSide<FinalMatchPlayerKnown>[],
+  s1: number,
+  s2: number,
   reload: () => Promise<void>,
 ): Promise<boolean> {
-  const { s1, s2 } = await fetchCupSideTotals(kamp.id, sides[0] ?? null, sides[1] ?? null);
-
   // A draw — 0–0 included — is refused by settleCupMatch, so the message it
   // returns is what the arrangør needs to see here.
   const { error } = await settleCupMatch({ stevneId: stevneid, kamp, sides, s1, s2 });
