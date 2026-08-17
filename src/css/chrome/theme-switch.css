@@ -1,0 +1,60 @@
+/* Theme toggle in the header — rendered by index.html. */
+
+.theme-switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 44px;
+  height: 24px;
+  border: 1px solid var(--kant-2);
+  border-radius: 12px;
+  background: var(--flate-2);
+  cursor: pointer;
+  padding: 0;
+}
+
+.theme-switch:hover {
+  border-color: var(--tekst-3);
+}
+
+.theme-switch__thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--bg);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  color: var(--tekst-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: translateX(20px);
+  transition: transform 0.2s ease;
+}
+
+.theme-switch:hover .theme-switch__thumb {
+  color: var(--tekst);
+}
+
+/* Dark (default): thumb right with moon */
+.theme-switch__icon--sun {
+  display: none;
+}
+
+/* Light: thumb left with sun */
+[data-theme="light"] .theme-switch__thumb {
+  transform: translateX(0);
+}
+[data-theme="light"] .theme-switch__icon--sun {
+  display: block;
+}
+[data-theme="light"] .theme-switch__icon--moon {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-switch__thumb {
+    transition: none;
+  }
+}

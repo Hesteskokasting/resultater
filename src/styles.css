@@ -8,7 +8,9 @@
 
 @import "./css/base.css";
 @import "./css/elements.css";
+@import "./css/components/toast.css";
 @import "./css/chrome/header.css";
+@import "./css/chrome/theme-switch.css";
 @import "./css/chrome/pull-to-refresh.css";
 @import "./css/components/search-input.css";
 @import "./css/pages/terminliste.css";

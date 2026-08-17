@@ -1,5 +1,20 @@
 /* Rendered by admin/_adminUi.ts, admin/admin.ts, admin/panels/klubbtilgang.ts and 14 more. */
 
+/* Generelle input/select i mørk modus */
+
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea {
+  background: var(--input-bg);
+  color: var(--tekst);
+}
+
+input:not([type="checkbox"]):not([type="radio"]):focus,
+select:focus,
+textarea:focus {
+  outline-color: var(--lenke);
+}
+
 /* ── Elements ──────────────────────────────────────────────────────────────
    Generic primitives: buttons, inputs, links, hints. Nothing here knows which
    page renders it. Imported early so page and component CSS can override it.

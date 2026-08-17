@@ -1,3 +1,10 @@
+body {
+  background: var(--bg);
+  color: var(--tekst);
+  /* No double-tap zoom on iOS; pinch-zoom and panning stay intact. */
+  touch-action: manipulation;
+}
+
 /* Shared foundation — no single owner. */
 
 /* Bootstrap 5 reboot håndterer box-sizing, margin/padding-reset og body-basisstiler */
