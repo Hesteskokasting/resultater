@@ -3,6 +3,7 @@ import { render as renderHome } from "./pages/home";
 import { getUser, initAuthListener, isAdmin, isClubAdmin, signOut } from "./services/authService";
 import { createErrorBanner } from "@/components/states";
 import { showReauthModal } from "./components/ReauthModal";
+import { maybeShowWelcomeDialog } from "./components/WelcomeDialog";
 import { setPageTitle } from "@/utils/pageTitle";
 import {
   hasRefetch,
@@ -332,6 +333,7 @@ document.addEventListener("DOMContentLoaded", () => {
   void updateAuthMenu();
   void navigate();
   void initPushNotifications();
+  void maybeShowWelcomeDialog();
 });
 
 document.addEventListener("authStateChanged", (e) => {

@@ -32,7 +32,7 @@ function pendingHtml(): string {
   return `
     <div class="alert alert-info mb-4">
       <p class="mb-1">Koblingforespørselen din<span id="pending-name"></span> ventar på godkjenning frå ein administrator.</p>
-      <p class="mb-1 small">Mens du ventar kan du klikke deg inn dei forskjellige sidene for å gjere deg kjent med det nye systemet.</a>.</p>
+      <p class="mb-1 small">Mens du ventar kan du klikke deg inn på dei forskjellige sidene for å gjere deg kjent med det nye systemet.</p>
       <p class="mb-0 small">Feil kobling? Send e-post til <a href="mailto:kontakt@hesteskokasting.no">kontakt@hesteskokasting.no</a></p>
     </div>`;
 }
