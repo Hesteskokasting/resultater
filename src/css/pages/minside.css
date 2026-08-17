@@ -134,3 +134,28 @@
     padding: 5px 8px;
   }
 }
+/* Linked login accounts table (min side -> konto).
+   The email is one unbreakable token; without `anywhere` it dictates the
+   table's min-content width and pushes it past the viewport on mobile. */
+.linked-accounts-table {
+  width: 100%;
+}
+
+.linked-accounts-table__email {
+  overflow-wrap: anywhere;
+}
+
+.linked-accounts-table__date {
+  white-space: nowrap;
+}
+
+.linked-accounts-table__actions .btn {
+  white-space: nowrap;
+  margin-block: 2px;
+}
+
+/* Dialog messages interpolate user data (e-mail, names); wrap tokens that
+   would otherwise overflow the narrow modal-sm body. */
+.modal-body {
+  overflow-wrap: anywhere;
+}

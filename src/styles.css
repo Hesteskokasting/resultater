@@ -38,9 +38,14 @@
 @import "./css/admin/form-widths.css";
 @import "./css/components/skeleton.css";
 @import "./css/stevne/stats.css";
+
+/* Must stay after pages/terminliste.css — that page overrides .stevne-kort. */
+@import "./css/components/stevne-kort.css";
+
 @import "./css/admin/dashboard.css";
 @import "./css/admin/entity.css";
 
 @import "./css/components/search-select.css";
+@import "./css/components/stevne-hero.css";
 
 @import "./css/print.css";
