@@ -27,12 +27,10 @@
   --input-bg: #1c1f2a;
   --feil: #ff6b6b;
   --match-eliminated-bg: color-mix(in srgb, #ff6b6b 22%, var(--flate));
-  /* Cup match card. The rails are the saturated accent; the row and score fills
-     stay mixed well down toward --flate so --tekst keeps its contrast on them. */
+  /* Cup match card. The rails are the saturated accent; the score fills stay
+     mixed well down toward --flate so --tekst keeps its contrast on them. */
   --cup-rail-vinnar: #4caf50;
   --cup-rail-tapar: #ff6b6b;
-  --cup-flate-vinnar: color-mix(in srgb, #4caf50 11%, var(--flate));
-  --cup-flate-tapar: color-mix(in srgb, #ff6b6b 11%, var(--flate));
   --cup-score-vinnar: color-mix(in srgb, #4caf50 26%, var(--flate));
   --cup-score-tapar: color-mix(in srgb, #ff6b6b 26%, var(--flate));
   /* Darkest end of the name gradient, at the rail. */
@@ -90,8 +88,6 @@
 
   /* Intentionally fixed in both themes */
   --live-prikk: #e74c3c;
-  --gull: #d4af37;
-  --gull-tekst: #fff;
   --excel-gronn: #217346;
 
   /* Score-nummerpad (kamp, omgang og total) — follows the theme; only the
@@ -123,11 +119,8 @@
   --sb-tekst-subtil: #ccc;
   --sb-tekst-subtil-2: #aaa;
   --sb-positiv: #4cff4c;
-  --sb-negativ: #ff6b6b;
   --sb-knapp-bg: #fff;
   --sb-knapp-tekst: #111;
-  --sb-knapp-dis-bg: #333;
-  --sb-knapp-slett-hover: #c0392b;
   /* Bekreft-knapp — intentionally identical in both themes */
   --sb-bekreft-bg: #1a8f2d;
   --sb-bekreft-hover: #157a24;
@@ -169,8 +162,6 @@
      them is the near-black --tekst. */
   --cup-rail-vinnar: #2e7d32;
   --cup-rail-tapar: #b30000;
-  --cup-flate-vinnar: #e6f5e6;
-  --cup-flate-tapar: #fbe6e6;
   --cup-score-vinnar: #c8f0c8;
   --cup-score-tapar: #f8d0d0;
   --cup-grad-vinnar: #a5d8a5;
@@ -238,10 +229,7 @@
   --sb-tekst-subtil: #222222;
   --sb-tekst-subtil-2: #555555;
   --sb-positiv: #005500;
-  --sb-negativ: #b30000;
   --sb-knapp-bg: #000000;
   --sb-knapp-tekst: #ffffff;
-  --sb-knapp-dis-bg: #cccccc;
-  --sb-knapp-slett-hover: #7a0000;
   --sb-vann-bg: rgba(0, 80, 0, 0.9);
 }
