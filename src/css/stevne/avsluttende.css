@@ -1,0 +1,253 @@
+/* ── Avsluttande fase ── */
+
+.final-group-col {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.final-group-col + .final-group-col {
+  border-left: 1px solid var(--kant);
+  padding-left: 1rem;
+}
+
+.confirm-banner {
+  position: sticky;
+  bottom: 0;
+  padding: 12px 0;
+  background: var(--bg);
+  border-top: 1px solid var(--kant);
+  z-index: 10;
+}
+
+.group-layout {
+  flex-direction: column;
+}
+@media (min-width: 800px) {
+  .group-layout {
+    flex-direction: row;
+  }
+}
+#group-panels .final-group-col {
+  min-width: 400px;
+  max-width: 400px;
+  flex: 1 1 0;
+}
+#group-panels .final-group-col + .final-group-col {
+  border-left: 1px solid var(--kant);
+  border-top: none;
+  padding-left: 1rem;
+  padding-top: 0;
+}
+
+#group-assignment-wrapper .form-check {
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-left: 0;
+}
+#group-assignment-wrapper .form-check .form-check-input {
+  float: none;
+  margin: 0;
+  flex-shrink: 0;
+}
+#group-assignment-wrapper .btn-check:checked + .btn::before {
+  content: "✓ ";
+}
+/* ── Cup / group match card ──
+   Two rows, one per unit: name left, score in a fixed cell right. Every metric
+   here is state-independent on purpose — a confirmed, live and unplayed card
+   must be the same size, so cards in adjacent columns stay on the same line. */
+.cup-card {
+  width: calc(50% - 0.5rem);
+  min-width: 220px;
+}
+.cup-card__header {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  /* Fixed: holds the line whether or not the scoreboard button and live dot
+     are present. */
+  height: 1.5rem;
+  margin-bottom: 0.25rem;
+}
+.cup-card__lane {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--lenke);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+/* Far right, on the live match only. */
+.cup-card__live {
+  margin-left: auto;
+}
+.cup-card__rows {
+  border: 1px solid var(--kant);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.cup-row {
+  display: flex;
+  align-items: stretch;
+  height: 2.25rem;
+  background: var(--flate);
+  /* Transparent until confirmed, so the result rail costs no layout shift. */
+  border-left: 3px solid transparent;
+}
+.cup-row + .cup-row {
+  border-top: 1px solid var(--kant);
+}
+.cup-row__name {
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0 0.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--tekst);
+}
+/* Fixed box: never sized by its own content, never squeezed by a long name. */
+.cup-row__score {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 3rem;
+  width: 3rem;
+  background: var(--cup-score-flate);
+  color: var(--tekst);
+  border-left: 1px solid var(--kant);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+/* Confirmed rows: the name gradient runs dark at the rail to the score cell's own
+   fill at its right edge, so the two cells meet seamlessly. */
+.cup-row--vinnar {
+  border-left-color: var(--cup-rail-vinnar);
+}
+.cup-row--vinnar .cup-row__name {
+  background: linear-gradient(90deg, var(--cup-grad-vinnar) 0%, var(--cup-score-vinnar) 100%);
+  font-weight: 600;
+}
+.cup-row--vinnar .cup-row__score {
+  background: var(--cup-score-vinnar);
+  border-left-color: transparent;
+}
+.cup-row--tapar {
+  border-left-color: var(--cup-rail-tapar);
+}
+.cup-row--tapar .cup-row__name {
+  background: linear-gradient(90deg, var(--cup-grad-tapar) 0%, var(--cup-score-tapar) 100%);
+  color: var(--tekst-2);
+}
+.cup-row--tapar .cup-row__score {
+  background: var(--cup-score-tapar);
+  border-left-color: transparent;
+}
+/* Fixed-width box, so growing the glyphs costs no layout shift. */
+.cup-row__score.score-editable {
+  transition: font-size 0.12s ease;
+}
+.cup-row__score.score-editable:hover {
+  font-size: 1.2em;
+}
+.cup-card__footer {
+  margin-top: 0.25rem;
+  text-align: right;
+}
+.live-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--tekst);
+  border: 1px solid var(--kant-2);
+  border-radius: 6px;
+  padding: 2px 8px;
+}
+@media (max-width: 1199px) {
+  .final-group-col {
+    flex: 0 0 100%;
+  }
+  .final-group-col + .final-group-col {
+    border-left: none;
+    padding-left: 0;
+    border-top: 1px solid var(--kant);
+    padding-top: 0.75rem;
+  }
+}
+@media (max-width: 499px) {
+  .cup-card {
+    width: 100%;
+  }
+}
+/* Eliminated standing row: solid under the position cell, then fading from the
+   first pixel of the name cell all the way to the points columns. */
+.final-elim-position {
+  background: var(--match-eliminated-bg) !important;
+}
+.final-elim-position + td {
+  background: linear-gradient(90deg, var(--match-eliminated-bg) 0%, transparent 100%) !important;
+}
+
+.final-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.final-dialog-card {
+  min-width: 300px;
+  max-width: 420px;
+  width: 90vw;
+}
+
+.final-dialog-card-wide {
+  min-width: 400px;
+  max-width: min(1100px, 90vw);
+  width: 90vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.final-dialog-drag-handle {
+  background: var(--flate);
+  padding: 1rem 1.5rem;
+  border-radius: 0.375rem 0.375rem 0 0;
+  cursor: grab;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.final-dialog-drag-handle:active {
+  cursor: grabbing;
+}
+
+.final-dialog-body {
+  overflow-y: auto;
+  flex: 1 1 auto;
+  padding: 1rem 1.5rem;
+}
+
+.final-dialog-footer {
+  flex-shrink: 0;
+  padding: 0.75rem 1.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.final-player-columns {
+  columns: 3;
+  column-gap: 1.5rem;
+}
+
+.final-player-columns > div {
+  break-inside: avoid;
+}

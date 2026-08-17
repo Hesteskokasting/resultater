@@ -1,0 +1,371 @@
+/* ── Terminliste ── */
+
+.tl-title,
+.nc-main-title {
+  text-align: center;
+  font-size: 1.15rem;
+  font-weight: bold;
+  margin-bottom: 14px;
+}
+
+.tl-filter-row,
+.nc-filter-rad {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tl-filter-row {
+  margin-bottom: 12px;
+}
+
+.tl-select {
+  flex: 1 1 120px;
+  padding: 6px 8px;
+  border: 1px solid var(--kant-2);
+  border-radius: 4px;
+  font-size: 0.85rem;
+  background: var(--input-bg);
+  color: var(--tekst);
+}
+
+/* Live search input (SearchInput component) — capped so it doesn't span the container */
+.search-input {
+  max-width: 300px;
+}
+
+.tl-mobile-row {
+  display: none;
+  gap: 6px;
+  margin-bottom: 12px;
+  align-items: center;
+}
+
+.tl-filter-button,
+.tl-excel-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border: 1px solid var(--primaer);
+  border-radius: 4px;
+  background: var(--input-bg);
+  color: var(--lenke);
+  font-size: 0.85rem;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.tl-filter-button:hover,
+.tl-excel-button:hover {
+  background: var(--primaer-hover);
+}
+
+/* Icon-only, Excel-brand-tinted (the icon reuses .tl-filter-button's border/hover shape). */
+.tl-excel-button {
+  padding: 7px;
+  border-color: var(--excel-gronn);
+  color: var(--excel-gronn);
+}
+
+.tl-count {
+  font-size: 0.8rem;
+  color: var(--tekst-3);
+  margin-bottom: 10px;
+}
+
+/* Bunnark (mobil-filtre) */
+
+.tl-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--flate);
+  border-radius: 12px 12px 0 0;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+  transform: translateY(100%);
+  transition: transform 0.3s ease;
+  z-index: 300;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.tl-sheet.active {
+  transform: translateY(0);
+}
+
+.tl-sheet-content {
+  padding: 20px 16px calc(32px + var(--sa-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tl-sheet-title {
+  font-size: 1rem;
+  font-weight: bold;
+}
+
+.tl-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.85rem;
+}
+
+.tl-label .tl-select {
+  flex: unset;
+  width: 100%;
+}
+
+.tl-sheet-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.tl-reset-button {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid var(--kant-2);
+  border-radius: 4px;
+  background: var(--input-bg);
+  color: var(--tekst);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.tl-apply-button {
+  flex: 2;
+  padding: 10px;
+  border: none;
+  border-radius: 4px;
+  background: var(--primaer);
+  color: var(--primaer-text);
+  font-size: 0.9rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+/* Terminliste tabell (desktop) */
+
+.tl-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.tl-th {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 2px solid var(--primaer);
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+  color: var(--tekst);
+}
+
+.tl-th:last-child {
+  cursor: default;
+}
+
+.tl-th:not(:last-child):hover {
+  background: var(--primaer-hover);
+}
+
+.tl-sort-icon {
+  margin-left: 4px;
+  font-size: 0.7rem;
+  opacity: 0.35;
+}
+
+.tl-sort-icon.active {
+  opacity: 1;
+  color: var(--lenke);
+}
+
+.tl-table tbody .tl-tr:hover {
+  background: var(--primaer-hover);
+}
+
+/* The whole row navigates (JS-driven — see terminliste.ts), so it needs its own
+   pointer affordance and a visible focus ring since there's no <a> to carry one. */
+.tl-tr {
+  cursor: pointer;
+}
+
+.tl-tr:focus-visible {
+  outline: 2px solid var(--primaer);
+  outline-offset: -2px;
+}
+
+.tl-table td {
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--kant);
+  vertical-align: middle;
+}
+
+/* Terminliste — Kommande/Ferdige sections and month grouping within each,
+   shared between the desktop tables and the mobile card list. Kommande and
+   Ferdige are each a standalone table/section, not rows inside one shared
+   table — the heading (title, count, Ferdige's Vis/Skjul toggle) sits above
+   its table, not inside it. */
+
+.tl-section-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 20px 0 8px;
+}
+
+.tl-section-head:first-child {
+  margin-top: 0;
+}
+
+.tl-section-title {
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--tekst);
+}
+
+.tl-section-count-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--primaer-hover);
+  color: var(--lenke);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.tl-toggle-text-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  background: none;
+  border: none;
+  padding: 4px 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--lenke);
+  cursor: pointer;
+}
+
+.tl-toggle-text-btn:hover {
+  text-decoration: underline;
+}
+
+.tl-toggle-icon {
+  font-size: 0.7rem;
+}
+
+/* Month header row — a real divider, not a whisper: bold, uppercase, tinted
+   background. Spec called for a literal #e7ecf3 desktop background, but that's
+   a hardcoded, non-theme-aware color (breaks dark mode); var(--flate-2) is the
+   closest existing theme-aware surface tint, so used instead. */
+.tl-month-row td {
+  padding: 8px 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--tekst);
+  background: var(--flate-2);
+  border-bottom: 1px solid var(--kant);
+}
+
+.tl-month-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin: 0;
+  padding: 8px 2px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--tekst);
+  background: var(--bg);
+  border-bottom: 1px solid var(--kant);
+}
+
+/* Per-month count — plain and muted, not uppercase/bold like the month label itself. */
+.tl-month-count {
+  font-size: 0.7rem;
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--tekst-2);
+}
+
+/* Mobile only: nests one level deeper than .stevne-kort-liste (so the whole
+   Ferdige month-group can be hidden/shown as a unit), so it needs its own
+   flex+gap to give its cards the same spacing as .stevne-kort-liste's direct children. */
+.tl-month-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tl-td-trailing,
+.tl-th-trailing {
+  width: 30px;
+  white-space: nowrap;
+  text-align: right;
+}
+
+/* Merged type+kategori pill (desktop cell) — same visual treatment as the
+   mobile card's .stevne-kort__type-badge: type (the <b>) reads heavier. */
+.tl-type-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--flate-2);
+  color: var(--tekst-2);
+}
+.tl-type-badge b {
+  color: var(--tekst);
+  font-weight: 700;
+}
+
+/* Gold medal — the only NM indicator on the row. */
+.tl-nm-medalje {
+  font-size: 0.9rem;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+/* The single nearest not-yet-started upcoming row — label plus a light tint,
+   findable without reading dates. Hover keeps winning (higher specificity). */
+.tl-nearest-merke {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--primaer);
+  color: var(--primaer-text);
+  vertical-align: middle;
+}
+
+@media (max-width: 600px) {
+  .tl-filter-row {
+    display: none;
+  }
+  .tl-mobile-row {
+    display: flex;
+  }
+  .tl-mobile-row .search-input {
+    flex: 1;
+  }
+}

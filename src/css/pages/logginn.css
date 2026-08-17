@@ -1,0 +1,43 @@
+/* ── Logg inn / Konto ────────────────────────────────────────────────────────── */
+
+.account-container {
+  max-width: 480px;
+}
+
+.google-play-badge img {
+  display: block;
+  width: 150px;
+  max-width: 40vw;
+  height: auto;
+}
+
+.btn-google,
+.btn-apple {
+  background: var(--flate);
+  color: var(--tekst);
+  border: 1px solid var(--kant);
+}
+.btn-google:hover,
+.btn-apple:hover {
+  background: var(--primaer-hover);
+}
+
+.account-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: var(--tekst-3);
+  margin: 1rem 0;
+}
+.account-divider::before,
+.account-divider::after {
+  content: "";
+  flex: 1;
+  border-bottom: 1px solid var(--kant);
+}
+.account-divider::before {
+  margin-right: 0.75rem;
+}
+.account-divider::after {
+  margin-left: 0.75rem;
+}

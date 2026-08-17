@@ -1,0 +1,37 @@
+/* ── Innleiande: SCORE-kolonne ── */
+
+.score-editable {
+  cursor: pointer;
+}
+
+/* Initial round — merged SCORE column */
+th.initial-score-th {
+  background: var(--standing-kp-th) !important;
+  color: #fff !important;
+  border-left: 2px solid var(--standing-kp-th) !important;
+  border-right: 2px solid var(--standing-kp-th) !important;
+}
+.initial-score-cell {
+  font-weight: 600;
+  font-size: 1.05em;
+  background: var(--avsl-score-bg) !important;
+  border-left: 2px solid var(--standing-kp-th) !important;
+  border-right: 2px solid var(--standing-kp-th) !important;
+  vertical-align: middle !important;
+}
+.initial-score-inner {
+  display: inline-grid !important;
+  grid-template-columns: 36px 20px 36px !important;
+  align-items: center;
+}
+.initial-s1 {
+  font-variant-numeric: tabular-nums;
+}
+.initial-sep {
+  text-align: center;
+  font-weight: 400;
+  color: var(--tekst-2);
+}
+.initial-s2 {
+  font-variant-numeric: tabular-nums;
+}

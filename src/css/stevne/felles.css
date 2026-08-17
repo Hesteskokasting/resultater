@@ -1,0 +1,248 @@
+/* ── Stevne felles ── */
+
+#app:has(.stevne-shell) {
+  max-width: none;
+  padding: 0;
+  /* Full-bleed shell, but still clear of the Android nav bar / home indicator */
+  padding-bottom: var(--sa-bottom);
+}
+
+/* Title strip for the tabs that don't own a hero. Page chrome on the ordinary
+   surface — an accent rule carries the identity, not a solid colour band. */
+.stevne-fase-header {
+  background: var(--flate);
+  color: var(--tekst);
+  padding: 0.3rem 1rem;
+  border-left: 3px solid var(--primaer);
+  border-bottom: 1px solid var(--kant);
+  margin-bottom: 0.75rem;
+}
+.stevne-fase-header h5 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+[data-theme="light"] .stevne-fase-header {
+  /* --kant reads heavier on the light surface; soften it to the same
+     perceived weight as in dark. */
+  border-bottom-color: color-mix(in srgb, var(--kant) 45%, var(--flate));
+}
+.stevne-fase-header__title {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  min-width: 0;
+}
+.stevne-fase-header__meta {
+  font-size: 0.8rem;
+  color: var(--tekst-2);
+}
+
+/* Banner overflow menu — every phase action lives behind the ⋯ button, so the
+   banner stays a title strip at any width. */
+.stevne-banner-menu {
+  position: relative;
+  flex: 0 0 auto;
+}
+.stevne-banner-menu__trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  background: var(--flate-2);
+  color: var(--tekst);
+  border: 1px solid var(--kant);
+  border-radius: 8px;
+  font-size: 1.15rem;
+  line-height: 1;
+}
+.stevne-banner-menu__trigger:hover,
+.stevne-banner-menu__trigger[aria-expanded="true"] {
+  background: var(--primaer-hover);
+}
+@media (pointer: coarse) {
+  .stevne-banner-menu__trigger {
+    width: 44px;
+    height: 44px;
+  }
+}
+.stevne-banner-menu__panel {
+  display: flex;
+  flex-direction: column;
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 220px;
+  padding: 4px;
+  background: var(--flate);
+  border: 1px solid var(--kant);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  z-index: 150;
+}
+.stevne-banner-menu__panel[hidden] {
+  display: none;
+}
+[data-theme="light"] .stevne-banner-menu__panel {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+.stevne-banner-menu__item {
+  padding: 0.55rem 0.75rem;
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  color: var(--tekst);
+  font-size: 0.9rem;
+  text-align: left;
+  white-space: nowrap;
+}
+.stevne-banner-menu__item:hover:not(:disabled) {
+  background: var(--primaer-hover);
+}
+.stevne-banner-menu__item:disabled {
+  color: var(--tekst-3);
+}
+.stevne-banner-menu__item--success {
+  color: var(--kamp-stripe-ferdig);
+}
+.stevne-banner-menu__item--warning {
+  color: var(--kamp-stripe-pagaar);
+}
+
+.stevne-max-480 {
+  max-width: 480px;
+}
+/* Kampar / Stilling switch — a segmented control in the theme palette rather
+   than a pair of solid Bootstrap buttons. Spans the content width with no side
+   inset, so the table below lines up with its edges. */
+.stevne-tab-buttons {
+  display: none;
+  width: 100%;
+  background: var(--flate);
+  border: 1px solid var(--kant);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.stevne-tab-btn {
+  flex: 1;
+  min-width: 0;
+  padding: 0.45rem 0.75rem;
+  border: 0;
+  background: transparent;
+  color: var(--tekst-2);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.stevne-tab-btn + .stevne-tab-btn {
+  border-left: 1px solid var(--kant);
+}
+.stevne-tab-btn:hover {
+  color: var(--tekst);
+}
+/* Tinted fill rather than a solid --primaer block: the saturated blue reads far
+   sharper on the light surface than anything else on the page. */
+.stevne-tab-btn[aria-selected="true"] {
+  background: var(--primaer-aktiv);
+  color: var(--tekst);
+}
+.stevne-tab-btn:focus-visible {
+  outline: 2px solid var(--lenke);
+  outline-offset: -2px;
+}
+[data-theme="light"] .stevne-tab-buttons,
+[data-theme="light"] .stevne-tab-btn + .stevne-tab-btn {
+  border-color: color-mix(in srgb, var(--kant) 45%, var(--flate));
+}
+
+.stevne-standing-col {
+  width: 100%;
+  max-width: 500px;
+  flex-shrink: 0;
+}
+
+@media (min-width: 1200px) {
+  .stevne-standing-col {
+    position: sticky;
+    top: 0;
+    max-height: 100vh;
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+  .stevne-standing-col::-webkit-scrollbar {
+    display: none;
+  }
+}
+.stevne-matches-panel {
+  min-width: 0;
+}
+.tournament-nav {
+  font-size: 0.875rem;
+}
+.tournament-nav .nav-link {
+  color: var(--tekst-2);
+}
+.tournament-nav .nav-link:hover,
+.tournament-nav .nav-link:focus {
+  color: var(--tekst);
+}
+.tournament-nav .nav-link.active {
+  color: var(--lenke);
+}
+
+@media (max-width: 1199px) {
+  /* Cancel the px-3 inset #stevne-subpage puts on us, so the switch and the table
+     under it run to the shell edges like the title strip above them. */
+  .stevne-main-content {
+    margin-inline: -1rem;
+  }
+  /* Sits flush under the title strip — the negative top margin cancels the
+     header's own bottom margin, and the shared edge keeps a single border. */
+  .stevne-tab-buttons {
+    display: flex;
+    margin-top: -0.75rem;
+    margin-bottom: 0.75rem;
+    border-top: 0;
+    border-inline: 0;
+    border-radius: 0;
+  }
+  /* Single column below the split layout, so the standing table fills the same
+     width as the switch above it instead of stopping at the sidebar cap. */
+  .stevne-standing-col {
+    width: 100%;
+    max-width: none;
+  }
+  .stevne-main-content .stevne-standing-col {
+    display: none;
+  }
+  .stevne-main-content.stevne-show-standing .stevne-matches-panel {
+    display: none !important;
+  }
+  .stevne-main-content.stevne-show-standing .stevne-standing-col {
+    display: block;
+  }
+}
+
+.standing-player-row {
+  cursor: pointer;
+}
+.standing-player-row:hover td {
+  background-color: var(--primaer-aktiv) !important;
+}
+.standing-active td {
+  background-color: var(--primaer-selektert) !important;
+}
+/* Cut line under the last unit qualifying for group A in the avsluttande fase.
+   Scoped through .match-table so it outranks that table's own cell border. */
+.match-table tbody tr.standing-cutoff > td {
+  border-bottom: 2px solid var(--feil);
+}
+.standing-detail-table {
+  font-size: 0.85em;
+}
+.standing-detail > td {
+  border-top: 2px solid var(--primaer) !important;
+  border-bottom: 2px solid var(--primaer) !important;
+}

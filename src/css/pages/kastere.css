@@ -1,0 +1,154 @@
+/* ── Kastere: liste ── */
+
+.thrower-list-controls {
+  margin-bottom: 12px;
+}
+
+.thrower-checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.88rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.thrower-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 14px;
+  margin: 12px 0;
+}
+
+.thrower-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-decoration: none;
+  border: 1px solid var(--kant-2);
+  border-radius: 6px;
+  padding: 12px 8px 10px;
+  background: var(--flate);
+  transition: box-shadow 0.15s;
+}
+
+.thrower-card:hover {
+  box-shadow: 0 2px 10px rgba(49, 82, 126, 0.3);
+}
+
+.thrower-card img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  background: var(--kant);
+}
+
+.thrower-name {
+  font-size: 0.88rem;
+  color: var(--lenke);
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 2px;
+}
+
+.thrower-club {
+  font-size: 0.78rem;
+  color: var(--tekst-2);
+  text-align: center;
+}
+
+.thrower-pagination {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0;
+  flex-wrap: wrap;
+}
+
+.pag-info {
+  font-size: 0.85rem;
+  color: var(--tekst-2);
+  padding: 0 4px;
+}
+
+/* ── Kastere: detalj ── */
+
+.thrower-tab-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+
+.thrower-tab-button {
+  border: 1px solid var(--primaer);
+  color: var(--lenke);
+  background: var(--flate);
+}
+
+.thrower-tab-button.active {
+  background: var(--primaer);
+  color: var(--primaer-text);
+}
+
+.kd-tab {
+  display: block;
+}
+.kd-hidden {
+  display: none;
+}
+
+.thrower-detail-title {
+  font-size: 1.8rem;
+  font-weight: bold;
+  margin-bottom: 4px;
+  line-height: 1.2;
+}
+
+.thrower-detail-club {
+  font-size: 1.1rem;
+  color: var(--tekst-2);
+  margin-bottom: 12px;
+}
+
+.thrower-chart-wrapper {
+  position: relative;
+  height: 320px;
+}
+
+.thrower-result-info {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.thrower-result-hint {
+  color: var(--tekst-2);
+  font-size: 0.85em;
+}
+
+.thrower-stat-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 32px;
+  align-items: flex-start;
+}
+
+.thrower-previous-clubs {
+  margin-top: 20px;
+}
+
+.thrower-previous-title {
+  color: var(--lenke);
+}
+
+.tl-link {
+  color: var(--lenke);
+  text-decoration: none;
+}
+
+.tl-link:hover {
+  text-decoration: underline;
+}

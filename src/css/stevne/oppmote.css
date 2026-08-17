@@ -1,0 +1,92 @@
+/* ── Oppmøte (self-service attendance, stevne info page) ── */
+
+/* Lives inside .stevne-hero__handling, which is itself a flex row — so this is
+   one flex item that grows, not a nested layout competing with the slot. */
+.oppmote-row {
+  /* Shared by the attendance control and the Meld av button beside it */
+  --oppmote-hoegd: 42px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.oppmote-panel {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.oppmote-row .btn {
+  flex: 0 0 auto;
+  min-height: var(--oppmote-hoegd);
+  padding-inline: 1rem;
+}
+/* The hero slot stretches a lone .btn to fill the row; next to the attendance
+   control that button has to keep its natural width instead. */
+.stevne-hero__handling .oppmote-row .btn {
+  width: auto;
+}
+
+.oppmote-btn {
+  width: 100%;
+  min-height: var(--oppmote-hoegd);
+  /* Matches the radius of the fact tiles directly below it */
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: var(--kamp-stripe-ferdig);
+  color: #fff;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  white-space: nowrap;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+.oppmote-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--kamp-stripe-ferdig) 85%, black);
+}
+/* Locked until the window opens — reads as a placeholder, not a broken button */
+.oppmote-btn-locked,
+.oppmote-btn:disabled {
+  background: var(--flate);
+  border-color: var(--kant);
+  color: var(--tekst-3);
+  cursor: default;
+}
+.oppmote-hint {
+  margin-top: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--tekst-3);
+}
+.oppmote-confirmed {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: var(--oppmote-hoegd);
+  padding: 0.4rem 0.85rem;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--kamp-stripe-ferdig) 45%, transparent);
+  background: color-mix(in srgb, var(--kamp-stripe-ferdig) 14%, transparent);
+}
+.oppmote-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--kamp-stripe-ferdig);
+  color: #fff;
+  font-size: 0.85rem;
+  line-height: 1;
+}
+.oppmote-undo {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--lenke);
+  font-size: 0.9rem;
+}
+.oppmote-undo:hover:not(:disabled) {
+  text-decoration: underline;
+}

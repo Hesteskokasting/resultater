@@ -1,0 +1,77 @@
+/* ── Fremsiden ── */
+
+.homepage,
+.terminliste,
+.res-side,
+.content-page {
+  padding-bottom: 40px;
+}
+
+/* Live tournaments render as StevneCard now (home.ts + admin.ts), same as
+   everywhere else; #live-section just needs its old bottom margin preserved
+   when populated. */
+#live-section:not(:empty) {
+  margin-bottom: 24px;
+}
+
+.live-prikk {
+  position: relative;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--live-prikk);
+  flex-shrink: 0;
+}
+
+.live-prikk::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: rgba(231, 76, 60, 0.5);
+  animation: live-pulse 1.5s ease-out infinite;
+}
+
+@keyframes live-pulse {
+  0% {
+    transform: scale(0.8);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+.homepage-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .homepage-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.homepage-section-title {
+  text-align: center;
+  font-size: 1.05rem;
+  font-weight: bold;
+  margin-bottom: 12px;
+}
+
+.homepage-more-link {
+  display: block;
+  text-align: center;
+  margin-top: 12px;
+  font-size: 0.85rem;
+  color: var(--lenke);
+  text-decoration: none;
+}
+
+.homepage-more-link:hover {
+  text-decoration: underline;
+}

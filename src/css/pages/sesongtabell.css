@@ -1,0 +1,95 @@
+/* ── Season standings (Norgescupen / Norgesranking) ──
+   The result list's own look, with an expandable detail per row. */
+
+.res-meta {
+  font-size: 0.75rem;
+  color: var(--tekst-3);
+}
+
+.rank-table tbody tr.rank-rad--stripe {
+  background: var(--flate-2);
+}
+
+.rank-rad--klikk {
+  cursor: pointer;
+}
+
+.rank-table tbody tr.rank-rad--klikk:hover,
+.rank-table tbody tr.rank-rad--open {
+  background: color-mix(in srgb, var(--primaer) 18%, var(--flate));
+}
+
+.rank-rad--klikk:focus-visible {
+  outline: 2px solid var(--lenke);
+  outline-offset: -2px;
+}
+
+/* The chevron rides along in the figure the row is ranked by. */
+.rank-pil {
+  margin-left: 4px;
+  font-size: 0.7rem;
+  font-weight: normal;
+  color: var(--tekst-2);
+}
+
+.rank-table tbody tr.rank-detalj-rad,
+.rank-table tbody tr.rank-detalj-rad td {
+  background: var(--flate-2);
+  padding: 8px 14px;
+  white-space: normal;
+}
+
+/* Not yet valid: fewer counting stevner than the rules ask for. Held back rather
+   than flagged — the season is unfinished, not wrong. */
+.rank-rad--ugyldig,
+.rank-table tbody tr.rank-rad--ugyldig td,
+.rank-rad--ugyldig .res-navn,
+.rank-rad--ugyldig .res-pl,
+.rank-rad--ugyldig .res-tot-verdi {
+  color: var(--tekst-2);
+  font-weight: normal;
+}
+
+.rank-detalj-boks {
+  flex: 1 1 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--kant);
+  border-radius: 6px;
+}
+
+.rank-detalj-tabell {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+  background: var(--flate);
+}
+
+.rank-detalj-tabell th {
+  background: var(--flate-2);
+  color: var(--tekst-2);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-align: left;
+  padding: 4px 8px;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--kant);
+}
+
+.rank-detalj-tabell td {
+  padding: 4px 8px;
+  color: var(--tekst);
+  border-bottom: 1px solid var(--kant);
+  white-space: nowrap;
+}
+
+.rank-detalj-tabell tr:last-child td {
+  border-bottom: none;
+}
+
+.rank-detalj-tabell .res-tal {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}

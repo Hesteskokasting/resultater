@@ -1,0 +1,436 @@
+/* ── Quick actions ─────────────────────────────────────────────────────── */
+
+.admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border: 1px solid var(--kant);
+  border-radius: 10px;
+  background: var(--flate);
+  color: var(--tekst);
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+
+.admin-action:hover {
+  background: var(--primaer-hover);
+  border-color: var(--kant-2);
+  color: var(--tekst);
+}
+
+.admin-action--primary {
+  border-color: var(--primaer);
+}
+
+.admin-action__icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+/* ── Key figures ───────────────────────────────────────────────────────── */
+
+.admin-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.admin-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  border: 1px solid var(--kant);
+  border-left: 3px solid var(--kant-2);
+  border-radius: 10px;
+  background: var(--flate);
+  color: var(--tekst);
+  text-decoration: none;
+}
+
+a.admin-stat:hover {
+  background: var(--primaer-hover);
+  color: var(--tekst);
+}
+
+.admin-stat--warn {
+  border-left-color: var(--kamp-stripe-pagaar);
+}
+
+.admin-stat--live {
+  border-left-color: var(--live-prikk);
+}
+
+.admin-stat__label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--tekst-2);
+}
+
+.admin-stat__value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.admin-stat__sub {
+  font-size: 0.75rem;
+  color: var(--tekst-2);
+}
+
+.admin-stat--skeleton {
+  min-height: 84px;
+  border-left-color: var(--kant);
+  opacity: 0.55;
+}
+
+/* ── Charts ────────────────────────────────────────────────────────────── */
+
+.admin-charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 12px;
+}
+
+.admin-chart {
+  padding: 14px 16px 16px;
+  border: 1px solid var(--kant);
+  border-radius: 12px;
+  background: var(--flate);
+}
+
+.admin-chart__title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.admin-chart__subtitle {
+  margin: 2px 0 0;
+  font-size: 0.75rem;
+  color: var(--tekst-2);
+}
+
+.admin-chart__canvas {
+  position: relative;
+  height: 220px;
+  margin-top: 12px;
+}
+
+/* Part-to-whole bar. Segments are sized by flex-grow, so the widths are the
+   counts themselves and the browser does the percentage arithmetic. Centred in
+   the 220px plot box the real charts fill. */
+.admin-sharebar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 100%;
+}
+
+.admin-sharebar__seg {
+  height: 28px;
+  border-radius: 4px;
+}
+
+/* Single-series cards leave their legend slot empty — collapse it so it doesn't
+   pad the bottom of those cards. */
+.admin-legend:not(:empty) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin-top: 10px;
+}
+
+.admin-legend__item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 0.8rem;
+}
+
+.admin-legend__swatch {
+  align-self: center;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.admin-legend__label {
+  color: var(--tekst-2);
+}
+
+.admin-legend__value {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-legend__share {
+  color: var(--tekst-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Toolbar ───────────────────────────────────────────────────────────── */
+
+.admin-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.admin-select {
+  width: auto;
+  min-width: 140px;
+}
+
+.admin-count {
+  font-size: 0.8rem;
+  color: var(--tekst-2);
+}
+
+/* Pushes the create button to the far end on wide rows, but lets it fall in
+   line normally once the toolbar wraps. */
+.admin-toolbar__end {
+  margin-left: auto;
+}
+
+.admin-more {
+  display: flex;
+  justify-content: center;
+  margin-top: 12px;
+}
+
+/* ── Rows ──────────────────────────────────────────────────────────────── */
+
+.admin-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.admin-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--kant);
+  border-left: 3px solid var(--kant-2);
+  border-radius: 10px;
+  background: var(--flate);
+}
+
+.admin-row--live {
+  border-left-color: var(--live-prikk);
+}
+
+.admin-row--warn {
+  border-left-color: var(--kamp-stripe-pagaar);
+}
+
+.admin-row--ok {
+  border-left-color: var(--kamp-stripe-ferdig);
+}
+
+.admin-row__lead {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  flex: 0 0 auto;
+}
+
+.admin-row__lead-top {
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--tekst-2);
+}
+
+.admin-row__lead-bottom {
+  font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.admin-row__main {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.admin-row__title-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.admin-row__title {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.admin-row__meta {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.78rem;
+  color: var(--tekst-2);
+  overflow-wrap: anywhere;
+}
+
+.admin-row__control {
+  flex: 0 0 auto;
+}
+
+.admin-row__control .admin-select {
+  min-width: 130px;
+}
+
+.admin-row__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-left: auto;
+}
+
+/* ── Badges & chips ────────────────────────────────────────────────────── */
+
+.admin-badge {
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  white-space: nowrap;
+  background: var(--flate-2);
+  color: var(--tekst-2);
+}
+
+.admin-badge--ok {
+  background: color-mix(in srgb, var(--kamp-stripe-ferdig) 20%, var(--flate));
+  color: var(--tekst);
+}
+
+.admin-badge--warn {
+  background: color-mix(in srgb, var(--kamp-stripe-pagaar) 24%, var(--flate));
+  color: var(--tekst);
+}
+
+.admin-badge--danger {
+  background: color-mix(in srgb, var(--feil) 20%, var(--flate));
+  color: var(--tekst);
+}
+
+.admin-badge--live {
+  background: color-mix(in srgb, var(--live-prikk) 20%, var(--flate));
+  color: var(--tekst);
+}
+
+/* ── Klubbadmin access cards ───────────────────────────────────────────── */
+
+.admin-access-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.admin-access-card {
+  padding: 12px 14px;
+  border: 1px solid var(--kant);
+  border-radius: 10px;
+  background: var(--flate);
+}
+
+.admin-access-card__title {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.admin-access-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.admin-access-empty {
+  font-size: 0.8rem;
+  color: var(--tekst-3);
+}
+
+.admin-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 6px 3px 10px;
+  border-radius: 999px;
+  background: var(--primaer);
+  color: var(--primaer-text);
+  font-size: 0.78rem;
+}
+
+.admin-chip__remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  color: inherit;
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+.admin-chip__remove:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.admin-access-add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+@media (max-width: 575px) {
+  .admin-head__title {
+    font-size: 1.5rem;
+  }
+
+  .admin-stats {
+    grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  }
+
+  .admin-chart {
+    padding: 12px;
+  }
+
+  /* Actions drop to their own full line under the title on narrow rows. */
+  .admin-row__actions {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .admin-row__control {
+    flex: 1 1 100%;
+  }
+
+  .admin-row__control .admin-select {
+    width: 100%;
+  }
+}
