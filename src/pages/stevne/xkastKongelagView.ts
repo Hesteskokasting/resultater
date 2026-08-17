@@ -577,10 +577,12 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
     const standing = computeStanding();
     if (!standing.length) return "";
 
-    // With carry-over: X = innleiande carry-over, K = kongelag poeng,
-    // R = ringar, TOT = X + K
+    // With carry-over: the carry-over column is named after the innleiande
+    // metode — X for X-kast, KP for kamp-based (Gloppen/NHM) — then
+    // K = kongelag poeng, R = ringar, TOT = carry-over + K
+    const carryLabel = s.carryOver?.isXkast ? "X" : "KP";
     const scoreHeaders = s.carryOver
-      ? `<th class="th-44 standing-number table-summary-start">X</th>
+      ? `<th class="th-44 standing-number table-summary-start">${carryLabel}</th>
             <th class="th-44 standing-number">K</th>
             <th class="th-44 standing-number standing-kp-th">R</th>
             <th class="th-50 standing-number standing-sp-th">TOT</th>`
