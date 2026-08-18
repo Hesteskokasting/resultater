@@ -109,9 +109,17 @@
   cursor: default;
 }
 
+/* A green fill alone is weak next to the unselected keys — light theme paints
+   those solid black, which reads close to the dark green. The halo (a gap in the
+   panel colour, then a ring in the selection colour) separates the chosen key on
+   both themes. box-shadow, not border/outline, so the fixed key size and the
+   squeezed landscape row are untouched. */
 .sb-poeng-btn.sb-valgt {
   background: var(--sb-positiv);
   color: var(--sb-knapp-tekst);
+  box-shadow:
+    0 0 0 2px var(--sb-bg),
+    0 0 0 4px var(--sb-positiv);
 }
 
 /* ── Angre-rad (under spelar-panel, over botn-knapp) ── */
