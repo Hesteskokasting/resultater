@@ -1,10 +1,10 @@
 /**
- * The scoreboard page's confirm wiring: what the Bekreft kamp button hands to
- * confirmMatch. The service's own payload is covered in confirmMatchPayload,
- * and the score maths in buildKampSpelarUpdates — this is the layer in between,
- * where the sides are grouped by startnummer and handed over. It had no
- * coverage when a bare `.map(toConfirmSide)` started passing the array index as
- * the side total.
+ * The scoreboard page's write wiring: what the Bekreft kamp button hands to
+ * confirmMatch, and what the Angre button deletes. The service's own payload is
+ * covered in confirmMatchPayload, and the score maths in buildKampSpelarUpdates
+ * — this is the layer in between, where the sides are grouped by startnummer and
+ * handed over. It had no coverage when a bare `.map(toConfirmSide)` started
+ * passing the array index as the side total.
  */
 
 const mocks = vi.hoisted(() => ({
@@ -19,7 +19,8 @@ const mocks = vi.hoisted(() => ({
   subscribeToScoreboardChanges: vi.fn(),
   subscribeToNextMatch: vi.fn(),
   saveMatchRound: vi.fn(),
-  updateMatchRound: vi.fn(),
+  deleteMatchRounds: vi.fn(),
+  confirmDialog: vi.fn(),
 }));
 
 vi.mock("@/supabase", () => ({
@@ -32,6 +33,7 @@ vi.mock("@/services/kampService", async (importOriginal) => {
   return { ...actual, ...mocks };
 });
 vi.mock("@/utils/realtime", () => ({ unsubscribeChannel: vi.fn() }));
+vi.mock("@/components/ConfirmDialog", () => ({ confirmDialog: mocks.confirmDialog }));
 vi.mock("@/components/Toast", () => ({ showToast: vi.fn() }));
 vi.mock("@/utils/logError", () => ({ logError: vi.fn() }));
 
@@ -125,6 +127,8 @@ beforeEach(() => {
   mocks.getNextMatchForParticipant.mockResolvedValue({ data: null });
   mocks.subscribeToScoreboardChanges.mockReturnValue({});
   mocks.subscribeToNextMatch.mockReturnValue({});
+  mocks.deleteMatchRounds.mockResolvedValue({ error: null });
+  mocks.confirmDialog.mockResolvedValue(true);
 });
 
 describe("kamp page — confirming from the scoreboard", () => {
@@ -223,5 +227,60 @@ describe("kamp page — confirming from the scoreboard", () => {
     await renderPage();
 
     expect(document.querySelector(".sb-neste-btn--bekreft")).toBeNull();
+  });
+});
+
+describe("kamp page — undoing the last omgang", () => {
+  const clickUndo = (): void => {
+    const btn = document.querySelector<HTMLElement>(".sb-angre-btn");
+    expect(btn, "Angre button").not.toBeNull();
+    btn!.click();
+  };
+
+  it("deletes only the last omgang, for every side", async () => {
+    await renderPage();
+    clickUndo();
+    await flush();
+
+    expect(mocks.deleteMatchRounds).toHaveBeenCalledWith([P1.id, P2.id], 4);
+  });
+
+  it("names the round and its scores in the confirm, so the wrong one is not thrown away", async () => {
+    await renderPage();
+    clickUndo();
+    await flush();
+
+    const props = mocks.confirmDialog.mock.calls[0]![0];
+    expect(props.title).toContain("4");
+    expect(props.message).toContain("6 – 0");
+  });
+
+  it("deletes nothing when the confirm is declined", async () => {
+    mocks.confirmDialog.mockResolvedValue(false);
+
+    await renderPage();
+    clickUndo();
+    await flush();
+
+    expect(mocks.deleteMatchRounds).not.toHaveBeenCalled();
+  });
+
+  it("re-reads the rounds after the delete, so the board falls back a round", async () => {
+    await renderPage();
+    mocks.getMatchRounds.mockResolvedValue({ data: rounds().slice(0, 6), error: null });
+    clickUndo();
+    await flush();
+
+    // 22-9 minus the undone 6-0 leaves 16-9 — undecided, so the confirm is gone
+    expect(document.querySelector(".sb-neste-btn--bekreft")).toBeNull();
+    expect(container().querySelector(".sb-neste-btn")?.textContent).toBe("Neste omgang");
+  });
+
+  it("offers no undo to a viewer who is neither organizer nor participant", async () => {
+    mocks.getUser.mockResolvedValue({ profil: { kasterid: 999, role: "bruker" } });
+
+    await renderPage();
+
+    expect(document.querySelector(".sb-angre-btn")).toBeNull();
   });
 });

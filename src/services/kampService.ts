@@ -98,11 +98,14 @@ export async function getInitialRoundMatches(
   return { data: data ?? [], error };
 }
 
-export async function deleteMatchRounds(spelarIds: number[]): Promise<{ error: unknown }> {
+/** Deletes every omgang for the given sides, or just one round when `omgang` is set. */
+export async function deleteMatchRounds(
+  spelarIds: number[],
+  omgang?: number,
+): Promise<{ error: unknown }> {
   if (!spelarIds.length) return { error: null };
-  const { error } = await supabase.from("kamp_omgang").delete().in("kamp_spelar_id", spelarIds);
-  if (error) logError("deleteMatchRounds", error);
-  return { error };
+  const query = supabase.from("kamp_omgang").delete().in("kamp_spelar_id", spelarIds);
+  return _runWithTimeout("deleteMatchRounds", omgang == null ? query : query.eq("omgang", omgang));
 }
 
 export async function updateMatchPlayerScoreFast(
@@ -848,29 +851,6 @@ export async function saveMatchRound(
 ): Promise<{ error: unknown }> {
   if (!inserts.length) return { error: null };
   return _runWithTimeout("saveMatchRound", supabase.from("kamp_omgang").insert(inserts));
-}
-
-export async function updateMatchRound(
-  rows: { kamp_spelar_id: number; omgang: number; score: number; antall_ringer: number }[],
-): Promise<{ error: unknown }> {
-  if (!rows.length) return { error: null };
-  try {
-    const results = await Promise.all(
-      rows.map((r) =>
-        supabase
-          .from("kamp_omgang")
-          .update({ score: r.score, antall_ringer: r.antall_ringer })
-          .eq("kamp_spelar_id", r.kamp_spelar_id)
-          .eq("omgang", r.omgang),
-      ),
-    );
-    const err = results.find((r) => r.error)?.error ?? null;
-    if (err) logError("updateMatchRound", err);
-    return { error: err };
-  } catch (e) {
-    logError("updateMatchRound", e);
-    return { error: e };
-  }
 }
 
 // ── Realtime ──────────────────────────────────────────────────────────────────
