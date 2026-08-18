@@ -85,7 +85,7 @@ export function createPrinterBanner(props: Props): PrinterBanner {
     const roundMap = new Map(
       [...groupBy(matchesRes.data, (k) => k.runde_nummer)].map(([runde, kampar]) => [
         runde,
-        kampar.map(toPrintMatch),
+        kampar.map((k) => toPrintMatch(k)),
       ]),
     );
 

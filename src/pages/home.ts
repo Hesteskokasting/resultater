@@ -126,12 +126,12 @@ export async function render(container: HTMLElement): Promise<void> {
     // Update sections in-place to avoid layout shift
     if (live.length) {
       const liveSection = container.querySelector<HTMLElement>("#live-section")!;
-      liveSection.replaceChildren(cardList(live.map(liveCard)));
+      liveSection.replaceChildren(cardList(live.map((s) => liveCard(s))));
     }
 
     container
       .querySelector<HTMLElement>("#results-content")!
-      .replaceWith(cardList(r1.map(resultCard)));
+      .replaceWith(cardList(r1.map((s) => resultCard(s))));
 
     const upcomingSection = container.querySelector<HTMLElement>(".homepage-upcoming")!;
     container

@@ -102,7 +102,7 @@ async function renderList(container: HTMLElement): Promise<void> {
       const pagHtml = paginationHtml(filterList.page, totalPages);
       pagTop.innerHTML = pagHtml;
       pagBottom.innerHTML = pagHtml;
-      grid.innerHTML = pageSlice.map(throwerCardHtml).join("");
+      grid.innerHTML = pageSlice.map((k) => throwerCardHtml(k)).join("");
     }
 
     createSearchInput({

@@ -103,7 +103,7 @@ describe("oversikt dashboard", () => {
     const label = (a: HTMLElement) => a.querySelector(".admin-action__label")?.textContent;
 
     const create = actions.filter((a) => a instanceof HTMLButtonElement);
-    expect(create.map(label)).toEqual(["Nytt stevne", "Ny utøvar", "Ny klubb"]);
+    expect(create.map((i) => label(i))).toEqual(["Nytt stevne", "Ny utøvar", "Ny klubb"]);
 
     const links = actions.filter((a): a is HTMLAnchorElement => a instanceof HTMLAnchorElement);
     expect(links.map((a) => a.getAttribute("href"))).toEqual([

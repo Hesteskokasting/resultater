@@ -130,7 +130,7 @@ function radFor(pair: ResultRow[]): ResultatRad {
   return {
     pl: rep.plassering,
     namn: pair.map((r) => throwerName(r.kaster) || "–").join(" og "),
-    namnHtml: pair.map(throwerLinkHtml).join(" og "),
+    namnHtml: pair.map((r) => throwerLinkHtml(r)).join(" og "),
     klubb: pairClubDisplay(pair),
     poengInnl: rep.poeng_xkast,
     ringInnl: rep.antall_ring_xkast,
@@ -145,7 +145,9 @@ function radFor(pair: ResultRow[]): ResultatRad {
 }
 
 function radarFor(group: GroupEntry, isParMix: boolean): ResultatRad[] {
-  return isParMix ? groupPairsByStart(group.rows).map(radFor) : group.rows.map((r) => radFor([r]));
+  return isParMix
+    ? groupPairsByStart(group.rows).map((p) => radFor(p))
+    : group.rows.map((r) => radFor([r]));
 }
 
 // ── Render ────────────────────────────────────────────────────────────────────

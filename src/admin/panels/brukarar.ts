@@ -187,7 +187,9 @@ export async function render(el: HTMLElement): Promise<void> {
 
     countEl.textContent = `${rows.length} av ${data.length} brukarar`;
     listSlot.replaceChildren(
-      rows.length ? createAdminList(rows.map(buildItem)) : createEmptyState("Ingen treff."),
+      rows.length
+        ? createAdminList(rows.map((r) => buildItem(r)))
+        : createEmptyState("Ingen treff."),
     );
   }
 
