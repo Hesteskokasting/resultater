@@ -95,7 +95,7 @@ export async function settleCupMatch(params: {
 
   return confirmMatch({
     kampId: kamp.id,
-    sides: [toConfirmSide(side1, s1), toConfirmSide(side2, s2)],
+    sides: [toConfirmSide(side1, { baseScore: s1 }), toConfirmSide(side2, { baseScore: s2 })],
     outcome: {
       type: "cup-ranked",
       stevneId,

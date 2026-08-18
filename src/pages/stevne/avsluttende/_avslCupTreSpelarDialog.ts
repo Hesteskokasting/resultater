@@ -80,7 +80,7 @@ export function openThreeSideConfirmDialog(
       modal.remove();
       const { error } = await confirmMatch({
         kampId: kamp.id,
-        sides: sides.map(toConfirmSide),
+        sides: sides.map((s) => toConfirmSide(s)),
         outcome: {
           type: "cup-ranked",
           stevneId: stevneid,

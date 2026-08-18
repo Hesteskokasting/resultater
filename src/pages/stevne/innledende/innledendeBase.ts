@@ -362,7 +362,10 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
 
     const { error } = await confirmMatchService({
       kampId: kamp.id,
-      sides: [toConfirmSide(side1, enteredScores?.[0]), toConfirmSide(side2, enteredScores?.[1])],
+      sides: [
+        toConfirmSide(side1, { baseScore: enteredScores?.[0] }),
+        toConfirmSide(side2, { baseScore: enteredScores?.[1] }),
+      ],
       hcp: [hcp1, hcp2],
       erWalkover: kamp.er_walkover,
       outcome: { type: "innledende" },
