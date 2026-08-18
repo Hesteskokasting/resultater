@@ -273,11 +273,14 @@ type MatchPlayerUpdateValues = { score_poeng: number; kamp_poeng: number; antall
 export type MatchSideConfirm = { playerIds: number[]; baseScore?: number; kasterid?: number };
 
 /** A grouped match side as the confirm needs it: members by posisjon, rep first. */
+// baseScore is passed in an object, not positionally: `sides.map(toConfirmSide)`
+// would otherwise hand the array index over as the side total.
 export function toConfirmSide<T extends { id: number; kasterid: number }>(
   side: MatchSide<T> | null | undefined,
-  baseScore?: number,
+  opts?: { baseScore?: number },
 ): MatchSideConfirm | null {
   if (!side) return null;
+  const { baseScore } = opts ?? {};
   return {
     playerIds: side.members.map((m) => m.id),
     kasterid: side.rep.kasterid,

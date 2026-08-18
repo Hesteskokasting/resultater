@@ -210,7 +210,7 @@ async function confirmMatch(
 ): Promise<void> {
   const { p1Side, p2Side, p3Side, hcp1, hcp2 } = sides;
   const erCup = ctx.match.fase === "avsluttende";
-  const confirmSides = [p1Side, p2Side, ...(p3Side ? [p3Side] : [])].map(toConfirmSide);
+  const confirmSides = [p1Side, p2Side, ...(p3Side ? [p3Side] : [])].map((s) => toConfirmSide(s));
 
   const { error } = await confirmMatchService({
     kampId: ctx.matchId,

@@ -1,5 +1,6 @@
 import {
   buildMatchPlayerUpdates,
+  toConfirmSide,
   type RoundScoreRow,
   type MatchSideConfirm,
 } from "@/services/kampService";
@@ -337,5 +338,22 @@ describe("buildMatchPlayerUpdates — Par/Mix", () => {
     expect(res.updates.get(A2)?.kamp_poeng).toBe(1.5);
     expect(res.updates.get(S1)?.kamp_poeng).toBe(1.5);
     expect(res.updates.get(S1)?.score_poeng).toBe(12);
+  });
+});
+
+describe("toConfirmSide", () => {
+  const side = { rep: { id: P1_ID, kasterid: 7 }, members: [{ id: P1_ID, kasterid: 7 }] };
+
+  it("leaves baseScore out when none is given, also through map", () => {
+    expect(toConfirmSide(side)).not.toHaveProperty("baseScore");
+    // A bare `.map(toConfirmSide)` used to pass the array index as the side total
+    expect([side, side].map((s) => toConfirmSide(s))).toEqual([
+      toConfirmSide(side),
+      toConfirmSide(side),
+    ]);
+  });
+
+  it("keeps an explicit baseScore", () => {
+    expect(toConfirmSide(side, { baseScore: 21 })?.baseScore).toBe(21);
   });
 });

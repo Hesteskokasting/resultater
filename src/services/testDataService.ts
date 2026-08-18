@@ -178,7 +178,7 @@ export async function autoCompleteFinalMatches(stevneid: number): Promise<void> 
     const eliminated = ranked[ranked.length - 1]!;
     const { error: confirmErr } = await confirmMatch({
       kampId: kamp.id,
-      sides: sides.map(toConfirmSide),
+      sides: sides.map((s) => toConfirmSide(s)),
       outcome: {
         type: "cup-ranked",
         stevneId: stevneid,
