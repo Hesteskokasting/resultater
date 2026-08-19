@@ -61,6 +61,10 @@ import { unsubscribeChannel } from "@/utils/realtime";
 import { buildParticipantMaps } from "@/utils/participantMaps";
 import { groupBy } from "@/utils/groupBy";
 import { getResultsForInitialRound, type InitialResultRow } from "@/services/resultatService";
+import { createFlashTracker } from "@/utils/flashTracker";
+
+/** Must match the confirm-flash animation length in css/stevne/innledende.css. */
+const FLASH_MS = 8000;
 
 // ── Variant API ───────────────────────────────────────────────────────────────
 
@@ -96,8 +100,9 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
   let bannerSlot: HTMLElement | null = null;
   let isAdmin = false;
   const standingExpandedIds = new Set<string>();
-  let prevConfirmedIds: Set<number> | null = null;
-  let pendingAnimationIds = new Set<number>();
+  const flashTracker = createFlashTracker(FLASH_MS);
+  /** Which stevne the flash tracker's state belongs to. */
+  let flashStevneid: number | null = null;
   /** kamp_spelar ids in view — scopes the unfiltered kamp_omgang subscription. */
   const ownedSpelarIds = new Set<number>();
   /** The realtime handler's coalesced reload — our own writes queue through it too. */
@@ -138,7 +143,13 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
       const { startNumberMap, hcpMap, positionMap, isTeam } = buildParticipantMaps(resultat);
       const roundMap = groupBy(allMatches, (kamp) => kamp.runde_nummer);
       const standing = buildStanding(allMatches, resultat, startNumberMap, positionMap, isTeam);
-      const idsToFlash = calcFlashIds(allMatches);
+      if (flashStevneid !== stevneid) {
+        flashTracker.reset();
+        flashStevneid = stevneid;
+      }
+      const idsToFlash = flashTracker.pick(
+        allMatches.filter((k) => k.er_bekreftet).map((k) => k.id),
+      );
 
       const allMatchesConfirmed = allMatches.length > 0 && allMatches.every((k) => k.er_bekreftet);
       const canEditMatches = isAdmin && stevne.stevne_fase !== "avsluttende";
@@ -200,18 +211,6 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
       logError(`${variant.logPrefix}.loadAndRender`, err);
       container.replaceChildren(createErrorBanner("Kunne ikkje laste innleiande fase."));
     }
-  }
-
-  /** Tracks confirmed-match ids across renders so the newly-confirmed rows flash once. */
-  function calcFlashIds(allMatches: InitialMatchRow[]): Set<number> {
-    const currentConfirmedIds = new Set(allMatches.filter((k) => k.er_bekreftet).map((k) => k.id));
-    const newlyConfirmedIds = prevConfirmedIds
-      ? new Set([...currentConfirmedIds].filter((id) => !prevConfirmedIds!.has(id)))
-      : new Set<number>();
-    const idsToFlash = new Set([...newlyConfirmedIds, ...pendingAnimationIds]);
-    pendingAnimationIds = new Set(newlyConfirmedIds);
-    prevConfirmedIds = currentConfirmedIds;
-    return idsToFlash;
   }
 
   function setupBanner(ctx: InnledendeContext): void {

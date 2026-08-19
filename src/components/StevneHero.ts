@@ -117,9 +117,9 @@ export function stevneHeroHtml(options: StevneHeroOptions): string {
         ${subtitle.length ? `<p class="stevne-hero__undertittel">${escHtml(subtitle.join(" · "))}</p>` : ""}
       </div>
       <div class="stevne-hero__handling" id="stevne-hero-handling"></div>
-      <div class="stevne-hero__ruter">${facts.map(tileHtml).join("")}</div>
-      ${methods.length ? `<div class="stevne-hero__ruter stevne-hero__ruter--brei">${methods.map(tileHtml).join("")}</div>` : ""}
-      ${details.length ? `<dl class="stevne-hero__detaljar">${details.map(detailHtml).join("")}</dl>` : ""}
+      <div class="stevne-hero__ruter">${facts.map((f) => tileHtml(f)).join("")}</div>
+      ${methods.length ? `<div class="stevne-hero__ruter stevne-hero__ruter--brei">${methods.map((m) => tileHtml(m)).join("")}</div>` : ""}
+      ${details.length ? `<dl class="stevne-hero__detaljar">${details.map((d) => detailHtml(d)).join("")}</dl>` : ""}
     </section>`;
 }
 

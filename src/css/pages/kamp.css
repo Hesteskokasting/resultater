@@ -73,8 +73,8 @@
 .sb-kamp-topbar-høgre {
   display: flex;
   justify-content: flex-end;
-  font-size: 0.85rem;
-  color: var(--sb-tekst-subtil-2);
+  font-size: 0.95rem;
+  color: var(--sb-tekst-subtil);
   white-space: nowrap;
 }
 

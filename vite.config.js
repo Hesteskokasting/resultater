@@ -12,7 +12,12 @@ export default defineConfig({
   lint: {
     ignorePatterns: ["supabase/functions/**", "src/types/database.types.ts"],
     jsPlugins: [{ name: "vite-plus", specifier: "vite-plus/oxlint-plugin" }],
-    rules: { "vite-plus/prefer-vite-plus-imports": "error" },
+    rules: {
+      "vite-plus/prefer-vite-plus-imports": "error",
+      // A bare callback reference gets the array index as its second argument;
+      // that silently became a score total once (see toConfirmSide).
+      "unicorn/no-array-callback-reference": "error",
+    },
     options: { typeAware: true, typeCheck: true },
   },
   test: {

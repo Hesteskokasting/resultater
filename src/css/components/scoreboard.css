@@ -7,11 +7,6 @@
   overflow: hidden;
 }
 
-.sb-wrap--edit-mode {
-  outline: 3px solid var(--danger, #dc3545);
-  outline-offset: -3px;
-}
-
 .sb-spelar-panel {
   flex: 1;
   min-height: 0;
@@ -114,9 +109,17 @@
   cursor: default;
 }
 
+/* A green fill alone is weak next to the unselected keys — light theme paints
+   those solid black, which reads close to the dark green. The halo (a gap in the
+   panel colour, then a ring in the selection colour) separates the chosen key on
+   both themes. box-shadow, not border/outline, so the fixed key size and the
+   squeezed landscape row are untouched. */
 .sb-poeng-btn.sb-valgt {
   background: var(--sb-positiv);
   color: var(--sb-knapp-tekst);
+  box-shadow:
+    0 0 0 2px var(--sb-bg),
+    0 0 0 4px var(--sb-positiv);
 }
 
 /* ── Angre-rad (under spelar-panel, over botn-knapp) ── */
@@ -144,21 +147,6 @@
 .sb-angre-btn:disabled {
   opacity: 0.3;
   cursor: default;
-}
-
-.sb-avbryt-btn {
-  background: transparent;
-  border: 1px solid var(--sb-border-btn);
-  color: var(--sb-tekst);
-  padding: 6px 14px;
-  border-radius: 6px;
-  font-size: clamp(0.85rem, 2.5vw, 1rem);
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.sb-avbryt-btn:hover {
-  opacity: 0.75;
 }
 
 /* ── Botn-knapp (Neste / Bekreft) ── */

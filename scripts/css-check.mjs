@@ -375,7 +375,10 @@ if (against) {
   const after = cascadeSnapshot();
   const beforeSeq = new Map();
   for (const [k, values] of Object.entries(before.seq))
-    beforeSeq.set(applyRenames(k), values.map(applyRenames));
+    beforeSeq.set(
+      applyRenames(k),
+      values.map((v) => applyRenames(v)),
+    );
 
   const diffs = [];
   for (const k of new Set([...beforeSeq.keys(), ...Object.keys(after.seq)])) {

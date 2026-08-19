@@ -58,7 +58,7 @@ async function renderList(container: HTMLElement): Promise<void> {
     function filterAndRender(): void {
       const filtered = filterClubs(allClubs, namesByClub, filterList.searchText);
       grid.innerHTML = filtered.length
-        ? filtered.map(clubCardHtml).join("")
+        ? filtered.map((k) => clubCardHtml(k)).join("")
         : '<p class="empty-state">Ingen klubbar funnet.</p>';
     }
 

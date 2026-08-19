@@ -13,11 +13,15 @@ export function showToast(
   message: string,
   type: "error" | "success" | "info" | "warning" = "info",
   persistent = false,
+  onClick?: () => void,
 ): void {
   const el = document.createElement("div");
   el.className = `toast-item toast-${type}`;
   el.textContent = message;
-  el.addEventListener("click", () => el.remove());
+  el.addEventListener("click", () => {
+    el.remove();
+    onClick?.();
+  });
   getContainer().appendChild(el);
   if (!persistent)
     setTimeout(() => {

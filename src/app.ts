@@ -15,6 +15,7 @@ import { initPushNotifications } from "@/services/pushNotificationService";
 import { initStatusBarThemeSync } from "@/services/statusBarService";
 import { applyKeepAwakeForRoute } from "@/services/keepAwakeService";
 import { initPullToRefresh } from "@/components/PullToRefresh";
+import { initUpdateCheck } from "@/services/updateCheck";
 import type { PageRenderFn, Role, Route } from "@/types";
 
 if (import.meta.env.VITE_ENV === "dev") {
@@ -331,6 +332,8 @@ void App.addListener("resume", runRefetch);
 initPullToRefresh(refreshCurrent);
 
 initStatusBarThemeSync();
+
+initUpdateCheck();
 
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("menyLoggUtKnapp")!.addEventListener("click", async () => {

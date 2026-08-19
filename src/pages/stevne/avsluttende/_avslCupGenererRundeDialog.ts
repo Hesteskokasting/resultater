@@ -86,7 +86,7 @@ export function openGenerateRoundDialog(
       walkoverPlayers.length > 0
         ? `<div class="mb-3">
           <strong class="d-block mb-1">Walkovers (går vidare utan kamp):</strong>
-          ${walkoverPlayers.map(playerHtml).join("")}
+          ${walkoverPlayers.map((r) => playerHtml(r)).join("")}
         </div>`
         : "";
 
@@ -110,7 +110,7 @@ export function openGenerateRoundDialog(
             <div class="card flex-grow-1">
               <div class="card-body p-2">
                 <strong class="d-block mb-2 small text-uppercase">${escHtml(label)}</strong>
-                ${pool.map(playerHtml).join("")}
+                ${pool.map((r) => playerHtml(r)).join("")}
               </div>
             </div>`,
             )

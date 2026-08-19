@@ -113,7 +113,9 @@ describe("buildCascadeMatchups", () => {
       const N = 10;
       const rounds = buildCascadeMatchups(N, maxCascadeRounds(N) + 1);
       const key = (m: { p1Pos: number; p2Pos: number | null }): string => `${m.p1Pos}-${m.p2Pos}`;
-      expect(new Set(rounds[rounds.length - 1]!.map(key))).toEqual(new Set(rounds[0]!.map(key)));
+      expect(new Set(rounds[rounds.length - 1]!.map((m) => key(m)))).toEqual(
+        new Set(rounds[0]!.map((m) => key(m))),
+      );
     });
   });
 

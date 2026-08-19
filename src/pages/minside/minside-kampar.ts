@@ -207,7 +207,10 @@ async function buildMatchesContent(throwerId: number): Promise<HTMLElement> {
   };
 
   const matchGridHtml = (group: MatchPlayerRow[]): string =>
-    gridHtml(["R / B", "Motstandar", "Resultat", ""], group.map(matchRow));
+    gridHtml(
+      ["R / B", "Motstandar", "Resultat", ""],
+      group.map((ks) => matchRow(ks)),
+    );
 
   /**
    * One labelled grid per fase, whether or not the stevne spans both — a stevne
@@ -284,7 +287,10 @@ async function buildMatchesContent(throwerId: number): Promise<HTMLElement> {
       .map(
         (group) => `
       <p class="match-grid__stevne">${escHtml(`${group[0]?.stevne?.navn ?? ""} – X-kast`)}</p>
-      ${gridHtml(["Bane", "Medspelarar", "Poeng", "R"], group.map(courtRow))}`,
+      ${gridHtml(
+        ["Bane", "Medspelarar", "Poeng", "R"],
+        group.map((c) => courtRow(c)),
+      )}`,
       )
       .join("");
   };

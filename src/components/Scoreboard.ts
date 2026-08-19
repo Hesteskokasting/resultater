@@ -17,11 +17,12 @@ import { createEl } from "@/utils/createEl";
 import {
   getMatchRounds,
   saveMatchRound,
-  updateMatchRound,
+  deleteMatchRounds,
   subscribeToScoreboardChanges,
 } from "@/services/kampService";
 import { unsubscribeChannel } from "@/utils/realtime";
 import { showToast } from "./Toast";
+import { confirmDialog } from "./ConfirmDialog";
 
 export interface ScoreboardOptions {
   pointValues: number[];
@@ -96,8 +97,6 @@ export async function renderScoreboard(
   let val1: number | null = null;
   let val2: number | null = null;
   let kampFerdig = kamp.er_bekreftet || kamp.er_walkover;
-  let isEditMode = false;
-  let modifiedPlayers = new Set<number>();
 
   const kanRedigere = erArrangor || (erDeltakar && !kamp.er_bekreftet);
 
@@ -161,35 +160,21 @@ export async function renderScoreboard(
       [val1, val2],
       pointValues,
     );
-    // Edit mode: a player's saved value stays locked until they actively change it
-    if (isEditMode) {
-      if (val1 !== null && !modifiedPlayers.has(1))
-        pointValues.forEach((n) => {
-          if (n !== val1) p1Dis.add(n);
-        });
-      if (val2 !== null && !modifiedPlayers.has(2))
-        pointValues.forEach((n) => {
-          if (n !== val2) p2Dis.add(n);
-        });
-    }
     return { p1Dis, p2Dis };
   }
 
-  function avbrytEditMode(): void {
-    isEditMode = false;
-    modifiedPlayers = new Set();
-    val1 = null;
-    val2 = null;
-    tegn();
-  }
-
-  function startEditMode(): void {
+  async function angreSisteOmgang(): Promise<void> {
     const last = omgangar[omgangar.length - 1];
     if (!last) return;
-    val1 = last.s1 || null;
-    val2 = last.s2 || null;
-    isEditMode = true;
-    modifiedPlayers = new Set();
+    if (!(await bekreftAngre(last.omgang, [last.s1, last.s2]))) return;
+    const { error } = await deleteMatchRounds([...side1Ids, ...side2Ids], last.omgang);
+    if (error) {
+      showToast("Feil ved angring", "error");
+      return;
+    }
+    await lastOmgangar();
+    val1 = null;
+    val2 = null;
     tegn();
   }
 
@@ -198,28 +183,19 @@ export async function renderScoreboard(
       btn.addEventListener("click", () => {
         const spelar = parseInt(btn.dataset.spelar ?? "0");
         const v = parseInt(btn.dataset.val ?? "0");
-        if (spelar === 1) {
-          val1 = val1 === v ? null : v;
-          modifiedPlayers.add(1);
-        } else {
-          val2 = val2 === v ? null : v;
-          modifiedPlayers.add(2);
-        }
+        if (spelar === 1) val1 = val1 === v ? null : v;
+        else val2 = val2 === v ? null : v;
         tegn();
       });
     });
   }
 
   function kanGaaVidare(): boolean {
-    const harVal = val1 !== null || val2 !== null;
-    if (isEditMode) return modifiedPlayers.size > 0 && harVal;
-    return kanRedigere && harVal && !kampFerdig;
+    return kanRedigere && (val1 !== null || val2 !== null) && !kampFerdig;
   }
 
   function kanBekrefteKamp(): boolean {
-    return (
-      kampFerdig && !isEditMode && !kamp.er_bekreftet && (erArrangor || erDeltakar) && !!onBekreft
-    );
+    return kampFerdig && !kamp.er_bekreftet && (erArrangor || erDeltakar) && !!onBekreft;
   }
 
   function settOmgangTittel(nr: number, ferdig: boolean): void {
@@ -236,12 +212,11 @@ export async function renderScoreboard(
     const kanNeste = kanGaaVidare();
     const kanBekrefte = kanBekrefteKamp();
     const maxRinger = omgangar.length * 2;
-    const starterIdx =
-      !kampFerdig && !isEditMode ? getOmgangStarterIndex(noverAndeOmgang(), 2) : -1;
+    const starterIdx = !kampFerdig ? getOmgangStarterIndex(noverAndeOmgang(), 2) : -1;
 
     settOmgangTittel(noverAndeOmgang(), kampFerdig);
 
-    const wrap = createEl("div", null, isEditMode ? "sb-wrap sb-wrap--edit-mode" : "sb-wrap");
+    const wrap = createEl("div", null, "sb-wrap");
     wrap.appendChild(
       lagSpelerPanel(
         p1Navn ?? spelarNamn(p1ks, "Spelar 1"),
@@ -273,23 +248,12 @@ export async function renderScoreboard(
     container.appendChild(wrap);
 
     if (kanRedigere && !kamp.er_bekreftet)
-      container.appendChild(
-        lagAngreRad({
-          isEditMode,
-          hasOmgangar: omgangar.length > 0,
-          onCancel: avbrytEditMode,
-          onStart: startEditMode,
-        }),
-      );
+      container.appendChild(lagAngreRad(omgangar.length > 0, angreSisteOmgang));
 
     if (kanBekrefte) {
       container.appendChild(lagBekreftKnapp(() => onBekreft!()));
     } else if (kanRedigere) {
-      const nesteBtn = lagAsyncKnapp(
-        isEditMode ? "Bekreft endring" : "Neste omgang",
-        "sb-neste-btn",
-        nesteOmgang,
-      );
+      const nesteBtn = lagAsyncKnapp("Neste omgang", "sb-neste-btn", nesteOmgang);
       nesteBtn.disabled = !kanNeste;
       container.appendChild(nesteBtn);
     }
@@ -349,21 +313,6 @@ export async function renderScoreboard(
     return rows;
   }
 
-  async function lagreEndraOmgang(rad: OmgangRad): Promise<boolean> {
-    const lastOmgang = omgangar[omgangar.length - 1];
-    if (!lastOmgang) return false;
-    const lastNr = lastOmgang.omgang;
-    const { error } = await updateMatchRound(omgangRows(lastNr, rad));
-    if (error) {
-      showToast("Feil ved lagring", "error");
-      return false;
-    }
-    omgangar[omgangar.length - 1] = { ...rad, omgang: lastNr };
-    isEditMode = false;
-    modifiedPlayers = new Set();
-    return true;
-  }
-
   async function lagreNyOmgang(rad: OmgangRad): Promise<boolean> {
     const nr = noverAndeOmgang();
     const { error } = await saveMatchRound(omgangRows(nr, rad));
@@ -382,8 +331,7 @@ export async function renderScoreboard(
     const s2 = val2 ?? 0;
     const rad: OmgangRad = { omgang: 0, s1, s2, r1: calcRingCount(s1), r2: calcRingCount(s2) };
 
-    const lagra = isEditMode ? await lagreEndraOmgang(rad) : await lagreNyOmgang(rad);
-    if (!lagra) return;
+    if (!(await lagreNyOmgang(rad))) return;
 
     val1 = null;
     val2 = null;
@@ -403,11 +351,12 @@ function lagAsyncKnapp(
   label: string,
   klasse: string,
   onClick: () => Promise<void>,
+  busyLabel = "Lagrer…",
 ): HTMLButtonElement {
   const btn = createEl("button", label, klasse);
   btn.addEventListener("click", async () => {
     btn.disabled = true;
-    btn.textContent = "Lagrer…";
+    btn.textContent = busyLabel;
     try {
       await onClick();
     } finally {
@@ -422,26 +371,29 @@ function lagBekreftKnapp(onBekreft: () => Promise<void>): HTMLButtonElement {
   return lagAsyncKnapp("Bekreft kamp", "sb-neste-btn sb-neste-btn--bekreft", onBekreft);
 }
 
-/** ↩ to edit the last omgang; while editing, ↩ and a spelled-out cancel that both back out. */
-function lagAngreRad(o: {
-  isEditMode: boolean;
-  hasOmgangar: boolean;
-  onCancel: () => void;
-  onStart: () => void;
-}): HTMLElement {
+/**
+ * Deletes the last omgang after a confirm, so the board falls back to entering
+ * it from scratch. It replaced an in-place edit mode: scorers reported not
+ * understanding that they had to unselect the wrong score before picking the
+ * right one, and re-throwing the round is the motion they already know.
+ */
+function lagAngreRad(hasOmgangar: boolean, onAngre: () => Promise<void>): HTMLElement {
   const angreRad = createEl("div", null, "sb-angre-rad");
-  const angreBtn = createEl("button", "↩", "sb-angre-btn");
-  angreBtn.title = o.isEditMode ? "Avbryt endring" : "Endre siste omgang";
-  angreBtn.disabled = !o.isEditMode && !o.hasOmgangar;
-  angreBtn.addEventListener("click", o.isEditMode ? o.onCancel : o.onStart);
+  const angreBtn = lagAsyncKnapp("↩ Angre siste omgang", "sb-angre-btn", onAngre, "Angrer…");
+  angreBtn.title = "Slett siste omgang og legg den inn på nytt";
+  angreBtn.disabled = !hasOmgangar;
   angreRad.appendChild(angreBtn);
-
-  if (o.isEditMode) {
-    const avbrytBtn = createEl("button", "Avbryt endring", "sb-avbryt-btn");
-    avbrytBtn.addEventListener("click", o.onCancel);
-    angreRad.appendChild(avbrytBtn);
-  }
   return angreRad;
+}
+
+/** Names the round and the scores being discarded — the numbers are the check, not the word "siste". */
+function bekreftAngre(omgang: number, scorar: number[]): Promise<boolean> {
+  return confirmDialog({
+    title: `Angre omgang ${omgang}?`,
+    message: `Omgang ${omgang} (${scorar.join(" – ")}) blir sletta. Du legg den inn på nytt etterpå.`,
+    confirmText: "Angre omgangen",
+    danger: true,
+  });
 }
 
 function setupScoreboardRealtime(
@@ -537,9 +489,6 @@ async function renderScoreboard3(
   let omgangData: MatchRoundRow[] = [];
   let vinnRekkefolge: number[] = [];
   let vals: (number | null)[] = [null, null, null];
-  let isEditMode3 = false;
-  let modifiedPlayers3 = new Set<number>();
-  let editModeIdxar: number[] = [];
 
   function radForSide(idx: number, omgang: number): MatchRoundRow | undefined {
     return omgangData.find(
@@ -597,44 +546,28 @@ async function renderScoreboard3(
     onKampBekreft,
   );
 
-  function beregnDisabledSets3(editIdxar: number[]): Set<number>[] {
-    const disabledSets = pointButtonLocks(
+  function beregnDisabledSets3(aktiveIdxar: number[]): Set<number>[] {
+    return pointButtonLocks(
       spelarar.map((_, i) => vals[i] ?? null),
       pointValues,
-      editIdxar,
+      aktiveIdxar,
     );
-    // Edit mode: a player's saved value stays locked until they actively change it
-    if (isEditMode3) {
-      editIdxar.forEach((i) => {
-        if (vals[i] !== null && !modifiedPlayers3.has(i))
-          pointValues.forEach((n) => {
-            if (n !== vals[i]) disabledSets[i]?.add(n);
-          });
-      });
-    }
-    return disabledSets;
   }
 
-  function avbrytEditMode3(): void {
-    isEditMode3 = false;
-    modifiedPlayers3 = new Set();
-    editModeIdxar = [];
-    vals = [null, null, null];
-    tegn3();
-  }
-
-  function startEditMode3(): void {
+  async function angreSisteOmgang3(): Promise<void> {
+    if (!omgangData.length) return;
     const lastNr = Math.max(...omgangData.map((o) => o.omgang));
-    editModeIdxar = [];
-    spelarar.forEach((_, i) => {
-      const row = radForSide(i, lastNr);
-      if (row !== undefined) {
-        vals[i] = row.score || null;
-        editModeIdxar.push(i);
-      }
-    });
-    isEditMode3 = true;
-    modifiedPlayers3 = new Set();
+    const scorar = spelarar
+      .map((_, i) => radForSide(i, lastNr)?.score ?? null)
+      .filter((score): score is number => score !== null);
+    if (!(await bekreftAngre(lastNr, scorar))) return;
+    const { error } = await deleteMatchRounds(spelarIds, lastNr);
+    if (error) {
+      showToast("Feil ved angring", "error");
+      return;
+    }
+    await lastOmgangar3();
+    vals = [null, null, null];
     tegn3();
   }
 
@@ -655,11 +588,11 @@ async function renderScoreboard3(
     ks: (typeof spelarar)[number],
     i: number,
     total: number,
-    editIdxar: number[],
+    aktiveIdxar: number[],
     disabledSets: Set<number>[],
     isStarter = false,
   ): HTMLElement {
-    const visVunne = vinnRekkefolge.includes(i) && !isEditMode3;
+    const visVunne = vinnRekkefolge.includes(i);
     const plass = visVunne ? vinnRekkefolge.indexOf(i) + 1 : null;
     const panel = createEl(
       "div",
@@ -674,7 +607,7 @@ async function renderScoreboard3(
 
     if (plass) panel.appendChild(createEl("div", `${plass}. plass`, "sb-plass-badge"));
 
-    if (editIdxar.includes(i) && kanRedigere && !kamp.er_bekreftet) {
+    if (aktiveIdxar.includes(i) && kanRedigere && !kamp.er_bekreftet) {
       panel.appendChild(lagPoengKnappar3(i, disabledSets[i]));
     }
     return panel;
@@ -686,14 +619,12 @@ async function renderScoreboard3(
         const idx = parseInt(btn.dataset.spelar ?? "0");
         const v = parseInt(btn.dataset.val ?? "0");
         vals[idx] = vals[idx] === v ? null : v;
-        modifiedPlayers3.add(idx);
         tegn3();
       });
     });
   }
 
-  function kanGaaVidare3(editIdxar: number[], aktiveIdxar: number[]): boolean {
-    if (isEditMode3) return modifiedPlayers3.size > 0 && editIdxar.some((i) => vals[i] !== null);
+  function kanGaaVidare3(aktiveIdxar: number[]): boolean {
     return aktiveIdxar.some((i) => vals[i] !== null);
   }
 
@@ -708,7 +639,7 @@ async function renderScoreboard3(
   }
 
   function lagStatusFooter3(erFerdig: boolean): HTMLElement | null {
-    if (erFerdig && !isEditMode3 && !kamp.er_bekreftet && onBekreft && kanRedigere) {
+    if (erFerdig && !kamp.er_bekreftet && onBekreft && kanRedigere) {
       return lagBekreftKnapp(() => onBekreft(vinnRekkefolge.map((i) => spelarar[i]!.kasterid)));
     }
     if (kamp.er_bekreftet) return createEl("div", "Kamp fullført", "alert alert-success mt-2");
@@ -719,44 +650,28 @@ async function renderScoreboard3(
     container.innerHTML = "";
     const totalar = spelarar.map((_, i) => beregnTotal(i));
     const aktiveIdxar = [0, 1, 2].filter((i) => spelarar[i] && !vinnRekkefolge.includes(i));
-    const editIdxar = isEditMode3 ? editModeIdxar : aktiveIdxar;
     const erFerdig = vinnRekkefolge.length === spelarar.length;
-    const disabledSets = beregnDisabledSets3(editIdxar);
+    const disabledSets = beregnDisabledSets3(aktiveIdxar);
     const currentOmgang3 = omgangData.length ? Math.max(...omgangData.map((o) => o.omgang)) + 1 : 1;
-    const starterIdx3 = !erFerdig && !isEditMode3 ? getOmgangStarterIndex(currentOmgang3, 3) : -1;
+    const starterIdx3 = !erFerdig ? getOmgangStarterIndex(currentOmgang3, 3) : -1;
 
     settOmgangTittel3(erFerdig);
 
-    const wrap = createEl(
-      "div",
-      null,
-      isEditMode3 ? "sb-wrap sb-wrap--3p sb-wrap--edit-mode" : "sb-wrap sb-wrap--3p",
-    );
+    const wrap = createEl("div", null, "sb-wrap sb-wrap--3p");
     spelarar.forEach((ks, i) => {
       const isStarter3 = i === starterIdx3 && aktiveIdxar.includes(i);
       wrap.appendChild(
-        lagSpelerPanel3(ks, i, totalar[i] ?? 0, editIdxar, disabledSets, isStarter3),
+        lagSpelerPanel3(ks, i, totalar[i] ?? 0, aktiveIdxar, disabledSets, isStarter3),
       );
     });
     container.appendChild(wrap);
 
     if (kanRedigere && !kamp.er_bekreftet) {
-      container.appendChild(
-        lagAngreRad({
-          isEditMode: isEditMode3,
-          hasOmgangar: omgangData.length > 0,
-          onCancel: avbrytEditMode3,
-          onStart: startEditMode3,
-        }),
-      );
+      container.appendChild(lagAngreRad(omgangData.length > 0, angreSisteOmgang3));
 
-      if (isEditMode3 || !erFerdig) {
-        const nesteBtn = lagAsyncKnapp(
-          isEditMode3 ? "Bekreft endring" : "Neste omgang",
-          "sb-neste-btn",
-          nesteOmgang3,
-        );
-        nesteBtn.disabled = !kanGaaVidare3(editIdxar, aktiveIdxar);
+      if (!erFerdig) {
+        const nesteBtn = lagAsyncKnapp("Neste omgang", "sb-neste-btn", nesteOmgang3);
+        nesteBtn.disabled = !kanGaaVidare3(aktiveIdxar);
         container.appendChild(nesteBtn);
       }
     }
@@ -769,44 +684,22 @@ async function renderScoreboard3(
 
   async function nesteOmgang3(): Promise<void> {
     const aktiveIdxar = [0, 1, 2].filter((i) => spelarar[i] && !vinnRekkefolge.includes(i));
-
-    if (isEditMode3) {
-      const lastNr = Math.max(...omgangData.map((o) => o.omgang));
-      const rows = editModeIdxar.map((i) => {
-        const v = vals[i] ?? 0;
-        return {
-          kamp_spelar_id: getOmgangThrowerId(sideIds[i] ?? [], lastNr)!,
-          omgang: lastNr,
-          score: v,
-          antall_ringer: calcRingCount(v),
-        };
-      });
-      const { error } = await updateMatchRound(rows);
-      if (error) {
-        showToast("Feil ved lagring", "error");
-        return;
-      }
-      isEditMode3 = false;
-      modifiedPlayers3 = new Set();
-      editModeIdxar = [];
-    } else {
-      const nr = omgangData.length ? Math.max(...omgangData.map((o) => o.omgang)) + 1 : 1;
-      const inserts = aktiveIdxar.map((i) => {
-        const v = vals[i] ?? 0;
-        return {
-          kamp_spelar_id: getOmgangThrowerId(sideIds[i] ?? [], nr)!,
-          omgang: nr,
-          score: v,
-          antall_ringer: calcRingCount(v),
-        };
-      });
-      const { error } = await saveMatchRound(inserts);
-      if (error) {
-        showToast("Feil ved lagring", "error");
-        return;
-      }
-      await lastOmgangar3();
+    const nr = omgangData.length ? Math.max(...omgangData.map((o) => o.omgang)) + 1 : 1;
+    const inserts = aktiveIdxar.map((i) => {
+      const v = vals[i] ?? 0;
+      return {
+        kamp_spelar_id: getOmgangThrowerId(sideIds[i] ?? [], nr)!,
+        omgang: nr,
+        score: v,
+        antall_ringer: calcRingCount(v),
+      };
+    });
+    const { error } = await saveMatchRound(inserts);
+    if (error) {
+      showToast("Feil ved lagring", "error");
+      return;
     }
+    await lastOmgangar3();
 
     vals = [null, null, null];
     tegn3();
