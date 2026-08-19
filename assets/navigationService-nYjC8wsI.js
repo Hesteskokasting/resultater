@@ -1,0 +1,1 @@
+import{gr as e}from"./index-DTgokk-9.js";function t(t){if(e.isNativePlatform()){location.href=t;return}window.open(t,`_blank`)}function n(){return e.isNativePlatform()?``:` target="_blank" rel="noopener"`}export{t as n,n as t};
