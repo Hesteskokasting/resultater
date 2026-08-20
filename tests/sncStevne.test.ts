@@ -212,6 +212,19 @@ describe("SNC umbrella info tab", () => {
     expect(buttonWithText(el, "Meld på")).toBeUndefined();
   });
 
+  it("spares an unlinked admin the koble-profil notice on the umbrella", async () => {
+    getUser.mockResolvedValue({
+      user: { id: "a1", email: "admin@nhf.no" },
+      profil: { role: "admin", kasterid: null, kobling_status: "ingen" },
+      clubs: [],
+    });
+    const el = host();
+    await renderSncInfo(el, { id: 10 });
+
+    expect(el.querySelector('a[href="#/minside/kampar"]')).toBeNull();
+    expect(el.querySelector('a[href*="logginn"]')).toBeNull();
+  });
+
   it("offers a linked thrower one Meld på button per venue", async () => {
     getUser.mockResolvedValue(linkedUser());
     const el = host();

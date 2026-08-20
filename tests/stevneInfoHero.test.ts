@@ -151,6 +151,18 @@ describe("stevne-info hero", () => {
     expect(el.querySelector("#info-handling-knapper .pamelding-knapp")).not.toBeNull();
   });
 
+  it("spares an unlinked admin the koble-profil nudge beside Start stevne", async () => {
+    mocks.getUser.mockResolvedValue({
+      user: { id: "a1" },
+      profil: { role: "admin", kasterid: null, kobling_status: "ingen" },
+    });
+    const el = host();
+    await renderInfo(el, { id: 5, isAdmin: true });
+
+    expect(slot(el).querySelector("#start-stevne-btn")).not.toBeNull();
+    expect(el.querySelector('#info-handling-knapper a[href^="#/minside"]')).toBeNull();
+  });
+
   it("refuses to start Gloppen with more rundar than the field can pair, and says so before the click", async () => {
     mocks.getInfoTournament.mockResolvedValue({
       data: row({ antall_runder_innl: 7, kastemetodeInnl: { id: 1, navn: "Gloppen" } }),

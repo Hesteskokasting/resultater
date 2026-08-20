@@ -3,13 +3,13 @@
  * doesn't exist here", so every state that cannot register has to say why.
  */
 import { registrationCtaLink } from "@/components/StevneCard";
-import type { AuthUser, LinkStatus } from "@/types";
+import type { AuthUser, LinkStatus, Role } from "@/types";
 import type { User } from "@supabase/supabase-js";
 
-function authWith(status: LinkStatus, kasterid: number | null): AuthUser {
+function authWith(status: LinkStatus, kasterid: number | null, role: Role = "bruker"): AuthUser {
   return {
     user: { id: "u1" } as User,
-    profil: { role: "bruker", kasterid, kobling_status: status, kobling_kasterid: null },
+    profil: { role, kasterid, kobling_status: status, kobling_kasterid: null },
     clubs: [],
   };
 }
@@ -45,6 +45,17 @@ describe("registrationCtaLink", () => {
 
   it("treats an approved status carrying no kasterid as unlinked", () => {
     expect(registrationCtaLink(77, authWith("godkjent", null))!.label).toBe(
+      "Koble profil for å melde på",
+    );
+  });
+
+  it("stays quiet for an admin, who runs stevner rather than entering them", () => {
+    expect(registrationCtaLink(77, authWith("ingen", null, "admin"))).toBeUndefined();
+    expect(registrationCtaLink(77, authWith("venter", null, "admin"))).toBeUndefined();
+  });
+
+  it("still nudges an unlinked klubbadmin, who is usually a thrower too", () => {
+    expect(registrationCtaLink(77, authWith("ingen", null, "klubbadmin"))!.label).toBe(
       "Koble profil for å melde på",
     );
   });

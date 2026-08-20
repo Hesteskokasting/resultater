@@ -58,6 +58,10 @@ export function registrationCtaLink(
   auth: AuthUser | null,
 ): StevneCardActionLink | undefined {
   if (linkedThrowerId(auth) !== null) return undefined;
+  // An admin account runs stevner rather than entering them, so asking it to link
+  // a thrower profile is pure noise. Klubbadmin is deliberately left out: those
+  // are club people who usually throw as well, so the nudge still answers them.
+  if (auth?.profil?.role === "admin") return undefined;
   if (!auth) {
     return {
       href: `#/logginn?redirect=${encodeURIComponent(`/stevne/${tournamentId}/info`)}`,
