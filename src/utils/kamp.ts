@@ -79,9 +79,34 @@ export function getOmgangThrowerId(sideSpelarIds: number[], omgang: number): num
   return sideSpelarIds[(omgang - 1) % sideSpelarIds.length] ?? null;
 }
 
-/** 0-based index of the side that starts a given omgang (2 omgangar per side). */
-export function getOmgangStarterIndex(omgang: number, numSides: number): number {
-  return Math.floor((omgang - 1) / 2) % numSides;
+/**
+ * 0-based index of the side that starts a given omgang. The turn moves to the
+ * next side every 2 omgangar. Sides that have finished are skipped, so in a
+ * 3-player match the two remaining sides keep alternating instead of the turn
+ * sticking on the one that already reached 21.
+ * `finishedAtOmgang[i]` = last omgang side i played (null/absent = still active).
+ */
+export function getOmgangStarterIndex(
+  omgang: number,
+  numSides: number,
+  finishedAtOmgang: (number | null)[] = [],
+): number {
+  const activeAt = (o: number): number[] =>
+    Array.from({ length: numSides }, (_, i) => i).filter((i) => {
+      const lastOmgang = finishedAtOmgang[i];
+      return lastOmgang == null || o <= lastOmgang;
+    });
+  const next = (from: number, act: number[]): number => act.find((i) => i > from) ?? act[0] ?? from;
+
+  let starter = 0;
+  for (let block = 1; block <= Math.floor((omgang - 1) / 2); block++) {
+    const act = activeAt(block * 2 + 1);
+    if (!act.length) break;
+    starter = next(starter, act);
+  }
+  const now = activeAt(omgang);
+  if (now.length && !now.includes(starter)) starter = next(starter, now);
+  return starter;
 }
 
 export interface PairableStandingRow {

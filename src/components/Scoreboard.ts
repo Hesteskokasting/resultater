@@ -488,6 +488,8 @@ async function renderScoreboard3(
 
   let omgangData: MatchRoundRow[] = [];
   let vinnRekkefolge: number[] = [];
+  /** Last omgang each side played, so the starter rotation skips finished sides. */
+  let ferdigVedOmgang: (number | null)[] = [null, null, null];
   let vals: (number | null)[] = [null, null, null];
 
   function radForSide(idx: number, omgang: number): MatchRoundRow | undefined {
@@ -503,8 +505,9 @@ async function renderScoreboard3(
       .reduce((s, o) => s + (o.score ?? 0), 0);
   }
 
-  function beregnVinnRekkefolge(): number[] {
-    if (!omgangData.length) return [];
+  function beregnVinnRekkefolge(): { rekkefolge: number[]; ferdigVedOmgang: (number | null)[] } {
+    const ferdigVed: (number | null)[] = [null, null, null];
+    if (!omgangData.length) return { rekkefolge: [], ferdigVedOmgang: ferdigVed };
     const maxOmgang = Math.max(...omgangData.map((o) => o.omgang));
     const aktive = new Set([0, 1, 2].filter((i) => spelarar[i]));
     const rekkefolge: number[] = [];
@@ -519,19 +522,27 @@ async function renderScoreboard3(
       let ferdig = findFinishedPlayer(aktive, totalar);
       while (ferdig !== null && aktive.size > 1) {
         rekkefolge.push(ferdig);
+        ferdigVed[ferdig] = omg;
         aktive.delete(ferdig);
         ferdig = findFinishedPlayer(aktive, totalar);
       }
     }
-    if (aktive.size === 1 && rekkefolge.length === 2) rekkefolge.push(...aktive);
-    return rekkefolge;
+    if (aktive.size === 1 && rekkefolge.length === 2) {
+      for (const i of aktive) {
+        rekkefolge.push(i);
+        ferdigVed[i] = maxOmgang;
+      }
+    }
+    return { rekkefolge, ferdigVedOmgang: ferdigVed };
   }
 
   async function lastOmgangar3(): Promise<void> {
     if (!spelarIds.length) return;
     const { data } = await getMatchRounds(spelarIds);
     omgangData = data;
-    vinnRekkefolge = beregnVinnRekkefolge();
+    const utfall = beregnVinnRekkefolge();
+    vinnRekkefolge = utfall.rekkefolge;
+    ferdigVedOmgang = utfall.ferdigVedOmgang;
   }
 
   await lastOmgangar3();
@@ -653,7 +664,9 @@ async function renderScoreboard3(
     const erFerdig = vinnRekkefolge.length === spelarar.length;
     const disabledSets = beregnDisabledSets3(aktiveIdxar);
     const currentOmgang3 = omgangData.length ? Math.max(...omgangData.map((o) => o.omgang)) + 1 : 1;
-    const starterIdx3 = !erFerdig ? getOmgangStarterIndex(currentOmgang3, 3) : -1;
+    const starterIdx3 = !erFerdig
+      ? getOmgangStarterIndex(currentOmgang3, spelarar.length, ferdigVedOmgang)
+      : -1;
 
     settOmgangTittel3(erFerdig);
 
