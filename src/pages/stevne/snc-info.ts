@@ -101,8 +101,10 @@ function ownRegistrationNoticeHtml(
   if (!canRegister && !isFinished) {
     const cta = registrationCtaLink(parentId, auth);
     if (cta) {
+      // label is the visible text; title is the tooltip that says why and where to.
+      const titleAttr = cta.title ? ` title="${escHtml(cta.title)}"` : "";
       return `<div class="alert alert-info">
-        <a href="${escHtml(cta.href)}">${escHtml(cta.title ?? cta.label)}</a>
+        <a href="${escHtml(cta.href)}"${titleAttr}>${escHtml(cta.label)}</a>
       </div>`;
     }
   }

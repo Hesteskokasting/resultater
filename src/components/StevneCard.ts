@@ -22,7 +22,7 @@ export interface StevneCardActionLink {
   label: string;
   /** "secondary" reports a state the thrower is already in; "primary" (default) invites the action. */
   variant?: "primary" | "secondary";
-  /** Explains a label the trailing slot is too narrow to spell out. */
+  /** Tooltip: why the action is offered and where it leads. Never a repeat of `label`. */
   title?: string;
 }
 
@@ -66,7 +66,7 @@ export function registrationCtaLink(
     return {
       href: `#/logginn?redirect=${encodeURIComponent(`/stevne/${tournamentId}/info`)}`,
       label: "Logg inn for å melde på",
-      title: "Logg inn for å melde på",
+      title: "Du må logge inn for å melde deg på eit stevne. Klikk for å gå til innlogging.",
       variant: "secondary",
     };
   }
@@ -74,14 +74,18 @@ export function registrationCtaLink(
     return {
       href: "#/minside/kampar",
       label: "Ventar på godkjenning",
-      title: "Koblingforespørselen din ventar på godkjenning",
+      title:
+        "Koblingforespørselen din er ikkje godkjent enno, så du kan ikkje melde deg på. " +
+        "Klikk for å sjå status på Min side.",
       variant: "secondary",
     };
   }
   return {
     href: "#/minside/kampar",
     label: "Koble profil for å melde på",
-    title: "Koble profil for å melde på",
+    title:
+      "Kontoen din må koblast til ein utøvarprofil før du kan melde deg på. " +
+      "Klikk for å gå til koblinga på Min side.",
     variant: "secondary",
   };
 }

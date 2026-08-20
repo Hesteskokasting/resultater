@@ -208,7 +208,10 @@ describe("SNC umbrella info tab", () => {
     await renderSncInfo(el, { id: 10 });
 
     expect(el.querySelector('a[href*="logginn"]')).toBeNull();
-    expect(el.querySelector<HTMLAnchorElement>('a[href="#/minside/kampar"]')).not.toBeNull();
+    const cta = el.querySelector<HTMLAnchorElement>('a[href="#/minside/kampar"]')!;
+    expect(cta.textContent).toBe("Koble profil for å melde på");
+    // The tooltip explains, the link text stays short enough to read at a glance.
+    expect(cta.title).toContain("Klikk for");
     expect(buttonWithText(el, "Meld på")).toBeUndefined();
   });
 

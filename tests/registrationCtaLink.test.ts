@@ -18,7 +18,6 @@ describe("registrationCtaLink", () => {
   it("sends a signed-out visitor to logg inn and back to the stevne afterwards", () => {
     const link = registrationCtaLink(77, null)!;
     expect(link.label).toBe("Logg inn for å melde på");
-    expect(link.title).toBe("Logg inn for å melde på");
     expect(link.href).toBe("#/logginn?redirect=%2Fstevne%2F77%2Finfo");
   });
 
@@ -29,7 +28,6 @@ describe("registrationCtaLink", () => {
   it("points an unlinked account at min side, where the link request lives", () => {
     const link = registrationCtaLink(77, authWith("ingen", null))!;
     expect(link.label).toBe("Koble profil for å melde på");
-    expect(link.title).toBe("Koble profil for å melde på");
     expect(link.href).toBe("#/minside/kampar");
   });
 
@@ -60,9 +58,13 @@ describe("registrationCtaLink", () => {
     );
   });
 
-  it("carries a title everywhere, since the trailing slot only fits a word or two", () => {
+  it("gives every state a tooltip that adds to the label rather than repeating it", () => {
     for (const auth of [null, authWith("ingen", null), authWith("venter", null)]) {
-      expect(registrationCtaLink(77, auth)!.title).toBeTruthy();
+      const link = registrationCtaLink(77, auth)!;
+      expect(link.title).toBeTruthy();
+      expect(link.title).not.toBe(link.label);
+      // The tooltip is the only place that says what following the link does.
+      expect(link.title).toContain("Klikk for");
     }
   });
 });
