@@ -199,7 +199,7 @@ describe("stevne-info hero", () => {
     await renderInfo(el, { id: 5 });
 
     const cta = slot(el).querySelector("a")!;
-    expect(cta.textContent).toBe("Logg inn");
+    expect(cta.textContent).toBe("Logg inn for å melde på");
     expect(cta.getAttribute("href")).toBe("#/logginn?redirect=%2Fstevne%2F5%2Finfo");
   });
 
@@ -209,7 +209,7 @@ describe("stevne-info hero", () => {
     await renderInfo(el, { id: 5 });
 
     const cta = slot(el).querySelector("a")!;
-    expect(cta.textContent).toBe("Koble profil");
+    expect(cta.textContent).toBe("Koble profil for å melde på");
     expect(cta.getAttribute("href")).toBe("#/minside/kampar");
   });
 

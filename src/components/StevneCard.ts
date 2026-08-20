@@ -61,23 +61,23 @@ export function registrationCtaLink(
   if (!auth) {
     return {
       href: `#/logginn?redirect=${encodeURIComponent(`/stevne/${tournamentId}/info`)}`,
-      label: "Logg inn",
-      title: "Logg inn for å melde deg på stevnet.",
+      label: "Logg inn for å melde på",
+      title: "Logg inn for å melde på",
       variant: "secondary",
     };
   }
   if (auth.profil?.kobling_status === "venter") {
     return {
       href: "#/minside/kampar",
-      label: "Ventar",
-      title: "Koblingforespørselen din ventar på godkjenning. Då kan du melde deg på.",
+      label: "Ventar på godkjenning",
+      title: "Koblingforespørselen din ventar på godkjenning",
       variant: "secondary",
     };
   }
   return {
     href: "#/minside/kampar",
-    label: "Koble profil",
-    title: "Kontoen din må koblast til ein utøvarprofil før du kan melde deg på.",
+    label: "Koble profil for å melde på",
+    title: "Koble profil for å melde på",
     variant: "secondary",
   };
 }

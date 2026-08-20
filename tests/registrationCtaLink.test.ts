@@ -17,7 +17,8 @@ function authWith(status: LinkStatus, kasterid: number | null): AuthUser {
 describe("registrationCtaLink", () => {
   it("sends a signed-out visitor to logg inn and back to the stevne afterwards", () => {
     const link = registrationCtaLink(77, null)!;
-    expect(link.label).toBe("Logg inn");
+    expect(link.label).toBe("Logg inn for å melde på");
+    expect(link.title).toBe("Logg inn for å melde på");
     expect(link.href).toBe("#/logginn?redirect=%2Fstevne%2F77%2Finfo");
   });
 
@@ -27,20 +28,25 @@ describe("registrationCtaLink", () => {
 
   it("points an unlinked account at min side, where the link request lives", () => {
     const link = registrationCtaLink(77, authWith("ingen", null))!;
-    expect(link.label).toBe("Koble profil");
+    expect(link.label).toBe("Koble profil for å melde på");
+    expect(link.title).toBe("Koble profil for å melde på");
     expect(link.href).toBe("#/minside/kampar");
   });
 
   it("reports the wait instead of asking again when a request is already pending", () => {
-    expect(registrationCtaLink(77, authWith("venter", null))!.label).toBe("Ventar");
+    expect(registrationCtaLink(77, authWith("venter", null))!.label).toBe("Ventar på godkjenning");
   });
 
   it("treats a rejected request as unlinked, so a new one can be sent", () => {
-    expect(registrationCtaLink(77, authWith("avvist", null))!.label).toBe("Koble profil");
+    expect(registrationCtaLink(77, authWith("avvist", null))!.label).toBe(
+      "Koble profil for å melde på",
+    );
   });
 
   it("treats an approved status carrying no kasterid as unlinked", () => {
-    expect(registrationCtaLink(77, authWith("godkjent", null))!.label).toBe("Koble profil");
+    expect(registrationCtaLink(77, authWith("godkjent", null))!.label).toBe(
+      "Koble profil for å melde på",
+    );
   });
 
   it("carries a title everywhere, since the trailing slot only fits a word or two", () => {
