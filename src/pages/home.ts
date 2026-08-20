@@ -13,12 +13,7 @@ import { linkedThrowerId } from "@/utils/kaster";
 import { getRegistrationsForThrower, emptyThrowerRegistrations } from "@/services/stevneService";
 import type { ThrowerRegistrations } from "@/services/stevneService";
 import { bindRegistrationSlots } from "@/components/PameldingKnapp";
-import {
-  createTournamentCard,
-  registrationCtaLink,
-  sncUmbrellaActionLink,
-} from "@/components/StevneCard";
-import type { AuthUser } from "@/types";
+import { createTournamentCard, sncUmbrellaActionLink } from "@/components/StevneCard";
 
 // ── HTML builders ─────────────────────────────────────────────────────────────
 
@@ -39,21 +34,20 @@ function upcomingCard(
   s: ListedTournamentRow,
   showSlot: boolean,
   registrations: ThrowerRegistrations,
-  auth: AuthUser | null,
 ): HTMLElement {
   // getUpcomingTournaments already constrains erfullfort and stevne_fase, so showSlot is the only gate left.
   const canRegister = showSlot;
+  // No sign-in or link-your-profile nudge here: most visitors never intend to do
+  // either, and the front page would show them one card after another saying so.
+  // The nudge lives on the stevne's own page, where registering is the point.
   return createTournamentCard(s, {
     href: `#/stevne/${s.id}/info`,
     // SNC: the thrower must pick a local stevne first, so the button navigates.
     registrationSlotId: canRegister && !s.er_snc_hovudstevne ? s.id : undefined,
-    // Without a link there is no button to show, so the slot explains what is
-    // missing instead of leaving the card looking like registration doesn't exist.
-    actionLink: canRegister
-      ? s.er_snc_hovudstevne
+    actionLink:
+      canRegister && s.er_snc_hovudstevne
         ? sncUmbrellaActionLink(s.id, registrations.sncParentIds.has(s.id))
-        : undefined
-      : registrationCtaLink(s.id, auth),
+        : undefined,
   });
 }
 
@@ -136,7 +130,7 @@ export async function render(container: HTMLElement): Promise<void> {
     const upcomingSection = container.querySelector<HTMLElement>(".homepage-upcoming")!;
     container
       .querySelector<HTMLElement>("#upcoming-content")!
-      .replaceWith(cardList(r2.map((s) => upcomingCard(s, showSlot, registrations, auth))));
+      .replaceWith(cardList(r2.map((s) => upcomingCard(s, showSlot, registrations))));
 
     // Same gate as the slots themselves — binding must not outlive what upcomingCard rendered.
     if (showSlot && throwerId !== null && auth) {
