@@ -206,9 +206,10 @@ async function buildMatchesContent(throwerId: number): Promise<HTMLElement> {
     };
   };
 
+  // "R / B" reads as nothing on its own, so the label is for screen readers only.
   const matchGridHtml = (group: MatchPlayerRow[]): string =>
     gridHtml(
-      ["R / B", "Motstandar", "Resultat", ""],
+      ['<span class="visually-hidden">Runde og bane</span>', "Motstandar", "Resultat", ""],
       group.map((ks) => matchRow(ks)),
     );
 
@@ -288,7 +289,12 @@ async function buildMatchesContent(throwerId: number): Promise<HTMLElement> {
         (group) => `
       <p class="match-grid__stevne">${escHtml(`${group[0]?.stevne?.navn ?? ""} – X-kast`)}</p>
       ${gridHtml(
-        ["Bane", "Medspelarar", "Poeng", "R"],
+        [
+          '<span class="visually-hidden">Bane</span>',
+          "Medspelarar",
+          "Poeng",
+          '<span class="visually-hidden">Ringar</span>',
+        ],
         group.map((c) => courtRow(c)),
       )}`,
       )
