@@ -101,14 +101,23 @@ function ringsHtml(rings: number | null | undefined): string {
   return `<span class="match-grid__rings" title="Ringar">${rings}</span>`;
 }
 
+/**
+ * One name per line — a slash-joined run wraps mid-name on a phone. Each side
+ * keeps its own group, so a pair reads as a pair and a rule separates it from
+ * the next side.
+ */
 function namesHtml(sides: IdentifiedPlayer[][]): string {
-  const names = sides
-    .flat()
-    .map((m) => escHtml(throwerName(m.kaster)))
+  const groups = sides
+    .map((side) =>
+      side
+        .map((m) => escHtml(throwerName(m.kaster)))
+        .filter(Boolean)
+        .map((n) => `<span class="match-grid__name-line">${n}</span>`)
+        .join(""),
+    )
     .filter(Boolean);
-  if (!names.length) return "–";
-  // Several opponents stack, one per line — a slash-joined run wraps mid-name on a phone.
-  return names.map((n) => `<span class="match-grid__name-line">${n}</span>`).join("");
+  if (!groups.length) return "–";
+  return groups.map((g) => `<span class="match-grid__side">${g}</span>`).join("");
 }
 
 // ── Matches ───────────────────────────────────────────────────────────────────

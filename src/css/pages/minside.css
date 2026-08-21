@@ -72,6 +72,18 @@
 /* One opponent per line, so two names never wrap into each other. */
 .match-grid__name-line {
   display: block;
+  line-height: 1.3;
+}
+
+/* One block per opposing side: a rule tells two opposing pairs apart. */
+.match-grid__side {
+  display: block;
+}
+
+.match-grid__side + .match-grid__side {
+  margin-top: 5px;
+  padding-top: 5px;
+  border-top: 1px solid var(--kant);
 }
 
 /* The two trailing columns centre their contents, header included, so the label
