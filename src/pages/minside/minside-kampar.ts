@@ -106,7 +106,9 @@ function namesHtml(sides: IdentifiedPlayer[][]): string {
     .flat()
     .map((m) => escHtml(throwerName(m.kaster)))
     .filter(Boolean);
-  return names.length ? names.join(" / ") : "–";
+  if (!names.length) return "–";
+  // Several opponents stack, one per line — a slash-joined run wraps mid-name on a phone.
+  return names.map((n) => `<span class="match-grid__name-line">${n}</span>`).join("");
 }
 
 // ── Matches ───────────────────────────────────────────────────────────────────

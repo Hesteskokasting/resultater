@@ -69,6 +69,11 @@
   overflow-wrap: anywhere;
 }
 
+/* One opponent per line, so two names never wrap into each other. */
+.match-grid__name-line {
+  display: block;
+}
+
 /* The two trailing columns centre their contents, header included, so the label
    sits directly above the badge or the ring count whatever their width. */
 .match-grid__result,
