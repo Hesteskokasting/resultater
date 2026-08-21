@@ -137,13 +137,43 @@
   color: var(--utfall-uavgjort-tekst);
 }
 
+/* Under 480px four columns leave the name ~90px, so long names break mid-word.
+   The slot moves above the name to give it the whole left column; result and
+   stats keep their place and span both lines. */
 @media (max-width: 480px) {
   .match-grid {
-    --match-cols: 70px 1fr 100px 40px;
+    --match-cols: minmax(0, 1fr) 96px 36px;
+  }
+  .match-grid__head,
+  .match-grid__row {
+    grid-template-areas:
+      "slot result stats"
+      "name result stats";
+    column-gap: 8px;
+    row-gap: 2px;
+  }
+  .match-grid__head > :nth-child(1),
+  .match-grid__slot {
+    grid-area: slot;
+  }
+  .match-grid__head > :nth-child(2),
+  .match-grid__name {
+    grid-area: name;
+  }
+  .match-grid__result {
+    grid-area: result;
+  }
+  .match-grid__stats {
+    grid-area: stats;
+  }
+  .match-grid__row {
+    min-height: 0;
+    padding-block: 10px;
   }
   .result-badge {
-    min-width: 72px;
-    padding: 5px 8px;
+    min-width: 0;
+    width: 100%;
+    padding: 5px 6px;
   }
 }
 
