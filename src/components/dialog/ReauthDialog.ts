@@ -1,4 +1,4 @@
-import { createModalEl, createModalLifecycle } from "@/components/ModalBase";
+import { createModalEl, createModalLifecycle } from "@/components/dialog/modalBase";
 import { signIn, signInErrorMessage, getLastKnownEmail } from "@/services/authService";
 import { showToast } from "@/components/Toast";
 import { logError } from "@/utils/logError";
@@ -75,7 +75,7 @@ async function handleSubmit(): Promise<void> {
   } catch (err) {
     // signIn reports a rejected login as an error value, so this is the network
     // failing. Leaving the button disabled would trap the user in the modal.
-    logError("ReauthModal", err);
+    logError("ReauthDialog", err);
     errorEl.textContent = "Fekk ikkje kontakt. Prøv igjen.";
     errorEl.classList.remove("d-none");
   } finally {
@@ -92,10 +92,10 @@ function close(): void {
 }
 
 /**
- * Opens the in-place re-auth modal. Idempotent: a no-op while already open.
+ * Opens the in-place re-auth dialog. Idempotent: a no-op while already open.
  * Cancelling just closes it — a logged-out viewer may only be browsing.
  */
-export function showReauthModal(): void {
+export function showReauthDialog(): void {
   if (_isOpen) return;
   const el = getEl();
   el.querySelector<HTMLInputElement>("#reauth-email")!.value = getLastKnownEmail() ?? "";

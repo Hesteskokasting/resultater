@@ -1,4 +1,4 @@
-import { createModalEl, createModalLifecycle } from "@/components/ModalBase";
+import { createModalEl, createModalLifecycle } from "@/components/dialog/modalBase";
 import { createEl } from "@/utils/createEl";
 
 /**

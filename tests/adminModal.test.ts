@@ -17,7 +17,7 @@ vi.mock("@/admin/forms/kasterForm", () => ({ mountThrowerForm: mocks.mountThrowe
 vi.mock("@/admin/forms/stevneForm", () => ({ mountTournamentForm: mocks.mountTournamentForm }));
 vi.mock("@/components/Toast", () => ({ showToast: mocks.showToast }));
 
-import { confirmDialog } from "@/components/ConfirmDialog";
+import { confirmDialog } from "@/components/dialog/ConfirmDialog";
 import { openAdminModal } from "@/admin/_adminModal";
 import { openClubEditor, openThrowerEditor, openTournamentEditor } from "@/admin/_adminEdit";
 import type { AdminFormHost } from "@/admin/forms/_formHost";

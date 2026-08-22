@@ -9,7 +9,7 @@ const mocks = vi.hoisted(() => ({ getUser: vi.fn() }));
 vi.mock("@/supabase", () => ({ supabase: {} }));
 vi.mock("@/services/authService", () => ({ getUser: mocks.getUser }));
 
-import { maybeShowWelcomeDialog } from "@/components/WelcomeDialog";
+import { maybeShowWelcomeDialog } from "@/components/dialog/WelcomeDialog";
 
 const SEEN_KEY = "welcome-seen";
 

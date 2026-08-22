@@ -1,4 +1,4 @@
-import { confirmDialog } from "@/components/ConfirmDialog";
+import { confirmDialog } from "@/components/dialog/ConfirmDialog";
 import { createSearchSelect, type SearchSelectHandle } from "@/components/SearchSelect";
 import { throwerName, throwerNameLastFirst } from "@/utils/kaster";
 import { invalidateUserCache } from "@/services/authService";

@@ -2,7 +2,7 @@
 // number. Exactly one of the two — the radio pair decides which input counts, so
 // the draw never has to guess which answer the admin meant.
 
-import { createModalEl, createModalLifecycle } from "@/components/ModalBase";
+import { createModalEl, createModalLifecycle } from "@/components/dialog/modalBase";
 import type { PremieMengd } from "@/services/resultatService";
 
 export interface PremieDialogProps {

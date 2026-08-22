@@ -1,7 +1,7 @@
 import { createEl } from "@/utils/createEl";
 import { showToast } from "@/components/Toast";
 import type { XkastKongelagPadHeader } from "@/components/numberpad/XkastKongelagNumberpad";
-import { confirmDialog } from "@/components/ConfirmDialog";
+import { confirmDialog } from "@/components/dialog/ConfirmDialog";
 import { updateTournamentPhase } from "@/services/stevneService";
 import { getRegistrationCount } from "@/services/pameldingService";
 import {

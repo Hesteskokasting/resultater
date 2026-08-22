@@ -17,7 +17,7 @@ vi.mock("@/services/pameldingService", () => ({
   removeRegistration: mocks.removeRegistration,
   getMyRegistrationForTournament: mocks.getMyRegistrationForTournament,
 }));
-vi.mock("@/components/ConfirmDialog", () => ({ confirmDialog: mocks.confirmDialog }));
+vi.mock("@/components/dialog/ConfirmDialog", () => ({ confirmDialog: mocks.confirmDialog }));
 vi.mock("@/components/Toast", () => ({ showToast: mocks.showToast }));
 
 import { createRegistrationButton } from "@/components/PameldingKnapp";

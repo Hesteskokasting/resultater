@@ -7,7 +7,7 @@ import { createErrorBanner, createLoadingState, createEmptyState } from "@/compo
 import { escHtml } from "@/utils/escHtml";
 import { logError } from "@/utils/logError";
 import { renderBannerMenu, bindBannerMenu } from "@/components/BannerMenu";
-import { premieDialog } from "@/components/PremieDialog";
+import { premieDialog } from "@/components/dialog/PremieDialog";
 import { showToast } from "@/components/Toast";
 import { errorMessage } from "@/utils/errorMessage";
 import { xkastCarryOverFactor, xkastCarryOverPercent } from "@/utils/kongelagStilling";
@@ -17,7 +17,7 @@ import {
   drawSncPremiar,
   clearSncPremiar,
 } from "@/services/resultatService";
-import { confirmDialog } from "@/components/ConfirmDialog";
+import { confirmDialog } from "@/components/dialog/ConfirmDialog";
 import {
   bindResultatDetaljar,
   resultatKolonnar,

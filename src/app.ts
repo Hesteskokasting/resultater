@@ -2,8 +2,8 @@ import { App } from "@capacitor/app";
 import { render as renderHome } from "./pages/home";
 import { getUser, initAuthListener, isAdmin, isClubAdmin, signOut } from "./services/authService";
 import { createErrorBanner } from "@/components/states";
-import { showReauthModal } from "./components/ReauthModal";
-import { maybeShowWelcomeDialog } from "./components/WelcomeDialog";
+import { showReauthDialog } from "./components/dialog/ReauthDialog";
+import { maybeShowWelcomeDialog } from "./components/dialog/WelcomeDialog";
 import { setPageTitle } from "@/utils/pageTitle";
 import {
   hasRefetch,
@@ -356,9 +356,9 @@ document.addEventListener("authStateChanged", (e) => {
   }
   // On a genuine authenticated → signed-out transition (not restoring a dead token on
   // load), let the operator re-authenticate in place instead of being bounced to the
-  // login page mid-task. showReauthModal() is idempotent against repeat SIGNED_OUT events.
+  // login page mid-task. showReauthDialog() is idempotent against repeat SIGNED_OUT events.
   if (event === "SIGNED_OUT" && !intentional && hadSession) {
-    showReauthModal();
+    showReauthDialog();
   }
 });
 

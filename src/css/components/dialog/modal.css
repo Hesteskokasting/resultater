@@ -1,4 +1,4 @@
-/* Rendered by admin/_adminUi.ts, admin/forms/_formButtons.ts, admin/panels/brukarar.ts and 21 more. */
+/* Rendered by components/dialog/modalBase.ts and every dialog built on it, plus admin/_adminUi.ts and 21 more. */
 
 /* Dialog messages interpolate user data (e-mail, names); wrap tokens that
    would otherwise overflow the narrow modal-sm body. */

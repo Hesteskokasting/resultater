@@ -59,7 +59,7 @@ vi.mock("@/services/adminService", () => ({
 }));
 vi.mock("@/services/authService", () => ({ getUser: mocks.getUser }));
 vi.mock("@/services/accountService", () => ({ deleteUserAccount: mocks.deleteUserAccount }));
-vi.mock("@/components/ConfirmDialog", () => ({ confirmDialog: mocks.confirmDialog }));
+vi.mock("@/components/dialog/ConfirmDialog", () => ({ confirmDialog: mocks.confirmDialog }));
 vi.mock("@/components/Toast", () => ({ showToast: mocks.showToast }));
 vi.mock("@/admin/_adminCharts", () => ({
   drawBarChart: vi.fn(),

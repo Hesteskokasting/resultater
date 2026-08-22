@@ -4,7 +4,7 @@
 
 import { getUser } from "@/services/authService";
 import { linkedThrowerId } from "@/utils/kaster";
-import { confirmDialog } from "@/components/ConfirmDialog";
+import { confirmDialog } from "@/components/dialog/ConfirmDialog";
 import { createErrorBanner, createLoadingState, createEmptyState } from "@/components/states";
 import { createStevneCard, registrationCtaLink } from "@/components/StevneCard";
 import {

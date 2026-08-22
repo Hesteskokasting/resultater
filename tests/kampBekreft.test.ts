@@ -33,7 +33,7 @@ vi.mock("@/services/kampService", async (importOriginal) => {
   return { ...actual, ...mocks };
 });
 vi.mock("@/utils/realtime", () => ({ unsubscribeChannel: vi.fn() }));
-vi.mock("@/components/ConfirmDialog", () => ({ confirmDialog: mocks.confirmDialog }));
+vi.mock("@/components/dialog/ConfirmDialog", () => ({ confirmDialog: mocks.confirmDialog }));
 vi.mock("@/components/Toast", () => ({ showToast: vi.fn() }));
 vi.mock("@/utils/logError", () => ({ logError: vi.fn() }));
 

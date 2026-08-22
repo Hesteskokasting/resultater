@@ -14,7 +14,7 @@ import {
 import { logError } from "@/utils/logError";
 import { errorMessage } from "@/utils/errorMessage";
 import { showToast } from "@/components/Toast";
-import { confirmDialog } from "@/components/ConfirmDialog";
+import { confirmDialog } from "@/components/dialog/ConfirmDialog";
 import { getInfoTournament, startTournament, type StartStep } from "@/services/stevneService";
 import {
   getRegistrationCount,

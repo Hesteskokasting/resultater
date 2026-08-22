@@ -33,7 +33,7 @@ vi.mock("@/components/PameldingKnapp", () => ({
   createRegistrationButton: mocks.createRegistrationButton,
 }));
 vi.mock("@/services/authService", () => ({ getUser: mocks.getUser }));
-vi.mock("@/components/ConfirmDialog", () => ({ confirmDialog: mocks.confirmDialog }));
+vi.mock("@/components/dialog/ConfirmDialog", () => ({ confirmDialog: mocks.confirmDialog }));
 vi.mock("@/components/Toast", () => ({ showToast: mocks.showToast }));
 
 import { render as renderInfo } from "@/pages/stevne/stevne-info";

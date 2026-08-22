@@ -10,7 +10,7 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 import { getUser } from "@/services/authService";
 import { createErrorBanner, createLoadingState, createEmptyState } from "@/components/states";
 import { showToast } from "@/components/Toast";
-import { confirmDialog } from "@/components/ConfirmDialog";
+import { confirmDialog } from "@/components/dialog/ConfirmDialog";
 import {
   showXkastKongelagNumberpad,
   type XkastKongelagEntryStep,

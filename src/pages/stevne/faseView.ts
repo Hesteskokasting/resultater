@@ -15,7 +15,7 @@ import { createTable, type ColumnDef } from "@/components/Table";
 import type { BannerMenuItem } from "@/components/BannerMenu";
 import { openInNewTab } from "@/services/navigationService";
 import { completeTournament, type CompleteStep } from "@/services/stevneService";
-import { confirmDialog } from "@/components/ConfirmDialog";
+import { confirmDialog } from "@/components/dialog/ConfirmDialog";
 import { showToast } from "@/components/Toast";
 import { errorMessage } from "@/utils/errorMessage";
 import type { StandingMatch, StandingRow } from "@/utils/stilling";

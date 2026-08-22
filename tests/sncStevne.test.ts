@@ -45,7 +45,7 @@ vi.mock("@/services/resultatService", () => ({
   drawSncPremiar: mocks.drawSncPremiar,
   clearSncPremiar: mocks.clearSncPremiar,
 }));
-vi.mock("@/components/PremieDialog", () => ({ premieDialog: mocks.premieDialog }));
+vi.mock("@/components/dialog/PremieDialog", () => ({ premieDialog: mocks.premieDialog }));
 vi.mock("@/services/pameldingService", () => ({
   getRegistrationsAcrossTournaments: mocks.getRegistrationsAcrossTournaments,
   registerForTournament: mocks.registerForTournament,
@@ -55,7 +55,7 @@ vi.mock("@/services/pameldingService", () => ({
   getPairCount: mocks.getPairCount,
 }));
 vi.mock("@/services/authService", () => ({ getUser: mocks.getUser }));
-vi.mock("@/components/ConfirmDialog", () => ({ confirmDialog: mocks.confirmDialog }));
+vi.mock("@/components/dialog/ConfirmDialog", () => ({ confirmDialog: mocks.confirmDialog }));
 vi.mock("@/components/Toast", () => ({ showToast: mocks.showToast }));
 
 const {

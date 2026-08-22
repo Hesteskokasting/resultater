@@ -1,4 +1,4 @@
-import { confirmDialog } from "@/components/ConfirmDialog";
+import { confirmDialog } from "@/components/dialog/ConfirmDialog";
 import { errorMessage } from "@/utils/errorMessage";
 import { showFormError } from "./_formHost";
 import type { AdminFormHost } from "./_formHost";

@@ -2,7 +2,7 @@
 // wants to do next. Shown once per browser until dismissed for good, and never
 // to a signed-in account — min side's link gate takes over from there.
 
-import { createModalEl, createModalLifecycle } from "@/components/ModalBase";
+import { createModalEl, createModalLifecycle } from "@/components/dialog/modalBase";
 import { getUser } from "@/services/authService";
 
 const SEEN_KEY = "welcome-seen";

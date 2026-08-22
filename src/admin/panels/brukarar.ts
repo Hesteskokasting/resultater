@@ -1,4 +1,4 @@
-import { confirmDialog } from "@/components/ConfirmDialog";
+import { confirmDialog } from "@/components/dialog/ConfirmDialog";
 import { createErrorBanner, createLoadingState, createEmptyState } from "@/components/states";
 import { createSearchInput } from "@/components/SearchInput";
 import { showToast } from "@/components/Toast";

@@ -1,5 +1,5 @@
 import { createEl } from "@/utils/createEl";
-import { confirmDialog } from "@/components/ConfirmDialog";
+import { confirmDialog } from "@/components/dialog/ConfirmDialog";
 import { deleteMatchRounds } from "@/services/kampService";
 import { showToast } from "@/components/Toast";
 
