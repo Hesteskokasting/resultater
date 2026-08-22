@@ -19,7 +19,7 @@
 // an InnledendeVariant and exports `createInnledendeRenderer(variant)`.
 // See gloppen.ts (no-Swiss) and nordhordland.ts (Swiss) for examples.
 //
-import { showScoreEditor } from "@/components/ScoreEditor";
+import { showKampScoreEditor } from "@/components/numberpad/kampScoreEditor";
 import { showToast } from "@/components/Toast";
 import { getMatchSides, groupStandingsByPair, sideScore } from "@/utils/kamp";
 import { applyFlashClasses, renderMatchLegend, renderRound } from "./innledendeView";
@@ -258,7 +258,7 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
     const playerIds = [...(side1?.members ?? []), ...(side2?.members ?? [])].map((m) => m.id);
 
     const onScoreClick = async () => {
-      await showScoreEditor({
+      await showKampScoreEditor({
         side1Name: sideNameHtml(side1, false),
         side2Name: sideNameHtml(side2, false),
         currentS1: sideScore(side1, kamp.er_bekreftet),

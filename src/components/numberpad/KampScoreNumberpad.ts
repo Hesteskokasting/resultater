@@ -19,7 +19,7 @@ const MAX_SCORE = 999;
 /** Below 750px the sides are entered one at a time; from 750px they sit side by side. */
 const STEPWISE_MAX_WIDTH = "(max-width: 749px)";
 
-export interface NumberpadEntry {
+export interface KampScoreEntry {
   /** Display name shown above the pad. */
   name: string;
   /** Prefilled score. */
@@ -27,7 +27,7 @@ export interface NumberpadEntry {
 }
 
 /** Where the kamp sits — same header line the X-kast pad shows. */
-export interface NumberpadContext {
+export interface KampScoreContext {
   /** Pill above the pads, e.g. "Bane 3". */
   baneLabel?: string;
   /** Round line beside the pill, e.g. "Runde 2" or "Semifinale". */
@@ -35,16 +35,15 @@ export interface NumberpadContext {
 }
 
 /**
- * Numberpad for direct score entry. Supports any number of participants (kamp
- * uses 2 sides, X-kast courts have 1–3 players). Mobile shows one participant
- * at a time (the footer advances, Lagre on the last); wider screens show every
- * pad side by side with a single Lagre below. `onSave` returns false to keep
- * the pad open — a failed write must not take the typed scores with it.
+ * Direct score entry for a kamp — one pad per side. Mobile shows one side at a
+ * time (the footer advances, Lagre on the last); wider screens show both pads
+ * side by side with a single Lagre below. `onSave` returns false to keep the
+ * pad open — a failed write must not take the typed scores with it.
  */
-export function showNumberpad(
-  entries: NumberpadEntry[],
+export function showKampScoreNumberpad(
+  entries: KampScoreEntry[],
   onSave: (scores: number[]) => Promise<boolean>,
-  context: NumberpadContext = {},
+  context: KampScoreContext = {},
 ): void {
   if (entries.length === 0) return;
 

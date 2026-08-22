@@ -1,7 +1,7 @@
 /* Rendered by components/numberpadUi.ts. */
 
 /* ── Score-nummerpad ── */
-/* One surface for all three pads: the kamp pad (ScoreNumberpad), the per-omgang
+/* One surface for all three pads: the kamp pad (KampScoreNumberpad), the per-omgang
    wizard (XkastKongelagNumberpad) and the total pad (TotalNumberpad). Parts are shared
    from components/numberpadUi.ts; the strip and ring keys are only used by the
    omgang pad but stay here so the whole pad reads as one system. */
@@ -205,7 +205,7 @@
 }
 
 /* One column per participant — the kamp pad shows all of them side by side above
-   STEPWISE_MAX_WIDTH (ScoreNumberpad); below it, and in every other pad, the
+   STEPWISE_MAX_WIDTH (KampScoreNumberpad); below it, and in every other pad, the
    wrapper holds exactly one column. */
 .pad-cols {
   display: grid;

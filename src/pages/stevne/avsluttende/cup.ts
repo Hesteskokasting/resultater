@@ -2,13 +2,13 @@ import { bindGroupAssignment, renderGroupAssignment } from "./gruppefordelingUi"
 import { generateFinaleAndBronzeFinal } from "@/services/kampGenereringCupService";
 import { openGenerateRoundDialog } from "./_avslCupGenererRundeDialog";
 import { openThreeSideConfirmDialog } from "./_avslCupTreSpelarDialog";
-import { showNumberpad } from "@/components/numberpad/ScoreNumberpad";
+import { showKampScoreNumberpad } from "@/components/numberpad/KampScoreNumberpad";
 import { sideScore, getAllMatchSides, type MatchSide } from "@/utils/kamp";
 import { bindScoreboardClicks, sideNameHtml } from "../faseView";
 import type { StandingRow } from "@/utils/stilling";
 import { scoreboardButtonHtml } from "@/components/ScoreboardButton";
 import { liveDotHtml } from "@/components/LivePill";
-import { showScoreEditor } from "@/components/ScoreEditor";
+import { showKampScoreEditor } from "@/components/numberpad/kampScoreEditor";
 import { escHtml } from "@/utils/escHtml";
 import { groupBy } from "@/utils/groupBy";
 import { errorMessage } from "@/utils/errorMessage";
@@ -476,7 +476,7 @@ function bindMatchEventsLocal(
 
     /** Unconfirmed: entering the score settles the match, no separate Bekreft step. */
     const scoreAndConfirm = (): void => {
-      void showScoreEditor({
+      void showKampScoreEditor({
         side1Name: p1Name,
         side2Name: p2Name,
         currentS1: sideSum(side1, kamp),
@@ -501,7 +501,7 @@ function bindMatchEventsLocal(
     if (isAdminLocal && !kamp.er_tre_spelarar && !kamp.er_walkover) {
       /** Confirmed: a correction, so the placements and the bracket move with it. */
       const rescore = (): void => {
-        showNumberpad(
+        showKampScoreNumberpad(
           [
             { name: p1Name, score: sideSum(side1, kamp) },
             { name: p2Name, score: sideSum(side2, kamp) },

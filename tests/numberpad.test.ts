@@ -5,7 +5,7 @@
  */
 
 import { beforeEach, describe, expect, it } from "vite-plus/test";
-import { showNumberpad } from "@/components/numberpad/ScoreNumberpad";
+import { showKampScoreNumberpad } from "@/components/numberpad/KampScoreNumberpad";
 import { showTotalNumberpad } from "@/components/numberpad/TotalNumberpad";
 import { showXkastKongelagNumberpad } from "@/components/numberpad/XkastKongelagNumberpad";
 
@@ -59,10 +59,10 @@ beforeEach(() => {
   setViewport(false);
 });
 
-describe("showNumberpad", () => {
+describe("showKampScoreNumberpad", () => {
   it("shows one column per side on a wide screen and saves every score", async () => {
     const saved: number[][] = [];
-    showNumberpad(
+    showKampScoreNumberpad(
       [
         { name: "Lag A", score: 0 },
         { name: "Lag B", score: 7 },
@@ -93,7 +93,7 @@ describe("showNumberpad", () => {
   });
 
   it("lights a score key on press and lets go on release", () => {
-    showNumberpad([{ name: "Lag A", score: 0 }], async () => true);
+    showKampScoreNumberpad([{ name: "Lag A", score: 0 }], async () => true);
 
     const key = gridKeys()[0]!;
     key.dispatchEvent(new Event("pointerdown"));
@@ -106,7 +106,7 @@ describe("showNumberpad", () => {
   });
 
   it("wipes the whole score on one press of the clear key", () => {
-    showNumberpad([{ name: "Lag A", score: 0 }], async () => true);
+    showKampScoreNumberpad([{ name: "Lag A", score: 0 }], async () => true);
 
     const keys = gridKeys();
     keys[0]!.click();
@@ -121,7 +121,7 @@ describe("showNumberpad", () => {
 
   it("blocks the footer action until the sides it covers have a score", () => {
     setViewport(true);
-    showNumberpad(
+    showKampScoreNumberpad(
       [
         { name: "Lag A", score: 0 },
         { name: "Lag B", score: 0 },
@@ -152,7 +152,7 @@ describe("showNumberpad", () => {
   });
 
   it("stays open with the typed scores when the save fails", async () => {
-    showNumberpad([{ name: "Lag A", score: 0 }], async () => false);
+    showKampScoreNumberpad([{ name: "Lag A", score: 0 }], async () => false);
 
     gridKeys()[4]!.click();
     click(".pad-register");
@@ -166,7 +166,7 @@ describe("showNumberpad", () => {
 
   it("steps through the sides on a phone and can go back", () => {
     setViewport(true);
-    showNumberpad(
+    showKampScoreNumberpad(
       [
         { name: "Lag A", score: 3 },
         { name: "Lag B", score: 0 },
@@ -195,7 +195,7 @@ describe("showNumberpad", () => {
 
   it("follows the viewport across the layout threshold while open", () => {
     setViewport(true);
-    showNumberpad(
+    showKampScoreNumberpad(
       [
         { name: "Lag A", score: 1 },
         { name: "Lag B", score: 2 },

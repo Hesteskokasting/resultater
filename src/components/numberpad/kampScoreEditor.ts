@@ -1,10 +1,10 @@
 import { confirmDialog } from "@/components/ConfirmDialog";
-import { showNumberpad } from "@/components/numberpad/ScoreNumberpad";
+import { showKampScoreNumberpad } from "@/components/numberpad/KampScoreNumberpad";
 import { showToast } from "@/components/Toast";
 import { deleteMatchRounds } from "@/services/kampService";
 import { logError } from "@/utils/logError";
 
-export interface ScoreEditorOptions {
+export interface KampScoreEditorOptions {
   /** Display name/HTML for side 1 (left numberpad). */
   side1Name: string;
   /** Display name/HTML for side 2 (right numberpad). */
@@ -38,7 +38,7 @@ export interface ScoreEditorOptions {
  * Writing a flat score can't coexist with per-omgang rows, so the rounds are
  * deleted on save rather than left to silently contradict the new total.
  */
-export async function showScoreEditor(opts: ScoreEditorOptions): Promise<void> {
+export async function showKampScoreEditor(opts: KampScoreEditorOptions): Promise<void> {
   if (
     opts.hasRounds &&
     !(await confirmDialog({
@@ -48,7 +48,7 @@ export async function showScoreEditor(opts: ScoreEditorOptions): Promise<void> {
   )
     return;
 
-  showNumberpad(
+  showKampScoreNumberpad(
     [
       { name: opts.side1Name, score: opts.currentS1 },
       { name: opts.side2Name, score: opts.currentS2 },
@@ -67,12 +67,14 @@ export async function showScoreEditor(opts: ScoreEditorOptions): Promise<void> {
             return false;
           }
         }
+        // Inside the try: a throw out of here would otherwise leave the pad
+        // stuck on "Lagrer…", with the rounds already deleted.
+        await opts.onSaved(s1, s2);
       } catch (err) {
-        logError(`${opts.logPrefix}:showScoreEditor`, err);
+        logError(`${opts.logPrefix}:showKampScoreEditor`, err);
         showToast("Feil ved lagring av score", "error");
         return false;
       }
-      await opts.onSaved(s1, s2);
       return true;
     },
     { baneLabel: opts.baneLabel, rundeLabel: opts.rundeLabel },
