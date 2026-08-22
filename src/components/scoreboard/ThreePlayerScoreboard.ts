@@ -45,7 +45,7 @@ export async function renderThreePlayerScoreboard(
   let winOrder: number[] = [];
   /** Last omgang each side played, so the starter rotation skips finished sides. */
   let finishedAtOmgang: (number | null)[] = sides.map(() => null);
-  let selected: (number | null)[] = sides.map(() => null);
+  const selected: (number | null)[] = sides.map(() => null);
 
   await reload();
 
@@ -69,7 +69,7 @@ export async function renderThreePlayerScoreboard(
   /** Reload, drop the half-entered omgang, redraw — what every write ends with. */
   async function refresh(): Promise<void> {
     await reload();
-    selected = sides.map(() => null);
+    selected.fill(null);
     render();
   }
 
@@ -141,10 +141,7 @@ export async function renderThreePlayerScoreboard(
     const footer = statusFooterEl(isFinished);
     if (footer) container.appendChild(footer);
 
-    bindPointButtons(container, (i, value) => {
-      selected[i] = selected[i] === value ? null : value;
-      render();
-    });
+    bindPointButtons(container, selected, render);
   }
 
   async function advance(): Promise<void> {

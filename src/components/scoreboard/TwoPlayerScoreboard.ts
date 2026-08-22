@@ -42,7 +42,7 @@ export async function renderTwoPlayerScoreboard(
   const allIds = sides.flatMap((side) => side.ids);
 
   let rounds: DuelRound[] = [];
-  let selected: (number | null)[] = [null, null];
+  const selected: (number | null)[] = [null, null];
   let matchOver = kamp.er_bekreftet || kamp.er_walkover;
 
   await reload();
@@ -129,10 +129,7 @@ export async function renderTwoPlayerScoreboard(
       container.appendChild(nextButtonEl(!(hasPick && !matchOver), advance));
     }
 
-    bindPointButtons(container, (i, value) => {
-      selected[i] = selected[i] === value ? null : value;
-      render();
-    });
+    bindPointButtons(container, selected, render);
   }
 
   async function advance(): Promise<void> {
@@ -150,7 +147,7 @@ export async function renderTwoPlayerScoreboard(
     rounds.push({ omgang, s1, s2, r1: calcRingCount(s1), r2: calcRingCount(s2) });
     const [t1, t2] = effectiveTotals();
     matchOver = matchIsDecided(t1, t2, kamp.fase);
-    selected = [null, null];
+    selected.fill(null);
     render();
   }
 
@@ -160,7 +157,7 @@ export async function renderTwoPlayerScoreboard(
     if (!(await undoLastOmgang(allIds, last.omgang, [last.s1, last.s2]))) return;
 
     await reload();
-    selected = [null, null];
+    selected.fill(null);
     render();
   }
 

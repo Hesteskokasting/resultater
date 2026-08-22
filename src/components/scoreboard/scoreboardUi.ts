@@ -68,14 +68,23 @@ export function pointButtonsEl(opts: {
   return knappar;
 }
 
-/** Bound after every draw — the board redraws itself on each pick. */
+/**
+ * Bound after every draw. Writes the pick straight into `selected` — pressing
+ * the same key again clears it — then lets the board draw itself anew. The
+ * array is mutated in place, so boards must clear it with fill(null) rather
+ * than assign a new one, or these listeners would write to the old array.
+ */
 export function bindPointButtons(
   container: HTMLElement,
-  onPick: (index: number, value: number) => void,
+  selected: (number | null)[],
+  redraw: () => void,
 ): void {
   container.querySelectorAll<HTMLButtonElement>("[data-side]").forEach((btn) => {
     btn.addEventListener("click", () => {
-      onPick(parseInt(btn.dataset.side ?? "0"), parseInt(btn.dataset.value ?? "0"));
+      const i = parseInt(btn.dataset.side ?? "0");
+      const value = parseInt(btn.dataset.value ?? "0");
+      selected[i] = selected[i] === value ? null : value;
+      redraw();
     });
   });
 }
