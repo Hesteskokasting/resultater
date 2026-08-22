@@ -41,37 +41,34 @@ export function bindBannerMenu(bannerSlot: HTMLElement | null): void {
   const panel = root.querySelector<HTMLElement>(".stevne-banner-menu__panel");
   if (!trigger || !panel) return;
 
-  function close(): void {
-    panel!.hidden = true;
-    trigger!.setAttribute("aria-expanded", "false");
-    document.removeEventListener("pointerdown", onOutside, true);
-    document.removeEventListener("keydown", onKeydown, true);
-  }
+  const setOpen = (open: boolean): void => {
+    panel.hidden = !open;
+    trigger.setAttribute("aria-expanded", String(open));
+    if (open) {
+      document.addEventListener("pointerdown", onOutside, true);
+      document.addEventListener("keydown", onKeydown, true);
+    } else {
+      document.removeEventListener("pointerdown", onOutside, true);
+      document.removeEventListener("keydown", onKeydown, true);
+    }
+  };
 
   // Also fires when a re-render replaced the banner while the menu was open —
   // the detached root can never contain the target, so the listeners unbind.
-  function onOutside(e: Event): void {
-    if (!root!.isConnected || !root!.contains(e.target as Node)) close();
-  }
+  const onOutside = (e: Event): void => {
+    if (!root.isConnected || !root.contains(e.target as Node)) setOpen(false);
+  };
 
-  function onKeydown(e: KeyboardEvent): void {
+  const onKeydown = (e: KeyboardEvent): void => {
     if (e.key !== "Escape") return;
-    close();
-    trigger!.focus();
-  }
+    setOpen(false);
+    trigger.focus();
+  };
 
-  trigger.addEventListener("click", () => {
-    if (!panel.hidden) {
-      close();
-      return;
-    }
-    panel.hidden = false;
-    trigger.setAttribute("aria-expanded", "true");
-    document.addEventListener("pointerdown", onOutside, true);
-    document.addEventListener("keydown", onKeydown, true);
-  });
+  // hidden is boolean | "until-found", so compare instead of coercing.
+  trigger.addEventListener("click", () => setOpen(panel.hidden !== false));
 
   panel.addEventListener("click", (e) => {
-    if ((e.target as HTMLElement).closest(".stevne-banner-menu__item")) close();
+    if ((e.target as HTMLElement).closest(".stevne-banner-menu__item")) setOpen(false);
   });
 }
