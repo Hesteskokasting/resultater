@@ -20,7 +20,7 @@ export function renderBannerMenu(items: BannerMenuItem[]): string {
   const itemsHtml = items
     .map(
       (item) => `
-      <button type="button" role="menuitem" id="${item.id}"
+      <button type="button" id="${item.id}"
         class="stevne-banner-menu__item${item.tone ? ` stevne-banner-menu__item--${item.tone}` : ""}"
         ${item.hint ? `title="${escHtml(item.hint)}"` : ""}
         ${item.disabled ? "disabled" : ""}>${escHtml(item.label)}</button>`,
@@ -28,9 +28,9 @@ export function renderBannerMenu(items: BannerMenuItem[]): string {
     .join("");
   return `
     <div class="stevne-banner-menu">
-      <button type="button" class="stevne-banner-menu__trigger" aria-haspopup="true"
+      <button type="button" class="stevne-banner-menu__trigger"
         aria-expanded="false" aria-label="Handlingar">⋯</button>
-      <div class="stevne-banner-menu__panel" role="menu" hidden>${itemsHtml}</div>
+      <div class="stevne-banner-menu__panel" hidden>${itemsHtml}</div>
     </div>`;
 }
 
