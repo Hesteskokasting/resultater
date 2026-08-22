@@ -4,7 +4,7 @@ import { createTabs } from "@/components/Tabs";
 import { getMyMatches, getStartNumbersForTournaments } from "@/services/kampService";
 import { getMyCourts } from "@/services/xkastKongelagService";
 import { newTabAnchorAttrs } from "@/services/navigationService";
-import { scoreboardLinkHtml } from "@/components/ScoreboardButton";
+import { scoreboardLinkHtml } from "@/components/scoreboard/ScoreboardButton";
 import { groupBy } from "@/utils/groupBy";
 import { isByeSide, matchOutcome, matchSides } from "@/utils/myMatches";
 import { renderSectionCard } from "./_sectionCard";

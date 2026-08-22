@@ -1,7 +1,7 @@
 /* ScoreboardButton
-   Rendered by components/ScoreboardButton.ts, pages/minside/minside-kampar.ts. */
+   Rendered by components/scoreboard/ScoreboardButton.ts, pages/minside/minside-kampar.ts. */
 
-/* Icon-only "open the scoreboard" control (components/ScoreboardButton.ts).
+/* Icon-only "open the scoreboard" control (components/scoreboard/ScoreboardButton.ts).
    One shape for every view that offers it: cup cards, innledende rows, minside.
    Sized to fit inside the cup card's fixed 1.5rem header. */
 .scoreboard-btn {

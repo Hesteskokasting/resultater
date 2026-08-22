@@ -6,7 +6,7 @@ import { showKampScoreNumberpad } from "@/components/numberpad/KampScoreNumberpa
 import { sideScore, getAllMatchSides, type MatchSide } from "@/utils/kamp";
 import { bindScoreboardClicks, sideNameHtml } from "../faseView";
 import type { StandingRow } from "@/utils/stilling";
-import { scoreboardButtonHtml } from "@/components/ScoreboardButton";
+import { scoreboardButtonHtml } from "@/components/scoreboard/ScoreboardButton";
 import { liveDotHtml } from "@/components/LivePill";
 import { showKampScoreEditor } from "@/components/numberpad/kampScoreEditor";
 import { escHtml } from "@/utils/escHtml";
