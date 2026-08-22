@@ -6,7 +6,7 @@ import {
   attendanceOpensAt,
   formatClock,
   isAttendanceOpen,
-} from "@/utils/oppmote";
+} from "@/utils/checkIn";
 
 export interface CheckInButtonProps {
   tournamentId: number;

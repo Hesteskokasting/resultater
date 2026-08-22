@@ -4,7 +4,7 @@ import {
   attendanceOpensAt,
   formatClock,
   isAttendanceOpen,
-} from "@/utils/oppmote";
+} from "@/utils/checkIn";
 
 describe("attendanceOpensAt", () => {
   it("opens two hours before a stevne with a start time", () => {
