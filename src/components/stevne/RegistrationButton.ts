@@ -81,7 +81,7 @@ export function createRegistrationButton(props: RegistrationButtonProps): HTMLBu
     } catch (err) {
       // The services return errors rather than throwing, so this is the network
       // layer failing outright. Without it the click is lost in silence.
-      logError("PameldingKnapp", err);
+      logError("RegistrationButton", err);
       showToast("Noko gjekk gale. Prøv igjen.", "error");
     } finally {
       btn.disabled = false;

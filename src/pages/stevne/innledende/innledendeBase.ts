@@ -11,7 +11,7 @@
 //   isSwiss                    — whether to offer "Generer neste runde" in the menu
 //   onReset?()                 — called on each render(); use to reset variant state
 //   bannerMeta(ctx)            — meta line beside the stevne name in the banner
-//   getMenuItems(ctx)          — extra banner-menu entries for this variant
+//   getMenuItems(ctx)          — extra stevne banner menu entries for this variant
 //   bindBannerExtra(slot, ctx) — binds click handlers for the entries above
 //   filterRounds?(roundMap)    — optionally filter which rounds to display; default: all
 //
@@ -41,7 +41,11 @@ import {
 } from "../faseView";
 import { buildInitialPlayerMap, sortStandings, type StandingRow } from "@/utils/stilling";
 import { parseRound1Format } from "@/utils/kastemetoder-logikk";
-import { renderBannerMenu, bindBannerMenu, type BannerMenuItem } from "@/components/BannerMenu";
+import {
+  renderStevneBannerMenu,
+  bindStevneBannerMenu,
+  type StevneBannerMenuItem,
+} from "@/components/stevne/StevneBannerMenu";
 import { createErrorBanner, createLoadingState } from "@/components/states";
 import { errorMessage } from "@/utils/errorMessage";
 import { logError } from "@/utils/logError";
@@ -88,7 +92,7 @@ export interface InnledendeVariant {
   onReset?: () => void;
   /** Secondary meta line beside the stevne name, e.g. "NHM - 2 av 5 rundar". */
   bannerMeta: (ctx: InnledendeContext) => string;
-  getMenuItems: (ctx: InnledendeContext) => BannerMenuItem[];
+  getMenuItems: (ctx: InnledendeContext) => StevneBannerMenuItem[];
   bindBannerExtra: (bannerSlot: HTMLElement, ctx: InnledendeContext) => void;
   filterRounds?: (roundMap: Map<number, InitialMatchRow[]>) => Map<number, InitialMatchRow[]>;
 }
@@ -221,7 +225,7 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
     // with no planned count are unbounded — neither gate applies to them.
     const plannedRounds = ctx.stevne.antall_runder_innl;
     const allRoundsGenerated = plannedRounds != null && ctx.roundMap.size >= plannedRounds;
-    bannerSlot.innerHTML = renderBannerMenu(
+    bannerSlot.innerHTML = renderStevneBannerMenu(
       isAdmin
         ? initialMenuItems(ctx.stevne, {
             erSwiss: variant.isSwiss,
@@ -231,7 +235,7 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
           })
         : extras,
     );
-    bindBannerMenu(bannerSlot);
+    bindStevneBannerMenu(bannerSlot);
     variant.bindBannerExtra(bannerSlot, ctx);
 
     bindCompleteTournament(bannerSlot, ctx.stevneid, () => ctx.standing, ctx.reload);

@@ -54,7 +54,7 @@ vi.mock("@/services/authService", () => ({
   isClubAdmin: mocks.isClubAdmin,
   getUser: mocks.getUser,
 }));
-vi.mock("@/components/PameldingKnapp", () => ({
+vi.mock("@/components/stevne/RegistrationButton", () => ({
   bindRegistrationSlots: mocks.bindRegistrationSlots,
 }));
 vi.mock("@/pages/stevne/stevne-info", () => ({ render: mocks.renderInfo }));
@@ -271,7 +271,7 @@ describe("home page and SNC", () => {
     await renderHome(el);
 
     expect(getTournamentsByIds).toHaveBeenCalledWith([100]);
-    const liveCards = [...el.querySelectorAll("#live-section .stevne-kort")];
+    const liveCards = [...el.querySelectorAll("#live-section .stevne-card")];
     expect(liveCards).toHaveLength(1);
     expect(liveCards[0]!.textContent).toContain("SNC runde 1");
     expect(liveCards[0]!.textContent).not.toContain("Førde");

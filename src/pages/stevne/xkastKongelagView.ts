@@ -33,7 +33,11 @@ import {
   bindAutoComplete,
   bindCompleteTournament,
 } from "./faseView";
-import { renderBannerMenu, bindBannerMenu, type BannerMenuItem } from "@/components/BannerMenu";
+import {
+  renderStevneBannerMenu,
+  bindStevneBannerMenu,
+  type StevneBannerMenuItem,
+} from "@/components/stevne/StevneBannerMenu";
 import {
   getCourts,
   saveOmgang,
@@ -670,7 +674,7 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
     const showAutoComplete =
       import.meta.env.VITE_ENV === "dev" && s.courts.length > 0 && !allConfirmed;
 
-    const items: BannerMenuItem[] = [];
+    const items: StevneBannerMenuItem[] = [];
     if (showAutoComplete) items.push({ id: "test-auto-complete-btn", label: "TEST: Autofullfør" });
     if (showComplete)
       items.push({
@@ -679,8 +683,8 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
         tone: "success",
         disabled: s.config.erfullfort,
       });
-    bannerSlot.innerHTML = renderBannerMenu(items);
-    bindBannerMenu(bannerSlot);
+    bannerSlot.innerHTML = renderStevneBannerMenu(items);
+    bindStevneBannerMenu(bannerSlot);
 
     bindAutoComplete(
       bannerSlot,

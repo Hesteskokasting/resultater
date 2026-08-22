@@ -20,7 +20,7 @@ vi.mock("@/services/pameldingService", () => ({
 vi.mock("@/components/dialog/ConfirmDialog", () => ({ confirmDialog: mocks.confirmDialog }));
 vi.mock("@/components/Toast", () => ({ showToast: mocks.showToast }));
 
-import { createRegistrationButton } from "@/components/PameldingKnapp";
+import { createRegistrationButton } from "@/components/stevne/RegistrationButton";
 
 function button(isRegistered: boolean, registrationId?: number) {
   return createRegistrationButton({

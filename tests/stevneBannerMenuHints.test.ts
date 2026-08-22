@@ -13,7 +13,7 @@ const mocks = vi.hoisted(() => {
 vi.mock("@/supabase", () => ({ supabase: { from: mocks.from } }));
 
 import { finalMenuItems, initialMenuItems } from "@/pages/stevne/faseView";
-import type { BannerMenuItem } from "@/components/BannerMenu";
+import type { StevneBannerMenuItem } from "@/components/stevne/StevneBannerMenu";
 
 const openStevne = { erfullfort: false, avsluttendekastemetodeid: null };
 
@@ -23,7 +23,7 @@ const initialState = {
   canComplete: true,
 };
 
-const byId = (items: BannerMenuItem[], id: string) => items.find((i) => i.id === id);
+const byId = (items: StevneBannerMenuItem[], id: string) => items.find((i) => i.id === id);
 
 describe("initialMenuItems", () => {
   it("keeps Generer neste runde listed with a reason once every round exists", () => {

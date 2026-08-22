@@ -11,7 +11,7 @@ vi.mock("@/services/pameldingService", () => ({
   setRegistrationConfirmedForThrower: mocks.setRegistrationConfirmedForThrower,
 }));
 
-import { createOppmoteButton } from "@/components/OppmoteKnapp";
+import { createCheckInButton } from "@/components/stevne/CheckInButton";
 
 /** Local-time ISO date/time strings, matching how a stevne stores dato and tid. */
 function stevneAt(start: Date): { dato: string; tid: string } {
@@ -24,7 +24,7 @@ function stevneAt(start: Date): { dato: string; tid: string } {
 
 function mount(startsInMs: number) {
   const { dato, tid } = stevneAt(new Date(Date.now() + startsInMs));
-  const handle = createOppmoteButton({
+  const handle = createCheckInButton({
     tournamentId: 1,
     throwerId: 2,
     dato,
@@ -36,7 +36,7 @@ function mount(startsInMs: number) {
   return handle;
 }
 
-const button = (el: HTMLElement) => el.querySelector<HTMLButtonElement>(".oppmote-btn");
+const button = (el: HTMLElement) => el.querySelector<HTMLButtonElement>(".check-in-btn");
 
 const HOUR = 60 * 60 * 1000;
 
@@ -57,7 +57,7 @@ it("unlocks itself when the window opens, without anything else redrawing", () =
   vi.advanceTimersByTime(HOUR);
 
   expect(button(element)?.disabled).toBe(false);
-  expect(element.querySelector(".oppmote-hint")).toBe(null);
+  expect(element.querySelector(".check-in-hint")).toBe(null);
 });
 
 it("stays locked until the window actually opens", () => {

@@ -33,7 +33,7 @@ import {
   type StandingMatch,
 } from "@/utils/stilling";
 import { parseRound1Format } from "@/utils/kastemetoder-logikk";
-import { renderBannerMenu, bindBannerMenu } from "@/components/BannerMenu";
+import { renderStevneBannerMenu, bindStevneBannerMenu } from "@/components/stevne/StevneBannerMenu";
 import { createErrorBanner, createLoadingState } from "@/components/states";
 import { logError } from "@/utils/logError";
 import { unsubscribeChannel } from "@/utils/realtime";
@@ -247,7 +247,7 @@ export function createFinalPhaseRenderer(variant: FinalPhaseVariant) {
       setBannerMeta(bannerSlot, variant.bannerMeta(ctx));
 
       if (isAdmin && bannerSlot) {
-        bannerSlot.innerHTML = renderBannerMenu(
+        bannerSlot.innerHTML = renderStevneBannerMenu(
           finalMenuItems(stevne, {
             allMatchesConfirmed,
             hasFinalMatches,
@@ -255,7 +255,7 @@ export function createFinalPhaseRenderer(variant: FinalPhaseVariant) {
             hasPreconfiguredFormat: round1Format != null && stevne.stevne_fase !== "avsluttende",
           }),
         );
-        bindBannerMenu(bannerSlot);
+        bindStevneBannerMenu(bannerSlot);
       }
 
       const activeTab = getActiveTab(container);

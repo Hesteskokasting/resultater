@@ -12,8 +12,8 @@ import { getUser } from "@/services/authService";
 import { linkedThrowerId } from "@/utils/kaster";
 import { getRegistrationsForThrower, emptyThrowerRegistrations } from "@/services/stevneService";
 import type { ThrowerRegistrations } from "@/services/stevneService";
-import { bindRegistrationSlots } from "@/components/PameldingKnapp";
-import { createTournamentCard, sncUmbrellaActionLink } from "@/components/StevneCard";
+import { bindRegistrationSlots } from "@/components/stevne/RegistrationButton";
+import { createTournamentCard, sncUmbrellaActionLink } from "@/components/stevne/StevneCard";
 
 // ── HTML builders ─────────────────────────────────────────────────────────────
 
@@ -53,7 +53,7 @@ function upcomingCard(
 
 function cardList(cards: HTMLElement[]): HTMLElement {
   const wrap = document.createElement("div");
-  wrap.className = "stevne-kort-liste";
+  wrap.className = "stevne-card-list";
   cards.forEach((c) => wrap.appendChild(c));
   return wrap;
 }

@@ -6,7 +6,7 @@ import { throwerName, buildThrowerSlug } from "@/utils/kaster";
 import { createErrorBanner, createLoadingState, createEmptyState } from "@/components/states";
 import { escHtml } from "@/utils/escHtml";
 import { logError } from "@/utils/logError";
-import { renderBannerMenu, bindBannerMenu } from "@/components/BannerMenu";
+import { renderStevneBannerMenu, bindStevneBannerMenu } from "@/components/stevne/StevneBannerMenu";
 import { premieDialog } from "@/components/dialog/PremieDialog";
 import { showToast } from "@/components/Toast";
 import { errorMessage } from "@/utils/errorMessage";
@@ -240,7 +240,7 @@ function bindBannerActions(
   rerender: () => Promise<void>,
 ): void {
   if (!bannerSlot) return;
-  bannerSlot.innerHTML = renderBannerMenu([
+  bannerSlot.innerHTML = renderStevneBannerMenu([
     { id: "snc-print-btn", label: "Skriv ut / lagre som PDF" },
     { id: "snc-excel-btn", label: "Last ned som Excel" },
     ...(isAdmin
@@ -258,7 +258,7 @@ function bindBannerActions(
         ]
       : []),
   ]);
-  bindBannerMenu(bannerSlot);
+  bindStevneBannerMenu(bannerSlot);
 
   bannerSlot.querySelector("#snc-print-btn")?.addEventListener("click", () => window.print());
   bindPrizeDraw(bannerSlot, parent, rows, rerender);

@@ -29,7 +29,7 @@ vi.mock("@/services/pameldingService", () => ({
   getUnconfirmedCount: mocks.getUnconfirmedCount,
   getMyRegistrationForTournament: mocks.getMyRegistrationForTournament,
 }));
-vi.mock("@/components/PameldingKnapp", () => ({
+vi.mock("@/components/stevne/RegistrationButton", () => ({
   createRegistrationButton: mocks.createRegistrationButton,
 }));
 vi.mock("@/services/authService", () => ({ getUser: mocks.getUser }));

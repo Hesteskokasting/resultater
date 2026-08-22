@@ -6,7 +6,7 @@ import { getUser } from "@/services/authService";
 import { linkedThrowerId } from "@/utils/kaster";
 import { confirmDialog } from "@/components/dialog/ConfirmDialog";
 import { createErrorBanner, createLoadingState, createEmptyState } from "@/components/states";
-import { createStevneCard, registrationCtaLink } from "@/components/StevneCard";
+import { createStevneCard, registrationCtaLink } from "@/components/stevne/StevneCard";
 import {
   heroActionSlot,
   stevneDetails,
@@ -14,7 +14,7 @@ import {
   stevneKeyFacts,
   stevneMethodFacts,
   stevneSubtitle,
-} from "@/components/StevneHero";
+} from "@/components/stevne/StevneHero";
 import { showToast } from "@/components/Toast";
 import { errorMessage } from "@/utils/errorMessage";
 import { escHtml } from "@/utils/escHtml";
@@ -181,7 +181,7 @@ export async function render(
       <div class="stevne-max-480">
         ${ownRegistrationNoticeHtml(locals, summary, canRegister, auth, id, parent.erfullfort === true)}
         <h6 class="mb-2">Lokale stevne (${locals.length})</h6>
-        <div id="snc-locals" class="stevne-kort-liste"></div>
+        <div id="snc-locals" class="stevne-card-list"></div>
         ${
           isAdmin
             ? `<div class="mt-3"><a class="btn btn-sm btn-outline-success" href="#/stevne/ny?snc=${id}">+ Nytt lokalt stevne</a></div>`

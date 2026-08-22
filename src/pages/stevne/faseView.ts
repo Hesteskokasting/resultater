@@ -12,7 +12,7 @@ import { coalesceReload } from "@/utils/coalesceReload";
 import { bindExpandableRows, makeRowsFocusable } from "@/components/expandableRows";
 import type { Tables } from "@/types";
 import { createTable, type ColumnDef } from "@/components/Table";
-import type { BannerMenuItem } from "@/components/BannerMenu";
+import type { StevneBannerMenuItem } from "@/components/stevne/StevneBannerMenu";
 import { openInNewTab } from "@/services/navigationService";
 import { completeTournament, type CompleteStep } from "@/services/stevneService";
 import { confirmDialog } from "@/components/dialog/ConfirmDialog";
@@ -414,15 +414,15 @@ export interface InitialMenuState {
   /** Every planned round exists and every kamp is confirmed. */
   canComplete: boolean;
   /** Variant entries — placed between "Generer neste runde" and the dev/complete entries. */
-  extras?: BannerMenuItem[];
+  extras?: StevneBannerMenuItem[];
 }
 
 export function initialMenuItems(
   tournament: Pick<Tables<"stevne">, "erfullfort" | "avsluttendekastemetodeid">,
   state: InitialMenuState,
-): BannerMenuItem[] {
+): StevneBannerMenuItem[] {
   const hasFinalPhase = tournament.avsluttendekastemetodeid != null;
-  const items: BannerMenuItem[] = [];
+  const items: StevneBannerMenuItem[] = [];
   // Kept in the menu once every planned round exists, so the organizer reads why
   // it is unavailable instead of hunting for an entry that silently vanished.
   if (state.erSwiss)
@@ -461,14 +461,14 @@ interface FinalPhaseState {
 export function finalMenuItems(
   tournament: Pick<Tables<"stevne">, "erfullfort" | "stevne_fase">,
   state: FinalPhaseState,
-): BannerMenuItem[] {
+): StevneBannerMenuItem[] {
   const {
     allMatchesConfirmed,
     hasFinalMatches,
     hasGroupAssignment,
     hasPreconfiguredFormat = false,
   } = state;
-  const items: BannerMenuItem[] = [];
+  const items: StevneBannerMenuItem[] = [];
 
   if (tournament.stevne_fase !== "avsluttende") {
     // Listed even when it cannot run yet — the hint is the only place the

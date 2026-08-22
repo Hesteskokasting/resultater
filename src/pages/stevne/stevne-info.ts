@@ -10,7 +10,7 @@ import {
   stevneMethodFacts,
   stevneSubtitle,
   type StevneHeroOptions,
-} from "@/components/StevneHero";
+} from "@/components/stevne/StevneHero";
 import { logError } from "@/utils/logError";
 import { errorMessage } from "@/utils/errorMessage";
 import { showToast } from "@/components/Toast";
@@ -22,9 +22,9 @@ import {
   getUnconfirmedCount,
   getMyRegistrationForTournament,
 } from "@/services/pameldingService";
-import { createRegistrationButton } from "@/components/PameldingKnapp";
-import { actionLinkHtml, registrationCtaLink } from "@/components/StevneCard";
-import { createOppmoteButton } from "@/components/OppmoteKnapp";
+import { createRegistrationButton } from "@/components/stevne/RegistrationButton";
+import { actionLinkHtml, registrationCtaLink } from "@/components/stevne/StevneCard";
+import { createCheckInButton } from "@/components/stevne/CheckInButton";
 import { registerRefetch } from "@/utils/refetchRegistry";
 import {
   isCascadeMethodName,
@@ -142,7 +142,7 @@ export async function render(
         `<button id="start-stevne-btn" class="btn btn-sm btn-success"` +
         `${blocked ? ` disabled title="${escHtml(blocked)}"` : ""}>Start stevne</button>`;
       // Blocked: button and reason stack as one flex item in the hero row, the
-      // same shape .oppmote-row uses. Unblocked, the button stays a direct child.
+      // same shape .check-in-row uses. Unblocked, the button stays a direct child.
       actionSlot.innerHTML = blocked
         ? `<div class="stevne-start-boks">${startButtonHtml}` +
           `<p class="stevne-start-hindring">${escHtml(blocked)}</p></div>`
@@ -216,7 +216,7 @@ export async function render(
       // Registered players confirm their own attendance from here; the button
       // itself stays locked until two hours before start.
       if (myRegistration) {
-        const attendance = createOppmoteButton({
+        const attendance = createCheckInButton({
           tournamentId: id,
           throwerId: kasterid,
           dato: stevne.dato,
@@ -225,7 +225,7 @@ export async function render(
           confirmedAt: myRegistration.bekreftet_at,
         });
         const row = document.createElement("div");
-        row.className = "oppmote-row";
+        row.className = "check-in-row";
         row.append(attendance.element, registrationButton);
         registrationTarget.appendChild(row);
       } else {

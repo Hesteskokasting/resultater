@@ -2,7 +2,7 @@
  * A card with no registration button and no explanation reads as "registration
  * doesn't exist here", so every state that cannot register has to say why.
  */
-import { registrationCtaLink } from "@/components/StevneCard";
+import { registrationCtaLink } from "@/components/stevne/StevneCard";
 import type { AuthUser, LinkStatus, Role } from "@/types";
 import type { User } from "@supabase/supabase-js";
 

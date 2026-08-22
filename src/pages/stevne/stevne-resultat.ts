@@ -13,7 +13,7 @@ import {
 } from "@/components/resultat/ResultatTabell";
 import type { ResultatKolonnar, ResultatRad } from "@/components/resultat/ResultatTabell";
 import { printHeaderHtml, stevneInfoFacts } from "@/components/resultat/ResultatPrint";
-import { renderBannerMenu, bindBannerMenu } from "@/components/BannerMenu";
+import { renderStevneBannerMenu, bindStevneBannerMenu } from "@/components/stevne/StevneBannerMenu";
 import {
   isKongelagMethodName,
   isXkastMethodName,
@@ -155,10 +155,10 @@ function radarFor(group: GroupEntry, isParMix: boolean): ResultatRad[] {
 /** Print lives in the banner's overflow menu, the same place the SNC list has it. */
 function bindPrint(bannerSlot: HTMLElement | null | undefined): void {
   if (!bannerSlot) return;
-  bannerSlot.innerHTML = renderBannerMenu([
+  bannerSlot.innerHTML = renderStevneBannerMenu([
     { id: "res-print-btn", label: "Skriv ut / lagre som PDF" },
   ]);
-  bindBannerMenu(bannerSlot);
+  bindStevneBannerMenu(bannerSlot);
   bannerSlot.querySelector("#res-print-btn")?.addEventListener("click", () => window.print());
 }
 

@@ -16,12 +16,12 @@ import {
   actionLinkHtml,
   sncUmbrellaActionLink,
   type StevneCardActionLink,
-} from "@/components/StevneCard";
+} from "@/components/stevne/StevneCard";
 import { createExcelButton } from "@/components/ExcelButton";
 import { escHtml } from "@/utils/escHtml";
 import { logError } from "@/utils/logError";
 import { registerRefetch } from "@/utils/refetchRegistry";
-import { bindRegistrationSlots } from "@/components/PameldingKnapp";
+import { bindRegistrationSlots } from "@/components/stevne/RegistrationButton";
 import { createSearchInput } from "@/components/SearchInput";
 import {
   sortSchedule,
@@ -343,7 +343,7 @@ function monthHeaderNode(label: string, count: number): HTMLElement {
 }
 
 // Its own flex+gap (not just a plain wrapper div) so cards inside get the same
-// spacing as .stevne-kort-liste's direct children — this container nests one
+// spacing as .stevne-card-list's direct children — this container nests one
 // level deeper (needed so the whole Ferdige group can be hidden/shown as a unit).
 function monthGroupsNode(
   groups: MonthGroup<TournamentRow>[],
@@ -376,7 +376,7 @@ function buildList(
   const nearestId = findNearestUpcomingId(groups.upcoming);
 
   const wrap = document.createElement("div");
-  wrap.className = "stevne-kort-liste";
+  wrap.className = "stevne-card-list";
 
   if (upcomingCount > 0) {
     wrap.appendChild(sectionHeadNode("Kommande", upcomingCount));

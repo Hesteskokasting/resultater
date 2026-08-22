@@ -747,6 +747,6 @@ describe("admin shell", () => {
 
     const live = el.querySelector("#live-section");
     expect(live?.textContent).toContain("Live Cup");
-    expect(live?.querySelector(".stevne-kort--live")).not.toBeNull();
+    expect(live?.querySelector(".stevne-card--live")).not.toBeNull();
   });
 });

@@ -8,7 +8,7 @@ import {
   isAttendanceOpen,
 } from "@/utils/oppmote";
 
-export interface OppmoteButtonProps {
+export interface CheckInButtonProps {
   tournamentId: number;
   throwerId: number;
   /** Tournament date (YYYY-MM-DD) and optional start time — together they open the window */
@@ -22,11 +22,11 @@ export interface OppmoteButtonProps {
 
 // ponytail: no teardown — the open-window timer checks isConnected instead. Add a
 // cleanup() the day a caller mounts and unmounts this faster than once per render.
-export interface OppmoteButtonHandle {
+export interface CheckInButtonHandle {
   element: HTMLElement;
 }
 
-export function createOppmoteButton(props: OppmoteButtonProps): OppmoteButtonHandle {
+export function createCheckInButton(props: CheckInButtonProps): CheckInButtonHandle {
   const { tournamentId, throwerId, dato, tid, onChange } = props;
 
   let confirmed = props.confirmed;
@@ -37,7 +37,7 @@ export function createOppmoteButton(props: OppmoteButtonProps): OppmoteButtonHan
   const opensAt = attendanceOpensAt(dato, tid);
 
   const element = document.createElement("div");
-  element.className = "oppmote-panel";
+  element.className = "check-in-panel";
 
   async function setConfirmed(next: boolean): Promise<void> {
     if (busy) return;
@@ -71,7 +71,7 @@ export function createOppmoteButton(props: OppmoteButtonProps): OppmoteButtonHan
 
   function renderConfirmed(): void {
     const badge = document.createElement("span");
-    badge.className = "oppmote-badge";
+    badge.className = "check-in-badge";
     badge.textContent = "✓";
 
     const label = document.createElement("span");
@@ -80,13 +80,13 @@ export function createOppmoteButton(props: OppmoteButtonProps): OppmoteButtonHan
 
     const undo = document.createElement("button");
     undo.type = "button";
-    undo.className = "oppmote-undo ms-auto";
+    undo.className = "check-in-undo ms-auto";
     undo.textContent = busy ? "Angrar…" : "Angre";
     undo.disabled = busy;
     undo.addEventListener("click", () => void setConfirmed(false));
 
     const row = document.createElement("div");
-    row.className = "oppmote-confirmed";
+    row.className = "check-in-confirmed";
     row.append(badge, label, undo);
     element.replaceChildren(row);
   }
@@ -96,7 +96,7 @@ export function createOppmoteButton(props: OppmoteButtonProps): OppmoteButtonHan
 
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.className = `oppmote-btn${open ? "" : " oppmote-btn-locked"}`;
+    btn.className = `check-in-btn${open ? "" : " check-in-btn-locked"}`;
     btn.textContent = busy ? "Stadfestar…" : "Bekreft oppmøte";
     btn.disabled = !open || busy;
     btn.addEventListener("click", () => void setConfirmed(true));
@@ -105,7 +105,7 @@ export function createOppmoteButton(props: OppmoteButtonProps): OppmoteButtonHan
 
     if (!open && opensAt) {
       const hint = document.createElement("div");
-      hint.className = "oppmote-hint";
+      hint.className = "check-in-hint";
       hint.textContent = tid
         ? `Opnar ${formatClock(opensAt)}, to timar før start.`
         : "Opnar på stevnedagen.";

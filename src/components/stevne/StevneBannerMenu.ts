@@ -5,7 +5,7 @@ import { escHtml } from "@/utils/escHtml";
  * of as a row of buttons in the banner. Items keep their own ids, so callers
  * bind handlers with bannerSlot.querySelector("#the-id") as before.
  */
-export interface BannerMenuItem {
+export interface StevneBannerMenuItem {
   id: string;
   label: string;
   /** Colours the label; success = the green "Fullfør turnering" entry. */
@@ -15,7 +15,7 @@ export interface BannerMenuItem {
   hint?: string;
 }
 
-export function renderBannerMenu(items: BannerMenuItem[]): string {
+export function renderStevneBannerMenu(items: StevneBannerMenuItem[]): string {
   if (items.length === 0) return "";
   const itemsHtml = items
     .map(
@@ -34,7 +34,7 @@ export function renderBannerMenu(items: BannerMenuItem[]): string {
     </div>`;
 }
 
-export function bindBannerMenu(bannerSlot: HTMLElement | null): void {
+export function bindStevneBannerMenu(bannerSlot: HTMLElement | null): void {
   const root = bannerSlot?.querySelector<HTMLElement>(".stevne-banner-menu");
   if (!root) return;
   const trigger = root.querySelector<HTMLButtonElement>(".stevne-banner-menu__trigger");

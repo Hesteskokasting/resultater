@@ -133,7 +133,7 @@ export interface StevneCardProps {
 // Bootstrap Icons is not loaded in this app; use an inline SVG chevron (matches the
 // existing inline-SVG convention, e.g. the theme switch in index.html).
 const CHEVRON_SVG =
-  '<svg class="stevne-kort__chevron" xmlns="http://www.w3.org/2000/svg" width="20" height="20" ' +
+  '<svg class="stevne-card__chevron" xmlns="http://www.w3.org/2000/svg" width="20" height="20" ' +
   'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" ' +
   'stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>';
 
@@ -146,30 +146,30 @@ const NM_LABEL = "Noregsmeisterskap";
  */
 export function createStevneCard(props: StevneCardProps): HTMLElement {
   const card = document.createElement("div");
-  card.className = `stevne-kort stevne-kort--${props.status}`;
+  card.className = `stevne-card stevne-card--${props.status}`;
 
   const liveDot = props.status === "live" ? liveDotHtml() : "";
   const nmMedal = props.isNm
-    ? `<span class="stevne-kort__nm" role="img" aria-label="${NM_LABEL}" title="${NM_LABEL}">🥇</span>`
+    ? `<span class="stevne-card__nm" role="img" aria-label="${NM_LABEL}" title="${NM_LABEL}">🥇</span>`
     : "";
   const nearestPill = props.nearestLabel
-    ? `<span class="stevne-kort__nearest-merke">${escHtml(props.nearestLabel)}</span>`
+    ? `<span class="stevne-card__nearest-badge">${escHtml(props.nearestLabel)}</span>`
     : "";
   const typeBadgeHtml = props.typeBadge
-    ? `<span class="stevne-kort__type-badge"><b>${escHtml(props.typeBadge.type)}</b>${props.typeBadge.kategori ? " " + escHtml(props.typeBadge.kategori) : ""}</span>`
+    ? `<span class="stevne-card__type-badge"><b>${escHtml(props.typeBadge.type)}</b>${props.typeBadge.kategori ? " " + escHtml(props.typeBadge.kategori) : ""}</span>`
     : "";
   const metaLines = (props.meta ?? [])
-    .map((line) => `<span class="stevne-kort__meta">${escHtml(line)}</span>`)
+    .map((line) => `<span class="stevne-card__meta">${escHtml(line)}</span>`)
     .join("");
 
   const trailing =
     props.registrationSlotId !== undefined
-      ? `<div class="stevne-kort__trailing stevne-kort__trailing--action"><span data-registration-slot="${props.registrationSlotId}"></span></div>`
+      ? `<div class="stevne-card__trailing stevne-card__trailing--action"><span data-registration-slot="${props.registrationSlotId}"></span></div>`
       : props.actionLink
-        ? `<div class="stevne-kort__trailing stevne-kort__trailing--action">${actionLinkHtml(props.actionLink)}</div>`
+        ? `<div class="stevne-card__trailing stevne-card__trailing--action">${actionLinkHtml(props.actionLink)}</div>`
         : props.actionSlot
-          ? `<div class="stevne-kort__trailing stevne-kort__trailing--action"><span data-action-slot></span></div>`
-          : `<div class="stevne-kort__trailing">${CHEVRON_SVG}</div>`;
+          ? `<div class="stevne-card__trailing stevne-card__trailing--action"><span data-action-slot></span></div>`
+          : `<div class="stevne-card__trailing">${CHEVRON_SVG}</div>`;
 
   const dateA11yText = props.dateFull ?? props.date;
   const dateIsoAttr = props.dateIso ? ` datetime="${escHtml(props.dateIso)}"` : "";
@@ -179,23 +179,23 @@ export function createStevneCard(props: StevneCardProps): HTMLElement {
   // (terminliste's mobile card) or the plain inline line (every other caller).
   const hasDateBlock = props.dateWeekday !== undefined && props.dateDay !== undefined;
   const dateBlockHtml = hasDateBlock
-    ? `<time class="stevne-kort__datecol"${dateIsoAttr}${dateTitleAttr}>` +
-      `<span class="stevne-kort__weekday">${escHtml(props.dateWeekday!)}</span>` +
-      `<span class="stevne-kort__day">${escHtml(props.dateDay!)}</span>` +
+    ? `<time class="stevne-card__datecol"${dateIsoAttr}${dateTitleAttr}>` +
+      `<span class="stevne-card__weekday">${escHtml(props.dateWeekday!)}</span>` +
+      `<span class="stevne-card__day">${escHtml(props.dateDay!)}</span>` +
       `</time>`
     : "";
   const inlineDateTag = props.dateIso ? "time" : "span";
   const inlineDateHtml = hasDateBlock
     ? ""
-    : `<${inlineDateTag} class="stevne-kort__date"${dateIsoAttr}${dateTitleAttr}>${escHtml(props.date)}</${inlineDateTag}>`;
+    : `<${inlineDateTag} class="stevne-card__date"${dateIsoAttr}${dateTitleAttr}>${escHtml(props.date)}</${inlineDateTag}>`;
 
   card.innerHTML =
-    `<span class="stevne-kort__stripe" aria-hidden="true"></span>` +
-    `<a class="stevne-kort__link" href="${escHtml(props.href)}" aria-label="${escHtml(props.title)}, ${escHtml(dateA11yText)}"></a>` +
+    `<span class="stevne-card__stripe" aria-hidden="true"></span>` +
+    `<a class="stevne-card__link" href="${escHtml(props.href)}" aria-label="${escHtml(props.title)}, ${escHtml(dateA11yText)}"></a>` +
     dateBlockHtml +
-    `<div class="stevne-kort__body">` +
+    `<div class="stevne-card__body">` +
     nearestPill +
-    `<span class="stevne-kort__title-row">${liveDot}${nmMedal}<span class="stevne-kort__title">${escHtml(props.title)}</span></span>` +
+    `<span class="stevne-card__title-row">${liveDot}${nmMedal}<span class="stevne-card__title">${escHtml(props.title)}</span></span>` +
     inlineDateHtml +
     typeBadgeHtml +
     metaLines +

@@ -288,9 +288,9 @@
   color: var(--tekst-2);
 }
 
-/* Mobile only: nests one level deeper than .stevne-kort-liste (so the whole
+/* Mobile only: nests one level deeper than .stevne-card-list (so the whole
    Ferdige month-group can be hidden/shown as a unit), so it needs its own
-   flex+gap to give its cards the same spacing as .stevne-kort-liste's direct children. */
+   flex+gap to give its cards the same spacing as .stevne-card-list's direct children. */
 .tl-month-groups {
   display: flex;
   flex-direction: column;
@@ -305,7 +305,7 @@
 }
 
 /* Merged type+kategori pill (desktop cell) — same visual treatment as the
-   mobile card's .stevne-kort__type-badge: type (the <b>) reads heavier. */
+   mobile card's .stevne-card__type-badge: type (the <b>) reads heavier. */
 .tl-type-badge {
   display: inline-block;
   font-size: 0.75rem;

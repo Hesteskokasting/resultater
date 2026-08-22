@@ -1,4 +1,4 @@
-/* Rendered by components/StevneHero.ts, pages/stevne.ts, pages/stevne/faseView.ts and 5 more. */
+/* Rendered by components/stevne/StevneHero.ts, pages/stevne.ts, pages/stevne/faseView.ts and 5 more. */
 
 /* ── Stevne felles ── */
 
@@ -192,9 +192,9 @@
 
 /* Lives inside .stevne-hero__handling, which is itself a flex row — so this is
    one flex item that grows, not a nested layout competing with the slot. */
-.oppmote-row {
+.check-in-row {
   /* Shared by the attendance control and the Meld av button beside it */
-  --oppmote-hoegd: 42px;
+  --check-in-height: 42px;
   display: flex;
   align-items: flex-start;
   gap: 8px;
@@ -202,9 +202,9 @@
   min-width: 0;
 }
 
-.oppmote-row .btn {
+.check-in-row .btn {
   flex: 0 0 auto;
-  min-height: var(--oppmote-hoegd);
+  min-height: var(--check-in-height);
   padding-inline: 1rem;
 }
 
@@ -212,14 +212,14 @@
    control that button has to keep its natural width instead. Kept beside the
    rule it overrides rather than in the hero's own file — an override that lives
    apart from its base is an ordering trap. */
-.stevne-hero__handling .oppmote-row .btn {
+.stevne-hero__handling .check-in-row .btn {
   width: auto;
 }
 
 /* ── Start-blokkering (stevne info page) ── */
 
 /* One flex item in .stevne-hero__handling, stacking the disabled Start stevne
-   button over the reason it is disabled — same shape as .oppmote-row above. */
+   button over the reason it is disabled — same shape as .check-in-row above. */
 .stevne-start-boks {
   display: flex;
   flex-direction: column;

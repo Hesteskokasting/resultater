@@ -1,5 +1,5 @@
 import { createErrorBanner } from "@/components/states";
-import { createTournamentCard } from "@/components/StevneCard";
+import { createTournamentCard } from "@/components/stevne/StevneCard";
 import { createLogoutButton } from "@/components/LogoutButton";
 import { createEl } from "@/utils/createEl";
 import { logError } from "@/utils/logError";
@@ -99,7 +99,7 @@ export async function render(container: HTMLElement, params: Params = {}): Promi
 
   const ongoing = live.filter((s) => !s.erfullfort);
   if (ongoing.length) {
-    const list = createEl("div", null, "stevne-kort-liste");
+    const list = createEl("div", null, "stevne-card-list");
     ongoing.forEach((s) => list.appendChild(liveCard(s)));
     liveSection.replaceChildren(list);
   }
