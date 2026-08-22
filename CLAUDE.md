@@ -8,3 +8,4 @@
    that only other components use (numberpadUi.ts, states.ts).
 7. A family of related components goes in a subfolder of src/components, with a
    matching subfolder in src/css/components (see components/numberpad).
+8. No git add, git commit or git rm unless I ask you to.
