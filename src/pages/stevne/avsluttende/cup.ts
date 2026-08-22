@@ -2,7 +2,7 @@ import { bindGroupAssignment, renderGroupAssignment } from "./gruppefordelingUi"
 import { generateFinaleAndBronzeFinal } from "@/services/kampGenereringCupService";
 import { openGenerateRoundDialog } from "./_avslCupGenererRundeDialog";
 import { openThreeSideConfirmDialog } from "./_avslCupTreSpelarDialog";
-import { showNumberpad } from "@/components/ScoreNumberpad";
+import { showNumberpad } from "@/components/numberpad/ScoreNumberpad";
 import { sideScore, getAllMatchSides, type MatchSide } from "@/utils/kamp";
 import { bindScoreboardClicks, sideNameHtml } from "../faseView";
 import type { StandingRow } from "@/utils/stilling";

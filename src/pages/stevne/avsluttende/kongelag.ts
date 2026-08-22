@@ -1,6 +1,6 @@
 import { createEl } from "@/utils/createEl";
 import { showToast } from "@/components/Toast";
-import type { OmgangPadHeader } from "@/components/OmgangNumberpad";
+import type { XkastKongelagPadHeader } from "@/components/numberpad/XkastKongelagNumberpad";
 import { confirmDialog } from "@/components/ConfirmDialog";
 import { updateTournamentPhase } from "@/services/stevneService";
 import { getRegistrationCount } from "@/services/pameldingService";
@@ -31,7 +31,7 @@ function padHeader(
   participant: CourtRow["deltakarar"][number],
   omgang: number,
   antallOmganger: number,
-): OmgangPadHeader {
+): XkastKongelagPadHeader {
   const omganger = Array.from({ length: antallOmganger }, (_, i) => i + 1);
   return {
     baneLabel: `Bane ${court.bane_nummer ?? "?"}`,

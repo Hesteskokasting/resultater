@@ -1,5 +1,5 @@
 import { confirmDialog } from "@/components/ConfirmDialog";
-import { showNumberpad } from "@/components/ScoreNumberpad";
+import { showNumberpad } from "@/components/numberpad/ScoreNumberpad";
 import { showToast } from "@/components/Toast";
 import { deleteMatchRounds } from "@/services/kampService";
 import { logError } from "@/utils/logError";

@@ -10,7 +10,7 @@ import {
   padRegister,
   padTitle,
   padTopRow,
-} from "@/components/numberpadUi";
+} from "@/components/numberpad/numberpadUi";
 import { appendDigit, digitValue } from "@/utils/padInput";
 
 /** Highest flat score the pad accepts — three digits is well past any real kamp. */

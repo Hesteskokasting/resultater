@@ -1,13 +1,13 @@
 /**
- * The three score pads share one shell (components/numberpadUi.ts), so these
+ * The three score pads share one shell (components/numberpad/numberpadUi.ts), so these
  * cover the parts that shell is responsible for: a close button on every pad,
  * the stage/step navigation, and each flow reaching its own save.
  */
 
 import { beforeEach, describe, expect, it } from "vite-plus/test";
-import { showNumberpad } from "@/components/ScoreNumberpad";
-import { showTotalNumberpad } from "@/components/TotalNumberpad";
-import { showOmgangNumberpad } from "@/components/OmgangNumberpad";
+import { showNumberpad } from "@/components/numberpad/ScoreNumberpad";
+import { showTotalNumberpad } from "@/components/numberpad/TotalNumberpad";
+import { showXkastKongelagNumberpad } from "@/components/numberpad/XkastKongelagNumberpad";
 
 /** Live matchMedia fake: `narrow` flips and every open pad hears about it. */
 let narrow = false;
@@ -239,9 +239,9 @@ describe("showTotalNumberpad", () => {
   });
 });
 
-describe("showOmgangNumberpad", () => {
+describe("showXkastKongelagNumberpad", () => {
   it("gates the digit stage until a poengsum is typed, then shows the ring keys", () => {
-    showOmgangNumberpad([
+    showXkastKongelagNumberpad([
       {
         header: {
           baneLabel: "Bane 2",
@@ -261,8 +261,8 @@ describe("showOmgangNumberpad", () => {
 
     expect(document.querySelector(".pad-name")!.textContent).toBe("Kari");
     expect(document.querySelector(".pad-total")!.textContent).toBe("0");
-    // Two omgang cells plus the SUM cell.
-    expect(document.querySelectorAll(".pad-strip-cell").length).toBe(3);
+    // Two omgang cells, drawn in the same row the summary uses.
+    expect(document.querySelectorAll(".pad-summary-kast").length).toBe(2);
     expect(document.querySelector<HTMLButtonElement>(".pad-key-action")!.disabled).toBe(true);
     // The arrow is captioned, so the key says what it does.
     expect(document.querySelector(".pad-key-action .pad-key-caption")!.textContent).toBe("Bekreft");
@@ -331,11 +331,9 @@ describe("showOmgangNumberpad", () => {
       onSave: async () => true,
     });
 
-    showOmgangNumberpad([step(1, "Kari", 0), step(1, "Kari", 1), step(2, "Ola", 0)]);
+    showXkastKongelagNumberpad([step(1, "Kari", 0), step(1, "Kari", 1), step(2, "Ola", 0)]);
 
-    // The entry screen reads the runde back in the same row the summary uses,
-    // with the kast being entered marked; the flat strip is gone.
-    expect(document.querySelector(".pad-strip")).toBeNull();
+    // The entry screen reads the runde back with the kast being entered marked.
     expect(document.querySelectorAll(".pad-summary-row").length).toBe(1);
     expect(document.querySelector(".pad-summary-kast.current .pad-summary-key")!.textContent).toBe(
       "1",

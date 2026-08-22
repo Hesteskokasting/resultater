@@ -3,7 +3,7 @@ import { holdReloads } from "@/utils/coalesceReload";
 
 /**
  * Shared chrome for every score numberpad — the kamp pad (ScoreNumberpad), the
- * per-omgang wizard (OmgangNumberpad) and the total pad (TotalNumberpad). The
+ * per-omgang wizard (XkastKongelagNumberpad) and the total pad (TotalNumberpad). The
  * three flows differ in what they collect and validate; the surface they draw
  * on is identical, so it lives here as `pad-*` parts on one theme-aware card.
  */

@@ -2,7 +2,7 @@
 
 /* ── Score-nummerpad ── */
 /* One surface for all three pads: the kamp pad (ScoreNumberpad), the per-omgang
-   wizard (OmgangNumberpad) and the total pad (TotalNumberpad). Parts are shared
+   wizard (XkastKongelagNumberpad) and the total pad (TotalNumberpad). Parts are shared
    from components/numberpadUi.ts; the strip and ring keys are only used by the
    omgang pad but stay here so the whole pad reads as one system. */
 
@@ -186,7 +186,7 @@
   font-weight: 600;
 }
 
-/* ── Round summary (OmgangNumberpad, between players) ────────────────────── */
+/* ── Trailing figure on the meta line ─────────────────────────────────────── */
 
 /* The ring count rides the bane/runde line, right-aligned so it sits under the
    total badge — the quieter of the two figures, and no line of its own. */

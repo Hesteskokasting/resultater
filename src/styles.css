@@ -24,8 +24,10 @@
 @import "./css/components/info-tooltip.css";
 @import "./css/components/live-pill.css";
 @import "./css/components/modal.css";
-@import "./css/components/numberpad.css";
-@import "./css/components/omgang-numberpad.css";
+@import "./css/components/numberpad/numberpad.css";
+@import "./css/components/numberpad/xkast-kongelag-numberpad.css";
+@import "./css/components/numberpad/xkast-kongelag-round-row.css";
+@import "./css/components/numberpad/xkast-kongelag-ring-stage.css";
 @import "./css/components/oppmote-knapp.css";
 @import "./css/components/player-table.css";
 @import "./css/components/premie-dialog.css";

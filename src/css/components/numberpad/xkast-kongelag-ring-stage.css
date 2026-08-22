@@ -1,0 +1,66 @@
+/* Rendered by components/numberpad/XkastKongelagRingStage.ts. */
+
+.pad-ring-heading {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+}
+
+.pad-ring-heading-main {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.pad-ring-heading-sub {
+  color: var(--pad-tekst-2);
+  font-size: 0.7rem;
+}
+
+.pad-ring-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-auto-rows: minmax(clamp(56px, 9vh, 72px), 1fr);
+  gap: 10px;
+}
+
+/* The ring keys are digit keys (.pad-key) — only the 0 spanning the row and the
+   chosen-count accent are their own. */
+.pad-ring-zero {
+  grid-column: 1 / -1;
+}
+
+/* Thrown-glove targets — the count is read from arm's length, so the numeral
+   is far larger than a digit key's, and the selected one larger still. */
+.pad-ring-btn {
+  position: relative;
+  font-size: clamp(1.9rem, 4.5vh, 2.4rem);
+  line-height: 1;
+}
+
+/* Solid fill plus a glow ring — a border alone did not read as chosen. */
+.pad-ring-btn.selected {
+  background: var(--pad-valgt);
+  border: 2px solid var(--pad-valgt);
+  color: var(--pad-valgt-tekst);
+  font-size: clamp(2.2rem, 5.2vh, 2.75rem);
+  font-weight: 700;
+  box-shadow: 0 0 0 3px var(--pad-valgt-glod);
+}
+
+.pad-ring-valgt {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--pad-valgt-tekst);
+  color: var(--pad-valgt);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1.4;
+}
