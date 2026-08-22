@@ -3,7 +3,11 @@ import { formatDate, yearOptions, downloadExcel, formatPercent } from "@/utils/s
 import { createExcelButton } from "@/components/ExcelButton";
 import { createErrorBanner, createLoadingState, createEmptyState } from "@/components/states";
 import { createInfoTooltip } from "@/components/InfoTooltip";
-import { bindRankingDetails, detailTableHtml, rankingListHtml } from "@/components/RankingList";
+import {
+  bindRankingDetails,
+  detailTableHtml,
+  rankingListHtml,
+} from "@/components/resultat/RankingList";
 import { createSearchInput } from "@/components/SearchInput";
 import { logError } from "@/utils/logError";
 import { loadRankingYear, clearRankingYearCache } from "@/services/norgesrankingService";

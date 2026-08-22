@@ -11,7 +11,11 @@ import { loadCupYear, clearCupYearCache } from "@/services/norgescupService";
 import { formatDate, yearOptions } from "@/utils/shared";
 import { createErrorBanner, createLoadingState, createEmptyState } from "@/components/states";
 import { createInfoTooltip } from "@/components/InfoTooltip";
-import { bindRankingDetails, detailTableHtml, rankingListHtml } from "@/components/RankingList";
+import {
+  bindRankingDetails,
+  detailTableHtml,
+  rankingListHtml,
+} from "@/components/resultat/RankingList";
 import type { Tables } from "@/types";
 import type { CupYear } from "@/services/norgescupService";
 import type { SingleListRow, TeamListRow, CupFilter } from "@/utils/norgescup";

@@ -10,9 +10,9 @@ import {
   bindResultatDetaljar,
   resultatKolonnar,
   resultatListeHtml,
-} from "@/components/ResultatTabell";
-import type { ResultatKolonnar, ResultatRad } from "@/components/ResultatTabell";
-import { printHeaderHtml, stevneInfoFacts } from "@/components/ResultatPrint";
+} from "@/components/resultat/ResultatTabell";
+import type { ResultatKolonnar, ResultatRad } from "@/components/resultat/ResultatTabell";
+import { printHeaderHtml, stevneInfoFacts } from "@/components/resultat/ResultatPrint";
 import { renderBannerMenu, bindBannerMenu } from "@/components/BannerMenu";
 import {
   isKongelagMethodName,

@@ -31,9 +31,9 @@
 @import "./css/components/oppmote-knapp.css";
 @import "./css/components/player-table.css";
 @import "./css/components/dialog/premie-dialog.css";
-@import "./css/components/ranking-list.css";
-@import "./css/components/resultat-print.css";
-@import "./css/components/resultat-tabell.css";
+@import "./css/components/resultat/ranking-list.css";
+@import "./css/components/resultat/resultat-print.css";
+@import "./css/components/resultat/resultat-tabell.css";
 @import "./css/components/scoreboard/scoreboard-button.css";
 @import "./css/components/scoreboard/scoreboard.css";
 @import "./css/components/scoreboard/three-player-scoreboard.css";

@@ -23,9 +23,9 @@ import {
   resultatKolonnar,
   resultatListeHtml,
   resultatTabellHtml,
-} from "@/components/ResultatTabell";
-import type { ResultatKolonnar, ResultatRad } from "@/components/ResultatTabell";
-import { printHeaderHtml, printSeksjonHtml } from "@/components/ResultatPrint";
+} from "@/components/resultat/ResultatTabell";
+import type { ResultatKolonnar, ResultatRad } from "@/components/resultat/ResultatTabell";
+import { printHeaderHtml, printSeksjonHtml } from "@/components/resultat/ResultatPrint";
 import type { SncResultRow } from "@/services/resultatService";
 import type { SncLocalTournamentRow, SncParentTournamentRow } from "@/services/stevneService";
 import { downloadExcelRows } from "@/utils/shared";

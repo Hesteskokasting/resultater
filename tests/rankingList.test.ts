@@ -5,7 +5,11 @@
  */
 
 import { beforeEach, describe, expect, it } from "vite-plus/test";
-import { bindRankingDetails, detailTableHtml, rankingListHtml } from "@/components/RankingList";
+import {
+  bindRankingDetails,
+  detailTableHtml,
+  rankingListHtml,
+} from "@/components/resultat/RankingList";
 
 interface Row {
   placement: number;
