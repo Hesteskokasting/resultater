@@ -1,10 +1,13 @@
 import { createEl } from "@/utils/createEl";
 import { confirmDialog } from "@/components/ConfirmDialog";
+import { deleteMatchRounds } from "@/services/kampService";
+import { showToast } from "@/components/Toast";
 
 /**
  * The DOM both scoreboards are built from: the player panel, the point keys,
- * and the two actions under them. Stateless — the boards own the selection and
- * hand it in on every draw.
+ * and the two actions under them. The drawing is stateless — the boards own the
+ * selection and hand it in on every draw — but the undo action lives here too,
+ * since it is the confirm dialog and its error toast more than it is a write.
  */
 
 export interface PlayerPanel {
@@ -122,14 +125,31 @@ export function undoRowEl(hasOmgangar: boolean, onUndo: () => Promise<void>): HT
   return rad;
 }
 
-/** Names the round and the scores being discarded — the numbers are the check, not the word "siste". */
-export function confirmUndo(omgang: number, scorar: number[]): Promise<boolean> {
-  return confirmDialog({
+/**
+ * Confirms, then deletes the omgang for every side in the kamp. Sides that were
+ * already placed have no row in it, so they need no exception. Returns whether
+ * the board should reload — a declined confirm and a failed delete both say no.
+ */
+export async function undoLastOmgang(
+  ids: number[],
+  omgang: number,
+  scorar: number[],
+): Promise<boolean> {
+  // The numbers are the check, not the word "siste"
+  const confirmed = await confirmDialog({
     title: `Angre omgang ${omgang}?`,
     message: `Omgang ${omgang} (${scorar.join(" – ")}) blir sletta. Du legg den inn på nytt etterpå.`,
     confirmText: "Angre omgangen",
     danger: true,
   });
+  if (!confirmed) return false;
+
+  const { error } = await deleteMatchRounds(ids, omgang);
+  if (error) {
+    showToast("Feil ved angring", "error");
+    return false;
+  }
+  return true;
 }
 
 export function setOmgangTitle(

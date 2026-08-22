@@ -1,6 +1,5 @@
 import type { MatchRow } from "@/services/kampService";
 import type { BoardConfig, ScoreboardSide } from "@/components/scoreboard/Scoreboard";
-import { deleteMatchRounds } from "@/services/kampService";
 import {
   calcRingCount,
   getOmgangStarterIndex,
@@ -9,6 +8,7 @@ import {
 } from "@/utils/kamp";
 import { createEl } from "@/utils/createEl";
 import {
+  lastOmgangNumber,
   loadDuelRounds,
   saveOmgang,
   setupScoreboardRealtime,
@@ -17,12 +17,12 @@ import {
 import {
   bindPointButtons,
   confirmButtonEl,
-  confirmUndo,
   nextButtonEl,
   playerPanelEl,
   pointButtonsEl,
   ringInfoEl,
   setOmgangTitle,
+  undoLastOmgang,
   undoRowEl,
 } from "@/components/scoreboard/scoreboardUi";
 import { showToast } from "@/components/Toast";
@@ -75,7 +75,7 @@ export async function renderTwoPlayerScoreboard(
   }
 
   function nextOmgang(): number {
-    return (rounds[rounds.length - 1]?.omgang ?? 0) + 1;
+    return lastOmgangNumber(rounds) + 1;
   }
 
   function canConfirm(): boolean {
@@ -157,13 +157,8 @@ export async function renderTwoPlayerScoreboard(
   async function undoLast(): Promise<void> {
     const last = rounds[rounds.length - 1];
     if (!last) return;
-    if (!(await confirmUndo(last.omgang, [last.s1, last.s2]))) return;
+    if (!(await undoLastOmgang(allIds, last.omgang, [last.s1, last.s2]))) return;
 
-    const { error } = await deleteMatchRounds(allIds, last.omgang);
-    if (error) {
-      showToast("Feil ved angring", "error");
-      return;
-    }
     await reload();
     selected = [null, null];
     render();

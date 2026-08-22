@@ -1,6 +1,5 @@
 import type { MatchRoundRow, MatchRow } from "@/services/kampService";
 import type { BoardConfig, ScoreboardSide } from "@/components/scoreboard/Scoreboard";
-import { deleteMatchRounds } from "@/services/kampService";
 import { getOmgangStarterIndex, pointButtonLocks } from "@/utils/kamp";
 import { createEl } from "@/utils/createEl";
 import {
@@ -15,12 +14,12 @@ import {
 import {
   bindPointButtons,
   confirmButtonEl,
-  confirmUndo,
   nextButtonEl,
   placeBadgeEl,
   playerPanelEl,
   pointButtonsEl,
   setOmgangTitle,
+  undoLastOmgang,
   undoRowEl,
 } from "@/components/scoreboard/scoreboardUi";
 import { showToast } from "@/components/Toast";
@@ -65,6 +64,13 @@ export async function renderThreePlayerScoreboard(
     const outcome = computeWinOrder(rounds, sideIds);
     winOrder = outcome.order;
     finishedAtOmgang = outcome.finishedAtOmgang;
+  }
+
+  /** Reload, drop the half-entered omgang, redraw — what every write ends with. */
+  async function refresh(): Promise<void> {
+    await reload();
+    selected = sides.map(() => null);
+    render();
   }
 
   function activeIdxar(): number[] {
@@ -151,9 +157,7 @@ export async function renderThreePlayerScoreboard(
       showToast("Feil ved lagring", "error");
       return;
     }
-    await reload();
-    selected = sides.map(() => null);
-    render();
+    await refresh();
   }
 
   async function undoLast(): Promise<void> {
@@ -162,16 +166,9 @@ export async function renderThreePlayerScoreboard(
     const scorar = sides
       .map((side) => roundFor(rounds, side.ids, omgang)?.score ?? null)
       .filter((score): score is number => score !== null);
-    if (!(await confirmUndo(omgang, scorar))) return;
+    if (!(await undoLastOmgang(allIds, omgang, scorar))) return;
 
-    const { error } = await deleteMatchRounds(allIds, omgang);
-    if (error) {
-      showToast("Feil ved angring", "error");
-      return;
-    }
-    await reload();
-    selected = sides.map(() => null);
-    render();
+    await refresh();
   }
 
   render();
