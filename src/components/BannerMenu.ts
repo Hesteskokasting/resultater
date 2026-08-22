@@ -69,6 +69,8 @@ export function bindBannerMenu(bannerSlot: HTMLElement | null): void {
   trigger.addEventListener("click", () => setOpen(panel.hidden !== false));
 
   panel.addEventListener("click", (e) => {
-    if ((e.target as HTMLElement).closest(".stevne-banner-menu__item")) setOpen(false);
+    if (e.target instanceof Element && e.target.closest(".stevne-banner-menu__item")) {
+      setOpen(false);
+    }
   });
 }
