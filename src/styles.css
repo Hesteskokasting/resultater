@@ -35,7 +35,8 @@
 @import "./css/components/resultat-print.css";
 @import "./css/components/resultat-tabell.css";
 @import "./css/components/scoreboard-button.css";
-@import "./css/components/scoreboard.css";
+@import "./css/components/scoreboard/scoreboard.css";
+@import "./css/components/scoreboard/three-player-scoreboard.css";
 @import "./css/components/search-input.css";
 @import "./css/components/search-select.css";
 @import "./css/components/skeleton.css";

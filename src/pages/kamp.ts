@@ -4,7 +4,7 @@ import { logError } from "@/utils/logError";
 import { createErrorBanner, createLoadingState } from "@/components/states";
 import { escHtml } from "@/utils/escHtml";
 import { errorMessage } from "@/utils/errorMessage";
-import { renderScoreboard, type ScoreboardOptions } from "@/components/Scoreboard";
+import { renderScoreboard, type ScoreboardOptions } from "@/components/scoreboard/Scoreboard";
 import {
   getMatch,
   getMatchResultInfo,

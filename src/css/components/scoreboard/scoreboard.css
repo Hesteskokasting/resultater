@@ -1,4 +1,4 @@
-/* Rendered by components/Scoreboard.ts. */
+/* Shared scoreboard chrome, rendered by components/scoreboard/scoreboardUi.ts. */
 
 .sb-wrap {
   display: flex;
@@ -270,97 +270,5 @@
   .sb-neste-btn {
     padding: clamp(6px, 1.5vh, 10px);
     font-size: clamp(0.9rem, 2.5vh, 1.1rem);
-  }
-}
-
-/* ── 3-spelar scoreboard ── */
-
-.sb-wrap--3p .sb-spelar-panel--vann {
-  background: var(--sb-vann-bg);
-  color: var(--sb-vann-tekst);
-  /* Name and plass badge read --sb-positiv, which is too dark on the green bg
-     in light theme — remap it inside the winner panel only */
-  --sb-positiv: var(--sb-vann-positiv);
-}
-
-.sb-plass-badge {
-  font-size: clamp(1rem, 2.5vw, 1.5rem);
-  font-weight: bold;
-  color: var(--sb-positiv);
-  letter-spacing: 1px;
-  text-transform: uppercase;
-}
-
-@media (max-width: 800px) {
-  .sb-wrap--3p {
-    flex-direction: row !important;
-  }
-  .sb-wrap--3p .sb-spelar-panel {
-    border-right: 1px solid var(--sb-border-subtle);
-    border-bottom: none;
-  }
-  .sb-wrap--3p .sb-spelar-panel:last-child {
-    border-right: none;
-  }
-}
-
-.sb-wrap--3p .sb-poeng-btn {
-  width: min(clamp(42px, 9vw, 68px), 9vh);
-  height: min(clamp(42px, 9vw, 68px), 9vh);
-  font-size: min(clamp(1rem, 3.5vw, 1.7rem), 4vh);
-}
-
-@media (min-width: 801px) {
-  .sb-wrap--3p .sb-poeng-btn {
-    width: min(clamp(50px, 5vw, 85px), 12vh);
-    height: min(clamp(50px, 5vw, 85px), 12vh);
-    font-size: min(clamp(1.3rem, 2.3vw, 2.5rem), 5vh);
-  }
-}
-
-.sb-wrap--3p .sb-score {
-  font-size: min(clamp(3rem, 10vw, 6rem), 13vh);
-}
-
-@media (min-width: 801px) {
-  .sb-wrap--3p .sb-score {
-    font-size: min(clamp(5rem, 12vw, 18rem), 36vh);
-  }
-}
-
-/* Fixed-height column name block: wrapping names and the starter dot must
-   not push the score/buttons out of alignment across the three panels */
-.sb-wrap--3p .sb-spelar-navn {
-  font-size: min(clamp(1.2rem, 2.5vw, 2rem), 5vh);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  line-height: 1.2;
-  min-height: 4.2em; /* two text lines + dot row above and mirror below */
-}
-
-/* Panels are narrow — the starter dot sits above the name; the invisible
-   mirror below keeps the text vertically centered so scores stay aligned */
-.sb-wrap--3p .sb-spelar-navn--starter::before {
-  margin-right: 0;
-  margin-bottom: 0.35em;
-}
-
-.sb-wrap--3p .sb-spelar-navn--starter::after {
-  margin-left: 0;
-  margin-top: 0.35em;
-}
-
-.sb-wrap--3p .sb-spelar-navn--par {
-  font-size: min(clamp(1rem, 1.8vw, 1.5rem), 4vh);
-}
-
-@media (min-width: 801px) {
-  .sb-wrap--3p .sb-spelar-navn {
-    font-size: min(clamp(1.8rem, 2.5vw, 4rem), 7vh);
-  }
-  .sb-wrap--3p .sb-spelar-navn--par {
-    font-size: min(clamp(1.3rem, 1.8vw, 2.6rem), 5vh);
   }
 }
