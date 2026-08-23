@@ -168,7 +168,11 @@ export function buildSingleList(
     ];
     const detaljRader = tellendeRader
       .map((r) => ({ ...r, _stevne: eventsMap.get(r.stevneid ?? -1) }))
-      .sort((a, b) => (a._stevne?.dato ?? "").localeCompare(b._stevne?.dato ?? ""));
+      .sort(
+        (a, b) =>
+          (b.nc_poeng ?? 0) - (a.nc_poeng ?? 0) ||
+          (a._stevne?.dato ?? "").localeCompare(b._stevne?.dato ?? ""),
+      );
     liste.push({
       navn: throwerName(entry.kaster),
       klubb: klubber.join(" / "),
