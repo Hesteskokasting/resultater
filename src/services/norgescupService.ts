@@ -8,7 +8,7 @@ import { yearCache } from "@/utils/data/yearCache";
 // ── Type-inferens-buildarar ───────────────────────────────────────────────────
 
 const _resultaterQuery = supabase.from("resultat").select(`
-    id, nc_poeng, plassering, kasterid, klubbid, klasseid, stevneid,
+    id, nc_poeng, plassering, snc_plassering, kasterid, klubbid, klasseid, stevneid,
     kaster:kasterid(id, fornavn, etternavn),
     klubb:klubbid(id, navn),
     klasse:klasseid(id, navn)
@@ -45,7 +45,7 @@ export async function getTournamentsAndResults(ar: number) {
     supabase
       .from("resultat")
       .select(`
-      id, nc_poeng, plassering, kasterid, klubbid, klasseid, stevneid,
+      id, nc_poeng, plassering, snc_plassering, kasterid, klubbid, klasseid, stevneid,
       kaster:kasterid(id, fornavn, etternavn),
       klubb:klubbid(id, navn),
       klasse:klasseid(id, navn),

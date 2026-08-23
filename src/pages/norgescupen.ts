@@ -96,7 +96,11 @@ function singleListHtml(list: SingleListRow[]): string {
           { label: "Dato", value: (r) => formatDate(r._stevne?.dato) },
           { label: "Type", value: (r) => r._stevne?.typeNavn ?? "–" },
           { label: "Stevne", value: (r) => r._stevne?.navn ?? "–" },
-          { label: "Pl.", cellClass: "res-tal", value: (r) => String(r.plassering ?? "–") },
+          {
+            label: "Pl.",
+            cellClass: "res-tal",
+            value: (r) => String(r.snc_plassering ?? r.plassering ?? "–"),
+          },
           { label: "Poeng", cellClass: "res-tal", value: (r) => formaterPoeng(r.nc_poeng) },
         ],
         item.detaljRader,
