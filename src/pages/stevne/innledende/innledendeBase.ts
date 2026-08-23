@@ -61,7 +61,7 @@ import {
   getInitialPhaseTournament,
   type InitialPhaseTournamentRow,
 } from "@/services/stevneService";
-import { unsubscribeChannel } from "@/utils/realtime";
+import { unsubscribeChannel } from "@/utils/data/realtime";
 import { buildParticipantMaps } from "@/utils/stevne/participantMaps";
 import { groupBy } from "@/utils/groupBy";
 import { getResultsForInitialRound, type InitialResultRow } from "@/services/resultatService";

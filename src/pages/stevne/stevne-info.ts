@@ -25,7 +25,7 @@ import {
 import { createRegistrationButton } from "@/components/stevne/RegistrationButton";
 import { actionLinkHtml, registrationCtaLink } from "@/components/stevne/StevneCard";
 import { createCheckInButton } from "@/components/stevne/CheckInButton";
-import { registerRefetch } from "@/utils/refetchRegistry";
+import { registerRefetch } from "@/utils/data/refetchRegistry";
 import {
   isCascadeMethodName,
   isKongelagMethodName,

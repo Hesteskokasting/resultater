@@ -5,7 +5,7 @@ import {
   subscribeToScoreboardChanges,
 } from "@/services/kampService";
 import { calcRingCount, findFinishedPlayer, getOmgangThrowerId } from "@/utils/kamp/kamp";
-import { unsubscribeChannel } from "@/utils/realtime";
+import { unsubscribeChannel } from "@/utils/data/realtime";
 
 /**
  * Everything the boards do that is not DOM: folding omgang rows into per-side

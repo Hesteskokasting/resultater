@@ -4,7 +4,7 @@ import { createTable } from "@/components/Table";
 import { createSearchInput } from "@/components/SearchInput";
 import { selectHtml } from "@/utils/dropdown";
 import { logError } from "@/utils/logError";
-import { registerRefetch } from "@/utils/refetchRegistry";
+import { registerRefetch } from "@/utils/data/refetchRegistry";
 import { getAllRecords, clearRecordsCache } from "@/services/rekorderService";
 import {
   RECORD_METHODS,

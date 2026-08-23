@@ -1,7 +1,7 @@
 import type { QueryData, RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "@/supabase";
 import { logError } from "@/utils/logError";
-import { verifyRowsAffected } from "@/utils/verifiedWrite";
+import { verifyRowsAffected } from "@/utils/data/verifiedWrite";
 
 const _pameldingQuery = supabase.from("pamelding").select(`
       id,

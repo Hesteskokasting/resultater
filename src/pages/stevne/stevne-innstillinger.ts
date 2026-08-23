@@ -19,7 +19,7 @@ import {
   usesInitialRoundCount,
 } from "@/utils/kastemetode";
 import { getPairCount, getRegistrationCount } from "@/services/pameldingService";
-import { registerRefetch, reloadRoute } from "@/utils/refetchRegistry";
+import { registerRefetch, reloadRoute } from "@/utils/data/refetchRegistry";
 
 // ── Render ────────────────────────────────────────────────────────────────────
 

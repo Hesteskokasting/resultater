@@ -10,7 +10,7 @@ import {
   registerRefetch,
   registerRouteReload,
   runRefetch,
-} from "@/utils/refetchRegistry";
+} from "@/utils/data/refetchRegistry";
 import { initPushNotifications } from "@/services/pushNotificationService";
 import { initStatusBarThemeSync } from "@/services/statusBarService";
 import { applyKeepAwakeForRoute } from "@/services/keepAwakeService";

@@ -8,7 +8,7 @@
 import { sideScore, getMatchSides, type MatchSide } from "@/utils/kamp/kamp";
 import { throwerNameShort } from "@/utils/kaster";
 import { escHtml } from "@/utils/escHtml";
-import { coalesceReload } from "@/utils/coalesceReload";
+import { coalesceReload } from "@/utils/data/coalesceReload";
 import { bindExpandableRows, makeRowsFocusable } from "@/components/expandableRows";
 import type { Tables } from "@/types";
 import { createTable, type ColumnDef } from "@/components/Table";

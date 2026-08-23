@@ -22,7 +22,7 @@ import {
 import { createExcelButton } from "@/components/ExcelButton";
 import { escHtml } from "@/utils/escHtml";
 import { logError } from "@/utils/logError";
-import { registerRefetch } from "@/utils/refetchRegistry";
+import { registerRefetch } from "@/utils/data/refetchRegistry";
 import { bindRegistrationSlots } from "@/components/stevne/RegistrationButton";
 import { createSearchInput } from "@/components/SearchInput";
 import {

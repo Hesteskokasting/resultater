@@ -17,7 +17,7 @@ import {
 } from "@/services/kampService";
 import { getAllMatchSides, type MatchSide } from "@/utils/kamp/kamp";
 import { throwerNameShort } from "@/utils/kaster";
-import { unsubscribeChannel } from "@/utils/realtime";
+import { unsubscribeChannel } from "@/utils/data/realtime";
 import { setPageTitle } from "@/utils/pageTitle";
 import { onNavigateAway } from "@/utils/navigation";
 import type { MatchRow, MatchPlayerInMatch } from "@/services/kampService";

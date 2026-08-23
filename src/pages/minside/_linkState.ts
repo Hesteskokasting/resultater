@@ -4,7 +4,7 @@ import { throwerName, throwerNameLastFirst } from "@/utils/kaster";
 import { invalidateUserCache } from "@/services/authService";
 import { getActiveThrowerList, getThrowerForLink } from "@/services/kasterService";
 import { sendProfileLinkRequest } from "@/services/brukerProfilService";
-import { runRefetch } from "@/utils/refetchRegistry";
+import { runRefetch } from "@/utils/data/refetchRegistry";
 import type { User } from "@supabase/supabase-js";
 import type { LinkStatus, Profile } from "@/types";
 

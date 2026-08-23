@@ -9,7 +9,7 @@ import { errorMessage } from "@/utils/errorMessage";
 import { throwerName } from "@/utils/kaster";
 import { logError } from "@/utils/logError";
 import { setPageTitle } from "@/utils/pageTitle";
-import { registerRefetch } from "@/utils/refetchRegistry";
+import { registerRefetch } from "@/utils/data/refetchRegistry";
 import { getTournamentForRegistration, getRelatedTournaments } from "@/services/stevneService";
 import { getActiveThrowerList, getThrowersForClubs } from "@/services/kasterService";
 import {

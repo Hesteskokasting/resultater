@@ -20,8 +20,8 @@ import { showTotalNumberpad } from "@/components/numberpad/TotalNumberpad";
 import { escHtml } from "@/utils/escHtml";
 import { throwerName } from "@/utils/kaster";
 import { logError } from "@/utils/logError";
-import { unsubscribeChannel } from "@/utils/realtime";
-import { coalesceReload } from "@/utils/coalesceReload";
+import { unsubscribeChannel } from "@/utils/data/realtime";
+import { coalesceReload } from "@/utils/data/coalesceReload";
 import { ringerPercent } from "@/utils/xkastKongelag/omgangValidation";
 import { isSeatUnscored, canSwapSeat } from "@/utils/xkastKongelag/courtSeat";
 import {

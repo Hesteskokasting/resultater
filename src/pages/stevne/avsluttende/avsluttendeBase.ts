@@ -36,7 +36,7 @@ import { parseRound1Format } from "@/utils/kamp/cupStructure";
 import { renderStevneBannerMenu, bindStevneBannerMenu } from "@/components/stevne/StevneBannerMenu";
 import { createErrorBanner, createLoadingState } from "@/components/states";
 import { logError } from "@/utils/logError";
-import { unsubscribeChannel } from "@/utils/realtime";
+import { unsubscribeChannel } from "@/utils/data/realtime";
 import { buildParticipantMaps } from "@/utils/stevne/participantMaps";
 import {
   getFinalRoundMatches,

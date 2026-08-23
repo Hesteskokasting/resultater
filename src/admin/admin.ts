@@ -3,7 +3,7 @@ import { createTournamentCard } from "@/components/stevne/StevneCard";
 import { createLogoutButton } from "@/components/LogoutButton";
 import { createEl } from "@/utils/createEl";
 import { logError } from "@/utils/logError";
-import { registerRefetch } from "@/utils/refetchRegistry";
+import { registerRefetch } from "@/utils/data/refetchRegistry";
 import { getPendingLinkCount } from "@/services/adminService";
 import { getUser } from "@/services/authService";
 import { getLiveTournaments } from "@/services/stevneService";

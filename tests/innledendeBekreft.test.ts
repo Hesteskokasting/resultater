@@ -36,7 +36,7 @@ vi.mock("@/components/numberpad/kampScoreEditor", () => ({
   showKampScoreEditor: mocks.showKampScoreEditor,
 }));
 vi.mock("@/services/testDataService", () => ({ autoCompleteInitialRoundMatches: vi.fn() }));
-vi.mock("@/utils/realtime", () => ({ unsubscribeChannel: vi.fn() }));
+vi.mock("@/utils/data/realtime", () => ({ unsubscribeChannel: vi.fn() }));
 vi.mock("@/components/Toast", () => ({ showToast: vi.fn() }));
 vi.mock("@/utils/logError", () => ({ logError: vi.fn() }));
 

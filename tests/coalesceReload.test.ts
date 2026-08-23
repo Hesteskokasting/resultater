@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
-import { coalesceReload, holdReloads } from "@/utils/coalesceReload";
+import { coalesceReload, holdReloads } from "@/utils/data/coalesceReload";
 
 describe("coalesceReload", () => {
   beforeEach(() => vi.useFakeTimers());

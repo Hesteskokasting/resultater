@@ -1,6 +1,6 @@
 import { supabase } from "@/supabase";
 import { logError } from "@/utils/logError";
-import { verifyRowsAffected } from "@/utils/verifiedWrite";
+import { verifyRowsAffected } from "@/utils/data/verifiedWrite";
 import type { Tables } from "@/types";
 
 export type ClubListRow = Pick<Tables<"klubb">, "id" | "navn" | "logourl">;

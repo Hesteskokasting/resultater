@@ -2,8 +2,8 @@ import type { QueryData } from "@supabase/supabase-js";
 import type { Tables } from "@/types";
 import { supabase } from "@/supabase";
 import { logError } from "@/utils/logError";
-import { fetchAllRows } from "@/utils/fetchAllRows";
-import { yearCache } from "@/utils/yearCache";
+import { fetchAllRows } from "@/utils/data/fetchAllRows";
+import { yearCache } from "@/utils/data/yearCache";
 
 // ── Type-inferens-buildarar ───────────────────────────────────────────────────
 

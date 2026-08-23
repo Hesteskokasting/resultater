@@ -1,5 +1,5 @@
 import { createEl } from "@/utils/createEl";
-import { holdReloads } from "@/utils/coalesceReload";
+import { holdReloads } from "@/utils/data/coalesceReload";
 
 /**
  * Shared chrome for every score numberpad — the kamp pad (KampScoreNumberpad), the
