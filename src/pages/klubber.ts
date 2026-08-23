@@ -6,7 +6,7 @@ import { escHtml } from "@/utils/escHtml";
 import { logError } from "@/utils/logError";
 import { getClubs } from "@/services/klubbService";
 import { getActiveThrowerList } from "@/services/kasterService";
-import { throwerNamesByClub, filterClubs } from "@/utils/klubbLogic";
+import { throwerNamesByClub, filterClubs } from "@/pages/klubbLogic";
 import { renderDetail, PLACEHOLDER_LOGO } from "./klubbDetalj";
 import type { PageRenderFn } from "@/types";
 import type { ClubListRow } from "@/services/klubbService";

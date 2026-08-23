@@ -41,7 +41,7 @@ import {
   type ScheduleSortColumn,
   type MonthGroup,
   type ScheduleGroups,
-} from "@/utils/terminlisteLogic";
+} from "@/pages/terminlisteLogic";
 
 const NM_LABEL = "Noregsmeisterskap";
 

@@ -1,7 +1,7 @@
 import type { Tables, Kaster, Klubb } from "@/types";
-import { throwerName } from "./kaster";
-import { assignPlacementsByScore } from "./placements";
-import { hasSeparateClasses } from "./klasse";
+import { throwerName } from "@/utils/kaster";
+import { assignPlacementsByScore } from "@/utils/placements";
+import { hasSeparateClasses } from "@/utils/klasse";
 import type { ResultWithRelations, TournamentForNC } from "@/services/norgescupService";
 
 export type { ResultWithRelations, TournamentForNC };

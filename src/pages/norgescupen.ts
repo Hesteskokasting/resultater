@@ -6,7 +6,7 @@ import {
   buildTeamList,
   normalizeCupFilter,
   FIRST_MULTI_CUP_YEAR,
-} from "@/utils/norgescup";
+} from "@/pages/norgescupenLogic";
 import { loadCupYear, clearCupYearCache } from "@/services/norgescupService";
 import { formatDate } from "@/utils/date";
 import { yearOptions } from "@/utils/dropdown";
@@ -19,7 +19,7 @@ import {
 } from "@/components/resultat/RankingList";
 import type { Tables } from "@/types";
 import type { CupYear } from "@/services/norgescupService";
-import type { SingleListRow, TeamListRow, CupFilter } from "@/utils/norgescup";
+import type { SingleListRow, TeamListRow, CupFilter } from "@/pages/norgescupenLogic";
 import { escHtml } from "@/utils/escHtml";
 
 const FIRST_YEAR = 2007;

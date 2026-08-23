@@ -10,7 +10,7 @@ import {
   toggleSort,
   filterOptionsFromRows,
   type ScheduleSort,
-} from "@/utils/terminlisteLogic";
+} from "@/pages/terminlisteLogic";
 
 // Minimal rows matching the shape each function needs.
 function groupRow(dato: string, stevneFase: string | null = null, erfullfort = false) {

@@ -20,8 +20,8 @@ import {
   buildEventsMap,
   buildRankingList,
   filterRanking,
-} from "@/utils/norgesrankingLogic";
-import type { RingInfo, RankingItem } from "@/utils/norgesrankingLogic";
+} from "@/pages/norgesrankingLogic";
+import type { RingInfo, RankingItem } from "@/pages/norgesrankingLogic";
 
 const FIRST_YEAR = 2018;
 

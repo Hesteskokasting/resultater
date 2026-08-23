@@ -4,8 +4,8 @@ import {
   isFemale,
   recordThrower,
   filterAndRankRecords,
-} from "@/utils/rekorderLogic";
-import type { RecordsFilter } from "@/utils/rekorderLogic";
+} from "@/pages/rekorderLogic";
+import type { RecordsFilter } from "@/pages/rekorderLogic";
 
 function record(
   metode: string,

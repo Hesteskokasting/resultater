@@ -18,8 +18,8 @@ import {
   nextResultSort,
   resultFilterOptions,
   filterResults,
-} from "@/utils/kasterDetaljLogic";
-import type { MethodName, ResultSort, ResultSortColumn } from "@/utils/kasterDetaljLogic";
+} from "@/pages/kasterDetaljLogic";
+import type { MethodName, ResultSort, ResultSortColumn } from "@/pages/kasterDetaljLogic";
 
 const filterDetail = {
   active: "resultater",
