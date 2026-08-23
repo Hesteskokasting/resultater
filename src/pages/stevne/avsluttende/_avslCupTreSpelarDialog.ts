@@ -1,7 +1,7 @@
 import { confirmMatch, toConfirmSide, type FinalMatchRow } from "@/services/kampService";
 import type { FinalMatchPlayerKnown } from "@/services/cupKampService";
 import { sideNameHtml } from "@/pages/stevne/faseView";
-import type { MatchSide } from "@/utils/kamp";
+import type { MatchSide } from "@/utils/kamp/kamp";
 import { showToast } from "@/components/Toast";
 
 /**

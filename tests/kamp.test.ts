@@ -6,7 +6,7 @@ import {
   sideScore,
   ringsForPlayer,
   calcRingCount,
-} from "@/utils/kamp";
+} from "@/utils/kamp/kamp";
 
 describe("calcMatchPoints", () => {
   describe("tie", () => {

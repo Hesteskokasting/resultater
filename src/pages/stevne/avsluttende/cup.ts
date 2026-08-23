@@ -3,9 +3,9 @@ import { generateFinaleAndBronzeFinal } from "@/services/kampGenereringCupServic
 import { openGenerateRoundDialog } from "./_avslCupGenererRundeDialog";
 import { openThreeSideConfirmDialog } from "./_avslCupTreSpelarDialog";
 import { showKampScoreNumberpad } from "@/components/numberpad/KampScoreNumberpad";
-import { sideScore, getAllMatchSides, type MatchSide } from "@/utils/kamp";
+import { sideScore, getAllMatchSides, type MatchSide } from "@/utils/kamp/kamp";
 import { bindScoreboardClicks, sideNameHtml } from "../faseView";
-import type { StandingRow } from "@/utils/stilling";
+import type { StandingRow } from "@/utils/kamp/stilling";
 import { scoreboardButtonHtml } from "@/components/scoreboard/ScoreboardButton";
 import { liveDotHtml } from "@/components/LivePill";
 import { showKampScoreEditor } from "@/components/numberpad/kampScoreEditor";

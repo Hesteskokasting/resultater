@@ -1,5 +1,5 @@
-import { orderStandingsByGroup } from "@/utils/stilling";
-import type { StandingRow } from "@/utils/stilling";
+import { orderStandingsByGroup } from "@/utils/kamp/stilling";
+import type { StandingRow } from "@/utils/kamp/stilling";
 
 function row(kasterid: number, gruppe: string | null): StandingRow {
   return { kasterid, gruppe: gruppe ? { navn: gruppe } : null };

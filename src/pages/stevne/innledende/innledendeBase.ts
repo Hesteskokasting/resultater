@@ -21,7 +21,7 @@
 //
 import { showKampScoreEditor } from "@/components/numberpad/kampScoreEditor";
 import { showToast } from "@/components/Toast";
-import { getMatchSides, groupStandingsByPair, sideScore } from "@/utils/kamp";
+import { getMatchSides, groupStandingsByPair, sideScore } from "@/utils/kamp/kamp";
 import { applyFlashClasses, renderMatchLegend, renderRound } from "./innledendeView";
 import { autoCompleteInitialRoundMatches } from "@/services/testDataService";
 import {
@@ -39,8 +39,8 @@ import {
   bindAutoComplete,
   bindCompleteTournament,
 } from "../faseView";
-import { buildInitialPlayerMap, sortStandings, type StandingRow } from "@/utils/stilling";
-import { parseRound1Format } from "@/utils/kastemetoder-logikk";
+import { buildInitialPlayerMap, sortStandings, type StandingRow } from "@/utils/kamp/stilling";
+import { parseRound1Format } from "@/utils/kamp/kastemetoder-logikk";
 import {
   renderStevneBannerMenu,
   bindStevneBannerMenu,

@@ -22,8 +22,8 @@ import { throwerName } from "@/utils/kaster";
 import { logError } from "@/utils/logError";
 import { unsubscribeChannel } from "@/utils/realtime";
 import { coalesceReload } from "@/utils/coalesceReload";
-import { ringerPercent } from "@/utils/omgangValidation";
-import { isSeatUnscored, canSwapSeat } from "@/utils/courtSeat";
+import { ringerPercent } from "@/utils/xkastKongelag/omgangValidation";
+import { isSeatUnscored, canSwapSeat } from "@/utils/xkastKongelag/courtSeat";
 import {
   renderMainContent,
   bindTabToggle,
@@ -53,8 +53,11 @@ import {
   type KongelagCarryOverInfo,
 } from "@/services/xkastKongelagService";
 import { autoCompleteCourts } from "@/services/testDataService";
-import { buildXkastStanding, type XkastStandingRow } from "@/utils/xkastStilling";
-import { buildKongelagStanding, type KongelagStandingRow } from "@/utils/kongelagStilling";
+import { buildXkastStanding, type XkastStandingRow } from "@/utils/xkastKongelag/xkastStilling";
+import {
+  buildKongelagStanding,
+  type KongelagStandingRow,
+} from "@/utils/xkastKongelag/kongelagStilling";
 
 // ── Variant contract ──────────────────────────────────────────────────────────
 

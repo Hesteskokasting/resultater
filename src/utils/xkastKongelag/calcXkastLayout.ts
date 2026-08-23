@@ -1,5 +1,5 @@
-import { calcPuljeSizes } from "@/utils/calcPuljeSizes";
-import { calcXkastCourtSizes } from "@/utils/calcXkastCourtSizes";
+import { calcPuljeSizes } from "@/utils/xkastKongelag/calcPuljeSizes";
+import { calcXkastCourtSizes } from "@/utils/xkastKongelag/calcXkastCourtSizes";
 
 const MAX_PLAYERS_PER_COURT = 3;
 

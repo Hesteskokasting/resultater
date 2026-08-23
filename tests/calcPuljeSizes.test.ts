@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { calcPuljeSizes } from "@/utils/calcPuljeSizes";
+import { calcPuljeSizes } from "@/utils/xkastKongelag/calcPuljeSizes";
 
 describe("calcPuljeSizes", () => {
   it("fills courts fairly instead of greedily (45 players, cap 10)", () => {

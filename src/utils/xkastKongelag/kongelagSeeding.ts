@@ -1,4 +1,4 @@
-import { calcPuljeSizes } from "@/utils/calcPuljeSizes";
+import { calcPuljeSizes } from "@/utils/xkastKongelag/calcPuljeSizes";
 
 /** Innledende result columns used to seed the Kongelag phase (one row per kaster). */
 export interface KongelagSeedingRow {

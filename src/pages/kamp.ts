@@ -15,7 +15,7 @@ import {
   toConfirmSide,
   subscribeToNextMatch,
 } from "@/services/kampService";
-import { getAllMatchSides, type MatchSide } from "@/utils/kamp";
+import { getAllMatchSides, type MatchSide } from "@/utils/kamp/kamp";
 import { throwerNameShort } from "@/utils/kaster";
 import { unsubscribeChannel } from "@/utils/realtime";
 import { setPageTitle } from "@/utils/pageTitle";

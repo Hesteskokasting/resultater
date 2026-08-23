@@ -1,5 +1,5 @@
 import { renderStandingTable } from "@/pages/stevne/faseView";
-import type { StandingRow, StandingMatch } from "@/utils/stilling";
+import type { StandingRow, StandingMatch } from "@/utils/kamp/stilling";
 
 function parse(html: string): HTMLElement {
   const div = document.createElement("div");

@@ -1,6 +1,6 @@
 import { createEl } from "@/utils/createEl";
 import { padKey, padRegister, type PadShell } from "@/components/numberpad/numberpadUi";
-import { ringOptions, OMGANG_MAX_RINGER } from "@/utils/omgangValidation";
+import { ringOptions, OMGANG_MAX_RINGER } from "@/utils/xkastKongelag/omgangValidation";
 
 /**
  * Second stage of an omgang entry: how many of the poengsum's shoes were

@@ -1,4 +1,4 @@
-import { getAllMatchSides, sideScore, type PlayerScore } from "@/utils/kamp";
+import { getAllMatchSides, sideScore, type PlayerScore } from "@/utils/kamp/kamp";
 
 export interface MyMatchPlayer extends PlayerScore {
   kasterid?: number | null;

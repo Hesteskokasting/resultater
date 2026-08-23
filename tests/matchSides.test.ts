@@ -3,7 +3,7 @@ import {
   getMatchSides,
   getOmgangThrowerId,
   groupStandingsByPair,
-} from "@/utils/kamp";
+} from "@/utils/kamp/kamp";
 
 // ── getMatchSides ─────────────────────────────────────────────────────────────
 

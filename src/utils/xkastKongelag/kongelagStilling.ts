@@ -3,9 +3,13 @@
 // normalized share of poeng_xkast; kamp-based innledende (Gloppen/NHM)
 // carries kamp_poeng_innl unrounded (can be fractional, e.g. 1.5 from a draw).
 
-import type { KongelagSeedingRow } from "@/utils/kongelagSeeding";
-import { OMGANG_MAX_POENG } from "@/utils/omgangValidation";
-import { assignPlacements, compareXkastRows, type XkastStandingRow } from "@/utils/xkastStilling";
+import type { KongelagSeedingRow } from "@/utils/xkastKongelag/kongelagSeeding";
+import { OMGANG_MAX_POENG } from "@/utils/xkastKongelag/omgangValidation";
+import {
+  assignPlacements,
+  compareXkastRows,
+  type XkastStandingRow,
+} from "@/utils/xkastKongelag/xkastStilling";
 
 export interface InnledendeMethodInfo {
   isXkast: boolean;

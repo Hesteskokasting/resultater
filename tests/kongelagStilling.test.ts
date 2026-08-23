@@ -4,9 +4,9 @@ import {
   xkastCarryOverPercent,
   calcCarryOverByKasterid,
   buildKongelagStanding,
-} from "@/utils/kongelagStilling";
-import type { KongelagSeedingRow } from "@/utils/kongelagSeeding";
-import type { XkastStandingRow } from "@/utils/xkastStilling";
+} from "@/utils/xkastKongelag/kongelagStilling";
+import type { KongelagSeedingRow } from "@/utils/xkastKongelag/kongelagSeeding";
+import type { XkastStandingRow } from "@/utils/xkastKongelag/xkastStilling";
 
 function xkastRow(kasterid: number, poeng: number): KongelagSeedingRow {
   return {

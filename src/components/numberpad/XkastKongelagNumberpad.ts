@@ -18,7 +18,11 @@ import { renderRingStage } from "@/components/numberpad/XkastKongelagRingStage";
 import { roundRowEl, type RoundRow } from "@/components/numberpad/XkastKongelagRoundRow";
 import { showToast } from "@/components/Toast";
 import { appendDigit, digitValue } from "@/utils/padInput";
-import { isValidOmgangEntry, ringOptions, OMGANG_MAX_POENG } from "@/utils/omgangValidation";
+import {
+  isValidOmgangEntry,
+  ringOptions,
+  OMGANG_MAX_POENG,
+} from "@/utils/xkastKongelag/omgangValidation";
 
 /** One round of the end-of-round summary, as known when the pad opened. */
 export interface XkastKongelagSummaryRow {

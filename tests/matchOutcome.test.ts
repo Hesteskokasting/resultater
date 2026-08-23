@@ -1,4 +1,4 @@
-import { matchOutcome, matchSides, isByeSide, type MyMatchPlayer } from "@/utils/myMatches";
+import { matchOutcome, matchSides, isByeSide, type MyMatchPlayer } from "@/utils/kamp/myMatches";
 
 const ME = 1;
 

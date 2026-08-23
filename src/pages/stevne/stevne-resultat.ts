@@ -19,7 +19,10 @@ import {
   isXkastMethodName,
   usesInitialRoundCount,
 } from "@/utils/kastemetode";
-import { xkastCarryOverFactor, xkastCarryOverPercent } from "@/utils/kongelagStilling";
+import {
+  xkastCarryOverFactor,
+  xkastCarryOverPercent,
+} from "@/utils/xkastKongelag/kongelagStilling";
 import { getTournamentWithDetails, getResultsForTournament } from "@/services/resultatService";
 import type { ResultRow, TournamentDetailsRow } from "@/services/resultatService";
 

@@ -5,7 +5,7 @@ import {
   getOmgangStarterIndex,
   matchIsDecided,
   pointButtonLocks,
-} from "@/utils/kamp";
+} from "@/utils/kamp/kamp";
 import { createEl } from "@/utils/createEl";
 import {
   lastOmgangNumber,

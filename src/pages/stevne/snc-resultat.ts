@@ -10,7 +10,10 @@ import { renderStevneBannerMenu, bindStevneBannerMenu } from "@/components/stevn
 import { premieDialog } from "@/components/dialog/PremieDialog";
 import { showToast } from "@/components/Toast";
 import { errorMessage } from "@/utils/errorMessage";
-import { xkastCarryOverFactor, xkastCarryOverPercent } from "@/utils/kongelagStilling";
+import {
+  xkastCarryOverFactor,
+  xkastCarryOverPercent,
+} from "@/utils/xkastKongelag/kongelagStilling";
 import { getSncParentTournament, getSncLocalTournaments } from "@/services/stevneService";
 import {
   getSncConsolidatedResults,

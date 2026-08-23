@@ -1,7 +1,7 @@
 import type { QueryData, RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "@/supabase";
 import { logError } from "@/utils/logError";
-import { calcMatchPoints, type MatchSide } from "@/utils/kamp";
+import { calcMatchPoints, type MatchSide } from "@/utils/kamp/kamp";
 import { verifyRowsAffected } from "@/utils/verifiedWrite";
 
 const _kampSpelarQuery = supabase.from("kamp_spelar").select(`

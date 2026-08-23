@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { calcXkastLayout } from "@/utils/calcXkastLayout";
+import { calcXkastLayout } from "@/utils/xkastKongelag/calcXkastLayout";
 
 describe("calcXkastLayout", () => {
   it("uses one pulje of pairs when lanes are unlimited (odd player alone)", () => {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
-import { buildXkastStanding, compareOmgangArrays } from "@/utils/xkastStilling";
-import type { XkastStandingParticipant } from "@/utils/xkastStilling";
+import { buildXkastStanding, compareOmgangArrays } from "@/utils/xkastKongelag/xkastStilling";
+import type { XkastStandingParticipant } from "@/utils/xkastKongelag/xkastStilling";
 
 // Omgang values follow the X-kast shoe model (4 shoes at 5/3/2/1/0):
 // every (poeng, ringer) pair below satisfies isValidOmgangEntry.

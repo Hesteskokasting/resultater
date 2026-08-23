@@ -1,4 +1,4 @@
-import { calcCupRoundPairings } from "@/utils/kastemetoder-logikk";
+import { calcCupRoundPairings } from "@/utils/kamp/kastemetoder-logikk";
 import type { CupPairing } from "@/types";
 
 function players(n: number) {

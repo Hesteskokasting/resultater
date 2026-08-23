@@ -3,7 +3,7 @@ import {
   orderKongelagSeeding,
   buildKongelagCourts,
   type KongelagSeedingRow,
-} from "@/utils/kongelagSeeding";
+} from "@/utils/xkastKongelag/kongelagSeeding";
 
 function xkastRow(kasterid: number, poeng: number, ringer: number): KongelagSeedingRow {
   return {

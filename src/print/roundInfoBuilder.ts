@@ -1,4 +1,4 @@
-import { getMatchSides } from "@/utils/kamp";
+import { getMatchSides } from "@/utils/kamp/kamp";
 
 /** One round on a start card, as both the receipt and the A4 sheet print it. */
 export interface RoundInfo {

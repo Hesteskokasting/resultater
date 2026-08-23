@@ -4,7 +4,7 @@ import {
   saveMatchRound,
   subscribeToScoreboardChanges,
 } from "@/services/kampService";
-import { calcRingCount, findFinishedPlayer, getOmgangThrowerId } from "@/utils/kamp";
+import { calcRingCount, findFinishedPlayer, getOmgangThrowerId } from "@/utils/kamp/kamp";
 import { unsubscribeChannel } from "@/utils/realtime";
 
 /**

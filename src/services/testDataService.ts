@@ -1,10 +1,15 @@
 import type { QueryData } from "@supabase/supabase-js";
 import { supabase } from "@/supabase";
-import { calcMatchPoints, getAllMatchSides, getMatchSides, type MatchSide } from "@/utils/kamp";
+import {
+  calcMatchPoints,
+  getAllMatchSides,
+  getMatchSides,
+  type MatchSide,
+} from "@/utils/kamp/kamp";
 import { confirmMatch, toConfirmSide } from "@/services/kampService";
 import { logError } from "@/utils/logError";
 import type { CourtFase } from "@/services/xkastKongelagService";
-import { SHOES_PER_OMGANG } from "@/utils/omgangValidation";
+import { SHOES_PER_OMGANG } from "@/utils/xkastKongelag/omgangValidation";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

@@ -31,8 +31,8 @@ import {
   orderStandingsByGroup,
   type StandingRow,
   type StandingMatch,
-} from "@/utils/stilling";
-import { parseRound1Format } from "@/utils/kastemetoder-logikk";
+} from "@/utils/kamp/stilling";
+import { parseRound1Format } from "@/utils/kamp/kastemetoder-logikk";
 import { renderStevneBannerMenu, bindStevneBannerMenu } from "@/components/stevne/StevneBannerMenu";
 import { createErrorBanner, createLoadingState } from "@/components/states";
 import { logError } from "@/utils/logError";

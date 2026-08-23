@@ -1,6 +1,6 @@
 import type { MatchRoundRow, MatchRow } from "@/services/kampService";
 import type { BoardConfig, ScoreboardSide } from "@/components/scoreboard/Scoreboard";
-import { getOmgangStarterIndex, pointButtonLocks } from "@/utils/kamp";
+import { getOmgangStarterIndex, pointButtonLocks } from "@/utils/kamp/kamp";
 import { createEl } from "@/utils/createEl";
 import {
   computeWinOrder,

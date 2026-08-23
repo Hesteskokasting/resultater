@@ -5,7 +5,7 @@
 // around their own content. How the standing is derived and ranked is not here;
 // that lives in @/utils/stilling.
 //
-import { sideScore, getMatchSides, type MatchSide } from "@/utils/kamp";
+import { sideScore, getMatchSides, type MatchSide } from "@/utils/kamp/kamp";
 import { throwerNameShort } from "@/utils/kaster";
 import { escHtml } from "@/utils/escHtml";
 import { coalesceReload } from "@/utils/coalesceReload";
@@ -18,7 +18,7 @@ import { completeTournament, type CompleteStep } from "@/services/stevneService"
 import { confirmDialog } from "@/components/dialog/ConfirmDialog";
 import { showToast } from "@/components/Toast";
 import { errorMessage } from "@/utils/errorMessage";
-import type { StandingMatch, StandingRow } from "@/utils/stilling";
+import type { StandingMatch, StandingRow } from "@/utils/kamp/stilling";
 
 /**
  * Delegated click handler for every element carrying data-scoreboard-kamp-id.

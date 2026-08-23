@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { calcXkastCourtSizes } from "@/utils/calcXkastCourtSizes";
+import { calcXkastCourtSizes } from "@/utils/xkastKongelag/calcXkastCourtSizes";
 
 describe("calcXkastCourtSizes", () => {
   it("splits even counts into pairs regardless of lane cap", () => {

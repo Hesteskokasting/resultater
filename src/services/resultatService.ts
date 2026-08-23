@@ -2,7 +2,7 @@ import type { QueryData } from "@supabase/supabase-js";
 import { supabase } from "@/supabase";
 import { logError } from "@/utils/logError";
 import { verifyRowsAffected } from "@/utils/verifiedWrite";
-import type { KongelagSeedingRow } from "@/utils/kongelagSeeding";
+import type { KongelagSeedingRow } from "@/utils/xkastKongelag/kongelagSeeding";
 
 // ── Typar ─────────────────────────────────────────────────────────────────────
 

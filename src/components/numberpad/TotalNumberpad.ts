@@ -12,7 +12,11 @@ import {
 } from "@/components/numberpad/numberpadUi";
 import { appendDigit, digitValue } from "@/utils/padInput";
 import { showToast } from "@/components/Toast";
-import { isValidTotalEntry, totalMaxPoeng, totalMaxRinger } from "@/utils/omgangValidation";
+import {
+  isValidTotalEntry,
+  totalMaxPoeng,
+  totalMaxRinger,
+} from "@/utils/xkastKongelag/omgangValidation";
 
 export interface TotalEntry {
   /** Small accent context line, e.g. "Bane 1 · Totalsum". */

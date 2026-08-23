@@ -4,7 +4,7 @@
 // draw these rows live in pages/stevne/faseView.ts, and kampgenerering ranks with
 // sortStandings too, which is why this is not a view concern.
 //
-import { matchScoreForPlayer, getMatchSides, groupStandingsByPair } from "@/utils/kamp";
+import { matchScoreForPlayer, getMatchSides, groupStandingsByPair } from "@/utils/kamp/kamp";
 import type { Tables } from "@/types";
 
 // Minimal shapes for organizer kamp data (spelarar is an aliased join from kamp_spelar)

@@ -6,7 +6,7 @@ import { getMyCourts } from "@/services/xkastKongelagService";
 import { newTabAnchorAttrs } from "@/services/navigationService";
 import { scoreboardLinkHtml } from "@/components/scoreboard/ScoreboardButton";
 import { groupBy } from "@/utils/groupBy";
-import { isByeSide, matchOutcome, matchSides } from "@/utils/myMatches";
+import { isByeSide, matchOutcome, matchSides } from "@/utils/kamp/myMatches";
 import { renderSectionCard } from "./_sectionCard";
 import type { MinSideContext } from "./_linkState";
 import type { MatchPlayerRow } from "@/services/kampService";

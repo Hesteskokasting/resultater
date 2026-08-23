@@ -3,7 +3,7 @@
  * when a match is won, which player is finished in a 3-player match, and which
  * point buttons an omgang locks once someone has scored.
  */
-import { hasWon, matchIsDecided, findFinishedPlayer, pointButtonLocks } from "@/utils/kamp";
+import { hasWon, matchIsDecided, findFinishedPlayer, pointButtonLocks } from "@/utils/kamp/kamp";
 
 const POINTS = [1, 2, 3, 4, 6];
 

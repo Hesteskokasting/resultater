@@ -7,7 +7,7 @@ import {
   totalMaxRinger,
   ringerPercent,
   validRingerRange,
-} from "@/utils/omgangValidation";
+} from "@/utils/xkastKongelag/omgangValidation";
 
 describe("validRingerRange", () => {
   it("20 poeng requires exactly 4 ringere", () => {
