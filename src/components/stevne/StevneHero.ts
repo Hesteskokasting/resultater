@@ -7,7 +7,7 @@
 // the tiles; fill it via heroActionSlot() once the html is in the DOM.
 
 import { escHtml } from "@/utils/escHtml";
-import { formatDateNumeric, formatTime } from "@/utils/shared";
+import { formatDateNumeric, formatTime } from "@/utils/date";
 
 export interface StevneHeroFact {
   label: string;

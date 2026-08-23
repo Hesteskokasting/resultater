@@ -1,4 +1,4 @@
-import { yearOf } from "@/utils/shared";
+import { yearOf } from "@/utils/date";
 import type { NMCategoryConfig, NMGender, NMResultRow } from "@/services/nmvinnereService";
 
 // ── Categories ────────────────────────────────────────────────────────────────

@@ -3,7 +3,7 @@
 // consolidated SNC list and an ordinary stevne's result build theirs from here.
 
 import { escHtml } from "@/utils/escHtml";
-import { formatDateNumeric, formatTime } from "@/utils/shared";
+import { formatDateNumeric, formatTime } from "@/utils/date";
 
 export type Fakta = [label: string, value: string | number | null];
 

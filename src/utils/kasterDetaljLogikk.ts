@@ -1,4 +1,4 @@
-import { formatDate, yearOf } from "@/utils/shared";
+import { formatDate, yearOf } from "@/utils/date";
 import type { ResultDetailRow } from "@/services/kasterService";
 
 // ── Constants ─────────────────────────────────────────────────────────────────

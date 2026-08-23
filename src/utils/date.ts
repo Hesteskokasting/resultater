@@ -1,6 +1,9 @@
-import { escHtml } from "@/utils/escHtml";
-
-// ── Date formatting ───────────────────────────────────────────────────────────
+// ── Dates ─────────────────────────────────────────────────────────────────────
+//
+// Reading and displaying the ISO date/time strings the dato and tid columns hold.
+// Every formatter is nb-NO and returns "" for a missing value, so callers can
+// drop the result straight into markup.
+//
 
 // Bare date strings (YYYY-MM-DD) are parsed as UTC midnight by JS, which shifts
 // the display date by one day for Norwegian users (UTC+1/+2). Use local noon instead.
@@ -91,74 +94,4 @@ export function formatDayOfMonth(datoStr: string | null | undefined): string {
 export function formatTime(tidStr: string | null | undefined): string {
   if (!tidStr) return "";
   return tidStr.slice(0, 5);
-}
-
-// ── Number formatting ─────────────────────────────────────────────────────────
-
-const percentFmt = new Intl.NumberFormat("nb-NO", {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
-
-export function formatPercent(p: number | null | undefined): string {
-  if (p == null) return "–";
-  return percentFmt.format(p) + " %";
-}
-
-// ── Excel export ──────────────────────────────────────────────────────────────
-
-export async function downloadExcel(
-  rows: Record<string, unknown>[],
-  fileName: string,
-  sheetName = "Data",
-): Promise<void> {
-  const XLSX = await import("xlsx");
-  const sheet = XLSX.utils.json_to_sheet(rows);
-  const book = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(book, sheet, sheetName);
-  XLSX.writeFile(book, fileName);
-}
-
-/**
- * Rows of cells rather than objects, for sheets that mix info blocks and tables.
- * xlsx is imported here too, so it only loads when an export actually runs.
- */
-export async function downloadExcelRows(
-  rows: (string | number | null)[][],
-  fileName: string,
-  sheetName = "Data",
-  merges: { s: { r: number; c: number }; e: { r: number; c: number } }[] = [],
-): Promise<void> {
-  const XLSX = await import("xlsx");
-  const sheet = XLSX.utils.aoa_to_sheet(rows);
-  if (merges.length) sheet["!merges"] = merges;
-  const book = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(book, sheet, sheetName);
-  XLSX.writeFile(book, fileName);
-}
-
-// ── Dropdowns ─────────────────────────────────────────────────────────────────
-
-/** A `<select>` with the matching option pre-selected. Labels and values are escaped. */
-export function selectHtml(
-  id: string,
-  options: { value: string; label: string }[],
-  selected: string,
-  className = "app-select",
-): string {
-  const opts = options
-    .map(
-      (o) =>
-        `<option value="${escHtml(o.value)}"${o.value === selected ? " selected" : ""}>${escHtml(o.label)}</option>`,
-    )
-    .join("");
-  return `<select id="${id}" class="${className}">${opts}</select>`;
-}
-
-export function yearOptions(selected: number, from: number, to = new Date().getFullYear()): string {
-  let html = "";
-  for (let year = to; year >= from; year--) {
-    html += `<option value="${year}"${year === selected ? " selected" : ""}>${year}</option>`;
-  }
-  return html;
 }

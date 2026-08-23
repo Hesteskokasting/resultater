@@ -1,6 +1,6 @@
 import { throwerName, buildThrowerSlug } from "@/utils/kaster";
 import { escHtml } from "@/utils/escHtml";
-import { formatDate } from "@/utils/shared";
+import { formatDate } from "@/utils/date";
 import { errorMessage } from "@/utils/errorMessage";
 import { logError } from "@/utils/logError";
 import { showToast } from "@/components/Toast";

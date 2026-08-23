@@ -6,7 +6,7 @@ import {
   formatDateWeekday,
   formatWeekdayShort,
   formatDayOfMonth,
-} from "@/utils/shared";
+} from "@/utils/date";
 import type { AuthUser } from "@/types";
 
 export type StevneCardStatus = "live" | "done" | "upcoming";

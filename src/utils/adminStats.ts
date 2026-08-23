@@ -3,7 +3,7 @@
  * Kept free of DOM and Supabase so the numbers can be unit-tested directly.
  */
 
-import { yearOf, monthOf } from "@/utils/shared";
+import { yearOf, monthOf } from "@/utils/date";
 
 export interface LabelCount {
   label: string;

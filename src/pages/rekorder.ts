@@ -2,7 +2,7 @@ import { throwerName, buildThrowerSlug } from "@/utils/kaster";
 import { createErrorBanner, createLoadingState, createEmptyState } from "@/components/states";
 import { createTable } from "@/components/Table";
 import { createSearchInput } from "@/components/SearchInput";
-import { selectHtml } from "@/utils/shared";
+import { selectHtml } from "@/utils/dropdown";
 import { logError } from "@/utils/logError";
 import { registerRefetch } from "@/utils/refetchRegistry";
 import { getAllRecords, clearRecordsCache } from "@/services/rekorderService";

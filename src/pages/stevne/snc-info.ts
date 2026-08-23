@@ -25,7 +25,7 @@ import {
   formatDayOfMonth,
   formatTime,
   formatWeekdayShort,
-} from "@/utils/shared";
+} from "@/utils/date";
 import { registerRefetch } from "@/utils/refetchRegistry";
 import { sncLocalLabel } from "@/utils/sncLabel";
 import {

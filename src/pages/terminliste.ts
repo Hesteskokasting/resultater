@@ -8,8 +8,10 @@ import {
   emptyThrowerRegistrations,
 } from "@/services/stevneService";
 import type { ScheduleTournamentRow, ThrowerRegistrations } from "@/services/stevneService";
-import { yearOptions, downloadExcel, todayIso } from "@/utils/shared";
-import { buildDropdownOptions } from "@/utils/buildDropdownOptions";
+import { todayIso } from "@/utils/date";
+import { downloadExcel } from "@/utils/excel";
+import { yearOptions } from "@/utils/dropdown";
+import { buildDropdownOptions } from "@/utils/dropdown";
 import { createErrorBanner, createLoadingState, createEmptyState } from "@/components/states";
 import {
   createTournamentCard,

@@ -31,7 +31,7 @@ import type { ResultatKolonnar, ResultatRad } from "@/components/resultat/Result
 import { printHeaderHtml, printSeksjonHtml } from "@/components/resultat/ResultatPrint";
 import type { SncResultRow } from "@/services/resultatService";
 import type { SncLocalTournamentRow, SncParentTournamentRow } from "@/services/stevneService";
-import { downloadExcelRows } from "@/utils/shared";
+import { downloadExcelRows } from "@/utils/excel";
 import {
   buildSncExportSheet,
   localsWithResults,

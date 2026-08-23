@@ -7,7 +7,7 @@ import {
   formatTime,
   formatWeekdayShort,
   todayIso,
-} from "@/utils/shared";
+} from "@/utils/date";
 import {
   countBy,
   countTournamentsPerMonth,

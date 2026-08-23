@@ -8,7 +8,8 @@ import {
   FIRST_MULTI_CUP_YEAR,
 } from "@/utils/norgescup";
 import { loadCupYear, clearCupYearCache } from "@/services/norgescupService";
-import { formatDate, yearOptions } from "@/utils/shared";
+import { formatDate } from "@/utils/date";
+import { yearOptions } from "@/utils/dropdown";
 import { createErrorBanner, createLoadingState, createEmptyState } from "@/components/states";
 import { createInfoTooltip } from "@/components/InfoTooltip";
 import {

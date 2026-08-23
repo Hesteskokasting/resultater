@@ -1,5 +1,8 @@
 import { Capacitor } from "@capacitor/core";
-import { formatDate, yearOptions, downloadExcel, formatPercent } from "@/utils/shared";
+import { formatDate } from "@/utils/date";
+import { formatPercent } from "@/utils/formatPercent";
+import { downloadExcel } from "@/utils/excel";
+import { yearOptions } from "@/utils/dropdown";
 import { createExcelButton } from "@/components/ExcelButton";
 import { createErrorBanner, createLoadingState, createEmptyState } from "@/components/states";
 import { createInfoTooltip } from "@/components/InfoTooltip";

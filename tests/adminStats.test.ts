@@ -5,7 +5,7 @@ import {
   countUsersByRole,
   summarizeTournaments,
 } from "@/utils/adminStats";
-import { monthOf, yearOf } from "@/utils/shared";
+import { monthOf, yearOf } from "@/utils/date";
 
 describe("yearOf / monthOf", () => {
   it("reads year and month from an ISO date", () => {

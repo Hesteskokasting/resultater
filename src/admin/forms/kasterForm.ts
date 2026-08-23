@@ -2,7 +2,7 @@ import { showToast } from "@/components/Toast";
 import { errorMessage } from "@/utils/errorMessage";
 import { isAdmin, isClubAdmin } from "@/services/authService";
 import { escHtml } from "@/utils/escHtml";
-import { buildDropdownOptions } from "@/utils/buildDropdownOptions";
+import { buildDropdownOptions } from "@/utils/dropdown";
 import { formNum } from "@/utils/formNum";
 import { logError } from "@/utils/logError";
 import { createErrorBanner, createLoadingState } from "@/components/states";
