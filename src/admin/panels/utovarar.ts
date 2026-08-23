@@ -2,7 +2,7 @@ import { createErrorBanner, createLoadingState, createEmptyState } from "@/compo
 import { createSearchInput } from "@/components/SearchInput";
 import { createEl } from "@/utils/createEl";
 import { buildThrowerSlug, throwerName } from "@/utils/kaster";
-import { countBy, summarizeThrowers } from "@/utils/adminEntityStats";
+import { countBy, summarizeThrowers } from "@/admin/_adminEntityStats";
 import { getThrowerAdminList } from "@/services/kasterService";
 import type { ThrowerAdminListRow } from "@/services/kasterService";
 import { drawBarChart } from "../_adminCharts";

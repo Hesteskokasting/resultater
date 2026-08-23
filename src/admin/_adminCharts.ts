@@ -1,5 +1,5 @@
 import type { Chart, ChartConfiguration } from "chart.js";
-import type { LabelCount } from "@/utils/adminStats";
+import type { LabelCount } from "@/admin/_adminStats";
 
 /**
  * Chart.js wrappers for the admin dashboard.

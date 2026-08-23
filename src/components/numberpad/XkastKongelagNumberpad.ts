@@ -17,7 +17,7 @@ import {
 import { renderRingStage } from "@/components/numberpad/XkastKongelagRingStage";
 import { roundRowEl, type RoundRow } from "@/components/numberpad/XkastKongelagRoundRow";
 import { showToast } from "@/components/Toast";
-import { appendDigit, digitValue } from "@/utils/padInput";
+import { appendDigit, digitValue } from "@/components/numberpad/padInput";
 import {
   isValidOmgangEntry,
   ringOptions,

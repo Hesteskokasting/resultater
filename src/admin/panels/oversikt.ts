@@ -8,8 +8,8 @@ import {
   countTournamentsPerYear,
   countUsersByRole,
   summarizeTournaments,
-} from "@/utils/adminStats";
-import type { TournamentStatRow } from "@/utils/adminStats";
+} from "@/admin/_adminStats";
+import type { TournamentStatRow } from "@/admin/_adminStats";
 import { getAllUsers } from "@/services/adminService";
 import {
   getAdminEntityCounts,

@@ -2,8 +2,8 @@ import { createErrorBanner, createLoadingState, createEmptyState } from "@/compo
 import { createSearchInput } from "@/components/SearchInput";
 import { createEl } from "@/utils/createEl";
 import { buildClubSlug } from "@/utils/kaster";
-import { countByClubId, summarizeClubs } from "@/utils/adminEntityStats";
-import type { LabelCount } from "@/utils/adminStats";
+import { countByClubId, summarizeClubs } from "@/admin/_adminEntityStats";
+import type { LabelCount } from "@/admin/_adminStats";
 import { getAllClubsForAdmin } from "@/services/klubbService";
 import type { ClubAdminRow } from "@/services/klubbService";
 import { getThrowerAdminList } from "@/services/kasterService";

@@ -4,7 +4,7 @@
  */
 
 import { describe, expect, it } from "vite-plus/test";
-import { appendDigit, digitValue } from "@/utils/padInput";
+import { appendDigit, digitValue } from "@/components/numberpad/padInput";
 
 describe("appendDigit", () => {
   it("appends and replaces a lone leading zero", () => {

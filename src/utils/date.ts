@@ -5,8 +5,9 @@
 // drop the result straight into markup.
 //
 
-// Bare date strings (YYYY-MM-DD) are parsed as UTC midnight by JS, which shifts
-// the display date by one day for Norwegian users (UTC+1/+2). Use local noon instead.
+// Bare date strings (YYYY-MM-DD) are parsed as UTC midnight by JS, so a viewer
+// west of UTC is shown the day before. Parsing at local noon keeps the day the
+// string names, whatever the offset.
 function parseLocalDate(datoStr: string): Date {
   return datoStr.length === 10 ? new Date(datoStr + "T12:00:00") : new Date(datoStr);
 }

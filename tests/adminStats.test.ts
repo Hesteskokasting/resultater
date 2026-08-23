@@ -4,7 +4,7 @@ import {
   countTournamentsPerYear,
   countUsersByRole,
   summarizeTournaments,
-} from "@/utils/adminStats";
+} from "@/admin/_adminStats";
 import { monthOf, yearOf } from "@/utils/date";
 
 describe("yearOf / monthOf", () => {

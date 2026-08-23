@@ -10,7 +10,7 @@ import {
   padTitle,
   padTopRow,
 } from "@/components/numberpad/numberpadUi";
-import { appendDigit, digitValue } from "@/utils/padInput";
+import { appendDigit, digitValue } from "@/components/numberpad/padInput";
 import { showToast } from "@/components/Toast";
 import {
   isValidTotalEntry,

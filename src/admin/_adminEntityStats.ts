@@ -1,5 +1,5 @@
-import { countPerMonth } from "./adminStats";
-import type { LabelCount } from "./adminStats";
+import { countPerMonth } from "./_adminStats";
+import type { LabelCount } from "./_adminStats";
 
 /**
  * Aggregations behind the per-entity admin dashboards (Stevne, Utøvarar,
