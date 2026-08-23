@@ -1,6 +1,6 @@
 import type { Tables, Kaster, Klubb } from "@/types";
 import { throwerName } from "./kaster";
-import { assignPlacements } from "./tildelPlassering";
+import { assignPlacementsByScore } from "./placements";
 import { hasSeparateClasses } from "./klasse";
 import type { ResultWithRelations, TournamentForNC } from "@/services/norgescupService";
 
@@ -179,7 +179,7 @@ export function buildSingleList(
   }
 
   liste.sort((a, b) => b.totalPoeng - a.totalPoeng || a.navn.localeCompare(b.navn));
-  assignPlacements(liste, (r) => r.totalPoeng);
+  assignPlacementsByScore(liste, (r) => r.totalPoeng);
   return liste;
 }
 
@@ -237,6 +237,6 @@ export function buildTeamList(
   }
 
   teamList.sort((a, b) => b.lagTotal - a.lagTotal);
-  assignPlacements(teamList, (r) => r.lagTotal);
+  assignPlacementsByScore(teamList, (r) => r.lagTotal);
   return teamList;
 }

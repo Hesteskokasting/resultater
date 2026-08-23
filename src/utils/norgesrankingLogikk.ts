@@ -1,5 +1,5 @@
 import { throwerName } from "@/utils/kaster";
-import { assignPlacements } from "@/utils/tildelPlassering";
+import { assignPlacementsByScore } from "@/utils/placements";
 import type { RankingTournamentRow, RankingResultRow } from "@/services/norgesrankingService";
 
 export const MIN_STEVNER = 5;
@@ -139,7 +139,7 @@ export function buildRankingList(
 
   valid.sort((a, b) => b.snittProsent - a.snittProsent || a.navn.localeCompare(b.navn));
   invalid.sort((a, b) => b.snittProsent - a.snittProsent || a.navn.localeCompare(b.navn));
-  assignPlacements(valid, (r) => r.snittProsent);
+  assignPlacementsByScore(valid, (r) => r.snittProsent);
 
   return [...valid, ...invalid];
 }

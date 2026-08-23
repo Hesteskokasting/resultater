@@ -53,7 +53,7 @@ export function compareXkastRows(a: XkastStandingRow, b: XkastStandingRow): numb
 }
 
 /** Sorts rows with `compare` and stamps 1-based `plassering`, ties sharing a placement (1, 1, 3). */
-export function assignPlacements<T extends { plassering: number }>(
+export function sortAndAssignPlacements<T extends { plassering: number }>(
   rows: T[],
   compare: (a: T, b: T) => number,
 ): T[] {
@@ -91,5 +91,5 @@ export function buildXkastStanding(participants: XkastStandingParticipant[]): Xk
     };
   });
 
-  return assignPlacements(rows, compareXkastRows);
+  return sortAndAssignPlacements(rows, compareXkastRows);
 }

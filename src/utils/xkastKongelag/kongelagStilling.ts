@@ -6,7 +6,7 @@
 import type { KongelagSeedingRow } from "@/utils/xkastKongelag/kongelagSeeding";
 import { OMGANG_MAX_POENG } from "@/utils/xkastKongelag/omgangValidation";
 import {
-  assignPlacements,
+  sortAndAssignPlacements,
   compareXkastRows,
   type XkastStandingRow,
 } from "@/utils/xkastKongelag/xkastStilling";
@@ -67,5 +67,5 @@ export function buildKongelagStanding(
     const carryOver = carryOverByKasterid[row.kasterid] ?? 0;
     return { ...row, carryOver, displayTotal: row.poeng + carryOver };
   });
-  return assignPlacements(rows, compareRows);
+  return sortAndAssignPlacements(rows, compareRows);
 }

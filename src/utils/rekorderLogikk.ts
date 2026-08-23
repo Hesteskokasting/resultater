@@ -1,5 +1,5 @@
 import { throwerName } from "@/utils/kaster";
-import { assignPlacements } from "@/utils/tildelPlassering";
+import { assignPlacementsByScore } from "@/utils/placements";
 import type { RecordRow } from "@/services/rekorderService";
 
 // ── Methods ───────────────────────────────────────────────────────────────────
@@ -71,6 +71,6 @@ export function filterAndRankRecords(rows: RecordRow[], filter: RecordsFilter): 
     .map((row) => ({ ...row, plassering: 0 }))
     .sort((a, b) => (b.poeng ?? 0) - (a.poeng ?? 0));
 
-  assignPlacements(ranked, (r) => r.poeng ?? 0);
+  assignPlacementsByScore(ranked, (r) => r.poeng ?? 0);
   return ranked;
 }
