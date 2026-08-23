@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vite-plus/test";
-import { buildSncExportSheet, sncExportFileName, sncTotal } from "@/utils/sncExcelExport";
+import { buildSncExportSheet, sncExportFileName, sncTotal } from "@/utils/stevne/sncExcelExport";
 import type {
   SncExportLocal,
   SncExportOptions,
   SncExportParent,
   SncExportResult,
-} from "@/utils/sncExcelExport";
+} from "@/utils/stevne/sncExcelExport";
 
 const parent: SncExportParent = {
   navn: "SNC Runde 3",

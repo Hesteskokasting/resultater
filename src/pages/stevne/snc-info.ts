@@ -27,7 +27,7 @@ import {
   formatWeekdayShort,
 } from "@/utils/date";
 import { registerRefetch } from "@/utils/refetchRegistry";
-import { sncLocalLabel } from "@/utils/sncLabel";
+import { sncLocalLabel } from "@/utils/stevne/sncLabel";
 import {
   getSncParentTournament,
   getSncLocalTournaments,

@@ -7,7 +7,7 @@ import {
 } from "@/services/stevneService";
 import type { ListedTournamentRow } from "@/services/stevneService";
 import { logError } from "@/utils/logError";
-import { mergeSncUmbrellas, collectSncParentIds } from "@/utils/sncUmbrella";
+import { mergeSncUmbrellas, collectSncParentIds } from "@/utils/stevne/sncUmbrella";
 import { getUser } from "@/services/authService";
 import { linkedThrowerId } from "@/utils/kaster";
 import { getRegistrationsForThrower, emptyThrowerRegistrations } from "@/services/stevneService";

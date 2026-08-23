@@ -1,4 +1,4 @@
-import { buildParticipantMaps } from "@/utils/participantMaps";
+import { buildParticipantMaps } from "@/utils/stevne/participantMaps";
 
 describe("buildParticipantMaps", () => {
   it("maps startnummer, posisjon and hcp per kaster", () => {

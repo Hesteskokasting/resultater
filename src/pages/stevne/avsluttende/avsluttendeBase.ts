@@ -37,7 +37,7 @@ import { renderStevneBannerMenu, bindStevneBannerMenu } from "@/components/stevn
 import { createErrorBanner, createLoadingState } from "@/components/states";
 import { logError } from "@/utils/logError";
 import { unsubscribeChannel } from "@/utils/realtime";
-import { buildParticipantMaps } from "@/utils/participantMaps";
+import { buildParticipantMaps } from "@/utils/stevne/participantMaps";
 import {
   getFinalRoundMatches,
   subscribeToMatchChanges,

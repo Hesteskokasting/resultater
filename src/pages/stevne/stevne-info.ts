@@ -31,7 +31,7 @@ import {
   isKongelagMethodName,
   usesInitialRoundCount,
 } from "@/utils/kastemetode";
-import { canStartTournament } from "@/utils/stevneStart";
+import { canStartTournament } from "@/utils/stevne/stevneStart";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

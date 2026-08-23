@@ -6,7 +6,7 @@ import {
   attendanceOpensAt,
   formatClock,
   isAttendanceOpen,
-} from "@/utils/checkIn";
+} from "@/utils/stevne/checkIn";
 
 export interface CheckInButtonProps {
   tournamentId: number;

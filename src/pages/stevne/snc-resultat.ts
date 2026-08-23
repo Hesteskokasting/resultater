@@ -38,8 +38,8 @@ import {
   sncExportFileName,
   sncInfoFacts,
   sncLocalFacts,
-} from "@/utils/sncExcelExport";
-import type { SncExportOptions } from "@/utils/sncExcelExport";
+} from "@/utils/stevne/sncExcelExport";
+import type { SncExportOptions } from "@/utils/stevne/sncExcelExport";
 
 // The export sheet needs exactly the flags the table does, so the two share one
 // shape: method labels, which blocks exist and how much carries over.
