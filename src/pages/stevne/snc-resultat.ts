@@ -13,7 +13,7 @@ import { errorMessage } from "@/utils/errorMessage";
 import {
   xkastCarryOverFactor,
   xkastCarryOverPercent,
-} from "@/utils/xkastKongelag/kongelagStilling";
+} from "@/utils/xkastKongelag/kongelagStandings";
 import { getSncParentTournament, getSncLocalTournaments } from "@/services/stevneService";
 import {
   getSncConsolidatedResults,

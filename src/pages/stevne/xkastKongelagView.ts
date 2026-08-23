@@ -53,11 +53,11 @@ import {
   type KongelagCarryOverInfo,
 } from "@/services/xkastKongelagService";
 import { autoCompleteCourts } from "@/services/testDataService";
-import { buildXkastStanding, type XkastStandingRow } from "@/utils/xkastKongelag/xkastStilling";
+import { buildXkastStanding, type XkastStandingRow } from "@/utils/xkastKongelag/xkastStandings";
 import {
   buildKongelagStanding,
   type KongelagStandingRow,
-} from "@/utils/xkastKongelag/kongelagStilling";
+} from "@/utils/xkastKongelag/kongelagStandings";
 
 // ── Variant contract ──────────────────────────────────────────────────────────
 

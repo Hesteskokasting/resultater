@@ -1,5 +1,5 @@
 import { supabase } from "@/supabase";
-import { sortStandings, type MatchForSorting } from "@/utils/kamp/stilling";
+import { sortStandings, type MatchForSorting } from "@/utils/kamp/standings";
 import { createCourts, type NewCourt } from "@/services/xkastKongelagService";
 import { calcXkastLayout } from "@/utils/xkastKongelag/calcXkastLayout";
 import {

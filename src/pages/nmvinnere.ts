@@ -13,8 +13,8 @@ import {
   subtitleText,
   buildWinnersList,
   latestYear,
-} from "@/utils/nmvinnereLogikk";
-import type { NmThrower, WinnersEntry } from "@/utils/nmvinnereLogikk";
+} from "@/utils/nmvinnereLogic";
+import type { NmThrower, WinnersEntry } from "@/utils/nmvinnereLogic";
 import type { NMCategoryConfig, NMGender } from "@/services/nmvinnereService";
 
 // ── State ─────────────────────────────────────────────────────────────────────

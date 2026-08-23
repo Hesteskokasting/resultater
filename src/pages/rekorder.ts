@@ -11,8 +11,8 @@ import {
   findRecordMethod,
   recordThrower,
   filterAndRankRecords,
-} from "@/utils/rekorderLogikk";
-import type { RankedRecord, RecordsFilter } from "@/utils/rekorderLogikk";
+} from "@/utils/rekorderLogic";
+import type { RankedRecord, RecordsFilter } from "@/utils/rekorderLogic";
 
 // ── State ─────────────────────────────────────────────────────────────────────
 

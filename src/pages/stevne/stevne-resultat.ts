@@ -22,7 +22,7 @@ import {
 import {
   xkastCarryOverFactor,
   xkastCarryOverPercent,
-} from "@/utils/xkastKongelag/kongelagStilling";
+} from "@/utils/xkastKongelag/kongelagStandings";
 import { getTournamentWithDetails, getResultsForTournament } from "@/services/resultatService";
 import type { ResultRow, TournamentDetailsRow } from "@/services/resultatService";
 

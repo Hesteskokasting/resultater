@@ -18,7 +18,7 @@ import { completeTournament, type CompleteStep } from "@/services/stevneService"
 import { confirmDialog } from "@/components/dialog/ConfirmDialog";
 import { showToast } from "@/components/Toast";
 import { errorMessage } from "@/utils/errorMessage";
-import type { StandingMatch, StandingRow } from "@/utils/kamp/stilling";
+import type { StandingMatch, StandingRow } from "@/utils/kamp/standings";
 
 /**
  * Delegated click handler for every element carrying data-scoreboard-kamp-id.

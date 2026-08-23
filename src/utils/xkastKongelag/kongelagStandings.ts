@@ -9,7 +9,7 @@ import {
   sortAndAssignPlacements,
   compareXkastRows,
   type XkastStandingRow,
-} from "@/utils/xkastKongelag/xkastStilling";
+} from "@/utils/xkastKongelag/xkastStandings";
 
 export interface InnledendeMethodInfo {
   isXkast: boolean;

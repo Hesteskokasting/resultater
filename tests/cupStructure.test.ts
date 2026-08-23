@@ -1,4 +1,4 @@
-import { calcCupStructure } from "@/utils/kamp/kastemetoder-logikk";
+import { calcCupStructure } from "@/utils/kamp/cupStructure";
 
 describe("calcCupStructure", () => {
   describe("round count", () => {

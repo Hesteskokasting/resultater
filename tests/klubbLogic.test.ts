@@ -1,4 +1,4 @@
-import { throwerNamesByClub, filterClubs, filterMembers } from "@/utils/klubbLogikk";
+import { throwerNamesByClub, filterClubs, filterMembers } from "@/utils/klubbLogic";
 
 function thrower(fornavn: string, etternavn: string, klubbId: number | null) {
   return { fornavn, etternavn, klubb: klubbId === null ? null : { id: klubbId } };

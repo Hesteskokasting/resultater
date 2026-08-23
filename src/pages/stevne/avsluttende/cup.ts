@@ -5,7 +5,7 @@ import { openThreeSideConfirmDialog } from "./_avslCupTreSpelarDialog";
 import { showKampScoreNumberpad } from "@/components/numberpad/KampScoreNumberpad";
 import { sideScore, getAllMatchSides, type MatchSide } from "@/utils/kamp/kamp";
 import { bindScoreboardClicks, sideNameHtml } from "../faseView";
-import type { StandingRow } from "@/utils/kamp/stilling";
+import type { StandingRow } from "@/utils/kamp/standings";
 import { scoreboardButtonHtml } from "@/components/scoreboard/ScoreboardButton";
 import { liveDotHtml } from "@/components/LivePill";
 import { showKampScoreEditor } from "@/components/numberpad/kampScoreEditor";

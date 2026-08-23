@@ -1,5 +1,5 @@
 import { supabase } from "@/supabase";
-import { calcCupRoundPairings } from "@/utils/kamp/kastemetoder-logikk";
+import { calcCupRoundPairings } from "@/utils/kamp/cupStructure";
 import type { RoundSetup, TablesInsert, Json } from "@/types";
 
 function genMatchId(): string {

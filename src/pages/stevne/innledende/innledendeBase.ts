@@ -39,8 +39,8 @@ import {
   bindAutoComplete,
   bindCompleteTournament,
 } from "../faseView";
-import { buildInitialPlayerMap, sortStandings, type StandingRow } from "@/utils/kamp/stilling";
-import { parseRound1Format } from "@/utils/kamp/kastemetoder-logikk";
+import { buildInitialPlayerMap, sortStandings, type StandingRow } from "@/utils/kamp/standings";
+import { parseRound1Format } from "@/utils/kamp/cupStructure";
 import {
   renderStevneBannerMenu,
   bindStevneBannerMenu,

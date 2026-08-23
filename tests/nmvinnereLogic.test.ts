@@ -6,7 +6,7 @@ import {
   subtitleText,
   buildWinnersList,
   latestYear,
-} from "@/utils/nmvinnereLogikk";
+} from "@/utils/nmvinnereLogic";
 
 function row(stevneId: number, dato: string, klasseid: number, name: string, klubb = "Bergen HK") {
   return {

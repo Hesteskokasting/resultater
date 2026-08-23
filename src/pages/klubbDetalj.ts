@@ -8,7 +8,7 @@ import { logError } from "@/utils/logError";
 import { setPageTitle } from "@/utils/pageTitle";
 import { getClubById } from "@/services/klubbService";
 import { getClubMembers } from "@/services/kasterService";
-import { filterMembers } from "@/utils/klubbLogikk";
+import { filterMembers } from "@/utils/klubbLogic";
 import type { ClubListRow } from "@/services/klubbService";
 import type { MemberRow } from "@/services/kasterService";
 

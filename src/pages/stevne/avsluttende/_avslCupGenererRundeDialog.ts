@@ -6,7 +6,7 @@ import {
 import { showToast } from "@/components/Toast";
 import { logError } from "@/utils/logError";
 import type { RoundSetup, Round1FormatTyped } from "@/types";
-import type { StandingRow } from "@/utils/kamp/stilling";
+import type { StandingRow } from "@/utils/kamp/standings";
 
 export function openGenerateRoundDialog(
   stevneid: number,

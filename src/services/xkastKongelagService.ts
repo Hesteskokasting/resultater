@@ -7,7 +7,7 @@ import { orderKongelagSeeding, buildKongelagCourts } from "@/utils/xkastKongelag
 import {
   calcCarryOverByKasterid,
   xkastCarryOverPercent,
-} from "@/utils/xkastKongelag/kongelagStilling";
+} from "@/utils/xkastKongelag/kongelagStandings";
 import { isXkastMethodName } from "@/utils/kastemetode";
 
 // ── Court reads ───────────────────────────────────────────────────────────────

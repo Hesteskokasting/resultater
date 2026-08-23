@@ -4,7 +4,7 @@ import {
   filterRanking,
   MIN_STEVNER,
   type EventInfo,
-} from "@/utils/norgesrankingLogikk";
+} from "@/utils/norgesrankingLogic";
 import type { RankingResultRow } from "@/services/norgesrankingService";
 
 // ── Factories ─────────────────────────────────────────────────────────────────
