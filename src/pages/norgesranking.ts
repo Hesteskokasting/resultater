@@ -13,6 +13,7 @@ import {
 } from "@/components/resultat/RankingList";
 import { createSearchInput } from "@/components/SearchInput";
 import { logError } from "@/utils/logError";
+import { truncate } from "@/utils/truncate";
 import { loadRankingYear, clearRankingYearCache } from "@/services/norgesrankingService";
 import type { RankingYear } from "@/services/norgesrankingService";
 import {
@@ -24,6 +25,9 @@ import {
 import type { RingInfo, RankingItem } from "@/pages/norgesrankingLogic";
 
 const FIRST_YEAR = 2018;
+
+/** Stevne names run long; the full name stays on the cell as a title. */
+const STEVNE_NAME_MAX = 15;
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
@@ -79,7 +83,11 @@ function detailHtml(item: RankingItem): string {
         value: (r) => formatDateCompact(r._stevne?.dato),
       },
       { label: "Type", value: (r) => r._stevne?.typeNamn ?? "–" },
-      { label: "Stevne", value: (r) => r._stevne?.navn ?? "–" },
+      {
+        label: "Stevne",
+        value: (r) => truncate(r._stevne?.navn ?? "–", STEVNE_NAME_MAX),
+        title: (r) => r._stevne?.navn ?? "",
+      },
       { label: "Metode", value: (r) => r.metodeNamn },
       { label: "Ring", cellClass: "res-tal", value: (r) => String(r.antallRing) },
       { label: "%Ring", cellClass: "res-tal", value: (r) => formatPercent(r.prosent) },

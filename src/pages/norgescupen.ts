@@ -21,8 +21,12 @@ import type { Tables } from "@/types";
 import type { CupYear } from "@/services/norgescupService";
 import type { SingleListRow, TeamListRow, CupFilter } from "@/pages/norgescupenLogic";
 import { escHtml } from "@/utils/escHtml";
+import { truncate } from "@/utils/truncate";
 
 const FIRST_YEAR = 2007;
+
+/** Stevne names run long; the full name stays on the cell as a title. */
+const STEVNE_NAME_MAX = 15;
 
 interface Filter extends CupFilter {
   classNum: number;
@@ -99,7 +103,11 @@ function singleListHtml(list: SingleListRow[]): string {
             value: (r) => formatDateCompact(r._stevne?.dato),
           },
           { label: "Type", value: (r) => r._stevne?.typeNavn ?? "–" },
-          { label: "Stevne", value: (r) => r._stevne?.navn ?? "–" },
+          {
+            label: "Stevne",
+            value: (r) => truncate(r._stevne?.navn ?? "–", STEVNE_NAME_MAX),
+            title: (r) => r._stevne?.navn ?? "",
+          },
           {
             label: "Pl.",
             cellClass: "res-tal",

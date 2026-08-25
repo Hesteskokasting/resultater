@@ -40,7 +40,16 @@ export interface RankingListSpec<T> {
 export interface DetailColumn<D> {
   label: string;
   cellClass?: string;
+  /** Full text for a truncated cell — dropped when it adds nothing. */
+  title?: (row: D) => string;
   value: (row: D) => string;
+}
+
+function detailCellHtml<D>(column: DetailColumn<D>, row: D): string {
+  const value = column.value(row);
+  const full = column.title?.(row) ?? "";
+  const title = full && full !== value ? ` title="${escHtml(full)}"` : "";
+  return `<td class="${column.cellClass ?? ""}"${title}>${escHtml(value)}</td>`;
 }
 
 /**
@@ -53,10 +62,7 @@ export function detailTableHtml<D>(columns: DetailColumn<D>[], rows: D[]): strin
     .map((c) => `<th class="${c.cellClass ?? ""}">${escHtml(c.label)}</th>`)
     .join("");
   const body = rows
-    .map(
-      (r) =>
-        `<tr>${columns.map((c) => `<td class="${c.cellClass ?? ""}">${escHtml(c.value(r))}</td>`).join("")}</tr>`,
-    )
+    .map((r) => `<tr>${columns.map((c) => detailCellHtml(c, r)).join("")}</tr>`)
     .join("");
   return `
     <div class="rank-detalj-boks">
