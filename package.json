@@ -48,11 +48,11 @@
     "happy-dom": "^20.10.1",
     "supabase": "^2.93.0",
     "typescript": "^7.0.2",
-    "vite": "npm:@voidzero-dev/vite-plus-core@0.2.8",
-    "vite-plus": "0.2.8"
+    "vite": "npm:@voidzero-dev/vite-plus-core@0.3.0",
+    "vite-plus": "0.3.0"
   },
   "overrides": {
-    "vite": "npm:@voidzero-dev/vite-plus-core@0.2.8"
+    "vite": "npm:@voidzero-dev/vite-plus-core@0.3.0"
   },
   "devEngines": {
     "packageManager": {
