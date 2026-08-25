@@ -56,7 +56,7 @@ async function exportExcel(): Promise<void> {
     Kaster: k.navn,
     Klubb: k.klubb,
     "Snitt %": k.snittProsent,
-    "Antal stevner": k.antallStevner,
+    "Antal rundar": k.antallStevner,
   }));
   await downloadExcel(rows, `norgesranking-${filter.year}.xlsx`, "Norgesranking");
 }
@@ -74,6 +74,8 @@ const INFO_HTML = `
     Resultat utan plassering er ikkje gyldige enno (mindre enn ${MIN_STEVNER} rundar).
   </p>`;
 
+/** Only the counting rounds: detaljRader is sorted desc, so the top MIN_STEVNER
+ *  are exactly the ones the average is built from. */
 function detailHtml(item: RankingItem): string {
   return detailTableHtml<RingInfo>(
     [
@@ -92,7 +94,7 @@ function detailHtml(item: RankingItem): string {
       { label: "Ring", cellClass: "res-tal", value: (r) => String(r.antallRing) },
       { label: "%Ring", cellClass: "res-tal", value: (r) => formatPercent(r.prosent) },
     ],
-    item.detaljRader,
+    item.detaljRader.slice(0, MIN_STEVNER),
   );
 }
 
@@ -105,10 +107,10 @@ function listHtml(list: RankingItem[]): string | null {
     placement: (item) => (item.erGyldig ? String(item.plassering ?? "–") : "–"),
     name: (item) => item.navn,
     club: (item) => item.klubb,
-    meta: (item) => `${item.antallStevner} ${item.antallStevner === 1 ? "stevne" : "stevner"}`,
+    meta: (item) => `${item.antallStevner} ${item.antallStevner === 1 ? "runde" : "rundar"}`,
     columns: [
       {
-        label: "STEVNER",
+        label: "ANTALL",
         cellClass: "res-tal res-tal--dempa",
         value: (item) => String(item.antallStevner),
       },
