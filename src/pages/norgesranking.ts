@@ -107,14 +107,6 @@ function listHtml(list: RankingItem[]): string | null {
     placement: (item) => (item.erGyldig ? String(item.plassering ?? "–") : "–"),
     name: (item) => item.navn,
     club: (item) => item.klubb,
-    meta: (item) => `${item.antallStevner} ${item.antallStevner === 1 ? "runde" : "rundar"}`,
-    columns: [
-      {
-        label: "ANTALL",
-        cellClass: "res-tal res-tal--dempa",
-        value: (item) => String(item.antallStevner),
-      },
-    ],
     mainLabel: "%SNITT",
     main: (item) => formatPercent(item.snittProsent),
     detail: detailHtml,
