@@ -1,5 +1,5 @@
 import { Capacitor } from "@capacitor/core";
-import { formatDate } from "@/utils/date";
+import { formatDateCompact } from "@/utils/date";
 import { formatPercent } from "@/utils/formatPercent";
 import { downloadExcel } from "@/utils/excel";
 import { yearOptions } from "@/utils/dropdown";
@@ -73,7 +73,11 @@ const INFO_HTML = `
 function detailHtml(item: RankingItem): string {
   return detailTableHtml<RingInfo>(
     [
-      { label: "Dato", value: (r) => formatDate(r._stevne?.dato) },
+      {
+        label: "Dato",
+        cellClass: "rank-detalj-nowrap",
+        value: (r) => formatDateCompact(r._stevne?.dato),
+      },
       { label: "Type", value: (r) => r._stevne?.typeNamn ?? "–" },
       { label: "Stevne", value: (r) => r._stevne?.navn ?? "–" },
       { label: "Metode", value: (r) => r.metodeNamn },

@@ -64,16 +64,27 @@
   letter-spacing: 0.05em;
   text-transform: uppercase;
   text-align: left;
-  padding: 4px 8px;
+  padding: 4px 6px;
   white-space: nowrap;
   border-bottom: 1px solid var(--kant);
 }
 
+/* Wrap between words, and hyphenate rather than chop a word mid-syllable —
+   `anywhere` would shrink min-content to one letter and squeeze the columns. */
 .rank-detalj-tabell td {
-  padding: 4px 8px;
+  padding: 4px 6px;
   color: var(--tekst);
   border-bottom: 1px solid var(--kant);
+  white-space: normal;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+/* Dates and figures stay on one line — a split "30,00 %" reads as two values. */
+.rank-detalj-tabell .rank-detalj-nowrap,
+.rank-detalj-tabell .res-tal {
   white-space: nowrap;
+  hyphens: none;
 }
 
 .rank-detalj-tabell tr:last-child td {
@@ -83,4 +94,16 @@
 .rank-detalj-tabell .res-tal {
   text-align: center;
   font-variant-numeric: tabular-nums;
+}
+
+/* Narrow phones: trade a little type size for whole words per column. */
+@media (max-width: 480px) {
+  .rank-detalj-tabell {
+    font-size: 0.72rem;
+  }
+
+  .rank-detalj-tabell th,
+  .rank-detalj-tabell td {
+    padding: 4px;
+  }
 }

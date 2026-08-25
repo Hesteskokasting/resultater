@@ -58,10 +58,17 @@ const dateFmtWeekday = new Intl.DateTimeFormat("nb-NO", {
   month: "long",
 });
 const dateFmtWeekdayShort = new Intl.DateTimeFormat("nb-NO", { weekday: "short" });
+const dateFmtCompact = new Intl.DateTimeFormat("nb-NO", { day: "numeric", month: "short" });
 
 export function formatDate(datoStr: string | null | undefined): string {
   if (!datoStr) return "";
   return dateFmtShort.format(parseLocalDate(datoStr));
+}
+
+/** Day + short month, no year and no space — e.g. "12.aug." — for narrow detail tables. */
+export function formatDateCompact(datoStr: string | null | undefined): string {
+  if (!datoStr) return "";
+  return dateFmtCompact.format(parseLocalDate(datoStr)).replace(/\.\s+/, ".");
 }
 
 export function formatDateNumeric(datoStr: string | null | undefined): string {

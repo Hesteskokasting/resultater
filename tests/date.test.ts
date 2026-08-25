@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vite-plus/test";
 import {
   formatDate,
+  formatDateCompact,
   formatDateLong,
   formatDateNumeric,
   formatDateWeekday,
@@ -73,6 +74,8 @@ describe("date formatters", () => {
     expect(formatDateLong("2026-01-01")).toBe("torsdag 1. januar 2026");
     expect(formatDateWeekday("2026-01-01")).toBe("torsdag 1. januar");
     expect(formatWeekdayShort("2026-01-01")).toBe("TOR");
+    expect(formatDateCompact("2026-01-01")).toBe("1.jan.");
+    expect(formatDateCompact("2026-08-12")).toBe("12.aug.");
   });
 
   it("accepts a full timestamp as well as a bare date", () => {
@@ -82,6 +85,7 @@ describe("date formatters", () => {
   it("returns an empty string for a missing date", () => {
     for (const format of [
       formatDate,
+      formatDateCompact,
       formatDateNumeric,
       formatDateLong,
       formatDateWeekday,

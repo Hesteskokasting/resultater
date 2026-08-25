@@ -8,7 +8,7 @@ import {
   FIRST_MULTI_CUP_YEAR,
 } from "@/pages/norgescupenLogic";
 import { loadCupYear, clearCupYearCache } from "@/services/norgescupService";
-import { formatDate } from "@/utils/date";
+import { formatDateCompact } from "@/utils/date";
 import { yearOptions } from "@/utils/dropdown";
 import { createErrorBanner, createLoadingState, createEmptyState } from "@/components/states";
 import { createInfoTooltip } from "@/components/InfoTooltip";
@@ -93,7 +93,11 @@ function singleListHtml(list: SingleListRow[]): string {
     detail: (item) =>
       detailTableHtml(
         [
-          { label: "Dato", value: (r) => formatDate(r._stevne?.dato) },
+          {
+            label: "Dato",
+            cellClass: "rank-detalj-nowrap",
+            value: (r) => formatDateCompact(r._stevne?.dato),
+          },
           { label: "Type", value: (r) => r._stevne?.typeNavn ?? "–" },
           { label: "Stevne", value: (r) => r._stevne?.navn ?? "–" },
           {
