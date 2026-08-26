@@ -1,0 +1,1 @@
+var e=new Intl.NumberFormat(`nb-NO`,{minimumFractionDigits:2,maximumFractionDigits:2});function t(t){return t==null?`–`:e.format(t)+` %`}export{t};

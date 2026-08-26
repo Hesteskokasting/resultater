@@ -1,0 +1,10 @@
+import{t as e}from"./rolldown-runtime-DK3Fl9T5.js";import{_ as t,fr as n,h as r,v as i}from"./index-CKF_crql.js";import{t as a}from"./klubbForm-BZiqC25B.js";import{t as o}from"./kasterForm-D85yyU10.js";import{t as s}from"./stevneForm-EGBQ1Tkm.js";var c=null;function l({title:e,onClose:r}){c?.close();let a=i(),o=t({role:`dialog`,labelledBy:`admin-modal-title`,html:`
+    <div class="modal-dialog modal-fullscreen admin-modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="admin-modal-title"></h5>
+          <button type="button" class="btn-close" aria-label="Lukk" data-modal-close></button>
+        </div>
+        <div class="modal-body" data-modal-body></div>
+      </div>
+    </div>`}),s=o.querySelector(`[data-modal-body]`);o.querySelector(`#admin-modal-title`).textContent=e;let l=!1;function u(){l||(l=!0,a.close(o),o.remove(),c===f&&(c=null),r?.())}o.querySelector(`[data-modal-close]`).addEventListener(`click`,u);function d(){let e=[...document.querySelectorAll(`.modal`)].filter(e=>e.style.display!==`none`);e[e.length-1]===o&&u()}let f={body:s,setTitle:e=>{o.querySelector(`#admin-modal-title`).textContent=e},close:u};return s.appendChild(n(`p`,`Laster…`,`loading`)),a.open(o,{focus:`[data-modal-close]`,onEscape:d}),c=f,f}var u=e({openClubEditor:()=>m,openThrowerEditor:()=>p,openTournamentEditor:()=>f});function d(e,t,n,i,a){let o=n===void 0,s=l({title:t.title(o)}),c=(e,t)=>{s.close(),r(e,`success`),t()};e({container:s.body,onSaved:()=>{s.close(),i()},onDeleted:()=>c(t.deletedMessage,a??i),onCancel:()=>s.close()},n)}function f(e,t,n){d(s,{title:e=>e?`Nytt stevne`:`Rediger stevne`,deletedMessage:`Stevnet er sletta.`},e,t,n)}function p(e,t){d(o,{title:e=>e?`Ny utøvar`:`Rediger utøvar`,deletedMessage:`Utøvaren er sletta.`},e,t)}function m(e,t){d(a,{title:e=>e?`Ny klubb`:`Rediger klubb`,deletedMessage:`Klubben er sletta.`},e,t)}export{f as i,m as n,p as r,u as t};
