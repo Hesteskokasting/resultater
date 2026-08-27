@@ -4,14 +4,14 @@ import { createErrorBanner, createLoadingState } from "@/components/states";
 import { createSearchInput } from "@/components/SearchInput";
 import { escHtml } from "@/utils/escHtml";
 import { logError } from "@/utils/logError";
-import { getClubs } from "@/services/klubbService";
+import { getClubs, getAllClubsForAdmin } from "@/services/klubbService";
 import { getActiveThrowerList } from "@/services/kasterService";
 import { throwerNamesByClub, filterClubs } from "@/pages/klubbLogic";
 import { renderDetail, PLACEHOLDER_LOGO } from "./klubbDetalj";
 import type { PageRenderFn } from "@/types";
 import type { ClubListRow } from "@/services/klubbService";
 
-const filterList = { searchText: "" };
+const filterList = { showAll: false, searchText: "" };
 
 // ── HTML builders ─────────────────────────────────────────────────────────────
 
@@ -28,9 +28,20 @@ function listSkeletonHtml(): string {
     <div class="content-page">
       <div class="thrower-list-controls">
         <div class="filter-row"><span id="club-search-slot"></span></div>
+        <div class="mt-2">
+          <label class="thrower-checkbox-label">
+            <input type="checkbox" id="club-active-only"${filterList.showAll ? "" : " checked"}>
+            Vis berre aktive klubbar
+          </label>
+        </div>
       </div>
       <div id="club-grid" class="thrower-grid"></div>
     </div>`;
+}
+
+/** Active-only is the default; the checkbox off pulls the inactive clubs in too. */
+function loadClubs(): Promise<{ data: ClubListRow[]; error: unknown }> {
+  return filterList.showAll ? getAllClubsForAdmin() : getClubs();
 }
 
 // ── Render ────────────────────────────────────────────────────────────────────
@@ -39,8 +50,8 @@ async function renderList(container: HTMLElement): Promise<void> {
   container.replaceChildren(createLoadingState("Laster klubbar..."));
 
   try {
-    const [{ data: allClubs, error }, { data: allThrowers }] = await Promise.all([
-      getClubs(),
+    const [{ data: clubs, error }, { data: allThrowers }] = await Promise.all([
+      loadClubs(),
       getActiveThrowerList(),
     ]);
 
@@ -53,7 +64,9 @@ async function renderList(container: HTMLElement): Promise<void> {
 
     container.innerHTML = listSkeletonHtml();
 
+    let allClubs = clubs;
     const grid = container.querySelector<HTMLElement>("#club-grid")!;
+    const activeCheck = container.querySelector<HTMLInputElement>("#club-active-only")!;
 
     function filterAndRender(): void {
       const filtered = filterClubs(allClubs, namesByClub, filterList.searchText);
@@ -70,6 +83,13 @@ async function renderList(container: HTMLElement): Promise<void> {
     });
 
     filterAndRender();
+
+    activeCheck.addEventListener("change", async () => {
+      filterList.showAll = !activeCheck.checked;
+      const { data, error: loadError } = await loadClubs();
+      if (!loadError) allClubs = data;
+      filterAndRender();
+    });
 
     prependAdminLinkBar(container, {
       href: "#/klubber/ny",
