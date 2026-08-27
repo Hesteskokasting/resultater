@@ -3,16 +3,16 @@ import { todayIso } from "@/utils/date";
 import { createEl } from "@/utils/createEl";
 import { logError } from "@/utils/logError";
 import {
+  countParticipantsPerYear,
   countRegistrationsPerMonth,
   countThrowersPerClub,
   countTournamentsPerYear,
-  countUsersByRole,
   summarizeTournaments,
 } from "@/admin/_adminStats";
 import type { TournamentStatRow } from "@/admin/_adminStats";
-import { getAllUsers } from "@/services/adminService";
 import {
   getAdminEntityCounts,
+  getParticipantStatRows,
   getRegistrationStatRows,
   getTournamentStatRows,
 } from "@/services/adminStatsService";
@@ -26,17 +26,10 @@ import {
   createSectionTitle,
   createStatGrid,
   createStatGridSkeleton,
-  renderShareCard,
 } from "../_adminUi";
 import type { StatTile } from "../_adminUi";
 
 const YEARS_BACK = 8;
-
-const ROLE_LABEL: Record<string, string> = {
-  admin: "Admin",
-  klubbadmin: "Klubbadmin",
-  bruker: "Brukar",
-};
 
 function statTiles(
   counts: Awaited<ReturnType<typeof getAdminEntityCounts>>,
@@ -141,9 +134,17 @@ export async function render(el: HTMLElement): Promise<void> {
   );
   const registrationChart = createChartCard("Påmeldingar per månad", String(year));
   const clubChart = createChartCard("Aktive utøvarar per klubb", "Dei ti største klubbane");
-  const roleChart = createChartCard("Brukarar per rolle", "Del av alle kontoar");
+  const participantChart = createChartCard(
+    "Deltakarar per år",
+    `Unike utøvarar med resultat, dei siste ${YEARS_BACK} åra`,
+  );
 
-  const chartGrid = createChartGrid([tournamentChart, registrationChart, clubChart, roleChart]);
+  const chartGrid = createChartGrid([
+    tournamentChart,
+    registrationChart,
+    clubChart,
+    participantChart,
+  ]);
 
   el.replaceChildren(
     createSectionTitle("Snarvegar"),
@@ -155,12 +156,12 @@ export async function render(el: HTMLElement): Promise<void> {
   );
 
   try {
-    const [counts, tournaments, registrations, throwers, users] = await Promise.all([
+    const [counts, tournaments, registrations, throwers, participants] = await Promise.all([
       getAdminEntityCounts(),
       getTournamentStatRows(year - YEARS_BACK + 1),
       getRegistrationStatRows(year),
       getActiveThrowerList(),
-      getAllUsers(),
+      getParticipantStatRows(year - YEARS_BACK + 1),
     ]);
 
     statsSlot.replaceChildren(
@@ -170,7 +171,7 @@ export async function render(el: HTMLElement): Promise<void> {
     const perYear = countTournamentsPerYear(tournaments.data, year, YEARS_BACK);
     const perMonth = countRegistrationsPerMonth(registrations.data, year);
     const perClub = countThrowersPerClub(throwers.data);
-    const perRole = countUsersByRole(users.data);
+    const perParticipantYear = countParticipantsPerYear(participants.data, year, YEARS_BACK);
 
     // Redrawn on every theme flip: Chart.js bakes the resolved colours into the
     // canvas, so a CSS variable change alone would leave the old palette on screen.
@@ -193,10 +194,10 @@ export async function render(el: HTMLElement): Promise<void> {
         clubChart.showEmpty("Ingen aktive utøvarar.");
       }
 
-      if (perRole.some((d) => d.count > 0)) {
-        renderShareCard(roleChart, perRole, (label) => ROLE_LABEL[label] ?? label);
+      if (perParticipantYear.some((d) => d.count > 0)) {
+        await drawBarChart(participantChart.canvas, perParticipantYear, { label: "Deltakarar" });
       } else {
-        roleChart.showEmpty("Ingen brukarar.");
+        participantChart.showEmpty("Ingen deltakarar registrert.");
       }
     }
 

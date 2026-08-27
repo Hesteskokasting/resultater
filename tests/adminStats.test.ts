@@ -2,7 +2,7 @@ import {
   countRegistrationsPerMonth,
   countThrowersPerClub,
   countTournamentsPerYear,
-  countUsersByRole,
+  countParticipantsPerYear,
   summarizeTournaments,
 } from "@/admin/_adminStats";
 import { monthOf, yearOf } from "@/utils/date";
@@ -83,22 +83,18 @@ describe("countThrowersPerClub", () => {
   });
 });
 
-describe("countUsersByRole", () => {
-  it("keeps the known roles in order even when empty", () => {
-    expect(countUsersByRole([{ rolle: "admin" }, { rolle: "bruker" }])).toEqual([
-      { label: "admin", count: 1 },
-      { label: "klubbadmin", count: 0 },
-      { label: "bruker", count: 1 },
-    ]);
-  });
-
-  it("treats a missing role as bruker and appends unknown roles last", () => {
-    const result = countUsersByRole([{ rolle: null }, { rolle: "superadmin" }]);
-    expect(result).toEqual([
-      { label: "admin", count: 0 },
-      { label: "klubbadmin", count: 0 },
-      { label: "bruker", count: 1 },
-      { label: "superadmin", count: 1 },
+describe("countParticipantsPerYear", () => {
+  it("counts distinct throwers per year and pads empty years", () => {
+    const rows = [
+      { kasterid: 1, stevne: { dato: "2026-01-05" } },
+      { kasterid: 1, stevne: { dato: "2026-07-20" } },
+      { kasterid: 2, stevne: { dato: "2026-07-20" } },
+      { kasterid: null, stevne: { dato: "2026-07-20" } },
+      { kasterid: 3, stevne: null },
+    ];
+    expect(countParticipantsPerYear(rows, 2026, 2)).toEqual([
+      { label: "2025", count: 0 },
+      { label: "2026", count: 2 },
     ]);
   });
 });

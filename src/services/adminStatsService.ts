@@ -19,6 +19,10 @@ export interface AdminEntityCounts {
 
 export type TournamentStatRow = Pick<Tables<"stevne">, "dato" | "erfullfort" | "stevne_fase">;
 export type RegistrationStatRow = Pick<Tables<"pamelding">, "opprettet_at">;
+export type ParticipantStatRow = {
+  kasterid: number | null;
+  stevne: { dato: string | null } | null;
+};
 
 type CountResult = { count: number | null; error: unknown };
 
@@ -60,6 +64,21 @@ export async function getTournamentStatRows(
     .gte("dato", `${fromYear}-01-01`)
     .order("dato");
   if (error) logError("getTournamentStatRows", error);
+  return { data: data ?? [], error };
+}
+
+/**
+ * One row per result from `fromYear` onwards, with the tournament date joined in.
+ * The chart counts distinct throwers per year off these.
+ */
+export async function getParticipantStatRows(
+  fromYear: number,
+): Promise<{ data: ParticipantStatRow[]; error: unknown }> {
+  const { data, error } = await supabase
+    .from("resultat")
+    .select("kasterid, stevne!inner(dato)")
+    .gte("stevne.dato", `${fromYear}-01-01`);
+  if (error) logError("getParticipantStatRows", error);
   return { data: data ?? [], error };
 }
 

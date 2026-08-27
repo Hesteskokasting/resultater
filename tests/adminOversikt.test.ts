@@ -9,7 +9,7 @@ const mocks = vi.hoisted(() => ({
   getTournamentStatRows: vi.fn(),
   getRegistrationStatRows: vi.fn(),
   getActiveThrowerList: vi.fn(),
-  getAllUsers: vi.fn(),
+  getParticipantStatRows: vi.fn(),
   drawBarChart: vi.fn(),
   drawLineChart: vi.fn(),
   openTournamentEditor: vi.fn(),
@@ -22,11 +22,11 @@ vi.mock("@/services/adminStatsService", () => ({
   getAdminEntityCounts: mocks.getAdminEntityCounts,
   getTournamentStatRows: mocks.getTournamentStatRows,
   getRegistrationStatRows: mocks.getRegistrationStatRows,
+  getParticipantStatRows: mocks.getParticipantStatRows,
 }));
 vi.mock("@/services/kasterService", () => ({
   getActiveThrowerList: mocks.getActiveThrowerList,
 }));
-vi.mock("@/services/adminService", () => ({ getAllUsers: mocks.getAllUsers }));
 // The quick actions open the shared editors; the overlay itself is covered in
 // adminModal.test.
 vi.mock("@/admin/_adminEdit", () => ({
@@ -88,8 +88,13 @@ beforeEach(() => {
     ],
     error: null,
   });
-  mocks.getAllUsers.mockResolvedValue({
-    data: [{ rolle: "admin" }, { rolle: "bruker" }, { rolle: "bruker" }],
+  mocks.getParticipantStatRows.mockResolvedValue({
+    data: [
+      { kasterid: 1, stevne: { dato: `${YEAR}-01-10` } },
+      { kasterid: 1, stevne: { dato: `${YEAR}-06-01` } },
+      { kasterid: 2, stevne: { dato: `${YEAR}-06-01` } },
+      { kasterid: 5, stevne: { dato: `${YEAR - 2}-06-01` } },
+    ],
     error: null,
   });
 });
@@ -157,30 +162,16 @@ describe("oversikt dashboard", () => {
     expect(perClub[0]).toEqual({ label: "Oslo HK", count: 2 });
     expect(mocks.drawBarChart.mock.calls[1]?.[2]).toMatchObject({ horizontal: true });
 
-    // The share bar is plain DOM, so its series is read back off the legend it
-    // renders: every role in order, the empty one included.
-    const legends = [...el.querySelectorAll(".admin-legend")];
-    const roleLegend = legends[legends.length - 1]!;
-    const read = (cls: string): string[] =>
-      [...roleLegend.querySelectorAll(cls)].map((n) => n.textContent ?? "");
-    expect(read(".admin-legend__label")).toEqual(["Admin", "Klubbadmin", "Brukar"]);
-    expect(read(".admin-legend__value")).toEqual(["1", "0", "2"]);
-
-    // Only the two non-empty roles get a segment, sized by their counts.
-    const segs = [...el.querySelectorAll<HTMLElement>(".admin-sharebar__seg")];
-    expect(segs.map((s) => s.style.flexGrow)).toEqual(["1", "2"]);
-  });
-
-  it("labels the share legend with counts and percentages", async () => {
-    const el = document.createElement("div");
-    await renderOverview(el);
-
-    // Only the share chart carries a legend; the single-series cards leave theirs empty.
-    const legends = [...el.querySelectorAll(".admin-legend")];
-    const legend = legends[legends.length - 1];
-    expect(legend?.textContent).toContain("Admin");
-    expect(legend?.textContent).toContain("33 %");
-    expect(legend?.textContent).toContain("67 %");
+    const perParticipantYear = mocks.drawBarChart.mock.calls[2]?.[1] as {
+      label: string;
+      count: number;
+    }[];
+    expect(perParticipantYear).toHaveLength(8);
+    expect(perParticipantYear[perParticipantYear.length - 1]).toEqual({
+      label: String(YEAR),
+      count: 2,
+    });
+    expect(perParticipantYear[perParticipantYear.length - 3]?.count).toBe(1);
   });
 
   it("replaces an empty chart with a message instead of a blank canvas", async () => {

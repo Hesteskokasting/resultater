@@ -105,22 +105,31 @@ export function countThrowersPerClub(
     .slice(0, top);
 }
 
-/** Users per role, in the app's own role hierarchy (admin → klubbadmin → bruker). */
-export function countUsersByRole(
-  users: { rolle: string | null }[],
-  order: readonly string[] = ["admin", "klubbadmin", "bruker"],
-): LabelCount[] {
-  const buckets = new Map<string, number>();
-  for (const role of order) buckets.set(role, 0);
+export interface ParticipantStatRow {
+  kasterid: number | null;
+  stevne: { dato: string | null } | null;
+}
 
-  for (const user of users) {
-    const role = user.rolle ?? "bruker";
-    buckets.set(role, (buckets.get(role) ?? 0) + 1);
+/**
+ * Distinct throwers with a result per calendar year, oldest first. Same empty-year
+ * padding as the tournament chart so the two share an x-axis.
+ */
+export function countParticipantsPerYear(
+  rows: ParticipantStatRow[],
+  toYear: number,
+  years = 8,
+): LabelCount[] {
+  const buckets = new Map<number, Set<number>>();
+  for (let y = toYear - years + 1; y <= toYear; y++) buckets.set(y, new Set());
+
+  for (const row of rows) {
+    if (row.kasterid === null) continue;
+    const year = yearOf(row.stevne?.dato);
+    if (year === null) continue;
+    buckets.get(year)?.add(row.kasterid);
   }
 
-  // Insertion order: the known roles first (kept even at zero, so the split reads
-  // the same every render), then any role value the DB has that this list doesn't.
-  return [...buckets.entries()].map(([label, count]) => ({ label, count }));
+  return [...buckets.entries()].map(([year, ids]) => ({ label: String(year), count: ids.size }));
 }
 
 /**
