@@ -1,7 +1,7 @@
 import { logError } from "@/utils/logError";
 import { errorMessage } from "@/utils/errorMessage";
 import { showToast } from "@/components/Toast";
-import { confirmDialog } from "@/components/ConfirmDialog";
+import { confirmDialog } from "@/components/dialog/ConfirmDialog";
 import { escHtml } from "@/utils/escHtml";
 import { createErrorBanner, createLoadingState } from "@/components/states";
 import {
@@ -19,7 +19,7 @@ import {
   usesInitialRoundCount,
 } from "@/utils/kastemetode";
 import { getPairCount, getRegistrationCount } from "@/services/pameldingService";
-import { registerRefetch, reloadRoute } from "@/utils/refetchRegistry";
+import { registerRefetch, reloadRoute } from "@/utils/data/refetchRegistry";
 
 // ── Render ────────────────────────────────────────────────────────────────────
 

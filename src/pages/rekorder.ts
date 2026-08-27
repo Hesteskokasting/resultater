@@ -2,17 +2,17 @@ import { throwerName, buildThrowerSlug } from "@/utils/kaster";
 import { createErrorBanner, createLoadingState, createEmptyState } from "@/components/states";
 import { createTable } from "@/components/Table";
 import { createSearchInput } from "@/components/SearchInput";
-import { selectHtml } from "@/utils/shared";
+import { selectHtml } from "@/utils/dropdown";
 import { logError } from "@/utils/logError";
-import { registerRefetch } from "@/utils/refetchRegistry";
+import { registerRefetch } from "@/utils/data/refetchRegistry";
 import { getAllRecords, clearRecordsCache } from "@/services/rekorderService";
 import {
   RECORD_METHODS,
   findRecordMethod,
   recordThrower,
   filterAndRankRecords,
-} from "@/utils/rekorderLogikk";
-import type { RankedRecord, RecordsFilter } from "@/utils/rekorderLogikk";
+} from "@/pages/rekorderLogic";
+import type { RankedRecord, RecordsFilter } from "@/pages/rekorderLogic";
 
 // ── State ─────────────────────────────────────────────────────────────────────
 

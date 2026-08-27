@@ -2,13 +2,13 @@ import type { QueryData } from "@supabase/supabase-js";
 import type { Tables } from "@/types";
 import { supabase } from "@/supabase";
 import { logError } from "@/utils/logError";
-import { fetchAllRows } from "@/utils/fetchAllRows";
-import { yearCache } from "@/utils/yearCache";
+import { fetchAllRows } from "@/utils/data/fetchAllRows";
+import { yearCache } from "@/utils/data/yearCache";
 
 // ── Type-inferens-buildarar ───────────────────────────────────────────────────
 
 const _resultaterQuery = supabase.from("resultat").select(`
-    id, nc_poeng, plassering, kasterid, klubbid, klasseid, stevneid,
+    id, nc_poeng, plassering, snc_plassering, kasterid, klubbid, klasseid, stevneid,
     kaster:kasterid(id, fornavn, etternavn),
     klubb:klubbid(id, navn),
     klasse:klasseid(id, navn)
@@ -45,7 +45,7 @@ export async function getTournamentsAndResults(ar: number) {
     supabase
       .from("resultat")
       .select(`
-      id, nc_poeng, plassering, kasterid, klubbid, klasseid, stevneid,
+      id, nc_poeng, plassering, snc_plassering, kasterid, klubbid, klasseid, stevneid,
       kaster:kasterid(id, fornavn, etternavn),
       klubb:klubbid(id, navn),
       klasse:klasseid(id, navn),

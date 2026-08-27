@@ -1,7 +1,7 @@
 import type { QueryData } from "@supabase/supabase-js";
 import { supabase } from "@/supabase";
 import { logError } from "@/utils/logError";
-import { fetchAllRows } from "@/utils/fetchAllRows";
+import { fetchAllRows } from "@/utils/data/fetchAllRows";
 import type { Tables } from "@/types";
 
 // Query builders used only for type inference — no HTTP calls at module load

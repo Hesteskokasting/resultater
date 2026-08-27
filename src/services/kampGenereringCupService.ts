@@ -1,5 +1,5 @@
 import { supabase } from "@/supabase";
-import { calcCupRoundPairings } from "@/utils/kastemetoder-logikk";
+import { calcCupRoundPairings } from "@/utils/kamp/cupStructure";
 import type { RoundSetup, TablesInsert, Json } from "@/types";
 
 function genMatchId(): string {
@@ -117,21 +117,19 @@ export function buildCupMatchRows(
 async function _insertBuiltMatches(built: BuiltCupMatch[]): Promise<number> {
   if (built.length === 0) return 0;
 
-  const payload: Json = built.map(
-    (b): Json => ({
-      match_id: b.match.match_id,
-      stevneid: b.match.stevneid,
-      fase: b.match.fase,
-      runde_nummer: b.match.runde_nummer,
-      gruppe_navn: b.match.gruppe_navn ?? null,
-      bane_nummer: b.match.bane_nummer ?? null,
-      er_bekreftet: b.match.er_bekreftet ?? false,
-      er_walkover: b.match.er_walkover ?? false,
-      er_tre_spelarar: b.match.er_tre_spelarar ?? false,
-      runde_navn: b.match.runde_navn ?? null,
-      players: b.playerKasterids.map((kasterid): Json => ({ kasterid })),
-    }),
-  );
+  const payload: Json = built.map((b): Json => ({
+    match_id: b.match.match_id,
+    stevneid: b.match.stevneid,
+    fase: b.match.fase,
+    runde_nummer: b.match.runde_nummer,
+    gruppe_navn: b.match.gruppe_navn ?? null,
+    bane_nummer: b.match.bane_nummer ?? null,
+    er_bekreftet: b.match.er_bekreftet ?? false,
+    er_walkover: b.match.er_walkover ?? false,
+    er_tre_spelarar: b.match.er_tre_spelarar ?? false,
+    runde_navn: b.match.runde_navn ?? null,
+    players: b.playerKasterids.map((kasterid): Json => ({ kasterid })),
+  }));
 
   const { data, error } = await supabase.rpc("insert_avsluttende_matches", { p_matches: payload });
   if (error) throw new Error("Feil ved innsetting av cup-kampar: " + error.message);

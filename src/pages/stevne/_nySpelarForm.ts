@@ -1,6 +1,6 @@
 import { showToast } from "@/components/Toast";
 import { errorMessage } from "@/utils/errorMessage";
-import { buildDropdownOptions } from "@/utils/buildDropdownOptions";
+import { buildDropdownOptions } from "@/utils/dropdown";
 import { formNum } from "@/utils/formNum";
 import { createThrower, getGenders } from "@/services/kasterService";
 import type { ThrowerListRow } from "@/services/kasterService";

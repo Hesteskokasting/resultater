@@ -4,7 +4,7 @@ import {
   resultFilterOptions,
   filterResults,
   type ResultSort,
-} from "@/utils/kasterDetaljLogikk";
+} from "@/pages/kasterDetaljLogic";
 
 // Minimal rows matching the shape sortResults needs (ResultDetailRow satisfies it too).
 function row(plassering: number | null, dato: string | null) {

@@ -21,7 +21,7 @@ const mocks = vi.hoisted(() => {
 });
 
 vi.mock("@/supabase", () => ({ supabase: { from: mocks.from } }));
-vi.mock("@/utils/fetchAllRows", () => ({ fetchAllRows: mocks.fetchAllRows }));
+vi.mock("@/utils/data/fetchAllRows", () => ({ fetchAllRows: mocks.fetchAllRows }));
 vi.mock("@/utils/logError", () => ({ logError: vi.fn() }));
 
 import { loadCupYear, clearCupYearCache } from "@/services/norgescupService";

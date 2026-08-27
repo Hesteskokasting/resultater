@@ -3,7 +3,7 @@
  * whole table has to page. These pin down that the paging stops, and that it does
  * not depend on the server cap actually being 1000.
  */
-import { fetchAllRows } from "@/utils/fetchAllRows";
+import { fetchAllRows } from "@/utils/data/fetchAllRows";
 
 /** A fake table of `total` rows, served in pages of at most `cap`. */
 function table(total: number, cap: number) {

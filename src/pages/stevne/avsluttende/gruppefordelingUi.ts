@@ -4,7 +4,7 @@ import {
   calcValidGroupSizes,
   validRound1Setups,
   calcCupStructure,
-} from "@/utils/kastemetoder-logikk";
+} from "@/utils/kamp/cupStructure";
 
 interface StandingRowForGroup {
   startnummer?: number | string | null;

@@ -1,13 +1,13 @@
 /**
- * The three score pads share one shell (components/numberpadUi.ts), so these
+ * The three score pads share one shell (components/numberpad/numberpadUi.ts), so these
  * cover the parts that shell is responsible for: a close button on every pad,
  * the stage/step navigation, and each flow reaching its own save.
  */
 
 import { beforeEach, describe, expect, it } from "vite-plus/test";
-import { showNumberpad } from "@/components/ScoreNumberpad";
-import { showTotalNumberpad } from "@/components/TotalNumberpad";
-import { showOmgangNumberpad } from "@/components/OmgangNumberpad";
+import { showKampScoreNumberpad } from "@/components/numberpad/KampScoreNumberpad";
+import { showTotalNumberpad } from "@/components/numberpad/TotalNumberpad";
+import { showXkastKongelagNumberpad } from "@/components/numberpad/XkastKongelagNumberpad";
 
 /** Live matchMedia fake: `narrow` flips and every open pad hears about it. */
 let narrow = false;
@@ -59,10 +59,10 @@ beforeEach(() => {
   setViewport(false);
 });
 
-describe("showNumberpad", () => {
+describe("showKampScoreNumberpad", () => {
   it("shows one column per side on a wide screen and saves every score", async () => {
     const saved: number[][] = [];
-    showNumberpad(
+    showKampScoreNumberpad(
       [
         { name: "Lag A", score: 0 },
         { name: "Lag B", score: 7 },
@@ -93,7 +93,7 @@ describe("showNumberpad", () => {
   });
 
   it("lights a score key on press and lets go on release", () => {
-    showNumberpad([{ name: "Lag A", score: 0 }], async () => true);
+    showKampScoreNumberpad([{ name: "Lag A", score: 0 }], async () => true);
 
     const key = gridKeys()[0]!;
     key.dispatchEvent(new Event("pointerdown"));
@@ -106,7 +106,7 @@ describe("showNumberpad", () => {
   });
 
   it("wipes the whole score on one press of the clear key", () => {
-    showNumberpad([{ name: "Lag A", score: 0 }], async () => true);
+    showKampScoreNumberpad([{ name: "Lag A", score: 0 }], async () => true);
 
     const keys = gridKeys();
     keys[0]!.click();
@@ -121,7 +121,7 @@ describe("showNumberpad", () => {
 
   it("blocks the footer action until the sides it covers have a score", () => {
     setViewport(true);
-    showNumberpad(
+    showKampScoreNumberpad(
       [
         { name: "Lag A", score: 0 },
         { name: "Lag B", score: 0 },
@@ -152,7 +152,7 @@ describe("showNumberpad", () => {
   });
 
   it("stays open with the typed scores when the save fails", async () => {
-    showNumberpad([{ name: "Lag A", score: 0 }], async () => false);
+    showKampScoreNumberpad([{ name: "Lag A", score: 0 }], async () => false);
 
     gridKeys()[4]!.click();
     click(".pad-register");
@@ -166,7 +166,7 @@ describe("showNumberpad", () => {
 
   it("steps through the sides on a phone and can go back", () => {
     setViewport(true);
-    showNumberpad(
+    showKampScoreNumberpad(
       [
         { name: "Lag A", score: 3 },
         { name: "Lag B", score: 0 },
@@ -195,7 +195,7 @@ describe("showNumberpad", () => {
 
   it("follows the viewport across the layout threshold while open", () => {
     setViewport(true);
-    showNumberpad(
+    showKampScoreNumberpad(
       [
         { name: "Lag A", score: 1 },
         { name: "Lag B", score: 2 },
@@ -239,9 +239,9 @@ describe("showTotalNumberpad", () => {
   });
 });
 
-describe("showOmgangNumberpad", () => {
+describe("showXkastKongelagNumberpad", () => {
   it("gates the digit stage until a poengsum is typed, then shows the ring keys", () => {
-    showOmgangNumberpad([
+    showXkastKongelagNumberpad([
       {
         header: {
           baneLabel: "Bane 2",
@@ -261,8 +261,8 @@ describe("showOmgangNumberpad", () => {
 
     expect(document.querySelector(".pad-name")!.textContent).toBe("Kari");
     expect(document.querySelector(".pad-total")!.textContent).toBe("0");
-    // Two omgang cells plus the SUM cell.
-    expect(document.querySelectorAll(".pad-strip-cell").length).toBe(3);
+    // Two omgang cells, drawn in the same row the summary uses.
+    expect(document.querySelectorAll(".pad-summary-kast").length).toBe(2);
     expect(document.querySelector<HTMLButtonElement>(".pad-key-action")!.disabled).toBe(true);
     // The arrow is captioned, so the key says what it does.
     expect(document.querySelector(".pad-key-action .pad-key-caption")!.textContent).toBe("Bekreft");
@@ -331,11 +331,9 @@ describe("showOmgangNumberpad", () => {
       onSave: async () => true,
     });
 
-    showOmgangNumberpad([step(1, "Kari", 0), step(1, "Kari", 1), step(2, "Ola", 0)]);
+    showXkastKongelagNumberpad([step(1, "Kari", 0), step(1, "Kari", 1), step(2, "Ola", 0)]);
 
-    // The entry screen reads the runde back in the same row the summary uses,
-    // with the kast being entered marked; the flat strip is gone.
-    expect(document.querySelector(".pad-strip")).toBeNull();
+    // The entry screen reads the runde back with the kast being entered marked.
     expect(document.querySelectorAll(".pad-summary-row").length).toBe(1);
     expect(document.querySelector(".pad-summary-kast.current .pad-summary-key")!.textContent).toBe(
       "1",

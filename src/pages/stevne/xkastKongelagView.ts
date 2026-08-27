@@ -10,20 +10,20 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 import { getUser } from "@/services/authService";
 import { createErrorBanner, createLoadingState, createEmptyState } from "@/components/states";
 import { showToast } from "@/components/Toast";
-import { confirmDialog } from "@/components/ConfirmDialog";
+import { confirmDialog } from "@/components/dialog/ConfirmDialog";
 import {
-  showOmgangNumberpad,
-  type OmgangEntryStep,
-  type OmgangPadHeader,
-} from "@/components/OmgangNumberpad";
-import { showTotalNumberpad } from "@/components/TotalNumberpad";
+  showXkastKongelagNumberpad,
+  type XkastKongelagEntryStep,
+  type XkastKongelagPadHeader,
+} from "@/components/numberpad/XkastKongelagNumberpad";
+import { showTotalNumberpad } from "@/components/numberpad/TotalNumberpad";
 import { escHtml } from "@/utils/escHtml";
 import { throwerName } from "@/utils/kaster";
 import { logError } from "@/utils/logError";
-import { unsubscribeChannel } from "@/utils/realtime";
-import { coalesceReload } from "@/utils/coalesceReload";
-import { ringerPercent } from "@/utils/omgangValidation";
-import { isSeatUnscored, canSwapSeat } from "@/utils/courtSeat";
+import { unsubscribeChannel } from "@/utils/data/realtime";
+import { coalesceReload } from "@/utils/data/coalesceReload";
+import { ringerPercent } from "@/utils/xkastKongelag/omgangValidation";
+import { isSeatUnscored, canSwapSeat } from "@/utils/xkastKongelag/courtSeat";
 import {
   renderMainContent,
   bindTabToggle,
@@ -33,7 +33,11 @@ import {
   bindAutoComplete,
   bindCompleteTournament,
 } from "./faseView";
-import { renderBannerMenu, bindBannerMenu, type BannerMenuItem } from "@/components/BannerMenu";
+import {
+  renderStevneBannerMenu,
+  bindStevneBannerMenu,
+  type StevneBannerMenuItem,
+} from "@/components/stevne/StevneBannerMenu";
 import {
   getCourts,
   saveOmgang,
@@ -49,8 +53,11 @@ import {
   type KongelagCarryOverInfo,
 } from "@/services/xkastKongelagService";
 import { autoCompleteCourts } from "@/services/testDataService";
-import { buildXkastStanding, type XkastStandingRow } from "@/utils/xkastStilling";
-import { buildKongelagStanding, type KongelagStandingRow } from "@/utils/kongelagStilling";
+import { buildXkastStanding, type XkastStandingRow } from "@/utils/xkastKongelag/xkastStandings";
+import {
+  buildKongelagStanding,
+  type KongelagStandingRow,
+} from "@/utils/xkastKongelag/kongelagStandings";
 
 // ── Variant contract ──────────────────────────────────────────────────────────
 
@@ -65,7 +72,7 @@ export interface EntrySlot {
   participant: CourtParticipantRow;
   omgang: number;
   /** Bane/runde context and the round strip shown above the pad. */
-  header: OmgangPadHeader;
+  header: XkastKongelagPadHeader;
 }
 
 export interface CourtPhaseContext {
@@ -110,7 +117,7 @@ export interface CourtPhaseVariant {
     participant: CourtParticipantRow,
     omgang: number,
     antallOmganger: number,
-  ) => OmgangPadHeader;
+  ) => XkastKongelagPadHeader;
   emptyHint: (isAdmin: boolean) => string;
   /**
    * Lets admins swap two players between courts (tap one, tap the other) as
@@ -202,7 +209,7 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
 
   // ── Entry wizard ────────────────────────────────────────────────────────────
 
-  function buildEntrySteps(slots: EntrySlot[]): OmgangEntryStep[] {
+  function buildEntrySteps(slots: EntrySlot[]): XkastKongelagEntryStep[] {
     return (
       slots
         // Manual-total players have no omganger to enter; already-recorded omganger are skipped.
@@ -240,7 +247,7 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
       showToast("Alle omganger er registrerte.", "info");
       return;
     }
-    showOmgangNumberpad(steps);
+    showXkastKongelagNumberpad(steps);
   }
 
   // ── Rendering (same structure/classes as the kamp views) ───────────────────
@@ -670,7 +677,7 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
     const showAutoComplete =
       import.meta.env.VITE_ENV === "dev" && s.courts.length > 0 && !allConfirmed;
 
-    const items: BannerMenuItem[] = [];
+    const items: StevneBannerMenuItem[] = [];
     if (showAutoComplete) items.push({ id: "test-auto-complete-btn", label: "TEST: Autofullfør" });
     if (showComplete)
       items.push({
@@ -679,8 +686,8 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
         tone: "success",
         disabled: s.config.erfullfort,
       });
-    bannerSlot.innerHTML = renderBannerMenu(items);
-    bindBannerMenu(bannerSlot);
+    bannerSlot.innerHTML = renderStevneBannerMenu(items);
+    bindStevneBannerMenu(bannerSlot);
 
     bindAutoComplete(
       bannerSlot,
@@ -801,7 +808,7 @@ export function createCourtPhaseRenderer(variant: CourtPhaseVariant) {
     if (!found) return;
     const { court, participant } = found;
     const existing = participant.omgangar.find((o) => o.omgang === omgang);
-    showOmgangNumberpad([
+    showXkastKongelagNumberpad([
       {
         header: variant.padHeader(court, participant, omgang, s.antallOmganger),
         playerName: throwerName(participant.kaster),

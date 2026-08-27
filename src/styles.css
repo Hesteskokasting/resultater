@@ -19,27 +19,30 @@
 @import "./css/chrome/theme-switch.css";
 
 /* Components — one file per component */
-@import "./css/components/banner-menu.css";
+@import "./css/components/stevne/stevne-banner-menu.css";
 @import "./css/components/excel-button.css";
 @import "./css/components/info-tooltip.css";
 @import "./css/components/live-pill.css";
-@import "./css/components/modal.css";
-@import "./css/components/numberpad.css";
-@import "./css/components/omgang-numberpad.css";
-@import "./css/components/oppmote-knapp.css";
+@import "./css/components/dialog/modal.css";
+@import "./css/components/numberpad/numberpad.css";
+@import "./css/components/numberpad/xkast-kongelag-numberpad.css";
+@import "./css/components/numberpad/xkast-kongelag-round-row.css";
+@import "./css/components/numberpad/xkast-kongelag-ring-stage.css";
+@import "./css/components/stevne/check-in-button.css";
 @import "./css/components/player-table.css";
-@import "./css/components/premie-dialog.css";
-@import "./css/components/ranking-list.css";
-@import "./css/components/resultat-print.css";
-@import "./css/components/resultat-tabell.css";
-@import "./css/components/scoreboard-button.css";
-@import "./css/components/scoreboard.css";
+@import "./css/components/dialog/premie-dialog.css";
+@import "./css/components/resultat/ranking-list.css";
+@import "./css/components/resultat/resultat-print.css";
+@import "./css/components/resultat/resultat-tabell.css";
+@import "./css/components/scoreboard/scoreboard-button.css";
+@import "./css/components/scoreboard/scoreboard.css";
+@import "./css/components/scoreboard/three-player-scoreboard.css";
 @import "./css/components/search-input.css";
 @import "./css/components/search-select.css";
 @import "./css/components/skeleton.css";
 @import "./css/components/states.css";
-@import "./css/components/stevne-hero.css";
-@import "./css/components/stevne-kort.css";
+@import "./css/components/stevne/stevne-hero.css";
+@import "./css/components/stevne/stevne-card.css";
 @import "./css/components/thrower-grid.css";
 @import "./css/components/toast.css";
 

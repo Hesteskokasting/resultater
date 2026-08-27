@@ -1,4 +1,4 @@
-import { sncLocalLabel } from "@/utils/sncLabel";
+import { sncLocalLabel } from "@/utils/stevne/sncLabel";
 
 describe("sncLocalLabel", () => {
   it("joins club and place when they differ", () => {

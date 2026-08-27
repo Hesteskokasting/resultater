@@ -13,7 +13,7 @@ export type LinkStatus = "ingen" | "venter" | "godkjent" | "avvist";
 export type Kaster = Pick<Tables<"kaster">, "id" | "fornavn" | "etternavn">;
 export type Klubb = Pick<Tables<"klubb">, "id" | "navn">;
 
-// --- Businesslogikk-typar (kastemetoder-logikk) ---
+// --- Businesslogikk-typar (cupStructure) ---
 
 export interface RoundSetup {
   walkovers: number;

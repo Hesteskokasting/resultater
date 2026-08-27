@@ -16,7 +16,7 @@ import {
   type FinalMatchRow,
   type FinalMatchPlayerRow,
 } from "@/services/kampService";
-import { type MatchSide } from "@/utils/kamp";
+import { type MatchSide } from "@/utils/kamp/kamp";
 import { logError } from "@/utils/logError";
 
 export type FinalMatchPlayerKnown = FinalMatchPlayerRow & { kasterid: number };

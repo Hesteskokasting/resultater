@@ -4,7 +4,7 @@
  */
 
 import { describe, expect, it } from "vite-plus/test";
-import { premieDialog } from "@/components/PremieDialog";
+import { premieDialog } from "@/components/dialog/PremieDialog";
 
 function field(id: string): HTMLInputElement {
   return document.querySelector<HTMLInputElement>(`#${id}`)!;

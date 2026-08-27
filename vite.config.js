@@ -26,6 +26,10 @@ export default defineConfig({
     include: ["../tests/**/*.test.ts"],
   },
   root: "src",
+  css: {
+    // Source maps in dev so DevTools points at src/css/**, not the flattened styles.css.
+    devSourcemap: true,
+  },
   envDir: "..",
   plugins: lazyPlugins(() => [
     {

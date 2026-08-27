@@ -45,7 +45,7 @@ vi.mock("@/services/resultatService", () => ({
   drawSncPremiar: mocks.drawSncPremiar,
   clearSncPremiar: mocks.clearSncPremiar,
 }));
-vi.mock("@/components/PremieDialog", () => ({ premieDialog: mocks.premieDialog }));
+vi.mock("@/components/dialog/PremieDialog", () => ({ premieDialog: mocks.premieDialog }));
 vi.mock("@/services/pameldingService", () => ({
   getRegistrationsAcrossTournaments: mocks.getRegistrationsAcrossTournaments,
   registerForTournament: mocks.registerForTournament,
@@ -55,7 +55,7 @@ vi.mock("@/services/pameldingService", () => ({
   getPairCount: mocks.getPairCount,
 }));
 vi.mock("@/services/authService", () => ({ getUser: mocks.getUser }));
-vi.mock("@/components/ConfirmDialog", () => ({ confirmDialog: mocks.confirmDialog }));
+vi.mock("@/components/dialog/ConfirmDialog", () => ({ confirmDialog: mocks.confirmDialog }));
 vi.mock("@/components/Toast", () => ({ showToast: mocks.showToast }));
 
 const {
@@ -182,7 +182,7 @@ describe("SNC umbrella info tab", () => {
     expect(text).toContain("Bergen");
     expect(text).toContain("0 av 2 fullført");
 
-    const cards = [...el.querySelectorAll("#snc-locals .stevne-kort")];
+    const cards = [...el.querySelectorAll("#snc-locals .stevne-card")];
     expect(cards).toHaveLength(2);
     expect(cards[0]!.textContent).toContain("3 påmelde");
     expect(cards[1]!.textContent).toContain("2 påmelde");
@@ -208,8 +208,24 @@ describe("SNC umbrella info tab", () => {
     await renderSncInfo(el, { id: 10 });
 
     expect(el.querySelector('a[href*="logginn"]')).toBeNull();
-    expect(el.querySelector<HTMLAnchorElement>('a[href="#/minside/kampar"]')).not.toBeNull();
+    const cta = el.querySelector<HTMLAnchorElement>('a[href="#/minside/kampar"]')!;
+    expect(cta.textContent).toBe("Koble profil for å melde på");
+    // The tooltip explains, the link text stays short enough to read at a glance.
+    expect(cta.title).toContain("Klikk for");
     expect(buttonWithText(el, "Meld på")).toBeUndefined();
+  });
+
+  it("spares an unlinked admin the koble-profil notice on the umbrella", async () => {
+    getUser.mockResolvedValue({
+      user: { id: "a1", email: "admin@nhf.no" },
+      profil: { role: "admin", kasterid: null, kobling_status: "ingen" },
+      clubs: [],
+    });
+    const el = host();
+    await renderSncInfo(el, { id: 10 });
+
+    expect(el.querySelector('a[href="#/minside/kampar"]')).toBeNull();
+    expect(el.querySelector('a[href*="logginn"]')).toBeNull();
   });
 
   it("offers a linked thrower one Meld på button per venue", async () => {
@@ -242,8 +258,8 @@ describe("SNC umbrella info tab", () => {
     expect(el.textContent).toContain("Du er påmeld");
     expect(el.querySelectorAll(".snc-avmeld")).toHaveLength(1);
     expect(el.querySelectorAll(".snc-byt")).toHaveLength(1);
-    const own = el.querySelector("#snc-locals .stevne-kort")!;
-    expect(own.querySelector(".stevne-kort__nearest-merke")?.textContent).toBe("PÅMELD");
+    const own = el.querySelector("#snc-locals .stevne-card")!;
+    expect(own.querySelector(".stevne-card__nearest-badge")?.textContent).toBe("PÅMELD");
   });
 
   it("switches venue from the old registration to the clicked one", async () => {
@@ -282,8 +298,8 @@ describe("SNC umbrella info tab", () => {
     const el = host();
     await renderSncInfo(el, { id: 10 });
 
-    const cards = [...el.querySelectorAll("#snc-locals .stevne-kort")];
-    expect(cards[0]!.classList.contains("stevne-kort--live")).toBe(true);
+    const cards = [...el.querySelectorAll("#snc-locals .stevne-card")];
+    expect(cards[0]!.classList.contains("stevne-card--live")).toBe(true);
     expect(cards[0]!.querySelector("button")).toBeNull();
     expect(cards[1]!.querySelector(".snc-meldpa")).not.toBeNull();
     expect(el.querySelectorAll(".snc-meldpa")).toHaveLength(1);

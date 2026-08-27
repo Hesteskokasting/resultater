@@ -1,4 +1,4 @@
-import { yearCache } from "@/utils/yearCache";
+import { yearCache } from "@/utils/data/yearCache";
 
 describe("yearCache", () => {
   it("loads once and serves the same year from the buffer", async () => {

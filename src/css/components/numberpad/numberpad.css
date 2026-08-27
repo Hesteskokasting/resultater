@@ -1,0 +1,380 @@
+/* Rendered by components/numberpadUi.ts. */
+
+/* ── Score-nummerpad ── */
+/* One surface for all three pads: the kamp pad (KampScoreNumberpad), the per-omgang
+   wizard (XkastKongelagNumberpad) and the total pad (TotalNumberpad). Parts are shared
+   from components/numberpadUi.ts; the strip and ring keys are only used by the
+   omgang pad but stay here so the whole pad reads as one system. */
+
+/* The pad owns the whole viewport — no backdrop shows through, but the variable
+   stays for the frame between paint and layout. */
+.pad-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: var(--pad-backdrop);
+  display: flex;
+}
+
+.pad-card {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  background: var(--pad-card-bg);
+  color: var(--pad-tekst);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Only the content scrolls, so the footer action can never cover the keys. The
+   stack is capped and centred: full-bleed keys on a phone, a readable column on
+   a desktop. */
+.pad-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  width: 100%;
+  max-width: 650px;
+  margin: 0 auto;
+  padding: max(12px, var(--sa-top)) 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Edge-to-edge action bar, like the scoreboard's bottom button: the button *is*
+   the bar, so the footer only holds it and carries no padding of its own. */
+.pad-footer {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.pad-footer:empty {
+  display: none;
+}
+
+/* Side-by-side entry columns (kamp on a wide screen) need the extra width. */
+.pad-card:has(.pad-col + .pad-col) .pad-body {
+  max-width: 900px;
+}
+
+/* Back left, close right — always rendered so the card never resizes. */
+.pad-toprow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 34px;
+}
+
+/* Bordered rather than a bare link — a text-only back reads as decoration next
+   to the boxed close button. */
+.pad-back {
+  padding: 6px 12px;
+  background: var(--pad-flate);
+  border: 1px solid var(--pad-kant);
+  border-radius: 10px;
+  color: var(--pad-aksent);
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.pad-back-skjult {
+  visibility: hidden;
+}
+
+.pad-close {
+  flex: none;
+  width: 40px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--pad-flate);
+  border: 1px solid var(--pad-kant);
+  border-radius: 10px;
+  color: var(--pad-tekst);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+
+.pad-progress {
+  display: flex;
+  gap: 10px;
+  margin: 0 0 2px;
+}
+
+.pad-progress-seg {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--pad-seg-inaktiv);
+}
+
+.pad-progress-seg.active {
+  background: var(--pad-aksent);
+}
+
+.pad-context {
+  color: var(--pad-aksent);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.pad-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pad-name {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+/* The running total is the figure the thrower looks for, so it carries the
+   accent and outsizes the name beside it. */
+.pad-total {
+  flex: none;
+  min-width: 84px;
+  padding: 8px 16px;
+  background: var(--pad-flate);
+  border: 2px solid var(--pad-aksent);
+  border-radius: 12px;
+  color: var(--pad-aksent);
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.1;
+  text-align: center;
+}
+
+.pad-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* The meta line belongs to the name above it, so it sits tighter than the
+   body's own rhythm. */
+.pad-title + .pad-meta {
+  margin-top: -6px;
+}
+
+.pad-bane {
+  padding: 3px 10px;
+  border: 1px solid var(--pad-aksent);
+  border-radius: 999px;
+  color: var(--pad-aksent);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+}
+
+.pad-runde {
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+/* ── Trailing figure on the meta line ─────────────────────────────────────── */
+
+/* The ring count rides the bane/runde line, right-aligned so it sits under the
+   total badge — the quieter of the two figures, and no line of its own. */
+.pad-total-sub {
+  flex: none;
+  min-width: 84px;
+  margin-left: auto;
+  padding: 2px 16px;
+  background: var(--pad-flate);
+  border: 1px solid var(--pad-kant);
+  border-radius: 8px;
+  color: var(--pad-tekst-2);
+  font-size: 1rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* One column per participant — the kamp pad shows all of them side by side above
+   STEPWISE_MAX_WIDTH (KampScoreNumberpad); below it, and in every other pad, the
+   wrapper holds exactly one column. */
+.pad-cols {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 20px;
+}
+
+/* A pad whose stage has keys stretches them over the free height instead of
+   leaving a gap above the footer. */
+.pad-cols:has(.pad-grid) {
+  flex: 1;
+  min-height: 0;
+}
+
+.pad-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.pad-display {
+  background: var(--pad-flate);
+  border: 1px solid var(--pad-kant);
+  border-radius: 14px;
+  padding: 14px;
+  text-align: center;
+}
+
+.pad-display-label {
+  color: var(--pad-tekst-2);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+
+.pad-display-value {
+  font-size: 2.8rem;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+/* Placeholder 0 before any digit is typed. */
+.pad-display-value.tom {
+  color: var(--pad-tekst-2);
+  opacity: 0.5;
+}
+
+.pad-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: minmax(56px, 1fr);
+  gap: 10px;
+}
+
+.pad-key {
+  padding: 0;
+  font-size: 1.4rem;
+  font-weight: 600;
+  background: var(--pad-flate);
+  color: var(--pad-tekst);
+  border: 1px solid var(--pad-kant);
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+/* Score keys answer the touch: they take the accent and dip while the finger is
+   down. is-pressed lands on pointerdown, so the key is lit before the pad
+   repaints on click; :active covers a mouse press. Ring keys opt out — they
+   have their own selected state. */
+.pad-key-press:active,
+.pad-key-press.is-pressed {
+  background: var(--pad-aksent);
+  border-color: var(--pad-aksent);
+  color: var(--pad-aksent-tekst);
+  transform: scale(0.95);
+}
+
+.pad-key-press {
+  transition:
+    transform 90ms ease,
+    background-color 90ms ease,
+    color 90ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pad-key-press {
+    transition: none;
+  }
+
+  .pad-key-press:active,
+  .pad-key-press.is-pressed {
+    transform: none;
+  }
+}
+
+.pad-key-muted {
+  background: none;
+  border-color: transparent;
+  color: var(--pad-aksent);
+  font-size: 1.2rem;
+}
+
+.pad-key-action {
+  background: var(--pad-aksent);
+  border-color: var(--pad-aksent);
+  color: var(--pad-aksent-tekst);
+}
+
+/* A glyph alone reads as decoration, so the action key names itself above it. */
+.pad-key-stacked {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  line-height: 1;
+}
+
+.pad-key-caption {
+  font-size: clamp(0.9rem, 3.2vw, 1.15rem);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.pad-key-glyph {
+  font-size: clamp(1.9rem, 6.5vw, 2.4rem);
+  font-weight: 700;
+}
+
+/* The live figure the key confirms; the arrow shrinks to a hint beneath it. */
+.pad-key-value {
+  font-size: clamp(1.3rem, 5vw, 1.7rem);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.pad-key-value ~ .pad-key-glyph {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.pad-key:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* Fills the pad's width and runs into the bottom inset, so nothing sits between
+   it and the edge of the screen. */
+.pad-register {
+  display: block;
+  width: 100%;
+  padding: clamp(14px, 3vh, 22px);
+  padding-bottom: calc(clamp(14px, 3vh, 22px) + var(--sa-bottom));
+  background: var(--pad-aksent);
+  color: var(--pad-aksent-tekst);
+  border: none;
+  border-radius: 0;
+  font-size: clamp(1.05rem, 3.5vw, 1.5rem);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pad-register:disabled {
+  opacity: 0.45;
+  cursor: default;
+}

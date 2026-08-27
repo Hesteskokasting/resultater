@@ -1,4 +1,4 @@
-import { buildRegistrationLookup } from "@/utils/registrationLookup";
+import { buildRegistrationLookup } from "@/utils/stevne/registrationLookup";
 import type { RegistrationStatusRow } from "@/services/pameldingService";
 
 function row(overrides: Partial<RegistrationStatusRow>): RegistrationStatusRow {

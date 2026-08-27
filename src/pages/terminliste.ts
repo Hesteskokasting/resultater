@@ -8,20 +8,22 @@ import {
   emptyThrowerRegistrations,
 } from "@/services/stevneService";
 import type { ScheduleTournamentRow, ThrowerRegistrations } from "@/services/stevneService";
-import { yearOptions, downloadExcel, todayIso } from "@/utils/shared";
-import { buildDropdownOptions } from "@/utils/buildDropdownOptions";
+import { todayIso } from "@/utils/date";
+import { downloadExcel } from "@/utils/excel";
+import { yearOptions } from "@/utils/dropdown";
+import { buildDropdownOptions } from "@/utils/dropdown";
 import { createErrorBanner, createLoadingState, createEmptyState } from "@/components/states";
 import {
   createTournamentCard,
   actionLinkHtml,
   sncUmbrellaActionLink,
   type StevneCardActionLink,
-} from "@/components/StevneCard";
+} from "@/components/stevne/StevneCard";
 import { createExcelButton } from "@/components/ExcelButton";
 import { escHtml } from "@/utils/escHtml";
 import { logError } from "@/utils/logError";
-import { registerRefetch } from "@/utils/refetchRegistry";
-import { bindRegistrationSlots } from "@/components/PameldingKnapp";
+import { registerRefetch } from "@/utils/data/refetchRegistry";
+import { bindRegistrationSlots } from "@/components/stevne/RegistrationButton";
 import { createSearchInput } from "@/components/SearchInput";
 import {
   sortSchedule,
@@ -39,7 +41,7 @@ import {
   type ScheduleSortColumn,
   type MonthGroup,
   type ScheduleGroups,
-} from "@/utils/terminlisteLogikk";
+} from "@/pages/terminlisteLogic";
 
 const NM_LABEL = "Noregsmeisterskap";
 
@@ -343,7 +345,7 @@ function monthHeaderNode(label: string, count: number): HTMLElement {
 }
 
 // Its own flex+gap (not just a plain wrapper div) so cards inside get the same
-// spacing as .stevne-kort-liste's direct children — this container nests one
+// spacing as .stevne-card-list's direct children — this container nests one
 // level deeper (needed so the whole Ferdige group can be hidden/shown as a unit).
 function monthGroupsNode(
   groups: MonthGroup<TournamentRow>[],
@@ -376,7 +378,7 @@ function buildList(
   const nearestId = findNearestUpcomingId(groups.upcoming);
 
   const wrap = document.createElement("div");
-  wrap.className = "stevne-kort-liste";
+  wrap.className = "stevne-card-list";
 
   if (upcomingCount > 0) {
     wrap.appendChild(sectionHeadNode("Kommande", upcomingCount));

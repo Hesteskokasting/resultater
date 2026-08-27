@@ -8,9 +8,9 @@
 // share calcMatchRowState so the score, the status stripe and the live pill can
 // never disagree between the layouts.
 //
-import { getMatchSides, sideScore, type MatchSide } from "@/utils/kamp";
+import { getMatchSides, sideScore, type MatchSide } from "@/utils/kamp/kamp";
 import { sideNameHtml } from "../faseView";
-import { scoreboardButtonHtml } from "@/components/ScoreboardButton";
+import { scoreboardButtonHtml } from "@/components/scoreboard/ScoreboardButton";
 import { livePillHtml } from "@/components/LivePill";
 import type { InitialMatchRow, InitialMatchPlayerRow } from "@/services/kampService";
 

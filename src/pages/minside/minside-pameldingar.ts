@@ -1,7 +1,7 @@
 import { getMyRegistrations } from "@/services/pameldingService";
-import { bindRegistrationSlots } from "@/components/PameldingKnapp";
+import { bindRegistrationSlots } from "@/components/stevne/RegistrationButton";
 import { createEmptyState } from "@/components/states";
-import { createTournamentCard } from "@/components/StevneCard";
+import { createTournamentCard } from "@/components/stevne/StevneCard";
 import { renderSectionCard } from "./_sectionCard";
 import type { MinSideContext } from "./_linkState";
 import type { RegistrationRow } from "@/services/pameldingService";
@@ -28,7 +28,7 @@ async function buildRegistrationContent(throwerId: number): Promise<Registration
   );
 
   const wrap = document.createElement("div");
-  wrap.className = "stevne-kort-liste";
+  wrap.className = "stevne-card-list";
   for (const p of sorted) {
     const stevne = p.stevne;
     const tournamentId = stevne?.id;

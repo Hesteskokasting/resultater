@@ -32,8 +32,8 @@ vi.mock("@/services/kampService", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/services/kampService")>();
   return { ...actual, ...mocks };
 });
-vi.mock("@/utils/realtime", () => ({ unsubscribeChannel: vi.fn() }));
-vi.mock("@/components/ConfirmDialog", () => ({ confirmDialog: mocks.confirmDialog }));
+vi.mock("@/utils/data/realtime", () => ({ unsubscribeChannel: vi.fn() }));
+vi.mock("@/components/dialog/ConfirmDialog", () => ({ confirmDialog: mocks.confirmDialog }));
 vi.mock("@/components/Toast", () => ({ showToast: vi.fn() }));
 vi.mock("@/utils/logError", () => ({ logError: vi.fn() }));
 

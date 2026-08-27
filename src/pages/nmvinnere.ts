@@ -2,7 +2,7 @@ import { buildThrowerSlug, throwerName } from "@/utils/kaster";
 import { createErrorBanner, createLoadingState, createEmptyState } from "@/components/states";
 import { createTable } from "@/components/Table";
 import { escHtml } from "@/utils/escHtml";
-import { selectHtml } from "@/utils/shared";
+import { selectHtml } from "@/utils/dropdown";
 import { logError } from "@/utils/logError";
 import { getNMData } from "@/services/nmvinnereService";
 import {
@@ -13,8 +13,8 @@ import {
   subtitleText,
   buildWinnersList,
   latestYear,
-} from "@/utils/nmvinnereLogikk";
-import type { NmThrower, WinnersEntry } from "@/utils/nmvinnereLogikk";
+} from "@/pages/nmvinnereLogic";
+import type { NmThrower, WinnersEntry } from "@/pages/nmvinnereLogic";
 import type { NMCategoryConfig, NMGender } from "@/services/nmvinnereService";
 
 // ── State ─────────────────────────────────────────────────────────────────────

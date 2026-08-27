@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { isSeatUnscored, canSwapSeat } from "@/utils/courtSeat";
+import { isSeatUnscored, canSwapSeat } from "@/utils/xkastKongelag/courtSeat";
 
 const seat = (
   totalsum_manuelt: boolean,

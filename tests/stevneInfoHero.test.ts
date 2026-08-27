@@ -29,11 +29,11 @@ vi.mock("@/services/pameldingService", () => ({
   getUnconfirmedCount: mocks.getUnconfirmedCount,
   getMyRegistrationForTournament: mocks.getMyRegistrationForTournament,
 }));
-vi.mock("@/components/PameldingKnapp", () => ({
+vi.mock("@/components/stevne/RegistrationButton", () => ({
   createRegistrationButton: mocks.createRegistrationButton,
 }));
 vi.mock("@/services/authService", () => ({ getUser: mocks.getUser }));
-vi.mock("@/components/ConfirmDialog", () => ({ confirmDialog: mocks.confirmDialog }));
+vi.mock("@/components/dialog/ConfirmDialog", () => ({ confirmDialog: mocks.confirmDialog }));
 vi.mock("@/components/Toast", () => ({ showToast: mocks.showToast }));
 
 import { render as renderInfo } from "@/pages/stevne/stevne-info";
@@ -151,6 +151,18 @@ describe("stevne-info hero", () => {
     expect(el.querySelector("#info-handling-knapper .pamelding-knapp")).not.toBeNull();
   });
 
+  it("spares an unlinked admin the koble-profil nudge beside Start stevne", async () => {
+    mocks.getUser.mockResolvedValue({
+      user: { id: "a1" },
+      profil: { role: "admin", kasterid: null, kobling_status: "ingen" },
+    });
+    const el = host();
+    await renderInfo(el, { id: 5, isAdmin: true });
+
+    expect(slot(el).querySelector("#start-stevne-btn")).not.toBeNull();
+    expect(el.querySelector('#info-handling-knapper a[href^="#/minside"]')).toBeNull();
+  });
+
   it("refuses to start Gloppen with more rundar than the field can pair, and says so before the click", async () => {
     mocks.getInfoTournament.mockResolvedValue({
       data: row({ antall_runder_innl: 7, kastemetodeInnl: { id: 1, navn: "Gloppen" } }),
@@ -199,7 +211,7 @@ describe("stevne-info hero", () => {
     await renderInfo(el, { id: 5 });
 
     const cta = slot(el).querySelector("a")!;
-    expect(cta.textContent).toBe("Logg inn");
+    expect(cta.textContent).toBe("Logg inn for å melde på");
     expect(cta.getAttribute("href")).toBe("#/logginn?redirect=%2Fstevne%2F5%2Finfo");
   });
 
@@ -209,7 +221,7 @@ describe("stevne-info hero", () => {
     await renderInfo(el, { id: 5 });
 
     const cta = slot(el).querySelector("a")!;
-    expect(cta.textContent).toBe("Koble profil");
+    expect(cta.textContent).toBe("Koble profil for å melde på");
     expect(cta.getAttribute("href")).toBe("#/minside/kampar");
   });
 

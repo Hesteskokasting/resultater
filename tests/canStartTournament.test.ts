@@ -1,4 +1,4 @@
-import { canStartTournament, type StartTournamentInput } from "@/utils/stevneStart";
+import { canStartTournament, type StartTournamentInput } from "@/utils/stevne/stevneStart";
 
 const base: StartTournamentInput = {
   hasInitialMethod: true,

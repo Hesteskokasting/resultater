@@ -1,0 +1,177 @@
+/* Rendered by admin/admin.ts, components/stevne/StevneCard.ts, pages/home.ts and 3 more. */
+
+/* ============================================================================
+   StevneCard — one reusable card for Forside / Terminliste / Påmeldingar.
+   The whole card is a single tap target: an empty, absolutely-positioned
+   .stevne-card__link stretches over the card (stretched-link pattern). Body
+   text sits below it so clicks fall through and navigate; an interactive
+   sibling (the registration button) is raised above it to receive its own
+   clicks — no nested <button> inside <a>, no click handlers on the card.
+   ========================================================================== */
+.stevne-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.stevne-card {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  min-height: 44px;
+  border: 1px solid var(--kant);
+  border-radius: 12px;
+  background: var(--flate);
+  overflow: hidden;
+}
+
+.stevne-card:hover {
+  background: var(--primaer-hover);
+}
+
+/* 3px inner colored stripe as the leftmost flex item (a single-sided border on
+   a rounded card looks off; overflow:hidden clips this child to the radius). */
+.stevne-card__stripe {
+  flex: 0 0 3px;
+  align-self: stretch;
+  background: var(--kant-2);
+}
+
+.stevne-card--live .stevne-card__stripe {
+  background: var(--live-prikk);
+}
+
+/* Empty stretched link: covers the whole card, sits above the body text
+   (z-index 1) so the entire card navigates, but below interactive siblings. */
+.stevne-card__link {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+}
+
+.stevne-card__link:focus-visible {
+  outline: 2px solid var(--primaer);
+  outline-offset: -2px;
+}
+
+.stevne-card__body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 0;
+}
+
+.stevne-card__title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stevne-card__title {
+  color: var(--tekst);
+  font-weight: 500;
+  font-size: 1rem;
+  overflow-wrap: anywhere;
+}
+
+.stevne-card__date {
+  color: var(--tekst-2);
+  font-size: 0.85rem;
+}
+
+.stevne-card__meta {
+  color: var(--tekst-2);
+  font-size: 0.8rem;
+}
+
+/* Stacked weekday/day date block (terminliste's mobile card) — a flex sibling
+   of .stevne-card__body, sitting between the stripe and the title/badge/meta column. */
+.stevne-card__datecol {
+  flex: 0 0 auto;
+  width: 42px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  padding: 12px 0;
+}
+
+.stevne-card__weekday {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--tekst-2);
+}
+
+.stevne-card__day {
+  font-size: 1.3rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--tekst);
+}
+
+/* Gold medal — the only NM indicator on the card. */
+.stevne-card__nm {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+/* Merged type+kategori pill — type (the <b>) reads heavier than kategori. */
+.stevne-card__type-badge {
+  align-self: flex-start;
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--flate-2);
+  color: var(--tekst-2);
+}
+
+.stevne-card__type-badge b {
+  color: var(--tekst);
+  font-weight: 700;
+}
+
+.stevne-card__nearest-badge {
+  align-self: flex-start;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--primaer);
+  color: var(--primaer-text);
+}
+
+.stevne-card__trailing {
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+}
+
+/* Trailing slot that hosts an interactive button (Meld på/av) must be raised
+   above the stretched link; the chevron variant stays below it so tapping the
+   chevron area still navigates. */
+.stevne-card__trailing--action {
+  position: relative;
+  z-index: 2;
+}
+
+/* Registration button (Meld på/av) hydrated into the action slot — keep a
+   44px minimum touch target regardless of Bootstrap's compact btn-sm. */
+.stevne-card__trailing--action .btn {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.stevne-card__chevron {
+  display: block;
+  color: var(--tekst-3);
+}

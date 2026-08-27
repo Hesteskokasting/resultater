@@ -11,7 +11,7 @@
 //   isSwiss                    — whether to offer "Generer neste runde" in the menu
 //   onReset?()                 — called on each render(); use to reset variant state
 //   bannerMeta(ctx)            — meta line beside the stevne name in the banner
-//   getMenuItems(ctx)          — extra banner-menu entries for this variant
+//   getMenuItems(ctx)          — extra stevne banner menu entries for this variant
 //   bindBannerExtra(slot, ctx) — binds click handlers for the entries above
 //   filterRounds?(roundMap)    — optionally filter which rounds to display; default: all
 //
@@ -19,9 +19,9 @@
 // an InnledendeVariant and exports `createInnledendeRenderer(variant)`.
 // See gloppen.ts (no-Swiss) and nordhordland.ts (Swiss) for examples.
 //
-import { showScoreEditor } from "@/components/ScoreEditor";
+import { showKampScoreEditor } from "@/components/numberpad/kampScoreEditor";
 import { showToast } from "@/components/Toast";
-import { getMatchSides, groupStandingsByPair, sideScore } from "@/utils/kamp";
+import { getMatchSides, groupStandingsByPair, sideScore } from "@/utils/kamp/kamp";
 import { applyFlashClasses, renderMatchLegend, renderRound } from "./innledendeView";
 import { autoCompleteInitialRoundMatches } from "@/services/testDataService";
 import {
@@ -39,9 +39,13 @@ import {
   bindAutoComplete,
   bindCompleteTournament,
 } from "../faseView";
-import { buildInitialPlayerMap, sortStandings, type StandingRow } from "@/utils/stilling";
-import { parseRound1Format } from "@/utils/kastemetoder-logikk";
-import { renderBannerMenu, bindBannerMenu, type BannerMenuItem } from "@/components/BannerMenu";
+import { buildInitialPlayerMap, sortStandings, type StandingRow } from "@/utils/kamp/standings";
+import { parseRound1Format } from "@/utils/kamp/cupStructure";
+import {
+  renderStevneBannerMenu,
+  bindStevneBannerMenu,
+  type StevneBannerMenuItem,
+} from "@/components/stevne/StevneBannerMenu";
 import { createErrorBanner, createLoadingState } from "@/components/states";
 import { errorMessage } from "@/utils/errorMessage";
 import { logError } from "@/utils/logError";
@@ -57,8 +61,8 @@ import {
   getInitialPhaseTournament,
   type InitialPhaseTournamentRow,
 } from "@/services/stevneService";
-import { unsubscribeChannel } from "@/utils/realtime";
-import { buildParticipantMaps } from "@/utils/participantMaps";
+import { unsubscribeChannel } from "@/utils/data/realtime";
+import { buildParticipantMaps } from "@/utils/stevne/participantMaps";
 import { groupBy } from "@/utils/groupBy";
 import { getResultsForInitialRound, type InitialResultRow } from "@/services/resultatService";
 import { createFlashTracker } from "@/utils/flashTracker";
@@ -88,7 +92,7 @@ export interface InnledendeVariant {
   onReset?: () => void;
   /** Secondary meta line beside the stevne name, e.g. "NHM - 2 av 5 rundar". */
   bannerMeta: (ctx: InnledendeContext) => string;
-  getMenuItems: (ctx: InnledendeContext) => BannerMenuItem[];
+  getMenuItems: (ctx: InnledendeContext) => StevneBannerMenuItem[];
   bindBannerExtra: (bannerSlot: HTMLElement, ctx: InnledendeContext) => void;
   filterRounds?: (roundMap: Map<number, InitialMatchRow[]>) => Map<number, InitialMatchRow[]>;
 }
@@ -221,7 +225,7 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
     // with no planned count are unbounded — neither gate applies to them.
     const plannedRounds = ctx.stevne.antall_runder_innl;
     const allRoundsGenerated = plannedRounds != null && ctx.roundMap.size >= plannedRounds;
-    bannerSlot.innerHTML = renderBannerMenu(
+    bannerSlot.innerHTML = renderStevneBannerMenu(
       isAdmin
         ? initialMenuItems(ctx.stevne, {
             erSwiss: variant.isSwiss,
@@ -231,7 +235,7 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
           })
         : extras,
     );
-    bindBannerMenu(bannerSlot);
+    bindStevneBannerMenu(bannerSlot);
     variant.bindBannerExtra(bannerSlot, ctx);
 
     bindCompleteTournament(bannerSlot, ctx.stevneid, () => ctx.standing, ctx.reload);
@@ -258,7 +262,7 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
     const playerIds = [...(side1?.members ?? []), ...(side2?.members ?? [])].map((m) => m.id);
 
     const onScoreClick = async () => {
-      await showScoreEditor({
+      await showKampScoreEditor({
         side1Name: sideNameHtml(side1, false),
         side2Name: sideNameHtml(side2, false),
         currentS1: sideScore(side1, kamp.er_bekreftet),

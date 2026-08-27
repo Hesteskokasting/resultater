@@ -1,7 +1,7 @@
 import { getUser } from "@/services/authService";
 import { linkedThrowerId } from "@/utils/kaster";
-import { confirmDialog } from "@/components/ConfirmDialog";
-import { formatDate, formatTime } from "@/utils/shared";
+import { confirmDialog } from "@/components/dialog/ConfirmDialog";
+import { formatDate, formatTime } from "@/utils/date";
 import { createErrorBanner, createLoadingState } from "@/components/states";
 import { showToast } from "@/components/Toast";
 import { escHtml } from "@/utils/escHtml";
@@ -9,7 +9,7 @@ import { errorMessage } from "@/utils/errorMessage";
 import { throwerName } from "@/utils/kaster";
 import { logError } from "@/utils/logError";
 import { setPageTitle } from "@/utils/pageTitle";
-import { registerRefetch } from "@/utils/refetchRegistry";
+import { registerRefetch } from "@/utils/data/refetchRegistry";
 import { getTournamentForRegistration, getRelatedTournaments } from "@/services/stevneService";
 import { getActiveThrowerList, getThrowersForClubs } from "@/services/kasterService";
 import {

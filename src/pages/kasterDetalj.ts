@@ -2,7 +2,8 @@ import type { Chart } from "chart.js";
 import { throwerName } from "@/utils/kaster";
 import { prependAdminLinkBar } from "@/components/AdminLinkBar";
 import { createErrorBanner, createLoadingState, createEmptyState } from "@/components/states";
-import { formatDate, formatPercent } from "@/utils/shared";
+import { formatDate } from "@/utils/date";
+import { formatPercent } from "@/utils/formatPercent";
 import { escHtml } from "@/utils/escHtml";
 import { logError } from "@/utils/logError";
 import { setPageTitle } from "@/utils/pageTitle";
@@ -17,8 +18,8 @@ import {
   nextResultSort,
   resultFilterOptions,
   filterResults,
-} from "@/utils/kasterDetaljLogikk";
-import type { MethodName, ResultSort, ResultSortColumn } from "@/utils/kasterDetaljLogikk";
+} from "@/pages/kasterDetaljLogic";
+import type { MethodName, ResultSort, ResultSortColumn } from "@/pages/kasterDetaljLogic";
 
 const filterDetail = {
   active: "resultater",

@@ -1,6 +1,6 @@
 import { createEl } from "@/utils/createEl";
 import { createEmptyState } from "@/components/states";
-import type { LabelCount } from "@/utils/adminStats";
+import type { LabelCount } from "@/admin/_adminStats";
 
 /**
  * Shared building blocks for the admin page. Everything here is built with DOM

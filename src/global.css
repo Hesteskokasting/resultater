@@ -131,11 +131,13 @@
 
   /* Safe-area insets. iOS resolves env() itself; on Android the Capacitor
      SystemBars plugin injects --safe-area-inset-* on <html> (0 when it has
-     already padded the WebView natively), so that wins where it is set. */
-  --sa-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
-  --sa-right: var(--safe-area-inset-right, env(safe-area-inset-right, 0px));
-  --sa-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
-  --sa-left: var(--safe-area-inset-left, env(safe-area-inset-left, 0px));
+     already padded the WebView natively). max() of the two, because a plain
+     var() fallback never fires once the injected 0 is set — which left the
+     header under the status bar on Android 14. */
+  --sa-top: max(var(--safe-area-inset-top, 0px), env(safe-area-inset-top, 0px));
+  --sa-right: max(var(--safe-area-inset-right, 0px), env(safe-area-inset-right, 0px));
+  --sa-bottom: max(var(--safe-area-inset-bottom, 0px), env(safe-area-inset-bottom, 0px));
+  --sa-left: max(var(--safe-area-inset-left, 0px), env(safe-area-inset-left, 0px));
 }
 
 [data-theme="light"] {

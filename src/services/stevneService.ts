@@ -1,8 +1,8 @@
 import type { QueryData } from "@supabase/supabase-js";
 import { supabase } from "@/supabase";
-import { todayIso } from "@/utils/shared";
+import { todayIso } from "@/utils/date";
 import { logError } from "@/utils/logError";
-import { verifyRowsAffected } from "@/utils/verifiedWrite";
+import { verifyRowsAffected } from "@/utils/data/verifiedWrite";
 import { generateInitialRoundMatches } from "@/services/kampGenereringInnledendeService";
 import { generateKongelagCourts } from "@/services/xkastKongelagService";
 import { writePlacements } from "@/services/resultatService";

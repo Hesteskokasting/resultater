@@ -1,5 +1,5 @@
-import { buildSingleList, buildTeamList, normalizeCupFilter } from "@/utils/norgescup";
-import type { ResultWithRelations, TournamentForNC } from "@/utils/norgescup";
+import { buildSingleList, buildTeamList, normalizeCupFilter } from "@/pages/norgescupenLogic";
+import type { ResultWithRelations, TournamentForNC } from "@/pages/norgescupenLogic";
 import type { Tables } from "@/types";
 
 type Regler = Tables<"antallTellendeNc">;

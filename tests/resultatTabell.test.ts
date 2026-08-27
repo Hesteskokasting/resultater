@@ -9,8 +9,8 @@ import {
   resultatKolonnar,
   resultatListeHtml,
   resultatTabellHtml,
-} from "@/components/ResultatTabell";
-import type { ResultatRad } from "@/components/ResultatTabell";
+} from "@/components/resultat/ResultatTabell";
+import type { ResultatRad } from "@/components/resultat/ResultatTabell";
 
 function rad(over: Partial<ResultatRad> = {}): ResultatRad {
   return {

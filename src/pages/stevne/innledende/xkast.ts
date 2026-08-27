@@ -1,5 +1,8 @@
 import { getXkastConfig, type CourtRow } from "@/services/xkastKongelagService";
-import type { OmgangPadHeader, OmgangPadSummary } from "@/components/OmgangNumberpad";
+import type {
+  XkastKongelagPadHeader,
+  XkastKongelagSummary,
+} from "@/components/numberpad/XkastKongelagNumberpad";
 import {
   createCourtPhaseRenderer,
   sortedParticipants,
@@ -24,7 +27,7 @@ function rundeOmganger(runde: number, antallOmganger: number): number[] {
 function padSummary(
   participant: CourtRow["deltakarar"][number],
   antallOmganger: number,
-): OmgangPadSummary {
+): XkastKongelagSummary {
   return {
     rows: Array.from({ length: totalRunder(antallOmganger) }, (_, i) => {
       const omganger = rundeOmganger(i + 1, antallOmganger);
@@ -48,7 +51,7 @@ function padHeader(
   participant: CourtRow["deltakarar"][number],
   omgang: number,
   antallOmganger: number,
-): OmgangPadHeader {
+): XkastKongelagPadHeader {
   const runde = Math.ceil(omgang / OMGANGER_PER_RUNDE);
   const from = (runde - 1) * OMGANGER_PER_RUNDE + 1;
   const omganger = rundeOmganger(runde, antallOmganger);

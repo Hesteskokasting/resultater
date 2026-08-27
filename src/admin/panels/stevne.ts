@@ -7,14 +7,14 @@ import {
   formatTime,
   formatWeekdayShort,
   todayIso,
-} from "@/utils/shared";
+} from "@/utils/date";
 import {
   countBy,
   countTournamentsPerMonth,
   isOngoing,
   summarizeTournamentYear,
   tournamentStatusShare,
-} from "@/utils/adminEntityStats";
+} from "@/admin/_adminEntityStats";
 import { getScheduleTournaments } from "@/services/stevneService";
 import type { ScheduleTournamentRow } from "@/services/stevneService";
 import { getRegistrationCountsForTournaments } from "@/services/adminStatsService";

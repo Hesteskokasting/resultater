@@ -3,7 +3,7 @@ import { showToast } from "@/components/Toast";
 import { errorMessage } from "@/utils/errorMessage";
 import { getInitialRoundMatches } from "@/services/kampService";
 import { getResultsForInitialRound } from "@/services/resultatService";
-import { buildParticipantMaps } from "@/utils/participantMaps";
+import { buildParticipantMaps } from "@/utils/stevne/participantMaps";
 import { groupBy } from "@/utils/groupBy";
 import { getPairsForTournament } from "@/services/pameldingService";
 import type { RegistrationPair } from "@/services/pameldingService";

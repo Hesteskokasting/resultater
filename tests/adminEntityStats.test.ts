@@ -7,7 +7,7 @@ import {
   summarizeThrowers,
   summarizeTournamentYear,
   tournamentStatusShare,
-} from "@/utils/adminEntityStats";
+} from "@/admin/_adminEntityStats";
 
 const YEAR = 2026;
 

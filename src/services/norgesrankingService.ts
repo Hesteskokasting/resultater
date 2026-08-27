@@ -1,7 +1,7 @@
 import type { QueryData } from "@supabase/supabase-js";
 import { supabase } from "@/supabase";
 import { logError } from "@/utils/logError";
-import { yearCache } from "@/utils/yearCache";
+import { yearCache } from "@/utils/data/yearCache";
 
 const _rankingStevneQuery = supabase
   .from("stevne")

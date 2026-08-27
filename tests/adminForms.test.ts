@@ -39,7 +39,7 @@ vi.mock("@/services/authService", () => ({
   isAdmin: mocks.isAdmin,
   isClubAdmin: mocks.isClubAdmin,
 }));
-vi.mock("@/components/ConfirmDialog", () => ({ confirmDialog: mocks.confirmDialog }));
+vi.mock("@/components/dialog/ConfirmDialog", () => ({ confirmDialog: mocks.confirmDialog }));
 
 import { mountClubForm } from "@/admin/forms/klubbForm";
 import { mountThrowerForm } from "@/admin/forms/kasterForm";

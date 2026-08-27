@@ -4,7 +4,7 @@ import { logError } from "@/utils/logError";
 import { createErrorBanner, createLoadingState } from "@/components/states";
 import { escHtml } from "@/utils/escHtml";
 import { errorMessage } from "@/utils/errorMessage";
-import { renderScoreboard, type ScoreboardOptions } from "@/components/Scoreboard";
+import { renderScoreboard, type ScoreboardOptions } from "@/components/scoreboard/Scoreboard";
 import {
   getMatch,
   getMatchResultInfo,
@@ -15,9 +15,9 @@ import {
   toConfirmSide,
   subscribeToNextMatch,
 } from "@/services/kampService";
-import { getAllMatchSides, type MatchSide } from "@/utils/kamp";
+import { getAllMatchSides, type MatchSide } from "@/utils/kamp/kamp";
 import { throwerNameShort } from "@/utils/kaster";
-import { unsubscribeChannel } from "@/utils/realtime";
+import { unsubscribeChannel } from "@/utils/data/realtime";
 import { setPageTitle } from "@/utils/pageTitle";
 import { onNavigateAway } from "@/utils/navigation";
 import type { MatchRow, MatchPlayerInMatch } from "@/services/kampService";

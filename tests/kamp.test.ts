@@ -1,11 +1,12 @@
 import {
   calcMatchPoints,
+  getOmgangStarterIndex,
   scoreForPlayer,
   matchScoreForPlayer,
   sideScore,
   ringsForPlayer,
   calcRingCount,
-} from "@/utils/kamp";
+} from "@/utils/kamp/kamp";
 
 describe("calcMatchPoints", () => {
   describe("tie", () => {
@@ -198,5 +199,30 @@ describe("calcRingCount", () => {
 
   it("returns 0 rings for score 0", () => {
     expect(calcRingCount(0)).toBe(0);
+  });
+});
+
+describe("getOmgangStarterIndex", () => {
+  it("rotates every 2 omgangar while all sides are active", () => {
+    const starters = [1, 2, 3, 4, 5, 6, 7].map((o) => getOmgangStarterIndex(o, 3));
+    expect(starters).toEqual([0, 0, 1, 1, 2, 2, 0]);
+  });
+
+  it("skips a side that finished, so the two left keep alternating", () => {
+    // side 0 finished at omgang 4; sides 1 and 2 then alternate, 0 never gets it back
+    const finished = [4, null, null];
+    expect(getOmgangStarterIndex(5, 3, finished)).toBe(2);
+    expect(getOmgangStarterIndex(6, 3, finished)).toBe(2);
+    expect(getOmgangStarterIndex(7, 3, finished)).toBe(1);
+    expect(getOmgangStarterIndex(9, 3, finished)).toBe(2);
+  });
+
+  it("moves the turn off a side that finished mid-block", () => {
+    // side 1 owns omgang 3-4 but finished at omgang 3
+    expect(getOmgangStarterIndex(4, 3, [null, 3, null])).toBe(2);
+  });
+
+  it("keeps the plain rotation for 2 sides", () => {
+    expect([1, 2, 3, 4, 5].map((o) => getOmgangStarterIndex(o, 2))).toEqual([0, 0, 1, 1, 0]);
   });
 });

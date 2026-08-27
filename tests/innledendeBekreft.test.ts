@@ -13,7 +13,7 @@ const mocks = vi.hoisted(() => ({
   confirmMatch: vi.fn(),
   unconfirmMatch: vi.fn(),
   subscribeToMatchChanges: vi.fn(),
-  showScoreEditor: vi.fn(),
+  showKampScoreEditor: vi.fn(),
   deleteMatchRounds: vi.fn(),
 }));
 
@@ -32,9 +32,11 @@ vi.mock("@/services/stevneService", () => ({
 vi.mock("@/services/resultatService", () => ({
   getResultsForInitialRound: mocks.getResultsForInitialRound,
 }));
-vi.mock("@/components/ScoreEditor", () => ({ showScoreEditor: mocks.showScoreEditor }));
+vi.mock("@/components/numberpad/kampScoreEditor", () => ({
+  showKampScoreEditor: mocks.showKampScoreEditor,
+}));
 vi.mock("@/services/testDataService", () => ({ autoCompleteInitialRoundMatches: vi.fn() }));
-vi.mock("@/utils/realtime", () => ({ unsubscribeChannel: vi.fn() }));
+vi.mock("@/utils/data/realtime", () => ({ unsubscribeChannel: vi.fn() }));
 vi.mock("@/components/Toast", () => ({ showToast: vi.fn() }));
 vi.mock("@/utils/logError", () => ({ logError: vi.fn() }));
 
@@ -93,7 +95,7 @@ const container = () => document.querySelector<HTMLElement>("#app")!;
 
 /** The options the score editor was last opened with. */
 function lastEditorOptions() {
-  const { calls } = mocks.showScoreEditor.mock;
+  const { calls } = mocks.showKampScoreEditor.mock;
   return calls[calls.length - 1]?.[0];
 }
 
@@ -110,7 +112,7 @@ async function enterScores(s1: number, s2: number): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, 0));
 
   const opts = lastEditorOptions();
-  expect(opts, "showScoreEditor options").toBeDefined();
+  expect(opts, "showKampScoreEditor options").toBeDefined();
   await opts.onSaved(s1, s2);
 }
 

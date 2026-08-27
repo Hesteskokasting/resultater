@@ -1,5 +1,5 @@
 import { createErrorBanner } from "@/components/states";
-import { todayIso } from "@/utils/shared";
+import { todayIso } from "@/utils/date";
 import { createEl } from "@/utils/createEl";
 import { logError } from "@/utils/logError";
 import {
@@ -8,8 +8,8 @@ import {
   countTournamentsPerYear,
   countUsersByRole,
   summarizeTournaments,
-} from "@/utils/adminStats";
-import type { TournamentStatRow } from "@/utils/adminStats";
+} from "@/admin/_adminStats";
+import type { TournamentStatRow } from "@/admin/_adminStats";
 import { getAllUsers } from "@/services/adminService";
 import {
   getAdminEntityCounts,

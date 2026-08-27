@@ -1,4 +1,4 @@
-import { mergeSncUmbrellas, collectSncParentIds } from "@/utils/sncUmbrella";
+import { mergeSncUmbrellas, collectSncParentIds } from "@/utils/stevne/sncUmbrella";
 
 function stevne(id: number, dato: string, extra: Record<string, unknown> = {}) {
   return { id, dato, erfullfort: false, snc_hovudstevne_id: null, ...extra };

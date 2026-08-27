@@ -1,0 +1,9 @@
+/* Rendered by components/resultat/ResultatPrint.ts. */
+
+/* ── Print: the result page as a standalone sheet ─────────────────────────────
+   The screen keeps the app chrome and the mobile cards; paper gets a title, the
+   stevneinfo and the desktop table, on white regardless of the active theme. */
+
+.res-print-blokk {
+  display: none;
+}

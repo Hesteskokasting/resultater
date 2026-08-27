@@ -3,7 +3,7 @@ import { createErrorBanner, createLoadingState } from "@/components/states";
 import { createLogoutButton } from "@/components/LogoutButton";
 import { escHtml } from "@/utils/escHtml";
 import { logError } from "@/utils/logError";
-import { registerRefetch } from "@/utils/refetchRegistry";
+import { registerRefetch } from "@/utils/data/refetchRegistry";
 import { render as renderMatches } from "./minside/minside-kampar";
 import { render as renderRegistrations } from "./minside/minside-pameldingar";
 import { render as renderSettings } from "./minside/minside-innstillingar";

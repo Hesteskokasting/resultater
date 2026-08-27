@@ -1,11 +1,19 @@
 import { Capacitor } from "@capacitor/core";
-import { formatDate, yearOptions, downloadExcel, formatPercent } from "@/utils/shared";
+import { formatDateCompact } from "@/utils/date";
+import { formatPercent } from "@/utils/formatPercent";
+import { downloadExcel } from "@/utils/excel";
+import { yearOptions } from "@/utils/dropdown";
 import { createExcelButton } from "@/components/ExcelButton";
 import { createErrorBanner, createLoadingState, createEmptyState } from "@/components/states";
 import { createInfoTooltip } from "@/components/InfoTooltip";
-import { bindRankingDetails, detailTableHtml, rankingListHtml } from "@/components/RankingList";
+import {
+  bindRankingDetails,
+  detailTableHtml,
+  rankingListHtml,
+} from "@/components/resultat/RankingList";
 import { createSearchInput } from "@/components/SearchInput";
 import { logError } from "@/utils/logError";
+import { truncate } from "@/utils/truncate";
 import { loadRankingYear, clearRankingYearCache } from "@/services/norgesrankingService";
 import type { RankingYear } from "@/services/norgesrankingService";
 import {
@@ -13,10 +21,13 @@ import {
   buildEventsMap,
   buildRankingList,
   filterRanking,
-} from "@/utils/norgesrankingLogikk";
-import type { RingInfo, RankingItem } from "@/utils/norgesrankingLogikk";
+} from "@/pages/norgesrankingLogic";
+import type { RingInfo, RankingItem } from "@/pages/norgesrankingLogic";
 
 const FIRST_YEAR = 2018;
+
+/** Stevne names run long; the full name stays on the cell as a title. */
+const STEVNE_NAME_MAX = 15;
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
@@ -45,7 +56,7 @@ async function exportExcel(): Promise<void> {
     Kaster: k.navn,
     Klubb: k.klubb,
     "Snitt %": k.snittProsent,
-    "Antal stevner": k.antallStevner,
+    "Antal rundar": k.antallStevner,
   }));
   await downloadExcel(rows, `norgesranking-${filter.year}.xlsx`, "Norgesranking");
 }
@@ -63,17 +74,27 @@ const INFO_HTML = `
     Resultat utan plassering er ikkje gyldige enno (mindre enn ${MIN_STEVNER} rundar).
   </p>`;
 
+/** Only the counting rounds: detaljRader is sorted desc, so the top MIN_STEVNER
+ *  are exactly the ones the average is built from. */
 function detailHtml(item: RankingItem): string {
   return detailTableHtml<RingInfo>(
     [
-      { label: "Dato", value: (r) => formatDate(r._stevne?.dato) },
+      {
+        label: "Dato",
+        cellClass: "rank-detalj-nowrap",
+        value: (r) => formatDateCompact(r._stevne?.dato),
+      },
       { label: "Type", value: (r) => r._stevne?.typeNamn ?? "–" },
-      { label: "Stevne", value: (r) => r._stevne?.navn ?? "–" },
+      {
+        label: "Stevne",
+        value: (r) => truncate(r._stevne?.navn ?? "–", STEVNE_NAME_MAX),
+        title: (r) => r._stevne?.navn ?? "",
+      },
       { label: "Metode", value: (r) => r.metodeNamn },
       { label: "Ring", cellClass: "res-tal", value: (r) => String(r.antallRing) },
       { label: "%Ring", cellClass: "res-tal", value: (r) => formatPercent(r.prosent) },
     ],
-    item.detaljRader,
+    item.detaljRader.slice(0, MIN_STEVNER),
   );
 }
 
@@ -86,14 +107,6 @@ function listHtml(list: RankingItem[]): string | null {
     placement: (item) => (item.erGyldig ? String(item.plassering ?? "–") : "–"),
     name: (item) => item.navn,
     club: (item) => item.klubb,
-    meta: (item) => `${item.antallStevner} ${item.antallStevner === 1 ? "stevne" : "stevner"}`,
-    columns: [
-      {
-        label: "STEVNER",
-        cellClass: "res-tal res-tal--dempa",
-        value: (item) => String(item.antallStevner),
-      },
-    ],
     mainLabel: "%SNITT",
     main: (item) => formatPercent(item.snittProsent),
     detail: detailHtml,

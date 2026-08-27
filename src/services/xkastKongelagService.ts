@@ -3,8 +3,11 @@ import { supabase } from "@/supabase";
 import { logError } from "@/utils/logError";
 import { getKongelagSeedingRows } from "@/services/resultatService";
 import { getEnrolledPlayers } from "@/services/pameldingService";
-import { orderKongelagSeeding, buildKongelagCourts } from "@/utils/kongelagSeeding";
-import { calcCarryOverByKasterid, xkastCarryOverPercent } from "@/utils/kongelagStilling";
+import { orderKongelagSeeding, buildKongelagCourts } from "@/utils/xkastKongelag/kongelagSeeding";
+import {
+  calcCarryOverByKasterid,
+  xkastCarryOverPercent,
+} from "@/utils/xkastKongelag/kongelagStandings";
 import { isXkastMethodName } from "@/utils/kastemetode";
 
 // ── Court reads ───────────────────────────────────────────────────────────────

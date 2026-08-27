@@ -1,7 +1,7 @@
 import type { QueryData } from "@supabase/supabase-js";
 import { supabase } from "@/supabase";
 import { logError } from "@/utils/logError";
-import { fetchAllRows } from "@/utils/fetchAllRows";
+import { fetchAllRows } from "@/utils/data/fetchAllRows";
 
 // ── Typar ─────────────────────────────────────────────────────────────────────
 

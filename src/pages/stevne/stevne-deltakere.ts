@@ -18,10 +18,10 @@ import type { AvailableColumnHandle } from "@/pages/stevne/_deltakereColumns";
 import { createTabs } from "@/components/Tabs";
 import { createPairTab } from "@/pages/stevne/parTab";
 import { createNewPlayerForm } from "@/pages/stevne/_nySpelarForm";
-import { buildRegistrationLookup } from "@/utils/registrationLookup";
-import { unsubscribeChannel } from "@/utils/realtime";
+import { buildRegistrationLookup } from "@/utils/stevne/registrationLookup";
+import { unsubscribeChannel } from "@/utils/data/realtime";
 import { onNavigateAway } from "@/utils/navigation";
-import { registerRefetch } from "@/utils/refetchRegistry";
+import { registerRefetch } from "@/utils/data/refetchRegistry";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

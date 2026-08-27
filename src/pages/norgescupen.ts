@@ -6,18 +6,27 @@ import {
   buildTeamList,
   normalizeCupFilter,
   FIRST_MULTI_CUP_YEAR,
-} from "@/utils/norgescup";
+} from "@/pages/norgescupenLogic";
 import { loadCupYear, clearCupYearCache } from "@/services/norgescupService";
-import { formatDate, yearOptions } from "@/utils/shared";
+import { formatDateCompact } from "@/utils/date";
+import { yearOptions } from "@/utils/dropdown";
 import { createErrorBanner, createLoadingState, createEmptyState } from "@/components/states";
 import { createInfoTooltip } from "@/components/InfoTooltip";
-import { bindRankingDetails, detailTableHtml, rankingListHtml } from "@/components/RankingList";
+import {
+  bindRankingDetails,
+  detailTableHtml,
+  rankingListHtml,
+} from "@/components/resultat/RankingList";
 import type { Tables } from "@/types";
 import type { CupYear } from "@/services/norgescupService";
-import type { SingleListRow, TeamListRow, CupFilter } from "@/utils/norgescup";
+import type { SingleListRow, TeamListRow, CupFilter } from "@/pages/norgescupenLogic";
 import { escHtml } from "@/utils/escHtml";
+import { truncate } from "@/utils/truncate";
 
 const FIRST_YEAR = 2007;
+
+/** Stevne names run long; the full name stays on the cell as a title. */
+const STEVNE_NAME_MAX = 15;
 
 interface Filter extends CupFilter {
   classNum: number;
@@ -88,10 +97,22 @@ function singleListHtml(list: SingleListRow[]): string {
     detail: (item) =>
       detailTableHtml(
         [
-          { label: "Dato", value: (r) => formatDate(r._stevne?.dato) },
+          {
+            label: "Dato",
+            cellClass: "rank-detalj-nowrap",
+            value: (r) => formatDateCompact(r._stevne?.dato),
+          },
           { label: "Type", value: (r) => r._stevne?.typeNavn ?? "–" },
-          { label: "Stevne", value: (r) => r._stevne?.navn ?? "–" },
-          { label: "Pl.", cellClass: "res-tal", value: (r) => String(r.plassering ?? "–") },
+          {
+            label: "Stevne",
+            value: (r) => truncate(r._stevne?.navn ?? "–", STEVNE_NAME_MAX),
+            title: (r) => r._stevne?.navn ?? "",
+          },
+          {
+            label: "Pl.",
+            cellClass: "res-tal",
+            value: (r) => String(r.snc_plassering ?? r.plassering ?? "–"),
+          },
           { label: "Poeng", cellClass: "res-tal", value: (r) => formaterPoeng(r.nc_poeng) },
         ],
         item.detaljRader,

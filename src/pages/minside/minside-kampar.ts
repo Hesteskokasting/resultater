@@ -4,9 +4,9 @@ import { createTabs } from "@/components/Tabs";
 import { getMyMatches, getStartNumbersForTournaments } from "@/services/kampService";
 import { getMyCourts } from "@/services/xkastKongelagService";
 import { newTabAnchorAttrs } from "@/services/navigationService";
-import { scoreboardLinkHtml } from "@/components/ScoreboardButton";
+import { scoreboardLinkHtml } from "@/components/scoreboard/ScoreboardButton";
 import { groupBy } from "@/utils/groupBy";
-import { isByeSide, matchOutcome, matchSides } from "@/utils/myMatches";
+import { isByeSide, matchOutcome, matchSides } from "@/utils/kamp/myMatches";
 import { renderSectionCard } from "./_sectionCard";
 import type { MinSideContext } from "./_linkState";
 import type { MatchPlayerRow } from "@/services/kampService";
@@ -101,12 +101,23 @@ function ringsHtml(rings: number | null | undefined): string {
   return `<span class="match-grid__rings" title="Ringar">${rings}</span>`;
 }
 
+/**
+ * One name per line — a slash-joined run wraps mid-name on a phone. Each side
+ * keeps its own group, so a pair reads as a pair and a rule separates it from
+ * the next side.
+ */
 function namesHtml(sides: IdentifiedPlayer[][]): string {
-  const names = sides
-    .flat()
-    .map((m) => escHtml(throwerName(m.kaster)))
+  const groups = sides
+    .map((side) =>
+      side
+        .map((m) => escHtml(throwerName(m.kaster)))
+        .filter(Boolean)
+        .map((n) => `<span class="match-grid__name-line">${n}</span>`)
+        .join(""),
+    )
     .filter(Boolean);
-  return names.length ? names.join(" / ") : "–";
+  if (!groups.length) return "–";
+  return groups.map((g) => `<span class="match-grid__side">${g}</span>`).join("");
 }
 
 // ── Matches ───────────────────────────────────────────────────────────────────
@@ -206,9 +217,10 @@ async function buildMatchesContent(throwerId: number): Promise<HTMLElement> {
     };
   };
 
+  // "R / B" reads as nothing on its own, so the label is for screen readers only.
   const matchGridHtml = (group: MatchPlayerRow[]): string =>
     gridHtml(
-      ["R / B", "Motstandar", "Resultat", ""],
+      ['<span class="visually-hidden">Runde og bane</span>', "Motstandar", "Resultat", ""],
       group.map((ks) => matchRow(ks)),
     );
 
@@ -288,7 +300,12 @@ async function buildMatchesContent(throwerId: number): Promise<HTMLElement> {
         (group) => `
       <p class="match-grid__stevne">${escHtml(`${group[0]?.stevne?.navn ?? ""} – X-kast`)}</p>
       ${gridHtml(
-        ["Bane", "Medspelarar", "Poeng", "R"],
+        [
+          '<span class="visually-hidden">Bane</span>',
+          "Medspelarar",
+          "Poeng",
+          '<span class="visually-hidden">Ringar</span>',
+        ],
         group.map((c) => courtRow(c)),
       )}`,
       )
