@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   getAllClubsForAdmin: vi.fn(),
   getThrowerAdminList: vi.fn(),
   getThrowersById: vi.fn(),
+  getAllThrowerList: vi.fn(),
   getRegistrationCountsForTournaments: vi.fn(),
   getAllUsers: vi.fn(),
   getUserEmails: vi.fn(),
@@ -41,6 +42,7 @@ vi.mock("@/services/klubbService", () => ({
 vi.mock("@/services/kasterService", () => ({
   getThrowerAdminList: mocks.getThrowerAdminList,
   getThrowersById: mocks.getThrowersById,
+  getAllThrowerList: mocks.getAllThrowerList,
 }));
 vi.mock("@/services/adminStatsService", () => ({
   getRegistrationCountsForTournaments: mocks.getRegistrationCountsForTournaments,
@@ -78,6 +80,7 @@ const {
   getAllClubsForAdmin,
   getThrowerAdminList,
   getThrowersById,
+  getAllThrowerList,
   getRegistrationCountsForTournaments,
   getAllUsers,
   getUserEmails,
@@ -549,7 +552,11 @@ describe("brukarar panel", () => {
   ];
 
   beforeEach(() => {
-    getAllUsers.mockResolvedValue({ data: users, error: null });
+    // The panel writes the saved role back onto the row object, so hand out a
+    // fresh copy per render instead of leaking it into the next test.
+    getAllUsers.mockImplementation(() =>
+      Promise.resolve({ data: users.map((u) => ({ ...u })), error: null }),
+    );
     getUserEmails.mockResolvedValue({
       data: [
         { id: "u1", epost: "ola@example.com" },
@@ -562,6 +569,63 @@ describe("brukarar panel", () => {
       error: null,
     });
     updateUserRole.mockResolvedValue({ error: null });
+    updateLinkStatus.mockResolvedValue({ error: null });
+    getAllThrowerList.mockResolvedValue({
+      data: [
+        { id: 5, fornavn: "Ola", etternavn: "Nordmann", eraktiv: true, klubb: { navn: "Oslo HK" } },
+        { id: 9, fornavn: "Kari", etternavn: "Ås", eraktiv: true, klubb: { navn: "Oslo HK" } },
+      ],
+      error: null,
+    });
+  });
+
+  /** The row's thrower picker: type a query and click the offered row. */
+  function pickThrower(el: HTMLElement, index: number, query: string, id: string): void {
+    const row = [...el.querySelectorAll<HTMLElement>(".admin-row")][index]!;
+    const input = row.querySelector<HTMLInputElement>(".search-select input[type=text]")!;
+    input.value = query;
+    input.dispatchEvent(new Event("input"));
+    row
+      .querySelector<HTMLElement>(`.search-select [data-id="${id}"]`)!
+      .dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+  }
+
+  it("shows the current link in the row picker and links a free thrower", async () => {
+    const el = host();
+    await renderUsers(el);
+    choose(selectByLabel(el, "Filtrer på rolle"), "alle");
+
+    const inputs = [...el.querySelectorAll<HTMLInputElement>(".search-select input[type=text]")];
+    expect(inputs[0]!.value).toBe("Nordmann Ola");
+    expect(inputs[1]!.value).toBe("");
+
+    // Thrower 5 belongs to the first user, so the second row is not offered it.
+    pickThrower(el, 1, "a", "9");
+    clickAction(el, 1, "Lagre");
+    await vi.waitFor(() => expect(updateLinkStatus).toHaveBeenCalledWith("u2", 9, "godkjent"));
+  });
+
+  it("removes an existing link from the row", async () => {
+    const el = host();
+    await renderUsers(el);
+    choose(selectByLabel(el, "Filtrer på rolle"), "alle");
+
+    pickThrower(el, 0, "fjern", "");
+    clickAction(el, 0, "Lagre");
+    await vi.waitFor(() => expect(updateLinkStatus).toHaveBeenCalledWith("u1", null, "ingen"));
+  });
+
+  it("leaves the link alone when only the role changed", async () => {
+    const el = host();
+    await renderUsers(el);
+    choose(selectByLabel(el, "Filtrer på rolle"), "alle");
+
+    const row = el.querySelector<HTMLElement>(".admin-row")!;
+    const select = row.querySelector<HTMLSelectElement>("select")!;
+    select.value = "admin";
+    clickAction(el, 0, "Lagre");
+    await vi.waitFor(() => expect(updateUserRole).toHaveBeenCalledWith("u1", "admin"));
+    expect(updateLinkStatus).not.toHaveBeenCalled();
   });
 
   it("preselects each user's current role and saves a change", async () => {
@@ -653,6 +717,8 @@ describe("brukarar panel", () => {
     // (same as the public thrower list) — clear the previous test's role filter.
     choose(selectByLabel(el, "Filtrer på rolle"), "alle");
 
+    // Saving only writes what changed, so the role has to differ to hit the RPC.
+    el.querySelector<HTMLSelectElement>(".admin-row select")!.value = "admin";
     el.querySelector<HTMLButtonElement>(".admin-row__actions button")!.click();
     await vi.waitFor(() => {
       expect(el.querySelector(".alert-danger")?.classList.contains("d-none")).toBe(false);

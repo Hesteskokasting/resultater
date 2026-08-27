@@ -110,4 +110,12 @@
   .admin-row__control .admin-select {
     width: 100%;
   }
+
+  .admin-row__controls {
+    flex-wrap: wrap;
+  }
+
+  .admin-row__controls .search-select {
+    flex: 1 1 100%;
+  }
 }

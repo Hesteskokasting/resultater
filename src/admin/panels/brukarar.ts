@@ -1,12 +1,14 @@
 import { confirmDialog } from "@/components/dialog/ConfirmDialog";
 import { createErrorBanner, createLoadingState, createEmptyState } from "@/components/states";
 import { createSearchInput } from "@/components/SearchInput";
+import { createSearchSelect } from "@/components/SearchSelect";
 import { showToast } from "@/components/Toast";
 import { createEl } from "@/utils/createEl";
 import { errorMessage } from "@/utils/errorMessage";
 import { formatDate } from "@/utils/date";
-import { throwerName } from "@/utils/kaster";
-import { getAllUsers, updateUserRole } from "@/services/adminService";
+import { throwerName, throwerNameLastFirst } from "@/utils/kaster";
+import { getAllUsers, updateLinkStatus, updateUserRole } from "@/services/adminService";
+import { getAllThrowerList } from "@/services/kasterService";
 import { deleteUserAccount } from "@/services/accountService";
 import { getUser } from "@/services/authService";
 import {
@@ -39,9 +41,16 @@ const filter = { searchText: "", role: "alle" };
 export async function render(el: HTMLElement): Promise<void> {
   el.replaceChildren(createLoadingState("Laster brukarar…"));
 
-  const [{ data, error }, auth] = await Promise.all([getAllUsers(), getUser()]);
-  if (error) {
-    el.replaceChildren(createErrorBanner(errorMessage(error)));
+  const [{ data, error }, auth, { data: throwers, error: throwerError }] = await Promise.all([
+    getAllUsers(),
+    getUser(),
+    getAllThrowerList(),
+  ]);
+  // Without the register the row pickers would render blank next to a link that
+  // is actually set, so a failure here stops the panel rather than misreporting.
+  const loadError = error ?? throwerError;
+  if (loadError) {
+    el.replaceChildren(createErrorBanner(errorMessage(loadError)));
     return;
   }
   if (!data.length) {
@@ -50,6 +59,12 @@ export async function render(el: HTMLElement): Promise<void> {
   }
 
   const ownId = auth?.user.id ?? null;
+
+  const throwerOptions = throwers.map((k) => ({
+    id: k.id,
+    label: throwerNameLastFirst(k) + (k.eraktiv ? "" : " (inaktiv)"),
+    sublabel: k.klubb?.navn ?? null,
+  }));
 
   const { emailMap, throwerMap } = await loadUserLookups(
     data.map((r) => r.id),
@@ -125,6 +140,21 @@ export async function render(el: HTMLElement): Promise<void> {
       user.rolle,
     );
 
+    // Throwers already spoken for are left out: the database does not stop two
+    // profiles claiming the same one, so the picker is the only guard.
+    const taken = new Set(
+      data.filter((u) => u.id !== user.id).map((u) => u.kasterid ?? u.kobling_kasterid),
+    );
+    const picker = createSearchSelect({
+      items: throwerOptions.filter((k) => !taken.has(k.id)),
+      value: linkedId,
+      placeholder: "Ingen utøvarkobling",
+      clearLabel: "Fjern kobling",
+    });
+
+    const controls = createEl("div", null, "admin-row__controls");
+    controls.append(select, picker.el);
+
     const badges = [LINK_BADGE[status] ?? { text: status, tone: "muted" as const }];
     if (isSelf) badges.push({ text: "Deg", tone: "ok" });
 
@@ -135,7 +165,7 @@ export async function render(el: HTMLElement): Promise<void> {
         user.opprettet_at ? `Registrert ${formatDate(user.opprettet_at.slice(0, 10))}` : null,
       ],
       badges,
-      control: select,
+      control: controls,
       actions: [
         {
           label: "Lagre",
@@ -143,13 +173,34 @@ export async function render(el: HTMLElement): Promise<void> {
           onClick: (button) => {
             void (async () => {
               alert.hide();
-              const { error: writeError } = await updateUserRole(user.id, select.value);
-              if (writeError) {
-                alert.show(errorMessage(writeError));
+              if (select.value !== user.rolle) {
+                const { error: roleError } = await updateUserRole(user.id, select.value);
+                if (roleError) {
+                  alert.show(errorMessage(roleError));
+                  return;
+                }
+                user.rolle = select.value;
+              }
+
+              const picked = picker.getValue();
+              if (picked === linkedId) {
+                flashSaved(button, "Lagre");
                 return;
               }
-              user.rolle = select.value;
-              flashSaved(button, "Lagre");
+              // An approved link is written straight away — no request queue —
+              // and clearing it puts the profile back to unlinked.
+              const { error: linkError } = await updateLinkStatus(
+                user.id,
+                picked,
+                picked == null ? "ingen" : "godkjent",
+              );
+              if (linkError) {
+                alert.show(errorMessage(linkError));
+                return;
+              }
+              // The badge and the meta line both name the old link; re-render
+              // rather than patch them one by one.
+              await render(el);
             })();
           },
         },
