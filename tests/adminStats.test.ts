@@ -2,7 +2,7 @@ import {
   countRegistrationsPerMonth,
   countThrowersPerClub,
   countTournamentsPerYear,
-  countParticipantsPerYear,
+  participantsPerYearSeries,
   summarizeTournaments,
 } from "@/admin/_adminStats";
 import { monthOf, yearOf } from "@/utils/date";
@@ -83,18 +83,16 @@ describe("countThrowersPerClub", () => {
   });
 });
 
-describe("countParticipantsPerYear", () => {
-  it("counts distinct throwers per year and pads empty years", () => {
+describe("participantsPerYearSeries", () => {
+  it("pads years the RPC returned nothing for and keeps the window in order", () => {
     const rows = [
-      { kasterid: 1, stevne: { dato: "2026-01-05" } },
-      { kasterid: 1, stevne: { dato: "2026-07-20" } },
-      { kasterid: 2, stevne: { dato: "2026-07-20" } },
-      { kasterid: null, stevne: { dato: "2026-07-20" } },
-      { kasterid: 3, stevne: null },
+      { ar: 2026, deltakarar: 131 },
+      { ar: 2024, deltakarar: 138 },
     ];
-    expect(countParticipantsPerYear(rows, 2026, 2)).toEqual([
+    expect(participantsPerYearSeries(rows, 2026, 3)).toEqual([
+      { label: "2024", count: 138 },
       { label: "2025", count: 0 },
-      { label: "2026", count: 2 },
+      { label: "2026", count: 131 },
     ]);
   });
 });

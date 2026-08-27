@@ -105,31 +105,21 @@ export function countThrowersPerClub(
     .slice(0, top);
 }
 
-export interface ParticipantStatRow {
-  kasterid: number | null;
-  stevne: { dato: string | null } | null;
-}
-
 /**
- * Distinct throwers with a result per calendar year, oldest first. Same empty-year
- * padding as the tournament chart so the two share an x-axis.
+ * Participants per year, oldest first, padded with zero-years so the chart keeps
+ * the same x-axis as the tournament chart even when a year has no results.
  */
-export function countParticipantsPerYear(
-  rows: ParticipantStatRow[],
+export function participantsPerYearSeries(
+  rows: { ar: number; deltakarar: number }[],
   toYear: number,
   years = 8,
 ): LabelCount[] {
-  const buckets = new Map<number, Set<number>>();
-  for (let y = toYear - years + 1; y <= toYear; y++) buckets.set(y, new Set());
-
-  for (const row of rows) {
-    if (row.kasterid === null) continue;
-    const year = yearOf(row.stevne?.dato);
-    if (year === null) continue;
-    buckets.get(year)?.add(row.kasterid);
+  const byYear = new Map(rows.map((r) => [r.ar, r.deltakarar]));
+  const out: LabelCount[] = [];
+  for (let y = toYear - years + 1; y <= toYear; y++) {
+    out.push({ label: String(y), count: byYear.get(y) ?? 0 });
   }
-
-  return [...buckets.entries()].map(([year, ids]) => ({ label: String(year), count: ids.size }));
+  return out;
 }
 
 /**

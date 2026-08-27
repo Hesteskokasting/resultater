@@ -9,7 +9,7 @@ const mocks = vi.hoisted(() => ({
   getTournamentStatRows: vi.fn(),
   getRegistrationStatRows: vi.fn(),
   getActiveThrowerList: vi.fn(),
-  getParticipantStatRows: vi.fn(),
+  getParticipantsPerYear: vi.fn(),
   drawBarChart: vi.fn(),
   drawLineChart: vi.fn(),
   openTournamentEditor: vi.fn(),
@@ -22,7 +22,7 @@ vi.mock("@/services/adminStatsService", () => ({
   getAdminEntityCounts: mocks.getAdminEntityCounts,
   getTournamentStatRows: mocks.getTournamentStatRows,
   getRegistrationStatRows: mocks.getRegistrationStatRows,
-  getParticipantStatRows: mocks.getParticipantStatRows,
+  getParticipantsPerYear: mocks.getParticipantsPerYear,
 }));
 vi.mock("@/services/kasterService", () => ({
   getActiveThrowerList: mocks.getActiveThrowerList,
@@ -88,12 +88,10 @@ beforeEach(() => {
     ],
     error: null,
   });
-  mocks.getParticipantStatRows.mockResolvedValue({
+  mocks.getParticipantsPerYear.mockResolvedValue({
     data: [
-      { kasterid: 1, stevne: { dato: `${YEAR}-01-10` } },
-      { kasterid: 1, stevne: { dato: `${YEAR}-06-01` } },
-      { kasterid: 2, stevne: { dato: `${YEAR}-06-01` } },
-      { kasterid: 5, stevne: { dato: `${YEAR - 2}-06-01` } },
+      { ar: YEAR, deltakarar: 2 },
+      { ar: YEAR - 2, deltakarar: 1 },
     ],
     error: null,
   });

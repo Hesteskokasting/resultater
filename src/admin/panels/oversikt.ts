@@ -3,16 +3,16 @@ import { todayIso } from "@/utils/date";
 import { createEl } from "@/utils/createEl";
 import { logError } from "@/utils/logError";
 import {
-  countParticipantsPerYear,
   countRegistrationsPerMonth,
   countThrowersPerClub,
   countTournamentsPerYear,
+  participantsPerYearSeries,
   summarizeTournaments,
 } from "@/admin/_adminStats";
 import type { TournamentStatRow } from "@/admin/_adminStats";
 import {
   getAdminEntityCounts,
-  getParticipantStatRows,
+  getParticipantsPerYear,
   getRegistrationStatRows,
   getTournamentStatRows,
 } from "@/services/adminStatsService";
@@ -161,7 +161,7 @@ export async function render(el: HTMLElement): Promise<void> {
       getTournamentStatRows(year - YEARS_BACK + 1),
       getRegistrationStatRows(year),
       getActiveThrowerList(),
-      getParticipantStatRows(year - YEARS_BACK + 1),
+      getParticipantsPerYear(year - YEARS_BACK + 1),
     ]);
 
     statsSlot.replaceChildren(
@@ -171,7 +171,7 @@ export async function render(el: HTMLElement): Promise<void> {
     const perYear = countTournamentsPerYear(tournaments.data, year, YEARS_BACK);
     const perMonth = countRegistrationsPerMonth(registrations.data, year);
     const perClub = countThrowersPerClub(throwers.data);
-    const perParticipantYear = countParticipantsPerYear(participants.data, year, YEARS_BACK);
+    const perParticipantYear = participantsPerYearSeries(participants.data, year, YEARS_BACK);
 
     // Redrawn on every theme flip: Chart.js bakes the resolved colours into the
     // canvas, so a CSS variable change alone would leave the old palette on screen.

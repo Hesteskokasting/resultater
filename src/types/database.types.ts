@@ -1039,6 +1039,13 @@ export type Database = {
         Returns: undefined
       }
       complete_stevne: { Args: { p_stevneid: number }; Returns: undefined }
+      deltakarar_per_ar: {
+        Args: { p_from_year: number }
+        Returns: {
+          ar: number
+          deltakarar: number
+        }[]
+      }
       confirm_xkast_kongelag: {
         Args: { p_xkast_kongelag_id: number }
         Returns: undefined
