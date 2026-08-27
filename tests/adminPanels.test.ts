@@ -574,6 +574,7 @@ describe("brukarar panel", () => {
       data: [
         { id: 5, fornavn: "Ola", etternavn: "Nordmann", eraktiv: true, klubb: { navn: "Oslo HK" } },
         { id: 9, fornavn: "Kari", etternavn: "Ås", eraktiv: true, klubb: { navn: "Oslo HK" } },
+        { id: 12, fornavn: "Per", etternavn: "Slutta", eraktiv: false, klubb: { navn: "Oslo HK" } },
       ],
       error: null,
     });
@@ -603,6 +604,19 @@ describe("brukarar panel", () => {
     pickThrower(el, 1, "a", "9");
     clickAction(el, 1, "Lagre");
     await vi.waitFor(() => expect(updateLinkStatus).toHaveBeenCalledWith("u2", 9, "godkjent"));
+  });
+
+  it("keeps inactive throwers out of the picker", async () => {
+    const el = host();
+    await renderUsers(el);
+    choose(selectByLabel(el, "Filtrer på rolle"), "alle");
+
+    const row = [...el.querySelectorAll<HTMLElement>(".admin-row")][1]!;
+    const input = row.querySelector<HTMLInputElement>(".search-select input[type=text]")!;
+    input.value = "a";
+    input.dispatchEvent(new Event("input"));
+    const offered = [...row.querySelectorAll<HTMLElement>(".search-select [data-id]")];
+    expect(offered.map((r) => r.dataset["id"])).toEqual(["9"]);
   });
 
   it("removes an existing link from the row", async () => {

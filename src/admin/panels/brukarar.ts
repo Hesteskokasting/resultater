@@ -62,6 +62,7 @@ export async function render(el: HTMLElement): Promise<void> {
 
   const throwerOptions = throwers.map((k) => ({
     id: k.id,
+    active: k.eraktiv ?? false,
     label: throwerNameLastFirst(k) + (k.eraktiv ? "" : " (inaktiv)"),
     sublabel: k.klubb?.navn ?? null,
   }));
@@ -145,8 +146,10 @@ export async function render(el: HTMLElement): Promise<void> {
     const taken = new Set(
       data.filter((u) => u.id !== user.id).map((u) => u.kasterid ?? u.kobling_kasterid),
     );
+    // Inactive throwers are not offered, but the one this user is already
+    // linked to stays in the list so the field still names it.
     const picker = createSearchSelect({
-      items: throwerOptions.filter((k) => !taken.has(k.id)),
+      items: throwerOptions.filter((k) => (k.active || k.id === linkedId) && !taken.has(k.id)),
       value: linkedId,
       placeholder: "Ingen utøvarkobling",
       clearLabel: "Fjern kobling",
