@@ -141,15 +141,16 @@ export async function render(el: HTMLElement): Promise<void> {
       user.rolle,
     );
 
-    // Throwers already spoken for are left out: the database does not stop two
-    // profiles claiming the same one, so the picker is the only guard.
-    const taken = new Set(
-      data.filter((u) => u.id !== user.id).map((u) => u.kasterid ?? u.kobling_kasterid),
-    );
-    // Inactive throwers are not offered, but the one this user is already
-    // linked to stays in the list so the field still names it.
+    // Throwers already linked to someone else are left out: the database does
+    // not stop two profiles claiming the same one, so the picker is the only
+    // guard. Only approved links count — a pending or rejected request still
+    // carries the requested id in kobling_kasterid, and treating that as taken
+    // hid the thrower a row is actually linked to.
+    const taken = new Set(data.filter((u) => u.id !== user.id).map((u) => u.kasterid));
+    // This row's own link always stays in the list, whatever its state, so the
+    // field names it instead of looking empty. Inactive throwers are not offered.
     const picker = createSearchSelect({
-      items: throwerOptions.filter((k) => (k.active || k.id === linkedId) && !taken.has(k.id)),
+      items: throwerOptions.filter((k) => k.id === linkedId || (k.active && !taken.has(k.id))),
       value: linkedId,
       placeholder: "Ingen utøvarkobling",
       clearLabel: "Fjern kobling",

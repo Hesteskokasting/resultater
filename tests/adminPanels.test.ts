@@ -619,6 +619,23 @@ describe("brukarar panel", () => {
     expect(offered.map((r) => r.dataset["id"])).toEqual(["9"]);
   });
 
+  it("still names a link another profile once requested", async () => {
+    // u2 has a stale kobling_kasterid pointing at u1's approved thrower.
+    getAllUsers.mockResolvedValue({
+      data: [
+        { ...users[0]!, kobling_kasterid: 5 },
+        { ...users[1]!, kobling_kasterid: 5, kobling_status: "avvist" },
+      ],
+      error: null,
+    });
+    const el = host();
+    await renderUsers(el);
+    choose(selectByLabel(el, "Filtrer på rolle"), "alle");
+
+    const inputs = [...el.querySelectorAll<HTMLInputElement>(".search-select input[type=text]")];
+    expect(inputs[0]!.value).toBe("Nordmann Ola");
+  });
+
   it("removes an existing link from the row", async () => {
     const el = host();
     await renderUsers(el);
