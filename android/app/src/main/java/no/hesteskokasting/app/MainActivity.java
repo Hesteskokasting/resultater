@@ -18,6 +18,7 @@ public class MainActivity extends BridgeActivity implements ModifiedMainActivity
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        registerPlugin(ManagedConfigPlugin.class);
         super.onCreate(savedInstanceState);
         // Always fetch the live site fresh — a cached shell would silently mask
         // an offline cold start instead of surfacing the error.html fallback below.
