@@ -14,7 +14,6 @@ import {
 import { escHtml } from "@/utils/escHtml";
 import { errorMessage } from "@/utils/errorMessage";
 import { getHashQueryParam } from "@/utils/navigation";
-import { getManagedLoginHint } from "@/services/managedConfigService";
 import { showToast } from "@/components/Toast";
 import { logError } from "@/utils/logError";
 
@@ -251,9 +250,7 @@ export async function render(container: HTMLElement): Promise<void> {
     emailInput.focus();
   });
 
-  // A managed device gets its address from the Intune app configuration. An
-  // ?email= link still wins: that is the more specific request of the two.
-  const prefillEmail = getHashQueryParam("email") || (await getManagedLoginHint());
+  const prefillEmail = getHashQueryParam("email");
   if (prefillEmail) {
     emailInput.value = prefillEmail;
     passwordInput.focus();

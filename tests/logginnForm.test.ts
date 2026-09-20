@@ -16,7 +16,6 @@ const mocks = vi.hoisted(() => ({
   signInErrorMessage: vi.fn(),
   requestPasswordReset: vi.fn(),
   showToast: vi.fn(),
-  getManagedLoginHint: vi.fn(),
 }));
 
 vi.mock("@/supabase", () => ({ supabase: {} }));
@@ -30,9 +29,6 @@ vi.mock("@/services/authService", () => ({
   signInWithApple: mocks.signInWithApple,
   signInErrorMessage: mocks.signInErrorMessage,
   requestPasswordReset: mocks.requestPasswordReset,
-}));
-vi.mock("@/services/managedConfigService", () => ({
-  getManagedLoginHint: mocks.getManagedLoginHint,
 }));
 vi.mock("@/components/Toast", () => ({ showToast: mocks.showToast }));
 vi.mock("@/utils/logError", () => ({ logError: vi.fn() }));
@@ -81,7 +77,6 @@ beforeEach(async () => {
   mocks.signUp.mockResolvedValue({ error: null });
   mocks.signInErrorMessage.mockReturnValue("Feil e-post eller passord.");
   mocks.requestPasswordReset.mockResolvedValue({ error: null });
-  mocks.getManagedLoginHint.mockResolvedValue("");
   await renderLogin(host());
 });
 
@@ -242,16 +237,6 @@ describe("account page", () => {
     location.hash = "#/logginn?email=annan%40example.com";
     await renderLogin(host());
 
-    expect(el().querySelector<HTMLInputElement>("#ac-email")!.value).toBe("annan@example.com");
-  });
-
-  it("prefills the e-mail the MDM pushed, but lets an ?email= link override it", async () => {
-    mocks.getManagedLoginHint.mockResolvedValue("mdm@example.com");
-    await renderLogin(host());
-    expect(el().querySelector<HTMLInputElement>("#ac-email")!.value).toBe("mdm@example.com");
-
-    location.hash = "#/logginn?email=annan%40example.com";
-    await renderLogin(host());
     expect(el().querySelector<HTMLInputElement>("#ac-email")!.value).toBe("annan@example.com");
   });
 });

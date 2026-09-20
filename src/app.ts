@@ -14,6 +14,7 @@ import {
 import { initPushNotifications } from "@/services/pushNotificationService";
 import { initStatusBarThemeSync } from "@/services/statusBarService";
 import { applyKeepAwakeForRoute } from "@/services/keepAwakeService";
+import { autoLoginFromManagedConfig } from "@/services/managedConfigService";
 import { initPullToRefresh } from "@/components/PullToRefresh";
 import { initUpdateCheck } from "@/services/updateCheck";
 import type { PageRenderFn, Role, Route } from "@/types";
@@ -341,11 +342,16 @@ initStatusBarThemeSync();
 
 initUpdateCheck();
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("menyLoggUtKnapp")!.addEventListener("click", async () => {
     await signOut();
     location.hash = "#/";
   });
+
+  // Awaited before the first navigate(): a managed device that lands on a guarded
+  // route must not be bounced to #/logginn while its own sign-in is still in flight.
+  // No-op (one microtask) on every device without a pushed device key.
+  await autoLoginFromManagedConfig();
 
   void updateAuthMenu();
   void navigate();
