@@ -209,6 +209,12 @@ const routes: Route[] = [
   },
   // Eksisterande ruter
   {
+    pattern: /^\/kampstatistikk$/,
+    page: lazy(() => import("./pages/kampstatistikk")),
+    params: () => ({}),
+    title: "Kampstatistikk",
+  },
+  {
     pattern: /^\/terminliste$/,
     page: lazy(() => import("./pages/terminliste")),
     params: () => ({}),
