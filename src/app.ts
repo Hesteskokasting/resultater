@@ -1,4 +1,5 @@
 import { App } from "@capacitor/app";
+import { Capacitor } from "@capacitor/core";
 import { render as renderHome } from "./pages/home";
 import { getUser, initAuthListener, isAdmin, isClubAdmin, signOut } from "./services/authService";
 import { createErrorBanner } from "@/components/states";
@@ -22,6 +23,13 @@ import type { PageRenderFn, Role, Route } from "@/types";
 if (import.meta.env.VITE_ENV === "dev") {
   const versionEl = document.querySelector(".menu-version");
   if (versionEl) versionEl.textContent += " [DEV]";
+}
+
+if (Capacitor.getPlatform() === "android") {
+  void App.getInfo().then((info) => {
+    const versionEl = document.querySelector(".menu-version");
+    if (versionEl) versionEl.textContent += ` (build ${info.build})`;
+  });
 }
 
 function lazy(load: () => Promise<{ render: PageRenderFn }>): PageRenderFn {
