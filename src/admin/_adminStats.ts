@@ -105,22 +105,21 @@ export function countThrowersPerClub(
     .slice(0, top);
 }
 
-/** Users per role, in the app's own role hierarchy (admin → klubbadmin → bruker). */
-export function countUsersByRole(
-  users: { rolle: string | null }[],
-  order: readonly string[] = ["admin", "klubbadmin", "bruker"],
+/**
+ * Participants per year, oldest first, padded with zero-years so the chart keeps
+ * the same x-axis as the tournament chart even when a year has no results.
+ */
+export function participantsPerYearSeries(
+  rows: { ar: number; deltakarar: number }[],
+  toYear: number,
+  years = 8,
 ): LabelCount[] {
-  const buckets = new Map<string, number>();
-  for (const role of order) buckets.set(role, 0);
-
-  for (const user of users) {
-    const role = user.rolle ?? "bruker";
-    buckets.set(role, (buckets.get(role) ?? 0) + 1);
+  const byYear = new Map(rows.map((r) => [r.ar, r.deltakarar]));
+  const out: LabelCount[] = [];
+  for (let y = toYear - years + 1; y <= toYear; y++) {
+    out.push({ label: String(y), count: byYear.get(y) ?? 0 });
   }
-
-  // Insertion order: the known roles first (kept even at zero, so the split reads
-  // the same every render), then any role value the DB has that this list doesn't.
-  return [...buckets.entries()].map(([label, count]) => ({ label, count }));
+  return out;
 }
 
 /**

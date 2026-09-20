@@ -4,4 +4,6 @@
     <string name="title_activity_main">Hesteskokasting</string>
     <string name="package_name">no.hesteskokasting.app</string>
     <string name="custom_url_scheme">no.hesteskokasting.app</string>
+    <string name="restriction_device_key_title">Device key</string>
+    <string name="restriction_device_key_description">The key this device is registered with. The app then signs itself in on the club account the device belongs to.</string>
 </resources>

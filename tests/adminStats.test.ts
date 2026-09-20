@@ -2,7 +2,7 @@ import {
   countRegistrationsPerMonth,
   countThrowersPerClub,
   countTournamentsPerYear,
-  countUsersByRole,
+  participantsPerYearSeries,
   summarizeTournaments,
 } from "@/admin/_adminStats";
 import { monthOf, yearOf } from "@/utils/date";
@@ -83,22 +83,16 @@ describe("countThrowersPerClub", () => {
   });
 });
 
-describe("countUsersByRole", () => {
-  it("keeps the known roles in order even when empty", () => {
-    expect(countUsersByRole([{ rolle: "admin" }, { rolle: "bruker" }])).toEqual([
-      { label: "admin", count: 1 },
-      { label: "klubbadmin", count: 0 },
-      { label: "bruker", count: 1 },
-    ]);
-  });
-
-  it("treats a missing role as bruker and appends unknown roles last", () => {
-    const result = countUsersByRole([{ rolle: null }, { rolle: "superadmin" }]);
-    expect(result).toEqual([
-      { label: "admin", count: 0 },
-      { label: "klubbadmin", count: 0 },
-      { label: "bruker", count: 1 },
-      { label: "superadmin", count: 1 },
+describe("participantsPerYearSeries", () => {
+  it("pads years the RPC returned nothing for and keeps the window in order", () => {
+    const rows = [
+      { ar: 2026, deltakarar: 131 },
+      { ar: 2024, deltakarar: 138 },
+    ];
+    expect(participantsPerYearSeries(rows, 2026, 3)).toEqual([
+      { label: "2024", count: 138 },
+      { label: "2025", count: 0 },
+      { label: "2026", count: 131 },
     ]);
   });
 });

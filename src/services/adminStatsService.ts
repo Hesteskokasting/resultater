@@ -19,6 +19,10 @@ export interface AdminEntityCounts {
 
 export type TournamentStatRow = Pick<Tables<"stevne">, "dato" | "erfullfort" | "stevne_fase">;
 export type RegistrationStatRow = Pick<Tables<"pamelding">, "opprettet_at">;
+export interface ParticipantYearRow {
+  ar: number;
+  deltakarar: number;
+}
 
 type CountResult = { count: number | null; error: unknown };
 
@@ -61,6 +65,18 @@ export async function getTournamentStatRows(
     .order("dato");
   if (error) logError("getTournamentStatRows", error);
   return { data: data ?? [], error };
+}
+
+/**
+ * Distinct throwers with a result per year, from `fromYear` onwards. Counted in
+ * the database: one row per participation would blow past PostgREST's row cap.
+ */
+export async function getParticipantsPerYear(
+  fromYear: number,
+): Promise<{ data: ParticipantYearRow[]; error: unknown }> {
+  const { data, error } = await supabase.rpc("deltakarar_per_ar", { p_from_year: fromYear });
+  if (error) logError("getParticipantsPerYear", error);
+  return { data: (data ?? []).map((r) => ({ ar: r.ar, deltakarar: Number(r.deltakarar) })), error };
 }
 
 /**

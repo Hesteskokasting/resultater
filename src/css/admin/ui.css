@@ -315,6 +315,17 @@ a.admin-stat:hover {
   min-width: 130px;
 }
 
+/* Role select and thrower picker side by side in the same row. */
+.admin-row__controls {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.admin-row__controls .search-select {
+  min-width: 220px;
+}
+
 .admin-row__actions {
   display: flex;
   flex-wrap: wrap;
