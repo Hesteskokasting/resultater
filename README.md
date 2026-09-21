@@ -295,6 +295,25 @@ vp exec supabase secrets unset NØKKEL
 
 **Viktig:** `secrets list` viser berre namn, ikkje verdiar — ein secret kan settast, men aldri lesast tilbake via CLI-en. Noter verdiane i ein passordhandterar når du set dei.
 
+### Vault-secrets for push-webhooken — må settast på kvart nye Supabase-prosjekt
+
+`trg_notification_queue_send_webhook` (sjå `20260921223538_webhook_url_from_vault.sql`) les URL-en og hemmelegheita si frå Vault, slik at migrasjonane er prosjektuavhengige. Set du opp endå ein database, må du køyre dette i SQL-editoren på det prosjektet — ingen migrasjon gjer det for deg, fordi verdiane er ulike per prosjekt:
+
+```sql
+select vault.create_secret(
+  'https://<project-ref>.supabase.co/functions/v1/send-push-notification',
+  'push_webhook_url');
+select vault.create_secret('<PUSH_WEBHOOK_SECRET>', 'push_webhook_secret');
+```
+
+`PUSH_WEBHOOK_SECRET` skal vere ein ny, tilfeldig verdi per prosjekt (t.d. `openssl rand -hex 32`), og **same** verdi må settast som Edge Function-secret:
+
+```bash
+vp exec supabase secrets set --project-ref abcdefghijklm PUSH_WEBHOOK_SECRET=<secret>
+```
+
+Manglar ein av Vault-verdiane, blir push-kallet hoppa over med eit `WARNING` i Postgres-loggen — innsettinga i `notification_queue` går gjennom, men varselet blir aldri sendt.
+
 ### Feilsøking av pg_net-triggarar
 
 Nokre databasetriggarar (t.d. push-varsling via `notification_queue`, sjå `supabase/migrations/20260706120400_webhook_notification_queue_to_edge_function.sql`) kallar Edge Functions direkte via `pg_net` i staden for Supabase sin innebygde «Database Webhooks»-funksjon (som krev at `supabase_functions`-schemaet er provisjonert på prosjektet — ikkje tilfelle her). For å sjå kva HTTP-svar ein slik triggar faktisk fekk, køyr i SQL-editoren:
