@@ -14,17 +14,20 @@ jobs:
   database:
     runs-on: ubuntu-latest
     environment: prod
-    env:
-      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
     steps:
       - uses: actions/checkout@v5
       - uses: supabase/setup-cli@v1
         with:
           version: 2.115.0
-      - run: supabase link --project-ref ${{ vars.SUPABASE_PROJECT_REF }}
-      - run: supabase db push
-      - run: supabase functions deploy
+      # No `supabase link`: it reads project status through the Management API,
+      # which needs far wider token scopes than deploying does. --db-url talks
+      # straight to Postgres instead, and functions deploy names the project.
+      - run: supabase db push --db-url "$SUPABASE_DB_URL"
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      - run: supabase functions deploy --project-ref ${{ vars.SUPABASE_PROJECT_REF }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
   build-and-deploy:
     needs: database
