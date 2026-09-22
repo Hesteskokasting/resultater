@@ -8,15 +8,31 @@ permissions:
   contents: write
 
 jobs:
-  godkjenn:
+  # First job to touch the prod environment, so its required reviewer is the
+  # manual gate for the whole release — nothing reaches the database or the
+  # site before it is approved.
+  database:
     runs-on: ubuntu-latest
-    environment: prod-godkjenning
+    environment: prod
     steps:
-      - run: echo "Godkjenning gitt – startar produksjonsdeploy"
+      - uses: actions/checkout@v5
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.115.0
+      # No `supabase link`: it reads project status through the Management API,
+      # which needs far wider token scopes than deploying does. --db-url talks
+      # straight to Postgres instead, and functions deploy names the project.
+      - run: supabase db push --db-url "$SUPABASE_DB_URL"
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      - run: supabase functions deploy --project-ref ${{ vars.SUPABASE_PROJECT_REF }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
   build-and-deploy:
-    needs: godkjenn
+    needs: database
     runs-on: ubuntu-latest
-    environment: github-pages
+    environment: prod
     steps:
       - uses: actions/checkout@v5
       # vp version is auto-detected from the vite-plus devDependency + lockfile.

@@ -2,6 +2,7 @@ import { Capacitor } from "@capacitor/core";
 import googlePlayBadge from "@/assets/google-play-badge-nb-NO.svg";
 import {
   GOOGLE_SIGN_IN_PENDING_KEY,
+  SIGNUP_ENABLED,
   getUser,
   isAdmin,
   requestPasswordReset,
@@ -162,7 +163,7 @@ export async function render(container: HTMLElement): Promise<void> {
   const socialHint = document.createElement("p");
   socialHint.className = "account-hint";
   socialHint.textContent = "Har du ikkje konto frå før, blir den oppretta automatisk.";
-  outer.appendChild(socialHint);
+  if (SIGNUP_ENABLED) outer.appendChild(socialHint);
 
   const divider = document.createElement("div");
   divider.className = "account-divider";
@@ -185,6 +186,7 @@ export async function render(container: HTMLElement): Promise<void> {
   const submit = container.querySelector<HTMLButtonElement>("#ac-submit")!;
   const forgotRow = container.querySelector<HTMLElement>("#ac-forgot-row")!;
   const forgotButton = container.querySelector<HTMLButtonElement>("#ac-forgot")!;
+  const switchRow = container.querySelector<HTMLElement>(".account-switch")!;
   const switchText = container.querySelector<HTMLElement>("#ac-switch-text")!;
   const switchButton = container.querySelector<HTMLButtonElement>("#ac-switch")!;
 
@@ -222,6 +224,9 @@ export async function render(container: HTMLElement): Promise<void> {
     switchText.textContent =
       isReset || isRegister ? "Har du konto frå før?" : "Har du ikkje konto?";
     switchButton.textContent = next === "login" ? "Opprett konto" : "Logg inn";
+    // Kept visible in reset mode even with sign-up off: there it is the way back
+    // to the login form, not an invitation to register.
+    switchRow.classList.toggle("d-none", !SIGNUP_ENABLED && next === "login");
     resetHint.classList.toggle("d-none", !isReset);
     forgotRow.classList.toggle("d-none", next !== "login");
 

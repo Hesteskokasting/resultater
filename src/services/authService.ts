@@ -196,6 +196,13 @@ export async function signInWithApple(): Promise<{ error: { message: string } | 
   return signInWithProviderNative("apple");
 }
 
+/**
+ * Mirrors "Allow new users to sign up" being off on the Supabase project: the
+ * backend already refuses, so this only keeps the UI from offering a dead end.
+ * Flip back to true when sign-up opens again.
+ */
+export const SIGNUP_ENABLED = false;
+
 export async function signUp(email: string, password: string) {
   return supabase.auth.signUp({ email, password });
 }

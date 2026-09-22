@@ -7,7 +7,8 @@
 const mocks = vi.hoisted(() => ({ getUser: vi.fn() }));
 
 vi.mock("@/supabase", () => ({ supabase: {} }));
-vi.mock("@/services/authService", () => ({ getUser: mocks.getUser }));
+// Matches what ships: sign-up is closed, so the card must not offer an account.
+vi.mock("@/services/authService", () => ({ getUser: mocks.getUser, SIGNUP_ENABLED: false }));
 
 import { maybeShowWelcomeDialog } from "@/components/dialog/WelcomeDialog";
 
@@ -34,12 +35,11 @@ describe("maybeShowWelcomeDialog", () => {
     expect(isOpen()).toBe(true);
   });
 
-  it("warns up front that the app is unfinished until 2027", async () => {
+  it("warns up front that the app is unfinished", async () => {
     await maybeShowWelcomeDialog();
 
     const notice = dialog()!.querySelector("#wd-body .alert-warning")!;
     expect(notice.textContent).toContain("under utvikling");
-    expect(notice.textContent).toContain("2027");
   });
 
   it("splits the advice between utøvarar and publikum", async () => {
@@ -52,12 +52,12 @@ describe("maybeShowWelcomeDialog", () => {
     expect(body.querySelector('a[href="#/terminliste"]')).not.toBeNull();
   });
 
-  it("tells a newcomer with no profile to link that the club registers them", async () => {
+  it("says sign-up is closed rather than offering an account nobody can get", async () => {
     await maybeShowWelcomeDialog();
 
-    const body = dialog()!.querySelector("#wd-body")!;
-    expect(body.textContent).toContain("Har du ikkje delteke på eit stevne før?");
-    expect(body.querySelector('a[href^="mailto:"]')).not.toBeNull();
+    const card = dialog()!.querySelector("#wd-body .card")!;
+    expect(card.querySelector(".alert-warning")!.textContent).toContain("deaktivert");
+    expect(card.textContent).not.toContain("opprett konto");
   });
 
   it("stays away once it has been dismissed for good", async () => {
@@ -93,11 +93,8 @@ describe("maybeShowWelcomeDialog", () => {
     expect(localStorage.getItem(SEEN_KEY)).toBeNull();
   });
 
-  it("gets out of the way when a link navigates, but not for a mailto", async () => {
+  it("gets out of the way when a link navigates", async () => {
     await maybeShowWelcomeDialog();
-    dialog()!.querySelector<HTMLAnchorElement>('a[href^="mailto:"]')!.click();
-    expect(isOpen()).toBe(true);
-
     dialog()!.querySelector<HTMLAnchorElement>('a[href="#/logginn"]')!.click();
     expect(dialog()).toBeNull();
   });
