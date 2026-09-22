@@ -1,0 +1,1 @@
+import{t as e}from"./vendor-xzOjJ4TX.js";var t=e(`https://lwbwujyjaptekituzixf.supabase.co`,`sb_publishable_GkCayCWPXVdN1dxi2dJD-w_5U0JUL0N`,{auth:{flowType:`pkce`}});function n(e,t){console.error(`[${e}]`,t)}export{t as n,n as t};
