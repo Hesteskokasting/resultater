@@ -36,7 +36,8 @@ android {
     }
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
+            shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             // Falls back to debug signing when keystore.properties isn't present locally (e.g. a fresh clone).
             signingConfig = keystorePropertiesFile.exists() ? signingConfigs.release : signingConfigs.debug
