@@ -3,31 +3,39 @@
 // to a signed-in account — min side's link gate takes over from there.
 
 import { createModalEl, createModalLifecycle } from "@/components/dialog/modalBase";
-import { getUser } from "@/services/authService";
+import { SIGNUP_ENABLED, getUser } from "@/services/authService";
 
 const SEEN_KEY = "welcome-seen";
 
-const BODY_HTML = `
-  <div class="alert alert-warning">Sida er framleis under utvikling og kan difor innehalde feil.
-     Det vil også kome ein del endringar fram til systemet blir tatt i bruk for fullt frå 2027.</div>
-  <p>Terminliste, resultater og statistikk.
-     Alt dette er ope for alle — du treng ingen konto for å følgje eit stevne.</p>
-  <div class="card mb-3">
-    <div class="card-body">
-      <h6 class="card-title">Er du utøvar?</h6>
-      <p class="card-text">Opprett ein konto og koble den til utøvarprofilen din i registeret.
+// While sign-up is closed the card must not promise an account a newcomer
+// cannot get; the club/e-mail route below is the way in.
+const UTOVAR_HTML = SIGNUP_ENABLED
+  ? `<p class="card-text">Opprett ein konto og koble den til utøvarprofilen din i registeret.
          Då kan du melde deg på stevne, sjå dine eigne kampar og få varsel når eit stevne startar.</p>
       <a class="btn btn-sm btn-primary" href="#/logginn">Logg inn eller opprett konto</a>
       <p class="card-text text-muted small mt-3 mb-0">Har du ikkje delteke på eit stevne før? Ta kontakt med klubben din
-          — eller send e-post til
-         <a href="mailto:kontakt@hesteskokasting.no">kontakt@hesteskokasting.no</a>, så hjelper vi deg.</p>
+    — eller send e-post til
+         <a href="mailto:kontakt@hesteskokasting.no">kontakt@hesteskokasting.no</a>, så hjelper vi deg.</p>`
+  : `<div class="alert alert-warning mb-0">Innlogging er midlertidig deaktivert.</div>`;
+
+const BODY_HTML = `
+  <div class="alert alert-warning">Sida er framleis under utvikling og kan difor innehalde feil.</div>
+  <div class="card mb-3">
+    <div class="card-body">
+      <h6 class="card-title">Er du utøvar?</h6>
+      ${UTOVAR_HTML}
+    </div>
+        <div class="card-body">
+      <h6 class="card-title">For arrangører</h6>
+      <p>Logg inn med tildelt konto</p>
+      <a class="btn btn-sm btn-primary" href="#/logginn">Logg inn</a>
     </div>
   </div>
   <div class="card">
     <div class="card-body">
       <h6 class="card-title">Er du publikum?</h6>
-      <p class="card-text">Då er du klar. Gå til terminlista for å følgje stevne som går no, eller
-         for å sjå resultat og statistikk frå tidlegare stevne.</p>
+      <p class="card-text">Då er du klar. Terminliste, resultater og statistikk.
+     Alt dette er ope for alle — du treng ingen konto for å følgje eit stevne.</p>
       <a class="btn btn-sm btn-outline-primary" href="#/terminliste">Til terminliste og resultat</a>
     </div>
   </div>`;

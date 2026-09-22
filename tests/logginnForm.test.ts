@@ -16,11 +16,17 @@ const mocks = vi.hoisted(() => ({
   signInErrorMessage: vi.fn(),
   requestPasswordReset: vi.fn(),
   showToast: vi.fn(),
+  // Mutable so a single test can render the page with sign-up closed; the
+  // module reads the flag through a getter, and render() reads it per call.
+  flags: { signupEnabled: true },
 }));
 
 vi.mock("@/supabase", () => ({ supabase: {} }));
 vi.mock("@/services/authService", () => ({
   GOOGLE_SIGN_IN_PENDING_KEY: "google-pending",
+  get SIGNUP_ENABLED() {
+    return mocks.flags.signupEnabled;
+  },
   getUser: mocks.getUser,
   isAdmin: mocks.isAdmin,
   signIn: mocks.signIn,
@@ -70,6 +76,7 @@ function submitForm(): void {
 
 beforeEach(async () => {
   vi.clearAllMocks();
+  mocks.flags.signupEnabled = true;
   location.hash = "#/logginn";
   mocks.getUser.mockResolvedValue(null);
   mocks.isAdmin.mockResolvedValue(false);
@@ -102,6 +109,18 @@ describe("account page", () => {
     switchButton().click();
     expect(googleButton().textContent).toBe("Logg inn med Google");
     expect(hint().classList.contains("d-none")).toBe(false);
+  });
+
+  it("offers no way to register while sign-up is closed", async () => {
+    mocks.flags.signupEnabled = false;
+    await renderLogin(host());
+
+    expect(el().textContent).not.toContain("oppretta automatisk");
+    expect(hidden(el().querySelector<HTMLElement>(".account-switch")!)).toBe(true);
+    // The link out of reset mode is the same row, so it must come back there.
+    forgotButton().click();
+    expect(hidden(el().querySelector<HTMLElement>(".account-switch")!)).toBe(false);
+    expect(switchButton().textContent).toBe("Logg inn");
   });
 
   it("starts in login mode with the repeat field out of the way and not required", () => {
