@@ -22,6 +22,7 @@
 }
 
 .btn-google,
+.btn-facebook,
 .btn-apple {
   display: flex;
   align-items: center;
@@ -51,6 +52,7 @@
 }
 
 .btn-google:hover,
+.btn-facebook:hover,
 .btn-apple:hover {
   background: var(--primaer-hover);
 }

@@ -115,13 +115,13 @@ export function signInErrorMessage(error: { message: string }): string {
     : error.message;
 }
 
-export const GOOGLE_SIGN_IN_PENDING_KEY = "googleSignInPending";
+export const OAUTH_SIGN_IN_PENDING_KEY = "oauthSignInPending";
 
 // Google blocks its OAuth consent screen from loading inside a WebView (error
 // "disallowed_useragent"), so the Capacitor app can't use the browser-redirect
 // flow below. Native sign-in goes through the OS account sheet instead and
 // resolves a session directly — no redirect, so callers must navigate themselves
-// on success rather than relying on GOOGLE_SIGN_IN_PENDING_KEY.
+// on success rather than relying on OAUTH_SIGN_IN_PENDING_KEY.
 async function signInWithProviderNative(
   provider: "google" | "apple",
 ): Promise<{ error: { message: string } | null }> {
@@ -184,8 +184,16 @@ export async function signInWithGoogle(redirect?: string) {
   if (Capacitor.isNativePlatform()) return signInWithProviderNative("google");
 
   const target = `${window.location.origin}${window.location.pathname}#/logginn${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ""}`;
-  sessionStorage.setItem(GOOGLE_SIGN_IN_PENDING_KEY, "1");
+  sessionStorage.setItem(OAUTH_SIGN_IN_PENDING_KEY, "1");
   return supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: target } });
+}
+
+// Web redirect flow on every platform: unlike Google, Facebook's consent screen
+// loads fine in the Capacitor WebView, so no native plugin provider is needed.
+export async function signInWithFacebook(redirect?: string) {
+  const target = `${window.location.origin}${window.location.pathname}#/logginn${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ""}`;
+  sessionStorage.setItem(OAUTH_SIGN_IN_PENDING_KEY, "1");
+  return supabase.auth.signInWithOAuth({ provider: "facebook", options: { redirectTo: target } });
 }
 
 // iOS-native only (App Store guideline 4.8 requires Apple sign-in alongside
