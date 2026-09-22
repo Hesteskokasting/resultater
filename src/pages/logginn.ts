@@ -1,5 +1,7 @@
 import { Capacitor } from "@capacitor/core";
 import googlePlayBadge from "@/assets/google-play-badge-nb-NO.svg";
+import googleLogoDark from "@/assets/Google_logo_pill_dark.svg";
+import googleLogoLight from "@/assets/Google_logo_pill_light.svg";
 import {
   GOOGLE_SIGN_IN_PENDING_KEY,
   SIGNUP_ENABLED,
@@ -122,11 +124,13 @@ export async function render(container: HTMLElement): Promise<void> {
     provider: string,
     className: string,
     signInFn: () => Promise<{ error: { message: string } | null }>,
+    logoHtml = "",
   ): HTMLButtonElement {
     const button = document.createElement("button");
     button.type = "button";
     button.className = `btn ${className} w-100`;
     button.dataset.provider = provider;
+    button.innerHTML = `<span class="social-label"></span>${logoHtml}`;
     socialButtons.push(button);
     button.addEventListener("click", async () => {
       button.disabled = true;
@@ -148,8 +152,12 @@ export async function render(container: HTMLElement): Promise<void> {
   }
 
   outer.appendChild(
-    createSocialLoginButton("Google", "btn-google", () =>
-      signInWithGoogle(getRedirectParam() ?? undefined),
+    createSocialLoginButton(
+      "Google",
+      "btn-google",
+      () => signInWithGoogle(getRedirectParam() ?? undefined),
+      `<img class="social-logo social-logo-light" src="${googleLogoLight}" alt="">
+       <img class="social-logo social-logo-dark" src="${googleLogoDark}" alt="">`,
     ),
   );
   // App Store guideline 4.8: offering Google sign-in on iOS requires offering
@@ -234,7 +242,7 @@ export async function render(container: HTMLElement): Promise<void> {
     // med Google" above the form invites exactly the wrong click.
     const verb = isRegister ? "Registrer deg med" : "Logg inn med";
     for (const button of socialButtons) {
-      button.textContent = `${verb} ${button.dataset.provider}`;
+      button.querySelector(".social-label")!.textContent = `${verb} ${button.dataset.provider}`;
       button.classList.toggle("d-none", isReset);
     }
     socialHint.classList.toggle("d-none", isRegister || isReset);
