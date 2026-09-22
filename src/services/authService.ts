@@ -115,13 +115,13 @@ export function signInErrorMessage(error: { message: string }): string {
     : error.message;
 }
 
-export const GOOGLE_SIGN_IN_PENDING_KEY = "googleSignInPending";
+export const OAUTH_SIGN_IN_PENDING_KEY = "oauthSignInPending";
 
 // Google blocks its OAuth consent screen from loading inside a WebView (error
 // "disallowed_useragent"), so the Capacitor app can't use the browser-redirect
 // flow below. Native sign-in goes through the OS account sheet instead and
 // resolves a session directly — no redirect, so callers must navigate themselves
-// on success rather than relying on GOOGLE_SIGN_IN_PENDING_KEY.
+// on success rather than relying on OAUTH_SIGN_IN_PENDING_KEY.
 async function signInWithProviderNative(
   provider: "google" | "apple",
 ): Promise<{ error: { message: string } | null }> {
@@ -184,8 +184,16 @@ export async function signInWithGoogle(redirect?: string) {
   if (Capacitor.isNativePlatform()) return signInWithProviderNative("google");
 
   const target = `${window.location.origin}${window.location.pathname}#/logginn${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ""}`;
-  sessionStorage.setItem(GOOGLE_SIGN_IN_PENDING_KEY, "1");
+  sessionStorage.setItem(OAUTH_SIGN_IN_PENDING_KEY, "1");
   return supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: target } });
+}
+
+// Web redirect flow on every platform: unlike Google, Facebook's consent screen
+// loads fine in the Capacitor WebView, so no native plugin provider is needed.
+export async function signInWithFacebook(redirect?: string) {
+  const target = `${window.location.origin}${window.location.pathname}#/logginn${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ""}`;
+  sessionStorage.setItem(OAUTH_SIGN_IN_PENDING_KEY, "1");
+  return supabase.auth.signInWithOAuth({ provider: "facebook", options: { redirectTo: target } });
 }
 
 // iOS-native only (App Store guideline 4.8 requires Apple sign-in alongside
@@ -194,6 +202,21 @@ export async function signInWithGoogle(redirect?: string) {
 // Apple button on iOS.
 export async function signInWithApple(): Promise<{ error: { message: string } | null }> {
   return signInWithProviderNative("apple");
+}
+
+/**
+ * Adds Google as a login method to the account the caller is ALREADY signed in as.
+ * The invite mail signs the user in before they have any credential, so this is
+ * how they leave that page with a way back in without picking a password.
+ *
+ * Not signInWithGoogle: that starts a fresh sign-in, which lands on the invited
+ * account only when Supabase's automatic linking happens to match the verified
+ * address — and creates a second account, or fails outright against the closed
+ * sign-up, when it does not. Needs "Manual linking" enabled on the project.
+ */
+export async function linkGoogleIdentity() {
+  const target = `${window.location.origin}${window.location.pathname}#/minside`;
+  return supabase.auth.linkIdentity({ provider: "google", options: { redirectTo: target } });
 }
 
 /**
@@ -225,14 +248,14 @@ export async function requestPasswordReset(email: string) {
 }
 
 /**
- * Turns a recovery token from the mail link into a session, so the new-password
- * form can call updatePassword. Only needed for a {{ .TokenHash }} link; a
- * {{ .ConfirmationURL }} link arrives with a ?code= that supabase-js exchanges by
- * itself — but that exchange needs the PKCE verifier this browser stored when the
- * reset was requested, so it fails if the mail is opened on another device.
+ * Turns the token from a recovery or invite mail into a session, so the
+ * new-password form can call updatePassword. Only needed for a {{ .TokenHash }}
+ * link; a {{ .ConfirmationURL }} link instead goes through /auth/v1/verify, which
+ * hands the tokens back in the URL fragment — and that fragment overwrites the
+ * hash route, so the mail templates must use {{ .TokenHash }}.
  */
-export async function verifyRecoveryToken(tokenHash: string) {
-  return supabase.auth.verifyOtp({ token_hash: tokenHash, type: "recovery" });
+export async function verifyEmailToken(tokenHash: string, type: "recovery" | "invite") {
+  return supabase.auth.verifyOtp({ token_hash: tokenHash, type });
 }
 
 /**

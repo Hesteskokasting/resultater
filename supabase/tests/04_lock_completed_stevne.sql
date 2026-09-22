@@ -1,6 +1,6 @@
 BEGIN;
 
-SELECT plan(18);
+SELECT plan(25);
 
 -- ── Seed (postgres superuser — bypasses RLS) ──────────────────────────────────
 
@@ -31,9 +31,23 @@ INSERT INTO public.kamp_spelar (id, kampid, kasterid)
 OVERRIDING SYSTEM VALUE
 VALUES (9910, 9910, 9910);
 
-INSERT INTO public.kamp_omgang (id, kamp_spelar_id, omgang, score, antall_ringer)
+INSERT INTO public.kamp_omgang (id, kamp_spelar_id, omgang, score, antall_ringer, registrert_av)
 OVERRIDING SYSTEM VALUE
-VALUES (9910, 9910, 1, 4, 1);
+VALUES (9910, 9910, 1, 4, 1, '00000000-0000-0000-0000-000000000101');
+
+-- An X-kast court on the same stevne: its omgang table carries the same
+-- registrert_av FK and the same completion lock.
+INSERT INTO public.xkast_kongelag (id, stevneid, fase, pulje, bane_nummer)
+OVERRIDING SYSTEM VALUE
+VALUES (9910, 9910, 'innledende', 1, 1);
+
+INSERT INTO public.xkast_kongelag_deltaker (id, xkast_kongelag_id, kasterid)
+OVERRIDING SYSTEM VALUE
+VALUES (9910, 9910, 9910);
+
+INSERT INTO public.xkast_kongelag_omgang (id, xkast_kongelag_deltaker_id, omgang, poeng, antall_ringer, registrert_av)
+OVERRIDING SYSTEM VALUE
+VALUES (9910, 9910, 1, 12, 2, '00000000-0000-0000-0000-000000000101');
 
 INSERT INTO public.resultat (id, stevneid, kasterid, plassering, hcp)
 VALUES (9910, 9910, 9910, 1, 0);
@@ -109,6 +123,51 @@ SELECT throws_ok(
   $$ INSERT INTO public.kamp (match_id, stevneid, fase, runde_nummer) VALUES ('lock-test-2', 9910, 'innledende', 1) $$,
   'P0001', NULL,
   'kamp insert blocked after completion'
+);
+
+SELECT throws_ok(
+  $$ UPDATE public.xkast_kongelag_omgang SET poeng = 9 WHERE id = 9910 $$,
+  'P0001', NULL,
+  'xkast_kongelag_omgang update blocked after completion'
+);
+
+-- ── Case 2b: clearing registrert_av is the one write the lock lets through ───
+-- Deleting a login account must null this FK to auth.users even inside a
+-- completed stevne, or the account can never be removed. Nothing else about the
+-- row may move under cover of that exception.
+
+SELECT lives_ok(
+  $$ UPDATE public.kamp_omgang SET registrert_av = NULL WHERE id = 9910 $$,
+  'kamp_omgang registrert_av can be cleared after completion'
+);
+
+SELECT lives_ok(
+  $$ UPDATE public.xkast_kongelag_omgang SET registrert_av = NULL WHERE id = 9910 $$,
+  'xkast_kongelag_omgang registrert_av can be cleared after completion'
+);
+
+SELECT throws_ok(
+  $$ UPDATE public.kamp_omgang SET registrert_av = '00000000-0000-0000-0000-000000000102' WHERE id = 9910 $$,
+  'P0001', NULL,
+  'kamp_omgang registrert_av cannot be reassigned after completion'
+);
+
+SELECT throws_ok(
+  $$ UPDATE public.kamp_omgang SET registrert_av = NULL, score = 9 WHERE id = 9910 $$,
+  'P0001', NULL,
+  'clearing kamp_omgang registrert_av does not smuggle through a score change'
+);
+
+SELECT throws_ok(
+  $$ UPDATE public.xkast_kongelag_omgang SET registrert_av = NULL, poeng = 9 WHERE id = 9910 $$,
+  'P0001', NULL,
+  'clearing xkast_kongelag_omgang registrert_av does not smuggle through a poeng change'
+);
+
+SELECT is(
+  (SELECT score FROM public.kamp_omgang WHERE id = 9910),
+  6,
+  'the score survived every attempt to change it after completion'
 );
 
 -- ── Case 3: complete_stevne() still works end-to-end (regression check) ─────

@@ -1,6 +1,6 @@
 BEGIN;
 
-SELECT plan(9);
+SELECT plan(11);
 
 -- ── Seed (postgres superuser — bypasses RLS) ──────────────────────────────────
 -- Pins down slett_brukarkonto's authorization after admin deletion was added:
@@ -18,6 +18,31 @@ VALUES
 
 INSERT INTO public.kjonn (id, navn, kortform) VALUES (9980, 'Slett Test', 'X');
 INSERT INTO public.kaster (id, fornavn, etternavn, kjonnid) VALUES (9981, 'Kobla', 'Utøvar', 9980);
+
+-- A completed stevne where account 81 registered throws on both scoring models.
+-- The lock triggers freeze that data, so deleting the account has to be able to
+-- clear registrert_av through the lock — it could not before 20260922171116.
+INSERT INTO public.stevne (id, navn, dato, erfullfort) VALUES (9982, 'Slett Test Stevne', '2026-01-01', false);
+
+INSERT INTO public.kamp (id, match_id, stevneid, fase, runde_nummer)
+OVERRIDING SYSTEM VALUE VALUES (9982, 'slett-test', 9982, 'innledende', 1);
+
+INSERT INTO public.kamp_spelar (id, kampid, kasterid)
+OVERRIDING SYSTEM VALUE VALUES (9982, 9982, 9981);
+
+INSERT INTO public.kamp_omgang (id, kamp_spelar_id, omgang, score, antall_ringer, registrert_av)
+OVERRIDING SYSTEM VALUE VALUES (9982, 9982, 1, 4, 1, '00000000-0000-0000-0000-000000000081');
+
+INSERT INTO public.xkast_kongelag (id, stevneid, fase, pulje, bane_nummer)
+OVERRIDING SYSTEM VALUE VALUES (9982, 9982, 'innledende', 1, 1);
+
+INSERT INTO public.xkast_kongelag_deltaker (id, xkast_kongelag_id, kasterid)
+OVERRIDING SYSTEM VALUE VALUES (9982, 9982, 9981);
+
+INSERT INTO public.xkast_kongelag_omgang (id, xkast_kongelag_deltaker_id, omgang, poeng, antall_ringer, registrert_av)
+OVERRIDING SYSTEM VALUE VALUES (9982, 9982, 1, 12, 2, '00000000-0000-0000-0000-000000000081');
+
+UPDATE public.stevne SET erfullfort = true WHERE id = 9982;
 
 -- Any pre-existing admin would defeat the last-admin test; this suite owns the
 -- whole role table for the length of the transaction.
@@ -87,6 +112,18 @@ SELECT is(
   (SELECT count(*)::int FROM public.kaster WHERE id = 9981),
   1,
   'the thrower profile behind the account is untouched'
+);
+
+SELECT is(
+  (SELECT registrert_av FROM public.kamp_omgang WHERE id = 9982),
+  NULL,
+  'kamp_omgang in a completed stevne lost its pointer to the deleted account'
+);
+
+SELECT is(
+  (SELECT registrert_av FROM public.xkast_kongelag_omgang WHERE id = 9982),
+  NULL,
+  'xkast_kongelag_omgang in a completed stevne lost its pointer too'
 );
 
 -- ── The last admin cannot be deleted ──────────────────────────────────────────

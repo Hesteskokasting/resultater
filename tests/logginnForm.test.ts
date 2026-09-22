@@ -23,7 +23,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/supabase", () => ({ supabase: {} }));
 vi.mock("@/services/authService", () => ({
-  GOOGLE_SIGN_IN_PENDING_KEY: "google-pending",
+  OAUTH_SIGN_IN_PENDING_KEY: "oauth-pending",
   get SIGNUP_ENABLED() {
     return mocks.flags.signupEnabled;
   },

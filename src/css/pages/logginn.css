@@ -22,13 +22,37 @@
 }
 
 .btn-google,
+.btn-facebook,
 .btn-apple {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
   background: var(--flate);
   color: var(--tekst);
   border: 1px solid var(--kant);
 }
 
+.social-logo {
+  width: 20px;
+  height: 20px;
+}
+
+/* :root is dark mode, so the dark variant is the default one. */
+.social-logo-light {
+  display: none;
+}
+
+[data-theme="light"] .social-logo-light {
+  display: block;
+}
+
+[data-theme="light"] .social-logo-dark {
+  display: none;
+}
+
 .btn-google:hover,
+.btn-facebook:hover,
 .btn-apple:hover {
   background: var(--primaer-hover);
 }

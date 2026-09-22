@@ -1,7 +1,10 @@
 import { Capacitor } from "@capacitor/core";
 import googlePlayBadge from "@/assets/google-play-badge-nb-NO.svg";
+import facebookLogo from "@/assets/Facebook_logo_primary.png";
+import googleLogoDark from "@/assets/Google_logo_pill_dark.svg";
+import googleLogoLight from "@/assets/Google_logo_pill_light.svg";
 import {
-  GOOGLE_SIGN_IN_PENDING_KEY,
+  OAUTH_SIGN_IN_PENDING_KEY,
   SIGNUP_ENABLED,
   getUser,
   isAdmin,
@@ -9,6 +12,7 @@ import {
   signIn,
   signInErrorMessage,
   signInWithApple,
+  signInWithFacebook,
   signInWithGoogle,
   signUp,
 } from "@/services/authService";
@@ -73,9 +77,9 @@ export async function render(container: HTMLElement): Promise<void> {
   const auth = await getUser();
   if (auth) {
     const redirect = getRedirectParam();
-    const returningFromGoogle = sessionStorage.getItem(GOOGLE_SIGN_IN_PENDING_KEY) === "1";
-    if (returningFromGoogle) sessionStorage.removeItem(GOOGLE_SIGN_IN_PENDING_KEY);
-    if (redirect || returningFromGoogle) {
+    const returningFromOauth = sessionStorage.getItem(OAUTH_SIGN_IN_PENDING_KEY) === "1";
+    if (returningFromOauth) sessionStorage.removeItem(OAUTH_SIGN_IN_PENDING_KEY);
+    if (redirect || returningFromOauth) {
       location.hash = await resolvePostLoginDestination(redirect);
       return;
     }
@@ -122,11 +126,13 @@ export async function render(container: HTMLElement): Promise<void> {
     provider: string,
     className: string,
     signInFn: () => Promise<{ error: { message: string } | null }>,
+    logoHtml = "",
   ): HTMLButtonElement {
     const button = document.createElement("button");
     button.type = "button";
     button.className = `btn ${className} w-100`;
     button.dataset.provider = provider;
+    button.innerHTML = `<span class="social-label"></span>${logoHtml}`;
     socialButtons.push(button);
     button.addEventListener("click", async () => {
       button.disabled = true;
@@ -148,8 +154,19 @@ export async function render(container: HTMLElement): Promise<void> {
   }
 
   outer.appendChild(
-    createSocialLoginButton("Google", "btn-google", () =>
-      signInWithGoogle(getRedirectParam() ?? undefined),
+    createSocialLoginButton(
+      "Google",
+      "btn-google",
+      () => signInWithGoogle(getRedirectParam() ?? undefined),
+      `<img class="social-logo social-logo-light" src="${googleLogoLight}" alt=""><img class="social-logo social-logo-dark" src="${googleLogoDark}" alt="">`,
+    ),
+  );
+  outer.appendChild(
+    createSocialLoginButton(
+      "Facebook",
+      "btn-facebook mt-2",
+      () => signInWithFacebook(getRedirectParam() ?? undefined),
+      `<img class="social-logo" src="${facebookLogo}" alt="">`,
     ),
   );
   // App Store guideline 4.8: offering Google sign-in on iOS requires offering
@@ -234,7 +251,7 @@ export async function render(container: HTMLElement): Promise<void> {
     // med Google" above the form invites exactly the wrong click.
     const verb = isRegister ? "Registrer deg med" : "Logg inn med";
     for (const button of socialButtons) {
-      button.textContent = `${verb} ${button.dataset.provider}`;
+      button.querySelector(".social-label")!.textContent = `${verb} ${button.dataset.provider}`;
       button.classList.toggle("d-none", isReset);
     }
     socialHint.classList.toggle("d-none", isRegister || isReset);
