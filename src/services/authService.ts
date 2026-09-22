@@ -225,14 +225,14 @@ export async function requestPasswordReset(email: string) {
 }
 
 /**
- * Turns a recovery token from the mail link into a session, so the new-password
- * form can call updatePassword. Only needed for a {{ .TokenHash }} link; a
- * {{ .ConfirmationURL }} link arrives with a ?code= that supabase-js exchanges by
- * itself — but that exchange needs the PKCE verifier this browser stored when the
- * reset was requested, so it fails if the mail is opened on another device.
+ * Turns the token from a recovery or invite mail into a session, so the
+ * new-password form can call updatePassword. Only needed for a {{ .TokenHash }}
+ * link; a {{ .ConfirmationURL }} link instead goes through /auth/v1/verify, which
+ * hands the tokens back in the URL fragment — and that fragment overwrites the
+ * hash route, so the mail templates must use {{ .TokenHash }}.
  */
-export async function verifyRecoveryToken(tokenHash: string) {
-  return supabase.auth.verifyOtp({ token_hash: tokenHash, type: "recovery" });
+export async function verifyEmailToken(tokenHash: string, type: "recovery" | "invite") {
+  return supabase.auth.verifyOtp({ token_hash: tokenHash, type });
 }
 
 /**

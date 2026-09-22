@@ -1,5 +1,5 @@
 /**
- * The recovery-mail landing page. Two link shapes reach it — a {{ .TokenHash }}
+ * The recovery- and invite-mail landing page. Two link shapes reach it — a {{ .TokenHash }}
  * link it redeems itself, and a {{ .ConfirmationURL }} link whose ?code= supabase-js
  * has already exchanged — and both collapse to the same question: is there a session
  * to change the password on? A dead link must say so rather than show a form that
@@ -9,14 +9,14 @@
 const mocks = vi.hoisted(() => ({
   getUser: vi.fn(),
   updatePassword: vi.fn(),
-  verifyRecoveryToken: vi.fn(),
+  verifyEmailToken: vi.fn(),
 }));
 
 vi.mock("@/supabase", () => ({ supabase: {} }));
 vi.mock("@/services/authService", () => ({
   getUser: mocks.getUser,
   updatePassword: mocks.updatePassword,
-  verifyRecoveryToken: mocks.verifyRecoveryToken,
+  verifyEmailToken: mocks.verifyEmailToken,
 }));
 vi.mock("@/utils/logError", () => ({ logError: vi.fn() }));
 
@@ -48,7 +48,7 @@ beforeEach(() => {
   location.hash = "#/nytt-passord";
   mocks.getUser.mockResolvedValue(signedIn);
   mocks.updatePassword.mockResolvedValue({ error: null });
-  mocks.verifyRecoveryToken.mockResolvedValue({ error: null });
+  mocks.verifyEmailToken.mockResolvedValue({ error: null });
 });
 
 describe("nytt passord", () => {
@@ -56,14 +56,22 @@ describe("nytt passord", () => {
     location.hash = "#/nytt-passord?token_hash=abc123";
     await renderNewPassword(host());
 
-    expect(mocks.verifyRecoveryToken).toHaveBeenCalledWith("abc123");
+    expect(mocks.verifyEmailToken).toHaveBeenCalledWith("abc123", "recovery");
     expect(form()).not.toBeNull();
+  });
+
+  it("redeems an invite link as an invite, not a recovery", async () => {
+    location.hash = "#/nytt-passord?token_hash=inv1&type=invite";
+    await renderNewPassword(host());
+
+    expect(mocks.verifyEmailToken).toHaveBeenCalledWith("inv1", "invite");
+    expect(el().querySelector("h2")!.textContent).toBe("Set passord");
   });
 
   it("takes the session supabase-js already established from a ?code= link", async () => {
     await renderNewPassword(host());
 
-    expect(mocks.verifyRecoveryToken).not.toHaveBeenCalled();
+    expect(mocks.verifyEmailToken).not.toHaveBeenCalled();
     expect(form()).not.toBeNull();
   });
 
@@ -76,8 +84,16 @@ describe("nytt passord", () => {
     expect(el().querySelector('a[href="#/logginn"]')).not.toBeNull();
   });
 
+  it("names the invitation, not a reset link, when an invite is dead", async () => {
+    mocks.getUser.mockResolvedValue(null);
+    location.hash = "#/nytt-passord?token_hash=stale&type=invite";
+    await renderNewPassword(host());
+
+    expect(el().textContent).toContain("Invitasjonen er ugyldig");
+  });
+
   it("still reports a dead link when redeeming the token fails", async () => {
-    mocks.verifyRecoveryToken.mockResolvedValue({ error: { message: "Token has expired" } });
+    mocks.verifyEmailToken.mockResolvedValue({ error: { message: "Token has expired" } });
     mocks.getUser.mockResolvedValue(null);
     location.hash = "#/nytt-passord?token_hash=stale";
     await renderNewPassword(host());
