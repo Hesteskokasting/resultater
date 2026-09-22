@@ -10,13 +10,18 @@ const mocks = vi.hoisted(() => ({
   getUser: vi.fn(),
   updatePassword: vi.fn(),
   verifyEmailToken: vi.fn(),
+  linkGoogleIdentity: vi.fn(),
+  isNativePlatform: vi.fn(() => false),
 }));
+
+vi.mock("@capacitor/core", () => ({ Capacitor: { isNativePlatform: mocks.isNativePlatform } }));
 
 vi.mock("@/supabase", () => ({ supabase: {} }));
 vi.mock("@/services/authService", () => ({
   getUser: mocks.getUser,
   updatePassword: mocks.updatePassword,
   verifyEmailToken: mocks.verifyEmailToken,
+  linkGoogleIdentity: mocks.linkGoogleIdentity,
 }));
 vi.mock("@/utils/logError", () => ({ logError: vi.fn() }));
 
@@ -49,7 +54,11 @@ beforeEach(() => {
   mocks.getUser.mockResolvedValue(signedIn);
   mocks.updatePassword.mockResolvedValue({ error: null });
   mocks.verifyEmailToken.mockResolvedValue({ error: null });
+  mocks.linkGoogleIdentity.mockResolvedValue({ error: null });
+  mocks.isNativePlatform.mockReturnValue(false);
 });
+
+const googleButton = () => el().querySelector<HTMLButtonElement>("#np-google");
 
 describe("nytt passord", () => {
   it("redeems a token_hash link before looking for a session", async () => {
@@ -66,6 +75,40 @@ describe("nytt passord", () => {
 
     expect(mocks.verifyEmailToken).toHaveBeenCalledWith("inv1", "invite");
     expect(el().querySelector("h2")!.textContent).toBe("Set passord");
+  });
+
+  it("offers Google as a way out of the invite without picking a password", async () => {
+    location.hash = "#/nytt-passord?token_hash=inv1&type=invite";
+    await renderNewPassword(host());
+    googleButton()!.click();
+
+    await vi.waitFor(() => expect(mocks.linkGoogleIdentity).toHaveBeenCalled());
+  });
+
+  it("does not offer Google on a plain password reset", async () => {
+    await renderNewPassword(host());
+
+    expect(googleButton()).toBeNull();
+  });
+
+  it("hides the Google button in the native app, where the redirect flow cannot run", async () => {
+    mocks.isNativePlatform.mockReturnValue(true);
+    location.hash = "#/nytt-passord?token_hash=inv1&type=invite";
+    await renderNewPassword(host());
+
+    expect(googleButton()).toBeNull();
+  });
+
+  it("keeps the Google button usable when linking fails", async () => {
+    mocks.linkGoogleIdentity.mockResolvedValue({
+      error: { message: "Manual linking is disabled" },
+    });
+    location.hash = "#/nytt-passord?token_hash=inv1&type=invite";
+    await renderNewPassword(host());
+    googleButton()!.click();
+
+    await vi.waitFor(() => expect(error().textContent).toContain("Kunne ikkje koble til Google"));
+    expect(googleButton()!.disabled).toBe(false);
   });
 
   it("takes the session supabase-js already established from a ?code= link", async () => {

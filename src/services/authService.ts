@@ -197,6 +197,21 @@ export async function signInWithApple(): Promise<{ error: { message: string } | 
 }
 
 /**
+ * Adds Google as a login method to the account the caller is ALREADY signed in as.
+ * The invite mail signs the user in before they have any credential, so this is
+ * how they leave that page with a way back in without picking a password.
+ *
+ * Not signInWithGoogle: that starts a fresh sign-in, which lands on the invited
+ * account only when Supabase's automatic linking happens to match the verified
+ * address — and creates a second account, or fails outright against the closed
+ * sign-up, when it does not. Needs "Manual linking" enabled on the project.
+ */
+export async function linkGoogleIdentity() {
+  const target = `${window.location.origin}${window.location.pathname}#/minside`;
+  return supabase.auth.linkIdentity({ provider: "google", options: { redirectTo: target } });
+}
+
+/**
  * Mirrors "Allow new users to sign up" being off on the Supabase project: the
  * backend already refuses, so this only keeps the UI from offering a dead end.
  * Flip back to true when sign-up opens again.
