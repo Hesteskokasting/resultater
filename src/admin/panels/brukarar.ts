@@ -8,7 +8,7 @@ import { errorMessage } from "@/utils/errorMessage";
 import { formatDate } from "@/utils/date";
 import { throwerName, throwerNameLastFirst } from "@/utils/kaster";
 import { getAllUsers, updateLinkStatus, updateUserRole } from "@/services/adminService";
-import { getAllThrowerList } from "@/services/kasterService";
+import { getActiveThrowerList } from "@/services/kasterService";
 import { deleteUserAccount } from "@/services/accountService";
 import { getUser } from "@/services/authService";
 import {
@@ -51,7 +51,7 @@ export async function render(el: HTMLElement): Promise<void> {
   const [{ data, error }, auth, { data: throwers, error: throwerError }] = await Promise.all([
     getAllUsers(),
     getUser(),
-    getAllThrowerList(),
+    getActiveThrowerList(),
   ]);
   // Without the register the row pickers would render blank next to a link that
   // is actually set, so a failure here stops the panel rather than misreporting.
@@ -71,8 +71,7 @@ export async function render(el: HTMLElement): Promise<void> {
 
   const throwerOptions = throwers.map((k) => ({
     id: k.id,
-    active: k.eraktiv ?? false,
-    label: throwerNameLastFirst(k) + (k.eraktiv ? "" : " (inaktiv)"),
+    label: throwerNameLastFirst(k),
     sublabel: k.klubb?.navn ?? null,
   }));
 
@@ -280,10 +279,19 @@ export async function render(el: HTMLElement): Promise<void> {
     // carries the requested id in kobling_kasterid, and treating that as taken
     // hid the thrower a row is actually linked to.
     const taken = new Set(data.filter((u) => u.id !== user.id).map((u) => u.kasterid));
-    // This row's own link always stays in the list, whatever its state, so the
-    // field names it instead of looking empty. Inactive throwers are not offered.
+    const items = throwerOptions.filter((k) => k.id === linkedId || !taken.has(k.id));
+    // Only active throwers are fetched. A link to an inactive one is added from
+    // the lookup so the field names it instead of looking empty.
+    const own = linkedId != null ? throwerMap.get(linkedId) : undefined;
+    if (own && !items.some((k) => k.id === own.id)) {
+      items.unshift({
+        id: own.id,
+        label: `${throwerNameLastFirst(own)} (inaktiv)`,
+        sublabel: own.klubb?.navn ?? null,
+      });
+    }
     const picker = createSearchSelect({
-      items: throwerOptions.filter((k) => k.id === linkedId || (k.active && !taken.has(k.id))),
+      items,
       value: linkedId,
       placeholder: "Søk utøvar…",
       clearLabel: "Fjern kobling",

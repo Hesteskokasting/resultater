@@ -13,7 +13,7 @@ const mocks = vi.hoisted(() => ({
   getAllClubsForAdmin: vi.fn(),
   getThrowerAdminList: vi.fn(),
   getThrowersById: vi.fn(),
-  getAllThrowerList: vi.fn(),
+  getActiveThrowerList: vi.fn(),
   getRegistrationCountsForTournaments: vi.fn(),
   getAllUsers: vi.fn(),
   getUserEmails: vi.fn(),
@@ -42,7 +42,7 @@ vi.mock("@/services/klubbService", () => ({
 vi.mock("@/services/kasterService", () => ({
   getThrowerAdminList: mocks.getThrowerAdminList,
   getThrowersById: mocks.getThrowersById,
-  getAllThrowerList: mocks.getAllThrowerList,
+  getActiveThrowerList: mocks.getActiveThrowerList,
 }));
 vi.mock("@/services/adminStatsService", () => ({
   getRegistrationCountsForTournaments: mocks.getRegistrationCountsForTournaments,
@@ -80,7 +80,7 @@ const {
   getAllClubsForAdmin,
   getThrowerAdminList,
   getThrowersById,
-  getAllThrowerList,
+  getActiveThrowerList,
   getRegistrationCountsForTournaments,
   getAllUsers,
   getUserEmails,
@@ -570,11 +570,10 @@ describe("brukarar panel", () => {
     });
     updateUserRole.mockResolvedValue({ error: null });
     updateLinkStatus.mockResolvedValue({ error: null });
-    getAllThrowerList.mockResolvedValue({
+    getActiveThrowerList.mockResolvedValue({
       data: [
         { id: 5, fornavn: "Ola", etternavn: "Nordmann", eraktiv: true, klubb: { navn: "Oslo HK" } },
         { id: 9, fornavn: "Kari", etternavn: "Ås", eraktiv: true, klubb: { navn: "Oslo HK" } },
-        { id: 12, fornavn: "Per", etternavn: "Slutta", eraktiv: false, klubb: { navn: "Oslo HK" } },
       ],
       error: null,
     });
@@ -653,7 +652,7 @@ describe("brukarar panel", () => {
     const el = await renderAll();
 
     const row = selectRow(el, 1);
-    // Thrower 5 belongs to the first user, and inactive throwers are left out.
+    // Thrower 5 belongs to the first user, so it is not offered here.
     const input = row.querySelector<HTMLInputElement>(".search-select input[type=text]")!;
     input.value = "a";
     input.dispatchEvent(new Event("input"));
@@ -671,6 +670,20 @@ describe("brukarar panel", () => {
       ".search-select input[type=text]",
     )!;
     expect(input.disabled).toBe(true);
+  });
+
+  it("names a link to an inactive thrower, which the active list leaves out", async () => {
+    getActiveThrowerList.mockResolvedValue({
+      data: [
+        { id: 9, fornavn: "Kari", etternavn: "Ås", eraktiv: true, klubb: { navn: "Oslo HK" } },
+      ],
+      error: null,
+    });
+    const el = await renderAll();
+    const input = selectRow(el, 0).querySelector<HTMLInputElement>(
+      ".search-select input[type=text]",
+    )!;
+    expect(input.value).toBe("Nordmann Ola (inaktiv)");
   });
 
   it("still names a link another profile once requested", async () => {
