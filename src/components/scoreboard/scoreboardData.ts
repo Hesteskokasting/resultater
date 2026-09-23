@@ -78,14 +78,17 @@ export function lastOmgangNumber(rounds: { omgang: number }[]): number {
  * Placement race: replays the omgangar and notes the omgang each side reached
  * its target in. Repeats within an omgang because a finished side leaving can
  * make the next one finished too, and the last side left is ranked with it.
+ * Sides finishing in the same omgang are ranked by total; equal totals share a
+ * place (1-1-3), the side left over always takes the last place.
  */
 export function computeWinOrder(
   rounds: MatchRoundRow[],
   sideIds: number[][],
-): { order: number[]; finishedAtOmgang: (number | null)[] } {
+): { order: number[]; places: (number | null)[]; finishedAtOmgang: (number | null)[] } {
   const finishedAtOmgang: (number | null)[] = sideIds.map(() => null);
+  const places: (number | null)[] = sideIds.map(() => null);
   const order: number[] = [];
-  if (!rounds.length) return { order, finishedAtOmgang };
+  if (!rounds.length) return { order, places, finishedAtOmgang };
 
   const maxOmgang = lastOmgangNumber(rounds);
   const active = new Set(sideIds.map((_, i) => i));
@@ -96,22 +99,30 @@ export function computeWinOrder(
       const row = roundFor(rounds, sideIds[i] ?? [], omgang);
       if (row) totals[i] = (totals[i] ?? 0) + (row.score ?? 0);
     }
+    const finishers: number[] = [];
     let finished = findFinishedPlayer(active, totals);
     while (finished !== null && active.size > 1) {
-      order.push(finished);
+      finishers.push(finished);
       finishedAtOmgang[finished] = omgang;
       active.delete(finished);
       finished = findFinishedPlayer(active, totals);
     }
+    finishers.sort((a, b) => (totals[b] ?? 0) - (totals[a] ?? 0));
+    finishers.forEach((i, k) => {
+      const prev = finishers[k - 1];
+      places[i] = prev != null && totals[prev] === totals[i] ? places[prev]! : order.length + 1;
+      order.push(i);
+    });
   }
 
   if (active.size === 1 && order.length === sideIds.length - 1) {
     for (const i of active) {
+      places[i] = order.length + 1;
       order.push(i);
       finishedAtOmgang[i] = maxOmgang;
     }
   }
-  return { order, finishedAtOmgang };
+  return { order, places, finishedAtOmgang };
 }
 
 /** Writes one row per side that has a thrower this omgang. */

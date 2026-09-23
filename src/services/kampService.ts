@@ -263,7 +263,15 @@ export type RoundScoreRow = {
   antall_ringer: number | null;
 };
 
-type MatchPlayerUpdateValues = { score_poeng: number; kamp_poeng: number; antall_ringer: number };
+type MatchPlayerUpdateValues = {
+  score_poeng: number;
+  kamp_poeng: number;
+  antall_ringer: number;
+  kamp_plassering: number | null;
+};
+
+/** Sides best first, by their rep's kasterid. Sides that tie share a plassering (1-1-3). */
+export type SideRanking = { kasterid: number; plassering: number }[];
 
 /**
  * One match side at confirmation. playerIds are kamp_spelar ids ordered by
@@ -306,6 +314,10 @@ export type MatchPlayerUpdates = {
  *
  * kamp_poeng is only meaningful for two sides; a 3-side match ranks by
  * placement instead and every player keeps kamp_poeng 0.
+ *
+ * kamp_plassering is shared by the side: `placements` when the caller knows the
+ * finishing order (3-player race), otherwise ranked by total with equal totals
+ * sharing a place.
  */
 export function buildMatchPlayerUpdates(params: {
   roundData: RoundScoreRow[];
@@ -313,13 +325,15 @@ export function buildMatchPlayerUpdates(params: {
   /** Per-side HCP, in `sides` order. */
   hcp?: number[];
   erWalkover?: boolean;
+  /** Per-side plassering, in `sides` order. */
+  placements?: (number | null)[];
 }): MatchPlayerUpdates {
-  const { roundData, sides, hcp = [], erWalkover = false } = params;
+  const { roundData, sides, hcp = [], erWalkover = false, placements } = params;
 
   const updates = new Map<number, MatchPlayerUpdateValues>();
   for (const side of sides) {
     for (const id of side?.playerIds ?? []) {
-      updates.set(id, { score_poeng: 0, kamp_poeng: 0, antall_ringer: 0 });
+      updates.set(id, { score_poeng: 0, kamp_poeng: 0, antall_ringer: 0, kamp_plassering: null });
     }
   }
 
@@ -366,6 +380,13 @@ export function buildMatchPlayerUpdates(params: {
     for (const id of sides[1]?.playerIds ?? []) updates.get(id)!.kamp_poeng = kp2;
   }
 
+  sides.forEach((side, i) => {
+    const place =
+      placements?.[i] ??
+      1 + sides.filter((other, j) => other && (totals[j] ?? 0) > (totals[i] ?? 0)).length;
+    for (const id of side?.playerIds ?? []) updates.get(id)!.kamp_plassering = place;
+  });
+
   return { updates, totals };
 }
 
@@ -399,8 +420,9 @@ async function _resolveMatchScores(params: {
   sides: (MatchSideConfirm | null)[];
   hcp?: number[];
   erWalkover: boolean;
+  placements?: (number | null)[];
 }): Promise<{ error: unknown; updates: MatchPlayerUpdates["updates"]; totals: number[] }> {
-  const { sides, hcp, erWalkover } = params;
+  const { sides, hcp, erWalkover, placements } = params;
   const allIds = sides.flatMap((side) => side?.playerIds ?? []);
   const empty = { updates: new Map<number, MatchPlayerUpdateValues>(), totals: sides.map(() => 0) };
   if (!allIds.length) return { error: null, ...empty };
@@ -444,6 +466,7 @@ async function _resolveMatchScores(params: {
     sides: resolvedSides,
     hcp,
     erWalkover,
+    placements,
   });
   return { error: null, updates, totals };
 }
@@ -474,11 +497,11 @@ export type MatchOutcome =
   | { type: "innledende" }
   /**
    * Cup where the ranking is derived from the scores: the lowest side total is
-   * eliminated, unless orderedKasterids ranks a 3-side match explicitly. Goes
+   * eliminated, unless confirmMatch's ranking orders a 3-side match. Goes
    * through the SECURITY DEFINER RPC, because RLS blocks a participant from
    * writing kamp_spelar and resultat once er_bekreftet is set.
    */
-  | { type: "cup-derived"; orderedKasterids?: number[] | null }
+  | { type: "cup-derived" }
   /**
    * Cup where the caller supplies the ranking outright — who advances in what
    * order, who is out — and it is written directly to kamp_spelar and resultat.
@@ -509,15 +532,20 @@ export async function confirmMatch(params: {
   sides: (MatchSideConfirm | null)[];
   hcp?: number[];
   erWalkover?: boolean;
+  /** Finishing order from the 3-player race; omitted = ranked by side total. */
+  ranking?: SideRanking | null;
   outcome: MatchOutcome;
 }): Promise<{ error: unknown }> {
-  const { kampId, sides, hcp, erWalkover = false, outcome } = params;
+  const { kampId, sides, hcp, erWalkover = false, ranking, outcome } = params;
+  const placements = ranking
+    ? sides.map((side) => ranking.find((r) => r.kasterid === side?.kasterid)?.plassering ?? null)
+    : undefined;
 
   const {
     error: scoreErr,
     updates,
     totals,
-  } = await _resolveMatchScores({ sides, hcp, erWalkover });
+  } = await _resolveMatchScores({ sides, hcp, erWalkover, placements });
   if (scoreErr) return { error: scoreErr };
 
   // Innledende writes the scores and the confirm flag in one RPC — the two
@@ -541,9 +569,7 @@ export async function confirmMatch(params: {
 
   if (outcome.type === "cup-derived") {
     const eliminatedId =
-      outcome.orderedKasterids?.length === 3
-        ? (outcome.orderedKasterids[2] ?? null)
-        : losingSideKasterid(sides, totals);
+      ranking?.length === 3 ? (ranking[2]?.kasterid ?? null) : losingSideKasterid(sides, totals);
     const { error } = await supabase.rpc("bekreft_avsluttende_kamp_deltakar", {
       p_kamp_id: kampId,
       p_eliminert_kasterid: eliminatedId ?? undefined,

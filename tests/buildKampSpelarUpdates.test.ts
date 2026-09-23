@@ -136,7 +136,12 @@ describe("buildMatchPlayerUpdates — Singel", () => {
         ...NO_HCP,
         erWalkover: true,
       });
-      expect(res.updates.get(P1_ID)).toEqual({ score_poeng: 21, kamp_poeng: 2, antall_ringer: 0 });
+      expect(res.updates.get(P1_ID)).toEqual({
+        score_poeng: 21,
+        kamp_poeng: 2,
+        antall_ringer: 0,
+        kamp_plassering: 1,
+      });
     });
 
     it("p2 gets score_poeng=0 kamp_poeng=0 antall_ringer=0", () => {
@@ -146,7 +151,12 @@ describe("buildMatchPlayerUpdates — Singel", () => {
         ...NO_HCP,
         erWalkover: true,
       });
-      expect(res.updates.get(P2_ID)).toEqual({ score_poeng: 0, kamp_poeng: 0, antall_ringer: 0 });
+      expect(res.updates.get(P2_ID)).toEqual({
+        score_poeng: 0,
+        kamp_poeng: 0,
+        antall_ringer: 0,
+        kamp_plassering: 2,
+      });
     });
 
     it("ignores roundData when erWalkover is true", () => {
@@ -299,8 +309,18 @@ describe("buildMatchPlayerUpdates — Par/Mix", () => {
       ...NO_HCP,
       erWalkover: true,
     });
-    expect(res.updates.get(A1)).toEqual({ score_poeng: 21, kamp_poeng: 2, antall_ringer: 0 });
-    expect(res.updates.get(A2)).toEqual({ score_poeng: 0, kamp_poeng: 2, antall_ringer: 0 });
+    expect(res.updates.get(A1)).toEqual({
+      score_poeng: 21,
+      kamp_poeng: 2,
+      antall_ringer: 0,
+      kamp_plassering: 1,
+    });
+    expect(res.updates.get(A2)).toEqual({
+      score_poeng: 0,
+      kamp_poeng: 2,
+      antall_ringer: 0,
+      kamp_plassering: 1,
+    });
   });
 
   it("quick-score fallback: side total on the rep, partner 0, kamp_poeng for all", () => {
@@ -355,5 +375,30 @@ describe("toConfirmSide", () => {
 
   it("keeps an explicit baseScore", () => {
     expect(toConfirmSide(side, { baseScore: 21 })?.baseScore).toBe(21);
+  });
+});
+
+describe("buildMatchPlayerUpdates — kamp_plassering", () => {
+  const p3: MatchSideConfirm = { playerIds: [303], baseScore: 0 };
+
+  it("shares first place when the totals are equal", () => {
+    const res = buildMatchPlayerUpdates({
+      roundData: [row(P1_ID, 21, 0), row(P2_ID, 21, 0)],
+      sides: [side1, side2],
+      ...NO_HCP,
+    });
+    expect(res.updates.get(P1_ID)?.kamp_plassering).toBe(1);
+    expect(res.updates.get(P2_ID)?.kamp_plassering).toBe(1);
+  });
+
+  it("takes the finishing order over the totals when it is given", () => {
+    const res = buildMatchPlayerUpdates({
+      roundData: [row(P1_ID, 21, 0), row(P2_ID, 23, 0), row(303, 15, 0)],
+      sides: [side1, side2, p3],
+      placements: [1, 2, 3],
+    });
+    expect([P1_ID, P2_ID, 303].map((id) => res.updates.get(id)?.kamp_plassering)).toEqual([
+      1, 2, 3,
+    ]);
   });
 });

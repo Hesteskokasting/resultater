@@ -145,6 +145,7 @@ describe("kamp page — confirming from the scoreboard", () => {
       ],
       hcp: [0, 0],
       erWalkover: false,
+      ranking: null,
       outcome: { type: "innledende" },
     });
   });
@@ -195,7 +196,6 @@ describe("kamp page — confirming from the scoreboard", () => {
 
     expect(mocks.confirmMatch.mock.calls[0]![0].outcome).toEqual({
       type: "cup-derived",
-      orderedKasterids: null,
     });
   });
 

@@ -37,6 +37,7 @@ interface MatchPlayerInsert {
   score_poeng: number;
   kamp_poeng: number;
   antall_ringer: number;
+  kamp_plassering: number | null;
 }
 interface SwissMatchup {
   p1: number;
@@ -231,6 +232,7 @@ export function pushPlayerRows(
   kasterids: number[],
   scorePoeng = 0,
   kampPoeng = 0,
+  plassering: number | null = null,
 ): void {
   // Side score lands on the representative only, so a pair sums to the same as a single.
   for (const [i, kasterid] of kasterids.entries()) {
@@ -240,6 +242,7 @@ export function pushPlayerRows(
       score_poeng: i === 0 ? scorePoeng : 0,
       kamp_poeng: kampPoeng,
       antall_ringer: 0,
+      kamp_plassering: plassering,
     });
   }
 }
@@ -294,6 +297,7 @@ async function _insertRounds(
       posToKasterids[matchup.p1Pos] ?? [],
       matchup.isWalkover ? 21 : 0,
       matchup.isWalkover ? 2 : 0,
+      matchup.isWalkover ? 1 : null,
     );
     if (matchup.p2Pos != null)
       pushPlayerRows(playerRows, kampid, posToKasterids[matchup.p2Pos] ?? []);
@@ -547,6 +551,7 @@ export async function generateNextSwissRound(
       snrToKasterids[matchup.p1] ?? [],
       matchup.isWalkover ? 21 : 0,
       matchup.isWalkover ? 2 : 0,
+      matchup.isWalkover ? 1 : null,
     );
     if (matchup.p2 != null) pushPlayerRows(playerRows, kampid, snrToKasterids[matchup.p2] ?? []);
   }

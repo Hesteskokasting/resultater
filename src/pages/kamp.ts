@@ -20,7 +20,7 @@ import { throwerNameShort } from "@/utils/kaster";
 import { unsubscribeChannel } from "@/utils/data/realtime";
 import { setPageTitle } from "@/utils/pageTitle";
 import { onNavigateAway } from "@/utils/navigation";
-import type { MatchRow, MatchPlayerInMatch } from "@/services/kampService";
+import type { MatchRow, MatchPlayerInMatch, SideRanking } from "@/services/kampService";
 import type { Params } from "@/types";
 
 const KAMP_POINT_VALUES = [1, 2, 3, 4, 6];
@@ -83,7 +83,7 @@ function buildScoreboardOptions(
     pointValues: KAMP_POINT_VALUES,
     erArrangor: ctx.isOrganizer,
     erDeltakar: ctx.isParticipant,
-    onBekreft: (orderedKasterids) => confirmMatch(ctx, sides, orderedKasterids),
+    onBekreft: (ranking) => confirmMatch(ctx, sides, ranking),
     onKampBekreft:
       ctx.isOrganizer || ctx.isParticipant ? () => navigateToNextMatch(ctx) : undefined,
     omgangEl,
@@ -206,7 +206,7 @@ async function navigateToNextMatch(ctx: MatchViewCtx): Promise<void> {
 async function confirmMatch(
   ctx: MatchViewCtx,
   sides: SideState,
-  orderedKasterids?: number[] | null,
+  ranking?: SideRanking | null,
 ): Promise<void> {
   const { p1Side, p2Side, p3Side, hcp1, hcp2 } = sides;
   const erCup = ctx.match.fase === "avsluttende";
@@ -217,9 +217,8 @@ async function confirmMatch(
     sides: confirmSides,
     hcp: [hcp1, hcp2],
     erWalkover: ctx.match.er_walkover,
-    outcome: erCup
-      ? { type: "cup-derived", orderedKasterids: orderedKasterids ?? null }
-      : { type: "innledende" },
+    ranking: ranking ?? null,
+    outcome: erCup ? { type: "cup-derived" } : { type: "innledende" },
   });
   if (error) {
     showMatchError(ctx.container, "Feil ved bekreftelse av kamp: " + errorMessage(error));

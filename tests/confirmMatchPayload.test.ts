@@ -134,8 +134,14 @@ describe("confirmMatch — innledende", () => {
     expect(mocks.rpc).toHaveBeenCalledWith("bekreft_innledende_kamp", {
       p_kamp_id: 5,
       p_scores: [
-        { kamp_spelar_id: P1, score_poeng: 16, kamp_poeng: 2, antall_ringer: 5 },
-        { kamp_spelar_id: P2, score_poeng: 9, kamp_poeng: 0, antall_ringer: 2 },
+        {
+          kamp_spelar_id: P1,
+          score_poeng: 16,
+          kamp_poeng: 2,
+          antall_ringer: 5,
+          kamp_plassering: 1,
+        },
+        { kamp_spelar_id: P2, score_poeng: 9, kamp_poeng: 0, antall_ringer: 2, kamp_plassering: 2 },
       ],
     });
   });
@@ -166,8 +172,20 @@ describe("confirmMatch — innledende", () => {
     expect(mocks.rpc).toHaveBeenCalledWith("bekreft_innledende_kamp", {
       p_kamp_id: 5,
       p_scores: [
-        { kamp_spelar_id: P1, score_poeng: 21, kamp_poeng: 2, antall_ringer: 0 },
-        { kamp_spelar_id: P2, score_poeng: 13, kamp_poeng: 1, antall_ringer: 0 },
+        {
+          kamp_spelar_id: P1,
+          score_poeng: 21,
+          kamp_poeng: 2,
+          antall_ringer: 0,
+          kamp_plassering: 1,
+        },
+        {
+          kamp_spelar_id: P2,
+          score_poeng: 13,
+          kamp_poeng: 1,
+          antall_ringer: 0,
+          kamp_plassering: 2,
+        },
       ],
     });
   });
@@ -211,12 +229,12 @@ describe("confirmMatch — cup", () => {
     await confirmMatch({
       kampId: 7,
       sides,
-      outcome: { type: "cup-derived", orderedKasterids: null },
+      outcome: { type: "cup-derived" },
     });
 
     expect(scoreUpdates().map((c) => [c.filters[0]?.[1], c.payload])).toEqual([
-      [P1, { score_poeng: 16, kamp_poeng: 2, antall_ringer: 5 }],
-      [P2, { score_poeng: 9, kamp_poeng: 0, antall_ringer: 2 }],
+      [P1, { score_poeng: 16, kamp_poeng: 2, antall_ringer: 5, kamp_plassering: 1 }],
+      [P2, { score_poeng: 9, kamp_poeng: 0, antall_ringer: 2, kamp_plassering: 2 }],
     ]);
     expect(mocks.rpc).toHaveBeenCalledWith("bekreft_avsluttende_kamp_deltakar", {
       p_kamp_id: 7,
@@ -244,12 +262,15 @@ describe("confirmMatch — cup", () => {
 
     // The scores still come from the omgangar, not from the ranking
     expect(scoreUpdates().map((c) => c.payload)).toEqual([
-      { score_poeng: 16, kamp_poeng: 2, antall_ringer: 5 },
-      { score_poeng: 9, kamp_poeng: 0, antall_ringer: 2 },
+      { score_poeng: 16, kamp_poeng: 2, antall_ringer: 5, kamp_plassering: 1 },
+      { score_poeng: 9, kamp_poeng: 0, antall_ringer: 2, kamp_plassering: 2 },
     ]);
 
     const placements = mocks.calls.filter(
-      (c) => c.op === "update" && "kamp_plassering" in (c.payload as object),
+      (c) =>
+        c.op === "update" &&
+        "kamp_plassering" in (c.payload as object) &&
+        !("score_poeng" in (c.payload as object)),
     );
     expect(placements.map((c) => [c.payload, c.filters])).toEqual([
       [
