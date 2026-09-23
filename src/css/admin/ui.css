@@ -211,6 +211,11 @@ a.admin-stat:hover {
   min-width: 140px;
 }
 
+/* Filters in a toolbar size to their options instead of growing like .app-select. */
+.admin-toolbar .admin-select {
+  flex: 0 0 auto;
+}
+
 .admin-count {
   font-size: 0.8rem;
   color: var(--tekst-2);
