@@ -7,6 +7,7 @@
 
 const mocks = vi.hoisted(() => ({
   getTournamentHeader: vi.fn(),
+  hasResultData: vi.fn(),
   getLatestResults: vi.fn(),
   getLiveTournaments: vi.fn(),
   getTournamentsByIds: vi.fn(),
@@ -42,6 +43,7 @@ function registeredUnder(parentId: number, localId: number, registrationId = 1) 
 vi.mock("@/supabase", () => ({ supabase: {} }));
 vi.mock("@/services/stevneService", () => ({
   getTournamentHeader: mocks.getTournamentHeader,
+  hasResultData: mocks.hasResultData,
   getLatestResults: mocks.getLatestResults,
   getLiveTournaments: mocks.getLiveTournaments,
   getTournamentsByIds: mocks.getTournamentsByIds,
@@ -69,6 +71,7 @@ vi.mock("@/pages/stevne/snc-resultat", () => ({ render: mocks.renderSncResults }
 
 const {
   getTournamentHeader,
+  hasResultData,
   getLatestResults,
   getLiveTournaments,
   getTournamentsByIds,
@@ -116,6 +119,7 @@ beforeEach(() => {
   isClubAdmin.mockResolvedValue(false);
   getUser.mockResolvedValue(null);
   getTournamentHeader.mockResolvedValue({ data: header(), error: null });
+  hasResultData.mockResolvedValue(true);
   getLatestResults.mockResolvedValue({ data: [], error: null });
   getLiveTournaments.mockResolvedValue({ data: [], error: null });
   getTournamentsByIds.mockResolvedValue({ data: [], error: null });
