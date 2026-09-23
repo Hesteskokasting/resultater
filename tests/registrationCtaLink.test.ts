@@ -52,10 +52,8 @@ describe("registrationCtaLink", () => {
     expect(registrationCtaLink(77, authWith("venter", null, "admin"))).toBeUndefined();
   });
 
-  it("still nudges an unlinked klubbadmin, who is usually a thrower too", () => {
-    expect(registrationCtaLink(77, authWith("ingen", null, "klubbadmin"))!.label).toBe(
-      "Koble profil for å melde på",
-    );
+  it("does not nudge a klubbadmin, who can never be linked to a thrower", () => {
+    expect(registrationCtaLink(77, authWith("ingen", null, "klubbadmin"))).toBeUndefined();
   });
 
   it("gives every state a tooltip that adds to the label rather than repeating it", () => {

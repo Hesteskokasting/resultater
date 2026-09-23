@@ -725,6 +725,52 @@ describe("brukarar panel", () => {
     expect(updateUserRole).toHaveBeenCalledWith("u1", "klubbadmin");
   });
 
+  it("clears the link before the role, which the database check requires", async () => {
+    confirmDialog.mockResolvedValue(true);
+    const order: string[] = [];
+    updateLinkStatus.mockImplementation(() => {
+      order.push("link");
+      return Promise.resolve({ error: null });
+    });
+    updateUserRole.mockImplementation(() => {
+      order.push("role");
+      return Promise.resolve({ error: null });
+    });
+    const el = await renderAll();
+
+    const row = selectRow(el, 0);
+    choose(row.querySelector<HTMLSelectElement>("select")!, "admin");
+    rowButton(row, "Lagre").click();
+    await vi.waitFor(() => expect(order).toEqual(["link", "role"]));
+
+    // Bulk: the same order per user.
+    order.length = 0;
+    await vi.waitFor(() => expect(el.querySelector(".admin-bulk.d-none")).not.toBeNull());
+    selectRow(el, 0);
+    choose(selectByLabel(el, "Ny rolle for valde"), "klubbadmin");
+    bulkButton(el, "Sett rolle").click();
+    await vi.waitFor(() => expect(order).toEqual(["link", "role"]));
+  });
+
+  it("sets the role before the link when a user becomes a brukar", async () => {
+    const order: string[] = [];
+    updateLinkStatus.mockImplementation(() => {
+      order.push("link");
+      return Promise.resolve({ error: null });
+    });
+    updateUserRole.mockImplementation(() => {
+      order.push("role");
+      return Promise.resolve({ error: null });
+    });
+    const el = await renderAll();
+
+    const row = selectRow(el, 1);
+    choose(row.querySelector<HTMLSelectElement>("select")!, "bruker");
+    pickThrower(row, "a", "9");
+    rowButton(row, "Lagre").click();
+    await vi.waitFor(() => expect(order).toEqual(["role", "link"]));
+  });
+
   it("changes nothing when the role change is not confirmed", async () => {
     confirmDialog.mockResolvedValue(false);
     const el = await renderAll();
@@ -903,6 +949,35 @@ describe("forespurnader panel", () => {
 });
 
 describe("admin shell", () => {
+  const signInAs = (role: string) =>
+    getUser.mockResolvedValue({
+      user: { id: "u2", email: "sjef@example.com" },
+      profil: { role, kasterid: null, kobling_status: "ingen", kobling_kasterid: null },
+      clubs: [],
+    });
+
+  beforeEach(() => signInAs("admin"));
+
+  it("gives a klubbadmin the stevne tab only, without the request queue", async () => {
+    signInAs("klubbadmin");
+    const el = host();
+    await renderAdmin(el, { tab: "brukarar" });
+
+    const links = [...el.querySelectorAll<HTMLAnchorElement>(".admin-nav .nav-link")];
+    expect(links.map((a) => a.getAttribute("href"))).toEqual(["#/admin/stevne"]);
+    expect(links[0]!.classList.contains("active")).toBe(true);
+    expect(getPendingLinkCount).not.toHaveBeenCalled();
+    expect(el.querySelector(".admin-head__title")?.textContent).toBe("Dashboard - Klubbadmin");
+  });
+
+  it("links organizers to their account settings", async () => {
+    const el = host();
+    await renderAdmin(el, { tab: "stevne" });
+    expect(
+      el.querySelector<HTMLAnchorElement>('.admin-head a[href="#/minside/konto"]'),
+    ).not.toBeNull();
+  });
+
   it("renders every tab, marks the active one and deep-links each", async () => {
     const el = host();
     await renderAdmin(el, { tab: "stevne" });

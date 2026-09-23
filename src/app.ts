@@ -6,6 +6,7 @@ import { createErrorBanner } from "@/components/states";
 import { showReauthDialog } from "./components/dialog/ReauthDialog";
 import { maybeShowWelcomeDialog } from "./components/dialog/WelcomeDialog";
 import { setPageTitle } from "@/utils/pageTitle";
+import { isOrganizerRole } from "@/utils/roles";
 import {
   hasRefetch,
   registerRefetch,
@@ -140,8 +141,9 @@ const routes: Route[] = [
   },
   {
     pattern: /^\/admin(?:\/([^/]*))?$/,
+    // Klubbadmins get the dashboard too; the page itself limits their tabs.
     page: authGuard(
-      "admin",
+      "klubbadmin",
       lazy(() => import("./admin/admin")),
     ),
     params: (m) => ({ tab: m[1] ?? "oversikt" }),
@@ -320,12 +322,12 @@ async function updateAuthMenu(): Promise<void> {
 
   if (auth) {
     logginnItem.classList.add("d-none");
-    const isAdminUser = auth.profil?.role === "admin";
-    minsideItem.classList.toggle("d-none", isAdminUser);
-    adminItem.classList.toggle("d-none", !isAdminUser);
+    const isOrganizer = isOrganizerRole(auth.profil?.role);
+    minsideItem.classList.toggle("d-none", isOrganizer);
+    adminItem.classList.toggle("d-none", !isOrganizer);
     loggutItem.classList.remove("d-none");
     headerEmail.textContent = auth.user.email ?? "";
-    (headerEmail as HTMLAnchorElement).href = isAdminUser ? "#/admin" : "#/minside";
+    (headerEmail as HTMLAnchorElement).href = isOrganizer ? "#/admin" : "#/minside";
     headerEmail.classList.remove("d-none");
   } else {
     logginnItem.classList.remove("d-none");

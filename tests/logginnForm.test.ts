@@ -8,7 +8,6 @@
 
 const mocks = vi.hoisted(() => ({
   getUser: vi.fn(),
-  isAdmin: vi.fn(),
   signIn: vi.fn(),
   signUp: vi.fn(),
   signInWithGoogle: vi.fn(),
@@ -28,7 +27,6 @@ vi.mock("@/services/authService", () => ({
     return mocks.flags.signupEnabled;
   },
   getUser: mocks.getUser,
-  isAdmin: mocks.isAdmin,
   signIn: mocks.signIn,
   signUp: mocks.signUp,
   signInWithGoogle: mocks.signInWithGoogle,
@@ -79,7 +77,6 @@ beforeEach(async () => {
   mocks.flags.signupEnabled = true;
   location.hash = "#/logginn";
   mocks.getUser.mockResolvedValue(null);
-  mocks.isAdmin.mockResolvedValue(false);
   mocks.signIn.mockResolvedValue({ error: null });
   mocks.signUp.mockResolvedValue({ error: null });
   mocks.signInErrorMessage.mockReturnValue("Feil e-post eller passord.");
@@ -182,6 +179,22 @@ describe("account page", () => {
 
     await vi.waitFor(() => expect(message().textContent).toBe("Passorda er ikkje like."));
     expect(mocks.signUp).not.toHaveBeenCalled();
+  });
+
+  it("sends a klubbadmin to the admin dashboard after login", async () => {
+    mocks.getUser.mockResolvedValue({
+      user: { id: "k1", email: "klubb@example.com" },
+      profil: {
+        role: "klubbadmin",
+        kasterid: null,
+        kobling_status: "ingen",
+        kobling_kasterid: null,
+      },
+      clubs: [1],
+    });
+    fill("klubb@example.com", "hemmeleg1");
+    submitForm();
+    await vi.waitFor(() => expect(location.hash).toBe("#/admin"));
   });
 
   it("registers, signs straight in, and lands on min side without a toast", async () => {

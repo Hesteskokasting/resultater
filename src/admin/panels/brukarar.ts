@@ -22,17 +22,7 @@ import {
 import type { AdminBadge } from "../_adminUi";
 import { createAdminTable, createBulkBar } from "../_adminTable";
 import { loadUserLookups } from "./_userLookups";
-
-const ROLES = ["bruker", "klubbadmin", "admin"] as const;
-
-/** Only this role may be linked to a thrower; admins and klubbadmins never are. */
-const LINKABLE_ROLE = "bruker";
-
-const ROLE_LABEL: Record<string, string> = {
-  bruker: "Brukar",
-  klubbadmin: "Klubbadmin",
-  admin: "Admin",
-};
+import { canLinkThrower, isRole, ROLE_LABEL, ROLES } from "@/utils/roles";
 
 const LINK_BADGE: Record<string, AdminBadge> = {
   godkjent: { text: "Kobla", tone: "ok" },
@@ -41,7 +31,9 @@ const LINK_BADGE: Record<string, AdminBadge> = {
   avvist: { text: "Avvist", tone: "danger" },
 };
 
-const ROLE_OPTIONS = ROLES.map((r) => ({ value: r, text: ROLE_LABEL[r] ?? r }));
+const ROLE_OPTIONS = ROLES.map((r) => ({ value: r, text: ROLE_LABEL[r] }));
+
+const roleLabel = (role: string): string => (isRole(role) ? ROLE_LABEL[role] : role);
 
 const filter = { searchText: "", role: "alle", link: "alle" };
 
@@ -122,7 +114,7 @@ export async function render(el: HTMLElement): Promise<void> {
 
   // ── Bulk actions ───────────────────────────────────────────────────────────
 
-  const bulkRole = createLabelledSelect("Ny rolle for valde", ROLE_OPTIONS, LINKABLE_ROLE);
+  const bulkRole = createLabelledSelect("Ny rolle for valde", ROLE_OPTIONS, "bruker");
   const bulk = createBulkBar([
     bulkRole,
     { label: "Sett rolle", onClick: () => void bulkSetRole() },
@@ -143,26 +135,32 @@ export async function render(el: HTMLElement): Promise<void> {
 
   async function bulkSetRole(): Promise<void> {
     const role = bulkRole.value;
-    const unlink = role === LINKABLE_ROLE ? [] : selectedUsers().filter((u) => linkOf(u) != null);
-    const changed = selectedUsers().filter((u) => u.rolle !== role);
-    if (!changed.length && !unlink.length) {
-      showToast(`Alle valde er allereie ${ROLE_LABEL[role]}.`, "info");
+    const mustUnlink = (u: User): boolean => !canLinkThrower(role) && linkOf(u) != null;
+    const targets = selectedUsers().filter((u) => u.rolle !== role || mustUnlink(u));
+    if (!targets.length) {
+      showToast(`Alle valde er allereie ${roleLabel(role)}.`, "info");
       return;
     }
+    const unlinkCount = targets.filter((u) => mustUnlink(u)).length;
     if (
-      unlink.length &&
+      unlinkCount &&
       !(await confirmDialog({
         title: "Sett rolle",
-        message: `${ROLE_LABEL[role]} kan ikkje ha utøvarkobling. Koblinga blir fjerna for ${unlink.length} brukar(ar), også ventande førespurnader.`,
+        message: `${roleLabel(role)} kan ikkje ha utøvarkobling. Koblinga blir fjerna for ${unlinkCount} brukar(ar), også ventande førespurnader.`,
         confirmText: "Sett rolle",
       }))
     )
       return;
+    // Per user the link goes before the role, or the database check refuses a
+    // linked admin; users themselves run side by side.
     await runAll(
-      [
-        ...changed.map((u) => updateUserRole(u.id, role)),
-        ...unlink.map((u) => updateLinkStatus(u.id, null, "ingen")),
-      ],
+      targets.map(async (u) => {
+        if (mustUnlink(u)) {
+          const unlinked = await updateLinkStatus(u.id, null, "ingen");
+          if (unlinked.error) return unlinked;
+        }
+        return u.rolle === role ? { error: null } : updateUserRole(u.id, role);
+      }),
       "Rolla er oppdatert.",
     );
   }
@@ -252,7 +250,7 @@ export async function render(el: HTMLElement): Promise<void> {
     const cell = createEl("div", null, "user-table__link");
     const linkedId = linkOf(user);
     // A non-linkable role has nothing to report unless old data still carries a link.
-    if (user.rolle !== LINKABLE_ROLE && linkedId == null) {
+    if (!canLinkThrower(user.rolle) && linkedId == null) {
       cell.append(createEl("span", "—", "admin-table__muted"));
       return cell;
     }
@@ -311,7 +309,7 @@ export async function render(el: HTMLElement): Promise<void> {
     });
 
     function lockPicker(): void {
-      const locked = select.value !== LINKABLE_ROLE;
+      const locked = !canLinkThrower(select.value);
       if (locked) picker.setValue(null);
       picker.input.disabled = locked;
       picker.input.placeholder = locked ? "Berre for Brukar" : "Søk utøvar…";
@@ -323,40 +321,40 @@ export async function render(el: HTMLElement): Promise<void> {
       const role = select.value;
       const picked = picker.getValue();
       if (
-        role !== LINKABLE_ROLE &&
+        !canLinkThrower(role) &&
         linkedId != null &&
         !(await confirmDialog({
           title: "Endre rolle",
-          message: `${ROLE_LABEL[role]} kan ikkje ha utøvarkobling. Koblinga til ${emailOf(user)} blir fjerna, også ein ventande førespurnad.`,
+          message: `${roleLabel(role)} kan ikkje ha utøvarkobling. Koblinga til ${emailOf(user)} blir fjerna, også ein ventande førespurnad.`,
           confirmText: "Lagre",
         }))
       )
         return;
 
-      alert.hide();
-      if (role !== user.rolle) {
-        const { error: roleError } = await updateUserRole(user.id, role);
-        if (roleError) {
-          alert.show(errorMessage(roleError));
-          return;
-        }
-        user.rolle = role;
-      }
+      const writeRole = () =>
+        role === user.rolle ? Promise.resolve({ error: null }) : updateUserRole(user.id, role);
+      // An approved link is written straight away — no request queue —
+      // and clearing it puts the profile back to unlinked.
+      const writeLink = () =>
+        picked === linkedId
+          ? Promise.resolve({ error: null })
+          : updateLinkStatus(user.id, picked, picked == null ? "ingen" : "godkjent");
 
-      if (picked === linkedId) {
+      if (role === user.rolle && picked === linkedId) {
         flashSaved(button, "Lagre");
         return;
       }
-      // An approved link is written straight away — no request queue —
-      // and clearing it puts the profile back to unlinked.
-      const { error: linkError } = await updateLinkStatus(
-        user.id,
-        picked,
-        picked == null ? "ingen" : "godkjent",
-      );
-      if (linkError) {
-        alert.show(errorMessage(linkError));
-        return;
+
+      alert.hide();
+      // The database only lets a brukar hold a link, so the role goes first when
+      // it becomes linkable and last when it stops being so.
+      const steps = canLinkThrower(role) ? [writeRole, writeLink] : [writeLink, writeRole];
+      for (const step of steps) {
+        const { error: writeError } = await step();
+        if (writeError) {
+          alert.show(errorMessage(writeError));
+          return;
+        }
       }
       await render(el);
     }
@@ -417,7 +415,7 @@ export async function render(el: HTMLElement): Promise<void> {
                 cell: (u, sel) => {
                   // Leftmost editor cell, so a deselected row drops its editor here.
                   if (!sel) editors.delete(u.id);
-                  return sel ? editorFor(u).role : (ROLE_LABEL[u.rolle] ?? u.rolle);
+                  return sel ? editorFor(u).role : roleLabel(u.rolle);
                 },
               },
               { header: "Kobling", cell: (u, sel) => (sel ? editorFor(u).link : linkCell(u)) },

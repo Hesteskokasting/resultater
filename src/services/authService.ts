@@ -5,12 +5,7 @@ import { getProfileForUser } from "@/services/brukerProfilService";
 import { getClubAdminClubsForUser } from "@/services/adminService";
 import { generateNonce } from "@/utils/nonce";
 import { syncPushLogin, syncPushLogout } from "@/services/pushNotificationService";
-
-const ROLES = ["admin", "klubbadmin", "bruker"] as const;
-
-function isRole(value: unknown): value is Role {
-  return typeof value === "string" && (ROLES as readonly string[]).includes(value);
-}
+import { isRole } from "@/utils/roles";
 
 function mapToProfile(obj: unknown): Profile | null {
   if (obj === null || typeof obj !== "object") return null;

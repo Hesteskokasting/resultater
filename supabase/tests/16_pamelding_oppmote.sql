@@ -18,7 +18,7 @@ INSERT INTO public.kaster (id, fornavn, etternavn, kjonnid) VALUES (9931, 'Oppmo
 INSERT INTO public.bruker_profil (id, kasterid, rolle, kobling_status)
 VALUES
   ('00000000-0000-0000-0000-000000000031', 9931, 'bruker', 'godkjent'),
-  ('00000000-0000-0000-0000-000000000032', NULL, 'admin', 'godkjent')
+  ('00000000-0000-0000-0000-000000000032', NULL, 'admin', 'ingen')
 ON CONFLICT (id) DO UPDATE SET kasterid = EXCLUDED.kasterid, rolle = EXCLUDED.rolle, kobling_status = EXCLUDED.kobling_status;
 
 -- Locked: a month out, so "now" is never within two hours of the start.

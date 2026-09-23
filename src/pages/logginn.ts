@@ -7,7 +7,6 @@ import {
   OAUTH_SIGN_IN_PENDING_KEY,
   SIGNUP_ENABLED,
   getUser,
-  isAdmin,
   requestPasswordReset,
   signIn,
   signInErrorMessage,
@@ -18,6 +17,7 @@ import {
 } from "@/services/authService";
 import { escHtml } from "@/utils/escHtml";
 import { errorMessage } from "@/utils/errorMessage";
+import { isOrganizerRole } from "@/utils/roles";
 import { getHashQueryParam } from "@/utils/navigation";
 import { showToast } from "@/components/Toast";
 import { logError } from "@/utils/logError";
@@ -61,7 +61,8 @@ function getRedirectParam(): string | null {
 }
 
 async function resolvePostLoginDestination(redirect: string | null): Promise<string> {
-  return redirect ? `#${redirect}` : (await isAdmin()) ? "#/admin" : "#/minside";
+  if (redirect) return `#${redirect}`;
+  return isOrganizerRole((await getUser())?.profil?.role) ? "#/admin" : "#/minside";
 }
 
 export async function render(container: HTMLElement): Promise<void> {

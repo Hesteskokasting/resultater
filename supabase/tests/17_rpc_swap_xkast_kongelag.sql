@@ -24,8 +24,8 @@ INSERT INTO public.kaster (id, fornavn, etternavn, kjonnid) VALUES
   (9020, 'Seat', 'D', 9017);
 
 INSERT INTO public.bruker_profil (id, kasterid, rolle, kobling_status)
-VALUES ('00000000-0000-0000-0000-000000009017', 9017, 'admin', 'godkjent')
-ON CONFLICT (id) DO UPDATE SET kasterid = EXCLUDED.kasterid, rolle = 'admin';
+VALUES ('00000000-0000-0000-0000-000000009017', NULL, 'admin', 'ingen')
+ON CONFLICT (id) DO UPDATE SET kasterid = EXCLUDED.kasterid, rolle = 'admin', kobling_status = 'ingen';
 
 -- antall_omganger drives set_xkast_kongelag_total's bounds check
 INSERT INTO public.kastemetode (id, navn, antall_omganger)

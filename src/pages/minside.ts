@@ -8,6 +8,7 @@ import { render as renderMatches } from "./minside/minside-kampar";
 import { render as renderRegistrations } from "./minside/minside-pameldingar";
 import { render as renderSettings } from "./minside/minside-innstillingar";
 import { render as renderAccount } from "./minside/minside-konto";
+import { isOrganizerRole } from "@/utils/roles";
 import type { MinSideContext } from "./minside/_linkState";
 import type { Params, LinkStatus } from "@/types";
 
@@ -22,7 +23,9 @@ const TABS = [
 
 type TabKey = (typeof TABS)[number]["key"];
 
-const TAB_KEYS = new Set<string>(TABS.map((f) => f.key));
+// Organizers cannot be linked to a thrower, so the participant tabs mean
+// nothing to them; they keep their notifications and account settings.
+const ORGANIZER_TABS = new Set<TabKey>(["innstillingar", "konto"]);
 
 const TAB_RENDER: Record<TabKey, TabRender> = {
   kampar: renderMatches,
@@ -31,14 +34,16 @@ const TAB_RENDER: Record<TabKey, TabRender> = {
   konto: renderAccount,
 };
 
-function renderNav(active: string): string {
-  const items = TABS.map(
-    ({ key, label }) => `
+function renderNav(tabs: readonly (typeof TABS)[number][], active: string): string {
+  const items = tabs
+    .map(
+      ({ key, label }) => `
       <li class="nav-item">
         <a class="nav-link${active === key ? " active" : ""}"
            href="#/minside/${key}">${label}</a>
       </li>`,
-  ).join("");
+    )
+    .join("");
   return `<ul class="nav nav-underline mypage-nav mb-3">${items}</ul>`;
 }
 
@@ -56,10 +61,18 @@ export async function render(container: HTMLElement, params: Params): Promise<vo
 
     const { profil, user } = auth;
     const status: LinkStatus = profil?.kobling_status ?? "ingen";
+    const isOrganizer = isOrganizerRole(profil?.role);
+    const tabs = isOrganizer ? TABS.filter((t) => ORGANIZER_TABS.has(t.key)) : TABS;
 
     // Notifications moved into innstillingar — keep old deep links working.
     const requested = tab === "varslingar" ? "innstillingar" : tab;
-    const activeTab = TAB_KEYS.has(requested) ? (requested as TabKey) : "kampar";
+    const found = tabs.find((t) => t.key === requested);
+    if (!found && isOrganizer) {
+      // replace, so Back does not land on #/minside and bounce here again.
+      location.replace("#/admin");
+      return;
+    }
+    const activeTab: TabKey = found?.key ?? "kampar";
 
     container.innerHTML = `
       <div class="mypage-container">
@@ -70,7 +83,7 @@ export async function render(container: HTMLElement, params: Params): Promise<vo
           </div>
           <div data-slot="logout"></div>
         </div>
-        ${renderNav(activeTab)}
+        ${renderNav(tabs, activeTab)}
         <div id="minside-subpage"></div>
       </div>`;
 
