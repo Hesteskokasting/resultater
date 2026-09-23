@@ -16,6 +16,8 @@ const mocks = vi.hoisted(() => ({
   premieDialog: vi.fn(),
   getTournamentSettings: vi.fn(),
   getActiveThrowingMethods: vi.fn(),
+  getTournamentTypes: vi.fn(),
+  getCategories: vi.fn(),
   updateTournamentSettings: vi.fn(),
   resetTournament: vi.fn(),
   getRegistrationsAcrossTournaments: vi.fn(),
@@ -37,6 +39,8 @@ vi.mock("@/services/stevneService", () => ({
   reopenSncParent: mocks.reopenSncParent,
   getTournamentSettings: mocks.getTournamentSettings,
   getActiveThrowingMethods: mocks.getActiveThrowingMethods,
+  getTournamentTypes: mocks.getTournamentTypes,
+  getCategories: mocks.getCategories,
   updateTournamentSettings: mocks.updateTournamentSettings,
 }));
 vi.mock("@/services/testDataService", () => ({ resetTournament: mocks.resetTournament }));
@@ -664,6 +668,11 @@ describe("settings tab on an SNC umbrella", () => {
       tilgjengelige_baner: null,
       er_snc_hovudstevne: true,
       snc_hovudstevne_id: null,
+      stevnetypeid: 5,
+      kategoriid: 2,
+      dato: "2026-10-03",
+      tid: "10:00:00",
+      kategori: { erlagbasert: false },
       ...overrides,
     };
   }
@@ -676,6 +685,14 @@ describe("settings tab on an SNC umbrella", () => {
 
   beforeEach(() => {
     getActiveThrowingMethods.mockResolvedValue({ data: METHODS, error: null });
+    mocks.getTournamentTypes.mockResolvedValue({ data: [{ id: 5, navn: "SNC" }], error: null });
+    mocks.getCategories.mockResolvedValue({
+      data: [
+        { id: 2, navn: "Singel" },
+        { id: 3, navn: "Par" },
+      ],
+      error: null,
+    });
     getTournamentSettings.mockResolvedValue({ data: settings(), error: null });
   });
 
@@ -692,6 +709,14 @@ describe("settings tab on an SNC umbrella", () => {
 
     expect(optionLabels(el, "innl-metode")).toEqual(["Minimatch X-kast"]);
     expect(optionLabels(el, "avsl-metode")).toEqual(["Kongelag"]);
+  });
+
+  it("locks stevnetype on the umbrella but leaves kategori editable", async () => {
+    const el = host();
+    await renderSettings(el, { id: 10 });
+
+    expect(el.querySelector<HTMLSelectElement>("#stevnetype")!.disabled).toBe(true);
+    expect(el.querySelector<HTMLSelectElement>("#kategori")!.disabled).toBe(false);
   });
 
   it("drops the lane field and the reset button, which belong to a local stevne", async () => {
@@ -716,10 +741,14 @@ describe("settings tab on an SNC umbrella", () => {
       avsluttendekastemetodeid: 6,
       antall_runder_innl: null,
       tilgjengelige_baner: null,
+      stevnetypeid: 5,
+      kategoriid: 2,
+      dato: "2026-10-03",
+      tid: "10:00",
     });
   });
 
-  it("locks the method fields on a local stevne, pointing at the umbrella", async () => {
+  it("shows only dato, tid and lanes on a local stevne, pointing at the umbrella", async () => {
     getTournamentSettings.mockResolvedValue({
       data: settings({ er_snc_hovudstevne: false, snc_hovudstevne_id: 10 }),
       error: null,
@@ -727,8 +756,10 @@ describe("settings tab on an SNC umbrella", () => {
     const el = host();
     await renderSettings(el, { id: 11 });
 
-    expect(el.querySelector<HTMLSelectElement>("#innl-metode")!.disabled).toBe(true);
-    expect(el.querySelector<HTMLSelectElement>("#avsl-metode")!.disabled).toBe(true);
+    const formatRow = el.querySelector("#innl-metode")!.closest(".row")!;
+    expect(formatRow.classList.contains("d-none")).toBe(true);
+    expect(el.querySelector("#dato")).not.toBeNull();
+    expect(el.querySelector("#tid")).not.toBeNull();
     expect(el.querySelector('a[href="#/stevne/10/innstillinger"]')).not.toBeNull();
     // Lanes stay editable: courts are generated per local stevne.
     expect(el.querySelector("#tilgjengelege-banar")).not.toBeNull();
@@ -753,6 +784,10 @@ describe("settings tab on an SNC umbrella", () => {
       avsluttendekastemetodeid: 6,
       antall_runder_innl: null,
       tilgjengelige_baner: 4,
+      stevnetypeid: 5,
+      kategoriid: 2,
+      dato: "2026-10-03",
+      tid: "10:00",
     });
   });
 
@@ -802,7 +837,10 @@ describe("settings tab on an SNC umbrella", () => {
     });
 
     it("counts par, not spelarar, on a lagbasert stevne", async () => {
-      getTournamentSettings.mockResolvedValue({ data: gloppenSettings(3), error: null });
+      getTournamentSettings.mockResolvedValue({
+        data: { ...gloppenSettings(3), kategori: { erlagbasert: true } },
+        error: null,
+      });
       mocks.getRegistrationCount.mockResolvedValue(16);
       mocks.getPairCount.mockResolvedValue(8);
       const el = host();
@@ -861,7 +899,7 @@ describe("settings tab on an SNC umbrella", () => {
       const help = el.querySelector<HTMLElement>("#rundar-hjelp")!;
       expect(help.classList.contains("d-none")).toBe(false);
       expect(help.textContent).not.toContain("Maks");
-      expect(help.textContent).toContain("Påkravd");
+      expect(help.textContent).toContain("Må setjast");
     });
   });
 });

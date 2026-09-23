@@ -7,9 +7,10 @@ import { createErrorBanner, createLoadingState } from "@/components/states";
 import {
   getTournamentSettings,
   getActiveThrowingMethods,
+  getCategories,
+  getTournamentTypes,
   updateTournamentSettings,
 } from "@/services/stevneService";
-import type { ActiveThrowingMethodRow } from "@/services/stevneService";
 import { resetTournament } from "@/services/testDataService";
 import {
   isCascadeMethodName,
@@ -31,12 +32,15 @@ export async function render(
   container.replaceChildren(createLoadingState());
 
   try {
-    const [tournamentRes, methodsRes, playerCount, pairCount] = await Promise.all([
-      getTournamentSettings(id),
-      getActiveThrowingMethods(),
-      getRegistrationCount(id),
-      getPairCount(id),
-    ]);
+    const [tournamentRes, methodsRes, typesRes, categoriesRes, playerCount, pairCount] =
+      await Promise.all([
+        getTournamentSettings(id),
+        getActiveThrowingMethods(),
+        getTournamentTypes(),
+        getCategories(),
+        getRegistrationCount(id),
+        getPairCount(id),
+      ]);
 
     if (tournamentRes.error || !tournamentRes.data) {
       container.replaceChildren(createErrorBanner("Stevne ikkje funne."));
@@ -48,10 +52,11 @@ export async function render(
 
     const isSncParent = stevne.er_snc_hovudstevne === true;
     // A local stevne inherits the format from its umbrella — the DB coerces it
-    // back on write, so an editable field here would silently do nothing.
+    // back on write, so the format fields are hidden there.
     const sncParentId = stevne.snc_hovudstevne_id;
     const isSncLocal = sncParentId != null;
-    const methodsLocked = isSncLocal ? " disabled" : "";
+    // The DB requires stevnetype SNC on an umbrella.
+    const typeLocked = isSncParent ? " disabled" : "";
     const initialMethods = methods.filter(
       (m) => m.er_innledende && (!isSncParent || isXkastMethodName(m.navn)),
     );
@@ -66,7 +71,7 @@ export async function render(
     const roundCap = entryCount > 0 ? maxCascadeRounds(entryCount) : null;
     const capUnit = isTeam ? "par" : "spelarar";
 
-    function optionsHtml(list: ActiveThrowingMethodRow[], selectedId: number | null): string {
+    function optionsHtml(list: { id: number; navn: string }[], selectedId: number | null): string {
       return list
         .map(
           (m) =>
@@ -79,40 +84,66 @@ export async function render(
       <div>
         <h4 class="mb-3">Innstillingar</h4>
         <form id="innstillingar-form" class="stevne-max-480">
-          <div class="mb-3">
-            <label class="form-label fw-semibold">Kastemetode innleiande</label>
-            <select id="innl-metode" class="form-select"${methodsLocked}>
-              <option value="">— Ikkje vald —</option>
-              ${optionsHtml(initialMethods, stevne.innledendekastemetodeid)}
-            </select>
+          <div class="row g-3 mb-3">
+            <div class="col-6">
+              <label class="form-label fw-semibold">Dato</label>
+              <input id="dato" type="date" class="form-control" value="${stevne.dato}" required>
+            </div>
+            <div class="col-6">
+              <label class="form-label fw-semibold">Tid</label>
+              <input id="tid" type="time" class="form-control" value="${stevne.tid?.slice(0, 5) ?? ""}">
+            </div>
           </div>
-          <div class="mb-3">
-            <label class="form-label fw-semibold">Kastemetode avsluttande</label>
-            <select id="avsl-metode" class="form-select"${methodsLocked}>
-              <option value="">— Ikkje vald —</option>
-              ${optionsHtml(finalMethods, stevne.avsluttendekastemetodeid)}
-            </select>
+          <div class="row g-3 mb-3${isSncLocal ? " d-none" : ""}">
+            <div class="col-6">
+              <label class="form-label fw-semibold">Stevnetype</label>
+              <select id="stevnetype" class="form-select"${typeLocked}>
+                <option value="">— Ikkje vald —</option>
+                ${optionsHtml(typesRes.data, stevne.stevnetypeid)}
+              </select>
+            </div>
+            <div class="col-6">
+              <label class="form-label fw-semibold">Innleiande</label>
+              <select id="innl-metode" class="form-select">
+                <option value="">— Ikkje vald —</option>
+                ${optionsHtml(initialMethods, stevne.innledendekastemetodeid)}
+              </select>
+            </div>
+            <div class="col-6">
+              <label class="form-label fw-semibold">Kategori</label>
+              <select id="kategori" class="form-select">
+                <option value="">— Ikkje vald —</option>
+                ${optionsHtml(categoriesRes.data, stevne.kategoriid)}
+              </select>
+            </div>
+            <div class="col-6">
+              <label class="form-label fw-semibold">Avsluttande</label>
+              <select id="avsl-metode" class="form-select">
+                <option value="">— Ikkje vald —</option>
+                ${optionsHtml(finalMethods, stevne.avsluttendekastemetodeid)}
+              </select>
+            </div>
           </div>
           ${
             isSncLocal
-              ? `<p class="form-text mb-3">Kastemetoden kjem frå
-                   <a href="#/stevne/${sncParentId}/innstillinger">SNC-hovudstevnet</a>
-                   og kan berre endrast der.</p>`
+              ? `<p class="form-text mb-3">Stevnetype, kategori og kastemetode settes på
+                   <a href="#/stevne/${sncParentId}/innstillinger">SNC-hovudstevnet</a>.
+                </p>`
               : ""
           }
           <div id="rundar-felt" class="mb-3 d-none">
-            <label class="form-label fw-semibold">Antal rundar innleiande</label>
+            <label class="form-label fw-semibold">Antall runder</label>
             <input id="antall-rundar" type="number" min="1" class="form-control"
-              value="${stevne.antall_runder_innl ?? ""}" placeholder="">
+              value="${stevne.antall_runder_innl ?? ""}" placeholder="Innleiande">
             <p id="rundar-hjelp" class="form-text d-none"></p>
           </div>
           ${
             isSncParent
               ? `<p class="form-text mb-4">Kastemetoden gjeld heile SNC-runden og blir arva av alle lokalstevna.</p>`
               : `<div class="mb-4">
-            <label class="form-label fw-semibold">Tilgjengelege baner (X-kast/Kongelag)</label>
+            <label class="form-label fw-semibold">Tilgjengelege baner</label>
             <input id="tilgjengelege-banar" type="number" min="1" class="form-control"
-              value="${stevne.tilgjengelige_baner ?? ""}" placeholder="Valfritt">
+              value="${stevne.tilgjengelige_baner ?? ""}" placeholder="(X-kast/Kongelag)">
             <p class="form-text">Utan verdi blir X-kast éi pulje. Kongelag blir alltid delt i minst to puljer.</p>
           </div>`
           }
@@ -208,6 +239,14 @@ export async function render(
 
         const initialId = container.querySelector<HTMLSelectElement>("#innl-metode")!.value || null;
         const finalId = container.querySelector<HTMLSelectElement>("#avsl-metode")!.value || null;
+        const date = container.querySelector<HTMLInputElement>("#dato")!.value;
+        const time = container.querySelector<HTMLInputElement>("#tid")!.value;
+        if (!date) {
+          showToast("Dato må setjast.", "error");
+          return;
+        }
+        const typeId = container.querySelector<HTMLSelectElement>("#stevnetype")!.value;
+        const categoryId = container.querySelector<HTMLSelectElement>("#kategori")!.value;
         const rounds = container.querySelector<HTMLInputElement>("#antall-rundar")!.value;
         const lanesInput = container.querySelector<HTMLInputElement>("#tilgjengelege-banar");
 
@@ -223,12 +262,24 @@ export async function render(
               ? Number(finalId)
               : null,
           antall_runder_innl: rounds ? Number(rounds) : null,
+          dato: date,
+          tid: time || null,
           tilgjengelige_baner: lanesInput?.value ? Number(lanesInput.value) : null,
+          stevnetypeid:
+            isSncLocal || isSncParent ? stevne.stevnetypeid : typeId ? Number(typeId) : null,
+          kategoriid: isSncLocal ? stevne.kategoriid : categoryId ? Number(categoryId) : null,
         });
 
         if (error) {
           logError("stevne-innstillingar.lagre", error);
           showToast("Feil ved lagring: " + errorMessage(error), "error");
+          return;
+        }
+
+        // The kategori sets par vs singel for the round cap here and for the
+        // tabs above, so the whole route is drawn again.
+        if ((categoryId ? Number(categoryId) : null) !== stevne.kategoriid) {
+          void reloadRoute();
           return;
         }
 
