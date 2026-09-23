@@ -103,7 +103,7 @@ export async function render(
           <div id="rundar-felt" class="mb-3 d-none">
             <label class="form-label fw-semibold">Antal rundar innleiande</label>
             <input id="antall-rundar" type="number" min="1" class="form-control"
-              value="${stevne.antall_runder_innl ?? ""}" placeholder="t.d. 6">
+              value="${stevne.antall_runder_innl ?? ""}" placeholder="">
             <p id="rundar-hjelp" class="form-text d-none"></p>
           </div>
           ${
@@ -183,7 +183,7 @@ export async function render(
         roundsHelp.classList.remove("d-none");
         return;
       }
-      roundsHelp.textContent = "Påkravd — kampgenereringa stoppar på dette talet.";
+      roundsHelp.textContent = "Må setjast før stevnet kan startast.";
       roundsHelp.classList.remove("text-danger");
       roundsHelp.classList.remove("d-none");
     }
@@ -210,13 +210,6 @@ export async function render(
         const finalId = container.querySelector<HTMLSelectElement>("#avsl-metode")!.value || null;
         const rounds = container.querySelector<HTMLInputElement>("#antall-rundar")!.value;
         const lanesInput = container.querySelector<HTMLInputElement>("#tilgjengelege-banar");
-
-        // Gloppen/NHM generate against this count, so it can't be left unset.
-        if (usesInitialRoundCount(selectedMethodName()) && !Number(rounds)) {
-          showToast("Antal rundar innleiande må setjast for Gloppen/NHM.", "error");
-          roundsInput.focus();
-          return;
-        }
 
         const { error } = await updateTournamentSettings(id, {
           innledendekastemetodeid: isSncLocal
