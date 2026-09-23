@@ -36,14 +36,14 @@ const ROLE_LABEL: Record<string, string> = {
 
 const LINK_BADGE: Record<string, AdminBadge> = {
   godkjent: { text: "Kobla", tone: "ok" },
+  ingen: { text: "Ikkje kobla", tone: "muted" },
   venter: { text: "Ventar", tone: "warn" },
   avvist: { text: "Avvist", tone: "danger" },
-  ingen: { text: "Ikkje kobla", tone: "muted" },
 };
 
 const ROLE_OPTIONS = ROLES.map((r) => ({ value: r, text: ROLE_LABEL[r] ?? r }));
 
-const filter = { searchText: "", role: "alle" };
+const filter = { searchText: "", role: "alle", link: "alle" };
 
 export async function render(el: HTMLElement): Promise<void> {
   el.replaceChildren(createLoadingState("Laster brukarar…"));
@@ -98,6 +98,19 @@ export async function render(el: HTMLElement): Promise<void> {
   );
   roleSelect.addEventListener("change", () => {
     filter.role = roleSelect.value;
+    update();
+  });
+
+  const linkSelect = createLabelledSelect(
+    "Filtrer på kobling",
+    [
+      { value: "alle", text: "Alle statusar" },
+      ...Object.entries(LINK_BADGE).map(([value, badge]) => ({ value, text: badge.text })),
+    ],
+    filter.link,
+  );
+  linkSelect.addEventListener("change", () => {
+    filter.link = linkSelect.value;
     update();
   });
 
@@ -372,6 +385,7 @@ export async function render(el: HTMLElement): Promise<void> {
     const query = filter.searchText.trim().toLowerCase();
     const visible = data.filter((user) => {
       if (filter.role !== "alle" && user.rolle !== filter.role) return false;
+      if (filter.link !== "alle" && (user.kobling_status || "ingen") !== filter.link) return false;
       if (!query) return true;
       const linkedId = linkOf(user);
       const name = linkedId ? throwerName(throwerMap.get(linkedId)) : "";
@@ -419,6 +433,10 @@ export async function render(el: HTMLElement): Promise<void> {
     bulk.update(selected.size);
   }
 
-  el.replaceChildren(alert.el, createToolbar([search, roleSelect, countEl, bulk.el]), listSlot);
+  el.replaceChildren(
+    alert.el,
+    createToolbar([search, roleSelect, linkSelect, countEl, bulk.el]),
+    listSlot,
+  );
   update();
 }

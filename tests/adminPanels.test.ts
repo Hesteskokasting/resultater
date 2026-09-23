@@ -619,8 +619,9 @@ describe("brukarar panel", () => {
     const el = host();
     await renderUsers(el);
     // Toolbar filters live in module state and survive a re-render on purpose
-    // (same as the public thrower list) — clear the previous test's role filter.
+    // (same as the public thrower list) — clear the previous test's filters.
     choose(selectByLabel(el, "Filtrer på rolle"), "alle");
+    choose(selectByLabel(el, "Filtrer på kobling"), "alle");
     return el;
   }
 
@@ -734,6 +735,26 @@ describe("brukarar panel", () => {
     await vi.waitFor(() => expect(confirmDialog).toHaveBeenCalled());
     expect(updateUserRole).not.toHaveBeenCalled();
     expect(updateLinkStatus).not.toHaveBeenCalled();
+  });
+
+  it("filters on link status", async () => {
+    const el = await renderAll();
+    const status = selectByLabel(el, "Filtrer på kobling");
+
+    expect([...status.options].map((o) => o.text)).toEqual([
+      "Alle statusar",
+      "Kobla",
+      "Ikkje kobla",
+      "Ventar",
+      "Avvist",
+    ]);
+    choose(status, "godkjent");
+    expect(emails(el)).toEqual(["ola@example.com"]);
+    choose(status, "ingen");
+    expect(emails(el)).toEqual(["sjef@example.com"]);
+    choose(status, "venter");
+    expect(emails(el)).toEqual([]);
+    choose(status, "alle");
   });
 
   it("filters by role", async () => {
