@@ -1,0 +1,73 @@
+/* Rendered by admin/_adminTable.ts. */
+
+/* Compact admin table with row checkboxes, plus the bulk-action bar. */
+
+.admin-bulk {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  background: var(--flate);
+  border: 1px solid var(--kant);
+}
+
+.admin-table th {
+  padding: 6px 10px;
+  text-align: left;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--tekst-2);
+  background: var(--flate-2);
+  border-bottom: 1px solid var(--kant);
+}
+
+.admin-table td {
+  padding: 5px 10px;
+  height: 40px;
+  color: var(--tekst);
+  border-bottom: 1px solid var(--kant);
+  vertical-align: middle;
+}
+
+.admin-table__row--selected td {
+  background: var(--flate-2);
+}
+
+.admin-table__check {
+  width: 36px;
+}
+
+.admin-table__check .form-check-input {
+  margin: 0;
+}
+
+.admin-table__date {
+  white-space: nowrap;
+  color: var(--tekst-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-table__muted {
+  color: var(--tekst-3);
+}
+
+/* Fixed width so the table does not shift when a row's buttons appear. */
+.admin-table__actions {
+  width: 140px;
+  text-align: right;
+}
+
+.admin-table__buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  white-space: nowrap;
+}

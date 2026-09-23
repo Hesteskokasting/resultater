@@ -20,6 +20,7 @@ import {
   flashSaved,
 } from "../_adminUi";
 import type { AdminBadge } from "../_adminUi";
+import { createAdminTable, createBulkBar } from "../_adminTable";
 import { loadUserLookups } from "./_userLookups";
 
 const ROLES = ["bruker", "klubbadmin", "admin"] as const;
@@ -43,14 +44,6 @@ const LINK_BADGE: Record<string, AdminBadge> = {
 const ROLE_OPTIONS = ROLES.map((r) => ({ value: r, text: ROLE_LABEL[r] ?? r }));
 
 const filter = { searchText: "", role: "alle" };
-
-function createCheckbox(label: string, checked: boolean): HTMLInputElement {
-  const box = createEl("input", null, "form-check-input");
-  box.type = "checkbox";
-  box.checked = checked;
-  box.setAttribute("aria-label", label);
-  return box;
-}
 
 export async function render(el: HTMLElement): Promise<void> {
   el.replaceChildren(createLoadingState("Laster brukarar…"));
@@ -94,7 +87,6 @@ export async function render(el: HTMLElement): Promise<void> {
   const emailOf = (user: User): string => emailMap.get(user.id) ?? user.id;
 
   const selected = new Set<string>();
-  let visible: User[] = [];
 
   const alert = createInlineAlert();
   const countEl = createEl("span", null, "admin-count");
@@ -118,28 +110,15 @@ export async function render(el: HTMLElement): Promise<void> {
 
   // ── Bulk actions ───────────────────────────────────────────────────────────
 
-  const bulkCount = createEl("span", null, "admin-count");
   const bulkRole = createLabelledSelect("Ny rolle for valde", ROLE_OPTIONS, LINKABLE_ROLE);
-  const bulk = createEl("div", null, "user-bulk admin-toolbar__end d-none");
-  bulk.append(
-    bulkCount,
+  const bulk = createBulkBar([
     bulkRole,
-    createActionEl({ label: "Sett rolle", onClick: () => void bulkSetRole() }),
-    createActionEl({ label: "Fjern kobling", onClick: () => void bulkUnlink() }),
-    createActionEl({ label: "Slett", variant: "outline-danger", onClick: () => void bulkDelete() }),
-  );
+    { label: "Sett rolle", onClick: () => void bulkSetRole() },
+    { label: "Fjern kobling", onClick: () => void bulkUnlink() },
+    { label: "Slett", variant: "outline-danger", onClick: () => void bulkDelete() },
+  ]);
 
   const selectedUsers = (): User[] => data.filter((u) => selected.has(u.id));
-
-  function refreshBulk(): void {
-    bulk.classList.toggle("d-none", selected.size === 0);
-    bulkCount.textContent = `${selected.size} valde`;
-    const all = el.querySelector<HTMLInputElement>(".user-table thead input");
-    if (all) {
-      all.checked = visible.length > 0 && visible.every((u) => selected.has(u.id));
-      all.indeterminate = !all.checked && visible.some((u) => selected.has(u.id));
-    }
-  }
 
   /** Runs the writes side by side, then reloads so every row shows the stored state. */
   async function runAll(writes: Promise<{ error: unknown }>[], done: string): Promise<void> {
@@ -250,22 +229,48 @@ export async function render(el: HTMLElement): Promise<void> {
     await render(el);
   }
 
-  function buildLinkCell(user: User): HTMLElement {
+  function emailCell(user: User): HTMLElement {
+    const cell = createEl("div", null, "user-table__email");
+    cell.append(createEl("span", emailOf(user)));
+    if (user.id === ownId) cell.append(createBadge({ text: "Deg", tone: "ok" }));
+    return cell;
+  }
+
+  function linkCell(user: User): HTMLElement {
     const cell = createEl("div", null, "user-table__link");
     const linkedId = linkOf(user);
     // A non-linkable role has nothing to report unless old data still carries a link.
     if (user.rolle !== LINKABLE_ROLE && linkedId == null) {
-      cell.append(createEl("span", "—", "user-table__muted"));
+      cell.append(createEl("span", "—", "admin-table__muted"));
       return cell;
     }
     const thrower = linkedId ? throwerMap.get(linkedId) : null;
-    if (thrower) cell.append(createEl("span", throwerName(thrower), "user-table__name"));
+    if (thrower) cell.append(createEl("span", throwerName(thrower)));
     const status = user.kobling_status || "ingen";
     cell.append(createBadge(LINK_BADGE[status] ?? { text: status }));
     return cell;
   }
 
-  function buildEditor(user: User, actionsCell: HTMLElement): [HTMLElement, HTMLElement] {
+  interface RowEditor {
+    role: HTMLSelectElement;
+    link: HTMLElement;
+    actions: HTMLElement;
+  }
+
+  // Role, link and Lagre share state, so a selected row builds them once and
+  // its three cells each take their part.
+  const editors = new Map<string, RowEditor>();
+
+  function editorFor(user: User): RowEditor {
+    let editor = editors.get(user.id);
+    if (!editor) {
+      editor = buildEditor(user);
+      editors.set(user.id, editor);
+    }
+    return editor;
+  }
+
+  function buildEditor(user: User): RowEditor {
     const linkedId = linkOf(user);
     const select = createLabelledSelect("Rolle", ROLE_OPTIONS, user.rolle);
 
@@ -293,11 +298,6 @@ export async function render(el: HTMLElement): Promise<void> {
     select.addEventListener("change", lockPicker);
     lockPicker();
 
-    const save = createActionEl({
-      label: "Lagre",
-      variant: "primary",
-      onClick: (button) => void saveRow(button),
-    });
     async function saveRow(button: HTMLButtonElement): Promise<void> {
       const role = select.value;
       const picked = picker.getValue();
@@ -339,12 +339,16 @@ export async function render(el: HTMLElement): Promise<void> {
       }
       await render(el);
     }
-    actionsCell.append(save);
+
+    const actions = createEl("div", null, "admin-table__buttons");
+    actions.append(
+      createActionEl({ label: "Lagre", variant: "primary", onClick: (b) => void saveRow(b) }),
+    );
     // Your own account is deleted from Min side → Konto, where the sign-out
     // that follows is expected; doing it from here would log the admin out
     // mid-task.
     if (user.id !== ownId) {
-      actionsCell.append(
+      actions.append(
         createActionEl({
           label: "Slett",
           variant: "outline-danger",
@@ -353,83 +357,12 @@ export async function render(el: HTMLElement): Promise<void> {
         }),
       );
     }
-    return [select, picker.el];
-  }
-
-  function buildRow(user: User): HTMLTableRowElement {
-    const isSelected = selected.has(user.id);
-    const email = emailOf(user);
-    const tr = createEl("tr", null, isSelected ? "user-table__row--selected" : undefined);
-
-    const box = createCheckbox(`Vel ${email}`, isSelected);
-    box.addEventListener("change", () => {
-      if (box.checked) selected.add(user.id);
-      else selected.delete(user.id);
-      tr.replaceWith(buildRow(user));
-      refreshBulk();
-    });
-
-    const emailCell = createEl("td", null, "user-table__email");
-    emailCell.append(createEl("span", email));
-    if (user.id === ownId) emailCell.append(createBadge({ text: "Deg", tone: "ok" }));
-
-    const actionsCell = createEl("td", null, "user-table__actions");
-    const [roleCell, linkCell] = isSelected
-      ? buildEditor(user, actionsCell)
-      : [createEl("span", ROLE_LABEL[user.rolle] ?? user.rolle), buildLinkCell(user)];
-
-    const checkTd = createEl("td", null, "user-table__check");
-    const roleTd = createEl("td", null);
-    const linkTd = createEl("td", null);
-    checkTd.append(box);
-    roleTd.append(roleCell);
-    linkTd.append(linkCell);
-    const date = user.opprettet_at ? formatDate(user.opprettet_at.slice(0, 10)) : "";
-    tr.append(
-      checkTd,
-      emailCell,
-      createEl("td", date, "user-table__date"),
-      roleTd,
-      linkTd,
-      actionsCell,
-    );
-    return tr;
-  }
-
-  function buildTable(rows: User[]): HTMLElement {
-    const all = createCheckbox("Vel alle", false);
-    all.addEventListener("change", () => {
-      for (const u of rows) {
-        if (all.checked) selected.add(u.id);
-        else selected.delete(u.id);
-      }
-      update();
-    });
-
-    const headRow = createEl("tr", null);
-    const checkHead = createEl("th", null, "user-table__check");
-    checkHead.append(all);
-    headRow.append(
-      checkHead,
-      ...["E-post", "Registrert", "Rolle", "Kobling"].map((t) => createEl("th", t)),
-      createEl("th", null, "user-table__actions"),
-    );
-
-    const table = createEl("table", null, "user-table");
-    const thead = createEl("thead", null);
-    const tbody = createEl("tbody", null);
-    thead.append(headRow);
-    tbody.append(...rows.map((u) => buildRow(u)));
-    table.append(thead, tbody);
-
-    const wrap = createEl("div", null, "table-scroll");
-    wrap.append(table);
-    return wrap;
+    return { role: select, link: picker.el, actions };
   }
 
   function update(): void {
     const query = filter.searchText.trim().toLowerCase();
-    visible = data.filter((user) => {
+    const visible = data.filter((user) => {
       if (filter.role !== "alle" && user.rolle !== filter.role) return false;
       if (!query) return true;
       const linkedId = linkOf(user);
@@ -439,14 +372,45 @@ export async function render(el: HTMLElement): Promise<void> {
     // Bulk actions only reach rows the admin can see.
     const shown = new Set(visible.map((u) => u.id));
     for (const id of selected) if (!shown.has(id)) selected.delete(id);
+    editors.clear();
 
     countEl.textContent = `${visible.length} av ${data.length} brukarar`;
     listSlot.replaceChildren(
-      visible.length ? buildTable(visible) : createEmptyState("Ingen treff."),
+      visible.length
+        ? createAdminTable({
+            rows: visible,
+            key: (u) => u.id,
+            rowLabel: emailOf,
+            selected,
+            onSelectionChange: () => bulk.update(selected.size),
+            columns: [
+              { header: "E-post", cell: emailCell },
+              {
+                header: "Registrert",
+                className: "admin-table__date",
+                cell: (u) => (u.opprettet_at ? formatDate(u.opprettet_at.slice(0, 10)) : ""),
+              },
+              {
+                header: "Rolle",
+                cell: (u, sel) => {
+                  // Leftmost editor cell, so a deselected row drops its editor here.
+                  if (!sel) editors.delete(u.id);
+                  return sel ? editorFor(u).role : (ROLE_LABEL[u.rolle] ?? u.rolle);
+                },
+              },
+              { header: "Kobling", cell: (u, sel) => (sel ? editorFor(u).link : linkCell(u)) },
+              {
+                header: "",
+                className: "admin-table__actions",
+                cell: (u, sel) => (sel ? editorFor(u).actions : ""),
+              },
+            ],
+          })
+        : createEmptyState("Ingen treff."),
     );
-    refreshBulk();
+    bulk.update(selected.size);
   }
 
-  el.replaceChildren(alert.el, createToolbar([search, roleSelect, countEl, bulk]), listSlot);
+  el.replaceChildren(alert.el, createToolbar([search, roleSelect, countEl, bulk.el]), listSlot);
   update();
 }

@@ -1,66 +1,12 @@
 /* Rendered by admin/panels/brukarar.ts. */
 
-/* Users panel: compact table, row editing behind a checkbox, bulk actions. */
-
-.user-bulk {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-}
-
-.user-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.85rem;
-  background: var(--flate);
-  border: 1px solid var(--kant);
-}
-
-.user-table th {
-  padding: 6px 10px;
-  text-align: left;
-  font-size: 0.72rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--tekst-2);
-  background: var(--flate-2);
-  border-bottom: 1px solid var(--kant);
-}
-
-.user-table td {
-  padding: 5px 10px;
-  height: 40px;
-  color: var(--tekst);
-  border-bottom: 1px solid var(--kant);
-  vertical-align: middle;
-}
-
-.user-table__row--selected td {
-  background: var(--flate-2);
-}
-
-.user-table__check {
-  width: 36px;
-}
-
-.user-table__check .form-check-input {
-  margin: 0;
-}
+/* Users panel: the cells that differ from the shared admin table. */
 
 .user-table__email {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   overflow-wrap: anywhere;
-}
-
-.user-table__email .admin-badge {
-  margin-left: 6px;
-}
-
-.user-table__date {
-  white-space: nowrap;
-  color: var(--tekst-2);
-  font-variant-numeric: tabular-nums;
 }
 
 .user-table__link {
@@ -69,26 +15,11 @@
   gap: 6px;
 }
 
-.user-table__muted {
-  color: var(--tekst-3);
-}
-
-.user-table .search-select {
+.admin-table .search-select {
   min-width: 220px;
 }
 
-.user-table .search-select .form-control {
+.admin-table .search-select .form-control {
   padding: 2px 8px;
   font-size: 0.85rem;
-}
-
-/* Fixed width so the table does not shift when a row's buttons appear. */
-.user-table__actions {
-  width: 140px;
-  white-space: nowrap;
-  text-align: right;
-}
-
-.user-table__actions .btn + .btn {
-  margin-left: 6px;
 }

@@ -581,7 +581,7 @@ describe("brukarar panel", () => {
   });
 
   const tableRows = (el: HTMLElement): HTMLElement[] => [
-    ...el.querySelectorAll<HTMLElement>(".user-table tbody tr"),
+    ...el.querySelectorAll<HTMLElement>(".admin-table tbody tr"),
   ];
   const emails = (el: HTMLElement): string[] =>
     tableRows(el).map((r) => r.querySelector(".user-table__email span")?.textContent ?? "");
@@ -595,13 +595,13 @@ describe("brukarar panel", () => {
   }
 
   function rowButton(row: HTMLElement, label: string): HTMLButtonElement {
-    return [...row.querySelectorAll<HTMLButtonElement>(".user-table__actions button")].find(
+    return [...row.querySelectorAll<HTMLButtonElement>(".admin-table__actions button")].find(
       (b) => b.textContent === label,
     )!;
   }
 
   function bulkButton(el: HTMLElement, label: string): HTMLButtonElement {
-    return [...el.querySelectorAll<HTMLButtonElement>(".user-bulk button")].find(
+    return [...el.querySelectorAll<HTMLButtonElement>(".admin-bulk button")].find(
       (b) => b.textContent === label,
     )!;
   }
@@ -629,8 +629,8 @@ describe("brukarar panel", () => {
     const el = await renderAll();
 
     expect(emails(el)).toEqual(["ola@example.com", "sjef@example.com"]);
-    expect(el.querySelector(".user-table tbody select")).toBeNull();
-    expect(el.querySelector(".user-table__actions button")).toBeNull();
+    expect(el.querySelector(".admin-table tbody select")).toBeNull();
+    expect(el.querySelector(".admin-table__actions button")).toBeNull();
     expect(tableRows(el)[0]!.textContent).toContain("Ola Nordmann");
     expect(tableRows(el)[0]!.textContent).toContain("Kobla");
     // An admin without a link has nothing to show in the link column.
@@ -642,7 +642,7 @@ describe("brukarar panel", () => {
       "Nordmann Ola",
     );
     expect(rowButton(row, "Lagre")).toBeDefined();
-    expect(el.querySelector(".user-bulk")?.classList.contains("d-none")).toBe(false);
+    expect(el.querySelector(".admin-bulk")?.classList.contains("d-none")).toBe(false);
   });
 
   it("links a free thrower to a brukar", async () => {
@@ -757,7 +757,7 @@ describe("brukarar panel", () => {
   it("offers no delete on the signed-in admin's own row", async () => {
     const el = await renderAll();
     const labels = (row: HTMLElement) =>
-      [...row.querySelectorAll(".user-table__actions button")].map((b) => b.textContent);
+      [...row.querySelectorAll(".admin-table__actions button")].map((b) => b.textContent);
 
     expect(labels(selectRow(el, 0))).toEqual(["Lagre", "Slett"]);
     const own = selectRow(el, 1);
@@ -799,7 +799,7 @@ describe("brukarar panel", () => {
   it("sets the role for every ticked user and clears their links", async () => {
     confirmDialog.mockResolvedValue(true);
     const el = await renderAll();
-    const all = el.querySelector<HTMLInputElement>(".user-table thead input")!;
+    const all = el.querySelector<HTMLInputElement>(".admin-table thead input")!;
     all.checked = true;
     all.dispatchEvent(new Event("change"));
 
@@ -825,7 +825,7 @@ describe("brukarar panel", () => {
     expect(updateLinkStatus).toHaveBeenCalledTimes(1);
 
     // The reload clears the selection.
-    await vi.waitFor(() => expect(el.querySelector(".user-bulk.d-none")).not.toBeNull());
+    await vi.waitFor(() => expect(el.querySelector(".admin-bulk.d-none")).not.toBeNull());
     selectRow(el, 0);
     selectRow(el, 1);
     bulkButton(el, "Slett").click();
