@@ -496,6 +496,25 @@ export async function getTournamentHeader(
   return { data, error };
 }
 
+/**
+ * Whether the stevne has any generated play at all — ordinary matches in `kamp` or
+ * Kongelag courts in `xkast_kongelag`. A stevne can carry results without ever
+ * leaving 'ikke_startet' (imported from elsewhere), so the phase alone cannot tell
+ * the fase tabs whether there is anything to show.
+ */
+export async function hasResultData(stevneid: number): Promise<boolean> {
+  const [matches, courts] = await Promise.all([
+    supabase.from("kamp").select("id", { count: "exact", head: true }).eq("stevneid", stevneid),
+    supabase
+      .from("xkast_kongelag")
+      .select("id", { count: "exact", head: true })
+      .eq("stevneid", stevneid),
+  ]);
+  if (matches.error) logError("hasResultData:kamp", matches.error);
+  if (courts.error) logError("hasResultData:xkast_kongelag", courts.error);
+  return (matches.count ?? 0) > 0 || (courts.count ?? 0) > 0;
+}
+
 // ── Avsluttande fase ──────────────────────────────────────────────────────────
 
 const _avslStevneQuery = supabase
