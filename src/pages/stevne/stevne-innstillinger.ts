@@ -59,10 +59,9 @@ export async function render(
       (m) => m.er_avsluttende && (!isSncParent || isKongelagMethodName(m.navn)),
     );
 
-    // Only a lagbasert stevne can have lag_id rows, so a non-zero pairCount
-    // identifies the unit the round cap applies to. With no påmelde at all
-    // there is no cap to show yet.
-    const isTeam = pairCount > 0;
+    // lag_id rows survive a switch from par to singel, so the kategori decides
+    // the unit, not pairCount. With no påmelde there is no cap to show yet.
+    const isTeam = stevne.kategori?.erlagbasert ?? false;
     const entryCount = isTeam ? pairCount : playerCount;
     const roundCap = entryCount > 0 ? maxCascadeRounds(entryCount) : null;
     const capUnit = isTeam ? "par" : "spelarar";
