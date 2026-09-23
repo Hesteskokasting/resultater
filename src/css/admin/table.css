@@ -9,6 +9,16 @@
   gap: 8px;
 }
 
+/* No overflow clipping on wide screens: a scroll box would cut off the row
+   pickers' dropdowns. Only phones, where the table can outgrow the page,
+   scroll sideways. */
+@media (max-width: 575px) {
+  .admin-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
 .admin-table {
   width: 100%;
   border-collapse: collapse;

@@ -103,7 +103,7 @@ export function createAdminTable<T>({
   table.append(thead, tbody);
   syncAll();
 
-  const wrap = createEl("div", null, "table-scroll");
+  const wrap = createEl("div", null, "admin-table-wrap");
   wrap.append(table);
   return wrap;
 }
