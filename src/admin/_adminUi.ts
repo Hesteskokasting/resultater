@@ -68,7 +68,7 @@ export function createSectionTitle(text: string): HTMLElement {
 
 // ── Badges ───────────────────────────────────────────────────────────────────
 
-function createBadge({ text, tone = "muted" }: AdminBadge): HTMLElement {
+export function createBadge({ text, tone = "muted" }: AdminBadge): HTMLElement {
   return createEl("span", text, `admin-badge admin-badge--${tone}`);
 }
 
@@ -262,7 +262,7 @@ export function createLabelledSelect(
 
 // ── Rows ─────────────────────────────────────────────────────────────────────
 
-function createActionEl(action: AdminAction): HTMLElement {
+export function createActionEl(action: AdminAction): HTMLElement {
   const cls = `btn btn-sm btn-${action.variant ?? "outline-secondary"}`;
   if (action.href) {
     const link = createEl("a", action.label, cls);

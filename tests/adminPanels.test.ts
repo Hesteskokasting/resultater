@@ -580,9 +580,34 @@ describe("brukarar panel", () => {
     });
   });
 
+  const tableRows = (el: HTMLElement): HTMLElement[] => [
+    ...el.querySelectorAll<HTMLElement>(".user-table tbody tr"),
+  ];
+  const emails = (el: HTMLElement): string[] =>
+    tableRows(el).map((r) => r.querySelector(".user-table__email span")?.textContent ?? "");
+
+  /** Ticks row `index`, which swaps it for its editable version. */
+  function selectRow(el: HTMLElement, index: number): HTMLElement {
+    const box = tableRows(el)[index]!.querySelector<HTMLInputElement>("input[type=checkbox]")!;
+    box.checked = true;
+    box.dispatchEvent(new Event("change"));
+    return tableRows(el)[index]!;
+  }
+
+  function rowButton(row: HTMLElement, label: string): HTMLButtonElement {
+    return [...row.querySelectorAll<HTMLButtonElement>(".user-table__actions button")].find(
+      (b) => b.textContent === label,
+    )!;
+  }
+
+  function bulkButton(el: HTMLElement, label: string): HTMLButtonElement {
+    return [...el.querySelectorAll<HTMLButtonElement>(".user-bulk button")].find(
+      (b) => b.textContent === label,
+    )!;
+  }
+
   /** The row's thrower picker: type a query and click the offered row. */
-  function pickThrower(el: HTMLElement, index: number, query: string, id: string): void {
-    const row = [...el.querySelectorAll<HTMLElement>(".admin-row")][index]!;
+  function pickThrower(row: HTMLElement, query: string, id: string): void {
     const input = row.querySelector<HTMLInputElement>(".search-select input[type=text]")!;
     input.value = query;
     input.dispatchEvent(new Event("input"));
@@ -591,32 +616,61 @@ describe("brukarar panel", () => {
       .dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
   }
 
-  it("shows the current link in the row picker and links a free thrower", async () => {
+  async function renderAll(): Promise<HTMLElement> {
     const el = host();
     await renderUsers(el);
+    // Toolbar filters live in module state and survive a re-render on purpose
+    // (same as the public thrower list) — clear the previous test's role filter.
     choose(selectByLabel(el, "Filtrer på rolle"), "alle");
+    return el;
+  }
 
-    const inputs = [...el.querySelectorAll<HTMLInputElement>(".search-select input[type=text]")];
-    expect(inputs[0]!.value).toBe("Nordmann Ola");
-    expect(inputs[1]!.value).toBe("");
+  it("renders read-only rows until one is ticked", async () => {
+    const el = await renderAll();
 
-    // Thrower 5 belongs to the first user, so the second row is not offered it.
-    pickThrower(el, 1, "a", "9");
-    clickAction(el, 1, "Lagre");
-    await vi.waitFor(() => expect(updateLinkStatus).toHaveBeenCalledWith("u2", 9, "godkjent"));
+    expect(emails(el)).toEqual(["ola@example.com", "sjef@example.com"]);
+    expect(el.querySelector(".user-table tbody select")).toBeNull();
+    expect(el.querySelector(".user-table__actions button")).toBeNull();
+    expect(tableRows(el)[0]!.textContent).toContain("Ola Nordmann");
+    expect(tableRows(el)[0]!.textContent).toContain("Kobla");
+    // An admin without a link has nothing to show in the link column.
+    expect(tableRows(el)[1]!.querySelector(".user-table__link")?.textContent).toBe("—");
+
+    const row = selectRow(el, 0);
+    expect(row.querySelector<HTMLSelectElement>("select")!.value).toBe("bruker");
+    expect(row.querySelector<HTMLInputElement>(".search-select input[type=text]")!.value).toBe(
+      "Nordmann Ola",
+    );
+    expect(rowButton(row, "Lagre")).toBeDefined();
+    expect(el.querySelector(".user-bulk")?.classList.contains("d-none")).toBe(false);
   });
 
-  it("keeps inactive throwers out of the picker", async () => {
-    const el = host();
-    await renderUsers(el);
-    choose(selectByLabel(el, "Filtrer på rolle"), "alle");
+  it("links a free thrower to a brukar", async () => {
+    getAllUsers.mockResolvedValue({
+      data: [users[0]!, { ...users[1]!, rolle: "bruker" }],
+      error: null,
+    });
+    const el = await renderAll();
 
-    const row = [...el.querySelectorAll<HTMLElement>(".admin-row")][1]!;
+    const row = selectRow(el, 1);
+    // Thrower 5 belongs to the first user, and inactive throwers are left out.
     const input = row.querySelector<HTMLInputElement>(".search-select input[type=text]")!;
     input.value = "a";
     input.dispatchEvent(new Event("input"));
     const offered = [...row.querySelectorAll<HTMLElement>(".search-select [data-id]")];
     expect(offered.map((r) => r.dataset["id"])).toEqual(["9"]);
+
+    pickThrower(row, "a", "9");
+    rowButton(row, "Lagre").click();
+    await vi.waitFor(() => expect(updateLinkStatus).toHaveBeenCalledWith("u2", 9, "godkjent"));
+  });
+
+  it("locks the link picker for roles other than Brukar", async () => {
+    const el = await renderAll();
+    const input = selectRow(el, 1).querySelector<HTMLInputElement>(
+      ".search-select input[type=text]",
+    )!;
+    expect(input.disabled).toBe(true);
   });
 
   it("still names a link another profile once requested", async () => {
@@ -628,51 +682,45 @@ describe("brukarar panel", () => {
       ],
       error: null,
     });
-    const el = host();
-    await renderUsers(el);
-    choose(selectByLabel(el, "Filtrer på rolle"), "alle");
-
-    const inputs = [...el.querySelectorAll<HTMLInputElement>(".search-select input[type=text]")];
-    expect(inputs[0]!.value).toBe("Nordmann Ola");
+    const el = await renderAll();
+    const input = selectRow(el, 0).querySelector<HTMLInputElement>(
+      ".search-select input[type=text]",
+    )!;
+    expect(input.value).toBe("Nordmann Ola");
   });
 
   it("removes an existing link from the row", async () => {
-    const el = host();
-    await renderUsers(el);
-    choose(selectByLabel(el, "Filtrer på rolle"), "alle");
-
-    pickThrower(el, 0, "fjern", "");
-    clickAction(el, 0, "Lagre");
+    const el = await renderAll();
+    const row = selectRow(el, 0);
+    pickThrower(row, "fjern", "");
+    rowButton(row, "Lagre").click();
     await vi.waitFor(() => expect(updateLinkStatus).toHaveBeenCalledWith("u1", null, "ingen"));
   });
 
-  it("leaves the link alone when only the role changed", async () => {
-    const el = host();
-    await renderUsers(el);
-    choose(selectByLabel(el, "Filtrer på rolle"), "alle");
+  it("clears the link after confirmation when the role leaves Brukar", async () => {
+    confirmDialog.mockResolvedValue(true);
+    const el = await renderAll();
+    const row = selectRow(el, 0);
+    choose(row.querySelector<HTMLSelectElement>("select")!, "klubbadmin");
+    expect(row.querySelector<HTMLInputElement>(".search-select input[type=text]")!.disabled).toBe(
+      true,
+    );
 
-    const row = el.querySelector<HTMLElement>(".admin-row")!;
-    const select = row.querySelector<HTMLSelectElement>("select")!;
-    select.value = "admin";
-    clickAction(el, 0, "Lagre");
-    await vi.waitFor(() => expect(updateUserRole).toHaveBeenCalledWith("u1", "admin"));
-    expect(updateLinkStatus).not.toHaveBeenCalled();
+    rowButton(row, "Lagre").click();
+    await vi.waitFor(() => expect(updateLinkStatus).toHaveBeenCalledWith("u1", null, "ingen"));
+    expect(updateUserRole).toHaveBeenCalledWith("u1", "klubbadmin");
   });
 
-  it("preselects each user's current role and saves a change", async () => {
-    const el = host();
-    await renderUsers(el);
+  it("changes nothing when the role change is not confirmed", async () => {
+    confirmDialog.mockResolvedValue(false);
+    const el = await renderAll();
+    const row = selectRow(el, 0);
+    choose(row.querySelector<HTMLSelectElement>("select")!, "admin");
+    rowButton(row, "Lagre").click();
 
-    expect(rowTitles(el)).toEqual(["ola@example.com", "sjef@example.com"]);
-    expect(el.textContent).toContain("Ola Nordmann");
-
-    const firstRow = el.querySelector<HTMLElement>(".admin-row")!;
-    const select = firstRow.querySelector<HTMLSelectElement>("select")!;
-    expect(select.value).toBe("bruker");
-
-    select.value = "klubbadmin";
-    firstRow.querySelector<HTMLButtonElement>(".admin-row__actions button")!.click();
-    await vi.waitFor(() => expect(updateUserRole).toHaveBeenCalledWith("u1", "klubbadmin"));
+    await vi.waitFor(() => expect(confirmDialog).toHaveBeenCalled());
+    expect(updateUserRole).not.toHaveBeenCalled();
+    expect(updateLinkStatus).not.toHaveBeenCalled();
   });
 
   it("filters by role", async () => {
@@ -680,17 +728,15 @@ describe("brukarar panel", () => {
     await renderUsers(el);
 
     choose(selectByLabel(el, "Filtrer på rolle"), "admin");
-    expect(rowTitles(el)).toEqual(["sjef@example.com"]);
+    expect(emails(el)).toEqual(["sjef@example.com"]);
   });
 
   it("deletes an account after confirmation, keeping the thrower", async () => {
     confirmDialog.mockResolvedValue(true);
     deleteUserAccount.mockResolvedValue({ error: null });
-    const el = host();
-    await renderUsers(el);
-    choose(selectByLabel(el, "Filtrer på rolle"), "alle");
+    const el = await renderAll();
 
-    clickAction(el, 0, "Slett");
+    rowButton(selectRow(el, 0), "Slett").click();
     await vi.waitFor(() => expect(deleteUserAccount).toHaveBeenCalledWith("u1"));
 
     const prompt = confirmDialog.mock.calls[0]?.[0] as { message: string } | undefined;
@@ -701,25 +747,22 @@ describe("brukarar panel", () => {
 
   it("does not delete when the confirmation is declined", async () => {
     confirmDialog.mockResolvedValue(false);
-    const el = host();
-    await renderUsers(el);
+    const el = await renderAll();
 
-    clickAction(el, 0, "Slett");
+    rowButton(selectRow(el, 0), "Slett").click();
     await vi.waitFor(() => expect(confirmDialog).toHaveBeenCalled());
     expect(deleteUserAccount).not.toHaveBeenCalled();
   });
 
   it("offers no delete on the signed-in admin's own row", async () => {
-    const el = host();
-    await renderUsers(el);
-
-    const rows = [...el.querySelectorAll<HTMLElement>(".admin-row")];
+    const el = await renderAll();
     const labels = (row: HTMLElement) =>
-      [...row.querySelectorAll(".admin-row__actions button")].map((b) => b.textContent);
+      [...row.querySelectorAll(".user-table__actions button")].map((b) => b.textContent);
 
-    expect(labels(rows[0]!)).toEqual(["Lagre", "Slett"]);
-    expect(labels(rows[1]!)).toEqual(["Lagre"]);
-    expect(rows[1]!.textContent).toContain("Deg");
+    expect(labels(selectRow(el, 0))).toEqual(["Lagre", "Slett"]);
+    const own = selectRow(el, 1);
+    expect(labels(own)).toEqual(["Lagre"]);
+    expect(own.textContent).toContain("Deg");
   });
 
   it("shows the server's refusal (e.g. the last admin) without dropping the list", async () => {
@@ -727,35 +770,67 @@ describe("brukarar panel", () => {
     deleteUserAccount.mockResolvedValue({
       error: { message: "Cannot delete the last admin account" },
     });
-    const el = host();
-    await renderUsers(el);
+    const el = await renderAll();
 
-    clickAction(el, 0, "Slett");
+    rowButton(selectRow(el, 0), "Slett").click();
     await vi.waitFor(() => {
       expect(el.querySelector(".alert-danger")?.textContent).toBe(
         "Cannot delete the last admin account",
       );
     });
-    expect(rowTitles(el)).toHaveLength(2);
+    expect(emails(el)).toHaveLength(2);
   });
 
   it("surfaces a write failure without losing the list", async () => {
     updateUserRole.mockResolvedValue({ error: { message: "ingen tilgang" } });
-    const el = host();
-    await renderUsers(el);
-
-    // Toolbar filters live in module state and survive a re-render on purpose
-    // (same as the public thrower list) — clear the previous test's role filter.
-    choose(selectByLabel(el, "Filtrer på rolle"), "alle");
+    const el = await renderAll();
 
     // Saving only writes what changed, so the role has to differ to hit the RPC.
-    el.querySelector<HTMLSelectElement>(".admin-row select")!.value = "admin";
-    el.querySelector<HTMLButtonElement>(".admin-row__actions button")!.click();
+    const row = selectRow(el, 1);
+    choose(row.querySelector<HTMLSelectElement>("select")!, "klubbadmin");
+    rowButton(row, "Lagre").click();
     await vi.waitFor(() => {
       expect(el.querySelector(".alert-danger")?.classList.contains("d-none")).toBe(false);
     });
     expect(el.querySelector(".alert-danger")?.textContent).toBe("ingen tilgang");
-    expect(rowTitles(el)).toHaveLength(2);
+    expect(emails(el)).toHaveLength(2);
+  });
+
+  it("sets the role for every ticked user and clears their links", async () => {
+    confirmDialog.mockResolvedValue(true);
+    const el = await renderAll();
+    const all = el.querySelector<HTMLInputElement>(".user-table thead input")!;
+    all.checked = true;
+    all.dispatchEvent(new Event("change"));
+
+    choose(selectByLabel(el, "Ny rolle for valde"), "klubbadmin");
+    bulkButton(el, "Sett rolle").click();
+    await vi.waitFor(() => expect(updateUserRole).toHaveBeenCalledTimes(2));
+    expect(updateUserRole).toHaveBeenCalledWith("u1", "klubbadmin");
+    expect(updateUserRole).toHaveBeenCalledWith("u2", "klubbadmin");
+    // Only u1 had a link to clear.
+    expect(updateLinkStatus).toHaveBeenCalledTimes(1);
+    expect(updateLinkStatus).toHaveBeenCalledWith("u1", null, "ingen");
+  });
+
+  it("bulk-unlinks and bulk-deletes the ticked users, never the admin's own account", async () => {
+    confirmDialog.mockResolvedValue(true);
+    deleteUserAccount.mockResolvedValue({ error: null });
+    const el = await renderAll();
+    selectRow(el, 0);
+    selectRow(el, 1);
+
+    bulkButton(el, "Fjern kobling").click();
+    await vi.waitFor(() => expect(updateLinkStatus).toHaveBeenCalledWith("u1", null, "ingen"));
+    expect(updateLinkStatus).toHaveBeenCalledTimes(1);
+
+    // The reload clears the selection.
+    await vi.waitFor(() => expect(el.querySelector(".user-bulk.d-none")).not.toBeNull());
+    selectRow(el, 0);
+    selectRow(el, 1);
+    bulkButton(el, "Slett").click();
+    await vi.waitFor(() => expect(deleteUserAccount).toHaveBeenCalledWith("u1"));
+    expect(deleteUserAccount).toHaveBeenCalledTimes(1);
   });
 });
 
