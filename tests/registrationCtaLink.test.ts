@@ -10,7 +10,7 @@ function authWith(status: LinkStatus, kasterid: number | null, role: Role = "bru
   return {
     user: { id: "u1" } as User,
     profil: { role, kasterid, kobling_status: status, kobling_kasterid: null },
-    clubs: [],
+    club: null,
   };
 }
 

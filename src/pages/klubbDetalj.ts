@@ -1,5 +1,6 @@
 import { throwerName, buildThrowerSlug } from "@/utils/kaster";
 import { prependAdminLinkBar } from "@/components/AdminLinkBar";
+import { canOrganize } from "@/utils/roles";
 import { createErrorBanner, createLoadingState, createEmptyState } from "@/components/states";
 import { createTable } from "@/components/Table";
 import { createSearchInput } from "@/components/SearchInput";
@@ -110,9 +111,7 @@ export async function renderDetail(container: HTMLElement, id: number): Promise<
       href: `#/klubber/${id}/admin`,
       label: "Rediger klubb",
       variant: "warning",
-      canShow: (auth) =>
-        auth.profil?.role === "admin" ||
-        (auth.profil?.role === "klubbadmin" && auth.clubs.includes(id)),
+      canShow: (auth) => canOrganize(auth, id),
     });
   } catch (err) {
     logError("klubber.renderDetail", err);

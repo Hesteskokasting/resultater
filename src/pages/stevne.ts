@@ -1,4 +1,5 @@
-import { isAdmin, isClubAdmin } from "@/services/authService";
+import { getUser } from "@/services/authService";
+import { canOrganize } from "@/utils/roles";
 import { getTournamentHeader, hasResultData } from "@/services/stevneService";
 import { createErrorBanner, createLoadingState } from "@/components/states";
 import { logError } from "@/utils/logError";
@@ -111,7 +112,7 @@ export async function render(container: HTMLElement, params: Params): Promise<vo
 
     setPageTitle(tournament.navn);
 
-    const userIsAdmin = (await isAdmin()) || (await isClubAdmin());
+    const userIsAdmin = canOrganize(await getUser(), tournament.klubbid);
     const hasFinal = tournament.avsluttendekastemetodeid != null;
     const isCompleted = tournament.erfullfort === true;
     const isSncParent = tournament.er_snc_hovudstevne === true;

@@ -54,7 +54,7 @@ export async function getMyMatches(
 const _kampScoreboardQuery = supabase.from("kamp").select(`
     id, stevneid, fase, runde_nummer, runde_navn, bane_nummer,
     er_bekreftet, er_walkover, er_tre_spelarar,
-    stevne:stevneid(navn),
+    stevne:stevneid(navn, klubbid),
     spelarar:kamp_spelar(
       id, kasterid, score_poeng, kamp_poeng, antall_ringer,
       kaster:kasterid(id, fornavn, etternavn)
@@ -131,7 +131,7 @@ export async function getMatch(id: number): Promise<{ data: MatchRow | null; err
     .select(`
       id, stevneid, fase, runde_nummer, runde_navn, bane_nummer,
       er_bekreftet, er_walkover, er_tre_spelarar,
-      stevne:stevneid(navn),
+      stevne:stevneid(navn, klubbid),
       spelarar:kamp_spelar(
         id, kasterid, score_poeng, kamp_poeng, antall_ringer,
         kaster:kasterid(id, fornavn, etternavn)

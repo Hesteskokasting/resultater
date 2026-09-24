@@ -82,40 +82,30 @@ export async function getClubAdminAssignments(): Promise<{
   return { data: data ?? [], error };
 }
 
-export async function addClubAdminAccess(
+/** Gives a klubbadmin their one club, replacing any other; null removes it. */
+export async function setClubAdminClub(
   userId: string,
-  clubId: number,
+  clubId: number | null,
 ): Promise<{ error: unknown }> {
-  const { error } = await supabase
-    .from("klubbadmin_klubber")
-    .insert({ bruker_id: userId, klubbid: clubId });
-  if (error) logError("addClubAdminAccess", error);
+  const { error } =
+    clubId === null
+      ? await supabase.from("klubbadmin_klubber").delete().eq("bruker_id", userId)
+      : await supabase
+          .from("klubbadmin_klubber")
+          .upsert({ bruker_id: userId, klubbid: clubId }, { onConflict: "bruker_id" });
+  if (error) logError("setClubAdminClub", error);
   return { error };
 }
 
-export async function getClubAdminClubsForUser(
+/** The one club a klubbadmin runs (UNIQUE on bruker_id), or null. */
+export async function getClubAdminClubForUser(
   userId: string,
-): Promise<{ data: number[]; error: unknown }> {
+): Promise<{ data: number | null; error: unknown }> {
   const { data, error } = await supabase
     .from("klubbadmin_klubber")
     .select("klubbid")
-    .eq("bruker_id", userId);
-  if (error) logError("getClubAdminClubsForUser", error);
-  return {
-    data: (data ?? []).map((r) => r.klubbid).filter((id): id is number => id != null),
-    error,
-  };
-}
-
-export async function removeClubAdminAccess(
-  userId: string,
-  clubId: number,
-): Promise<{ error: unknown }> {
-  const { error } = await supabase
-    .from("klubbadmin_klubber")
-    .delete()
     .eq("bruker_id", userId)
-    .eq("klubbid", clubId);
-  if (error) logError("removeClubAdminAccess", error);
-  return { error };
+    .maybeSingle();
+  if (error) logError("getClubAdminClubForUser", error);
+  return { data: data?.klubbid ?? null, error };
 }

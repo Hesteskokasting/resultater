@@ -477,7 +477,7 @@ export async function getScheduleTournaments(
 const _stevneHeaderQuery = supabase
   .from("stevne")
   .select(
-    "id, navn, stevne_fase, erfullfort, avsluttendekastemetodeid, er_snc_hovudstevne, snc_hovudstevne_id, kategori:kategoriid(id, navn, erlagbasert)",
+    "id, navn, klubbid, stevne_fase, erfullfort, avsluttendekastemetodeid, er_snc_hovudstevne, snc_hovudstevne_id, kategori:kategoriid(id, navn, erlagbasert)",
   );
 
 export type TournamentHeaderRow = QueryData<typeof _stevneHeaderQuery>[number];
@@ -488,7 +488,7 @@ export async function getTournamentHeader(
   const { data, error } = await supabase
     .from("stevne")
     .select(
-      "id, navn, stevne_fase, erfullfort, avsluttendekastemetodeid, er_snc_hovudstevne, snc_hovudstevne_id, kategori:kategoriid(id, navn, erlagbasert)",
+      "id, navn, klubbid, stevne_fase, erfullfort, avsluttendekastemetodeid, er_snc_hovudstevne, snc_hovudstevne_id, kategori:kategoriid(id, navn, erlagbasert)",
     )
     .eq("id", id)
     .single();

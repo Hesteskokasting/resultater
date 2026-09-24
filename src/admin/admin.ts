@@ -13,6 +13,7 @@ import { render as renderOverview } from "./panels/oversikt";
 import { render as renderTournaments } from "./panels/stevne";
 import { render as renderThrowers } from "./panels/utovarar";
 import { render as renderClubs } from "./panels/klubbar";
+import { render as renderOwnClub } from "./panels/minKlubb";
 import { render as renderUsers } from "./panels/brukarar";
 import { render as renderRequests } from "./panels/forespurnader";
 import { render as renderClubAccess } from "./panels/klubbtilgang";
@@ -26,6 +27,7 @@ const TABS = [
   { key: "stevne", label: "Stevne", render: renderTournaments },
   { key: "utovarar", label: "Utøvarar", render: renderThrowers },
   { key: "klubbar", label: "Klubbar", render: renderClubs },
+  { key: "klubb", label: "Min klubb", render: renderOwnClub },
   { key: "brukarar", label: "Brukarar", render: renderUsers },
   { key: "forespurnader", label: "Forespørslar", render: renderRequests },
   { key: "tilgang", label: "Klubbadmin-tilgang", render: renderClubAccess },
@@ -34,12 +36,22 @@ const TABS = [
 type TabKey = (typeof TABS)[number]["key"];
 type Tab = (typeof TABS)[number];
 
-// A klubbadmin gets the stevne tab only; RLS already scopes what they can write.
-// The rest of their dashboard is #35.
-const CLUB_ADMIN_TABS = new Set<TabKey>(["stevne"]);
+// National overview, users, link requests and access stay with the admin; a
+// klubbadmin's panels are scoped to their own club.
+const ADMIN_TABS = new Set<TabKey>([
+  "oversikt",
+  "stevne",
+  "utovarar",
+  "klubbar",
+  "brukarar",
+  "forespurnader",
+  "tilgang",
+]);
+const CLUB_ADMIN_TABS = new Set<TabKey>(["stevne", "utovarar", "klubb"]);
 
 function tabsFor(role: string | undefined): Tab[] {
-  return role === "admin" ? [...TABS] : TABS.filter((t) => CLUB_ADMIN_TABS.has(t.key));
+  const keys = role === "admin" ? ADMIN_TABS : CLUB_ADMIN_TABS;
+  return TABS.filter((t) => keys.has(t.key));
 }
 
 // Same card as home.ts/terminliste — the live-prikk dot is the only "ongoing"

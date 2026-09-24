@@ -130,7 +130,7 @@ function linkedUser() {
   return {
     user: { id: "u1", email: "utovar@example.com" },
     profil: { role: "bruker", kasterid: 77, kobling_status: "godkjent" },
-    clubs: [],
+    club: null,
   };
 }
 
@@ -206,7 +206,7 @@ describe("SNC umbrella info tab", () => {
     getUser.mockResolvedValue({
       user: { id: "u2", email: "ny@example.com" },
       profil: { role: "bruker", kasterid: null, kobling_status: "ingen" },
-      clubs: [],
+      club: null,
     });
     const el = host();
     await renderSncInfo(el, { id: 10 });
@@ -223,7 +223,7 @@ describe("SNC umbrella info tab", () => {
     getUser.mockResolvedValue({
       user: { id: "a1", email: "admin@nhf.no" },
       profil: { role: "admin", kasterid: null, kobling_status: "ingen" },
-      clubs: [],
+      club: null,
     });
     const el = host();
     await renderSncInfo(el, { id: 10 });

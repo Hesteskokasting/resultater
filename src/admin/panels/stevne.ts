@@ -16,6 +16,8 @@ import {
   tournamentStatusShare,
 } from "@/admin/_adminEntityStats";
 import { getScheduleTournaments } from "@/services/stevneService";
+import { getUser } from "@/services/authService";
+import { canOrganize } from "@/utils/roles";
 import type { ScheduleTournamentRow } from "@/services/stevneService";
 import { getRegistrationCountsForTournaments } from "@/services/adminStatsService";
 import { drawBarChart } from "../_adminCharts";
@@ -227,13 +229,17 @@ export async function render(el: HTMLElement): Promise<void> {
 
   async function load(): Promise<void> {
     listSlot.replaceChildren(createLoadingState("Laster stevne…"));
-    const { data, error } = await getScheduleTournaments(filter.year);
+    const [{ data, error }, auth] = await Promise.all([
+      getScheduleTournaments(filter.year),
+      getUser(),
+    ]);
     if (error) {
       statsSlot.replaceChildren();
       listSlot.replaceChildren(createErrorBanner("Kunne ikkje laste stevne."));
       return;
     }
-    rows = data;
+    // A klubbadmin's dashboard covers their own club's stevner only.
+    rows = data.filter((row) => canOrganize(auth, row.klubb?.id));
     registrations = await getRegistrationCountsForTournaments(rows.map((r) => r.id));
 
     const summary = summarizeTournamentYear(

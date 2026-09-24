@@ -54,7 +54,8 @@ export interface Profile {
 export interface AuthUser {
   user: User;
   profil: Profile | null;
-  clubs: number[];
+  /** The club a klubbadmin runs; null for everyone else. */
+  club: number | null;
 }
 
 // --- Routing ---

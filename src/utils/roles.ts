@@ -1,4 +1,4 @@
-import type { Role } from "@/types";
+import type { AuthUser, Role } from "@/types";
 
 export const ROLES = ["bruker", "klubbadmin", "admin"] as const satisfies readonly Role[];
 
@@ -23,4 +23,17 @@ export function canLinkThrower(role: string | null | undefined): boolean {
 /** Admins and klubbadmins land on the admin dashboard instead of Min side. */
 export function isOrganizerRole(role: string | null | undefined): boolean {
   return role === "admin" || role === "klubbadmin";
+}
+
+/**
+ * Admin, or the klubbadmin of `clubId`. Mirrors private.er_stevnearrangor so the
+ * UI never offers a write RLS rejects; a row with no club is admin-only.
+ */
+export function canOrganize(
+  auth: AuthUser | null | undefined,
+  clubId: number | null | undefined,
+): boolean {
+  const role = auth?.profil?.role;
+  if (role === "admin") return true;
+  return role === "klubbadmin" && clubId != null && auth?.club === clubId;
 }

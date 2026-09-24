@@ -67,7 +67,7 @@ describe("maybeShowWelcomeDialog", () => {
   });
 
   it("stays away from a signed-in account, whose next step lives on min side", async () => {
-    mocks.getUser.mockResolvedValue({ user: { id: "u1" }, profil: null, clubs: [] });
+    mocks.getUser.mockResolvedValue({ user: { id: "u1" }, profil: null, club: null });
     await maybeShowWelcomeDialog();
     expect(isOpen()).toBe(false);
   });

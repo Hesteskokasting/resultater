@@ -1,6 +1,7 @@
 import type { Chart } from "chart.js";
 import { throwerName } from "@/utils/kaster";
 import { prependAdminLinkBar } from "@/components/AdminLinkBar";
+import { canOrganize } from "@/utils/roles";
 import { createErrorBanner, createLoadingState, createEmptyState } from "@/components/states";
 import { formatDate } from "@/utils/date";
 import { formatPercent } from "@/utils/formatPercent";
@@ -437,9 +438,7 @@ export async function renderDetail(container: HTMLElement, id: number): Promise<
       href: `#/kaster/${id}/admin`,
       label: "Rediger utøvar",
       variant: "warning",
-      canShow: (auth) =>
-        auth.profil?.role === "admin" ||
-        (auth.profil?.role === "klubbadmin" && auth.clubs.includes(thrower.klubbid ?? -1)),
+      canShow: (auth) => canOrganize(auth, thrower.klubbid),
     });
   } catch (err) {
     logError("kastere.renderDetail", err);

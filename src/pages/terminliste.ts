@@ -2,6 +2,7 @@ import { Capacitor } from "@capacitor/core";
 import type { AuthUser } from "@/types";
 import { getUser } from "@/services/authService";
 import { linkedThrowerId } from "@/utils/kaster";
+import { isOrganizerRole } from "@/utils/roles";
 import {
   getScheduleTournaments,
   getRegistrationsForThrower,
@@ -515,7 +516,7 @@ export async function render(container: HTMLElement): Promise<void> {
 
     updateList();
 
-    if (auth?.profil && (auth.profil.role === "admin" || auth.profil.role === "klubbadmin")) {
+    if (isOrganizerRole(auth?.profil?.role)) {
       const bar = document.createElement("div");
       bar.className = "mb-3 px-2 d-flex gap-2";
       bar.innerHTML = '<a href="#/stevne/ny" class="btn btn-sm btn-success">+ Nytt stevne</a>';

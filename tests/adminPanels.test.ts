@@ -21,6 +21,10 @@ const mocks = vi.hoisted(() => ({
   getPendingLinks: vi.fn(),
   updateLinkStatus: vi.fn(),
   getPendingLinkCount: vi.fn(),
+  getClubs: vi.fn(),
+  getClubAdminUsers: vi.fn(),
+  getClubAdminAssignments: vi.fn(),
+  setClubAdminClub: vi.fn(),
   getUser: vi.fn(),
   deleteUserAccount: vi.fn(),
   confirmDialog: vi.fn(),
@@ -37,7 +41,7 @@ vi.mock("@/services/stevneService", () => ({
 }));
 vi.mock("@/services/klubbService", () => ({
   getAllClubsForAdmin: mocks.getAllClubsForAdmin,
-  getClubs: vi.fn(),
+  getClubs: mocks.getClubs,
 }));
 vi.mock("@/services/kasterService", () => ({
   getThrowerAdminList: mocks.getThrowerAdminList,
@@ -54,10 +58,9 @@ vi.mock("@/services/adminService", () => ({
   getPendingLinks: mocks.getPendingLinks,
   updateLinkStatus: mocks.updateLinkStatus,
   getPendingLinkCount: mocks.getPendingLinkCount,
-  getClubAdminUsers: vi.fn(),
-  getClubAdminAssignments: vi.fn(),
-  addClubAdminAccess: vi.fn(),
-  removeClubAdminAccess: vi.fn(),
+  getClubAdminUsers: mocks.getClubAdminUsers,
+  getClubAdminAssignments: mocks.getClubAdminAssignments,
+  setClubAdminClub: mocks.setClubAdminClub,
 }));
 vi.mock("@/services/authService", () => ({ getUser: mocks.getUser }));
 vi.mock("@/services/accountService", () => ({ deleteUserAccount: mocks.deleteUserAccount }));
@@ -88,6 +91,10 @@ const {
   getPendingLinks,
   updateLinkStatus,
   getPendingLinkCount,
+  getClubs,
+  getClubAdminUsers,
+  getClubAdminAssignments,
+  setClubAdminClub,
   getUser,
   deleteUserAccount,
   confirmDialog,
@@ -102,6 +109,7 @@ import { render as renderRequests } from "@/admin/panels/forespurnader";
 import { render as renderThrowers } from "@/admin/panels/utovarar";
 import { render as renderTournaments } from "@/admin/panels/stevne";
 import { render as renderUsers } from "@/admin/panels/brukarar";
+import { render as renderClubAccess } from "@/admin/panels/klubbtilgang";
 import { createAdminRow } from "@/admin/_adminUi";
 
 function host(): HTMLElement {
@@ -147,15 +155,19 @@ function clickAction(el: HTMLElement, index: number, label: string): void {
 
 const YEAR = new Date().getFullYear();
 
+function signInAs(role: string, club: number | null = null): void {
+  getUser.mockResolvedValue({
+    user: { id: "u2", email: "sjef@example.com" },
+    profil: { role, kasterid: null, kobling_status: "ingen", kobling_kasterid: null },
+    club,
+  });
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   getLiveTournaments.mockResolvedValue({ data: [], error: null });
   getPendingLinkCount.mockResolvedValue(0);
-  getUser.mockResolvedValue({
-    user: { id: "u2", email: "sjef@example.com" },
-    profil: null,
-    clubs: [],
-  });
+  signInAs("admin");
   getRegistrationCountsForTournaments.mockResolvedValue(new Map());
   getThrowerAdminList.mockResolvedValue({ data: [], error: null });
   getScheduleTournaments.mockResolvedValue({ data: [], error: null });
@@ -342,6 +354,23 @@ describe("stevne panel", () => {
   });
 });
 
+describe("stevne panel as a klubbadmin", () => {
+  it("lists only their own club's stevner", async () => {
+    signInAs("klubbadmin", 2);
+    getScheduleTournaments.mockResolvedValue({
+      data: [
+        { id: 1, navn: "Oslo Open", dato: `${YEAR}-05-01`, klubb: { id: 1, navn: "Oslo HK" } },
+        { id: 2, navn: "Bergen Cup", dato: `${YEAR}-06-01`, klubb: { id: 2, navn: "Bergen HK" } },
+        { id: 3, navn: "Utan arrangør", dato: `${YEAR}-07-01`, klubb: null },
+      ],
+      error: null,
+    });
+    const el = host();
+    await renderTournaments(el);
+    expect(rowTitles(el)).toEqual(["Bergen Cup"]);
+  });
+});
+
 describe("utovarar panel", () => {
   const throwers = [
     {
@@ -455,6 +484,23 @@ describe("utovarar panel", () => {
 
     el.querySelector<HTMLButtonElement>(".admin-toolbar button")!.click();
     expect(openThrowerEditor).toHaveBeenLastCalledWith(undefined, expect.any(Function));
+  });
+});
+
+describe("utovarar panel as a klubbadmin", () => {
+  it("lists only their own club's throwers", async () => {
+    signInAs("klubbadmin", 2);
+    getThrowerAdminList.mockResolvedValue({
+      data: [
+        { id: 1, fornavn: "Ola", etternavn: "Nordmann", eraktiv: true, klubbid: 1 },
+        { id: 2, fornavn: "Kari", etternavn: "Vik", eraktiv: true, klubbid: 2 },
+        { id: 3, fornavn: "Per", etternavn: "Utan", eraktiv: true, klubbid: null },
+      ],
+      error: null,
+    });
+    const el = host();
+    await renderThrowers(el);
+    expect(rowTitles(el)).toEqual(["Kari Vik"]);
   });
 });
 
@@ -948,23 +994,59 @@ describe("forespurnader panel", () => {
   });
 });
 
-describe("admin shell", () => {
-  const signInAs = (role: string) =>
-    getUser.mockResolvedValue({
-      user: { id: "u2", email: "sjef@example.com" },
-      profil: { role, kasterid: null, kobling_status: "ingen", kobling_kasterid: null },
-      clubs: [],
+describe("klubbtilgang panel", () => {
+  beforeEach(() => {
+    getClubAdminUsers.mockResolvedValue({ data: [{ id: "k1" }], error: null });
+    getClubs.mockResolvedValue({
+      data: [
+        { id: 1, navn: "Oslo HK" },
+        { id: 2, navn: "Bergen HK" },
+      ],
+      error: null,
     });
+    getClubAdminAssignments.mockResolvedValue({
+      data: [{ bruker_id: "k1", klubbid: 2 }],
+      error: null,
+    });
+    getUserEmails.mockResolvedValue({ data: [{ id: "k1", epost: "k@example.com" }], error: null });
+  });
 
-  beforeEach(() => signInAs("admin"));
+  it("shows each klubbadmin's one club and replaces it on change", async () => {
+    setClubAdminClub.mockResolvedValue({ error: null });
+    const el = host();
+    await renderClubAccess(el);
 
-  it("gives a klubbadmin the stevne tab only, without the request queue", async () => {
-    signInAs("klubbadmin");
+    const select = selectByLabel(el, "Klubb for k@example.com");
+    expect(select.value).toBe("2");
+    choose(select, "1");
+    expect(setClubAdminClub).toHaveBeenCalledWith("k1", 1);
+    choose(select, "");
+    expect(setClubAdminClub).toHaveBeenCalledWith("k1", null);
+  });
+
+  it("puts the select back when the save fails", async () => {
+    setClubAdminClub.mockResolvedValue({ error: { message: "nekta" } });
+    const el = host();
+    await renderClubAccess(el);
+
+    const select = selectByLabel(el, "Klubb for k@example.com");
+    choose(select, "1");
+    await vi.waitFor(() => expect(select.value).toBe("2"));
+  });
+});
+
+describe("admin shell", () => {
+  it("gives a klubbadmin their club's panels, without users, requests or access", async () => {
+    signInAs("klubbadmin", 2);
     const el = host();
     await renderAdmin(el, { tab: "brukarar" });
 
     const links = [...el.querySelectorAll<HTMLAnchorElement>(".admin-nav .nav-link")];
-    expect(links.map((a) => a.getAttribute("href"))).toEqual(["#/admin/stevne"]);
+    expect(links.map((a) => a.getAttribute("href"))).toEqual([
+      "#/admin/stevne",
+      "#/admin/utovarar",
+      "#/admin/klubb",
+    ]);
     expect(links[0]!.classList.contains("active")).toBe(true);
     expect(getPendingLinkCount).not.toHaveBeenCalled();
     expect(el.querySelector(".admin-head__title")?.textContent).toBe("Dashboard - Klubbadmin");

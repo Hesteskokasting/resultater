@@ -46,7 +46,7 @@ function submitForm(): void {
   form()!.dispatchEvent(new Event("submit", { cancelable: true }));
 }
 
-const signedIn = { user: { id: "u1" }, profil: null, clubs: [] };
+const signedIn = { user: { id: "u1" }, profil: null, club: null };
 
 beforeEach(() => {
   vi.clearAllMocks();

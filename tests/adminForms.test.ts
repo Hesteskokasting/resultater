@@ -15,8 +15,7 @@ const mocks = vi.hoisted(() => ({
   updateThrower: vi.fn(),
   createThrower: vi.fn(),
   deleteThrower: vi.fn(),
-  isAdmin: vi.fn(),
-  isClubAdmin: vi.fn(),
+  getUser: vi.fn(),
   confirmDialog: vi.fn(),
 }));
 
@@ -35,10 +34,7 @@ vi.mock("@/services/kasterService", () => ({
   createThrower: mocks.createThrower,
   deleteThrower: mocks.deleteThrower,
 }));
-vi.mock("@/services/authService", () => ({
-  isAdmin: mocks.isAdmin,
-  isClubAdmin: mocks.isClubAdmin,
-}));
+vi.mock("@/services/authService", () => ({ getUser: mocks.getUser }));
 vi.mock("@/components/dialog/ConfirmDialog", () => ({ confirmDialog: mocks.confirmDialog }));
 
 import { mountClubForm } from "@/admin/forms/klubbForm";
@@ -58,10 +54,17 @@ function setField(container: HTMLElement, name: string, value: string): void {
   container.querySelector<HTMLInputElement>(`[name="${name}"]`)!.value = value;
 }
 
+function signInAs(role: string, club: number | null = null): void {
+  mocks.getUser.mockResolvedValue({
+    user: { id: "u1" },
+    profil: { role, kasterid: null, kobling_status: "ingen", kobling_kasterid: null },
+    club,
+  });
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.isAdmin.mockResolvedValue(true);
-  mocks.isClubAdmin.mockResolvedValue(false);
+  signInAs("admin");
   mocks.getClubs.mockResolvedValue({
     data: [{ id: 1, navn: "Oslo HK", logourl: null }],
     error: null,
@@ -123,8 +126,25 @@ describe("klubbForm", () => {
     expect(onSaved).not.toHaveBeenCalled();
   });
 
+  it("lets a klubbadmin edit their own club only", async () => {
+    mocks.getClubForAdmin.mockResolvedValue({
+      data: { id: 2, navn: "Bergen HK", kortnavn: null, logourl: null, eraktiv: true },
+      error: null,
+    });
+    signInAs("klubbadmin", 2);
+    const own = host();
+    await mountClubForm(own, 2);
+    expect(own.container.querySelector("form")).not.toBeNull();
+
+    const other = host();
+    await mountClubForm(other, 1);
+    expect(other.container.querySelector(".error-banner")?.textContent).toBe(
+      "Ingen tilgang til denne klubben.",
+    );
+  });
+
   it("refuses club creation to a non-admin", async () => {
-    mocks.isAdmin.mockResolvedValue(false);
+    signInAs("klubbadmin", 2);
     const h = host();
     await mountClubForm(h);
     expect(h.container.querySelector(".error-banner")?.textContent).toBe("Ingen tilgang.");
@@ -199,8 +219,7 @@ describe("kasterForm", () => {
 
   it("blocks a klubbadmin from another club's thrower", async () => {
     mocks.getThrowerForAdmin.mockResolvedValue({ data: thrower, error: null });
-    mocks.isAdmin.mockResolvedValue(false);
-    mocks.isClubAdmin.mockResolvedValue(false);
+    signInAs("klubbadmin", 2);
 
     const h = host();
     await mountThrowerForm(h, 5);
@@ -213,5 +232,48 @@ describe("kasterForm", () => {
     const h = host();
     await mountThrowerForm(h);
     expect(h.container.querySelector("#delete-button")).toBeNull();
+  });
+
+  describe("as a klubbadmin", () => {
+    const clubOptions = (container: HTMLElement): string[] =>
+      [...container.querySelector<HTMLSelectElement>('[name="klubbid"]')!.options].map(
+        (o) => o.text,
+      );
+
+    beforeEach(() => {
+      mocks.getClubs.mockResolvedValue({
+        data: [
+          { id: 1, navn: "Oslo HK", logourl: null },
+          { id: 2, navn: "Bergen HK", logourl: null },
+        ],
+        error: null,
+      });
+      signInAs("klubbadmin", 2);
+    });
+
+    it("starts a new thrower in their own club, with no other choice", async () => {
+      const h = host();
+      await mountThrowerForm(h);
+      expect(clubOptions(h.container)).toEqual(["Bergen HK"]);
+    });
+
+    it("can release their own thrower from the club, but not delete it", async () => {
+      mocks.getThrowerForAdmin.mockResolvedValue({ data: { ...thrower, klubbid: 2 }, error: null });
+      mocks.updateThrower.mockResolvedValue({ data: { id: 5 }, error: null });
+      const onSaved = vi.fn();
+      const h = host({ onSaved });
+      await mountThrowerForm(h, 5);
+
+      expect(clubOptions(h.container)).toEqual(["Ingen klubb", "Bergen HK"]);
+      expect(h.container.querySelector("#delete-button")).toBeNull();
+
+      setField(h.container, "klubbid", "");
+      submit(h.container);
+      await vi.waitFor(() => expect(onSaved).toHaveBeenCalled());
+      expect(mocks.updateThrower).toHaveBeenCalledWith(
+        5,
+        expect.objectContaining({ klubbid: null }),
+      );
+    });
   });
 });

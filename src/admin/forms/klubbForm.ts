@@ -1,6 +1,7 @@
 import { showToast } from "@/components/Toast";
 import { errorMessage } from "@/utils/errorMessage";
-import { isAdmin, isClubAdmin } from "@/services/authService";
+import { getUser } from "@/services/authService";
+import { canOrganize } from "@/utils/roles";
 import { escHtml } from "@/utils/escHtml";
 import { createErrorBanner, createLoadingState } from "@/components/states";
 import {
@@ -16,12 +17,13 @@ import { bindCancelButton } from "./_formButtons";
 
 /**
  * Create/edit form for a club. Creating is admin-only; a klubbadmin may edit the
- * clubs they administer (mirrors the RLS policies on `klubb`).
+ * club they administer (mirrors the RLS policies on `klubb`).
  */
 export async function mountClubForm(host: AdminFormHost, id?: number): Promise<void> {
   const { container } = host;
   container.replaceChildren(createLoadingState());
 
+  const auth = await getUser();
   let club: ClubAdminRow | null = null;
 
   if (id) {
@@ -32,11 +34,11 @@ export async function mountClubForm(host: AdminFormHost, id?: number): Promise<v
     }
     club = data;
 
-    if (!(await isAdmin()) && !(await isClubAdmin(id))) {
+    if (!canOrganize(auth, id)) {
       container.replaceChildren(createErrorBanner("Ingen tilgang til denne klubben."));
       return;
     }
-  } else if (!(await isAdmin())) {
+  } else if (auth?.profil?.role !== "admin") {
     container.replaceChildren(createErrorBanner("Ingen tilgang."));
     return;
   }

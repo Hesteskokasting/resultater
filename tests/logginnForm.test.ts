@@ -190,7 +190,7 @@ describe("account page", () => {
         kobling_status: "ingen",
         kobling_kasterid: null,
       },
-      clubs: [1],
+      club: 1,
     });
     fill("klubb@example.com", "hemmeleg1");
     submitForm();

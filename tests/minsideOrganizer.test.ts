@@ -20,7 +20,7 @@ function signInAs(role: string): void {
   mocks.getUser.mockResolvedValue({
     user: { id: "u1", email: "x@example.com" },
     profil: { role, kasterid: null, kobling_status: "ingen", kobling_kasterid: null },
-    clubs: [],
+    club: null,
   });
 }
 

@@ -135,17 +135,17 @@ export async function getThrowerDetail(id: number): Promise<{
   return entry;
 }
 
-export async function getThrowersForClubs(
-  klubbIds: number[],
+export async function getThrowersForClub(
+  clubId: number,
 ): Promise<{ data: ThrowerListRow[]; error: unknown }> {
   const { data, error } = await supabase
     .from("kaster")
     .select("id, fornavn, etternavn, eraktiv, avatarurl, kjonnid, klubb:klubbid(id, navn)")
-    .in("klubbid", klubbIds)
+    .eq("klubbid", clubId)
     .eq("eraktiv", true)
     .order("etternavn")
     .order("fornavn");
-  if (error) logError("getThrowersForClubs", error);
+  if (error) logError("getThrowersForClub", error);
   return { data: data ?? [], error };
 }
 

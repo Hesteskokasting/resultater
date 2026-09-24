@@ -1,5 +1,6 @@
 import { Capacitor } from "@capacitor/core";
 import { getUser } from "@/services/authService";
+import { canOrganize } from "@/utils/roles";
 import { logError } from "@/utils/logError";
 import { createErrorBanner, createLoadingState } from "@/components/states";
 import { escHtml } from "@/utils/escHtml";
@@ -275,8 +276,7 @@ export async function render(container: HTMLElement, params: Params): Promise<vo
   setPageTitle(match.stevne?.navn);
 
   const throwerId = auth?.profil?.kasterid ?? null;
-  const role = auth?.profil?.role ?? null;
-  const isOrganizer = role === "admin" || role === "klubbadmin";
+  const isOrganizer = canOrganize(auth, match.stevne?.klubbid);
   const isParticipant =
     throwerId != null && (match.spelarar ?? []).some((s) => s.kasterid === throwerId);
 

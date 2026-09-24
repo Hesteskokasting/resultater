@@ -21,8 +21,7 @@ const mocks = vi.hoisted(() => ({
   reopenSncParent: vi.fn(),
   getClubs: vi.fn(),
   getAllThrowerList: vi.fn(),
-  isAdmin: vi.fn(),
-  isClubAdmin: vi.fn(),
+  getUser: vi.fn(),
   confirmDialog: vi.fn(),
 }));
 
@@ -44,10 +43,7 @@ vi.mock("@/services/stevneService", () => ({
 }));
 vi.mock("@/services/klubbService", () => ({ getClubs: mocks.getClubs }));
 vi.mock("@/services/kasterService", () => ({ getAllThrowerList: mocks.getAllThrowerList }));
-vi.mock("@/services/authService", () => ({
-  isAdmin: mocks.isAdmin,
-  isClubAdmin: mocks.isClubAdmin,
-}));
+vi.mock("@/services/authService", () => ({ getUser: mocks.getUser }));
 vi.mock("@/components/dialog/ConfirmDialog", () => ({ confirmDialog: mocks.confirmDialog }));
 
 import { mountTournamentForm } from "@/admin/forms/stevneForm";
@@ -122,11 +118,18 @@ function row(extra: Record<string, unknown> = {}) {
   };
 }
 
+function signInAs(role: string, club: number | null = null): void {
+  mocks.getUser.mockResolvedValue({
+    user: { id: "u1" },
+    profil: { role, kasterid: null, kobling_status: "ingen", kobling_kasterid: null },
+    club,
+  });
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   location.hash = "#/stevne/ny";
-  mocks.isAdmin.mockResolvedValue(true);
-  mocks.isClubAdmin.mockResolvedValue(false);
+  signInAs("admin");
   mocks.getClubs.mockResolvedValue({
     data: [{ id: 1, navn: "Førde HK", logourl: null }],
     error: null,
@@ -559,5 +562,57 @@ describe("stevneForm, local SNC stevne", () => {
       5,
       expect.objectContaining({ ernm: false, erekskludertfrarekorder: false }),
     );
+  });
+});
+
+describe("stevneForm, klubbadmin", () => {
+  beforeEach(() => {
+    mocks.getClubs.mockResolvedValue({
+      data: [
+        { id: 1, navn: "Førde HK", logourl: null },
+        { id: 2, navn: "Bergen HK", logourl: null },
+      ],
+      error: null,
+    });
+    signInAs("klubbadmin", 2);
+  });
+
+  it("fixes Arrangør to their own club and saves it on create", async () => {
+    mocks.createTournament.mockResolvedValue({ data: { id: 7 }, error: null });
+    const onSaved = vi.fn();
+    const h = host({ onSaved });
+
+    await mountTournamentForm(h);
+    const club = field<HTMLSelectElement>(h.container, "klubbid");
+    expect(club.disabled).toBe(true);
+    expect([...club.options].map((o) => o.text)).toEqual(["— velg —", "Bergen HK"]);
+    expect(club.value).toBe("2");
+
+    field<HTMLInputElement>(h.container, "navn").value = "Klubbstevne";
+    field<HTMLInputElement>(h.container, "dato").value = "2026-08-01";
+    submit(h.container);
+
+    await vi.waitFor(() => expect(onSaved).toHaveBeenCalledWith(7, true));
+    expect(mocks.createTournament).toHaveBeenCalledWith(expect.objectContaining({ klubbid: 2 }));
+  });
+
+  it("edits their own club's stevne without offering delete", async () => {
+    mocks.getTournamentForAdmin.mockResolvedValue({ data: row({ klubbid: 2 }), error: null });
+    const h = host();
+    await mountTournamentForm(h, 5);
+
+    expect(h.container.querySelector("form")).not.toBeNull();
+    expect(h.container.querySelector("#delete-button")).toBeNull();
+  });
+
+  it("is refused another club's stevne, and one with no club", async () => {
+    for (const klubbid of [1, null]) {
+      mocks.getTournamentForAdmin.mockResolvedValue({ data: row({ klubbid }), error: null });
+      const h = host();
+      await mountTournamentForm(h, 5);
+      expect(h.container.querySelector(".error-banner")?.textContent).toBe(
+        "Ingen tilgang til dette stevnet.",
+      );
+    }
   });
 });

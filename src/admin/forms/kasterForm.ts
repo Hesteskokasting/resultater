@@ -1,6 +1,7 @@
 import { showToast } from "@/components/Toast";
 import { errorMessage } from "@/utils/errorMessage";
-import { isAdmin, isClubAdmin } from "@/services/authService";
+import { getUser } from "@/services/authService";
+import { canOrganize } from "@/utils/roles";
 import { escHtml } from "@/utils/escHtml";
 import { buildDropdownOptions } from "@/utils/dropdown";
 import { formNum } from "@/utils/formNum";
@@ -40,6 +41,9 @@ export async function mountThrowerForm(host: AdminFormHost, id?: number): Promis
     return;
   }
 
+  const auth = await getUser();
+  const isAdminUser = auth?.profil?.role === "admin";
+
   let thrower: ThrowerAdminRow | null = null;
   if (id) {
     const { data, error } = await getThrowerForAdmin(id);
@@ -49,17 +53,23 @@ export async function mountThrowerForm(host: AdminFormHost, id?: number): Promis
     }
     thrower = data;
 
-    if (!(await isAdmin()) && !(await isClubAdmin(thrower.klubbid ?? undefined))) {
+    if (!canOrganize(auth, thrower.klubbid)) {
       container.replaceChildren(createErrorBanner("Ingen tilgang til denne utøvaren."));
       return;
     }
   }
 
   const v = thrower ?? ({} as Partial<ThrowerAdminRow>);
-  const clubOptions = clubs
+  // A klubbadmin keeps a thrower in their own club or releases it (edit only);
+  // RLS rejects any other club, and a new thrower has to start in theirs.
+  const ownClub = auth?.club ?? null;
+  const selectedClub = v.klubbid ?? (isAdminUser ? null : ownClub);
+  const emptyOption =
+    isAdminUser || id ? `<option value="">${isAdminUser ? "— vel —" : "Ingen klubb"}</option>` : "";
+  const clubOptions = (isAdminUser ? clubs : clubs.filter((k) => k.id === ownClub))
     .map(
       (k) =>
-        `<option value="${k.id}"${k.id === v.klubbid ? " selected" : ""}>${escHtml(k.navn)}</option>`,
+        `<option value="${k.id}"${k.id === selectedClub ? " selected" : ""}>${escHtml(k.navn)}</option>`,
     )
     .join("");
 
@@ -75,7 +85,7 @@ export async function mountThrowerForm(host: AdminFormHost, id?: number): Promis
         ${formRowHtml("Kjønn*", `<select class="form-select" name="kjonnid">${buildDropdownOptions(genders, v.kjonnid)}</select>`)}
         ${formRowHtml("Klasse", `<select class="form-select" name="klasseid">${buildDropdownOptions(classes, v.klasseid)}</select>`)}
       </div>
-      ${formRowHtml("Klubb", `<select class="form-select" name="klubbid"><option value="">— vel —</option>${clubOptions}</select>`)}
+      ${formRowHtml("Klubb", `<select class="form-select" name="klubbid">${emptyOption}${clubOptions}</select>`)}
       <div class="mb-3 form-check">
         <input class="form-check-input" type="checkbox" name="eraktiv" id="eraktiv"${v.eraktiv !== false ? " checked" : ""}>
         <label class="form-check-label" for="eraktiv">Er aktiv</label>
@@ -83,7 +93,7 @@ export async function mountThrowerForm(host: AdminFormHost, id?: number): Promis
       <div class="admin-form-actions">
         <button type="submit" class="btn btn-primary">Lagre</button>
         ${host.onCancel ? `<button type="button" id="cancel-button" class="btn btn-outline-secondary">Avbryt</button>` : ""}
-        ${id ? `<button type="button" id="delete-button" class="btn btn-outline-danger ms-auto">Slett utøvar</button>` : ""}
+        ${id && isAdminUser ? `<button type="button" id="delete-button" class="btn btn-outline-danger ms-auto">Slett utøvar</button>` : ""}
       </div>
     </form>`;
 

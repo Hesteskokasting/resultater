@@ -11,7 +11,7 @@ import { logError } from "@/utils/logError";
 import { setPageTitle } from "@/utils/pageTitle";
 import { registerRefetch } from "@/utils/data/refetchRegistry";
 import { getTournamentForRegistration, getRelatedTournaments } from "@/services/stevneService";
-import { getActiveThrowerList, getThrowersForClubs } from "@/services/kasterService";
+import { getActiveThrowerList, getThrowersForClub } from "@/services/kasterService";
 import {
   getRegistrationsForTournament,
   getPairsForTournament,
@@ -285,7 +285,7 @@ export async function render(container: HTMLElement, params: Params = {}): Promi
     const throwersFetch: Promise<{ data: ThrowerListRow[]; error: unknown }> = (() => {
       if (!isPrivileged) return Promise.resolve({ data: [], error: null });
       if (isAdminRole) return getActiveThrowerList();
-      if (auth && auth.clubs.length) return getThrowersForClubs(auth.clubs);
+      if (auth?.club != null) return getThrowersForClub(auth.club);
       return Promise.resolve({ data: [], error: null });
     })();
 
