@@ -44,7 +44,6 @@ export interface TournamentRowLike {
 export interface TournamentDashboard {
   total: number;
   completed: number;
-  ongoing: number;
   upcoming: number;
   notStarted: number;
   nm: number;
@@ -68,7 +67,6 @@ export function summarizeTournamentYear(
   today: string,
 ): TournamentDashboard {
   let completed = 0;
-  let ongoing = 0;
   let upcoming = 0;
   let notStarted = 0;
   let nm = 0;
@@ -85,9 +83,7 @@ export function summarizeTournamentYear(
 
     if (row.erfullfort) {
       completed++;
-    } else if (isOngoing(row)) {
-      ongoing++;
-    } else {
+    } else if (!isOngoing(row)) {
       notStarted++;
       if ((row.dato ?? "") >= today) {
         upcoming++;
@@ -99,7 +95,6 @@ export function summarizeTournamentYear(
   return {
     total: rows.length,
     completed,
-    ongoing,
     upcoming,
     notStarted,
     nm,

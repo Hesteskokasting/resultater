@@ -81,10 +81,6 @@ a.admin-stat:hover {
   border-left-color: var(--kamp-stripe-pagaar);
 }
 
-.admin-stat--live {
-  border-left-color: var(--live-prikk);
-}
-
 .admin-stat__label {
   font-size: 0.72rem;
   font-weight: 600;

@@ -281,7 +281,6 @@ describe("stevne panel", () => {
 
     expect(tileValue(el, `Stevne i ${YEAR}`)).toBe("3");
     expect(tileValue(el, "Fullført")).toBe("1");
-    expect(tileValue(el, "Pågåande")).toBe("1");
     expect(tileValue(el, "Påmeldingar")).toBe("36");
     expect(tileValue(el, "Snitt påmelde")).toBe("18");
   });

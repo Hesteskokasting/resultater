@@ -98,7 +98,7 @@ describe("participantsPerYearSeries", () => {
 });
 
 describe("summarizeTournaments", () => {
-  it("splits completed, ongoing and upcoming", () => {
+  it("splits completed and upcoming, leaving running ones out", () => {
     const rows = [
       { dato: "2026-01-01", erfullfort: true, stevne_fase: "avsluttende" },
       { dato: "2026-08-02", erfullfort: false, stevne_fase: "innledende" },
@@ -108,7 +108,6 @@ describe("summarizeTournaments", () => {
     expect(summarizeTournaments(rows, "2026-08-02")).toEqual({
       total: 4,
       completed: 1,
-      ongoing: 1,
       upcoming: 1,
     });
   });

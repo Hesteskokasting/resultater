@@ -115,12 +115,6 @@ function tiles(summary: ReturnType<typeof summarizeTournamentYear>, year: number
         : "—",
     },
     {
-      label: "Pågåande",
-      value: summary.ongoing,
-      sub: summary.ongoing ? "Live no" : "Ingen live no",
-      tone: summary.ongoing ? "live" : undefined,
-    },
-    {
       label: "Kommande",
       value: summary.upcoming,
       sub: summary.next ? `Neste: ${formatDate(summary.next.dato)}` : "Ingen att i år",
@@ -136,7 +130,7 @@ function tiles(summary: ReturnType<typeof summarizeTournamentYear>, year: number
 
 export async function render(el: HTMLElement): Promise<void> {
   const statsSlot = createEl("div", null);
-  statsSlot.appendChild(createStatGridSkeleton(6));
+  statsSlot.appendChild(createStatGridSkeleton(5));
 
   const monthChart = createChartCard("Stevne per månad", "Valt år");
   const statusChart = createChartCard("Status", "Del av stevna i året");

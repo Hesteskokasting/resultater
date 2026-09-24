@@ -51,13 +51,6 @@ function statTiles(
       href: "#/admin/stevne",
     },
     {
-      label: "Pågåande stevne",
-      value: summary.ongoing,
-      sub: summary.ongoing ? "Live no" : "Ingen live no",
-      href: "#/admin/stevne",
-      tone: summary.ongoing ? "live" : undefined,
-    },
-    {
       label: "Aktive utøvarar",
       value: counts.activeThrowers,
       sub: `${counts.totalThrowers} totalt`,
@@ -80,13 +73,6 @@ function statTiles(
           },
         ]
       : []),
-    {
-      label: "Ventande forespørslar",
-      value: counts.pendingLinks,
-      sub: counts.pendingLinks ? "Treng handsaming" : "Alt handsama",
-      href: "#/admin/forespurnader",
-      tone: counts.pendingLinks ? "warn" : undefined,
-    },
     {
       label: `Påmeldingar i ${year}`,
       value: registrations,
@@ -139,7 +125,7 @@ export async function render(el: HTMLElement): Promise<void> {
   ]);
 
   const statsSlot = createEl("div", null);
-  statsSlot.appendChild(createStatGridSkeleton(7));
+  statsSlot.appendChild(createStatGridSkeleton(5));
 
   const tournamentChart = createChartCard(
     "Stevne per år",

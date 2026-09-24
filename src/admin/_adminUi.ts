@@ -47,7 +47,7 @@ export interface StatTile {
   /** Makes the whole tile a link (used to jump into the matching tab). */
   href?: string;
   /** Highlights the tile — used for "needs attention" figures. */
-  tone?: "warn" | "live";
+  tone?: "warn";
 }
 
 export interface QuickAction {

@@ -81,7 +81,6 @@ describe("summarizeTournamentYear", () => {
     expect(s).toMatchObject({
       total: 4,
       completed: 1,
-      ongoing: 1,
       upcoming: 2,
       notStarted: 2,
       nm: 1,

@@ -14,7 +14,6 @@ export interface AdminEntityCounts {
   activeClubs: number;
   totalClubs: number;
   totalUsers: number;
-  pendingLinks: number;
 }
 
 export type TournamentStatRow = Pick<Tables<"stevne">, "dato" | "erfullfort" | "stevne_fase">;
@@ -34,15 +33,13 @@ function resolveCount(label: string, { count, error }: CountResult): number {
 export async function getAdminEntityCounts(): Promise<AdminEntityCounts> {
   const head = { count: "exact", head: true } as const;
 
-  const [activeThrowers, totalThrowers, activeClubs, totalClubs, totalUsers, pendingLinks] =
-    await Promise.all([
-      supabase.from("kaster").select("id", head).eq("eraktiv", true),
-      supabase.from("kaster").select("id", head),
-      supabase.from("klubb").select("id", head).eq("eraktiv", true),
-      supabase.from("klubb").select("id", head),
-      supabase.from("bruker_profil").select("id", head),
-      supabase.from("bruker_profil").select("id", head).eq("kobling_status", "venter"),
-    ]);
+  const [activeThrowers, totalThrowers, activeClubs, totalClubs, totalUsers] = await Promise.all([
+    supabase.from("kaster").select("id", head).eq("eraktiv", true),
+    supabase.from("kaster").select("id", head),
+    supabase.from("klubb").select("id", head).eq("eraktiv", true),
+    supabase.from("klubb").select("id", head),
+    supabase.from("bruker_profil").select("id", head),
+  ]);
 
   return {
     activeThrowers: resolveCount("adminStats.activeThrowers", activeThrowers),
@@ -50,7 +47,6 @@ export async function getAdminEntityCounts(): Promise<AdminEntityCounts> {
     activeClubs: resolveCount("adminStats.activeClubs", activeClubs),
     totalClubs: resolveCount("adminStats.totalClubs", totalClubs),
     totalUsers: resolveCount("adminStats.totalUsers", totalUsers),
-    pendingLinks: resolveCount("adminStats.pendingLinks", pendingLinks),
   };
 }
 

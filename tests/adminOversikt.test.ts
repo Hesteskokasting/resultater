@@ -73,7 +73,6 @@ beforeEach(() => {
     activeClubs: 12,
     totalClubs: 15,
     totalUsers: 42,
-    pendingLinks: 2,
   });
   mocks.getTournamentStatRows.mockResolvedValue({
     data: [
@@ -137,22 +136,17 @@ describe("oversikt dashboard", () => {
     await renderOverview(el);
 
     expect(value(el, `Stevne i ${YEAR}`)).toBe("3");
-    expect(value(el, "Pågåande stevne")).toBe("1");
     expect(value(el, "Aktive utøvarar")).toBe("120");
     expect(value(el, "Klubbar")).toBe("12");
     expect(value(el, "Brukarkontoar")).toBe("42");
-    expect(value(el, "Ventande forespørslar")).toBe("2");
     expect(value(el, `Påmeldingar i ${YEAR}`)).toBe("2");
   });
 
-  it("links each figure to the tab that manages it and flags pending work", async () => {
+  it("links each figure to the tab that manages it", async () => {
     const el = document.createElement("div");
     await renderOverview(el);
 
     expect(tile(el, "Aktive utøvarar")?.getAttribute("href")).toBe("#/admin/utovarar");
-    expect(tile(el, "Ventande forespørslar")?.getAttribute("href")).toBe("#/admin/forespurnader");
-    expect(tile(el, "Ventande forespørslar")?.classList.contains("admin-stat--warn")).toBe(true);
-    expect(tile(el, "Pågåande stevne")?.classList.contains("admin-stat--live")).toBe(true);
   });
 
   it("feeds each chart its aggregated series", async () => {
