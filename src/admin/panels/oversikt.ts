@@ -3,22 +3,21 @@ import { todayIso } from "@/utils/date";
 import { createEl } from "@/utils/createEl";
 import { logError } from "@/utils/logError";
 import {
-  countRegistrationsPerMonth,
   countThrowersPerClub,
   countTournamentsPerYear,
   participantsPerYearSeries,
   summarizeTournaments,
 } from "@/admin/_adminStats";
 import type { TournamentStatRow } from "@/admin/_adminStats";
+import type { ParticipantYearRow } from "@/services/adminStatsService";
 import {
   getAdminEntityCounts,
   getParticipantsPerYear,
-  getRegistrationStatRows,
   getTournamentStatRows,
 } from "@/services/adminStatsService";
 import { getActiveThrowerList } from "@/services/kasterService";
 import { getUser } from "@/services/authService";
-import { drawBarChart, drawLineChart } from "../_adminCharts";
+import { drawBarChart } from "../_adminCharts";
 import { openClubEditor, openThrowerEditor, openTournamentEditor } from "../_adminEdit";
 import {
   createChartCard,
@@ -36,7 +35,7 @@ function statTiles(
   counts: Awaited<ReturnType<typeof getAdminEntityCounts>>,
   tournaments: TournamentStatRow[],
   year: number,
-  registrations: number,
+  participants: ParticipantYearRow | undefined,
   isAdmin: boolean,
 ): StatTile[] {
   const today = todayIso();
@@ -51,16 +50,20 @@ function statTiles(
       href: "#/admin/stevne",
     },
     {
-      label: "Aktive utøvarar",
-      value: counts.activeThrowers,
-      sub: `${counts.totalThrowers} totalt`,
-      href: "#/admin/utovarar",
-    },
-    {
       label: "Klubbar",
       value: counts.activeClubs,
       sub: `${counts.totalClubs} totalt`,
       href: isAdmin ? "#/admin/klubbar" : undefined,
+    },
+    {
+      label: `Unike deltakarar i ${year}`,
+      value: participants?.deltakarar ?? 0,
+      sub: "Utøvarar med resultat",
+    },
+    {
+      label: `Deltakingar i ${year}`,
+      value: participants?.deltakingar ?? 0,
+      sub: "Alle stevne",
     },
     // RLS shows a klubbadmin only a few profiles, so the count would be wrong.
     ...(isAdmin
@@ -73,11 +76,6 @@ function statTiles(
           },
         ]
       : []),
-    {
-      label: `Påmeldingar i ${year}`,
-      value: registrations,
-      sub: "Alle stevne",
-    },
   ];
 }
 
@@ -131,19 +129,13 @@ export async function render(el: HTMLElement): Promise<void> {
     "Stevne per år",
     `Dei siste ${YEARS_BACK} åra, etter dato`,
   );
-  const registrationChart = createChartCard("Påmeldingar per månad", String(year));
   const clubChart = createChartCard("Aktive utøvarar per klubb", "Dei ti største klubbane");
   const participantChart = createChartCard(
     "Deltakarar per år",
     `Unike utøvarar med resultat, dei siste ${YEARS_BACK} åra`,
   );
 
-  const chartGrid = createChartGrid([
-    tournamentChart,
-    registrationChart,
-    clubChart,
-    participantChart,
-  ]);
+  const chartGrid = createChartGrid([tournamentChart, clubChart, participantChart]);
 
   el.replaceChildren(
     createSectionTitle("Snarvegar"),
@@ -155,20 +147,26 @@ export async function render(el: HTMLElement): Promise<void> {
   );
 
   try {
-    const [counts, tournaments, registrations, throwers, participants] = await Promise.all([
+    const [counts, tournaments, throwers, participants] = await Promise.all([
       getAdminEntityCounts(),
       getTournamentStatRows(year - YEARS_BACK + 1),
-      getRegistrationStatRows(year),
       getActiveThrowerList(),
       getParticipantsPerYear(year - YEARS_BACK + 1),
     ]);
 
     statsSlot.replaceChildren(
-      createStatGrid(statTiles(counts, tournaments.data, year, registrations.data.length, isAdmin)),
+      createStatGrid(
+        statTiles(
+          counts,
+          tournaments.data,
+          year,
+          participants.data.find((r) => r.ar === year),
+          isAdmin,
+        ),
+      ),
     );
 
     const perYear = countTournamentsPerYear(tournaments.data, year, YEARS_BACK);
-    const perMonth = countRegistrationsPerMonth(registrations.data, year);
     const perClub = countThrowersPerClub(throwers.data);
     const perParticipantYear = participantsPerYearSeries(participants.data, year, YEARS_BACK);
 
@@ -179,12 +177,6 @@ export async function render(el: HTMLElement): Promise<void> {
         await drawBarChart(tournamentChart.canvas, perYear, { label: "Stevne" });
       } else {
         tournamentChart.showEmpty("Ingen stevne registrert.");
-      }
-
-      if (perMonth.some((d) => d.count > 0)) {
-        await drawLineChart(registrationChart.canvas, perMonth, { label: "Påmeldingar" });
-      } else {
-        registrationChart.showEmpty("Ingen påmeldingar i år.");
       }
 
       if (perClub.length) {

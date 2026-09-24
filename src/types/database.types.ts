@@ -1082,6 +1082,14 @@ export type Database = {
         Returns: {
           ar: number
           deltakarar: number
+          deltakingar: number
+        }[]
+      }
+      deltakingar_per_stevne: {
+        Args: { p_stevneids: number[] }
+        Returns: {
+          deltakingar: number
+          stevneid: number
         }[]
       }
       draw_snc_premiar: {

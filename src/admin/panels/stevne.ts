@@ -19,7 +19,7 @@ import { getScheduleTournaments } from "@/services/stevneService";
 import { getUser } from "@/services/authService";
 import { canOrganize } from "@/utils/roles";
 import type { ScheduleTournamentRow } from "@/services/stevneService";
-import { getRegistrationCountsForTournaments } from "@/services/adminStatsService";
+import { getParticipationCountsForTournaments } from "@/services/adminStatsService";
 import { drawBarChart } from "../_adminCharts";
 import { openTournamentEditor } from "../_adminEdit";
 import {
@@ -55,7 +55,7 @@ function matchesStatus(row: ScheduleTournamentRow, status: string): boolean {
 
 function buildItem(
   row: ScheduleTournamentRow,
-  registrations: number,
+  participations: number,
   onChanged: () => void,
 ): AdminListItem {
   const phaseTab = row.stevne_fase === "avsluttende" ? "avsluttende" : "innledende";
@@ -85,7 +85,7 @@ function buildItem(
       formatTime(row.tid) || null,
       [row.stevnetype?.navn, row.kategori?.navn].filter(Boolean).join(" · ") || null,
       methods || null,
-      `${registrations} påmelde`,
+      participations ? `${participations} deltakarar` : null,
     ],
     badges,
     stripe: row.erfullfort ? "ok" : isOngoing(row) ? "live" : undefined,
@@ -119,11 +119,11 @@ function tiles(summary: ReturnType<typeof summarizeTournamentYear>, year: number
       value: summary.upcoming,
       sub: summary.next ? `Neste: ${formatDate(summary.next.dato)}` : "Ingen att i år",
     },
-    { label: "Påmeldingar", value: summary.registrations, sub: "Samla for året" },
+    { label: "Deltakingar", value: summary.participations, sub: "Samla for året" },
     {
-      label: "Snitt påmelde",
-      value: summary.avgRegistrations,
-      sub: "Per stevne med påmeldingar",
+      label: "Snitt per stevne",
+      value: summary.avgParticipations,
+      sub: "Deltakarar per stevne med resultat",
     },
   ];
 }
@@ -173,7 +173,7 @@ export async function render(el: HTMLElement): Promise<void> {
   });
 
   let rows: ScheduleTournamentRow[] = [];
-  let registrations = new Map<number, number>();
+  let participations = new Map<number, number>();
 
   function update(): void {
     const query = filter.searchText.trim().toLowerCase();
@@ -189,7 +189,7 @@ export async function render(el: HTMLElement): Promise<void> {
     listSlot.replaceChildren(
       matches.length
         ? createAdminList(
-            matches.map((row) => buildItem(row, registrations.get(row.id) ?? 0, refresh)),
+            matches.map((row) => buildItem(row, participations.get(row.id) ?? 0, refresh)),
           )
         : createEmptyState("Ingen stevne å vise."),
     );
@@ -234,7 +234,7 @@ export async function render(el: HTMLElement): Promise<void> {
     }
     // A klubbadmin's dashboard covers their own club's stevner only.
     rows = data.filter((row) => canOrganize(auth, row.klubb?.id));
-    registrations = await getRegistrationCountsForTournaments(rows.map((r) => r.id));
+    participations = await getParticipationCountsForTournaments(rows.map((r) => r.id));
 
     const summary = summarizeTournamentYear(
       rows.map((r) => ({
@@ -244,7 +244,7 @@ export async function render(el: HTMLElement): Promise<void> {
         stevne_fase: r.stevne_fase,
         ernm: r.ernm,
       })),
-      registrations,
+      participations,
       todayIso(),
     );
 

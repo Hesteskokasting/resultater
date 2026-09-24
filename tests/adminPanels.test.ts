@@ -14,7 +14,7 @@ const mocks = vi.hoisted(() => ({
   getThrowerAdminList: vi.fn(),
   getThrowersById: vi.fn(),
   getActiveThrowerList: vi.fn(),
-  getRegistrationCountsForTournaments: vi.fn(),
+  getParticipationCountsForTournaments: vi.fn(),
   getAllUsers: vi.fn(),
   getUserEmails: vi.fn(),
   updateUserRole: vi.fn(),
@@ -50,7 +50,7 @@ vi.mock("@/services/kasterService", () => ({
   getActiveThrowerList: mocks.getActiveThrowerList,
 }));
 vi.mock("@/services/adminStatsService", () => ({
-  getRegistrationCountsForTournaments: mocks.getRegistrationCountsForTournaments,
+  getParticipationCountsForTournaments: mocks.getParticipationCountsForTournaments,
 }));
 vi.mock("@/services/adminService", () => ({
   getAllUsers: mocks.getAllUsers,
@@ -86,7 +86,7 @@ const {
   getThrowerAdminList,
   getThrowersById,
   getActiveThrowerList,
-  getRegistrationCountsForTournaments,
+  getParticipationCountsForTournaments,
   getAllUsers,
   getUserEmails,
   updateUserRole,
@@ -171,7 +171,7 @@ beforeEach(() => {
   getLiveTournaments.mockResolvedValue({ data: [], error: null });
   getPendingLinkCount.mockResolvedValue(0);
   signInAs("admin");
-  getRegistrationCountsForTournaments.mockResolvedValue(new Map());
+  getParticipationCountsForTournaments.mockResolvedValue(new Map());
   getThrowerAdminList.mockResolvedValue({ data: [], error: null });
   getScheduleTournaments.mockResolvedValue({ data: [], error: null });
   getAllClubsForAdmin.mockResolvedValue({ data: [], error: null });
@@ -267,7 +267,7 @@ describe("stevne panel", () => {
 
   beforeEach(() => {
     getScheduleTournaments.mockResolvedValue({ data: rows, error: null });
-    getRegistrationCountsForTournaments.mockResolvedValue(
+    getParticipationCountsForTournaments.mockResolvedValue(
       new Map([
         [1, 24],
         [2, 12],
@@ -281,14 +281,14 @@ describe("stevne panel", () => {
 
     expect(tileValue(el, `Stevne i ${YEAR}`)).toBe("3");
     expect(tileValue(el, "Fullført")).toBe("1");
-    expect(tileValue(el, "Påmeldingar")).toBe("36");
-    expect(tileValue(el, "Snitt påmelde")).toBe("18");
+    expect(tileValue(el, "Deltakingar")).toBe("36");
+    expect(tileValue(el, "Snitt per stevne")).toBe("18");
   });
 
-  it("asks for registration counts for exactly the listed tournaments", async () => {
+  it("asks for participation counts for exactly the listed tournaments", async () => {
     const el = host();
     await renderTournaments(el);
-    expect(getRegistrationCountsForTournaments).toHaveBeenCalledWith([1, 2, 3]);
+    expect(getParticipationCountsForTournaments).toHaveBeenCalledWith([1, 2, 3]);
   });
 
   it("shows per-row detail beyond what the terminliste carries", async () => {
@@ -301,7 +301,7 @@ describe("stevne panel", () => {
     expect(meta).toContain("11:00");
     expect(meta).toContain("DNC · Singel");
     expect(meta).toContain("X-kast → Cup");
-    expect(meta).toContain("24 påmelde");
+    expect(meta).toContain("24 deltakarar");
     expect(first.textContent).toContain("PDF");
   });
 

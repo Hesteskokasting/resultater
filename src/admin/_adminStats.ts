@@ -73,14 +73,6 @@ export function countPerMonth<T>(
   }));
 }
 
-/** Registrations per month, by `opprettet_at`. */
-export function countRegistrationsPerMonth(
-  rows: { opprettet_at: string | null }[],
-  year: number,
-): LabelCount[] {
-  return countPerMonth(rows, year, (row) => row.opprettet_at);
-}
-
 /**
  * The `top` biggest clubs by member count, descending. Throwers without a club
  * are grouped under `noClubLabel` and always sort with the rest (a large

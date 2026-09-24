@@ -9,18 +9,16 @@ import type { Tables } from "@/types";
  */
 
 export interface AdminEntityCounts {
-  activeThrowers: number;
-  totalThrowers: number;
   activeClubs: number;
   totalClubs: number;
   totalUsers: number;
 }
 
 export type TournamentStatRow = Pick<Tables<"stevne">, "dato" | "erfullfort" | "stevne_fase">;
-export type RegistrationStatRow = Pick<Tables<"pamelding">, "opprettet_at">;
 export interface ParticipantYearRow {
   ar: number;
   deltakarar: number;
+  deltakingar: number;
 }
 
 type CountResult = { count: number | null; error: unknown };
@@ -33,17 +31,13 @@ function resolveCount(label: string, { count, error }: CountResult): number {
 export async function getAdminEntityCounts(): Promise<AdminEntityCounts> {
   const head = { count: "exact", head: true } as const;
 
-  const [activeThrowers, totalThrowers, activeClubs, totalClubs, totalUsers] = await Promise.all([
-    supabase.from("kaster").select("id", head).eq("eraktiv", true),
-    supabase.from("kaster").select("id", head),
+  const [activeClubs, totalClubs, totalUsers] = await Promise.all([
     supabase.from("klubb").select("id", head).eq("eraktiv", true),
     supabase.from("klubb").select("id", head),
     supabase.from("bruker_profil").select("id", head),
   ]);
 
   return {
-    activeThrowers: resolveCount("adminStats.activeThrowers", activeThrowers),
-    totalThrowers: resolveCount("adminStats.totalThrowers", totalThrowers),
     activeClubs: resolveCount("adminStats.activeClubs", activeClubs),
     totalClubs: resolveCount("adminStats.totalClubs", totalClubs),
     totalUsers: resolveCount("adminStats.totalUsers", totalUsers),
@@ -64,7 +58,7 @@ export async function getTournamentStatRows(
 }
 
 /**
- * Distinct throwers with a result per year, from `fromYear` onwards. Counted in
+ * Distinct throwers and total participations with a result per year, from `fromYear` onwards. Counted in
  * the database: one row per participation would blow past PostgREST's row cap.
  */
 export async function getParticipantsPerYear(
@@ -72,39 +66,31 @@ export async function getParticipantsPerYear(
 ): Promise<{ data: ParticipantYearRow[]; error: unknown }> {
   const { data, error } = await supabase.rpc("deltakarar_per_ar", { p_from_year: fromYear });
   if (error) logError("getParticipantsPerYear", error);
-  return { data: (data ?? []).map((r) => ({ ar: r.ar, deltakarar: Number(r.deltakarar) })), error };
+  return {
+    data: (data ?? []).map((r) => ({
+      ar: r.ar,
+      deltakarar: Number(r.deltakarar),
+      deltakingar: Number(r.deltakingar),
+    })),
+    error,
+  };
 }
 
 /**
- * Registration counts per tournament, for a set of tournament ids. Returned as a
- * map so a list can show "N påmelde" per row from a single round trip.
+ * Participations (resultat rows) per tournament, for a set of tournament ids.
+ * Counted in the database for the same row-cap reason as above.
  */
-export async function getRegistrationCountsForTournaments(
+export async function getParticipationCountsForTournaments(
   ids: number[],
 ): Promise<Map<number, number>> {
   const counts = new Map<number, number>();
   if (!ids.length) return counts;
 
-  const { data, error } = await supabase.from("pamelding").select("stevneid").in("stevneid", ids);
+  const { data, error } = await supabase.rpc("deltakingar_per_stevne", { p_stevneids: ids });
   if (error) {
-    logError("getRegistrationCountsForTournaments", error);
+    logError("getParticipationCountsForTournaments", error);
     return counts;
   }
-  for (const row of data ?? []) {
-    if (row.stevneid != null) counts.set(row.stevneid, (counts.get(row.stevneid) ?? 0) + 1);
-  }
+  for (const row of data ?? []) counts.set(row.stevneid, Number(row.deltakingar));
   return counts;
-}
-
-/** Registration timestamps for one year, for the per-month activity chart. */
-export async function getRegistrationStatRows(
-  year: number,
-): Promise<{ data: RegistrationStatRow[]; error: unknown }> {
-  const { data, error } = await supabase
-    .from("pamelding")
-    .select("opprettet_at")
-    .gte("opprettet_at", `${year}-01-01`)
-    .lt("opprettet_at", `${year + 1}-01-01`);
-  if (error) logError("getRegistrationStatRows", error);
-  return { data: data ?? [], error };
 }

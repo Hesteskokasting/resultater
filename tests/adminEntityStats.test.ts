@@ -71,36 +71,36 @@ describe("summarizeTournamentYear", () => {
     tournament(3, { dato: `${YEAR}-09-03` }),
     tournament(4, { dato: `${YEAR}-08-04` }),
   ];
-  const registrations = new Map([
+  const participations = new Map([
     [1, 20],
     [2, 10],
   ]);
 
-  it("splits the year and totals the registrations", () => {
-    const s = summarizeTournamentYear(rows, registrations, `${YEAR}-07-01`);
+  it("splits the year and totals the participations", () => {
+    const s = summarizeTournamentYear(rows, participations, `${YEAR}-07-01`);
     expect(s).toMatchObject({
       total: 4,
       completed: 1,
       upcoming: 2,
       notStarted: 2,
       nm: 1,
-      registrations: 30,
+      participations: 30,
     });
   });
 
-  it("averages only over tournaments that actually have registrations", () => {
-    const s = summarizeTournamentYear(rows, registrations, `${YEAR}-07-01`);
-    expect(s.avgRegistrations).toBe(15);
-    expect(summarizeTournamentYear(rows, new Map(), `${YEAR}-07-01`).avgRegistrations).toBe(0);
+  it("averages only over tournaments that actually have participations", () => {
+    const s = summarizeTournamentYear(rows, participations, `${YEAR}-07-01`);
+    expect(s.avgParticipations).toBe(15);
+    expect(summarizeTournamentYear(rows, new Map(), `${YEAR}-07-01`).avgParticipations).toBe(0);
   });
 
   it("picks the earliest upcoming tournament as next", () => {
-    const s = summarizeTournamentYear(rows, registrations, `${YEAR}-07-01`);
+    const s = summarizeTournamentYear(rows, participations, `${YEAR}-07-01`);
     expect(s.next?.id).toBe(4);
   });
 
   it("has no next once the season is over", () => {
-    const s = summarizeTournamentYear(rows, registrations, `${YEAR}-12-31`);
+    const s = summarizeTournamentYear(rows, participations, `${YEAR}-12-31`);
     expect(s.next).toBeNull();
     expect(s.upcoming).toBe(0);
   });

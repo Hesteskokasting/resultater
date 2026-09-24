@@ -1,5 +1,4 @@
 import {
-  countRegistrationsPerMonth,
   countThrowersPerClub,
   countTournamentsPerYear,
   participantsPerYearSeries,
@@ -43,23 +42,6 @@ describe("countTournamentsPerYear", () => {
     const result = countTournamentsPerYear(rows, 2026, 2);
     expect(result).toHaveLength(2);
     expect(result.reduce((sum, r) => sum + r.count, 0)).toBe(1);
-  });
-});
-
-describe("countRegistrationsPerMonth", () => {
-  it("always returns 12 months and counts only the requested year", () => {
-    const rows = [
-      { opprettet_at: "2026-01-15T10:00:00Z" },
-      { opprettet_at: "2026-01-20T10:00:00Z" },
-      { opprettet_at: "2026-08-01T10:00:00Z" },
-      { opprettet_at: "2025-08-01T10:00:00Z" },
-      { opprettet_at: null },
-    ];
-    const result = countRegistrationsPerMonth(rows, 2026);
-    expect(result).toHaveLength(12);
-    expect(result[0]?.count).toBe(2);
-    expect(result[7]?.count).toBe(1);
-    expect(result.reduce((sum, r) => sum + r.count, 0)).toBe(3);
   });
 });
 

@@ -7,11 +7,9 @@
 const mocks = vi.hoisted(() => ({
   getAdminEntityCounts: vi.fn(),
   getTournamentStatRows: vi.fn(),
-  getRegistrationStatRows: vi.fn(),
   getActiveThrowerList: vi.fn(),
   getParticipantsPerYear: vi.fn(),
   drawBarChart: vi.fn(),
-  drawLineChart: vi.fn(),
   openTournamentEditor: vi.fn(),
   openThrowerEditor: vi.fn(),
   openClubEditor: vi.fn(),
@@ -22,7 +20,6 @@ vi.mock("@/supabase", () => ({ supabase: {} }));
 vi.mock("@/services/adminStatsService", () => ({
   getAdminEntityCounts: mocks.getAdminEntityCounts,
   getTournamentStatRows: mocks.getTournamentStatRows,
-  getRegistrationStatRows: mocks.getRegistrationStatRows,
   getParticipantsPerYear: mocks.getParticipantsPerYear,
 }));
 vi.mock("@/services/authService", () => ({ getUser: mocks.getUser }));
@@ -38,7 +35,6 @@ vi.mock("@/admin/_adminEdit", () => ({
 }));
 vi.mock("@/admin/_adminCharts", () => ({
   drawBarChart: mocks.drawBarChart,
-  drawLineChart: mocks.drawLineChart,
   destroyAdminCharts: vi.fn(),
 }));
 
@@ -68,8 +64,6 @@ beforeEach(() => {
   vi.clearAllMocks();
   signInAs("admin");
   mocks.getAdminEntityCounts.mockResolvedValue({
-    activeThrowers: 120,
-    totalThrowers: 200,
     activeClubs: 12,
     totalClubs: 15,
     totalUsers: 42,
@@ -83,13 +77,6 @@ beforeEach(() => {
     ],
     error: null,
   });
-  mocks.getRegistrationStatRows.mockResolvedValue({
-    data: [
-      { opprettet_at: `${YEAR}-03-01T09:00:00Z` },
-      { opprettet_at: `${YEAR}-03-02T09:00:00Z` },
-    ],
-    error: null,
-  });
   mocks.getActiveThrowerList.mockResolvedValue({
     data: [
       { id: 1, fornavn: "A", etternavn: "A", eraktiv: true, klubb: { id: 1, navn: "Oslo HK" } },
@@ -100,8 +87,8 @@ beforeEach(() => {
   });
   mocks.getParticipantsPerYear.mockResolvedValue({
     data: [
-      { ar: YEAR, deltakarar: 2 },
-      { ar: YEAR - 2, deltakarar: 1 },
+      { ar: YEAR, deltakarar: 2, deltakingar: 5 },
+      { ar: YEAR - 2, deltakarar: 1, deltakingar: 1 },
     ],
     error: null,
   });
@@ -131,22 +118,31 @@ describe("oversikt dashboard", () => {
     expect(mocks.openClubEditor).toHaveBeenCalledWith(undefined, expect.any(Function));
   });
 
-  it("derives the key figures from counts and this year's tournaments", async () => {
+  it("shows the key figures in order, participation from this year's results", async () => {
     const el = document.createElement("div");
     await renderOverview(el);
 
+    const labels = [...el.querySelectorAll(".admin-stat__label")].map((l) => l.textContent);
+    expect(labels).toEqual([
+      `Stevne i ${YEAR}`,
+      "Klubbar",
+      `Unike deltakarar i ${YEAR}`,
+      `Deltakingar i ${YEAR}`,
+      "Brukarkontoar",
+    ]);
     expect(value(el, `Stevne i ${YEAR}`)).toBe("3");
-    expect(value(el, "Aktive utøvarar")).toBe("120");
     expect(value(el, "Klubbar")).toBe("12");
+    expect(value(el, `Unike deltakarar i ${YEAR}`)).toBe("2");
+    expect(value(el, `Deltakingar i ${YEAR}`)).toBe("5");
     expect(value(el, "Brukarkontoar")).toBe("42");
-    expect(value(el, `Påmeldingar i ${YEAR}`)).toBe("2");
   });
 
   it("links each figure to the tab that manages it", async () => {
     const el = document.createElement("div");
     await renderOverview(el);
 
-    expect(tile(el, "Aktive utøvarar")?.getAttribute("href")).toBe("#/admin/utovarar");
+    expect(tile(el, `Stevne i ${YEAR}`)?.getAttribute("href")).toBe("#/admin/stevne");
+    expect(tile(el, "Klubbar")?.getAttribute("href")).toBe("#/admin/klubbar");
   });
 
   it("feeds each chart its aggregated series", async () => {
@@ -156,10 +152,6 @@ describe("oversikt dashboard", () => {
     const perYear = mocks.drawBarChart.mock.calls[0]?.[1] as { label: string; count: number }[];
     expect(perYear).toHaveLength(8);
     expect(perYear[perYear.length - 1]).toEqual({ label: String(YEAR), count: 3 });
-
-    const perMonth = mocks.drawLineChart.mock.calls[0]?.[1] as { count: number }[];
-    expect(perMonth).toHaveLength(12);
-    expect(perMonth[2]?.count).toBe(2);
 
     const perClub = mocks.drawBarChart.mock.calls[1]?.[1] as { label: string; count: number }[];
     expect(perClub[0]).toEqual({ label: "Oslo HK", count: 2 });
@@ -178,12 +170,13 @@ describe("oversikt dashboard", () => {
   });
 
   it("replaces an empty chart with a message instead of a blank canvas", async () => {
-    mocks.getRegistrationStatRows.mockResolvedValue({ data: [], error: null });
+    mocks.getParticipantsPerYear.mockResolvedValue({ data: [], error: null });
     const el = document.createElement("div");
     await renderOverview(el);
 
-    expect(mocks.drawLineChart).not.toHaveBeenCalled();
-    expect(el.textContent).toContain("Ingen påmeldingar i år.");
+    expect(mocks.drawBarChart).toHaveBeenCalledTimes(2);
+    expect(el.textContent).toContain("Ingen deltakarar registrert.");
+    expect(value(el, `Unike deltakarar i ${YEAR}`)).toBe("0");
   });
 
   it("leaves out club creation and the user count for a klubbadmin", async () => {
@@ -196,7 +189,7 @@ describe("oversikt dashboard", () => {
     expect(labels).toContain("Nytt stevne");
     expect(tile(el, "Brukarkontoar")).toBeUndefined();
     expect(tile(el, "Klubbar")?.getAttribute("href")).toBeNull();
-    expect(value(el, "Aktive utøvarar")).toBe("120");
+    expect(value(el, `Deltakingar i ${YEAR}`)).toBe("5");
   });
 
   it("shows an error banner when the dashboard queries fail", async () => {
