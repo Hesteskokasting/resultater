@@ -36,8 +36,8 @@ const TABS = [
 type TabKey = (typeof TABS)[number]["key"];
 type Tab = (typeof TABS)[number];
 
-// National overview, users, link requests and access stay with the admin; a
-// klubbadmin's panels are scoped to their own club.
+// National overview, users and access stay with the admin; a klubbadmin's
+// panels, link requests included, are scoped to their own club.
 const ADMIN_TABS = new Set<TabKey>([
   "oversikt",
   "stevne",
@@ -47,7 +47,7 @@ const ADMIN_TABS = new Set<TabKey>([
   "forespurnader",
   "tilgang",
 ]);
-const CLUB_ADMIN_TABS = new Set<TabKey>(["stevne", "utovarar", "klubb"]);
+const CLUB_ADMIN_TABS = new Set<TabKey>(["stevne", "utovarar", "klubb", "forespurnader"]);
 
 function tabsFor(role: string | undefined): Tab[] {
   const keys = role === "admin" ? ADMIN_TABS : CLUB_ADMIN_TABS;
@@ -83,7 +83,6 @@ export async function render(container: HTMLElement, params: Params = {}): Promi
 
   const auth = await getUser();
   const role = auth?.profil?.role;
-  const isAdmin = role === "admin";
   const tabs = tabsFor(role);
   const requested = String(params.tab ?? "");
   // An unknown tab, or one this role does not get, falls back to the first.
@@ -117,10 +116,9 @@ export async function render(container: HTMLElement, params: Params = {}): Promi
     content.replaceChildren(createErrorBanner("Kunne ikkje laste denne fanen."));
   });
 
-  // Link requests are the admin's queue; a klubbadmin has no tab to badge.
   const [{ data: live }, pending] = await Promise.all([
     getLiveTournaments(),
-    isAdmin ? getPendingLinkCount() : Promise.resolve(0),
+    getPendingLinkCount(),
     panel,
   ]);
 

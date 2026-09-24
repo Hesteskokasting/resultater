@@ -1139,6 +1139,10 @@ export type Database = {
       snc_kan_konsolidere: { Args: { p_stevneid: number }; Returns: boolean }
       snc_kan_trekke_premie: { Args: { p_stevneid: number }; Returns: boolean }
       stevne_is_completed: { Args: { p_stevneid: number }; Returns: boolean }
+      svar_koblingsforespurnad: {
+        Args: { p_bruker_id: string; p_godkjenn: boolean }
+        Returns: undefined
+      }
       swap_xkast_kongelag_deltaker: {
         Args: { p_deltaker_a: number; p_deltaker_b: number }
         Returns: undefined

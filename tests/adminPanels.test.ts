@@ -20,6 +20,7 @@ const mocks = vi.hoisted(() => ({
   updateUserRole: vi.fn(),
   getPendingLinks: vi.fn(),
   updateLinkStatus: vi.fn(),
+  answerLinkRequest: vi.fn(),
   getPendingLinkCount: vi.fn(),
   getClubs: vi.fn(),
   getClubAdminUsers: vi.fn(),
@@ -57,6 +58,7 @@ vi.mock("@/services/adminService", () => ({
   updateUserRole: mocks.updateUserRole,
   getPendingLinks: mocks.getPendingLinks,
   updateLinkStatus: mocks.updateLinkStatus,
+  answerLinkRequest: mocks.answerLinkRequest,
   getPendingLinkCount: mocks.getPendingLinkCount,
   getClubAdminUsers: mocks.getClubAdminUsers,
   getClubAdminAssignments: mocks.getClubAdminAssignments,
@@ -90,6 +92,7 @@ const {
   updateUserRole,
   getPendingLinks,
   updateLinkStatus,
+  answerLinkRequest,
   getPendingLinkCount,
   getClubs,
   getClubAdminUsers,
@@ -968,7 +971,7 @@ describe("forespurnader panel", () => {
     expect(el.querySelector(".empty-state")?.textContent).toBe("Ingen ventande forespørslar.");
   });
 
-  it("approves with the requested thrower id and rejects with null", async () => {
+  it("approves and rejects through the answer rpc", async () => {
     getPendingLinks.mockResolvedValue({
       data: [{ id: "u1", kobling_kasterid: 7 }],
       error: null,
@@ -978,19 +981,19 @@ describe("forespurnader panel", () => {
       data: [{ id: 7, fornavn: "Ny", etternavn: "Spelar", klubb: { navn: "Oslo HK" } }],
       error: null,
     });
-    updateLinkStatus.mockResolvedValue({ error: null });
+    answerLinkRequest.mockResolvedValue({ error: null });
 
     const el = host();
     await renderRequests(el);
     expect(el.textContent).toContain("Vil koblast til Ny Spelar");
 
     clickAction(el, 0, "Godkjenn");
-    await vi.waitFor(() => expect(updateLinkStatus).toHaveBeenCalledWith("u1", 7, "godkjent"));
+    await vi.waitFor(() => expect(answerLinkRequest).toHaveBeenCalledWith("u1", true));
 
-    updateLinkStatus.mockClear();
+    answerLinkRequest.mockClear();
     await renderRequests(el);
     clickAction(el, 0, "Avvis");
-    await vi.waitFor(() => expect(updateLinkStatus).toHaveBeenCalledWith("u1", null, "avvist"));
+    await vi.waitFor(() => expect(answerLinkRequest).toHaveBeenCalledWith("u1", false));
   });
 });
 
@@ -1036,7 +1039,7 @@ describe("klubbtilgang panel", () => {
 });
 
 describe("admin shell", () => {
-  it("gives a klubbadmin their club's panels, without users, requests or access", async () => {
+  it("gives a klubbadmin their club's panels and requests, without users or access", async () => {
     signInAs("klubbadmin", 2);
     const el = host();
     await renderAdmin(el, { tab: "brukarar" });
@@ -1046,9 +1049,9 @@ describe("admin shell", () => {
       "#/admin/stevne",
       "#/admin/utovarar",
       "#/admin/klubb",
+      "#/admin/forespurnader",
     ]);
     expect(links[0]!.classList.contains("active")).toBe(true);
-    expect(getPendingLinkCount).not.toHaveBeenCalled();
     expect(el.querySelector(".admin-head__title")?.textContent).toBe("Dashboard - Klubbadmin");
   });
 

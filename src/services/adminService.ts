@@ -39,6 +39,23 @@ export async function updateLinkStatus(
   return { error };
 }
 
+/**
+ * Approves or rejects a pending link request. Goes through an RPC so a
+ * klubbadmin can answer for their own club's throwers without write access to
+ * bruker_profil.
+ */
+export async function answerLinkRequest(
+  userId: string,
+  approve: boolean,
+): Promise<{ error: unknown }> {
+  const { error } = await supabase.rpc("svar_koblingsforespurnad", {
+    p_bruker_id: userId,
+    p_godkjenn: approve,
+  });
+  if (error) logError("answerLinkRequest", error);
+  return { error };
+}
+
 export async function getAllUsers(): Promise<{ data: UserListRow[]; error: unknown }> {
   const { data, error } = await supabase
     .from("bruker_profil")
@@ -48,7 +65,7 @@ export async function getAllUsers(): Promise<{ data: UserListRow[]; error: unkno
   return { data: data ?? [], error };
 }
 
-/** Head-count of link requests awaiting a decision — drives the tab badge. */
+/** Head-count of link requests the caller may answer (RLS scopes a klubbadmin) — drives the tab badge. */
 export async function getPendingLinkCount(): Promise<number> {
   const { count, error } = await supabase
     .from("bruker_profil")
