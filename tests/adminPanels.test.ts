@@ -1039,13 +1039,14 @@ describe("klubbtilgang panel", () => {
 });
 
 describe("admin shell", () => {
-  it("gives a klubbadmin their club's panels and requests, without users or access", async () => {
+  it("gives a klubbadmin the overview and their club's panels, without users or access", async () => {
     signInAs("klubbadmin", 2);
     const el = host();
     await renderAdmin(el, { tab: "brukarar" });
 
     const links = [...el.querySelectorAll<HTMLAnchorElement>(".admin-nav .nav-link")];
     expect(links.map((a) => a.getAttribute("href"))).toEqual([
+      "#/admin/oversikt",
       "#/admin/stevne",
       "#/admin/utovarar",
       "#/admin/klubb",

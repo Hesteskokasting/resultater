@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   openTournamentEditor: vi.fn(),
   openThrowerEditor: vi.fn(),
   openClubEditor: vi.fn(),
+  getUser: vi.fn(),
 }));
 
 vi.mock("@/supabase", () => ({ supabase: {} }));
@@ -24,6 +25,7 @@ vi.mock("@/services/adminStatsService", () => ({
   getRegistrationStatRows: mocks.getRegistrationStatRows,
   getParticipantsPerYear: mocks.getParticipantsPerYear,
 }));
+vi.mock("@/services/authService", () => ({ getUser: mocks.getUser }));
 vi.mock("@/services/kasterService", () => ({
   getActiveThrowerList: mocks.getActiveThrowerList,
 }));
@@ -54,8 +56,17 @@ function value(el: HTMLElement, label: string): string | undefined {
   return tile(el, label)?.querySelector(".admin-stat__value")?.textContent ?? undefined;
 }
 
+function signInAs(role: string): void {
+  mocks.getUser.mockResolvedValue({
+    user: { id: "u1" },
+    profil: { role, kasterid: null, kobling_status: "ingen", kobling_kasterid: null },
+    club: role === "klubbadmin" ? 1 : null,
+  });
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
+  signInAs("admin");
   mocks.getAdminEntityCounts.mockResolvedValue({
     activeThrowers: 120,
     totalThrowers: 200,
@@ -179,6 +190,19 @@ describe("oversikt dashboard", () => {
 
     expect(mocks.drawLineChart).not.toHaveBeenCalled();
     expect(el.textContent).toContain("Ingen påmeldingar i år.");
+  });
+
+  it("leaves out club creation and the user count for a klubbadmin", async () => {
+    signInAs("klubbadmin");
+    const el = document.createElement("div");
+    await renderOverview(el);
+
+    const labels = [...el.querySelectorAll(".admin-action__label")].map((l) => l.textContent);
+    expect(labels).not.toContain("Ny klubb");
+    expect(labels).toContain("Nytt stevne");
+    expect(tile(el, "Brukarkontoar")).toBeUndefined();
+    expect(tile(el, "Klubbar")?.getAttribute("href")).toBeNull();
+    expect(value(el, "Aktive utøvarar")).toBe("120");
   });
 
   it("shows an error banner when the dashboard queries fail", async () => {

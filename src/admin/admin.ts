@@ -36,8 +36,8 @@ const TABS = [
 type TabKey = (typeof TABS)[number]["key"];
 type Tab = (typeof TABS)[number];
 
-// National overview, users and access stay with the admin; a klubbadmin's
-// panels, link requests included, are scoped to their own club.
+// Users and access stay with the admin. A klubbadmin gets the read-only
+// national overview; their other panels are scoped to their own club.
 const ADMIN_TABS = new Set<TabKey>([
   "oversikt",
   "stevne",
@@ -47,7 +47,13 @@ const ADMIN_TABS = new Set<TabKey>([
   "forespurnader",
   "tilgang",
 ]);
-const CLUB_ADMIN_TABS = new Set<TabKey>(["stevne", "utovarar", "klubb", "forespurnader"]);
+const CLUB_ADMIN_TABS = new Set<TabKey>([
+  "oversikt",
+  "stevne",
+  "utovarar",
+  "klubb",
+  "forespurnader",
+]);
 
 function tabsFor(role: string | undefined): Tab[] {
   const keys = role === "admin" ? ADMIN_TABS : CLUB_ADMIN_TABS;

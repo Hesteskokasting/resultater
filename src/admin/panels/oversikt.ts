@@ -17,6 +17,7 @@ import {
   getTournamentStatRows,
 } from "@/services/adminStatsService";
 import { getActiveThrowerList } from "@/services/kasterService";
+import { getUser } from "@/services/authService";
 import { drawBarChart, drawLineChart } from "../_adminCharts";
 import { openClubEditor, openThrowerEditor, openTournamentEditor } from "../_adminEdit";
 import {
@@ -36,6 +37,7 @@ function statTiles(
   tournaments: TournamentStatRow[],
   year: number,
   registrations: number,
+  isAdmin: boolean,
 ): StatTile[] {
   const today = todayIso();
   const thisYear = tournaments.filter((t) => (t.dato ?? "").startsWith(String(year)));
@@ -65,14 +67,19 @@ function statTiles(
       label: "Klubbar",
       value: counts.activeClubs,
       sub: `${counts.totalClubs} totalt`,
-      href: "#/admin/klubbar",
+      href: isAdmin ? "#/admin/klubbar" : undefined,
     },
-    {
-      label: "Brukarkontoar",
-      value: counts.totalUsers,
-      sub: "Roller og koblingar",
-      href: "#/admin/brukarar",
-    },
+    // RLS shows a klubbadmin only a few profiles, so the count would be wrong.
+    ...(isAdmin
+      ? [
+          {
+            label: "Brukarkontoar",
+            value: counts.totalUsers,
+            sub: "Roller og koblingar",
+            href: "#/admin/brukarar",
+          },
+        ]
+      : []),
     {
       label: "Ventande forespørslar",
       value: counts.pendingLinks,
@@ -90,6 +97,7 @@ function statTiles(
 
 export async function render(el: HTMLElement): Promise<void> {
   const year = new Date().getFullYear();
+  const isAdmin = (await getUser())?.profil?.role === "admin";
 
   // The create actions open the overlay so the dashboard stays put underneath.
   const refresh = (): void => {
@@ -112,14 +120,19 @@ export async function render(el: HTMLElement): Promise<void> {
         openThrowerEditor(undefined, refresh);
       },
     },
-    {
-      label: "Ny klubb",
-      icon: "＋",
-      variant: "primary",
-      onClick: () => {
-        openClubEditor(undefined, refresh);
-      },
-    },
+    // Creating a club is admin-only in RLS.
+    ...(isAdmin
+      ? [
+          {
+            label: "Ny klubb",
+            icon: "＋",
+            variant: "primary" as const,
+            onClick: () => {
+              openClubEditor(undefined, refresh);
+            },
+          },
+        ]
+      : []),
     { label: "Terminliste", href: "#/terminliste", icon: "📅" },
     { label: "Norgesranking", href: "#/norgesranking", icon: "📊" },
     { label: "Rekorder", href: "#/rekorder", icon: "🏆" },
@@ -165,7 +178,7 @@ export async function render(el: HTMLElement): Promise<void> {
     ]);
 
     statsSlot.replaceChildren(
-      createStatGrid(statTiles(counts, tournaments.data, year, registrations.data.length)),
+      createStatGrid(statTiles(counts, tournaments.data, year, registrations.data.length, isAdmin)),
     );
 
     const perYear = countTournamentsPerYear(tournaments.data, year, YEARS_BACK);
