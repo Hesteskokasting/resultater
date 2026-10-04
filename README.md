@@ -53,7 +53,7 @@ docker context ls      # den aktive contexten (merka med *) skal vere desktop-li
 
 Viss `docker version`/`docker info` ikkje viser eit `Server`-svar, er ikkje WSL-integrasjonen slått på for distroen din — gå tilbake til Docker Desktop-innstillinga over.
 
-**Viktig:** Den lokale Supabase-stacken (`vp exec supabase start`, `vp run test:db`) må køyrast **frå ein WSL-shell**, ikkje frå PowerShell/CMD. Supabase CLI-en oppdagar at køyringa skjer på Windows-verten og krev då at Docker-daemonen er eksponert på `tcp://localhost:2375` — noko som gjer at `analytics`- og `realtime`-containerane feilar helsesjekken (`unhealthy`) og stacken aldri startar. Køyrer CLI-en frå WSL i staden, går CLI-en den vanlege Linux-vegen mot Docker-daemonen, og problemet forsvinn heilt. Sjå steg-for-steg i [Integrasjonstesting (pgTAP)](#integrasjonstesting-pgtap).
+**Viktig:** Den lokale Supabase-stacken (`vp exec supabase start`, `vp exec supabase test db`) må køyrast **frå ein WSL-shell**, ikkje frå PowerShell/CMD. Supabase CLI-en oppdagar at køyringa skjer på Windows-verten og krev då at Docker-daemonen er eksponert på `tcp://localhost:2375` — noko som gjer at `analytics`- og `realtime`-containerane feilar helsesjekken (`unhealthy`) og stacken aldri startar. Køyrer CLI-en frå WSL i staden, går CLI-en den vanlege Linux-vegen mot Docker-daemonen, og problemet forsvinn heilt. Sjå steg-for-steg i [Integrasjonstesting (pgTAP)](#integrasjonstesting-pgtap).
 
 ### 2. Installer Vite+ (`vp`)
 
@@ -89,7 +89,7 @@ VITE_SUPABASE_ANON_KEY=<dev-anon-nøkkel>
 Start dev-server:
 
 ```bash
-vp run dev
+vp dev
 ```
 
 Appen er tilgjengeleg på `http://localhost:5173`.
@@ -120,23 +120,23 @@ Prosjektet brukar [Vite+](https://viteplus.dev) som verktøykjede, og `vp` er in
 
 Vite+ legg eigne shims for `node`, `npm` og `npx` i `~/.vite-plus/bin`, og desse plukkar den Node- og npm-versjonen prosjektet krev. Får du `npm warn EBADDEVENGINES`-åtvaringar — som ser ut som feil, men ikkje har noko å gjere med kommandoen du køyrde — tyder det på at ein systeminstallert `npm` vinn over shimen i `PATH`. Sjekk med `vp env current` (viser kva `node`/`npm` som faktisk vert brukt) og `vp env doctor`. Køyrer du alt gjennom `vp`, er problemet uansett borte.
 
-| Kommando                | Når du brukar det                                                                                       |
-| ----------------------- | ------------------------------------------------------------------------------------------------------- |
-| `vp run dev`            | Under utvikling — startar lokal Vite-dev-server med hot reload                                          |
-| `vp run build`          | For å sjekke at prod-bygget fungerer lokalt før du pushar                                               |
-| `vp run preview`        | Køyrer det ferdige `dist/`-bygget lokalt, nyttig for å teste prod-åtferd                                |
-| `vp run test`           | Køyrer Vitest i watch-modus — re-køyrer testar ved kvar filendring                                      |
-| `vp run test:run`       | Eingongskøyring av alle testar — bruk dette før commit og i CI                                          |
-| `vp run typecheck:test` | Typesjekkjer testfilene (Vitest brukar esbuild, ikkje tsc — dette er einaste typesjekkinga av `tests/`) |
-| `vp run test:db`        | Køyrer pgTAP-integrasjonstestane mot lokal Supabase-stack (krev `vp exec supabase start` fyrst)         |
-| `vp run css:check`      | Kontrollerer strukturen i `src/css` — sjå [CSS-struktur](#css-struktur)                                 |
+| Kommando                   | Når du brukar det                                                                               |
+| -------------------------- | ----------------------------------------------------------------------------------------------- |
+| `vp dev`                   | Under utvikling — startar lokal Vite-dev-server med hot reload                                  |
+| `vp check`                 | Formatering, lint og typesjekk av heile prosjektet, `tests/` inkludert                          |
+| `vp build`                 | For å sjekke at prod-bygget fungerer lokalt før du pushar                                       |
+| `vp preview`               | Køyrer det ferdige `dist/`-bygget lokalt, nyttig for å teste prod-åtferd                        |
+| `vp test`                  | Køyrer Vitest i watch-modus — re-køyrer testar ved kvar filendring                              |
+| `vp test run`              | Eingongskøyring av alle testar — bruk dette før commit                                          |
+| `vp exec supabase test db` | Køyrer pgTAP-integrasjonstestane mot lokal Supabase-stack (krev `vp exec supabase start` fyrst) |
+| `vp run css:check`         | Kontrollerer strukturen i `src/css` — sjå [CSS-struktur](#css-struktur)                         |
 
 **Du treng ikkje køyre `build` eller `dev` før du pushar.** GitHub Actions byggjer automatisk når du pushar:
 
-- Push til `dev` → GitHub Actions byggjer og deployer til `res.hesteskokasting.no/dev`
-- Push til `main` → GitHub Actions byggjer, ventar på manuell godkjenning, deployer til `res.hesteskokasting.no`
+- Push til `dev` → GitHub Actions køyrer `vp check`, byggjer og deployer til `res.hesteskokasting.no/dev`
+- Push til `main` → GitHub Actions køyrer `vp check` og `vp test run`, byggjer, ventar på manuell godkjenning, deployer til `res.hesteskokasting.no`
 
-`vp run build` lokalt er berre nyttig viss du vil stadfeste at koden kompilerer utan å pushe, eller feilsøke byggfeil.
+`vp build` lokalt er berre nyttig viss du vil stadfeste at koden kompilerer utan å pushe, eller feilsøke byggfeil.
 
 ---
 
@@ -146,10 +146,10 @@ Prosjektet nyttar [Vitest](https://vitest.dev/) med [happy-dom](https://github.c
 
 Testfiler ligg i `tests/` og importerer frå `@/`-aliaset. Testane dekker berre funksjonar utan Supabase-kall — logikk som er samanvevd med databasekall vert fyrst ekstrahert til ein rein funksjon, deretter testa.
 
-Tre kommandoar skal køyrast og vere grøne før kvar commit:
+To kommandoar skal køyrast og vere grøne før kvar commit:
 
 ```bash
-vp run typecheck && vp run typecheck:test && vp run test:run
+vp check && vp test run
 ```
 
 Konfigurasjon: `vite.config.js` (test-blokk) og `tsconfig.test.json`.
@@ -179,13 +179,13 @@ Integrasjonstestane verifiserer databaselaget: RLS-politikkar og `SECURITY DEFIN
    ```bash
    vp install
    ```
-   **Merk:** `node_modules` inneheld plattform-spesifikke binærfiler (`supabase`-CLI-en, `esbuild`). Sidan du no køyrer `vp install` mot den same mappa som Windows-checkoutet, overskriv dette dei Windows-bygde versjonane. Skal du tilbake til `vp run dev`/`vp run build` frå PowerShell etterpå, må du berre køyre `vp install` derifrå på nytt fyrst — éin kommando, tar nokre sekund. Ein grei bytte-kostnad mot å slepp separat klone + synkronisering.
+   **Merk:** `node_modules` inneheld plattform-spesifikke binærfiler (`supabase`-CLI-en, `esbuild`). Sidan du no køyrer `vp install` mot den same mappa som Windows-checkoutet, overskriv dette dei Windows-bygde versjonane. Skal du tilbake til `vp dev`/`vp build` frå PowerShell etterpå, må du berre køyre `vp install` derifrå på nytt fyrst — éin kommando, tar nokre sekund. Ein grei bytte-kostnad mot å slepp separat klone + synkronisering.
 
 #### Kvar gong: køyr stacken og testane
 
 ```bash
 vp exec supabase start   # startar lokal Postgres og køyrer alle migreringsfiler
-vp run test:db      # køyrer alle pgTAP-testar i supabase/tests/
+vp exec supabase test db   # køyrer alle pgTAP-testar i supabase/tests/
 vp exec supabase stop    # stoppar lokal stack når du er ferdig
 ```
 
@@ -361,10 +361,10 @@ Appen er pakka med [Capacitor](https://capacitorjs.com) for å køyre nativt på
 
 ### Bygg og synk
 
-Appen lastar sida live via `server.url` i staden for å pakke `dist/` inn i appen. Vanlege web-endringar treng difor **ikkje** ny native-bygg — dei blir tilgjengelege med det same via GitHub Pages-deployen. `vp run build` trengst framleis lokalt sidan Capacitor-CLI-en krev at `webDir` finst ved synkronisering, sjølv om innhaldet ikkje blir brukt ved køyretid.
+Appen lastar sida live via `server.url` i staden for å pakke `dist/` inn i appen. Vanlege web-endringar treng difor **ikkje** ny native-bygg — dei blir tilgjengelege med det same via GitHub Pages-deployen. `vp build` trengst framleis lokalt sidan Capacitor-CLI-en krev at `webDir` finst ved synkronisering, sjølv om innhaldet ikkje blir brukt ved køyretid.
 
 ```bash
-vp run build
+vp build
 vp run android:sync      # synkroniserer mot produksjon (res.hesteskokasting.no)
 vp exec cap open android
 ```
@@ -373,7 +373,7 @@ For å teste mot dev-miljøet eller ein lokal Vite-dev-server i staden:
 
 ```bash
 vp run android:sync:dev      # res.hesteskokasting.no/dev
-vp run android:sync:local    # lokal Vite-server (vp run dev) via 10.0.2.2 — berre Android-emulator
+vp run android:sync:local    # lokal Vite-server (vp dev) via 10.0.2.2 — berre Android-emulator
 ```
 
 `android:sync:local` peikar på `10.0.2.2`, Android-emulatorens alias for verts-maskina sin `localhost` — det fungerer ikkje på ei fysisk USB-tilkopla eining. For fysisk eining, bruk anten det automatiserte scriptet eller dei manuelle stega:
@@ -389,7 +389,7 @@ Set opp heile flyten i eitt steg: startar Vite bunde til `127.0.0.1`, set opp `a
 #### Manuelt
 
 ```bash
-vp run dev -- --host 127.0.0.1               # Vite bind seg elles berre til IPv6 (::1)
+vp dev --host 127.0.0.1                      # Vite bind seg elles berre til IPv6 (::1)
 ```
 
 ```powershell
@@ -397,7 +397,7 @@ adb reverse tcp:5173 tcp:5173                                       # gjer om i 
 $env:CAPACITOR_SERVER_URL = "http://localhost:5173"; vp exec cap sync android
 ```
 
-`adb reverse` videresender til verts-maskina sin `127.0.0.1` (IPv4) — viss Vite berre lyttar på `[::1]` (standard ved reint `vp run dev`), får du ei tilkoplingsfeil sjølv om tunnelen er sett opp riktig. Tunnelen forsvinn når eininga koplar frå/til på nytt.
+`adb reverse` videresender til verts-maskina sin `127.0.0.1` (IPv4) — viss Vite berre lyttar på `[::1]` (standard ved reint `vp dev`), får du ei tilkoplingsfeil sjølv om tunnelen er sett opp riktig. Tunnelen forsvinn når eininga koplar frå/til på nytt.
 
 `CAPACITOR_SERVER_URL` fell alltid attende til produksjons-URL-en viss variabelen ikkje er sett — dette hindrar at ein gløymd lokal override hamnar i eit Play Store-opplasta bygg. `vp exec cap open android` opnar Android Studio. Køyr frå ei tilkopla enhet (USB-debugging på) eller emulator med ▶ i verktøylinja.
 
