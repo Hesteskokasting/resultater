@@ -36,7 +36,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       # vp version is auto-detected from the vite-plus devDependency + lockfile.
-      - uses: voidzero-dev/setup-vp@v1
+      - uses: voidzero-dev/setup-vp@v1.21.1
         with:
           node-version: "24"
           cache: true
