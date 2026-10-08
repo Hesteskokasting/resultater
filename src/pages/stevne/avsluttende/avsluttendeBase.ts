@@ -12,7 +12,6 @@
 //   bannerMeta(ctx)               — meta line beside the stevne name in the banner
 //   bindHeaderEvents(slot, ctx)   — bind variant-specific banner menu handlers
 //
-import type { RealtimeChannel } from "@supabase/supabase-js";
 import {
   renderStandingTable,
   renderMainContent,
@@ -22,7 +21,7 @@ import {
   bindTabToggle,
   getActiveTab,
   setActiveTab,
-  createChangeHandler,
+  createPhaseChannel,
   bindAutoComplete,
   bindCompleteTournament,
 } from "../faseView";
@@ -36,11 +35,9 @@ import { parseRound1Format } from "@/utils/kamp/cupStructure";
 import { renderStevneBannerMenu, bindStevneBannerMenu } from "@/components/stevne/StevneBannerMenu";
 import { createErrorBanner, createLoadingState } from "@/components/states";
 import { logError } from "@/utils/logError";
-import { unsubscribeChannel } from "@/utils/data/realtime";
 import { buildParticipantMaps } from "@/utils/stevne/participantMaps";
 import {
   getFinalRoundMatches,
-  subscribeToMatchChanges,
   type FinalMatchRow,
   type FinalMatchPlayerRow,
 } from "@/services/kampService";
@@ -122,12 +119,17 @@ function toStandingPlayer(sp: FinalMatchPlayerRow[]) {
 // ── Factory ───────────────────────────────────────────────────────────────────
 
 export function createFinalPhaseRenderer(variant: FinalPhaseVariant) {
-  let channel: RealtimeChannel | null = null;
   let bannerSlot: HTMLElement | null = null;
   let isAdmin = false;
   const standingExpandedIds = new Set<string>();
   /** kamp_spelar ids in view — scopes the unfiltered kamp_omgang subscription. */
   const ownedSpelarIds = new Set<number>();
+  const phaseChannel = createPhaseChannel(
+    variant.channelName,
+    ["avsluttende"],
+    ownedSpelarIds,
+    loadAndRender,
+  );
 
   async function render(
     container: HTMLElement,
@@ -136,10 +138,7 @@ export function createFinalPhaseRenderer(variant: FinalPhaseVariant) {
   ): Promise<void> {
     bannerSlot = _bannerSlot;
     isAdmin = _isAdmin;
-    if (channel) {
-      await unsubscribeChannel(channel);
-      channel = null;
-    }
+    await phaseChannel.stop();
     container.replaceChildren(createLoadingState("Laster…"));
     await loadAndRender(container, id);
   }
@@ -273,7 +272,7 @@ export function createFinalPhaseRenderer(variant: FinalPhaseVariant) {
         bindTabToggle(container);
         if (activeTab === "standing") setActiveTab(container, "standing");
         variant.bindMatchEvents(container, ctx);
-        subscribeToChanges(container, stevneid);
+        phaseChannel.start(container, stevneid);
       } else {
         container.innerHTML = variant.renderSetupHtml(ctx);
       }
@@ -304,25 +303,6 @@ export function createFinalPhaseRenderer(variant: FinalPhaseVariant) {
       logError("avsluttendeBase.loadAndRender", err);
       container.replaceChildren(createErrorBanner("Kunne ikkje laste avsluttande fase."));
     }
-  }
-
-  function subscribeToChanges(container: HTMLElement, stevneid: number): void {
-    if (channel) return;
-    const onChange = createChangeHandler(
-      stevneid,
-      ["avsluttende"],
-      container,
-      loadAndRender,
-      () => {
-        if (channel) {
-          void unsubscribeChannel(channel);
-          channel = null;
-        }
-      },
-    );
-    channel = subscribeToMatchChanges(stevneid, variant.channelName(stevneid), onChange, (id) =>
-      ownedSpelarIds.has(id),
-    );
   }
 
   return render;

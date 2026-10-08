@@ -27,7 +27,7 @@ import { autoCompleteInitialRoundMatches } from "@/services/testDataService";
 import {
   initialMenuItems,
   setBannerMeta,
-  createChangeHandler,
+  createPhaseChannel,
   bindStandingDetails,
   renderMainContent,
   bindTabToggle,
@@ -49,19 +49,16 @@ import {
 import { createErrorBanner, createLoadingState } from "@/components/states";
 import { errorMessage } from "@/utils/errorMessage";
 import { logError } from "@/utils/logError";
-import type { RealtimeChannel } from "@supabase/supabase-js";
 import {
   getInitialRoundMatches,
   confirmMatch as confirmMatchService,
   toConfirmSide,
-  subscribeToMatchChanges,
   type InitialMatchRow,
 } from "@/services/kampService";
 import {
   getInitialPhaseTournament,
   type InitialPhaseTournamentRow,
 } from "@/services/stevneService";
-import { unsubscribeChannel } from "@/utils/data/realtime";
 import { buildParticipantMaps } from "@/utils/stevne/participantMaps";
 import { groupBy } from "@/utils/groupBy";
 import { getResultsForInitialRound, type InitialResultRow } from "@/services/resultatService";
@@ -100,7 +97,6 @@ export interface InnledendeVariant {
 // ── Factory ───────────────────────────────────────────────────────────────────
 
 export function createInnledendeRenderer(variant: InnledendeVariant) {
-  let channel: RealtimeChannel | null = null;
   let bannerSlot: HTMLElement | null = null;
   let isAdmin = false;
   const standingExpandedIds = new Set<string>();
@@ -111,6 +107,12 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
   const ownedSpelarIds = new Set<number>();
   /** The realtime handler's coalesced reload — our own writes queue through it too. */
   let scheduleReload: (() => void) | null = null;
+  const phaseChannel = createPhaseChannel(
+    variant.channelName,
+    ["innledende"],
+    ownedSpelarIds,
+    loadAndRender,
+  );
 
   async function render(
     container: HTMLElement,
@@ -120,10 +122,7 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
     bannerSlot = _bannerSlot;
     isAdmin = _isAdmin;
     variant.onReset?.();
-    if (channel) {
-      await unsubscribeChannel(channel);
-      channel = null;
-    }
+    await phaseChannel.stop();
     container.replaceChildren(createLoadingState("Laster…"));
     await loadAndRender(container, id);
   }
@@ -210,7 +209,7 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
         );
       }
 
-      subscribeToChanges(container, stevneid);
+      scheduleReload = phaseChannel.start(container, stevneid);
     } catch (err) {
       logError(`${variant.logPrefix}.loadAndRender`, err);
       container.replaceChildren(createErrorBanner("Kunne ikkje laste innleiande fase."));
@@ -331,20 +330,6 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
     if (canEditMatches)
       bindScoreEdit(container, stevneid, kamp, startNumberMap, hcpMap, positionMap);
     bindMobileRow(container, kamp);
-  }
-
-  function subscribeToChanges(container: HTMLElement, stevneid: number): void {
-    if (channel) return;
-    const onChange = createChangeHandler(stevneid, ["innledende"], container, loadAndRender, () => {
-      if (channel) {
-        void unsubscribeChannel(channel);
-        channel = null;
-      }
-    });
-    scheduleReload = onChange;
-    channel = subscribeToMatchChanges(stevneid, variant.channelName(stevneid), onChange, (id) =>
-      ownedSpelarIds.has(id),
-    );
   }
 
   async function confirmMatch(
