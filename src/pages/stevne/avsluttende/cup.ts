@@ -17,6 +17,7 @@ import { showToast } from "@/components/Toast";
 import { confirmDialog } from "@/components/dialog/ConfirmDialog";
 import { type FinalMatchRow } from "@/services/kampService";
 import {
+  cupRanking,
   rescoreCupMatch,
   settleCupMatch,
   CUP_TIE_MESSAGE,
@@ -27,7 +28,11 @@ import { updateTournamentPhase, setRound1Format } from "@/services/stevneService
 import { isInnledendeComplete } from "@/services/xkastKongelagService";
 import { isXkastMethodName } from "@/utils/kastemetode";
 import { setGroupAssignment, clearGroupAssignment } from "@/services/resultatService";
-import { createFinalPhaseRenderer, type FinalPhaseVariant } from "./avsluttendeBase";
+import {
+  createFinalPhaseRenderer,
+  type FinalPhaseContext,
+  type FinalPhaseVariant,
+} from "./avsluttendeBase";
 
 // ── Side helpers (Par/Mix: one side = a pair, grouped by startnummer) ─────────
 
@@ -102,6 +107,7 @@ const cupVariant: FinalPhaseVariant = {
       ctx.finalMatches,
       ctx.isAdmin,
       ctx.reload,
+      ctx.showSaved,
       ctx.startNumberMap,
       ctx.positionMap,
     );
@@ -462,6 +468,7 @@ function bindMatchEventsLocal(
   finalMatches: FinalMatchRow[],
   isAdminLocal: boolean,
   reload: () => Promise<void>,
+  showSaved: FinalPhaseContext["showSaved"],
   startNumberMap: Record<number, number>,
   positionMap: Record<number, number>,
 ): void {
@@ -488,8 +495,9 @@ function bindMatchEventsLocal(
         logPrefix: "cup",
         validate: noTie,
         onSaved: async (newS1, newS2) => {
-          if (!(await confirmCupMatch2Sides(stevneid, kamp, sides, newS1, newS2, reload)))
-            await reload();
+          const ok = await confirmCupMatch2Sides(stevneid, kamp, sides, newS1, newS2, showSaved);
+          if (!ok) void reload();
+          return ok;
         },
       });
     };
@@ -544,16 +552,31 @@ async function confirmCupMatch2Sides(
   sides: MatchSide<FinalMatchPlayerKnown>[],
   s1: number,
   s2: number,
-  reload: () => Promise<void>,
+  showSaved: FinalPhaseContext["showSaved"],
 ): Promise<boolean> {
   // A draw — 0–0 included — is refused by settleCupMatch, so the message it
   // returns is what the arrangør needs to see here.
-  const { error } = await settleCupMatch({ stevneId: stevneid, kamp, sides, s1, s2 });
+  const { error, stored } = await settleCupMatch({ stevneId: stevneid, kamp, sides, s1, s2 });
   if (error) {
     showToast(errorMessage(error), "error");
     return false;
   }
 
-  await reload();
+  const { placements } = cupRanking(sides[0] ?? null, sides[1] ?? null, s1, s2);
+  showSaved(kamp.id, (row) => {
+    row.er_bekreftet = true;
+    for (const sp of row.spelarar) {
+      const values = stored?.get(sp.id);
+      if (values) {
+        sp.score_poeng = values.score_poeng;
+        sp.kamp_poeng = values.kamp_poeng;
+        sp.antall_ringer = values.antall_ringer;
+      }
+      // The score editor deleted them before the confirm
+      sp.omgangar = [];
+      sp.kamp_plassering =
+        placements.find((p) => p.kasterid === sp.kasterid)?.plassering ?? sp.kamp_plassering;
+    }
+  });
   return true;
 }

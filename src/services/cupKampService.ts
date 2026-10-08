@@ -85,7 +85,7 @@ export async function settleCupMatch(params: {
   sides: MatchSide<FinalMatchPlayerKnown>[];
   s1: number;
   s2: number;
-}): Promise<{ error: unknown }> {
+}): ReturnType<typeof confirmMatch> {
   const { stevneId, kamp, sides, s1, s2 } = params;
   if (s1 === s2) return { error: new Error(CUP_TIE_MESSAGE) };
 

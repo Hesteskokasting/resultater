@@ -26,8 +26,8 @@ export interface KampScoreEditorOptions {
    * message to show, or null to accept.
    */
   validate?: (s1: number, s2: number) => string | null;
-  /** Stores the entered side scores and re-renders. */
-  onSaved: (s1: number, s2: number) => Promise<void>;
+  /** Stores the entered side scores. False keeps the pad open for a retry. */
+  onSaved: (s1: number, s2: number) => Promise<boolean>;
   /** logError context prefix for the owning variant. */
   logPrefix: string;
 }
@@ -69,13 +69,12 @@ export async function showKampScoreEditor(opts: KampScoreEditorOptions): Promise
         }
         // Inside the try: a throw out of here would otherwise leave the pad
         // stuck on "Lagrer…", with the rounds already deleted.
-        await opts.onSaved(s1, s2);
+        return await opts.onSaved(s1, s2);
       } catch (err) {
         logError(`${opts.logPrefix}:showKampScoreEditor`, err);
         showToast("Feil ved lagring av score", "error");
         return false;
       }
-      return true;
     },
     { baneLabel: opts.baneLabel, rundeLabel: opts.rundeLabel },
   );

@@ -535,7 +535,7 @@ export async function confirmMatch(params: {
   /** Finishing order from the 3-player race; omitted = ranked by side total. */
   ranking?: SideRanking | null;
   outcome: MatchOutcome;
-}): Promise<{ error: unknown }> {
+}): Promise<{ error: unknown; stored?: MatchPlayerUpdates["updates"] }> {
   const { kampId, sides, hcp, erWalkover = false, ranking, outcome } = params;
   const placements = ranking
     ? sides.map((side) => ranking.find((r) => r.kasterid === side?.kasterid)?.plassering ?? null)
@@ -561,10 +561,10 @@ export async function confirmMatch(params: {
         })),
       })
       .abortSignal(AbortSignal.timeout(SAVE_TIMEOUT_MS));
-    if (!error && data !== false) return { error: null };
+    if (!error && data !== false) return { error: null, stored: updates };
     // A lost response, or a retry of a confirm that already landed, is fine
     // as long as the match is confirmed with the scores that were sent.
-    if (await _confirmLanded(kampId, updates)) return { error: null };
+    if (await _confirmLanded(kampId, updates)) return { error: null, stored: updates };
     if (error) logError("confirmMatch:innledende", error);
     return { error: error ?? new Error(ALREADY_CONFIRMED_MESSAGE) };
   }
@@ -583,7 +583,8 @@ export async function confirmMatch(params: {
     return { error };
   }
 
-  return _finishRankedCup(kampId, outcome);
+  const { error } = await _finishRankedCup(kampId, outcome);
+  return error ? { error } : { error: null, stored: updates };
 }
 
 async function _confirmLanded(
@@ -877,7 +878,9 @@ export async function getMatchRounds(
   return { data: data ?? [], error };
 }
 
-const SAVE_TIMEOUT_MS = 10_000;
+// Generous on purpose: a write that times out often lands anyway, and a poor
+// mobile signal can spend several seconds per round trip (plus CORS preflight).
+const SAVE_TIMEOUT_MS = 20_000;
 
 /** Aborts a Supabase write after SAVE_TIMEOUT_MS so scoreboard saves never hang. */
 async function _runWithTimeout(
