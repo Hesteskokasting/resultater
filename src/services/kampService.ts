@@ -876,7 +876,39 @@ export async function saveMatchRound(
   inserts: { kamp_spelar_id: number; omgang: number; score: number; antall_ringer: number }[],
 ): Promise<{ error: unknown }> {
   if (!inserts.length) return { error: null };
-  return _runWithTimeout("saveMatchRound", supabase.from("kamp_omgang").insert(inserts));
+  const result = await _runWithTimeout(
+    "saveMatchRound",
+    supabase.from("kamp_omgang").insert(inserts),
+  );
+  if (!result.error) return result;
+  // A timeout or a lost response says nothing about the insert itself; on a
+  // slow connection it often lands anyway, and a retry then hits the unique key.
+  return (await _roundsLanded(inserts)) ? { error: null } : result;
+}
+
+/** True when every row is stored with the same score — someone else's score still fails. */
+async function _roundsLanded(
+  inserts: { kamp_spelar_id: number; omgang: number; score: number }[],
+): Promise<boolean> {
+  try {
+    const { data, error } = await supabase
+      .from("kamp_omgang")
+      .select("kamp_spelar_id, omgang, score")
+      .in(
+        "kamp_spelar_id",
+        inserts.map((r) => r.kamp_spelar_id),
+      )
+      .abortSignal(AbortSignal.timeout(SAVE_TIMEOUT_MS));
+    if (error || !data) return false;
+    return inserts.every((r) =>
+      data.some(
+        (d) =>
+          d.kamp_spelar_id === r.kamp_spelar_id && d.omgang === r.omgang && d.score === r.score,
+      ),
+    );
+  } catch {
+    return false;
+  }
 }
 
 // ── Realtime ──────────────────────────────────────────────────────────────────
