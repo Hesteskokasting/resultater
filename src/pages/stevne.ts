@@ -117,10 +117,10 @@ export async function render(container: HTMLElement, params: Params): Promise<vo
     const isCompleted = tournament.erfullfort === true;
     const isSncParent = tournament.er_snc_hovudstevne === true;
 
-    // A started stevne always owns its fase tabs; only one still on 'ikke_startet'
-    // has to be asked whether any play was ever generated.
+    // Only a completed stevne that never ran a started fase is asked whether
+    // any detailed results exist; everything else keeps its fase tabs.
     const started = tournament.stevne_fase !== null && tournament.stevne_fase !== "ikke_startet";
-    const hasMatchData = isSncParent || started || (await hasResultData(id));
+    const hasMatchData = isSncParent || !isCompleted || started || (await hasResultData(id));
 
     const tabs = visibleTabs(userIsAdmin, hasFinal, isCompleted, isSncParent, hasMatchData);
     const activeTab: TabKey = tabs.some((f) => f.key === tab) ? (tab as TabKey) : "info";
