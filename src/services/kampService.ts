@@ -552,16 +552,21 @@ export async function confirmMatch(params: {
   // steps are ordered by RLS (kamp_spelar first), so they cannot be batched
   // from the client.
   if (outcome.type === "innledende") {
-    const { data, error } = await supabase.rpc("bekreft_innledende_kamp", {
-      p_kamp_id: kampId,
-      p_scores: [...updates.entries()].map(([id, values]) => ({
-        kamp_spelar_id: id,
-        ...values,
-      })),
-    });
+    const { data, error } = await supabase
+      .rpc("bekreft_innledende_kamp", {
+        p_kamp_id: kampId,
+        p_scores: [...updates.entries()].map(([id, values]) => ({
+          kamp_spelar_id: id,
+          ...values,
+        })),
+      })
+      .abortSignal(AbortSignal.timeout(SAVE_TIMEOUT_MS));
+    if (!error && data !== false) return { error: null };
+    // A lost response, or a retry of a confirm that already landed, is fine
+    // as long as the match is confirmed with the scores that were sent.
+    if (await _confirmLanded(kampId, updates)) return { error: null };
     if (error) logError("confirmMatch:innledende", error);
-    if (!error && data === false) return { error: new Error(ALREADY_CONFIRMED_MESSAGE) };
-    return { error };
+    return { error: error ?? new Error(ALREADY_CONFIRMED_MESSAGE) };
   }
 
   const { error: writeErr } = await _writeMatchPlayerScores(updates);
@@ -579,6 +584,26 @@ export async function confirmMatch(params: {
   }
 
   return _finishRankedCup(kampId, outcome);
+}
+
+async function _confirmLanded(
+  kampId: number,
+  updates: MatchPlayerUpdates["updates"],
+): Promise<boolean> {
+  try {
+    const { data, error } = await supabase
+      .from("kamp")
+      .select("er_bekreftet, spelarar:kamp_spelar(id, score_poeng)")
+      .eq("id", kampId)
+      .abortSignal(AbortSignal.timeout(SAVE_TIMEOUT_MS))
+      .maybeSingle();
+    if (error || !data?.er_bekreftet) return false;
+    return [...updates.entries()].every(([id, values]) =>
+      data.spelarar.some((s) => s.id === id && s.score_poeng === values.score_poeng),
+    );
+  } catch {
+    return false;
+  }
 }
 
 // ── Avsluttande fase ──────────────────────────────────────────────────────────
@@ -854,16 +879,13 @@ export async function getMatchRounds(
 
 const SAVE_TIMEOUT_MS = 10_000;
 
-/** Races a Supabase write against SAVE_TIMEOUT_MS so scoreboard saves never hang. */
+/** Aborts a Supabase write after SAVE_TIMEOUT_MS so scoreboard saves never hang. */
 async function _runWithTimeout(
   logContext: string,
-  query: PromiseLike<{ error: unknown }>,
+  query: { abortSignal(signal: AbortSignal): PromiseLike<{ error: unknown }> },
 ): Promise<{ error: unknown }> {
   try {
-    const timeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("Request timed out")), SAVE_TIMEOUT_MS),
-    );
-    const { error } = await Promise.race([query, timeout]);
+    const { error } = await query.abortSignal(AbortSignal.timeout(SAVE_TIMEOUT_MS));
     if (error) logError(logContext, error);
     return { error };
   } catch (e) {

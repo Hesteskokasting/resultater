@@ -20,6 +20,7 @@ const mocks = vi.hoisted(() => {
   const rpc = vi.fn();
   let omgangRows: { kamp_spelar_id: number; score: number; antall_ringer: number }[] = [];
   let storedScores: { id: number; score_poeng: number }[] = [];
+  let storedKamp: unknown = null;
 
   function resultFor(call: Call): { data: unknown; error: unknown } {
     if (call.op === "update") {
@@ -28,6 +29,7 @@ const mocks = vi.hoisted(() => {
     }
     if (call.table === "kamp_omgang") return { data: omgangRows, error: null };
     if (call.table === "kamp_spelar") return { data: storedScores, error: null };
+    if (call.table === "kamp") return { data: storedKamp, error: null };
     return { data: [], error: null };
   }
 
@@ -53,6 +55,8 @@ const mocks = vi.hoisted(() => {
         call.filters.push([col, val]);
         return builder;
       },
+      abortSignal: () => builder,
+      maybeSingle: () => builder,
       // A Supabase query builder is awaited directly, so the fake has to be thenable
       // oxlint-disable-next-line unicorn/no-thenable
       then: (resolve: (r: unknown) => unknown) => resolve(resultFor(call)),
@@ -70,10 +74,25 @@ const mocks = vi.hoisted(() => {
     setStoredScores: (rows: typeof storedScores) => {
       storedScores = rows;
     },
+    setStoredKamp: (kamp: unknown) => {
+      storedKamp = kamp;
+    },
   };
 });
 
-vi.mock("@/supabase", () => ({ supabase: { from: mocks.from, rpc: mocks.rpc } }));
+vi.mock("@/supabase", () => ({
+  supabase: {
+    from: mocks.from,
+    rpc: (...args: unknown[]) => {
+      const result = mocks.rpc(...args) as Promise<unknown>;
+      return {
+        abortSignal: () => result,
+        // oxlint-disable-next-line unicorn/no-thenable
+        then: (resolve: (r: unknown) => unknown) => result.then(resolve),
+      };
+    },
+  },
+}));
 vi.mock("@/utils/logError", () => ({ logError: vi.fn() }));
 
 import { confirmMatch, toConfirmSide } from "@/services/kampService";
@@ -116,6 +135,7 @@ beforeEach(() => {
   mocks.rpc.mockResolvedValue({ data: true, error: null });
   mocks.setOmgangar([]);
   mocks.setStoredScores([]);
+  mocks.setStoredKamp(null);
 });
 
 describe("confirmMatch — innledende", () => {
@@ -218,6 +238,51 @@ describe("confirmMatch — innledende", () => {
     });
 
     expect((error as Error).message).toMatch(/stadfesta/);
+  });
+
+  it("keeps the already-confirmed error when the stored scores differ", async () => {
+    mocks.setOmgangar(THREE_ROUNDS);
+    mocks.setStoredKamp({
+      er_bekreftet: true,
+      spelarar: [
+        { id: P1, score_poeng: 9 },
+        { id: P2, score_poeng: 16 },
+      ],
+    });
+    mocks.rpc.mockResolvedValue({ data: false, error: null });
+    const sides = [side(P1, K1), side(P2, K2)].map((s) => toConfirmSide(s));
+
+    const { error } = await confirmMatch({ kampId: 5, sides, outcome: { type: "innledende" } });
+
+    expect((error as Error).message).toMatch(/stadfesta/);
+  });
+
+  it("succeeds when the response was lost but the confirm landed", async () => {
+    mocks.setOmgangar(THREE_ROUNDS);
+    mocks.setStoredKamp({
+      er_bekreftet: true,
+      spelarar: [
+        { id: P1, score_poeng: 16 },
+        { id: P2, score_poeng: 9 },
+      ],
+    });
+    mocks.rpc.mockResolvedValue({ data: null, error: { message: "TypeError: Failed to fetch" } });
+    const sides = [side(P1, K1), side(P2, K2)].map((s) => toConfirmSide(s));
+
+    const { error } = await confirmMatch({ kampId: 5, sides, outcome: { type: "innledende" } });
+
+    expect(error).toBeNull();
+  });
+
+  it("keeps a network error when the match is still unconfirmed", async () => {
+    mocks.setOmgangar(THREE_ROUNDS);
+    mocks.setStoredKamp({ er_bekreftet: false, spelarar: [] });
+    mocks.rpc.mockResolvedValue({ data: null, error: { message: "TypeError: Failed to fetch" } });
+    const sides = [side(P1, K1), side(P2, K2)].map((s) => toConfirmSide(s));
+
+    const { error } = await confirmMatch({ kampId: 5, sides, outcome: { type: "innledende" } });
+
+    expect(error).toEqual({ message: "TypeError: Failed to fetch" });
   });
 });
 

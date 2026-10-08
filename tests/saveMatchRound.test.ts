@@ -19,7 +19,10 @@ vi.mock("@/supabase", () => {
   };
   return {
     supabase: {
-      from: () => ({ insert: () => Promise.resolve(db.insertResult), select }),
+      from: () => ({
+        insert: () => ({ abortSignal: () => Promise.resolve(db.insertResult) }),
+        select,
+      }),
     },
   };
 });
