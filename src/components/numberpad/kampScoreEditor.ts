@@ -4,6 +4,14 @@ import { showToast } from "@/components/Toast";
 import { deleteMatchRounds } from "@/services/kampService";
 import { logError } from "@/utils/logError";
 
+/** Asked before anything that replaces a match's omgang detail. */
+export function confirmDiscardRounds(): Promise<boolean> {
+  return confirmDialog({
+    title: "Slett detaljar",
+    message: "Dette sletter detaljar for denne kampen. Er du sikker?",
+  });
+}
+
 export interface KampScoreEditorOptions {
   /** Display name/HTML for side 1 (left numberpad). */
   side1Name: string;
@@ -21,6 +29,8 @@ export interface KampScoreEditorOptions {
   playerIds: number[];
   /** True when a side has live omgangar — gates the delete-warning dialog. */
   hasRounds: boolean;
+  /** onSaved clears the omgangar itself, in the same transaction as the score. */
+  roundsClearedBySave?: boolean;
   /**
    * Rejects a score pair before anything is written or deleted. Returns the
    * message to show, or null to accept.
@@ -39,14 +49,7 @@ export interface KampScoreEditorOptions {
  * deleted on save rather than left to silently contradict the new total.
  */
 export async function showKampScoreEditor(opts: KampScoreEditorOptions): Promise<void> {
-  if (
-    opts.hasRounds &&
-    !(await confirmDialog({
-      title: "Slett detaljar",
-      message: "Dette sletter detaljar for denne kampen. Er du sikker?",
-    }))
-  )
-    return;
+  if (opts.hasRounds && !(await confirmDiscardRounds())) return;
 
   showKampScoreNumberpad(
     [
@@ -60,7 +63,7 @@ export async function showKampScoreEditor(opts: KampScoreEditorOptions): Promise
         return false;
       }
       try {
-        if (opts.hasRounds && opts.playerIds.length) {
+        if (opts.hasRounds && opts.playerIds.length && !opts.roundsClearedBySave) {
           const { error } = await deleteMatchRounds(opts.playerIds);
           if (error) {
             showToast("DB-feil ved sletting av omgangar", "error");

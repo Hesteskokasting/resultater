@@ -3,6 +3,7 @@ import type { FinalMatchPlayerKnown } from "@/services/cupKampService";
 import { sideNameHtml } from "@/pages/stevne/faseView";
 import type { MatchSide } from "@/utils/kamp/kamp";
 import { showToast } from "@/components/Toast";
+import { confirmDiscardRounds } from "@/components/numberpad/kampScoreEditor";
 
 /**
  * Confirm a 3-side cup match: pick the two sides that advance, the remaining
@@ -70,6 +71,14 @@ export function openThreeSideConfirmDialog(
 
     modal.querySelector("#bekreft-tre-btn")?.addEventListener("click", async () => {
       if (selected.length !== 2) return;
+      const hasRounds = kamp.spelarar.some((s) => (s.omgangar?.length ?? 0) > 0);
+      if (hasRounds) {
+        // The overlay sits above Bootstrap modals, so it steps aside for the warning
+        modal.hidden = true;
+        const accepted = await confirmDiscardRounds();
+        modal.hidden = false;
+        if (!accepted) return;
+      }
       const eliminatedSide = sides.find((s) => !selected.includes(s.rep.kasterid)) ?? null;
       const advancingSides = selected
         .map((kid) => sides.find((s) => s.rep.kasterid === kid))
@@ -83,6 +92,8 @@ export function openThreeSideConfirmDialog(
           type: "cup-ranked",
           eliminatedIds: eliminatedSide?.members.map((m) => m.kasterid) ?? [],
           advancingSides,
+          // A hand-set ranking would contradict the omgang race it overrides
+          deleteRounds: true,
         },
       });
       if (error) {

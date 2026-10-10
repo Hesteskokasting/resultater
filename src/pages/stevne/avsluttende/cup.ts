@@ -480,6 +480,7 @@ function bindMatchEventsLocal(
         rundeLabel: kamp.runde_navn ?? `Runde ${kamp.runde_nummer}`,
         playerIds,
         hasRounds: kamp.spelarar.some((s) => (s.omgangar?.length ?? 0) > 0),
+        roundsClearedBySave: true,
         logPrefix: "cup",
         validate: noTie,
         onSaved: async (newS1, newS2) => {

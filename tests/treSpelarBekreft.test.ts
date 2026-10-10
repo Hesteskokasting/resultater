@@ -8,6 +8,7 @@
 
 const mocks = vi.hoisted(() => ({
   confirmMatch: vi.fn(),
+  confirmDialog: vi.fn(),
   chain: new Proxy({}, { get: () => () => undefined }),
 }));
 
@@ -18,6 +19,7 @@ vi.mock("@/services/kampService", async (importOriginal) => {
 });
 vi.mock("@/pages/stevne/faseView", () => ({ sideNameHtml: () => "Spelar" }));
 vi.mock("@/components/Toast", () => ({ showToast: vi.fn() }));
+vi.mock("@/components/dialog/ConfirmDialog", () => ({ confirmDialog: mocks.confirmDialog }));
 
 import { openThreeSideConfirmDialog } from "@/pages/stevne/avsluttende/_avslCupTreSpelarDialog";
 
@@ -27,7 +29,8 @@ const side = (id: number, kasterid: number) => ({
   members: [player(id, kasterid)],
 });
 
-const kamp = { id: 7, runde_nummer: 2, runde_navn: "Kvartfinale" };
+const kamp = { id: 7, runde_nummer: 2, runde_navn: "Kvartfinale", spelarar: [] };
+const kampWithRounds = { ...kamp, spelarar: [{ omgangar: [{ score: 6, antall_ringer: 2 }] }] };
 const sides = [side(101, 11), side(202, 22), side(303, 33)];
 
 function clickSide(kasterid: number): void {
@@ -42,14 +45,15 @@ beforeEach(() => {
   document.body.innerHTML = "";
   mocks.confirmMatch.mockReset();
   mocks.confirmMatch.mockResolvedValue({ error: null });
+  mocks.confirmDialog.mockReset();
 });
 
 describe("openThreeSideConfirmDialog", () => {
-  function open(afterConfirm = vi.fn()): ReturnType<typeof vi.fn> {
+  function open(afterConfirm = vi.fn(), k: object = kamp): ReturnType<typeof vi.fn> {
     // The dialog's types come from the cup page's row shapes; the fields it
     // actually reads are the ones built above.
     openThreeSideConfirmDialog(
-      kamp as never,
+      k as never,
       sides as never,
       afterConfirm as unknown as () => Promise<void>,
     );
@@ -83,6 +87,7 @@ describe("openThreeSideConfirmDialog", () => {
       type: "cup-ranked",
       eliminatedIds: [22],
       advancingSides: [[33], [11]],
+      deleteRounds: true,
     });
     expect(afterConfirm).toHaveBeenCalled();
     expect(document.querySelector(".final-dialog-overlay")).toBeNull();
@@ -95,5 +100,40 @@ describe("openThreeSideConfirmDialog", () => {
     await flush();
 
     expect(mocks.confirmMatch).not.toHaveBeenCalled();
+  });
+
+  it("warns before discarding omgangar, and confirms nothing when declined", async () => {
+    mocks.confirmDialog.mockResolvedValue(false);
+    open(vi.fn(), kampWithRounds);
+    clickSide(11);
+    clickSide(22);
+    document.querySelector<HTMLElement>("#bekreft-tre-btn")!.click();
+    await flush();
+
+    expect(mocks.confirmDialog).toHaveBeenCalled();
+    expect(mocks.confirmMatch).not.toHaveBeenCalled();
+    expect(document.querySelector<HTMLElement>(".final-dialog-overlay")?.hidden).toBe(false);
+  });
+
+  it("confirms once the warning is accepted", async () => {
+    mocks.confirmDialog.mockResolvedValue(true);
+    open(vi.fn(), kampWithRounds);
+    clickSide(11);
+    clickSide(22);
+    document.querySelector<HTMLElement>("#bekreft-tre-btn")!.click();
+    await flush();
+
+    expect(mocks.confirmMatch).toHaveBeenCalled();
+  });
+
+  it("does not warn when there are no omgangar", async () => {
+    open();
+    clickSide(11);
+    clickSide(22);
+    document.querySelector<HTMLElement>("#bekreft-tre-btn")!.click();
+    await flush();
+
+    expect(mocks.confirmDialog).not.toHaveBeenCalled();
+    expect(mocks.confirmMatch).toHaveBeenCalled();
   });
 });
