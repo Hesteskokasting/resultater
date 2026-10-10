@@ -87,7 +87,8 @@ export function openThreeSideConfirmDialog(
       modal.remove();
       const { error } = await confirmMatch({
         kampId: kamp.id,
-        sides: sides.map((s) => toConfirmSide(s)),
+        // The omgangar go, so their totals must not be written back as scores
+        sides: sides.map((s) => toConfirmSide(s, { baseScore: 0 })),
         outcome: {
           type: "cup-ranked",
           eliminatedIds: eliminatedSide?.members.map((m) => m.kasterid) ?? [],

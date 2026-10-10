@@ -1,9 +1,9 @@
 /**
- * The 3-side cup confirm dialog is one of the callsites that builds the sides
- * for confirmMatch, and that construction had no coverage at all: a bare
- * `sides.map(toConfirmSide)` handed the array index over as the side total, so
- * the scores in kamp_omgang were never read. This drives the real dialog and
- * checks the payload it hands the service.
+ * The 3-side cup confirm dialog builds the sides for confirmMatch itself. A bare
+ * `sides.map(toConfirmSide)` once handed the array index over as the side total.
+ * Now every side totals 0: the hand-set ranking deletes the omgangar, so their
+ * sums must not linger in kamp_spelar. This drives the real dialog and checks
+ * the payload it hands the service.
  */
 
 const mocks = vi.hoisted(() => ({
@@ -60,7 +60,7 @@ describe("openThreeSideConfirmDialog", () => {
     return afterConfirm;
   }
 
-  it("sends sides with no baseScore, so the omgangar decide the scores", async () => {
+  it("sends every side with a zero total, so deleted omgangar leave no score behind", async () => {
     open();
     clickSide(11);
     clickSide(22);
@@ -69,11 +69,10 @@ describe("openThreeSideConfirmDialog", () => {
 
     const { sides: sent } = mocks.confirmMatch.mock.calls[0]![0];
     expect(sent).toEqual([
-      { playerIds: [101], kasterid: 11 },
-      { playerIds: [202], kasterid: 22 },
-      { playerIds: [303], kasterid: 33 },
+      { playerIds: [101], kasterid: 11, baseScore: 0 },
+      { playerIds: [202], kasterid: 22, baseScore: 0 },
+      { playerIds: [303], kasterid: 33, baseScore: 0 },
     ]);
-    expect(sent.every((s: { baseScore?: number }) => s.baseScore === undefined)).toBe(true);
   });
 
   it("ranks the advancing sides in pick order and eliminates the rest", async () => {

@@ -506,8 +506,8 @@ export type MatchOutcome =
  * shared by every entry point — scoreboard and numberpad, innledende and cup —
  * so a match always ends up with its score in kamp_spelar.score_poeng.
  *
- * A 3-side cup match ranked by hand carries no scores of its own; the score step
- * then simply writes back what is already stored.
+ * A 3-side cup match ranked by hand carries no scores of its own; its sides
+ * pass baseScore 0, since the omgangar behind any stored total are deleted.
  */
 export async function confirmMatch(params: {
   kampId: number;
