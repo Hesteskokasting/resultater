@@ -523,7 +523,7 @@ export function finalMenuItems(
     if (hasPreconfiguredFormat && allMatchesConfirmed)
       items.push({ id: "edit-group-assignment-btn", label: "Endre gruppefordeling" });
   } else if (hasGroupAssignment && !hasFinalMatches) {
-    items.push({ id: "edit-group-assignment-btn", label: "Endre gruppeinndeling" });
+    items.push({ id: "edit-group-assignment-btn", label: "Endre gruppefordeling" });
   }
 
   if (import.meta.env.VITE_ENV === "dev" && hasFinalMatches && !allMatchesConfirmed)

@@ -166,12 +166,15 @@ const cupVariant: FinalPhaseVariant = {
     } = ctx;
 
     const isXkast = isXkastMethodName(stevne.kastemetodeInnl?.navn ?? "");
+    const started = stevne.stevne_fase === "avsluttende";
 
     async function startFinalPhase(): Promise<void> {
-      const { error } = await updateTournamentPhase(stevneid, "avsluttende");
-      if (error) {
-        showToast("Feil ved oppstart av avsluttande fase", "error");
-        return;
+      if (!started) {
+        const { error } = await updateTournamentPhase(stevneid, "avsluttende");
+        if (error) {
+          showToast("Feil ved oppstart av avsluttande fase", "error");
+          return;
+        }
       }
 
       if (round1Format?.nA != null) {
@@ -196,13 +199,15 @@ const cupVariant: FinalPhaseVariant = {
 
     // X-kast innledende has no kamp rows, so allInitialConfirmed can't see it finish
     const startFromForm =
-      stevne.stevne_fase !== "avsluttende" && round1Format?.nA != null
+      round1Format?.nA != null
         ? {
             saved: round1Format,
             onStart: async () => {
-              const done = isXkast
-                ? (await isInnledendeComplete(stevneid)).data === true
-                : allInitialConfirmed;
+              const done =
+                started ||
+                (isXkast
+                  ? (await isInnledendeComplete(stevneid)).data === true
+                  : allInitialConfirmed);
               if (!done) {
                 showToast("Fullfør den innleiande fasen før cupen kan startast", "error");
                 return;
@@ -217,46 +222,11 @@ const cupVariant: FinalPhaseVariant = {
         container,
         standings,
         async ({ nA, setupA, setupB }) => {
-          const { error: fmtErr } = await setRound1Format(stevneid, { A: setupA, B: setupB, nA });
-          if (fmtErr) {
-            showToast("Feil ved lagring av format: " + errorMessage(fmtErr), "error");
+          const { error } = await setRound1Format(stevneid, { A: setupA, B: setupB, nA });
+          if (error) {
+            showToast("Feil ved lagring av format: " + errorMessage(error), "error");
             return;
           }
-
-          // X-kast-family innledende (minimatch etc.) creates no kamp rows, so
-          // #start-final-btn — gated on confirmed kamp rows — never appears to flip
-          // the phase to 'avsluttende' the way it does for head-to-head innledende.
-          // Mirror kongelag's start panel: flip it here once the innledende phase
-          // is complete. Head-to-head is unaffected (not an X-kast method).
-          let phase = stevne.stevne_fase;
-          if (phase !== "avsluttende" && isXkast) {
-            const { data: innledendeDone } = await isInnledendeComplete(stevneid);
-            if (!innledendeDone) {
-              showToast("Fullfør den innleiande fasen før cupen kan startast", "error");
-              return;
-            }
-            const { error: phaseErr } = await updateTournamentPhase(stevneid, "avsluttende");
-            if (phaseErr) {
-              showToast(
-                "Feil ved oppstart av avsluttande fase: " + errorMessage(phaseErr),
-                "error",
-              );
-              return;
-            }
-            phase = "avsluttende";
-          }
-
-          if (phase === "avsluttende") {
-            const groupAId = groupNameMap["A"] ?? null;
-            const groupBId = groupNameMap["B"] ?? null;
-            const updates = buildGroupUpdates(standings, results, nA, groupAId, groupBId);
-            const { error } = await setGroupAssignment(stevneid, updates);
-            if (error) {
-              showToast("Feil ved lagring av gruppefordeling: " + errorMessage(error), "error");
-              return;
-            }
-          }
-
           showToast("Gruppefordeling lagra", "success");
           await reload();
         },
@@ -267,7 +237,7 @@ const cupVariant: FinalPhaseVariant = {
     bannerSlot?.querySelector("#edit-group-assignment-btn")?.addEventListener("click", async () => {
       if (
         !(await confirmDialog({
-          title: "Tilbakestill gruppeinndeling",
+          title: "Tilbakestill gruppefordeling",
           message: "Gruppefordeling og format vert fjerna.",
           danger: true,
         }))
