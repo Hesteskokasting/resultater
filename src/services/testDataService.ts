@@ -186,10 +186,6 @@ export async function autoCompleteFinalMatches(stevneid: number): Promise<void> 
       sides: sides.map((s) => toConfirmSide(s)),
       outcome: {
         type: "cup-ranked",
-        stevneId: stevneid,
-        roundNumber: kamp.runde_nummer,
-        roundName: kamp.runde_navn,
-        allThrowerIds: spelarar.map((s) => s.kasterid),
         eliminatedIds: eliminated.members.map((m) => m.kasterid),
         advancingSides: ranked.slice(0, -1).map((side) => side.members.map((m) => m.kasterid)),
       },

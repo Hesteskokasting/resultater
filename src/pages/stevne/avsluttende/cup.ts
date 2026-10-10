@@ -18,10 +18,8 @@ import { confirmDialog } from "@/components/dialog/ConfirmDialog";
 import { type FinalMatchRow } from "@/services/kampService";
 import {
   cupRanking,
-  rescoreCupMatch,
   settleCupMatch,
   CUP_TIE_MESSAGE,
-  type CupRescoreStep,
   type FinalMatchPlayerKnown,
 } from "@/services/cupKampService";
 import { updateTournamentPhase, setRound1Format } from "@/services/stevneService";
@@ -103,7 +101,6 @@ const cupVariant: FinalPhaseVariant = {
     if (!ctx.isAdmin && ctx.finalMatches.length === 0) return;
     bindMatchEventsLocal(
       container,
-      ctx.stevneid,
       ctx.finalMatches,
       ctx.isAdmin,
       ctx.reload,
@@ -454,17 +451,8 @@ function noTie(s1: number, s2: number): string | null {
   return s1 === s2 ? CUP_TIE_MESSAGE : null;
 }
 
-const RESCORE_ERROR: Record<CupRescoreStep, string> = {
-  uavgjort: CUP_TIE_MESSAGE,
-  omgangar: "DB-feil ved sletting av omgangar",
-  score: "DB-feil ved oppdatering av score",
-  plassering: "DB-feil ved oppdatering av plassering",
-  bracket: "DB-feil ved oppdatering av cupstigen",
-};
-
 function bindMatchEventsLocal(
   container: HTMLElement,
-  stevneid: number,
   finalMatches: FinalMatchRow[],
   isAdminLocal: boolean,
   reload: () => Promise<void>,
@@ -495,7 +483,7 @@ function bindMatchEventsLocal(
         logPrefix: "cup",
         validate: noTie,
         onSaved: async (newS1, newS2) => {
-          const ok = await confirmCupMatch2Sides(stevneid, kamp, sides, newS1, newS2, showSaved);
+          const ok = await confirmCupMatch2Sides(kamp, sides, newS1, newS2, showSaved);
           if (!ok) void reload();
           return ok;
         },
@@ -503,7 +491,7 @@ function bindMatchEventsLocal(
     };
 
     container.querySelector(`#bekrft-${kamp.id}`)?.addEventListener("click", () => {
-      openThreeSideConfirmDialog(kamp, sides, stevneid, reload);
+      openThreeSideConfirmDialog(kamp, sides, reload);
     });
 
     if (isAdminLocal && !kamp.er_tre_spelarar && !kamp.er_walkover) {
@@ -514,22 +502,7 @@ function bindMatchEventsLocal(
             { name: p1Name, score: sideSum(side1, kamp) },
             { name: p2Name, score: sideSum(side2, kamp) },
           ],
-          async ([newS1 = 0, newS2 = 0]) => {
-            const { error, step } = await rescoreCupMatch({
-              stevneId: stevneid,
-              kamp,
-              sides,
-              s1: newS1,
-              s2: newS2,
-            });
-            if (error) {
-              logError(`cup:rescore:${step}`, error);
-              showToast(RESCORE_ERROR[step ?? "score"], "error");
-              return false;
-            }
-            await reload();
-            return true;
-          },
+          ([newS1 = 0, newS2 = 0]) => confirmCupMatch2Sides(kamp, sides, newS1, newS2, showSaved),
           {
             baneLabel: `Bane ${kamp.bane_nummer ?? "?"}`,
             rundeLabel: kamp.runde_navn ?? `Runde ${kamp.runde_nummer}`,
@@ -547,7 +520,6 @@ function bindMatchEventsLocal(
 // ── Confirm 2-side cup match (Singel: 2 players; Par/Mix: 2 pairs) ────────────
 
 async function confirmCupMatch2Sides(
-  stevneid: number,
   kamp: FinalMatchRow,
   sides: MatchSide<FinalMatchPlayerKnown>[],
   s1: number,
@@ -556,7 +528,7 @@ async function confirmCupMatch2Sides(
 ): Promise<boolean> {
   // A draw — 0–0 included — is refused by settleCupMatch, so the message it
   // returns is what the arrangør needs to see here.
-  const { error, stored } = await settleCupMatch({ stevneId: stevneid, kamp, sides, s1, s2 });
+  const { error, stored } = await settleCupMatch({ kamp, sides, s1, s2 });
   if (error) {
     showToast(errorMessage(error), "error");
     return false;

@@ -1059,6 +1059,16 @@ export type Database = {
         Args: { p_eliminert_kasterid?: number; p_kamp_id: number }
         Returns: undefined
       }
+      bekreft_avsluttende_kamp_rangert: {
+        Args: {
+          p_eliminert: number[]
+          p_kamp_id: number
+          p_scores: Json
+          p_slett_omgangar?: boolean
+          p_vidare: Json
+        }
+        Returns: undefined
+      }
       bekreft_innledende_kamp: {
         Args: { p_kamp_id: number; p_scores: Json }
         Returns: boolean

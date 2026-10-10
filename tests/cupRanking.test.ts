@@ -1,6 +1,5 @@
 import {
   cupRanking,
-  rescoreCupMatch,
   settleCupMatch,
   CUP_TIE_MESSAGE,
   type CupSide,
@@ -38,26 +37,20 @@ describe("cupRanking", () => {
   });
 });
 
-// A draw leaves the bracket with no one to advance, so both write paths refuse
-// one before they touch the database.
+// A draw leaves the bracket with no one to advance, so it is refused before
+// anything touches the database.
 
 describe("cup draw guard", () => {
   const kamp = { id: 1, runde_nummer: 2, runde_navn: null } as never;
   const sides = [side(1), side(2)] as never;
 
   it("settleCupMatch refuses equal totals", async () => {
-    const { error } = await settleCupMatch({ stevneId: 9, kamp, sides, s1: 21, s2: 21 });
+    const { error } = await settleCupMatch({ kamp, sides, s1: 21, s2: 21 });
     expect(errorMessage(error)).toBe(CUP_TIE_MESSAGE);
   });
 
   it("settleCupMatch refuses a scoreless match", async () => {
-    const { error } = await settleCupMatch({ stevneId: 9, kamp, sides, s1: 0, s2: 0 });
-    expect(errorMessage(error)).toBe(CUP_TIE_MESSAGE);
-  });
-
-  it("rescoreCupMatch refuses equal totals before deleting omgangar", async () => {
-    const { error, step } = await rescoreCupMatch({ stevneId: 9, kamp, sides, s1: 15, s2: 15 });
-    expect(step).toBe("uavgjort");
+    const { error } = await settleCupMatch({ kamp, sides, s1: 0, s2: 0 });
     expect(errorMessage(error)).toBe(CUP_TIE_MESSAGE);
   });
 });

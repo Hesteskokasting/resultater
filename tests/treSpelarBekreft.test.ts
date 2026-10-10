@@ -51,7 +51,6 @@ describe("openThreeSideConfirmDialog", () => {
     openThreeSideConfirmDialog(
       kamp as never,
       sides as never,
-      3,
       afterConfirm as unknown as () => Promise<void>,
     );
     return afterConfirm;
@@ -82,10 +81,6 @@ describe("openThreeSideConfirmDialog", () => {
 
     expect(mocks.confirmMatch.mock.calls[0]![0].outcome).toEqual({
       type: "cup-ranked",
-      stevneId: 3,
-      roundNumber: 2,
-      roundName: "Kvartfinale",
-      allThrowerIds: [11, 22, 33],
       eliminatedIds: [22],
       advancingSides: [[33], [11]],
     });

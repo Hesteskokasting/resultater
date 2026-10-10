@@ -12,7 +12,6 @@ import { showToast } from "@/components/Toast";
 export function openThreeSideConfirmDialog(
   kamp: FinalMatchRow,
   sides: MatchSide<FinalMatchPlayerKnown>[],
-  stevneid: number,
   afterConfirm: () => Promise<void>,
 ): void {
   const names = sides.map((side) => sideNameHtml(side, false));
@@ -76,17 +75,12 @@ export function openThreeSideConfirmDialog(
         .map((kid) => sides.find((s) => s.rep.kasterid === kid))
         .filter((s): s is MatchSide<FinalMatchPlayerKnown> => s != null)
         .map((s) => s.members.map((m) => m.kasterid));
-      const allThrowerIds = sides.flatMap((s) => s.members.map((m) => m.kasterid));
       modal.remove();
       const { error } = await confirmMatch({
         kampId: kamp.id,
         sides: sides.map((s) => toConfirmSide(s)),
         outcome: {
           type: "cup-ranked",
-          stevneId: stevneid,
-          roundNumber: kamp.runde_nummer,
-          roundName: kamp.runde_navn,
-          allThrowerIds,
           eliminatedIds: eliminatedSide?.members.map((m) => m.kasterid) ?? [],
           advancingSides,
         },

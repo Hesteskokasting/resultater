@@ -311,47 +311,30 @@ describe("confirmMatch — cup", () => {
     mocks.setOmgangar(THREE_ROUNDS);
     const sides = [side(P1, K1), side(P2, K2)].map((s) => toConfirmSide(s));
 
-    await confirmMatch({
+    const { error } = await confirmMatch({
       kampId: 7,
       sides,
-      outcome: {
-        type: "cup-ranked",
-        stevneId: 3,
-        roundNumber: 2,
-        roundName: "Kvartfinale",
-        allThrowerIds: [K1, K2],
-        eliminatedIds: [K2],
-        advancingSides: [[K1]],
-      },
+      outcome: { type: "cup-ranked", eliminatedIds: [K2], advancingSides: [[K1]] },
     });
 
-    // The scores still come from the omgangar, not from the ranking
-    expect(scoreUpdates().map((c) => c.payload)).toEqual([
-      { score_poeng: 16, kamp_poeng: 2, antall_ringer: 5, kamp_plassering: 1 },
-      { score_poeng: 9, kamp_poeng: 0, antall_ringer: 2, kamp_plassering: 2 },
-    ]);
-
-    const placements = mocks.calls.filter(
-      (c) =>
-        c.op === "update" &&
-        "kamp_plassering" in (c.payload as object) &&
-        !("score_poeng" in (c.payload as object)),
-    );
-    expect(placements.map((c) => [c.payload, c.filters])).toEqual([
-      [
-        { kamp_plassering: 1 },
-        [
-          ["kampid", 7],
-          ["kasterid", K1],
-        ],
+    expect(error).toBeNull();
+    // One RPC does every write; the scores still come from the omgangar
+    expect(scoreUpdates()).toEqual([]);
+    expect(mocks.rpc).toHaveBeenCalledWith("bekreft_avsluttende_kamp_rangert", {
+      p_kamp_id: 7,
+      p_scores: [
+        {
+          kamp_spelar_id: P1,
+          score_poeng: 16,
+          kamp_poeng: 2,
+          antall_ringer: 5,
+          kamp_plassering: 1,
+        },
+        { kamp_spelar_id: P2, score_poeng: 9, kamp_poeng: 0, antall_ringer: 2, kamp_plassering: 2 },
       ],
-      [
-        { kamp_plassering: 2 },
-        [
-          ["kampid", 7],
-          ["kasterid", K2],
-        ],
-      ],
-    ]);
+      p_vidare: [[K1]],
+      p_eliminert: [K2],
+      p_slett_omgangar: false,
+    });
   });
 });
