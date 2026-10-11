@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="nb">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Hesteskokasting</title>
+    <!-- Native error page (server.errorPath): must be self-contained, nothing from the network loads here. -->
+    <style>
+      /* Colors mirror the tokens in src/global.css. */
+      :root {
+        color-scheme: light dark;
+        --bg: #ffffff;
+        --tekst: #000000;
+        --tekst-2: #444444;
+        --primaer: #003a7a;
+        --primaer-text: #ffffff;
+        --ring: transparent;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #111318;
+          --tekst: #e2e4e9;
+          --tekst-2: #9299a8;
+          --primaer: #31527e;
+          --primaer-text: #f0f4fa;
+          --ring: #1c1f2a;
+        }
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 32px;
+        padding: 48px 32px;
+        box-sizing: border-box;
+        text-align: center;
+        font-family:
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          sans-serif;
+        background: var(--bg);
+        color: var(--tekst);
+      }
+      img {
+        width: 160px;
+        height: 160px;
+        border-radius: 50%;
+        box-shadow: 0 0 0 4px var(--ring);
+      }
+      .tekst {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        max-width: 300px;
+      }
+      h1 {
+        margin: 0;
+        font-size: 26px;
+        line-height: 1.2;
+      }
+      p {
+        margin: 0;
+        line-height: 1.5;
+        color: var(--tekst-2);
+      }
+      .hint {
+        font-size: 14px;
+      }
+      button {
+        min-height: 48px;
+        padding: 12px 32px;
+        border: 0;
+        border-radius: 8px;
+        font: inherit;
+        font-size: 17px;
+        font-weight: 600;
+        background: var(--primaer);
+        color: var(--primaer-text);
+      }
+    </style>
+  </head>
+  <body>
+    <img src="nhf-logo.svg" alt="Norges Hesteskokastingforbund" />
+    <div class="tekst">
+      <h1>Kunne ikke laste inn siden</h1>
+      <p>Sjekk internettforbindelsen og prøv igjen.</p>
+    </div>
+    <button type="button" id="retry">Prøv igjen</button>
+    <p class="hint">Siden lastes automatisk når du er på nett igjen.</p>
+    <script>
+      // ponytail: always retries production; a dev build lands on prod here, restart the app to get dev back.
+      const retry = () => location.replace("https://res.hesteskokasting.no");
+      document.getElementById("retry").addEventListener("click", retry);
+      window.addEventListener("online", retry);
+    </script>
+  </body>
+</html>
