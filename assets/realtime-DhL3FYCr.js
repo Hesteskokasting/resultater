@@ -1,0 +1,1 @@
+import{n as e}from"./logError-DeZsXp8u.js";async function t(t){await e.removeChannel(t)}export{t};

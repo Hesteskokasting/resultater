@@ -7,6 +7,15 @@
     <title>Hesteskokasting Resultater</title>
     <script>
       (function () {
+        // Native app offline: the WebView may serve this shell from HTTP cache
+        // (max-age=600), so server.errorPath never fires — hand over explicitly.
+        var cap = window.Capacitor;
+        if (!navigator.onLine && cap && cap.isNativePlatform && cap.isNativePlatform()) {
+          var scheme = cap.getPlatform() === "ios" ? "capacitor" : "https";
+          location.replace(scheme + "://localhost/offline.html");
+          return;
+        }
+
         var tema = localStorage.getItem("tema") || "light";
         if (tema === "dark") {
           document.documentElement.setAttribute("data-theme", tema);
@@ -40,12 +49,14 @@
       })();
     </script>
     <link rel="preconnect" href="https://lwbwujyjaptekituzixf.supabase.co" crossorigin />
-    <link rel="icon" type="image/svg+xml" href="/assets/NHF_logo_original_oppskalert-CHgQrqP2.svg" />
-    <script type="module" crossorigin src="/assets/index-D8yR97w0.js"></script>
-    <link rel="modulepreload" crossorigin href="/assets/vendor-xzOjJ4TX.js">
-    <link rel="modulepreload" crossorigin href="/assets/logError-CLfrcMax.js">
+    <link rel="icon" type="image/svg+xml" href="/nhf-logo.svg" />
+    <script type="module" crossorigin src="/assets/index-DsqZhKPc.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/dist-Z0lPoSvM.js">
+    <link rel="modulepreload" crossorigin href="/assets/preload-helper-DjzSQ1t3.js">
+    <link rel="modulepreload" crossorigin href="/assets/vendor-C7icSMn-.js">
+    <link rel="modulepreload" crossorigin href="/assets/logError-DeZsXp8u.js">
     <link rel="modulepreload" crossorigin href="/assets/verifiedWrite-DY57lQG_.js">
-    <link rel="stylesheet" crossorigin href="/assets/index-B1e9aw6z.css">
+    <link rel="stylesheet" crossorigin href="/assets/index-CUF8EduG.css">
   </head>
   <body>
     <header class="top-header">
@@ -171,7 +182,7 @@
           </button>
         </li>
         <li class="meny-skillelinje"></li>
-        <li class="menu-version">v0.10.0</li>
+        <li class="menu-version">v0.11.0</li>
       </ul>
     </nav>
 

@@ -1,1 +1,0 @@
-import{n as e}from"./logError-CLfrcMax.js";async function t(t){await e.removeChannel(t)}export{t};
