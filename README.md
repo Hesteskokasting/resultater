@@ -401,7 +401,7 @@ Google blokkerer OAuth-innlogging inne i ein WebView (`disallowed_useragent`), s
    Dette er det lettaste å gå i baret på: Google re-signerer alle Play-utgåver med sin eigen nøkkel (Play App Signing), så ein app installert frå Play er **ikkje** signert med nøkkelen din. Registrerer du berre debug- og opplastingsnøkkelen, verkar Google-innlogging lokalt og i eit sideloada release-bygg, men feilar med `DEVELOPER_ERROR` (status 10) for alle som har appen frå Play. Fingeravtrykket er offentleg — per august 2026 er det `52:F2:AE:5C:CA:4A:F3:12:6F:51:C6:50:EE:A4:70:D7:54:6A:F6:C7`.
 
 3. I [Google Cloud Console](https://console.cloud.google.com/apis/credentials): lag éin **Web**-OAuth-klient-ID, og éin **Android**-OAuth-klient-ID (pakkenamn `no.hesteskokasting.app`) — registrer **alle tre** SHA-1-fingeravtrykka (debug, opplasting, appsignering) under den eine Android-klienten (treng ikkje separate klientar).
-4. I Supabase Dashboard → Authentication → Providers → Google: legg inn Web-klient-ID-en og Android-klient-ID-en. La Client Secret og Callback URL stå tomme — denne ID-token-flyten brukar dei ikkje.
+4. I Supabase Dashboard → Authentication → Providers → Google: legg inn Web-klient-ID-en og Android-klient-ID-en. Client Secret og Callback URL høyrer til omdirigeringsflyten på nettsida og skal ikkje tømmast — ID-token-flyten i appen brukar dei ikkje.
 5. Legg Web-klient-ID-en inn som `VITE_GOOGLE_WEB_CLIENT_ID` i `.env.local` lokalt, og i GitHub Environments (`github-pages` og `dev`) — sjå [GitHub-konfigurasjon](#github-konfigurasjon). Appen lastar no same produksjonsbygg som nettsida, så variabelen må vere sett der bygget skjer, ikkje berre lokalt.
 
 ### Release-signering
