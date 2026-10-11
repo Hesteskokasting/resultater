@@ -23,7 +23,8 @@ const config: CapacitorConfig = {
     cleartext: isLocalHttp,
     // Bundled page shown when server.url fails to load (offline or server error).
     errorPath: "offline.html",
-    allowNavigation: ["accounts.google.com", "*.supabase.co"],
+    // localhost = the bundled offline.html; without it the handover opens in the system browser.
+    allowNavigation: ["accounts.google.com", "*.supabase.co", "localhost"],
   },
   plugins: {
     // Google everywhere + Apple on iOS — keeps the unused Facebook/Twitter SDKs
