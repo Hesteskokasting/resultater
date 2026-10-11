@@ -7,6 +7,15 @@
     <title>Hesteskokasting Resultater</title>
     <script>
       (function () {
+        // Native app offline: the WebView may serve this shell from HTTP cache
+        // (max-age=600), so server.errorPath never fires — hand over explicitly.
+        var cap = window.Capacitor;
+        if (!navigator.onLine && cap && cap.isNativePlatform && cap.isNativePlatform()) {
+          var scheme = cap.getPlatform() === "ios" ? "capacitor" : "https";
+          location.replace(scheme + "://localhost/offline.html");
+          return;
+        }
+
         var tema = localStorage.getItem("tema") || "light";
         if (tema === "dark") {
           document.documentElement.setAttribute("data-theme", tema);
