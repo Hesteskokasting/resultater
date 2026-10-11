@@ -357,6 +357,7 @@ Appen er pakka med [Capacitor](https://capacitorjs.com) for å køyre nativt på
 ### Krav på ny maskin
 
 - [Android Studio](https://developer.android.com/studio) (siste versjon) — JDK/`keytool` følgjer med (`<Android Studio>/jbr/bin/`), ingen separat Java-installasjon nødvendig
+- Sett miljøvariabelen `JAVA_HOME` til JDK-en i Android Studio, elles finn ikkje `gradlew` Java: `setx JAVA_HOME "C:\Program Files\Android\Android Studio\jbr"` (opne ein ny terminal etterpå)
 - Sett miljøvariabelen `ANDROID_HOME` til Android SDK-mappa (typisk `%LOCALAPPDATA%\Android\Sdk` på Windows), og legg `%ANDROID_HOME%\platform-tools` til PATH
 
 ### Bygg og synk
@@ -400,7 +401,7 @@ Google blokkerer OAuth-innlogging inne i ein WebView (`disallowed_useragent`), s
 
    Dette er det lettaste å gå i baret på: Google re-signerer alle Play-utgåver med sin eigen nøkkel (Play App Signing), så ein app installert frå Play er **ikkje** signert med nøkkelen din. Registrerer du berre debug- og opplastingsnøkkelen, verkar Google-innlogging lokalt og i eit sideloada release-bygg, men feilar med `DEVELOPER_ERROR` (status 10) for alle som har appen frå Play. Fingeravtrykket er offentleg — per august 2026 er det `52:F2:AE:5C:CA:4A:F3:12:6F:51:C6:50:EE:A4:70:D7:54:6A:F6:C7`.
 
-3. I [Google Cloud Console](https://console.cloud.google.com/apis/credentials): lag éin **Web**-OAuth-klient-ID, og éin **Android**-OAuth-klient-ID (pakkenamn `no.hesteskokasting.app`) — registrer **alle tre** SHA-1-fingeravtrykka (debug, opplasting, appsignering) under den eine Android-klienten (treng ikkje separate klientar).
+3. I [Google Cloud Console](https://console.cloud.google.com/apis/credentials): lag éin **Web**-OAuth-klient-ID, og éin **Android**-OAuth-klient-ID (pakkenamn `no.hesteskokasting.app`) **per SHA-1-fingeravtrykk** (debug, opplasting, appsignering) — ein Android-klient har berre plass til eitt fingeravtrykk. Debug-nøkkelen (`~/.android/debug.keystore`) er ulik på kvar maskin, så ny utviklingsmaskin tyder ny debug-klient.
 4. I Supabase Dashboard → Authentication → Providers → Google: legg inn Web-klient-ID-en og Android-klient-ID-en. Client Secret og Callback URL høyrer til omdirigeringsflyten på nettsida og skal ikkje tømmast — ID-token-flyten i appen brukar dei ikkje.
 5. Legg Web-klient-ID-en inn som `VITE_GOOGLE_WEB_CLIENT_ID` i `.env.local` lokalt, og i GitHub Environments (`github-pages` og `dev`) — sjå [GitHub-konfigurasjon](#github-konfigurasjon). Appen lastar no same produksjonsbygg som nettsida, så variabelen må vere sett der bygget skjer, ikkje berre lokalt.
 
