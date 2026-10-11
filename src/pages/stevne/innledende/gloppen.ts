@@ -1,3 +1,4 @@
+import { Capacitor } from "@capacitor/core";
 import { printStartCard } from "@/print/startcard-print";
 import { createInnledendeRenderer, type InnledendeVariant } from "./innledendeBase";
 
@@ -9,7 +10,9 @@ const variant: InnledendeVariant = {
     const rounds = stevne.antall_runder_innl ?? roundMap.size;
     return rounds ? `Gloppen - ${rounds} rundar` : "Gloppen";
   },
-  getMenuItems: ({ isAdmin }) => (isAdmin ? [{ id: "startkort-btn", label: "Startkort" }] : []),
+  // Start cards use window.open + print(), which only works in a browser
+  getMenuItems: ({ isAdmin }) =>
+    isAdmin && !Capacitor.isNativePlatform() ? [{ id: "startkort-btn", label: "Startkort" }] : [],
   bindBannerExtra: (slot, { stevne, allMatches, roundMap, startNumberMap, standing }) => {
     slot.querySelector("#startkort-btn")?.addEventListener("click", () => {
       printStartCard(

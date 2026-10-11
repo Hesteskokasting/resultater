@@ -17,17 +17,20 @@ import { showToast } from "@/components/Toast";
 import { confirmDialog } from "@/components/dialog/ConfirmDialog";
 import { type FinalMatchRow } from "@/services/kampService";
 import {
-  rescoreCupMatch,
+  cupRanking,
   settleCupMatch,
   CUP_TIE_MESSAGE,
-  type CupRescoreStep,
   type FinalMatchPlayerKnown,
 } from "@/services/cupKampService";
 import { updateTournamentPhase, setRound1Format } from "@/services/stevneService";
 import { isInnledendeComplete } from "@/services/xkastKongelagService";
 import { isXkastMethodName } from "@/utils/kastemetode";
 import { setGroupAssignment, clearGroupAssignment } from "@/services/resultatService";
-import { createFinalPhaseRenderer, type FinalPhaseVariant } from "./avsluttendeBase";
+import {
+  createFinalPhaseRenderer,
+  type FinalPhaseContext,
+  type FinalPhaseVariant,
+} from "./avsluttendeBase";
 
 // ── Side helpers (Par/Mix: one side = a pair, grouped by startnummer) ─────────
 
@@ -98,10 +101,10 @@ const cupVariant: FinalPhaseVariant = {
     if (!ctx.isAdmin && ctx.finalMatches.length === 0) return;
     bindMatchEventsLocal(
       container,
-      ctx.stevneid,
       ctx.finalMatches,
       ctx.isAdmin,
       ctx.reload,
+      ctx.showSaved,
       ctx.startNumberMap,
       ctx.positionMap,
     );
@@ -162,12 +165,16 @@ const cupVariant: FinalPhaseVariant = {
       reload,
     } = ctx;
 
-    bannerSlot?.querySelector("#start-final-btn")?.addEventListener("click", async () => {
-      if (!allInitialConfirmed) return;
-      const { error } = await updateTournamentPhase(stevneid, "avsluttende");
-      if (error) {
-        showToast("Feil ved oppstart av avsluttande fase", "error");
-        return;
+    const isXkast = isXkastMethodName(stevne.kastemetodeInnl?.navn ?? "");
+    const started = stevne.stevne_fase === "avsluttende";
+
+    async function startFinalPhase(): Promise<void> {
+      if (!started) {
+        const { error } = await updateTournamentPhase(stevneid, "avsluttende");
+        if (error) {
+          showToast("Feil ved oppstart av avsluttande fase", "error");
+          return;
+        }
       }
 
       if (round1Format?.nA != null) {
@@ -183,56 +190,54 @@ const cupVariant: FinalPhaseVariant = {
       }
 
       await reload();
+    }
+
+    bannerSlot?.querySelector("#start-final-btn")?.addEventListener("click", async () => {
+      if (!allInitialConfirmed) return;
+      await startFinalPhase();
     });
 
+    // X-kast innledende has no kamp rows, so allInitialConfirmed can't see it finish
+    const startFromForm =
+      round1Format?.nA != null
+        ? {
+            saved: round1Format,
+            onStart: async () => {
+              const done =
+                started ||
+                (isXkast
+                  ? (await isInnledendeComplete(stevneid)).data === true
+                  : allInitialConfirmed);
+              if (!done) {
+                showToast("Fullfør den innleiande fasen før cupen kan startast", "error");
+                return;
+              }
+              await startFinalPhase();
+            },
+          }
+        : undefined;
+
     if (!hasGroupAssignment) {
-      bindGroupAssignment(container, standings, async ({ nA, setupA, setupB }) => {
-        const { error: fmtErr } = await setRound1Format(stevneid, { A: setupA, B: setupB, nA });
-        if (fmtErr) {
-          showToast("Feil ved lagring av format: " + errorMessage(fmtErr), "error");
-          return;
-        }
-
-        // X-kast-family innledende (minimatch etc.) creates no kamp rows, so
-        // #start-final-btn — gated on confirmed kamp rows — never appears to flip
-        // the phase to 'avsluttende' the way it does for head-to-head innledende.
-        // Mirror kongelag's start panel: flip it here once the innledende phase
-        // is complete. Head-to-head is unaffected (not an X-kast method).
-        let phase = stevne.stevne_fase;
-        if (phase !== "avsluttende" && isXkastMethodName(stevne.kastemetodeInnl?.navn ?? "")) {
-          const { data: innledendeDone } = await isInnledendeComplete(stevneid);
-          if (!innledendeDone) {
-            showToast("Fullfør den innleiande fasen før cupen kan startast", "error");
-            return;
-          }
-          const { error: phaseErr } = await updateTournamentPhase(stevneid, "avsluttende");
-          if (phaseErr) {
-            showToast("Feil ved oppstart av avsluttande fase: " + errorMessage(phaseErr), "error");
-            return;
-          }
-          phase = "avsluttende";
-        }
-
-        if (phase === "avsluttende") {
-          const groupAId = groupNameMap["A"] ?? null;
-          const groupBId = groupNameMap["B"] ?? null;
-          const updates = buildGroupUpdates(standings, results, nA, groupAId, groupBId);
-          const { error } = await setGroupAssignment(stevneid, updates);
+      bindGroupAssignment(
+        container,
+        standings,
+        async ({ nA, setupA, setupB }) => {
+          const { error } = await setRound1Format(stevneid, { A: setupA, B: setupB, nA });
           if (error) {
-            showToast("Feil ved lagring av gruppefordeling: " + errorMessage(error), "error");
+            showToast("Feil ved lagring av format: " + errorMessage(error), "error");
             return;
           }
-        }
-
-        showToast("Gruppefordeling lagra", "success");
-        await reload();
-      });
+          showToast("Gruppefordeling lagra", "success");
+          await reload();
+        },
+        startFromForm,
+      );
     }
 
     bannerSlot?.querySelector("#edit-group-assignment-btn")?.addEventListener("click", async () => {
       if (
         !(await confirmDialog({
-          title: "Tilbakestill gruppeinndeling",
+          title: "Tilbakestill gruppefordeling",
           message: "Gruppefordeling og format vert fjerna.",
           danger: true,
         }))
@@ -448,20 +453,12 @@ function noTie(s1: number, s2: number): string | null {
   return s1 === s2 ? CUP_TIE_MESSAGE : null;
 }
 
-const RESCORE_ERROR: Record<CupRescoreStep, string> = {
-  uavgjort: CUP_TIE_MESSAGE,
-  omgangar: "DB-feil ved sletting av omgangar",
-  score: "DB-feil ved oppdatering av score",
-  plassering: "DB-feil ved oppdatering av plassering",
-  bracket: "DB-feil ved oppdatering av cupstigen",
-};
-
 function bindMatchEventsLocal(
   container: HTMLElement,
-  stevneid: number,
   finalMatches: FinalMatchRow[],
   isAdminLocal: boolean,
   reload: () => Promise<void>,
+  showSaved: FinalPhaseContext["showSaved"],
   startNumberMap: Record<number, number>,
   positionMap: Record<number, number>,
 ): void {
@@ -485,17 +482,19 @@ function bindMatchEventsLocal(
         rundeLabel: kamp.runde_navn ?? `Runde ${kamp.runde_nummer}`,
         playerIds,
         hasRounds: kamp.spelarar.some((s) => (s.omgangar?.length ?? 0) > 0),
+        roundsClearedBySave: true,
         logPrefix: "cup",
         validate: noTie,
         onSaved: async (newS1, newS2) => {
-          if (!(await confirmCupMatch2Sides(stevneid, kamp, sides, newS1, newS2, reload)))
-            await reload();
+          const ok = await confirmCupMatch2Sides(kamp, sides, newS1, newS2, showSaved);
+          if (!ok) void reload();
+          return ok;
         },
       });
     };
 
     container.querySelector(`#bekrft-${kamp.id}`)?.addEventListener("click", () => {
-      openThreeSideConfirmDialog(kamp, sides, stevneid, reload);
+      openThreeSideConfirmDialog(kamp, sides, reload);
     });
 
     if (isAdminLocal && !kamp.er_tre_spelarar && !kamp.er_walkover) {
@@ -506,22 +505,7 @@ function bindMatchEventsLocal(
             { name: p1Name, score: sideSum(side1, kamp) },
             { name: p2Name, score: sideSum(side2, kamp) },
           ],
-          async ([newS1 = 0, newS2 = 0]) => {
-            const { error, step } = await rescoreCupMatch({
-              stevneId: stevneid,
-              kamp,
-              sides,
-              s1: newS1,
-              s2: newS2,
-            });
-            if (error) {
-              logError(`cup:rescore:${step}`, error);
-              showToast(RESCORE_ERROR[step ?? "score"], "error");
-              return false;
-            }
-            await reload();
-            return true;
-          },
+          ([newS1 = 0, newS2 = 0]) => confirmCupMatch2Sides(kamp, sides, newS1, newS2, showSaved),
           {
             baneLabel: `Bane ${kamp.bane_nummer ?? "?"}`,
             rundeLabel: kamp.runde_navn ?? `Runde ${kamp.runde_nummer}`,
@@ -539,21 +523,35 @@ function bindMatchEventsLocal(
 // ── Confirm 2-side cup match (Singel: 2 players; Par/Mix: 2 pairs) ────────────
 
 async function confirmCupMatch2Sides(
-  stevneid: number,
   kamp: FinalMatchRow,
   sides: MatchSide<FinalMatchPlayerKnown>[],
   s1: number,
   s2: number,
-  reload: () => Promise<void>,
+  showSaved: FinalPhaseContext["showSaved"],
 ): Promise<boolean> {
   // A draw — 0–0 included — is refused by settleCupMatch, so the message it
   // returns is what the arrangør needs to see here.
-  const { error } = await settleCupMatch({ stevneId: stevneid, kamp, sides, s1, s2 });
+  const { error, stored } = await settleCupMatch({ kamp, sides, s1, s2 });
   if (error) {
     showToast(errorMessage(error), "error");
     return false;
   }
 
-  await reload();
+  const { placements } = cupRanking(sides[0] ?? null, sides[1] ?? null, s1, s2);
+  showSaved(kamp.id, (row) => {
+    row.er_bekreftet = true;
+    for (const sp of row.spelarar) {
+      const values = stored?.get(sp.id);
+      if (values) {
+        sp.score_poeng = values.score_poeng;
+        sp.kamp_poeng = values.kamp_poeng;
+        sp.antall_ringer = values.antall_ringer;
+      }
+      // The score editor deleted them before the confirm
+      sp.omgangar = [];
+      sp.kamp_plassering =
+        placements.find((p) => p.kasterid === sp.kasterid)?.plassering ?? sp.kamp_plassering;
+    }
+  });
   return true;
 }

@@ -7,23 +7,22 @@
 const mocks = vi.hoisted(() => ({
   getAdminEntityCounts: vi.fn(),
   getTournamentStatRows: vi.fn(),
-  getRegistrationStatRows: vi.fn(),
   getActiveThrowerList: vi.fn(),
   getParticipantsPerYear: vi.fn(),
   drawBarChart: vi.fn(),
-  drawLineChart: vi.fn(),
   openTournamentEditor: vi.fn(),
   openThrowerEditor: vi.fn(),
   openClubEditor: vi.fn(),
+  getUser: vi.fn(),
 }));
 
 vi.mock("@/supabase", () => ({ supabase: {} }));
 vi.mock("@/services/adminStatsService", () => ({
   getAdminEntityCounts: mocks.getAdminEntityCounts,
   getTournamentStatRows: mocks.getTournamentStatRows,
-  getRegistrationStatRows: mocks.getRegistrationStatRows,
   getParticipantsPerYear: mocks.getParticipantsPerYear,
 }));
+vi.mock("@/services/authService", () => ({ getUser: mocks.getUser }));
 vi.mock("@/services/kasterService", () => ({
   getActiveThrowerList: mocks.getActiveThrowerList,
 }));
@@ -36,7 +35,6 @@ vi.mock("@/admin/_adminEdit", () => ({
 }));
 vi.mock("@/admin/_adminCharts", () => ({
   drawBarChart: mocks.drawBarChart,
-  drawLineChart: mocks.drawLineChart,
   destroyAdminCharts: vi.fn(),
 }));
 
@@ -54,15 +52,21 @@ function value(el: HTMLElement, label: string): string | undefined {
   return tile(el, label)?.querySelector(".admin-stat__value")?.textContent ?? undefined;
 }
 
+function signInAs(role: string): void {
+  mocks.getUser.mockResolvedValue({
+    user: { id: "u1" },
+    profil: { role, kasterid: null, kobling_status: "ingen", kobling_kasterid: null },
+    club: role === "klubbadmin" ? 1 : null,
+  });
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
+  signInAs("admin");
   mocks.getAdminEntityCounts.mockResolvedValue({
-    activeThrowers: 120,
-    totalThrowers: 200,
     activeClubs: 12,
     totalClubs: 15,
     totalUsers: 42,
-    pendingLinks: 2,
   });
   mocks.getTournamentStatRows.mockResolvedValue({
     data: [
@@ -70,13 +74,6 @@ beforeEach(() => {
       { dato: `${YEAR}-12-24`, erfullfort: false, stevne_fase: null },
       { dato: `${YEAR}-06-01`, erfullfort: false, stevne_fase: "innledende" },
       { dato: `${YEAR - 2}-06-01`, erfullfort: true, stevne_fase: null },
-    ],
-    error: null,
-  });
-  mocks.getRegistrationStatRows.mockResolvedValue({
-    data: [
-      { opprettet_at: `${YEAR}-03-01T09:00:00Z` },
-      { opprettet_at: `${YEAR}-03-02T09:00:00Z` },
     ],
     error: null,
   });
@@ -90,8 +87,8 @@ beforeEach(() => {
   });
   mocks.getParticipantsPerYear.mockResolvedValue({
     data: [
-      { ar: YEAR, deltakarar: 2 },
-      { ar: YEAR - 2, deltakarar: 1 },
+      { ar: YEAR, deltakarar: 2, deltakingar: 5 },
+      { ar: YEAR - 2, deltakarar: 1, deltakingar: 1 },
     ],
     error: null,
   });
@@ -121,27 +118,31 @@ describe("oversikt dashboard", () => {
     expect(mocks.openClubEditor).toHaveBeenCalledWith(undefined, expect.any(Function));
   });
 
-  it("derives the key figures from counts and this year's tournaments", async () => {
+  it("shows the key figures in order, participation from this year's results", async () => {
     const el = document.createElement("div");
     await renderOverview(el);
 
+    const labels = [...el.querySelectorAll(".admin-stat__label")].map((l) => l.textContent);
+    expect(labels).toEqual([
+      `Stevne i ${YEAR}`,
+      "Klubbar",
+      `Unike deltakarar i ${YEAR}`,
+      `Deltakingar i ${YEAR}`,
+      "Brukarkontoar",
+    ]);
     expect(value(el, `Stevne i ${YEAR}`)).toBe("3");
-    expect(value(el, "Pågåande stevne")).toBe("1");
-    expect(value(el, "Aktive utøvarar")).toBe("120");
     expect(value(el, "Klubbar")).toBe("12");
+    expect(value(el, `Unike deltakarar i ${YEAR}`)).toBe("2");
+    expect(value(el, `Deltakingar i ${YEAR}`)).toBe("5");
     expect(value(el, "Brukarkontoar")).toBe("42");
-    expect(value(el, "Ventande forespørslar")).toBe("2");
-    expect(value(el, `Påmeldingar i ${YEAR}`)).toBe("2");
   });
 
-  it("links each figure to the tab that manages it and flags pending work", async () => {
+  it("links each figure to the tab that manages it", async () => {
     const el = document.createElement("div");
     await renderOverview(el);
 
-    expect(tile(el, "Aktive utøvarar")?.getAttribute("href")).toBe("#/admin/utovarar");
-    expect(tile(el, "Ventande forespørslar")?.getAttribute("href")).toBe("#/admin/forespurnader");
-    expect(tile(el, "Ventande forespørslar")?.classList.contains("admin-stat--warn")).toBe(true);
-    expect(tile(el, "Pågåande stevne")?.classList.contains("admin-stat--live")).toBe(true);
+    expect(tile(el, `Stevne i ${YEAR}`)?.getAttribute("href")).toBe("#/admin/stevne");
+    expect(tile(el, "Klubbar")?.getAttribute("href")).toBe("#/admin/klubbar");
   });
 
   it("feeds each chart its aggregated series", async () => {
@@ -151,10 +152,6 @@ describe("oversikt dashboard", () => {
     const perYear = mocks.drawBarChart.mock.calls[0]?.[1] as { label: string; count: number }[];
     expect(perYear).toHaveLength(8);
     expect(perYear[perYear.length - 1]).toEqual({ label: String(YEAR), count: 3 });
-
-    const perMonth = mocks.drawLineChart.mock.calls[0]?.[1] as { count: number }[];
-    expect(perMonth).toHaveLength(12);
-    expect(perMonth[2]?.count).toBe(2);
 
     const perClub = mocks.drawBarChart.mock.calls[1]?.[1] as { label: string; count: number }[];
     expect(perClub[0]).toEqual({ label: "Oslo HK", count: 2 });
@@ -173,12 +170,26 @@ describe("oversikt dashboard", () => {
   });
 
   it("replaces an empty chart with a message instead of a blank canvas", async () => {
-    mocks.getRegistrationStatRows.mockResolvedValue({ data: [], error: null });
+    mocks.getParticipantsPerYear.mockResolvedValue({ data: [], error: null });
     const el = document.createElement("div");
     await renderOverview(el);
 
-    expect(mocks.drawLineChart).not.toHaveBeenCalled();
-    expect(el.textContent).toContain("Ingen påmeldingar i år.");
+    expect(mocks.drawBarChart).toHaveBeenCalledTimes(2);
+    expect(el.textContent).toContain("Ingen deltakarar registrert.");
+    expect(value(el, `Unike deltakarar i ${YEAR}`)).toBe("0");
+  });
+
+  it("leaves out club creation and the user count for a klubbadmin", async () => {
+    signInAs("klubbadmin");
+    const el = document.createElement("div");
+    await renderOverview(el);
+
+    const labels = [...el.querySelectorAll(".admin-action__label")].map((l) => l.textContent);
+    expect(labels).not.toContain("Ny klubb");
+    expect(labels).toContain("Nytt stevne");
+    expect(tile(el, "Brukarkontoar")).toBeUndefined();
+    expect(tile(el, "Klubbar")?.getAttribute("href")).toBeNull();
+    expect(value(el, `Deltakingar i ${YEAR}`)).toBe("5");
   });
 
   it("shows an error banner when the dashboard queries fail", async () => {

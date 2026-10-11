@@ -12,7 +12,6 @@
 //   bannerMeta(ctx)               — meta line beside the stevne name in the banner
 //   bindHeaderEvents(slot, ctx)   — bind variant-specific banner menu handlers
 //
-import type { RealtimeChannel } from "@supabase/supabase-js";
 import {
   renderStandingTable,
   renderMainContent,
@@ -22,7 +21,7 @@ import {
   bindTabToggle,
   getActiveTab,
   setActiveTab,
-  createChangeHandler,
+  createPhaseChannel,
   bindAutoComplete,
   bindCompleteTournament,
 } from "../faseView";
@@ -36,11 +35,9 @@ import { parseRound1Format } from "@/utils/kamp/cupStructure";
 import { renderStevneBannerMenu, bindStevneBannerMenu } from "@/components/stevne/StevneBannerMenu";
 import { createErrorBanner, createLoadingState } from "@/components/states";
 import { logError } from "@/utils/logError";
-import { unsubscribeChannel } from "@/utils/data/realtime";
 import { buildParticipantMaps } from "@/utils/stevne/participantMaps";
 import {
   getFinalRoundMatches,
-  subscribeToMatchChanges,
   type FinalMatchRow,
   type FinalMatchPlayerRow,
 } from "@/services/kampService";
@@ -84,6 +81,11 @@ export interface FinalPhaseContext {
   unitCount: number;
   groupNameMap: Record<string, number>;
   reload: () => Promise<void>;
+  /**
+   * Redraws at once after a write the server has acknowledged. `apply` must
+   * only set values that write stored; the refetch that follows fills in the rest.
+   */
+  showSaved: (kampId: number, apply: (kamp: FinalMatchRow) => void) => void;
 }
 
 export interface FinalPhaseVariant {
@@ -119,15 +121,33 @@ function toStandingPlayer(sp: FinalMatchPlayerRow[]) {
   }));
 }
 
+type PhaseData = {
+  stevne: FinalPhaseTournamentRow;
+  rawMatches: FinalMatchRow[];
+  rawResults: FinalResultRow[];
+  rawGroups: { id: number; navn: string }[];
+  registrationCount: number | null;
+  pairCount: number | null;
+};
+
 // ── Factory ───────────────────────────────────────────────────────────────────
 
 export function createFinalPhaseRenderer(variant: FinalPhaseVariant) {
-  let channel: RealtimeChannel | null = null;
   let bannerSlot: HTMLElement | null = null;
   let isAdmin = false;
   const standingExpandedIds = new Set<string>();
   /** kamp_spelar ids in view — scopes the unfiltered kamp_omgang subscription. */
   const ownedSpelarIds = new Set<number>();
+  const phaseChannel = createPhaseChannel(
+    variant.channelName,
+    ["avsluttende"],
+    ownedSpelarIds,
+    loadAndRender,
+  );
+  /** What is on screen, so an acknowledged save can be shown without a refetch. */
+  let shown: PhaseData | null = null;
+  /** Bumped by every local patch; a fetch started before one is stale. */
+  let patchSeq = 0;
 
   async function render(
     container: HTMLElement,
@@ -136,16 +156,14 @@ export function createFinalPhaseRenderer(variant: FinalPhaseVariant) {
   ): Promise<void> {
     bannerSlot = _bannerSlot;
     isAdmin = _isAdmin;
-    if (channel) {
-      await unsubscribeChannel(channel);
-      channel = null;
-    }
+    await phaseChannel.stop();
     container.replaceChildren(createLoadingState("Laster…"));
     await loadAndRender(container, id);
   }
 
   async function loadAndRender(container: HTMLElement, stevneid: number): Promise<void> {
     try {
+      const seq = patchSeq;
       const [
         { data: stevne },
         { data: rawMatches },
@@ -165,164 +183,172 @@ export function createFinalPhaseRenderer(variant: FinalPhaseVariant) {
         return;
       }
 
-      ownedSpelarIds.clear();
-      for (const kamp of rawMatches) for (const sp of kamp.spelarar) ownedSpelarIds.add(sp.id);
-
-      const typedResults = rawResults.filter((r): r is FinalResultKnown => r.kasterid != null);
-      const initialMatches = rawMatches.filter((k) => k.fase === "innledende");
-      const finalMatches = rawMatches.filter((k) => k.fase === "avsluttende");
-
-      const { startNumberMap, positionMap, isTeam } = buildParticipantMaps(typedResults);
-
-      const nameMap: Record<number, string> = {};
-      for (const k of rawMatches) {
-        for (const sp of k.spelarar) {
-          if (sp.kasterid && sp.kaster && !nameMap[sp.kasterid]) {
-            nameMap[sp.kasterid] = `${sp.kaster.fornavn} ${sp.kaster.etternavn}`;
-          }
-        }
-      }
-      // X-kast-family innledende (minimatch etc.) produces no kamp rows, so the
-      // loop above finds no names. resultat rows cover every participant — use
-      // them so standings/preview show names instead of "Spelar <kasterid>".
-      for (const r of typedResults) {
-        if (r.kaster && !nameMap[r.kasterid]) {
-          nameMap[r.kasterid] = `${r.kaster.fornavn} ${r.kaster.etternavn}`;
-        }
-      }
-
-      const standingMatches = toStandingMatch(initialMatches);
-      const standings = buildFinalStandings(
-        standingMatches,
-        typedResults,
-        nameMap,
-        startNumberMap,
-        positionMap,
-      );
-
-      const allInitialConfirmed =
-        initialMatches.length > 0 && initialMatches.every((k) => k.er_bekreftet);
-      const hasFinalMatches = finalMatches.length > 0;
-      const hasAnyMatches = initialMatches.length > 0 || hasFinalMatches;
-      const allMatchesConfirmed =
-        hasAnyMatches &&
-        initialMatches.every((k) => k.er_bekreftet) &&
-        finalMatches.every((k) => k.er_bekreftet);
-      const hasGroupAssignment = typedResults.some((r) => r.gruppe != null);
-      const groupNameMap: Record<string, number> = Object.fromEntries(
-        rawGroups.map((g) => [g.navn, g.id]),
-      );
-      const round1Format = parseRound1Format(stevne.runde1_format);
-
       // Lag-based: the competing unit is a pair, so setup must count
       // complete pairs — not enrolled players
-      let unitCount = registrationCount ?? 0;
-      if (stevne.kategori?.erlagbasert) {
-        const { data: pairs } = await getPairsForTournament(stevneid);
-        unitCount = pairs.length;
-      }
+      const pairCount = stevne.kategori?.erlagbasert
+        ? (await getPairsForTournament(stevneid)).data.length
+        : null;
+      if (seq !== patchSeq) return;
 
-      const ctx: FinalPhaseContext = {
-        container,
-        stevneid,
-        stevne,
-        standings,
-        startNumberMap,
-        positionMap,
-        isTeam,
-        nameMap,
-        initialMatches,
-        finalMatches,
-        results: typedResults,
-        isAdmin,
-        hasGroupAssignment,
-        allInitialConfirmed,
-        hasFinalMatches,
-        round1Format,
-        unitCount,
-        groupNameMap,
-        reload: () => loadAndRender(container, stevneid),
-      };
-
-      setBannerMeta(bannerSlot, variant.bannerMeta(ctx));
-
-      if (isAdmin && bannerSlot) {
-        bannerSlot.innerHTML = renderStevneBannerMenu(
-          finalMenuItems(stevne, {
-            allMatchesConfirmed,
-            hasFinalMatches,
-            hasGroupAssignment,
-            hasPreconfiguredFormat: round1Format != null && stevne.stevne_fase !== "avsluttende",
-          }),
-        );
-        bindStevneBannerMenu(bannerSlot);
-      }
-
-      const activeTab = getActiveTab(container);
-
-      if (hasGroupAssignment) {
-        const standingHtml = renderStandingTable(standings, standingMatches, startNumberMap, {
-          tableId: "standing-final",
-          hasGroups: true,
-          hasElimination: true,
-          positionMap,
-          unitLabel: isTeam ? "par" : "spelarar",
-        });
-        container.innerHTML = renderMainContent(variant.renderMatchesHtml(ctx), standingHtml);
-        bindStandingDetails(container, "standing-final", standingExpandedIds);
-        bindTabToggle(container);
-        if (activeTab === "standing") setActiveTab(container, "standing");
-        variant.bindMatchEvents(container, ctx);
-        subscribeToChanges(container, stevneid);
-      } else {
-        container.innerHTML = variant.renderSetupHtml(ctx);
-      }
-
-      if (bannerSlot) {
-        bindAutoComplete(
-          bannerSlot,
-          {
-            title: "Autofullfør kampar",
-            message: "Autofullfør alle ubekrefta avsluttande kampar?",
-          },
-          async () => {
-            await autoCompleteFinalMatches(stevneid);
-            await loadAndRender(container, stevneid);
-          },
-        );
-
-        bindCompleteTournament(
-          bannerSlot,
-          stevneid,
-          () => orderStandingsByGroup(standings),
-          () => loadAndRender(container, stevneid),
-        );
-      }
-
-      variant.bindHeaderEvents(bannerSlot, ctx);
+      shown = { stevne, rawMatches, rawResults, rawGroups, registrationCount, pairCount };
+      renderData(container, stevneid, shown);
     } catch (err) {
       logError("avsluttendeBase.loadAndRender", err);
       container.replaceChildren(createErrorBanner("Kunne ikkje laste avsluttande fase."));
     }
   }
 
-  function subscribeToChanges(container: HTMLElement, stevneid: number): void {
-    if (channel) return;
-    const onChange = createChangeHandler(
-      stevneid,
-      ["avsluttende"],
-      container,
-      loadAndRender,
-      () => {
-        if (channel) {
-          void unsubscribeChannel(channel);
-          channel = null;
+  function showSaved(
+    container: HTMLElement,
+    stevneid: number,
+    kampId: number,
+    apply: (kamp: FinalMatchRow) => void,
+  ): void {
+    const row = shown?.rawMatches.find((k) => k.id === kampId);
+    if (!shown || !row) return;
+    try {
+      apply(row);
+      patchSeq++;
+      renderData(container, stevneid, shown);
+    } catch (err) {
+      // Already saved — the refetch below draws it instead.
+      logError("avsluttendeBase.showSaved", err);
+    }
+    phaseChannel.start(container, stevneid)();
+  }
+
+  function renderData(container: HTMLElement, stevneid: number, data: PhaseData): void {
+    const { stevne, rawMatches, rawResults, rawGroups, registrationCount, pairCount } = data;
+    ownedSpelarIds.clear();
+    for (const kamp of rawMatches) for (const sp of kamp.spelarar) ownedSpelarIds.add(sp.id);
+
+    const typedResults = rawResults.filter((r): r is FinalResultKnown => r.kasterid != null);
+    const initialMatches = rawMatches.filter((k) => k.fase === "innledende");
+    const finalMatches = rawMatches.filter((k) => k.fase === "avsluttende");
+
+    const { startNumberMap, positionMap, isTeam } = buildParticipantMaps(typedResults);
+
+    const nameMap: Record<number, string> = {};
+    for (const k of rawMatches) {
+      for (const sp of k.spelarar) {
+        if (sp.kasterid && sp.kaster && !nameMap[sp.kasterid]) {
+          nameMap[sp.kasterid] = `${sp.kaster.fornavn} ${sp.kaster.etternavn}`;
         }
-      },
+      }
+    }
+    // X-kast-family innledende (minimatch etc.) produces no kamp rows, so the
+    // loop above finds no names. resultat rows cover every participant — use
+    // them so standings/preview show names instead of "Spelar <kasterid>".
+    for (const r of typedResults) {
+      if (r.kaster && !nameMap[r.kasterid]) {
+        nameMap[r.kasterid] = `${r.kaster.fornavn} ${r.kaster.etternavn}`;
+      }
+    }
+
+    const standingMatches = toStandingMatch(initialMatches);
+    const standings = buildFinalStandings(
+      standingMatches,
+      typedResults,
+      nameMap,
+      startNumberMap,
+      positionMap,
     );
-    channel = subscribeToMatchChanges(stevneid, variant.channelName(stevneid), onChange, (id) =>
-      ownedSpelarIds.has(id),
+
+    const allInitialConfirmed =
+      initialMatches.length > 0 && initialMatches.every((k) => k.er_bekreftet);
+    const hasFinalMatches = finalMatches.length > 0;
+    const hasAnyMatches = initialMatches.length > 0 || hasFinalMatches;
+    const allMatchesConfirmed =
+      hasAnyMatches &&
+      initialMatches.every((k) => k.er_bekreftet) &&
+      finalMatches.every((k) => k.er_bekreftet);
+    const hasGroupAssignment = typedResults.some((r) => r.gruppe != null);
+    const groupNameMap: Record<string, number> = Object.fromEntries(
+      rawGroups.map((g) => [g.navn, g.id]),
     );
+    const round1Format = parseRound1Format(stevne.runde1_format);
+
+    const unitCount = pairCount ?? registrationCount ?? 0;
+
+    const ctx: FinalPhaseContext = {
+      container,
+      stevneid,
+      stevne,
+      standings,
+      startNumberMap,
+      positionMap,
+      isTeam,
+      nameMap,
+      initialMatches,
+      finalMatches,
+      results: typedResults,
+      isAdmin,
+      hasGroupAssignment,
+      allInitialConfirmed,
+      hasFinalMatches,
+      round1Format,
+      unitCount,
+      groupNameMap,
+      reload: () => loadAndRender(container, stevneid),
+      showSaved: (kampId, apply) => showSaved(container, stevneid, kampId, apply),
+    };
+
+    setBannerMeta(bannerSlot, variant.bannerMeta(ctx));
+
+    if (isAdmin && bannerSlot) {
+      bannerSlot.innerHTML = renderStevneBannerMenu(
+        finalMenuItems(stevne, {
+          allMatchesConfirmed,
+          hasFinalMatches,
+          hasGroupAssignment,
+          hasPreconfiguredFormat: round1Format != null && stevne.stevne_fase !== "avsluttende",
+        }),
+      );
+      bindStevneBannerMenu(bannerSlot);
+    }
+
+    const activeTab = getActiveTab(container);
+
+    if (hasGroupAssignment) {
+      const standingHtml = renderStandingTable(standings, standingMatches, startNumberMap, {
+        tableId: "standing-final",
+        hasGroups: true,
+        hasElimination: true,
+        positionMap,
+        unitLabel: isTeam ? "par" : "spelarar",
+      });
+      container.innerHTML = renderMainContent(variant.renderMatchesHtml(ctx), standingHtml);
+      bindStandingDetails(container, "standing-final", standingExpandedIds);
+      bindTabToggle(container);
+      if (activeTab === "standing") setActiveTab(container, "standing");
+      variant.bindMatchEvents(container, ctx);
+      phaseChannel.start(container, stevneid);
+    } else {
+      container.innerHTML = variant.renderSetupHtml(ctx);
+    }
+
+    if (bannerSlot) {
+      bindAutoComplete(
+        bannerSlot,
+        {
+          title: "Autofullfør kampar",
+          message: "Autofullfør alle ubekrefta avsluttande kampar?",
+        },
+        async () => {
+          await autoCompleteFinalMatches(stevneid);
+          await loadAndRender(container, stevneid);
+        },
+      );
+
+      bindCompleteTournament(
+        bannerSlot,
+        stevneid,
+        () => orderStandingsByGroup(standings),
+        () => loadAndRender(container, stevneid),
+      );
+    }
+
+    variant.bindHeaderEvents(bannerSlot, ctx);
   }
 
   return render;

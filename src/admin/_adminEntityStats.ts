@@ -44,13 +44,12 @@ export interface TournamentRowLike {
 export interface TournamentDashboard {
   total: number;
   completed: number;
-  ongoing: number;
   upcoming: number;
   notStarted: number;
   nm: number;
-  registrations: number;
-  /** Mean registrations per tournament that has any, rounded to one decimal. */
-  avgRegistrations: number;
+  participations: number;
+  /** Mean participations per tournament that has any, rounded to one decimal. */
+  avgParticipations: number;
   /** The next tournament that hasn't started yet, if any. */
   next: TournamentRowLike | null;
 }
@@ -64,30 +63,27 @@ export function isOngoing(row: {
 
 export function summarizeTournamentYear(
   rows: TournamentRowLike[],
-  registrations: Map<number, number>,
+  participations: Map<number, number>,
   today: string,
 ): TournamentDashboard {
   let completed = 0;
-  let ongoing = 0;
   let upcoming = 0;
   let notStarted = 0;
   let nm = 0;
-  let registrationTotal = 0;
-  let withRegistrations = 0;
+  let participationTotal = 0;
+  let withParticipations = 0;
   let next: TournamentRowLike | null = null;
 
   for (const row of rows) {
     if (row.ernm) nm++;
 
-    const count = registrations.get(row.id) ?? 0;
-    registrationTotal += count;
-    if (count > 0) withRegistrations++;
+    const count = participations.get(row.id) ?? 0;
+    participationTotal += count;
+    if (count > 0) withParticipations++;
 
     if (row.erfullfort) {
       completed++;
-    } else if (isOngoing(row)) {
-      ongoing++;
-    } else {
+    } else if (!isOngoing(row)) {
       notStarted++;
       if ((row.dato ?? "") >= today) {
         upcoming++;
@@ -99,13 +95,12 @@ export function summarizeTournamentYear(
   return {
     total: rows.length,
     completed,
-    ongoing,
     upcoming,
     notStarted,
     nm,
-    registrations: registrationTotal,
-    avgRegistrations: withRegistrations
-      ? Math.round((registrationTotal / withRegistrations) * 10) / 10
+    participations: participationTotal,
+    avgParticipations: withParticipations
+      ? Math.round((participationTotal / withParticipations) * 10) / 10
       : 0,
     next,
   };

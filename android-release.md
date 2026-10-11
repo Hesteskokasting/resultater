@@ -18,7 +18,7 @@ Requires `android/app/keystore.properties` + the keystore file — see
 git commit -am "chore: bump android build number to 5"
 
 # 3. Build the AAB
-vp run build
+vp build
 vp run android:sync                    # NO CAPACITOR_SERVER_URL — resets the app to production
 $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
 Set-Location android

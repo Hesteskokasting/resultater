@@ -477,7 +477,7 @@ export async function getScheduleTournaments(
 const _stevneHeaderQuery = supabase
   .from("stevne")
   .select(
-    "id, navn, stevne_fase, erfullfort, avsluttendekastemetodeid, er_snc_hovudstevne, snc_hovudstevne_id, kategori:kategoriid(id, navn, erlagbasert)",
+    "id, navn, klubbid, stevne_fase, erfullfort, avsluttendekastemetodeid, er_snc_hovudstevne, snc_hovudstevne_id, kategori:kategoriid(id, navn, erlagbasert)",
   );
 
 export type TournamentHeaderRow = QueryData<typeof _stevneHeaderQuery>[number];
@@ -488,12 +488,31 @@ export async function getTournamentHeader(
   const { data, error } = await supabase
     .from("stevne")
     .select(
-      "id, navn, stevne_fase, erfullfort, avsluttendekastemetodeid, er_snc_hovudstevne, snc_hovudstevne_id, kategori:kategoriid(id, navn, erlagbasert)",
+      "id, navn, klubbid, stevne_fase, erfullfort, avsluttendekastemetodeid, er_snc_hovudstevne, snc_hovudstevne_id, kategori:kategoriid(id, navn, erlagbasert)",
     )
     .eq("id", id)
     .single();
   if (error) logError("getTournamentHeader", error);
   return { data, error };
+}
+
+/**
+ * Whether the stevne has any generated play at all — ordinary matches in `kamp` or
+ * Kongelag courts in `xkast_kongelag`. A stevne can carry results without ever
+ * leaving 'ikke_startet' (imported from elsewhere), so the phase alone cannot tell
+ * the fase tabs whether there is anything to show.
+ */
+export async function hasResultData(stevneid: number): Promise<boolean> {
+  const [matches, courts] = await Promise.all([
+    supabase.from("kamp").select("id", { count: "exact", head: true }).eq("stevneid", stevneid),
+    supabase
+      .from("xkast_kongelag")
+      .select("id", { count: "exact", head: true })
+      .eq("stevneid", stevneid),
+  ]);
+  if (matches.error) logError("hasResultData:kamp", matches.error);
+  if (courts.error) logError("hasResultData:xkast_kongelag", courts.error);
+  return (matches.count ?? 0) > 0 || (courts.count ?? 0) > 0;
 }
 
 // ── Avsluttande fase ──────────────────────────────────────────────────────────
@@ -559,7 +578,11 @@ export type TournamentSettingsRow = Pick<
   | "tilgjengelige_baner"
   | "er_snc_hovudstevne"
   | "snc_hovudstevne_id"
->;
+  | "stevnetypeid"
+  | "kategoriid"
+  | "dato"
+  | "tid"
+> & { kategori: Pick<Tables<"kategori">, "erlagbasert"> | null };
 export type ActiveThrowingMethodRow = Pick<
   Tables<"kastemetode">,
   "id" | "navn" | "er_innledende" | "er_avsluttende"
@@ -570,6 +593,10 @@ export type TournamentSettingsUpdatePayload = Pick<
   | "avsluttendekastemetodeid"
   | "antall_runder_innl"
   | "tilgjengelige_baner"
+  | "stevnetypeid"
+  | "kategoriid"
+  | "dato"
+  | "tid"
 >;
 
 export async function getTournamentSettings(
@@ -578,7 +605,7 @@ export async function getTournamentSettings(
   const { data, error } = await supabase
     .from("stevne")
     .select(
-      "id, stevne_fase, antall_runder_innl, innledendekastemetodeid, avsluttendekastemetodeid, tilgjengelige_baner, er_snc_hovudstevne, snc_hovudstevne_id",
+      "id, stevne_fase, antall_runder_innl, innledendekastemetodeid, avsluttendekastemetodeid, tilgjengelige_baner, er_snc_hovudstevne, snc_hovudstevne_id, stevnetypeid, kategoriid, dato, tid, kategori:kategoriid(erlagbasert)",
     )
     .eq("id", id)
     .single();

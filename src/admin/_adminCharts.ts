@@ -10,7 +10,7 @@ import type { LabelCount } from "@/admin/_adminStats";
  * a theme switch a matter of redrawing, not of a second hard-coded palette.
  *
  * Marks follow the shared chart rules: single-hue fills for one-series charts,
- * bars capped at 24px with a rounded data-end, 2px lines, hairline grid, and no
+ * bars capped at 24px with a rounded data-end, hairline grid, and no
  * built-in legend (legends are rendered as HTML next to the canvas, so the
  * labels stay readable regardless of the fill's contrast).
  */
@@ -40,7 +40,6 @@ export function destroyAdminCharts(): void {
 }
 
 export interface ChartTheme {
-  surface: string;
   ink: string;
   muted: string;
   grid: string;
@@ -53,7 +52,6 @@ function readTheme(el: Element): ChartTheme {
     styles.getPropertyValue(name).trim() || fallback;
 
   return {
-    surface: read("--chart-surface", "#ffffff"),
     ink: read("--chart-ink", "#52514e"),
     muted: read("--chart-muted", "#898781"),
     grid: read("--chart-grid", "#e1e0d9"),
@@ -120,40 +118,5 @@ export async function drawBarChart(
       ...baseScales(theme, horizontal),
       indexAxis: horizontal ? "y" : "x",
     },
-  });
-}
-
-/** One-series trend over time. */
-export async function drawLineChart(
-  canvas: HTMLCanvasElement,
-  data: LabelCount[],
-  { label }: { label: string },
-): Promise<void> {
-  await loadChartLib();
-  const theme = readTheme(canvas);
-
-  create(canvas, {
-    type: "line",
-    data: {
-      labels: data.map((d) => d.label),
-      datasets: [
-        {
-          label,
-          data: data.map((d) => d.count),
-          borderColor: theme.series[0],
-          backgroundColor: theme.series[0],
-          borderWidth: 2,
-          borderCapStyle: "round",
-          borderJoinStyle: "round",
-          tension: 0.25,
-          pointRadius: 4,
-          pointHoverRadius: 6,
-          // 2px ring in the surface colour so overlapping points stay separable.
-          pointBorderColor: theme.surface,
-          pointBorderWidth: 2,
-        },
-      ],
-    },
-    options: baseScales(theme, false),
   });
 }

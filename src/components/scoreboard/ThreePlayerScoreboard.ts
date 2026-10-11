@@ -43,6 +43,7 @@ export async function renderThreePlayerScoreboard(
 
   let rounds: MatchRoundRow[] = [];
   let winOrder: number[] = [];
+  let places: (number | null)[] = sides.map(() => null);
   /** Last omgang each side played, so the starter rotation skips finished sides. */
   let finishedAtOmgang: (number | null)[] = sides.map(() => null);
   const selected: (number | null)[] = sides.map(() => null);
@@ -63,6 +64,7 @@ export async function renderThreePlayerScoreboard(
     rounds = await loadRounds(allIds);
     const outcome = computeWinOrder(rounds, sideIds);
     winOrder = outcome.order;
+    places = outcome.places;
     finishedAtOmgang = outcome.finishedAtOmgang;
   }
 
@@ -83,7 +85,11 @@ export async function renderThreePlayerScoreboard(
 
   function statusFooterEl(isFinished: boolean): HTMLElement | null {
     if (isFinished && !kamp.er_bekreftet && onBekreft && canEdit) {
-      return confirmButtonEl(() => onBekreft(winOrder.map((i) => sides[i]!.ks!.kasterid)));
+      return confirmButtonEl(() =>
+        onBekreft(
+          winOrder.map((i) => ({ kasterid: sides[i]!.ks!.kasterid, plassering: places[i]! })),
+        ),
+      );
     }
     if (kamp.er_bekreftet) return createEl("div", "Kamp fullført", "alert alert-success mt-2");
     return null;
@@ -107,7 +113,7 @@ export async function renderThreePlayerScoreboard(
 
     const wrap = createEl("div", null, "sb-wrap sb-wrap--3p");
     sides.forEach((side, i) => {
-      const place = winOrder.indexOf(i);
+      const place = places[i] ?? null;
       const canPick = active.includes(i) && canEdit && !kamp.er_bekreftet;
       wrap.appendChild(
         playerPanelEl({
@@ -115,8 +121,8 @@ export async function renderThreePlayerScoreboard(
           isPairLabel: side.isPairLabel,
           isStarter: i === starterIdx && active.includes(i),
           total: sideTotal(rounds, side.ids),
-          hasFinished: place >= 0,
-          detail: place >= 0 ? placeBadgeEl(place + 1) : null,
+          hasFinished: place != null,
+          detail: place != null ? placeBadgeEl(place) : null,
           buttons: canPick
             ? pointButtonsEl({
                 values: pointValues,

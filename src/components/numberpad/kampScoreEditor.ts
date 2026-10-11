@@ -4,6 +4,14 @@ import { showToast } from "@/components/Toast";
 import { deleteMatchRounds } from "@/services/kampService";
 import { logError } from "@/utils/logError";
 
+/** Asked before anything that replaces a match's omgang detail. */
+export function confirmDiscardRounds(): Promise<boolean> {
+  return confirmDialog({
+    title: "Slett detaljar",
+    message: "Dette sletter detaljar for denne kampen. Er du sikker?",
+  });
+}
+
 export interface KampScoreEditorOptions {
   /** Display name/HTML for side 1 (left numberpad). */
   side1Name: string;
@@ -21,13 +29,15 @@ export interface KampScoreEditorOptions {
   playerIds: number[];
   /** True when a side has live omgangar — gates the delete-warning dialog. */
   hasRounds: boolean;
+  /** onSaved clears the omgangar itself, in the same transaction as the score. */
+  roundsClearedBySave?: boolean;
   /**
    * Rejects a score pair before anything is written or deleted. Returns the
    * message to show, or null to accept.
    */
   validate?: (s1: number, s2: number) => string | null;
-  /** Stores the entered side scores and re-renders. */
-  onSaved: (s1: number, s2: number) => Promise<void>;
+  /** Stores the entered side scores. False keeps the pad open for a retry. */
+  onSaved: (s1: number, s2: number) => Promise<boolean>;
   /** logError context prefix for the owning variant. */
   logPrefix: string;
 }
@@ -39,14 +49,7 @@ export interface KampScoreEditorOptions {
  * deleted on save rather than left to silently contradict the new total.
  */
 export async function showKampScoreEditor(opts: KampScoreEditorOptions): Promise<void> {
-  if (
-    opts.hasRounds &&
-    !(await confirmDialog({
-      title: "Slett detaljar",
-      message: "Dette sletter detaljar for denne kampen. Er du sikker?",
-    }))
-  )
-    return;
+  if (opts.hasRounds && !(await confirmDiscardRounds())) return;
 
   showKampScoreNumberpad(
     [
@@ -60,7 +63,7 @@ export async function showKampScoreEditor(opts: KampScoreEditorOptions): Promise
         return false;
       }
       try {
-        if (opts.hasRounds && opts.playerIds.length) {
+        if (opts.hasRounds && opts.playerIds.length && !opts.roundsClearedBySave) {
           const { error } = await deleteMatchRounds(opts.playerIds);
           if (error) {
             showToast("DB-feil ved sletting av omgangar", "error");
@@ -69,13 +72,12 @@ export async function showKampScoreEditor(opts: KampScoreEditorOptions): Promise
         }
         // Inside the try: a throw out of here would otherwise leave the pad
         // stuck on "Lagrer…", with the rounds already deleted.
-        await opts.onSaved(s1, s2);
+        return await opts.onSaved(s1, s2);
       } catch (err) {
         logError(`${opts.logPrefix}:showKampScoreEditor`, err);
         showToast("Feil ved lagring av score", "error");
         return false;
       }
-      return true;
     },
     { baneLabel: opts.baneLabel, rundeLabel: opts.rundeLabel },
   );

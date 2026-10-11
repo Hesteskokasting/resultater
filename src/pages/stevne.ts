@@ -1,5 +1,6 @@
-import { isAdmin, isClubAdmin } from "@/services/authService";
-import { getTournamentHeader } from "@/services/stevneService";
+import { getUser } from "@/services/authService";
+import { canOrganize } from "@/utils/roles";
+import { getTournamentHeader, hasResultData } from "@/services/stevneService";
 import { createErrorBanner, createLoadingState } from "@/components/states";
 import { logError } from "@/utils/logError";
 import { escHtml } from "@/utils/escHtml";
@@ -41,6 +42,9 @@ type TabKey = (typeof TABS)[number]["key"];
 // live on the local stevner.
 const SNC_PARENT_HIDDEN_TABS = new Set<TabKey>(["deltakere", "innledende", "avsluttende", "stats"]);
 
+// Nothing to render until the stevne has matches — these three read kamp/kamp_spelar only.
+const MATCH_ONLY_TABS = new Set<TabKey>(["innledende", "avsluttende", "stats"]);
+
 const TAB_RENDER: Record<TabKey, TabRender> = {
   info: renderInfo,
   deltakere: renderParticipants as TabRender,
@@ -60,16 +64,18 @@ const SNC_PARENT_RENDER: Partial<Record<TabKey, TabRender>> = {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function visibleTabs(
+export function visibleTabs(
   isAdminUser: boolean,
   hasFinal: boolean,
   isCompleted: boolean,
   isSncParent: boolean,
+  hasMatchData: boolean,
 ): readonly { key: TabKey; label: string }[] {
   return TABS.filter((f) => isAdminUser || !f.adminOnly)
     .filter((f) => f.key !== "avsluttende" || hasFinal)
     .filter((f) => !f.completedOnly || isCompleted)
-    .filter((f) => !isSncParent || !SNC_PARENT_HIDDEN_TABS.has(f.key));
+    .filter((f) => !isSncParent || !SNC_PARENT_HIDDEN_TABS.has(f.key))
+    .filter((f) => hasMatchData || !MATCH_ONLY_TABS.has(f.key));
 }
 
 function renderNav(
@@ -106,12 +112,17 @@ export async function render(container: HTMLElement, params: Params): Promise<vo
 
     setPageTitle(tournament.navn);
 
-    const userIsAdmin = (await isAdmin()) || (await isClubAdmin());
+    const userIsAdmin = canOrganize(await getUser(), tournament.klubbid);
     const hasFinal = tournament.avsluttendekastemetodeid != null;
     const isCompleted = tournament.erfullfort === true;
     const isSncParent = tournament.er_snc_hovudstevne === true;
 
-    const tabs = visibleTabs(userIsAdmin, hasFinal, isCompleted, isSncParent);
+    // Only a completed stevne that never ran a started fase is asked whether
+    // any detailed results exist; everything else keeps its fase tabs.
+    const started = tournament.stevne_fase !== null && tournament.stevne_fase !== "ikke_startet";
+    const hasMatchData = isSncParent || !isCompleted || started || (await hasResultData(id));
+
+    const tabs = visibleTabs(userIsAdmin, hasFinal, isCompleted, isSncParent, hasMatchData);
     const activeTab: TabKey = tabs.some((f) => f.key === tab) ? (tab as TabKey) : "info";
 
     // The info tab leads with its own hero, which carries the name and the

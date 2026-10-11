@@ -32,3 +32,4 @@ current-sql-schema.sql
 
 # CSS-kaskade-snapshot frå `node scripts/css-check.mjs --snapshot`
 .css-baseline.json
+.vitest/

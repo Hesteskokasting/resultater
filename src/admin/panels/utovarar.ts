@@ -4,6 +4,8 @@ import { createEl } from "@/utils/createEl";
 import { buildThrowerSlug, throwerName } from "@/utils/kaster";
 import { countBy, summarizeThrowers } from "@/admin/_adminEntityStats";
 import { getThrowerAdminList } from "@/services/kasterService";
+import { getUser } from "@/services/authService";
+import { canOrganize } from "@/utils/roles";
 import type { ThrowerAdminListRow } from "@/services/kasterService";
 import { drawBarChart } from "../_adminCharts";
 import { openThrowerEditor } from "../_adminEdit";
@@ -220,13 +222,14 @@ export async function render(el: HTMLElement): Promise<void> {
 
   async function load(): Promise<void> {
     listSlot.replaceChildren(createLoadingState("Laster utøvarar…"));
-    const { data, error } = await getThrowerAdminList();
+    const [{ data, error }, auth] = await Promise.all([getThrowerAdminList(), getUser()]);
     if (error) {
       statsSlot.replaceChildren();
       listSlot.replaceChildren(createErrorBanner("Kunne ikkje laste utøvarar."));
       return;
     }
-    rows = data;
+    // A klubbadmin's dashboard covers their own club's throwers only.
+    rows = data.filter((row) => canOrganize(auth, row.klubbid));
 
     statsSlot.replaceChildren(createStatGrid(tiles(summarizeThrowers(rows)), true));
     fillClubOptions();

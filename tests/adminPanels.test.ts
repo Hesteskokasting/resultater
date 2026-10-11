@@ -13,14 +13,19 @@ const mocks = vi.hoisted(() => ({
   getAllClubsForAdmin: vi.fn(),
   getThrowerAdminList: vi.fn(),
   getThrowersById: vi.fn(),
-  getAllThrowerList: vi.fn(),
-  getRegistrationCountsForTournaments: vi.fn(),
+  getActiveThrowerList: vi.fn(),
+  getParticipationCountsForTournaments: vi.fn(),
   getAllUsers: vi.fn(),
   getUserEmails: vi.fn(),
   updateUserRole: vi.fn(),
   getPendingLinks: vi.fn(),
   updateLinkStatus: vi.fn(),
+  answerLinkRequest: vi.fn(),
   getPendingLinkCount: vi.fn(),
+  getClubs: vi.fn(),
+  getClubAdminUsers: vi.fn(),
+  getClubAdminAssignments: vi.fn(),
+  setClubAdminClub: vi.fn(),
   getUser: vi.fn(),
   deleteUserAccount: vi.fn(),
   confirmDialog: vi.fn(),
@@ -37,15 +42,15 @@ vi.mock("@/services/stevneService", () => ({
 }));
 vi.mock("@/services/klubbService", () => ({
   getAllClubsForAdmin: mocks.getAllClubsForAdmin,
-  getClubs: vi.fn(),
+  getClubs: mocks.getClubs,
 }));
 vi.mock("@/services/kasterService", () => ({
   getThrowerAdminList: mocks.getThrowerAdminList,
   getThrowersById: mocks.getThrowersById,
-  getAllThrowerList: mocks.getAllThrowerList,
+  getActiveThrowerList: mocks.getActiveThrowerList,
 }));
 vi.mock("@/services/adminStatsService", () => ({
-  getRegistrationCountsForTournaments: mocks.getRegistrationCountsForTournaments,
+  getParticipationCountsForTournaments: mocks.getParticipationCountsForTournaments,
 }));
 vi.mock("@/services/adminService", () => ({
   getAllUsers: mocks.getAllUsers,
@@ -53,11 +58,11 @@ vi.mock("@/services/adminService", () => ({
   updateUserRole: mocks.updateUserRole,
   getPendingLinks: mocks.getPendingLinks,
   updateLinkStatus: mocks.updateLinkStatus,
+  answerLinkRequest: mocks.answerLinkRequest,
   getPendingLinkCount: mocks.getPendingLinkCount,
-  getClubAdminUsers: vi.fn(),
-  getClubAdminAssignments: vi.fn(),
-  addClubAdminAccess: vi.fn(),
-  removeClubAdminAccess: vi.fn(),
+  getClubAdminUsers: mocks.getClubAdminUsers,
+  getClubAdminAssignments: mocks.getClubAdminAssignments,
+  setClubAdminClub: mocks.setClubAdminClub,
 }));
 vi.mock("@/services/authService", () => ({ getUser: mocks.getUser }));
 vi.mock("@/services/accountService", () => ({ deleteUserAccount: mocks.deleteUserAccount }));
@@ -80,14 +85,19 @@ const {
   getAllClubsForAdmin,
   getThrowerAdminList,
   getThrowersById,
-  getAllThrowerList,
-  getRegistrationCountsForTournaments,
+  getActiveThrowerList,
+  getParticipationCountsForTournaments,
   getAllUsers,
   getUserEmails,
   updateUserRole,
   getPendingLinks,
   updateLinkStatus,
+  answerLinkRequest,
   getPendingLinkCount,
+  getClubs,
+  getClubAdminUsers,
+  getClubAdminAssignments,
+  setClubAdminClub,
   getUser,
   deleteUserAccount,
   confirmDialog,
@@ -102,6 +112,7 @@ import { render as renderRequests } from "@/admin/panels/forespurnader";
 import { render as renderThrowers } from "@/admin/panels/utovarar";
 import { render as renderTournaments } from "@/admin/panels/stevne";
 import { render as renderUsers } from "@/admin/panels/brukarar";
+import { render as renderClubAccess } from "@/admin/panels/klubbtilgang";
 import { createAdminRow } from "@/admin/_adminUi";
 
 function host(): HTMLElement {
@@ -147,16 +158,20 @@ function clickAction(el: HTMLElement, index: number, label: string): void {
 
 const YEAR = new Date().getFullYear();
 
+function signInAs(role: string, club: number | null = null): void {
+  getUser.mockResolvedValue({
+    user: { id: "u2", email: "sjef@example.com" },
+    profil: { role, kasterid: null, kobling_status: "ingen", kobling_kasterid: null },
+    club,
+  });
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   getLiveTournaments.mockResolvedValue({ data: [], error: null });
   getPendingLinkCount.mockResolvedValue(0);
-  getUser.mockResolvedValue({
-    user: { id: "u2", email: "sjef@example.com" },
-    profil: null,
-    clubs: [],
-  });
-  getRegistrationCountsForTournaments.mockResolvedValue(new Map());
+  signInAs("admin");
+  getParticipationCountsForTournaments.mockResolvedValue(new Map());
   getThrowerAdminList.mockResolvedValue({ data: [], error: null });
   getScheduleTournaments.mockResolvedValue({ data: [], error: null });
   getAllClubsForAdmin.mockResolvedValue({ data: [], error: null });
@@ -252,7 +267,7 @@ describe("stevne panel", () => {
 
   beforeEach(() => {
     getScheduleTournaments.mockResolvedValue({ data: rows, error: null });
-    getRegistrationCountsForTournaments.mockResolvedValue(
+    getParticipationCountsForTournaments.mockResolvedValue(
       new Map([
         [1, 24],
         [2, 12],
@@ -266,15 +281,14 @@ describe("stevne panel", () => {
 
     expect(tileValue(el, `Stevne i ${YEAR}`)).toBe("3");
     expect(tileValue(el, "Fullført")).toBe("1");
-    expect(tileValue(el, "Pågåande")).toBe("1");
-    expect(tileValue(el, "Påmeldingar")).toBe("36");
-    expect(tileValue(el, "Snitt påmelde")).toBe("18");
+    expect(tileValue(el, "Deltakingar")).toBe("36");
+    expect(tileValue(el, "Snitt per stevne")).toBe("18");
   });
 
-  it("asks for registration counts for exactly the listed tournaments", async () => {
+  it("asks for participation counts for exactly the listed tournaments", async () => {
     const el = host();
     await renderTournaments(el);
-    expect(getRegistrationCountsForTournaments).toHaveBeenCalledWith([1, 2, 3]);
+    expect(getParticipationCountsForTournaments).toHaveBeenCalledWith([1, 2, 3]);
   });
 
   it("shows per-row detail beyond what the terminliste carries", async () => {
@@ -287,7 +301,7 @@ describe("stevne panel", () => {
     expect(meta).toContain("11:00");
     expect(meta).toContain("DNC · Singel");
     expect(meta).toContain("X-kast → Cup");
-    expect(meta).toContain("24 påmelde");
+    expect(meta).toContain("24 deltakarar");
     expect(first.textContent).toContain("PDF");
   });
 
@@ -339,6 +353,23 @@ describe("stevne panel", () => {
     const el = host();
     await renderTournaments(el);
     expect(el.querySelector(".error-banner")).not.toBeNull();
+  });
+});
+
+describe("stevne panel as a klubbadmin", () => {
+  it("lists only their own club's stevner", async () => {
+    signInAs("klubbadmin", 2);
+    getScheduleTournaments.mockResolvedValue({
+      data: [
+        { id: 1, navn: "Oslo Open", dato: `${YEAR}-05-01`, klubb: { id: 1, navn: "Oslo HK" } },
+        { id: 2, navn: "Bergen Cup", dato: `${YEAR}-06-01`, klubb: { id: 2, navn: "Bergen HK" } },
+        { id: 3, navn: "Utan arrangør", dato: `${YEAR}-07-01`, klubb: null },
+      ],
+      error: null,
+    });
+    const el = host();
+    await renderTournaments(el);
+    expect(rowTitles(el)).toEqual(["Bergen Cup"]);
   });
 });
 
@@ -458,6 +489,23 @@ describe("utovarar panel", () => {
   });
 });
 
+describe("utovarar panel as a klubbadmin", () => {
+  it("lists only their own club's throwers", async () => {
+    signInAs("klubbadmin", 2);
+    getThrowerAdminList.mockResolvedValue({
+      data: [
+        { id: 1, fornavn: "Ola", etternavn: "Nordmann", eraktiv: true, klubbid: 1 },
+        { id: 2, fornavn: "Kari", etternavn: "Vik", eraktiv: true, klubbid: 2 },
+        { id: 3, fornavn: "Per", etternavn: "Utan", eraktiv: true, klubbid: null },
+      ],
+      error: null,
+    });
+    const el = host();
+    await renderThrowers(el);
+    expect(rowTitles(el)).toEqual(["Kari Vik"]);
+  });
+});
+
 describe("klubbar panel", () => {
   beforeEach(() => {
     getAllClubsForAdmin.mockResolvedValue({
@@ -570,19 +618,43 @@ describe("brukarar panel", () => {
     });
     updateUserRole.mockResolvedValue({ error: null });
     updateLinkStatus.mockResolvedValue({ error: null });
-    getAllThrowerList.mockResolvedValue({
+    getActiveThrowerList.mockResolvedValue({
       data: [
         { id: 5, fornavn: "Ola", etternavn: "Nordmann", eraktiv: true, klubb: { navn: "Oslo HK" } },
         { id: 9, fornavn: "Kari", etternavn: "Ås", eraktiv: true, klubb: { navn: "Oslo HK" } },
-        { id: 12, fornavn: "Per", etternavn: "Slutta", eraktiv: false, klubb: { navn: "Oslo HK" } },
       ],
       error: null,
     });
   });
 
+  const tableRows = (el: HTMLElement): HTMLElement[] => [
+    ...el.querySelectorAll<HTMLElement>(".admin-table tbody tr"),
+  ];
+  const emails = (el: HTMLElement): string[] =>
+    tableRows(el).map((r) => r.querySelector(".user-table__email span")?.textContent ?? "");
+
+  /** Ticks row `index`, which swaps it for its editable version. */
+  function selectRow(el: HTMLElement, index: number): HTMLElement {
+    const box = tableRows(el)[index]!.querySelector<HTMLInputElement>("input[type=checkbox]")!;
+    box.checked = true;
+    box.dispatchEvent(new Event("change"));
+    return tableRows(el)[index]!;
+  }
+
+  function rowButton(row: HTMLElement, label: string): HTMLButtonElement {
+    return [...row.querySelectorAll<HTMLButtonElement>(".admin-table__actions button")].find(
+      (b) => b.textContent === label,
+    )!;
+  }
+
+  function bulkButton(el: HTMLElement, label: string): HTMLButtonElement {
+    return [...el.querySelectorAll<HTMLButtonElement>(".admin-bulk button")].find(
+      (b) => b.textContent === label,
+    )!;
+  }
+
   /** The row's thrower picker: type a query and click the offered row. */
-  function pickThrower(el: HTMLElement, index: number, query: string, id: string): void {
-    const row = [...el.querySelectorAll<HTMLElement>(".admin-row")][index]!;
+  function pickThrower(row: HTMLElement, query: string, id: string): void {
     const input = row.querySelector<HTMLInputElement>(".search-select input[type=text]")!;
     input.value = query;
     input.dispatchEvent(new Event("input"));
@@ -591,32 +663,76 @@ describe("brukarar panel", () => {
       .dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
   }
 
-  it("shows the current link in the row picker and links a free thrower", async () => {
+  async function renderAll(): Promise<HTMLElement> {
     const el = host();
     await renderUsers(el);
+    // Toolbar filters live in module state and survive a re-render on purpose
+    // (same as the public thrower list) — clear the previous test's filters.
     choose(selectByLabel(el, "Filtrer på rolle"), "alle");
+    choose(selectByLabel(el, "Filtrer på kobling"), "alle");
+    return el;
+  }
 
-    const inputs = [...el.querySelectorAll<HTMLInputElement>(".search-select input[type=text]")];
-    expect(inputs[0]!.value).toBe("Nordmann Ola");
-    expect(inputs[1]!.value).toBe("");
+  it("renders read-only rows until one is ticked", async () => {
+    const el = await renderAll();
 
-    // Thrower 5 belongs to the first user, so the second row is not offered it.
-    pickThrower(el, 1, "a", "9");
-    clickAction(el, 1, "Lagre");
-    await vi.waitFor(() => expect(updateLinkStatus).toHaveBeenCalledWith("u2", 9, "godkjent"));
+    expect(emails(el)).toEqual(["ola@example.com", "sjef@example.com"]);
+    expect(el.querySelector(".admin-table tbody select")).toBeNull();
+    expect(el.querySelector(".admin-table__actions button")).toBeNull();
+    expect(tableRows(el)[0]!.textContent).toContain("Ola Nordmann");
+    expect(tableRows(el)[0]!.textContent).toContain("Kobla");
+    // An admin without a link has nothing to show in the link column.
+    expect(tableRows(el)[1]!.querySelector(".user-table__link")?.textContent).toBe("—");
+
+    const row = selectRow(el, 0);
+    expect(row.querySelector<HTMLSelectElement>("select")!.value).toBe("bruker");
+    expect(row.querySelector<HTMLInputElement>(".search-select input[type=text]")!.value).toBe(
+      "Nordmann Ola",
+    );
+    expect(rowButton(row, "Lagre")).toBeDefined();
+    expect(el.querySelector(".admin-bulk")?.classList.contains("d-none")).toBe(false);
   });
 
-  it("keeps inactive throwers out of the picker", async () => {
-    const el = host();
-    await renderUsers(el);
-    choose(selectByLabel(el, "Filtrer på rolle"), "alle");
+  it("links a free thrower to a brukar", async () => {
+    getAllUsers.mockResolvedValue({
+      data: [users[0]!, { ...users[1]!, rolle: "bruker" }],
+      error: null,
+    });
+    const el = await renderAll();
 
-    const row = [...el.querySelectorAll<HTMLElement>(".admin-row")][1]!;
+    const row = selectRow(el, 1);
+    // Thrower 5 belongs to the first user, so it is not offered here.
     const input = row.querySelector<HTMLInputElement>(".search-select input[type=text]")!;
     input.value = "a";
     input.dispatchEvent(new Event("input"));
     const offered = [...row.querySelectorAll<HTMLElement>(".search-select [data-id]")];
     expect(offered.map((r) => r.dataset["id"])).toEqual(["9"]);
+
+    pickThrower(row, "a", "9");
+    rowButton(row, "Lagre").click();
+    await vi.waitFor(() => expect(updateLinkStatus).toHaveBeenCalledWith("u2", 9, "godkjent"));
+  });
+
+  it("locks the link picker for roles other than Brukar", async () => {
+    const el = await renderAll();
+    const input = selectRow(el, 1).querySelector<HTMLInputElement>(
+      ".search-select input[type=text]",
+    )!;
+    expect(input.disabled).toBe(true);
+  });
+
+  it("names a link to an inactive thrower, which the active list leaves out", async () => {
+    getActiveThrowerList.mockResolvedValue({
+      data: [
+        { id: 9, fornavn: "Kari", etternavn: "Ås", eraktiv: true, klubb: { navn: "Oslo HK" } },
+      ],
+      error: null,
+    });
+    const el = await renderAll();
+    const input = selectRow(el, 0).querySelector<HTMLInputElement>(
+      ".search-select input[type=text]",
+    )!;
+    expect(input.value).toBe("Nordmann Ola (inaktiv)");
   });
 
   it("still names a link another profile once requested", async () => {
@@ -628,51 +744,111 @@ describe("brukarar panel", () => {
       ],
       error: null,
     });
-    const el = host();
-    await renderUsers(el);
-    choose(selectByLabel(el, "Filtrer på rolle"), "alle");
-
-    const inputs = [...el.querySelectorAll<HTMLInputElement>(".search-select input[type=text]")];
-    expect(inputs[0]!.value).toBe("Nordmann Ola");
+    const el = await renderAll();
+    const input = selectRow(el, 0).querySelector<HTMLInputElement>(
+      ".search-select input[type=text]",
+    )!;
+    expect(input.value).toBe("Nordmann Ola");
   });
 
   it("removes an existing link from the row", async () => {
-    const el = host();
-    await renderUsers(el);
-    choose(selectByLabel(el, "Filtrer på rolle"), "alle");
-
-    pickThrower(el, 0, "fjern", "");
-    clickAction(el, 0, "Lagre");
+    const el = await renderAll();
+    const row = selectRow(el, 0);
+    pickThrower(row, "fjern", "");
+    rowButton(row, "Lagre").click();
     await vi.waitFor(() => expect(updateLinkStatus).toHaveBeenCalledWith("u1", null, "ingen"));
   });
 
-  it("leaves the link alone when only the role changed", async () => {
-    const el = host();
-    await renderUsers(el);
-    choose(selectByLabel(el, "Filtrer på rolle"), "alle");
+  it("clears the link after confirmation when the role leaves Brukar", async () => {
+    confirmDialog.mockResolvedValue(true);
+    const el = await renderAll();
+    const row = selectRow(el, 0);
+    choose(row.querySelector<HTMLSelectElement>("select")!, "klubbadmin");
+    expect(row.querySelector<HTMLInputElement>(".search-select input[type=text]")!.disabled).toBe(
+      true,
+    );
 
-    const row = el.querySelector<HTMLElement>(".admin-row")!;
-    const select = row.querySelector<HTMLSelectElement>("select")!;
-    select.value = "admin";
-    clickAction(el, 0, "Lagre");
-    await vi.waitFor(() => expect(updateUserRole).toHaveBeenCalledWith("u1", "admin"));
+    rowButton(row, "Lagre").click();
+    await vi.waitFor(() => expect(updateLinkStatus).toHaveBeenCalledWith("u1", null, "ingen"));
+    expect(updateUserRole).toHaveBeenCalledWith("u1", "klubbadmin");
+  });
+
+  it("clears the link before the role, which the database check requires", async () => {
+    confirmDialog.mockResolvedValue(true);
+    const order: string[] = [];
+    updateLinkStatus.mockImplementation(() => {
+      order.push("link");
+      return Promise.resolve({ error: null });
+    });
+    updateUserRole.mockImplementation(() => {
+      order.push("role");
+      return Promise.resolve({ error: null });
+    });
+    const el = await renderAll();
+
+    const row = selectRow(el, 0);
+    choose(row.querySelector<HTMLSelectElement>("select")!, "admin");
+    rowButton(row, "Lagre").click();
+    await vi.waitFor(() => expect(order).toEqual(["link", "role"]));
+
+    // Bulk: the same order per user.
+    order.length = 0;
+    await vi.waitFor(() => expect(el.querySelector(".admin-bulk.d-none")).not.toBeNull());
+    selectRow(el, 0);
+    choose(selectByLabel(el, "Ny rolle for valde"), "klubbadmin");
+    bulkButton(el, "Sett rolle").click();
+    await vi.waitFor(() => expect(order).toEqual(["link", "role"]));
+  });
+
+  it("sets the role before the link when a user becomes a brukar", async () => {
+    const order: string[] = [];
+    updateLinkStatus.mockImplementation(() => {
+      order.push("link");
+      return Promise.resolve({ error: null });
+    });
+    updateUserRole.mockImplementation(() => {
+      order.push("role");
+      return Promise.resolve({ error: null });
+    });
+    const el = await renderAll();
+
+    const row = selectRow(el, 1);
+    choose(row.querySelector<HTMLSelectElement>("select")!, "bruker");
+    pickThrower(row, "a", "9");
+    rowButton(row, "Lagre").click();
+    await vi.waitFor(() => expect(order).toEqual(["role", "link"]));
+  });
+
+  it("changes nothing when the role change is not confirmed", async () => {
+    confirmDialog.mockResolvedValue(false);
+    const el = await renderAll();
+    const row = selectRow(el, 0);
+    choose(row.querySelector<HTMLSelectElement>("select")!, "admin");
+    rowButton(row, "Lagre").click();
+
+    await vi.waitFor(() => expect(confirmDialog).toHaveBeenCalled());
+    expect(updateUserRole).not.toHaveBeenCalled();
     expect(updateLinkStatus).not.toHaveBeenCalled();
   });
 
-  it("preselects each user's current role and saves a change", async () => {
-    const el = host();
-    await renderUsers(el);
+  it("filters on link status", async () => {
+    const el = await renderAll();
+    const status = selectByLabel(el, "Filtrer på kobling");
 
-    expect(rowTitles(el)).toEqual(["ola@example.com", "sjef@example.com"]);
-    expect(el.textContent).toContain("Ola Nordmann");
-
-    const firstRow = el.querySelector<HTMLElement>(".admin-row")!;
-    const select = firstRow.querySelector<HTMLSelectElement>("select")!;
-    expect(select.value).toBe("bruker");
-
-    select.value = "klubbadmin";
-    firstRow.querySelector<HTMLButtonElement>(".admin-row__actions button")!.click();
-    await vi.waitFor(() => expect(updateUserRole).toHaveBeenCalledWith("u1", "klubbadmin"));
+    expect([...status.options].map((o) => o.text)).toEqual([
+      "Alle statusar",
+      "Kobla",
+      "Ikkje kobla",
+      "Ventar",
+      "Avvist",
+    ]);
+    choose(status, "godkjent");
+    expect(emails(el)).toEqual(["ola@example.com"]);
+    choose(status, "ingen");
+    expect(emails(el)).toEqual(["sjef@example.com"]);
+    choose(status, "venter");
+    expect(emails(el)).toEqual([]);
+    choose(status, "alle");
   });
 
   it("filters by role", async () => {
@@ -680,17 +856,15 @@ describe("brukarar panel", () => {
     await renderUsers(el);
 
     choose(selectByLabel(el, "Filtrer på rolle"), "admin");
-    expect(rowTitles(el)).toEqual(["sjef@example.com"]);
+    expect(emails(el)).toEqual(["sjef@example.com"]);
   });
 
   it("deletes an account after confirmation, keeping the thrower", async () => {
     confirmDialog.mockResolvedValue(true);
     deleteUserAccount.mockResolvedValue({ error: null });
-    const el = host();
-    await renderUsers(el);
-    choose(selectByLabel(el, "Filtrer på rolle"), "alle");
+    const el = await renderAll();
 
-    clickAction(el, 0, "Slett");
+    rowButton(selectRow(el, 0), "Slett").click();
     await vi.waitFor(() => expect(deleteUserAccount).toHaveBeenCalledWith("u1"));
 
     const prompt = confirmDialog.mock.calls[0]?.[0] as { message: string } | undefined;
@@ -701,25 +875,22 @@ describe("brukarar panel", () => {
 
   it("does not delete when the confirmation is declined", async () => {
     confirmDialog.mockResolvedValue(false);
-    const el = host();
-    await renderUsers(el);
+    const el = await renderAll();
 
-    clickAction(el, 0, "Slett");
+    rowButton(selectRow(el, 0), "Slett").click();
     await vi.waitFor(() => expect(confirmDialog).toHaveBeenCalled());
     expect(deleteUserAccount).not.toHaveBeenCalled();
   });
 
   it("offers no delete on the signed-in admin's own row", async () => {
-    const el = host();
-    await renderUsers(el);
-
-    const rows = [...el.querySelectorAll<HTMLElement>(".admin-row")];
+    const el = await renderAll();
     const labels = (row: HTMLElement) =>
-      [...row.querySelectorAll(".admin-row__actions button")].map((b) => b.textContent);
+      [...row.querySelectorAll(".admin-table__actions button")].map((b) => b.textContent);
 
-    expect(labels(rows[0]!)).toEqual(["Lagre", "Slett"]);
-    expect(labels(rows[1]!)).toEqual(["Lagre"]);
-    expect(rows[1]!.textContent).toContain("Deg");
+    expect(labels(selectRow(el, 0))).toEqual(["Lagre", "Slett"]);
+    const own = selectRow(el, 1);
+    expect(labels(own)).toEqual(["Lagre"]);
+    expect(own.textContent).toContain("Deg");
   });
 
   it("shows the server's refusal (e.g. the last admin) without dropping the list", async () => {
@@ -727,35 +898,67 @@ describe("brukarar panel", () => {
     deleteUserAccount.mockResolvedValue({
       error: { message: "Cannot delete the last admin account" },
     });
-    const el = host();
-    await renderUsers(el);
+    const el = await renderAll();
 
-    clickAction(el, 0, "Slett");
+    rowButton(selectRow(el, 0), "Slett").click();
     await vi.waitFor(() => {
       expect(el.querySelector(".alert-danger")?.textContent).toBe(
         "Cannot delete the last admin account",
       );
     });
-    expect(rowTitles(el)).toHaveLength(2);
+    expect(emails(el)).toHaveLength(2);
   });
 
   it("surfaces a write failure without losing the list", async () => {
     updateUserRole.mockResolvedValue({ error: { message: "ingen tilgang" } });
-    const el = host();
-    await renderUsers(el);
-
-    // Toolbar filters live in module state and survive a re-render on purpose
-    // (same as the public thrower list) — clear the previous test's role filter.
-    choose(selectByLabel(el, "Filtrer på rolle"), "alle");
+    const el = await renderAll();
 
     // Saving only writes what changed, so the role has to differ to hit the RPC.
-    el.querySelector<HTMLSelectElement>(".admin-row select")!.value = "admin";
-    el.querySelector<HTMLButtonElement>(".admin-row__actions button")!.click();
+    const row = selectRow(el, 1);
+    choose(row.querySelector<HTMLSelectElement>("select")!, "klubbadmin");
+    rowButton(row, "Lagre").click();
     await vi.waitFor(() => {
       expect(el.querySelector(".alert-danger")?.classList.contains("d-none")).toBe(false);
     });
     expect(el.querySelector(".alert-danger")?.textContent).toBe("ingen tilgang");
-    expect(rowTitles(el)).toHaveLength(2);
+    expect(emails(el)).toHaveLength(2);
+  });
+
+  it("sets the role for every ticked user and clears their links", async () => {
+    confirmDialog.mockResolvedValue(true);
+    const el = await renderAll();
+    const all = el.querySelector<HTMLInputElement>(".admin-table thead input")!;
+    all.checked = true;
+    all.dispatchEvent(new Event("change"));
+
+    choose(selectByLabel(el, "Ny rolle for valde"), "klubbadmin");
+    bulkButton(el, "Sett rolle").click();
+    await vi.waitFor(() => expect(updateUserRole).toHaveBeenCalledTimes(2));
+    expect(updateUserRole).toHaveBeenCalledWith("u1", "klubbadmin");
+    expect(updateUserRole).toHaveBeenCalledWith("u2", "klubbadmin");
+    // Only u1 had a link to clear.
+    expect(updateLinkStatus).toHaveBeenCalledTimes(1);
+    expect(updateLinkStatus).toHaveBeenCalledWith("u1", null, "ingen");
+  });
+
+  it("bulk-unlinks and bulk-deletes the ticked users, never the admin's own account", async () => {
+    confirmDialog.mockResolvedValue(true);
+    deleteUserAccount.mockResolvedValue({ error: null });
+    const el = await renderAll();
+    selectRow(el, 0);
+    selectRow(el, 1);
+
+    bulkButton(el, "Fjern kobling").click();
+    await vi.waitFor(() => expect(updateLinkStatus).toHaveBeenCalledWith("u1", null, "ingen"));
+    expect(updateLinkStatus).toHaveBeenCalledTimes(1);
+
+    // The reload clears the selection.
+    await vi.waitFor(() => expect(el.querySelector(".admin-bulk.d-none")).not.toBeNull());
+    selectRow(el, 0);
+    selectRow(el, 1);
+    bulkButton(el, "Slett").click();
+    await vi.waitFor(() => expect(deleteUserAccount).toHaveBeenCalledWith("u1"));
+    expect(deleteUserAccount).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -767,7 +970,7 @@ describe("forespurnader panel", () => {
     expect(el.querySelector(".empty-state")?.textContent).toBe("Ingen ventande forespørslar.");
   });
 
-  it("approves with the requested thrower id and rejects with null", async () => {
+  it("approves and rejects through the answer rpc", async () => {
     getPendingLinks.mockResolvedValue({
       data: [{ id: "u1", kobling_kasterid: 7 }],
       error: null,
@@ -777,23 +980,89 @@ describe("forespurnader panel", () => {
       data: [{ id: 7, fornavn: "Ny", etternavn: "Spelar", klubb: { navn: "Oslo HK" } }],
       error: null,
     });
-    updateLinkStatus.mockResolvedValue({ error: null });
+    answerLinkRequest.mockResolvedValue({ error: null });
 
     const el = host();
     await renderRequests(el);
     expect(el.textContent).toContain("Vil koblast til Ny Spelar");
 
     clickAction(el, 0, "Godkjenn");
-    await vi.waitFor(() => expect(updateLinkStatus).toHaveBeenCalledWith("u1", 7, "godkjent"));
+    await vi.waitFor(() => expect(answerLinkRequest).toHaveBeenCalledWith("u1", true));
 
-    updateLinkStatus.mockClear();
+    answerLinkRequest.mockClear();
     await renderRequests(el);
     clickAction(el, 0, "Avvis");
-    await vi.waitFor(() => expect(updateLinkStatus).toHaveBeenCalledWith("u1", null, "avvist"));
+    await vi.waitFor(() => expect(answerLinkRequest).toHaveBeenCalledWith("u1", false));
+  });
+});
+
+describe("klubbtilgang panel", () => {
+  beforeEach(() => {
+    getClubAdminUsers.mockResolvedValue({ data: [{ id: "k1" }], error: null });
+    getClubs.mockResolvedValue({
+      data: [
+        { id: 1, navn: "Oslo HK" },
+        { id: 2, navn: "Bergen HK" },
+      ],
+      error: null,
+    });
+    getClubAdminAssignments.mockResolvedValue({
+      data: [{ bruker_id: "k1", klubbid: 2 }],
+      error: null,
+    });
+    getUserEmails.mockResolvedValue({ data: [{ id: "k1", epost: "k@example.com" }], error: null });
+  });
+
+  it("shows each klubbadmin's one club and replaces it on change", async () => {
+    setClubAdminClub.mockResolvedValue({ error: null });
+    const el = host();
+    await renderClubAccess(el);
+
+    const select = selectByLabel(el, "Klubb for k@example.com");
+    expect(select.value).toBe("2");
+    choose(select, "1");
+    expect(setClubAdminClub).toHaveBeenCalledWith("k1", 1);
+    choose(select, "");
+    expect(setClubAdminClub).toHaveBeenCalledWith("k1", null);
+  });
+
+  it("puts the select back when the save fails", async () => {
+    setClubAdminClub.mockResolvedValue({ error: { message: "nekta" } });
+    const el = host();
+    await renderClubAccess(el);
+
+    const select = selectByLabel(el, "Klubb for k@example.com");
+    choose(select, "1");
+    await vi.waitFor(() => expect(select.value).toBe("2"));
   });
 });
 
 describe("admin shell", () => {
+  it("gives a klubbadmin the overview and their club's panels, without users or access", async () => {
+    signInAs("klubbadmin", 2);
+    const el = host();
+    await renderAdmin(el, { tab: "brukarar" });
+
+    const links = [...el.querySelectorAll<HTMLAnchorElement>(".admin-nav .nav-link")];
+    expect(links.map((a) => a.getAttribute("href"))).toEqual([
+      "#/admin/oversikt",
+      "#/admin/stevne",
+      "#/admin/utovarar",
+      "#/admin/klubb",
+      "#/admin/forespurnader",
+    ]);
+    expect(links[0]!.classList.contains("active")).toBe(true);
+    expect(el.querySelector(".admin-head__title")?.textContent).toBe("Dashboard - Klubbadmin");
+  });
+
+  it("links organizers to their account settings", async () => {
+    const el = host();
+    await renderAdmin(el, { tab: "stevne" });
+    expect(
+      el.querySelector<HTMLAnchorElement>('.admin-head a[href="#/minside/konto"]'),
+    ).not.toBeNull();
+  });
+
   it("renders every tab, marks the active one and deep-links each", async () => {
     const el = host();
     await renderAdmin(el, { tab: "stevne" });

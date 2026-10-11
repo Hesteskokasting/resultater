@@ -7,7 +7,7 @@ import {
 
 // The losing side follows from the SIDE totals buildMatchPlayerUpdates computes,
 // so the stored score and the elimination can never disagree. The 3-player case
-// (orderedKasterids[2]) bypasses this entirely.
+// (ranking[2]) bypasses this entirely.
 
 // NOTE: a tie is impossible by game rules — a player must win by 2+ score_poeng.
 // The tie fallback (which eliminates the side listed last) is therefore

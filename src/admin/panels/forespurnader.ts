@@ -1,14 +1,15 @@
 import { createErrorBanner, createLoadingState, createEmptyState } from "@/components/states";
 import { errorMessage } from "@/utils/errorMessage";
 import { throwerName } from "@/utils/kaster";
-import { getPendingLinks, updateLinkStatus } from "@/services/adminService";
+import { answerLinkRequest, getPendingLinks } from "@/services/adminService";
 import { createAdminList, createInlineAlert } from "../_adminUi";
 import type { AdminListItem } from "../_adminUi";
 import { loadUserLookups } from "./_userLookups";
 
 /**
  * Approval queue for users asking to be linked to a thrower. Approving writes the
- * requested `kasterid` onto the profile; rejecting clears the request.
+ * requested `kasterid` onto the profile; rejecting clears the request. RLS hands
+ * a klubbadmin only the requests for their own club's throwers.
  */
 export async function render(el: HTMLElement): Promise<void> {
   el.replaceChildren(createLoadingState("Laster forespørslar…"));
@@ -30,9 +31,9 @@ export async function render(el: HTMLElement): Promise<void> {
 
   const alert = createInlineAlert();
 
-  async function decide(userId: string, kasterid: number | null, status: string): Promise<void> {
+  async function decide(userId: string, approve: boolean): Promise<void> {
     alert.hide();
-    const { error: writeError } = await updateLinkStatus(userId, kasterid, status);
+    const { error: writeError } = await answerLinkRequest(userId, approve);
     if (writeError) {
       alert.show(errorMessage(writeError));
       return;
@@ -51,12 +52,12 @@ export async function render(el: HTMLElement): Promise<void> {
         {
           label: "Godkjenn",
           variant: "success",
-          onClick: () => void decide(row.id, row.kobling_kasterid, "godkjent"),
+          onClick: () => void decide(row.id, true),
         },
         {
           label: "Avvis",
           variant: "outline-danger",
-          onClick: () => void decide(row.id, null, "avvist"),
+          onClick: () => void decide(row.id, false),
         },
       ],
     };

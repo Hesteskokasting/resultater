@@ -7,13 +7,12 @@
 
 const mocks = vi.hoisted(() => ({
   getTournamentHeader: vi.fn(),
+  hasResultData: vi.fn(),
   getLatestResults: vi.fn(),
   getLiveTournaments: vi.fn(),
   getTournamentsByIds: vi.fn(),
   getUpcomingTournaments: vi.fn(),
   getRegistrationsForThrower: vi.fn(),
-  isAdmin: vi.fn(),
-  isClubAdmin: vi.fn(),
   getUser: vi.fn(),
   bindRegistrationSlots: vi.fn(),
   renderInfo: vi.fn(),
@@ -42,6 +41,7 @@ function registeredUnder(parentId: number, localId: number, registrationId = 1) 
 vi.mock("@/supabase", () => ({ supabase: {} }));
 vi.mock("@/services/stevneService", () => ({
   getTournamentHeader: mocks.getTournamentHeader,
+  hasResultData: mocks.hasResultData,
   getLatestResults: mocks.getLatestResults,
   getLiveTournaments: mocks.getLiveTournaments,
   getTournamentsByIds: mocks.getTournamentsByIds,
@@ -50,8 +50,6 @@ vi.mock("@/services/stevneService", () => ({
   emptyThrowerRegistrations: () => noRegistrations(),
 }));
 vi.mock("@/services/authService", () => ({
-  isAdmin: mocks.isAdmin,
-  isClubAdmin: mocks.isClubAdmin,
   getUser: mocks.getUser,
 }));
 vi.mock("@/components/stevne/RegistrationButton", () => ({
@@ -69,13 +67,12 @@ vi.mock("@/pages/stevne/snc-resultat", () => ({ render: mocks.renderSncResults }
 
 const {
   getTournamentHeader,
+  hasResultData,
   getLatestResults,
   getLiveTournaments,
   getTournamentsByIds,
   getUpcomingTournaments,
   getRegistrationsForThrower,
-  isAdmin,
-  isClubAdmin,
   getUser,
   renderInfo,
   renderResults,
@@ -85,6 +82,14 @@ const {
 
 import { render as renderTournamentPage } from "@/pages/stevne";
 import { render as renderHome } from "@/pages/home";
+
+function signedInAs(role: string, club: number | null = null) {
+  return {
+    user: { id: "u1" },
+    profil: { role, kasterid: null, kobling_status: "ingen", kobling_kasterid: null },
+    club,
+  };
+}
 
 function host(): HTMLElement {
   const el = document.createElement("div");
@@ -105,6 +110,7 @@ function header(overrides: Record<string, unknown> = {}) {
     avsluttendekastemetodeid: 6,
     er_snc_hovudstevne: false,
     snc_hovudstevne_id: null,
+    klubbid: 1,
     kategori: { id: 1, navn: "Singel", erlagbasert: false },
     ...overrides,
   };
@@ -112,10 +118,9 @@ function header(overrides: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  isAdmin.mockResolvedValue(false);
-  isClubAdmin.mockResolvedValue(false);
   getUser.mockResolvedValue(null);
   getTournamentHeader.mockResolvedValue({ data: header(), error: null });
+  hasResultData.mockResolvedValue(true);
   getLatestResults.mockResolvedValue({ data: [], error: null });
   getLiveTournaments.mockResolvedValue({ data: [], error: null });
   getTournamentsByIds.mockResolvedValue({ data: [], error: null });
@@ -146,7 +151,7 @@ describe("stevne tabs", () => {
   });
 
   it("keeps Innstillingar but drops the match tabs for an admin on a hovudstevne", async () => {
-    isAdmin.mockResolvedValue(true);
+    getUser.mockResolvedValue(signedInAs("admin"));
     getTournamentHeader.mockResolvedValue({
       data: header({ er_snc_hovudstevne: true, erfullfort: true }),
       error: null,
@@ -158,7 +163,7 @@ describe("stevne tabs", () => {
   });
 
   it("serves the ordinary settings tab on a hovudstevne", async () => {
-    isAdmin.mockResolvedValue(true);
+    getUser.mockResolvedValue(signedInAs("admin"));
     getTournamentHeader.mockResolvedValue({
       data: header({ er_snc_hovudstevne: true }),
       error: null,
@@ -171,7 +176,7 @@ describe("stevne tabs", () => {
   });
 
   it("still gives an admin every tab on an ordinary tournament", async () => {
-    isAdmin.mockResolvedValue(true);
+    getUser.mockResolvedValue(signedInAs("admin"));
     const el = host();
     await renderTournamentPage(el, { id: 10, tab: "info" });
 
@@ -183,6 +188,18 @@ describe("stevne tabs", () => {
       "Innstillingar",
       "Stats",
     ]);
+  });
+
+  it("gives a klubbadmin the organizer tabs on their own club's stevne only", async () => {
+    getUser.mockResolvedValue(signedInAs("klubbadmin", 1));
+    const own = host();
+    await renderTournamentPage(own, { id: 10, tab: "info" });
+    expect(tabLabels(own)).toContain("Innstillingar");
+
+    getUser.mockResolvedValue(signedInAs("klubbadmin", 2));
+    const other = host();
+    await renderTournamentPage(other, { id: 10, tab: "info" });
+    expect(tabLabels(other)).toEqual(["Info", "Innl.", "Avsl.", "Stats"]);
   });
 
   it("serves the consolidated list on the hovudstevne's Resultat tab", async () => {
@@ -214,7 +231,7 @@ describe("home page and SNC", () => {
   const linkedUser = {
     user: { id: "u1", email: "a@b.no" },
     profil: { role: "bruker", kasterid: 77, kobling_status: "godkjent" },
-    clubs: [],
+    club: null,
   };
 
   function upcoming(overrides: Record<string, unknown> = {}) {

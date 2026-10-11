@@ -1,5 +1,5 @@
 import { escHtml } from "@/utils/escHtml";
-import type { RoundSetup } from "@/types";
+import type { RoundSetup, Round1FormatTyped } from "@/types";
 import {
   calcValidGroupSizes,
   validRound1Setups,
@@ -78,7 +78,7 @@ export function renderGroupAssignment(
     splitParts.push(`
       <div class="form-check">
         <input class="form-check-input" type="radio" name="group-split" id="split-none" value="${n}" ${initNa === n ? "checked" : ""}>
-        <label class="form-check-label" for="split-ingen">Alle i A</label>
+        <label class="form-check-label" for="split-none">Alle i A</label>
       </div>`);
   }
   const splitOptions = splitParts.join("");
@@ -139,6 +139,8 @@ export function bindGroupAssignment(
   container: HTMLElement,
   standings: StandingRowForGroup[],
   onConfirm: (selection: GroupAssignmentSelection) => void | Promise<void>,
+  /** While the form still shows the saved format, the button starts the cup instead. */
+  start?: { saved: Round1FormatTyped; onStart: () => void | Promise<void> },
 ): void {
   const n =
     parseInt(container.querySelector<HTMLElement>("#group-assignment-wrapper")?.dataset.n ?? "0") ||
@@ -182,6 +184,39 @@ export function bindGroupAssignment(
     );
   }
 
+  function readSelection(): GroupAssignmentSelection | null {
+    const selected = container.querySelector<HTMLInputElement>('input[name="group-split"]:checked');
+    if (!selected) return null;
+    const nA = parseInt(selected.value);
+    const nB = n - nA;
+    return {
+      nA,
+      nB,
+      setupA: readSelectedSetup("round1-format-a", nA),
+      setupB: nB >= 2 ? readSelectedSetup("round1-format-b", nB) : null,
+    };
+  }
+
+  const confirmBtn = container.querySelector<HTMLButtonElement>("#confirm-group-btn");
+
+  function showsSaved(): boolean {
+    const sel = readSelection();
+    if (!start || !sel) return false;
+    const { saved } = start;
+    return (
+      sel.nA === saved.nA &&
+      sameSetup(sel.setupA, saved.A ?? null) &&
+      sameSetup(sel.setupB, saved.B ?? null)
+    );
+  }
+
+  function refreshButton(): void {
+    if (confirmBtn) confirmBtn.textContent = showsSaved() ? "Start" : "Bekreft gruppefordeling";
+  }
+
+  container.querySelector("#group-assignment-wrapper")?.addEventListener("change", refreshButton);
+  refreshButton();
+
   panelsEl?.addEventListener("change", (e) => {
     const target = e.target as HTMLInputElement;
     if (!target.matches('input[name^="round1-format"]')) return;
@@ -220,18 +255,16 @@ export function bindGroupAssignment(
     });
   });
 
-  container.querySelector("#confirm-group-btn")?.addEventListener("click", () => {
-    const selected = container.querySelector<HTMLInputElement>('input[name="group-split"]:checked');
-    if (!selected) return;
-    const nA = parseInt(selected.value);
-    const nB = n - nA;
-    void onConfirm({
-      nA,
-      nB,
-      setupA: readSelectedSetup("round1-format-a", nA),
-      setupB: nB >= 2 ? readSelectedSetup("round1-format-b", nB) : null,
-    });
+  confirmBtn?.addEventListener("click", () => {
+    const sel = readSelection();
+    if (!sel) return;
+    if (start && showsSaved()) void start.onStart();
+    else void onConfirm(sel);
   });
+}
+
+function sameSetup(a: RoundSetup | null, b: RoundSetup | null): boolean {
+  return a?.walkovers === b?.walkovers && a?.c3 === b?.c3 && a?.c2 === b?.c2;
 }
 
 export function renderGroupPreview(

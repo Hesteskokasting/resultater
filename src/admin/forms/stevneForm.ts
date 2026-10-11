@@ -1,7 +1,8 @@
 import { showToast } from "@/components/Toast";
 import { errorMessage } from "@/utils/errorMessage";
 import { confirmDialog } from "@/components/dialog/ConfirmDialog";
-import { isAdmin, isClubAdmin } from "@/services/authService";
+import { getUser } from "@/services/authService";
+import { canOrganize } from "@/utils/roles";
 import { escHtml } from "@/utils/escHtml";
 import { buildDropdownOptions } from "@/utils/dropdown";
 import { createSearchSelect } from "@/components/SearchSelect";
@@ -77,6 +78,9 @@ export async function mountTournamentForm(host: AdminFormHost, id?: number): Pro
     return;
   }
 
+  const auth = await getUser();
+  const isAdminUser = auth?.profil?.role === "admin";
+
   let tournament: TournamentAdminRow | null = null;
   if (id) {
     const { data, error } = await getTournamentForAdmin(id);
@@ -86,7 +90,7 @@ export async function mountTournamentForm(host: AdminFormHost, id?: number): Pro
     }
     tournament = data;
 
-    if (!(await isAdmin()) && !(await isClubAdmin(tournament.klubbid ?? undefined))) {
+    if (!canOrganize(auth, tournament.klubbid)) {
       container.replaceChildren(createErrorBanner("Ingen tilgang til dette stevnet."));
       return;
     }
@@ -113,7 +117,14 @@ export async function mountTournamentForm(host: AdminFormHost, id?: number): Pro
         ? (sncParent?.tid?.slice(0, 5) ?? "")
         : "11:00";
 
-  const clubOpt = buildDropdownOptions(clubs, v.klubbid);
+  // A klubbadmin organizes only their own club's stevner, so Arrangør is fixed.
+  const ownClub = auth?.club ?? null;
+  const clubOpt = isAdminUser
+    ? buildDropdownOptions(clubs, v.klubbid)
+    : buildDropdownOptions(
+        clubs.filter((k) => k.id === ownClub),
+        ownClub,
+      );
   const typeOpt = buildDropdownOptions(tournamentTypes, v.stevnetypeid);
   const initialOpt = buildDropdownOptions(initialMethods, v.innledendekastemetodeid);
   const finalOpt = buildDropdownOptions(finalMethods, v.avsluttendekastemetodeid);
@@ -149,7 +160,7 @@ export async function mountTournamentForm(host: AdminFormHost, id?: number): Pro
         ${formRowHtml("Tid", `<input type="time" class="form-control" name="tid" value="${timeValue}">`)}
       </div>
       <div class="admin-form-grid">
-        ${formRowHtml("Arrangørklubb", `<select class="form-select" name="klubbid">${clubOpt}</select>`)}
+        ${formRowHtml("Arrangørklubb", `<select class="form-select" name="klubbid"${isAdminUser ? "" : " disabled"}>${clubOpt}</select>`)}
         ${formRowHtml("Kontaktperson", `<span id="kontakt-slot"></span>`)}
       </div>
       <div class="admin-form-grid">
@@ -193,7 +204,7 @@ export async function mountTournamentForm(host: AdminFormHost, id?: number): Pro
       <div class="admin-form-actions">
         <button type="submit" class="btn btn-primary">Lagre</button>
         ${host.onCancel ? `<button type="button" id="cancel-button" class="btn btn-outline-secondary">Avbryt</button>` : ""}
-        ${id ? `<button type="button" id="delete-button" class="btn btn-outline-danger ms-auto">Slett stevne</button>` : ""}
+        ${id && isAdminUser ? `<button type="button" id="delete-button" class="btn btn-outline-danger ms-auto">Slett stevne</button>` : ""}
       </div>
     </form>`;
 
@@ -304,7 +315,7 @@ export async function mountTournamentForm(host: AdminFormHost, id?: number): Pro
         sted: (fd.get("sted") as string).trim() || null,
         dato: fd.get("dato") as string,
         tid: (fd.get("tid") as string) || null,
-        klubbid: formNum(fd.get("klubbid")),
+        klubbid: isAdminUser ? formNum(fd.get("klubbid")) : ownClub,
         stevnetypeid: isLocal
           ? (parent?.stevnetypeid ?? v.stevnetypeid ?? null)
           : formNum(fd.get("stevnetypeid")),

@@ -9,6 +9,9 @@ import { sideScore, getMatchSides, type MatchSide } from "@/utils/kamp/kamp";
 import { throwerNameShort } from "@/utils/kaster";
 import { escHtml } from "@/utils/escHtml";
 import { coalesceReload } from "@/utils/data/coalesceReload";
+import { unsubscribeChannel } from "@/utils/data/realtime";
+import { subscribeToMatchChanges } from "@/services/kampService";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import { bindExpandableRows, makeRowsFocusable } from "@/components/expandableRows";
 import type { Tables } from "@/types";
 import { createTable, type ColumnDef } from "@/components/Table";
@@ -399,6 +402,42 @@ export function createChangeHandler(
   };
 }
 
+/** Owns a phase renderer's realtime channel: one subscription per render, torn down on re-render or when the user leaves the tab. */
+export function createPhaseChannel(
+  channelName: (tournamentId: number) => string,
+  tabs: string[],
+  ownedSpelarIds: Set<number>,
+  fetchAndRenderFn: (container: HTMLElement, tournamentId: number) => Promise<void>,
+): {
+  start: (container: HTMLElement, tournamentId: number) => () => void;
+  stop: () => Promise<void>;
+} {
+  let channel: RealtimeChannel | null = null;
+  let onChange: (() => void) | null = null;
+
+  async function stop(): Promise<void> {
+    if (!channel) return;
+    const c = channel;
+    channel = null;
+    await unsubscribeChannel(c);
+  }
+
+  /** Idempotent; returns the coalesced reload so callers can queue their own writes through it. */
+  function start(container: HTMLElement, tournamentId: number): () => void {
+    if (channel && onChange) return onChange;
+    const handler = createChangeHandler(tournamentId, tabs, container, fetchAndRenderFn, () => {
+      void stop();
+    });
+    onChange = handler;
+    channel = subscribeToMatchChanges(tournamentId, channelName(tournamentId), handler, (id) =>
+      ownedSpelarIds.has(id),
+    );
+    return handler;
+  }
+
+  return { start, stop };
+}
+
 /** Writes the secondary meta line beside the stevne name in the banner. */
 export function setBannerMeta(bannerSlot: HTMLElement | null, text: string): void {
   const meta = bannerSlot
@@ -484,7 +523,7 @@ export function finalMenuItems(
     if (hasPreconfiguredFormat && allMatchesConfirmed)
       items.push({ id: "edit-group-assignment-btn", label: "Endre gruppefordeling" });
   } else if (hasGroupAssignment && !hasFinalMatches) {
-    items.push({ id: "edit-group-assignment-btn", label: "Endre gruppeinndeling" });
+    items.push({ id: "edit-group-assignment-btn", label: "Endre gruppefordeling" });
   }
 
   if (import.meta.env.VITE_ENV === "dev" && hasFinalMatches && !allMatchesConfirmed)

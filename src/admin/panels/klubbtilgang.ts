@@ -3,18 +3,17 @@ import { createEl } from "@/utils/createEl";
 import { errorMessage } from "@/utils/errorMessage";
 import { logError } from "@/utils/logError";
 import {
-  addClubAdminAccess,
   getClubAdminAssignments,
   getClubAdminUsers,
   getUserEmails,
-  removeClubAdminAccess,
+  setClubAdminClub,
 } from "@/services/adminService";
 import { getClubs } from "@/services/klubbService";
 import { createInlineAlert } from "../_adminUi";
 
 /**
- * Which clubs each klubbadmin may administer. One card per klubbadmin user with
- * their assigned clubs as removable chips.
+ * Which club each klubbadmin runs. One row per klubbadmin user with a club
+ * select; a klubbadmin has at most one club (UNIQUE on bruker_id).
  */
 export async function render(el: HTMLElement): Promise<void> {
   el.replaceChildren(createLoadingState("Laster tilgangar…"));
@@ -45,71 +44,39 @@ export async function render(el: HTMLElement): Promise<void> {
 
   const { data: emails } = await getUserEmails(users.map((u) => u.id));
   const emailMap = new Map((emails ?? []).map((r) => [r.id, r.epost] as const));
-  const clubMap = new Map(clubs.map((k) => [k.id, k.navn] as const));
-
-  const assigned = new Map<string, number[]>();
-  for (const row of assignments) {
-    assigned.set(row.bruker_id, [...(assigned.get(row.bruker_id) ?? []), row.klubbid]);
-  }
+  const assigned = new Map(assignments.map((row) => [row.bruker_id, row.klubbid] as const));
 
   const alert = createInlineAlert();
   const wrap = createEl("div", null, "admin-access-list");
 
-  async function mutate(action: Promise<{ error: unknown }>): Promise<void> {
-    alert.hide();
-    const { error } = await action;
-    if (error) {
-      alert.show(errorMessage(error));
-      return;
-    }
-    await render(el);
-  }
-
   for (const user of users) {
+    const email = emailMap.get(user.id) ?? user.id;
     const card = createEl("div", null, "admin-access-card");
-    card.appendChild(createEl("h4", emailMap.get(user.id) ?? user.id, "admin-access-card__title"));
+    card.appendChild(createEl("span", email, "admin-access-card__title"));
 
-    const chips = createEl("div", null, "admin-access-chips");
-    const userClubs = assigned.get(user.id) ?? [];
-    if (!userClubs.length) {
-      chips.appendChild(createEl("span", "Ingen klubbar tildelt", "admin-access-empty"));
-    }
-    for (const clubId of userClubs) {
-      const chip = createEl("span", null, "admin-chip");
-      chip.appendChild(createEl("span", clubMap.get(clubId) ?? `#${clubId}`));
-      const remove = createEl("button", "×", "admin-chip__remove");
-      remove.type = "button";
-      remove.setAttribute("aria-label", `Fjern ${clubMap.get(clubId) ?? "klubb"}`);
-      remove.addEventListener("click", () => {
-        void mutate(removeClubAdminAccess(user.id, clubId));
-      });
-      chip.appendChild(remove);
-      chips.appendChild(chip);
-    }
-    card.appendChild(chips);
-
-    const row = createEl("div", null, "admin-access-add");
     const select = createEl("select", null, "app-select admin-select");
-    select.setAttribute("aria-label", "Vel klubb");
-    const placeholder = createEl("option", "Legg til klubb…");
-    placeholder.value = "";
-    select.appendChild(placeholder);
+    select.setAttribute("aria-label", `Klubb for ${email}`);
+    const none = createEl("option", "Ingen klubb");
+    none.value = "";
+    select.appendChild(none);
     for (const club of clubs) {
-      if (userClubs.includes(club.id)) continue;
       const option = createEl("option", club.navn);
       option.value = String(club.id);
       select.appendChild(option);
     }
-    const addButton = createEl("button", "Legg til", "btn btn-sm btn-success");
-    addButton.type = "button";
-    addButton.addEventListener("click", () => {
-      const clubId = Number(select.value);
-      if (!clubId) return;
-      void mutate(addClubAdminAccess(user.id, clubId));
+    select.value = String(assigned.get(user.id) ?? "");
+    let saved = select.value;
+    select.addEventListener("change", async () => {
+      alert.hide();
+      const { error } = await setClubAdminClub(user.id, select.value ? Number(select.value) : null);
+      if (error) {
+        select.value = saved;
+        alert.show(errorMessage(error));
+        return;
+      }
+      saved = select.value;
     });
-    row.appendChild(select);
-    row.appendChild(addButton);
-    card.appendChild(row);
+    card.appendChild(select);
 
     wrap.appendChild(card);
   }

@@ -20,6 +20,7 @@ const mocks = vi.hoisted(() => {
   const rpc = vi.fn();
   let omgangRows: { kamp_spelar_id: number; score: number; antall_ringer: number }[] = [];
   let storedScores: { id: number; score_poeng: number }[] = [];
+  let storedKamp: unknown = null;
 
   function resultFor(call: Call): { data: unknown; error: unknown } {
     if (call.op === "update") {
@@ -28,6 +29,7 @@ const mocks = vi.hoisted(() => {
     }
     if (call.table === "kamp_omgang") return { data: omgangRows, error: null };
     if (call.table === "kamp_spelar") return { data: storedScores, error: null };
+    if (call.table === "kamp") return { data: storedKamp, error: null };
     return { data: [], error: null };
   }
 
@@ -53,6 +55,8 @@ const mocks = vi.hoisted(() => {
         call.filters.push([col, val]);
         return builder;
       },
+      abortSignal: () => builder,
+      maybeSingle: () => builder,
       // A Supabase query builder is awaited directly, so the fake has to be thenable
       // oxlint-disable-next-line unicorn/no-thenable
       then: (resolve: (r: unknown) => unknown) => resolve(resultFor(call)),
@@ -70,10 +74,25 @@ const mocks = vi.hoisted(() => {
     setStoredScores: (rows: typeof storedScores) => {
       storedScores = rows;
     },
+    setStoredKamp: (kamp: unknown) => {
+      storedKamp = kamp;
+    },
   };
 });
 
-vi.mock("@/supabase", () => ({ supabase: { from: mocks.from, rpc: mocks.rpc } }));
+vi.mock("@/supabase", () => ({
+  supabase: {
+    from: mocks.from,
+    rpc: (...args: unknown[]) => {
+      const result = mocks.rpc(...args) as Promise<unknown>;
+      return {
+        abortSignal: () => result,
+        // oxlint-disable-next-line unicorn/no-thenable
+        then: (resolve: (r: unknown) => unknown) => result.then(resolve),
+      };
+    },
+  },
+}));
 vi.mock("@/utils/logError", () => ({ logError: vi.fn() }));
 
 import { confirmMatch, toConfirmSide } from "@/services/kampService";
@@ -116,6 +135,7 @@ beforeEach(() => {
   mocks.rpc.mockResolvedValue({ data: true, error: null });
   mocks.setOmgangar([]);
   mocks.setStoredScores([]);
+  mocks.setStoredKamp(null);
 });
 
 describe("confirmMatch — innledende", () => {
@@ -134,8 +154,14 @@ describe("confirmMatch — innledende", () => {
     expect(mocks.rpc).toHaveBeenCalledWith("bekreft_innledende_kamp", {
       p_kamp_id: 5,
       p_scores: [
-        { kamp_spelar_id: P1, score_poeng: 16, kamp_poeng: 2, antall_ringer: 5 },
-        { kamp_spelar_id: P2, score_poeng: 9, kamp_poeng: 0, antall_ringer: 2 },
+        {
+          kamp_spelar_id: P1,
+          score_poeng: 16,
+          kamp_poeng: 2,
+          antall_ringer: 5,
+          kamp_plassering: 1,
+        },
+        { kamp_spelar_id: P2, score_poeng: 9, kamp_poeng: 0, antall_ringer: 2, kamp_plassering: 2 },
       ],
     });
   });
@@ -166,8 +192,20 @@ describe("confirmMatch — innledende", () => {
     expect(mocks.rpc).toHaveBeenCalledWith("bekreft_innledende_kamp", {
       p_kamp_id: 5,
       p_scores: [
-        { kamp_spelar_id: P1, score_poeng: 21, kamp_poeng: 2, antall_ringer: 0 },
-        { kamp_spelar_id: P2, score_poeng: 13, kamp_poeng: 1, antall_ringer: 0 },
+        {
+          kamp_spelar_id: P1,
+          score_poeng: 21,
+          kamp_poeng: 2,
+          antall_ringer: 0,
+          kamp_plassering: 1,
+        },
+        {
+          kamp_spelar_id: P2,
+          score_poeng: 13,
+          kamp_poeng: 1,
+          antall_ringer: 0,
+          kamp_plassering: 2,
+        },
       ],
     });
   });
@@ -201,6 +239,51 @@ describe("confirmMatch — innledende", () => {
 
     expect((error as Error).message).toMatch(/stadfesta/);
   });
+
+  it("keeps the already-confirmed error when the stored scores differ", async () => {
+    mocks.setOmgangar(THREE_ROUNDS);
+    mocks.setStoredKamp({
+      er_bekreftet: true,
+      spelarar: [
+        { id: P1, score_poeng: 9 },
+        { id: P2, score_poeng: 16 },
+      ],
+    });
+    mocks.rpc.mockResolvedValue({ data: false, error: null });
+    const sides = [side(P1, K1), side(P2, K2)].map((s) => toConfirmSide(s));
+
+    const { error } = await confirmMatch({ kampId: 5, sides, outcome: { type: "innledende" } });
+
+    expect((error as Error).message).toMatch(/stadfesta/);
+  });
+
+  it("succeeds when the response was lost but the confirm landed", async () => {
+    mocks.setOmgangar(THREE_ROUNDS);
+    mocks.setStoredKamp({
+      er_bekreftet: true,
+      spelarar: [
+        { id: P1, score_poeng: 16 },
+        { id: P2, score_poeng: 9 },
+      ],
+    });
+    mocks.rpc.mockResolvedValue({ data: null, error: { message: "TypeError: Failed to fetch" } });
+    const sides = [side(P1, K1), side(P2, K2)].map((s) => toConfirmSide(s));
+
+    const { error } = await confirmMatch({ kampId: 5, sides, outcome: { type: "innledende" } });
+
+    expect(error).toBeNull();
+  });
+
+  it("keeps a network error when the match is still unconfirmed", async () => {
+    mocks.setOmgangar(THREE_ROUNDS);
+    mocks.setStoredKamp({ er_bekreftet: false, spelarar: [] });
+    mocks.rpc.mockResolvedValue({ data: null, error: { message: "TypeError: Failed to fetch" } });
+    const sides = [side(P1, K1), side(P2, K2)].map((s) => toConfirmSide(s));
+
+    const { error } = await confirmMatch({ kampId: 5, sides, outcome: { type: "innledende" } });
+
+    expect(error).toEqual({ message: "TypeError: Failed to fetch" });
+  });
 });
 
 describe("confirmMatch — cup", () => {
@@ -211,12 +294,12 @@ describe("confirmMatch — cup", () => {
     await confirmMatch({
       kampId: 7,
       sides,
-      outcome: { type: "cup-derived", orderedKasterids: null },
+      outcome: { type: "cup-derived" },
     });
 
     expect(scoreUpdates().map((c) => [c.filters[0]?.[1], c.payload])).toEqual([
-      [P1, { score_poeng: 16, kamp_poeng: 2, antall_ringer: 5 }],
-      [P2, { score_poeng: 9, kamp_poeng: 0, antall_ringer: 2 }],
+      [P1, { score_poeng: 16, kamp_poeng: 2, antall_ringer: 5, kamp_plassering: 1 }],
+      [P2, { score_poeng: 9, kamp_poeng: 0, antall_ringer: 2, kamp_plassering: 2 }],
     ]);
     expect(mocks.rpc).toHaveBeenCalledWith("bekreft_avsluttende_kamp_deltakar", {
       p_kamp_id: 7,
@@ -228,44 +311,30 @@ describe("confirmMatch — cup", () => {
     mocks.setOmgangar(THREE_ROUNDS);
     const sides = [side(P1, K1), side(P2, K2)].map((s) => toConfirmSide(s));
 
-    await confirmMatch({
+    const { error } = await confirmMatch({
       kampId: 7,
       sides,
-      outcome: {
-        type: "cup-ranked",
-        stevneId: 3,
-        roundNumber: 2,
-        roundName: "Kvartfinale",
-        allThrowerIds: [K1, K2],
-        eliminatedIds: [K2],
-        advancingSides: [[K1]],
-      },
+      outcome: { type: "cup-ranked", eliminatedIds: [K2], advancingSides: [[K1]] },
     });
 
-    // The scores still come from the omgangar, not from the ranking
-    expect(scoreUpdates().map((c) => c.payload)).toEqual([
-      { score_poeng: 16, kamp_poeng: 2, antall_ringer: 5 },
-      { score_poeng: 9, kamp_poeng: 0, antall_ringer: 2 },
-    ]);
-
-    const placements = mocks.calls.filter(
-      (c) => c.op === "update" && "kamp_plassering" in (c.payload as object),
-    );
-    expect(placements.map((c) => [c.payload, c.filters])).toEqual([
-      [
-        { kamp_plassering: 1 },
-        [
-          ["kampid", 7],
-          ["kasterid", K1],
-        ],
+    expect(error).toBeNull();
+    // One RPC does every write; the scores still come from the omgangar
+    expect(scoreUpdates()).toEqual([]);
+    expect(mocks.rpc).toHaveBeenCalledWith("bekreft_avsluttende_kamp_rangert", {
+      p_kamp_id: 7,
+      p_scores: [
+        {
+          kamp_spelar_id: P1,
+          score_poeng: 16,
+          kamp_poeng: 2,
+          antall_ringer: 5,
+          kamp_plassering: 1,
+        },
+        { kamp_spelar_id: P2, score_poeng: 9, kamp_poeng: 0, antall_ringer: 2, kamp_plassering: 2 },
       ],
-      [
-        { kamp_plassering: 2 },
-        [
-          ["kampid", 7],
-          ["kasterid", K2],
-        ],
-      ],
-    ]);
+      p_vidare: [[K1]],
+      p_eliminert: [K2],
+      p_slett_omgangar: false,
+    });
   });
 });

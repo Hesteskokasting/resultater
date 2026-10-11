@@ -10,7 +10,7 @@ function authWith(status: LinkStatus, kasterid: number | null, role: Role = "bru
   return {
     user: { id: "u1" } as User,
     profil: { role, kasterid, kobling_status: status, kobling_kasterid: null },
-    clubs: [],
+    club: null,
   };
 }
 
@@ -52,10 +52,8 @@ describe("registrationCtaLink", () => {
     expect(registrationCtaLink(77, authWith("venter", null, "admin"))).toBeUndefined();
   });
 
-  it("still nudges an unlinked klubbadmin, who is usually a thrower too", () => {
-    expect(registrationCtaLink(77, authWith("ingen", null, "klubbadmin"))!.label).toBe(
-      "Koble profil for å melde på",
-    );
+  it("does not nudge a klubbadmin, who can never be linked to a thrower", () => {
+    expect(registrationCtaLink(77, authWith("ingen", null, "klubbadmin"))).toBeUndefined();
   });
 
   it("gives every state a tooltip that adds to the label rather than repeating it", () => {

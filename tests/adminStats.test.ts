@@ -1,5 +1,4 @@
 import {
-  countRegistrationsPerMonth,
   countThrowersPerClub,
   countTournamentsPerYear,
   participantsPerYearSeries,
@@ -46,23 +45,6 @@ describe("countTournamentsPerYear", () => {
   });
 });
 
-describe("countRegistrationsPerMonth", () => {
-  it("always returns 12 months and counts only the requested year", () => {
-    const rows = [
-      { opprettet_at: "2026-01-15T10:00:00Z" },
-      { opprettet_at: "2026-01-20T10:00:00Z" },
-      { opprettet_at: "2026-08-01T10:00:00Z" },
-      { opprettet_at: "2025-08-01T10:00:00Z" },
-      { opprettet_at: null },
-    ];
-    const result = countRegistrationsPerMonth(rows, 2026);
-    expect(result).toHaveLength(12);
-    expect(result[0]?.count).toBe(2);
-    expect(result[7]?.count).toBe(1);
-    expect(result.reduce((sum, r) => sum + r.count, 0)).toBe(3);
-  });
-});
-
 describe("countThrowersPerClub", () => {
   const club = (navn: string | null) => ({ klubb: navn === null ? null : { navn } });
 
@@ -98,7 +80,7 @@ describe("participantsPerYearSeries", () => {
 });
 
 describe("summarizeTournaments", () => {
-  it("splits completed, ongoing and upcoming", () => {
+  it("splits completed and upcoming, leaving running ones out", () => {
     const rows = [
       { dato: "2026-01-01", erfullfort: true, stevne_fase: "avsluttende" },
       { dato: "2026-08-02", erfullfort: false, stevne_fase: "innledende" },
@@ -108,7 +90,6 @@ describe("summarizeTournaments", () => {
     expect(summarizeTournaments(rows, "2026-08-02")).toEqual({
       total: 4,
       completed: 1,
-      ongoing: 1,
       upcoming: 1,
     });
   });

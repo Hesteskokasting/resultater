@@ -74,9 +74,11 @@
 @import "./css/stevne/xkast-kongelag.css";
 
 /* Admin */
+@import "./css/admin/brukarar.css";
 @import "./css/admin/forms.css";
 @import "./css/admin/klubbtilgang.css";
 @import "./css/admin/shell.css";
+@import "./css/admin/table.css";
 @import "./css/admin/ui.css";
 
 /* Print */

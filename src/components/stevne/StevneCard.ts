@@ -1,6 +1,7 @@
 import { escHtml } from "@/utils/escHtml";
 import { liveDotHtml } from "@/components/LivePill";
 import { linkedThrowerId } from "@/utils/kaster";
+import { isOrganizerRole } from "@/utils/roles";
 import {
   formatDateLong,
   formatDateWeekday,
@@ -58,10 +59,9 @@ export function registrationCtaLink(
   auth: AuthUser | null,
 ): StevneCardActionLink | undefined {
   if (linkedThrowerId(auth) !== null) return undefined;
-  // An admin account runs stevner rather than entering them, so asking it to link
-  // a thrower profile is pure noise. Klubbadmin is deliberately left out: those
-  // are club people who usually throw as well, so the nudge still answers them.
-  if (auth?.profil?.role === "admin") return undefined;
+  // Organizers run stevner rather than entering them, and cannot be linked to a
+  // thrower at all, so the nudge would be pure noise.
+  if (isOrganizerRole(auth?.profil?.role)) return undefined;
   if (!auth) {
     return {
       href: `#/logginn?redirect=${encodeURIComponent(`/stevne/${tournamentId}/info`)}`,

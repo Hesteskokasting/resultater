@@ -8,35 +8,34 @@ import { errorMessage } from "@/utils/errorMessage";
 import { formatDate } from "@/utils/date";
 import { throwerName, throwerNameLastFirst } from "@/utils/kaster";
 import { getAllUsers, updateLinkStatus, updateUserRole } from "@/services/adminService";
-import { getAllThrowerList } from "@/services/kasterService";
+import { getActiveThrowerList } from "@/services/kasterService";
 import { deleteUserAccount } from "@/services/accountService";
 import { getUser } from "@/services/authService";
 import {
-  createAdminList,
+  createActionEl,
+  createBadge,
   createInlineAlert,
   createLabelledSelect,
   createToolbar,
   flashSaved,
 } from "../_adminUi";
-import type { AdminBadge, AdminListItem } from "../_adminUi";
+import type { AdminBadge } from "../_adminUi";
+import { createAdminTable, createBulkBar } from "../_adminTable";
 import { loadUserLookups } from "./_userLookups";
-
-const ROLES = ["bruker", "klubbadmin", "admin"] as const;
-
-const ROLE_LABEL: Record<string, string> = {
-  bruker: "Brukar",
-  klubbadmin: "Klubbadmin",
-  admin: "Admin",
-};
+import { canLinkThrower, isRole, ROLE_LABEL, ROLES } from "@/utils/roles";
 
 const LINK_BADGE: Record<string, AdminBadge> = {
   godkjent: { text: "Kobla", tone: "ok" },
+  ingen: { text: "Ikkje kobla", tone: "muted" },
   venter: { text: "Ventar", tone: "warn" },
   avvist: { text: "Avvist", tone: "danger" },
-  ingen: { text: "Ikkje kobla", tone: "muted" },
 };
 
-const filter = { searchText: "", role: "alle" };
+const ROLE_OPTIONS = ROLES.map((r) => ({ value: r, text: ROLE_LABEL[r] }));
+
+const roleLabel = (role: string): string => (isRole(role) ? ROLE_LABEL[role] : role);
+
+const filter = { searchText: "", role: "alle", link: "alle" };
 
 export async function render(el: HTMLElement): Promise<void> {
   el.replaceChildren(createLoadingState("Laster brukarar…"));
@@ -44,7 +43,7 @@ export async function render(el: HTMLElement): Promise<void> {
   const [{ data, error }, auth, { data: throwers, error: throwerError }] = await Promise.all([
     getAllUsers(),
     getUser(),
-    getAllThrowerList(),
+    getActiveThrowerList(),
   ]);
   // Without the register the row pickers would render blank next to a link that
   // is actually set, so a failure here stops the panel rather than misreporting.
@@ -58,12 +57,13 @@ export async function render(el: HTMLElement): Promise<void> {
     return;
   }
 
+  type User = (typeof data)[number];
+
   const ownId = auth?.user.id ?? null;
 
   const throwerOptions = throwers.map((k) => ({
     id: k.id,
-    active: k.eraktiv ?? false,
-    label: throwerNameLastFirst(k) + (k.eraktiv ? "" : " (inaktiv)"),
+    label: throwerNameLastFirst(k),
     sublabel: k.klubb?.navn ?? null,
   }));
 
@@ -74,20 +74,35 @@ export async function render(el: HTMLElement): Promise<void> {
     ),
   );
 
+  const linkOf = (user: User): number | null => user.kasterid ?? user.kobling_kasterid;
+  const emailOf = (user: User): string => emailMap.get(user.id) ?? user.id;
+
+  const selected = new Set<string>();
+
   const alert = createInlineAlert();
   const countEl = createEl("span", null, "admin-count");
   const listSlot = createEl("div", null);
 
   const roleSelect = createLabelledSelect(
     "Filtrer på rolle",
-    [
-      { value: "alle", text: "Alle roller" },
-      ...ROLES.map((r) => ({ value: r, text: ROLE_LABEL[r] ?? r })),
-    ],
+    [{ value: "alle", text: "Alle roller" }, ...ROLE_OPTIONS],
     filter.role,
   );
   roleSelect.addEventListener("change", () => {
     filter.role = roleSelect.value;
+    update();
+  });
+
+  const linkSelect = createLabelledSelect(
+    "Filtrer på kobling",
+    [
+      { value: "alle", text: "Alle statusar" },
+      ...Object.entries(LINK_BADGE).map(([value, badge]) => ({ value, text: badge.text })),
+    ],
+    filter.link,
+  );
+  linkSelect.addEventListener("change", () => {
+    filter.link = linkSelect.value;
     update();
   });
 
@@ -97,14 +112,110 @@ export async function render(el: HTMLElement): Promise<void> {
     onInput: () => update(),
   });
 
+  // ── Bulk actions ───────────────────────────────────────────────────────────
+
+  const bulkRole = createLabelledSelect("Ny rolle for valde", ROLE_OPTIONS, "bruker");
+  const bulk = createBulkBar([
+    bulkRole,
+    { label: "Sett rolle", onClick: () => void bulkSetRole() },
+    { label: "Fjern kobling", onClick: () => void bulkUnlink() },
+    { label: "Slett", variant: "outline-danger", onClick: () => void bulkDelete() },
+  ]);
+
+  const selectedUsers = (): User[] => data.filter((u) => selected.has(u.id));
+
+  /** Runs the writes side by side, then reloads so every row shows the stored state. */
+  async function runAll(writes: Promise<{ error: unknown }>[], done: string): Promise<void> {
+    alert.hide();
+    const failed = (await Promise.all(writes)).find((r) => r.error);
+    if (failed) alert.show(errorMessage(failed.error));
+    else showToast(done, "success");
+    await render(el);
+  }
+
+  async function bulkSetRole(): Promise<void> {
+    const role = bulkRole.value;
+    const mustUnlink = (u: User): boolean => !canLinkThrower(role) && linkOf(u) != null;
+    const targets = selectedUsers().filter((u) => u.rolle !== role || mustUnlink(u));
+    if (!targets.length) {
+      showToast(`Alle valde er allereie ${roleLabel(role)}.`, "info");
+      return;
+    }
+    const unlinkCount = targets.filter((u) => mustUnlink(u)).length;
+    if (
+      unlinkCount &&
+      !(await confirmDialog({
+        title: "Sett rolle",
+        message: `${roleLabel(role)} kan ikkje ha utøvarkobling. Koblinga blir fjerna for ${unlinkCount} brukar(ar), også ventande førespurnader.`,
+        confirmText: "Sett rolle",
+      }))
+    )
+      return;
+    // Per user the link goes before the role, or the database check refuses a
+    // linked admin; users themselves run side by side.
+    await runAll(
+      targets.map(async (u) => {
+        if (mustUnlink(u)) {
+          const unlinked = await updateLinkStatus(u.id, null, "ingen");
+          if (unlinked.error) return unlinked;
+        }
+        return u.rolle === role ? { error: null } : updateUserRole(u.id, role);
+      }),
+      "Rolla er oppdatert.",
+    );
+  }
+
+  async function bulkUnlink(): Promise<void> {
+    const targets = selectedUsers().filter((u) => linkOf(u) != null);
+    if (!targets.length) {
+      showToast("Ingen av dei valde er kobla.", "info");
+      return;
+    }
+    if (
+      !(await confirmDialog({
+        title: "Fjern kobling",
+        message: `Fjern utøvarkoblinga for ${targets.length} brukar(ar)? Ventande førespurnader blir også fjerna.`,
+        confirmText: "Fjern kobling",
+      }))
+    )
+      return;
+    await runAll(
+      targets.map((u) => updateLinkStatus(u.id, null, "ingen")),
+      "Koblinga er fjerna.",
+    );
+  }
+
+  async function bulkDelete(): Promise<void> {
+    // Your own account is deleted from Min side → Konto, never from here.
+    const targets = selectedUsers().filter((u) => u.id !== ownId);
+    if (!targets.length) {
+      showToast("Du kan ikkje slette din eigen konto her.", "info");
+      return;
+    }
+    if (
+      !(await confirmDialog({
+        title: "Slett brukarkontoar",
+        message: `Slett innlogginga til ${targets.length} brukar(ar)? Utøvarprofilar og resultat blir verande. Dette kan ikkje angrast.`,
+        confirmText: "Slett kontoar",
+        danger: true,
+      }))
+    )
+      return;
+    await runAll(
+      targets.map((u) => deleteUserAccount(u.id)),
+      "Brukarkontoane er sletta.",
+    );
+  }
+
+  // ── Rows ───────────────────────────────────────────────────────────────────
+
   /**
    * Deletes the login account only. The thrower profile stays, along with every
    * result and registration attached to it — this removes a way in, not a
    * person's history — so the confirm text says so plainly.
    */
-  async function removeAccount(user: (typeof data)[number], email: string): Promise<void> {
-    // Same resolution as the row itself, so the dialog names the utøvar shown.
-    const linkedId = user.kasterid ?? user.kobling_kasterid;
+  async function removeAccount(user: User): Promise<void> {
+    const linkedId = linkOf(user);
     const thrower = linkedId ? throwerMap.get(linkedId) : null;
     const kept = thrower
       ? `Utøvarprofilen «${throwerName(thrower)}» og alle resultat blir verande.`
@@ -112,7 +223,7 @@ export async function render(el: HTMLElement): Promise<void> {
 
     const confirmed = await confirmDialog({
       title: "Slett brukarkonto",
-      message: `Slett innlogginga til ${email}? ${kept} Dette kan ikkje angrast.`,
+      message: `Slett innlogginga til ${emailOf(user)}? ${kept} Dette kan ikkje angrast.`,
       confirmText: "Slett konto",
       danger: true,
     });
@@ -128,18 +239,50 @@ export async function render(el: HTMLElement): Promise<void> {
     await render(el);
   }
 
-  function buildItem(user: (typeof data)[number]): AdminListItem {
-    const linkedId = user.kasterid ?? user.kobling_kasterid;
-    const thrower = linkedId ? throwerMap.get(linkedId) : null;
-    const status = user.kobling_status || "ingen";
-    const email = emailMap.get(user.id) ?? user.id;
-    const isSelf = user.id === ownId;
+  function emailCell(user: User): HTMLElement {
+    const cell = createEl("div", null, "user-table__email");
+    cell.append(createEl("span", emailOf(user)));
+    if (user.id === ownId) cell.append(createBadge({ text: "Deg", tone: "ok" }));
+    return cell;
+  }
 
-    const select = createLabelledSelect(
-      "Rolle",
-      ROLES.map((r) => ({ value: r, text: ROLE_LABEL[r] ?? r })),
-      user.rolle,
-    );
+  function linkCell(user: User): HTMLElement {
+    const cell = createEl("div", null, "user-table__link");
+    const linkedId = linkOf(user);
+    // A non-linkable role has nothing to report unless old data still carries a link.
+    if (!canLinkThrower(user.rolle) && linkedId == null) {
+      cell.append(createEl("span", "—", "admin-table__muted"));
+      return cell;
+    }
+    const thrower = linkedId ? throwerMap.get(linkedId) : null;
+    if (thrower) cell.append(createEl("span", throwerName(thrower)));
+    const status = user.kobling_status || "ingen";
+    cell.append(createBadge(LINK_BADGE[status] ?? { text: status }));
+    return cell;
+  }
+
+  interface RowEditor {
+    role: HTMLSelectElement;
+    link: HTMLElement;
+    actions: HTMLElement;
+  }
+
+  // Role, link and Lagre share state, so a selected row builds them once and
+  // its three cells each take their part.
+  const editors = new Map<string, RowEditor>();
+
+  function editorFor(user: User): RowEditor {
+    let editor = editors.get(user.id);
+    if (!editor) {
+      editor = buildEditor(user);
+      editors.set(user.id, editor);
+    }
+    return editor;
+  }
+
+  function buildEditor(user: User): RowEditor {
+    const linkedId = linkOf(user);
+    const select = createLabelledSelect("Rolle", ROLE_OPTIONS, user.rolle);
 
     // Throwers already linked to someone else are left out: the database does
     // not stop two profiles claiming the same one, so the picker is the only
@@ -147,107 +290,151 @@ export async function render(el: HTMLElement): Promise<void> {
     // carries the requested id in kobling_kasterid, and treating that as taken
     // hid the thrower a row is actually linked to.
     const taken = new Set(data.filter((u) => u.id !== user.id).map((u) => u.kasterid));
-    // This row's own link always stays in the list, whatever its state, so the
-    // field names it instead of looking empty. Inactive throwers are not offered.
+    const items = throwerOptions.filter((k) => k.id === linkedId || !taken.has(k.id));
+    // Only active throwers are fetched. A link to an inactive one is added from
+    // the lookup so the field names it instead of looking empty.
+    const own = linkedId != null ? throwerMap.get(linkedId) : undefined;
+    if (own && !items.some((k) => k.id === own.id)) {
+      items.unshift({
+        id: own.id,
+        label: `${throwerNameLastFirst(own)} (inaktiv)`,
+        sublabel: own.klubb?.navn ?? null,
+      });
+    }
     const picker = createSearchSelect({
-      items: throwerOptions.filter((k) => k.id === linkedId || (k.active && !taken.has(k.id))),
+      items,
       value: linkedId,
-      placeholder: "Ingen utøvarkobling",
+      placeholder: "Søk utøvar…",
       clearLabel: "Fjern kobling",
     });
 
-    const controls = createEl("div", null, "admin-row__controls");
-    controls.append(select, picker.el);
+    function lockPicker(): void {
+      const locked = !canLinkThrower(select.value);
+      if (locked) picker.setValue(null);
+      picker.input.disabled = locked;
+      picker.input.placeholder = locked ? "Berre for Brukar" : "Søk utøvar…";
+    }
+    select.addEventListener("change", lockPicker);
+    lockPicker();
 
-    const badges = [LINK_BADGE[status] ?? { text: status, tone: "muted" as const }];
-    if (isSelf) badges.push({ text: "Deg", tone: "ok" });
+    async function saveRow(button: HTMLButtonElement): Promise<void> {
+      const role = select.value;
+      const picked = picker.getValue();
+      if (
+        !canLinkThrower(role) &&
+        linkedId != null &&
+        !(await confirmDialog({
+          title: "Endre rolle",
+          message: `${roleLabel(role)} kan ikkje ha utøvarkobling. Koblinga til ${emailOf(user)} blir fjerna, også ein ventande førespurnad.`,
+          confirmText: "Lagre",
+        }))
+      )
+        return;
 
-    return {
-      title: email,
-      meta: [
-        thrower ? throwerName(thrower) : "Ingen utøvarkobling",
-        user.opprettet_at ? `Registrert ${formatDate(user.opprettet_at.slice(0, 10))}` : null,
-      ],
-      badges,
-      control: controls,
-      actions: [
-        {
-          label: "Lagre",
-          variant: "primary",
-          onClick: (button) => {
-            void (async () => {
-              alert.hide();
-              if (select.value !== user.rolle) {
-                const { error: roleError } = await updateUserRole(user.id, select.value);
-                if (roleError) {
-                  alert.show(errorMessage(roleError));
-                  return;
-                }
-                user.rolle = select.value;
-              }
+      const writeRole = () =>
+        role === user.rolle ? Promise.resolve({ error: null }) : updateUserRole(user.id, role);
+      // An approved link is written straight away — no request queue —
+      // and clearing it puts the profile back to unlinked.
+      const writeLink = () =>
+        picked === linkedId
+          ? Promise.resolve({ error: null })
+          : updateLinkStatus(user.id, picked, picked == null ? "ingen" : "godkjent");
 
-              const picked = picker.getValue();
-              if (picked === linkedId) {
-                flashSaved(button, "Lagre");
-                return;
-              }
-              // An approved link is written straight away — no request queue —
-              // and clearing it puts the profile back to unlinked.
-              const { error: linkError } = await updateLinkStatus(
-                user.id,
-                picked,
-                picked == null ? "ingen" : "godkjent",
-              );
-              if (linkError) {
-                alert.show(errorMessage(linkError));
-                return;
-              }
-              // The badge and the meta line both name the old link; re-render
-              // rather than patch them one by one.
-              await render(el);
-            })();
-          },
-        },
-        // Your own account is deleted from Min side → Konto, where the sign-out
-        // that follows is expected; doing it from here would log the admin out
-        // mid-task.
-        ...(isSelf
-          ? []
-          : [
-              {
-                label: "Slett",
-                variant: "outline-danger",
-                title: "Slettar berre innlogginga — utøvarprofilen blir verande",
-                onClick: () => {
-                  void removeAccount(user, email);
-                },
-              },
-            ]),
-      ],
-    };
+      if (role === user.rolle && picked === linkedId) {
+        flashSaved(button, "Lagre");
+        return;
+      }
+
+      alert.hide();
+      // The database only lets a brukar hold a link, so the role goes first when
+      // it becomes linkable and last when it stops being so.
+      const steps = canLinkThrower(role) ? [writeRole, writeLink] : [writeLink, writeRole];
+      for (const step of steps) {
+        const { error: writeError } = await step();
+        if (writeError) {
+          alert.show(errorMessage(writeError));
+          return;
+        }
+      }
+      await render(el);
+    }
+
+    const actions = createEl("div", null, "admin-table__buttons");
+    actions.append(
+      createActionEl({ label: "Lagre", variant: "primary", onClick: (b) => void saveRow(b) }),
+    );
+    // Your own account is deleted from Min side → Konto, where the sign-out
+    // that follows is expected; doing it from here would log the admin out
+    // mid-task.
+    if (user.id !== ownId) {
+      actions.append(
+        createActionEl({
+          label: "Slett",
+          variant: "outline-danger",
+          title: "Slettar berre innlogginga — utøvarprofilen blir verande",
+          onClick: () => void removeAccount(user),
+        }),
+      );
+    }
+    return { role: select, link: picker.el, actions };
   }
 
   function update(): void {
     const query = filter.searchText.trim().toLowerCase();
-    const rows = data.filter((user) => {
+    const visible = data.filter((user) => {
       if (filter.role !== "alle" && user.rolle !== filter.role) return false;
+      if (filter.link !== "alle" && (user.kobling_status || "ingen") !== filter.link) return false;
       if (!query) return true;
-      const linkedId = user.kasterid ?? user.kobling_kasterid;
+      const linkedId = linkOf(user);
       const name = linkedId ? throwerName(throwerMap.get(linkedId)) : "";
-      return (
-        (emailMap.get(user.id) ?? "").toLowerCase().includes(query) ||
-        name.toLowerCase().includes(query)
-      );
+      return emailOf(user).toLowerCase().includes(query) || name.toLowerCase().includes(query);
     });
+    // Bulk actions only reach rows the admin can see.
+    const shown = new Set(visible.map((u) => u.id));
+    for (const id of selected) if (!shown.has(id)) selected.delete(id);
+    editors.clear();
 
-    countEl.textContent = `${rows.length} av ${data.length} brukarar`;
+    countEl.textContent = `${visible.length} av ${data.length} brukarar`;
     listSlot.replaceChildren(
-      rows.length
-        ? createAdminList(rows.map((r) => buildItem(r)))
+      visible.length
+        ? createAdminTable({
+            rows: visible,
+            key: (u) => u.id,
+            rowLabel: emailOf,
+            selected,
+            onSelectionChange: () => bulk.update(selected.size),
+            columns: [
+              { header: "E-post", cell: emailCell },
+              {
+                header: "Registrert",
+                className: "admin-table__date",
+                cell: (u) => (u.opprettet_at ? formatDate(u.opprettet_at.slice(0, 10)) : ""),
+              },
+              {
+                header: "Rolle",
+                cell: (u, sel) => {
+                  // Leftmost editor cell, so a deselected row drops its editor here.
+                  if (!sel) editors.delete(u.id);
+                  return sel ? editorFor(u).role : roleLabel(u.rolle);
+                },
+              },
+              { header: "Kobling", cell: (u, sel) => (sel ? editorFor(u).link : linkCell(u)) },
+              {
+                header: "",
+                className: "admin-table__actions",
+                cell: (u, sel) => (sel ? editorFor(u).actions : ""),
+              },
+            ],
+          })
         : createEmptyState("Ingen treff."),
     );
+    bulk.update(selected.size);
   }
 
-  el.replaceChildren(alert.el, createToolbar([search, roleSelect, countEl]), listSlot);
+  el.replaceChildren(
+    alert.el,
+    createToolbar([search, roleSelect, linkSelect, countEl, bulk.el]),
+    listSlot,
+  );
   update();
 }

@@ -72,7 +72,9 @@ export async function render(
 
     const stevne = stevneRes.data;
     const phase = stevne.stevne_fase ?? null;
-    const isNotStarted = phase === null || phase === "ikke_startet";
+    // erfullfort overrides the phase: a stevne can be closed without ever leaving
+    // 'ikke_startet' (results imported elsewhere), and closed is never open for registration.
+    const isNotStarted = !stevne.erfullfort && (phase === null || phase === "ikke_startet");
     const methodName = stevne.kastemetodeInnl?.navn ?? "—";
     const isCascade = isCascadeMethodName(methodName);
     // Gloppen and NHM both generate against stevne.antall_runder_innl

@@ -14,6 +14,7 @@ git commit -am "update version to 0.9.13"
 git push
 
 # 3. Open the PR and read the diff
+git fetch origin main
 gh pr create --base main --head dev --fill
 gh pr view --web
 

@@ -19,7 +19,6 @@ export interface TournamentStatRow {
 export interface TournamentSummary {
   total: number;
   completed: number;
-  ongoing: number;
   upcoming: number;
 }
 
@@ -74,14 +73,6 @@ export function countPerMonth<T>(
   }));
 }
 
-/** Registrations per month, by `opprettet_at`. */
-export function countRegistrationsPerMonth(
-  rows: { opprettet_at: string | null }[],
-  year: number,
-): LabelCount[] {
-  return countPerMonth(rows, year, (row) => row.opprettet_at);
-}
-
 /**
  * The `top` biggest clubs by member count, descending. Throwers without a club
  * are grouped under `noClubLabel` and always sort with the rest (a large
@@ -123,24 +114,24 @@ export function participantsPerYearSeries(
 }
 
 /**
- * Status split for a set of tournaments. "Ongoing" is driven by `stevne_fase`
- * (the same signal the live cards use); anything dated in the future that isn't
- * finished or running counts as upcoming.
+ * Status split for a set of tournaments. Anything dated in the future that isn't
+ * finished or running (`stevne_fase` set) counts as upcoming.
  */
 export function summarizeTournaments(rows: TournamentStatRow[], today: string): TournamentSummary {
   let completed = 0;
-  let ongoing = 0;
   let upcoming = 0;
 
   for (const row of rows) {
     if (row.erfullfort) {
       completed++;
-    } else if (row.stevne_fase === "innledende" || row.stevne_fase === "avsluttende") {
-      ongoing++;
-    } else if ((row.dato ?? "") >= today) {
+    } else if (
+      row.stevne_fase !== "innledende" &&
+      row.stevne_fase !== "avsluttende" &&
+      (row.dato ?? "") >= today
+    ) {
       upcoming++;
     }
   }
 
-  return { total: rows.length, completed, ongoing, upcoming };
+  return { total: rows.length, completed, upcoming };
 }

@@ -53,7 +53,7 @@ docker context ls      # den aktive contexten (merka med *) skal vere desktop-li
 
 Viss `docker version`/`docker info` ikkje viser eit `Server`-svar, er ikkje WSL-integrasjonen slått på for distroen din — gå tilbake til Docker Desktop-innstillinga over.
 
-**Viktig:** Den lokale Supabase-stacken (`vp exec supabase start`, `vp run test:db`) må køyrast **frå ein WSL-shell**, ikkje frå PowerShell/CMD. Supabase CLI-en oppdagar at køyringa skjer på Windows-verten og krev då at Docker-daemonen er eksponert på `tcp://localhost:2375` — noko som gjer at `analytics`- og `realtime`-containerane feilar helsesjekken (`unhealthy`) og stacken aldri startar. Køyrer CLI-en frå WSL i staden, går CLI-en den vanlege Linux-vegen mot Docker-daemonen, og problemet forsvinn heilt. Sjå steg-for-steg i [Integrasjonstesting (pgTAP)](#integrasjonstesting-pgtap).
+**Viktig:** Den lokale Supabase-stacken (`vp exec supabase start`, `vp exec supabase test db`) må køyrast **frå ein WSL-shell**, ikkje frå PowerShell/CMD. Supabase CLI-en oppdagar at køyringa skjer på Windows-verten og krev då at Docker-daemonen er eksponert på `tcp://localhost:2375` — noko som gjer at `analytics`- og `realtime`-containerane feilar helsesjekken (`unhealthy`) og stacken aldri startar. Køyrer CLI-en frå WSL i staden, går CLI-en den vanlege Linux-vegen mot Docker-daemonen, og problemet forsvinn heilt. Sjå steg-for-steg i [Integrasjonstesting (pgTAP)](#integrasjonstesting-pgtap).
 
 ### 2. Installer Vite+ (`vp`)
 
@@ -89,7 +89,7 @@ VITE_SUPABASE_ANON_KEY=<dev-anon-nøkkel>
 Start dev-server:
 
 ```bash
-vp run dev
+vp dev
 ```
 
 Appen er tilgjengeleg på `http://localhost:5173`.
@@ -120,23 +120,23 @@ Prosjektet brukar [Vite+](https://viteplus.dev) som verktøykjede, og `vp` er in
 
 Vite+ legg eigne shims for `node`, `npm` og `npx` i `~/.vite-plus/bin`, og desse plukkar den Node- og npm-versjonen prosjektet krev. Får du `npm warn EBADDEVENGINES`-åtvaringar — som ser ut som feil, men ikkje har noko å gjere med kommandoen du køyrde — tyder det på at ein systeminstallert `npm` vinn over shimen i `PATH`. Sjekk med `vp env current` (viser kva `node`/`npm` som faktisk vert brukt) og `vp env doctor`. Køyrer du alt gjennom `vp`, er problemet uansett borte.
 
-| Kommando                | Når du brukar det                                                                                       |
-| ----------------------- | ------------------------------------------------------------------------------------------------------- |
-| `vp run dev`            | Under utvikling — startar lokal Vite-dev-server med hot reload                                          |
-| `vp run build`          | For å sjekke at prod-bygget fungerer lokalt før du pushar                                               |
-| `vp run preview`        | Køyrer det ferdige `dist/`-bygget lokalt, nyttig for å teste prod-åtferd                                |
-| `vp run test`           | Køyrer Vitest i watch-modus — re-køyrer testar ved kvar filendring                                      |
-| `vp run test:run`       | Eingongskøyring av alle testar — bruk dette før commit og i CI                                          |
-| `vp run typecheck:test` | Typesjekkjer testfilene (Vitest brukar esbuild, ikkje tsc — dette er einaste typesjekkinga av `tests/`) |
-| `vp run test:db`        | Køyrer pgTAP-integrasjonstestane mot lokal Supabase-stack (krev `vp exec supabase start` fyrst)         |
-| `vp run css:check`      | Kontrollerer strukturen i `src/css` — sjå [CSS-struktur](#css-struktur)                                 |
+| Kommando                   | Når du brukar det                                                                               |
+| -------------------------- | ----------------------------------------------------------------------------------------------- |
+| `vp dev`                   | Under utvikling — startar lokal Vite-dev-server med hot reload                                  |
+| `vp check`                 | Formatering, lint og typesjekk av heile prosjektet, `tests/` inkludert                          |
+| `vp build`                 | For å sjekke at prod-bygget fungerer lokalt før du pushar                                       |
+| `vp preview`               | Køyrer det ferdige `dist/`-bygget lokalt, nyttig for å teste prod-åtferd                        |
+| `vp test`                  | Køyrer Vitest i watch-modus — re-køyrer testar ved kvar filendring                              |
+| `vp test run`              | Eingongskøyring av alle testar — bruk dette før commit                                          |
+| `vp exec supabase test db` | Køyrer pgTAP-integrasjonstestane mot lokal Supabase-stack (krev `vp exec supabase start` fyrst) |
+| `vp run css:check`         | Kontrollerer strukturen i `src/css` — sjå [CSS-struktur](#css-struktur)                         |
 
 **Du treng ikkje køyre `build` eller `dev` før du pushar.** GitHub Actions byggjer automatisk når du pushar:
 
-- Push til `dev` → GitHub Actions byggjer og deployer til `res.hesteskokasting.no/dev`
-- Push til `main` → GitHub Actions byggjer, ventar på manuell godkjenning, deployer til `res.hesteskokasting.no`
+- Push til `dev` → GitHub Actions køyrer `vp check`, byggjer og deployer til `res.hesteskokasting.no/dev`
+- Push til `main` → GitHub Actions køyrer `vp check` og `vp test run`, byggjer, ventar på manuell godkjenning, deployer til `res.hesteskokasting.no`
 
-`vp run build` lokalt er berre nyttig viss du vil stadfeste at koden kompilerer utan å pushe, eller feilsøke byggfeil.
+`vp build` lokalt er berre nyttig viss du vil stadfeste at koden kompilerer utan å pushe, eller feilsøke byggfeil.
 
 ---
 
@@ -146,10 +146,10 @@ Prosjektet nyttar [Vitest](https://vitest.dev/) med [happy-dom](https://github.c
 
 Testfiler ligg i `tests/` og importerer frå `@/`-aliaset. Testane dekker berre funksjonar utan Supabase-kall — logikk som er samanvevd med databasekall vert fyrst ekstrahert til ein rein funksjon, deretter testa.
 
-Tre kommandoar skal køyrast og vere grøne før kvar commit:
+To kommandoar skal køyrast og vere grøne før kvar commit:
 
 ```bash
-vp run typecheck && vp run typecheck:test && vp run test:run
+vp check && vp test run
 ```
 
 Konfigurasjon: `vite.config.js` (test-blokk) og `tsconfig.test.json`.
@@ -179,13 +179,13 @@ Integrasjonstestane verifiserer databaselaget: RLS-politikkar og `SECURITY DEFIN
    ```bash
    vp install
    ```
-   **Merk:** `node_modules` inneheld plattform-spesifikke binærfiler (`supabase`-CLI-en, `esbuild`). Sidan du no køyrer `vp install` mot den same mappa som Windows-checkoutet, overskriv dette dei Windows-bygde versjonane. Skal du tilbake til `vp run dev`/`vp run build` frå PowerShell etterpå, må du berre køyre `vp install` derifrå på nytt fyrst — éin kommando, tar nokre sekund. Ein grei bytte-kostnad mot å slepp separat klone + synkronisering.
+   **Merk:** `node_modules` inneheld plattform-spesifikke binærfiler (`supabase`-CLI-en, `esbuild`). Sidan du no køyrer `vp install` mot den same mappa som Windows-checkoutet, overskriv dette dei Windows-bygde versjonane. Skal du tilbake til `vp dev`/`vp build` frå PowerShell etterpå, må du berre køyre `vp install` derifrå på nytt fyrst — éin kommando, tar nokre sekund. Ein grei bytte-kostnad mot å slepp separat klone + synkronisering.
 
 #### Kvar gong: køyr stacken og testane
 
 ```bash
 vp exec supabase start   # startar lokal Postgres og køyrer alle migreringsfiler
-vp run test:db      # køyrer alle pgTAP-testar i supabase/tests/
+vp exec supabase test db   # køyrer alle pgTAP-testar i supabase/tests/
 vp exec supabase stop    # stoppar lokal stack når du er ferdig
 ```
 
@@ -357,28 +357,26 @@ Appen er pakka med [Capacitor](https://capacitorjs.com) for å køyre nativt på
 ### Krav på ny maskin
 
 - [Android Studio](https://developer.android.com/studio) (siste versjon) — JDK/`keytool` følgjer med (`<Android Studio>/jbr/bin/`), ingen separat Java-installasjon nødvendig
+- Sett miljøvariabelen `JAVA_HOME` til JDK-en i Android Studio, elles finn ikkje `gradlew` Java: `setx JAVA_HOME "C:\Program Files\Android\Android Studio\jbr"` (opne ein ny terminal etterpå)
 - Sett miljøvariabelen `ANDROID_HOME` til Android SDK-mappa (typisk `%LOCALAPPDATA%\Android\Sdk` på Windows), og legg `%ANDROID_HOME%\platform-tools` til PATH
 
 ### Bygg og synk
 
-Appen lastar sida live via `server.url` i staden for å pakke `dist/` inn i appen. Vanlege web-endringar treng difor **ikkje** ny native-bygg — dei blir tilgjengelege med det same via GitHub Pages-deployen. `vp run build` trengst framleis lokalt sidan Capacitor-CLI-en krev at `webDir` finst ved synkronisering, sjølv om innhaldet ikkje blir brukt ved køyretid.
+Appen lastar sida live via `server.url` i staden for å pakke `dist/` inn i appen. Vanlege web-endringar treng difor **ikkje** ny native-bygg — dei blir tilgjengelege med det same via GitHub Pages-deployen. `vp build` trengst framleis lokalt sidan Capacitor-CLI-en krev at `webDir` finst ved synkronisering, sjølv om innhaldet ikkje blir brukt ved køyretid.
+
+Testing skjer mot dev-miljøet:
 
 ```bash
-vp run build
-vp run android:sync      # synkroniserer mot produksjon (res.hesteskokasting.no)
+vp build
+vp run android:sync:dev      # res.hesteskokasting.no/dev
 vp exec cap open android
 ```
 
-For å teste mot dev-miljøet eller ein lokal Vite-dev-server i staden:
+Appen viser då det som sist vart deploya til `dev`, så endringar må pushast og vere ferdig deploya før du ser dei.
 
-```bash
-vp run android:sync:dev      # res.hesteskokasting.no/dev
-vp run android:sync:local    # lokal Vite-server (vp run dev) via 10.0.2.2 — berre Android-emulator
-```
+#### Lokal Vite-server med HMR (valfritt)
 
-`android:sync:local` peikar på `10.0.2.2`, Android-emulatorens alias for verts-maskina sin `localhost` — det fungerer ikkje på ei fysisk USB-tilkopla eining. For fysisk eining, bruk anten det automatiserte scriptet eller dei manuelle stega:
-
-#### Automatisert (anbefalt)
+Treng du å teste upusha kode på ei USB-tilkopla eining:
 
 ```bash
 vp run android:dev
@@ -386,26 +384,7 @@ vp run android:dev
 
 Set opp heile flyten i eitt steg: startar Vite bunde til `127.0.0.1`, set opp `adb reverse tcp:5173 tcp:5173`, synkroniserer Capacitor mot `http://localhost:5173` og opnar Android Studio. Held seg køyrande og set opp `adb reverse` på nytt automatisk viss eininga koplar frå/til USB — vanlege kodeendringar treng då ingen ny sync/bygg, Vite HMR pushar dei direkte til WebView-en. Trykk Ctrl+C for å avslutte (stoppar Vite). Sjå [`scripts/android-dev.ps1`](scripts/android-dev.ps1).
 
-#### Manuelt
-
-```bash
-vp run dev -- --host 127.0.0.1               # Vite bind seg elles berre til IPv6 (::1)
-```
-
-```powershell
-adb reverse tcp:5173 tcp:5173                                       # gjer om i ny terminal ved kvar USB-tilkopling
-$env:CAPACITOR_SERVER_URL = "http://localhost:5173"; vp exec cap sync android
-```
-
-`adb reverse` videresender til verts-maskina sin `127.0.0.1` (IPv4) — viss Vite berre lyttar på `[::1]` (standard ved reint `vp run dev`), får du ei tilkoplingsfeil sjølv om tunnelen er sett opp riktig. Tunnelen forsvinn når eininga koplar frå/til på nytt.
-
-`CAPACITOR_SERVER_URL` fell alltid attende til produksjons-URL-en viss variabelen ikkje er sett — dette hindrar at ein gløymd lokal override hamnar i eit Play Store-opplasta bygg. `vp exec cap open android` opnar Android Studio. Køyr frå ei tilkopla enhet (USB-debugging på) eller emulator med ▶ i verktøylinja.
-
-Har WebView-en ikkje nettverkstilkopling ved oppstart, viser appen ein enkel innebygd feilskjerm (`android/app/src/main/assets/error.html`, handtert i `MainActivity.java`) i staden for ein blank eller øydelagd skjerm.
-
-`android:sync:local`/`android:sync:dev`/manuell `http://`-override krev cleartext (vanleg HTTP), som Android blokkerer som standard frå `targetSdkVersion` 28+. `android/app/src/main/res/xml/network_security_config.xml` blokkerer cleartext for alle byggvariantar; `android/app/src/debug/res/xml/network_security_config.xml` overstyrer dette **berre for debug-bygget** og tillèt cleartext for `localhost`/`10.0.2.2`. Release-bygget (Play Store) får aldri cleartext, uansett `CAPACITOR_SERVER_URL`.
-
-`android/` er committa til git (ikkje i `.gitignore`) sidan mappa inneheld manuell native-konfig (plugins, ikon, signeringsreferansar). **Rediger aldri** genererte filer i `android/app/src/main/assets/public/` direkte — dei blir overskrivne av `cap sync`.
+Den lokale Vite-serveren (`http://localhost:5173`) krev cleartext (vanleg HTTP), som Android blokkerer som standard frå `targetSdkVersion` 28+. `android/app/src/main/res/xml/network_security_config.xml` blokkerer cleartext for alle byggvariantar; `android/app/src/debug/res/xml/network_security_config.xml` overstyrer dette **berre for debug-bygget** og tillèt cleartext for `localhost`. Release-bygget (Play Store) får aldri cleartext, uansett `CAPACITOR_SERVER_URL`.
 
 ### Google-innlogging i den native appen
 
@@ -415,15 +394,15 @@ Google blokkerer OAuth-innlogging inne i ein WebView (`disallowed_useragent`), s
 
 1. Hent SHA-1-fingeravtrykk for dei lokale nøkkellagera:
    ```bash
-   cd android && ./gradlew signInReport
+   cd android && ./gradlew signingReport
    ```
    (køyr éin gong for debug-nøkkelen, éin gong med release-`keystore.properties` på plass for opplastingsnøkkelen)
 2. Hent SHA-1 for **appsigneringsnøkkelen** i Play Console → appen → **Test og publiser → Appintegritet → Appsignering**, under «Sertifikat for appsigneringsnøkkel».
 
    Dette er det lettaste å gå i baret på: Google re-signerer alle Play-utgåver med sin eigen nøkkel (Play App Signing), så ein app installert frå Play er **ikkje** signert med nøkkelen din. Registrerer du berre debug- og opplastingsnøkkelen, verkar Google-innlogging lokalt og i eit sideloada release-bygg, men feilar med `DEVELOPER_ERROR` (status 10) for alle som har appen frå Play. Fingeravtrykket er offentleg — per august 2026 er det `52:F2:AE:5C:CA:4A:F3:12:6F:51:C6:50:EE:A4:70:D7:54:6A:F6:C7`.
 
-3. I [Google Cloud Console](https://console.cloud.google.com/apis/credentials): lag éin **Web**-OAuth-klient-ID, og éin **Android**-OAuth-klient-ID (pakkenamn `no.hesteskokasting.app`) — registrer **alle tre** SHA-1-fingeravtrykka (debug, opplasting, appsignering) under den eine Android-klienten (treng ikkje separate klientar).
-4. I Supabase Dashboard → Authentication → Providers → Google: legg inn Web-klient-ID-en og Android-klient-ID-en. La Client Secret og Callback URL stå tomme — denne ID-token-flyten brukar dei ikkje.
+3. I [Google Cloud Console](https://console.cloud.google.com/apis/credentials): lag éin **Web**-OAuth-klient-ID, og éin **Android**-OAuth-klient-ID (pakkenamn `no.hesteskokasting.app`) **per SHA-1-fingeravtrykk** (debug, opplasting, appsignering) — ein Android-klient har berre plass til eitt fingeravtrykk. Debug-nøkkelen (`~/.android/debug.keystore`) er ulik på kvar maskin, så ny utviklingsmaskin tyder ny debug-klient.
+4. I Supabase Dashboard → Authentication → Providers → Google: legg inn Web-klient-ID-en og Android-klient-ID-en. Client Secret og Callback URL høyrer til omdirigeringsflyten på nettsida og skal ikkje tømmast — ID-token-flyten i appen brukar dei ikkje.
 5. Legg Web-klient-ID-en inn som `VITE_GOOGLE_WEB_CLIENT_ID` i `.env.local` lokalt, og i GitHub Environments (`github-pages` og `dev`) — sjå [GitHub-konfigurasjon](#github-konfigurasjon). Appen lastar no same produksjonsbygg som nettsida, så variabelen må vere sett der bygget skjer, ikkje berre lokalt.
 
 ### Release-signering

@@ -3,7 +3,7 @@ import type { CapacitorConfig } from "@capacitor/cli";
 const PRODUCTION_URL = "https://res.hesteskokasting.no";
 
 // Override for local testing only, e.g.:
-//   bash:       export CAPACITOR_SERVER_URL="http://10.0.2.2:5173"     (Vite dev server, Android emulator)
+//   bash:       export CAPACITOR_SERVER_URL="http://localhost:5173"    (Vite dev server via adb reverse)
 //   PowerShell: $env:CAPACITOR_SERVER_URL = "https://res.hesteskokasting.no/dev"
 // Leave unset for release builds — this must default to production so a forgotten
 // override can never end up in a Play Store upload.
@@ -21,7 +21,10 @@ const config: CapacitorConfig = {
   server: {
     url: serverUrl,
     cleartext: isLocalHttp,
-    allowNavigation: ["accounts.google.com", "*.supabase.co"],
+    // Bundled page shown when server.url fails to load (offline or server error).
+    errorPath: "offline.html",
+    // localhost = the bundled offline.html; without it the handover opens in the system browser.
+    allowNavigation: ["accounts.google.com", "*.supabase.co", "localhost"],
   },
   plugins: {
     // Google everywhere + Apple on iOS — keeps the unused Facebook/Twitter SDKs

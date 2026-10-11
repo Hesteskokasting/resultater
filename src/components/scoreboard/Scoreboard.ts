@@ -1,4 +1,4 @@
-import type { MatchPlayerInMatch, MatchRow } from "@/services/kampService";
+import type { MatchPlayerInMatch, MatchRow, SideRanking } from "@/services/kampService";
 import { playerName, sideIdsOf } from "@/components/scoreboard/scoreboardData";
 import { renderTwoPlayerScoreboard } from "@/components/scoreboard/TwoPlayerScoreboard";
 import { renderThreePlayerScoreboard } from "@/components/scoreboard/ThreePlayerScoreboard";
@@ -13,7 +13,7 @@ export interface ScoreboardOptions {
   pointValues: number[];
   erArrangor?: boolean;
   erDeltakar?: boolean;
-  onBekreft?: ((orderedKasterids?: number[] | null) => Promise<void>) | null;
+  onBekreft?: ((ranking?: SideRanking | null) => Promise<void>) | null;
   onKampBekreft?: () => Promise<void>;
   omgangEl?: HTMLElement | null;
   p3ks?: MatchPlayerInMatch | null;
@@ -48,7 +48,7 @@ export interface ScoreboardSide {
 export interface BoardConfig {
   pointValues: number[];
   canEdit: boolean;
-  onBekreft: ((orderedKasterids?: number[] | null) => Promise<void>) | null;
+  onBekreft: ((ranking?: SideRanking | null) => Promise<void>) | null;
   onKampBekreft?: (() => Promise<void>) | undefined;
   omgangEl: HTMLElement | null;
 }

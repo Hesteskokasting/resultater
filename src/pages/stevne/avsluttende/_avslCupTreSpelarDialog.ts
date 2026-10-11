@@ -3,6 +3,7 @@ import type { FinalMatchPlayerKnown } from "@/services/cupKampService";
 import { sideNameHtml } from "@/pages/stevne/faseView";
 import type { MatchSide } from "@/utils/kamp/kamp";
 import { showToast } from "@/components/Toast";
+import { confirmDiscardRounds } from "@/components/numberpad/kampScoreEditor";
 
 /**
  * Confirm a 3-side cup match: pick the two sides that advance, the remaining
@@ -12,7 +13,6 @@ import { showToast } from "@/components/Toast";
 export function openThreeSideConfirmDialog(
   kamp: FinalMatchRow,
   sides: MatchSide<FinalMatchPlayerKnown>[],
-  stevneid: number,
   afterConfirm: () => Promise<void>,
 ): void {
   const names = sides.map((side) => sideNameHtml(side, false));
@@ -71,24 +71,30 @@ export function openThreeSideConfirmDialog(
 
     modal.querySelector("#bekreft-tre-btn")?.addEventListener("click", async () => {
       if (selected.length !== 2) return;
+      const hasRounds = kamp.spelarar.some((s) => (s.omgangar?.length ?? 0) > 0);
+      if (hasRounds) {
+        // The overlay sits above Bootstrap modals, so it steps aside for the warning
+        modal.hidden = true;
+        const accepted = await confirmDiscardRounds();
+        modal.hidden = false;
+        if (!accepted) return;
+      }
       const eliminatedSide = sides.find((s) => !selected.includes(s.rep.kasterid)) ?? null;
       const advancingSides = selected
         .map((kid) => sides.find((s) => s.rep.kasterid === kid))
         .filter((s): s is MatchSide<FinalMatchPlayerKnown> => s != null)
         .map((s) => s.members.map((m) => m.kasterid));
-      const allThrowerIds = sides.flatMap((s) => s.members.map((m) => m.kasterid));
       modal.remove();
       const { error } = await confirmMatch({
         kampId: kamp.id,
-        sides: sides.map((s) => toConfirmSide(s)),
+        // The omgangar go, so their totals must not be written back as scores
+        sides: sides.map((s) => toConfirmSide(s, { baseScore: 0 })),
         outcome: {
           type: "cup-ranked",
-          stevneId: stevneid,
-          roundNumber: kamp.runde_nummer,
-          roundName: kamp.runde_navn,
-          allThrowerIds,
           eliminatedIds: eliminatedSide?.members.map((m) => m.kasterid) ?? [],
           advancingSides,
+          // A hand-set ranking would contradict the omgang race it overrides
+          deleteRounds: true,
         },
       });
       if (error) {

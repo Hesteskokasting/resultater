@@ -27,7 +27,7 @@ import { autoCompleteInitialRoundMatches } from "@/services/testDataService";
 import {
   initialMenuItems,
   setBannerMeta,
-  createChangeHandler,
+  createPhaseChannel,
   bindStandingDetails,
   renderMainContent,
   bindTabToggle,
@@ -49,19 +49,17 @@ import {
 import { createErrorBanner, createLoadingState } from "@/components/states";
 import { errorMessage } from "@/utils/errorMessage";
 import { logError } from "@/utils/logError";
-import type { RealtimeChannel } from "@supabase/supabase-js";
 import {
   getInitialRoundMatches,
   confirmMatch as confirmMatchService,
   toConfirmSide,
-  subscribeToMatchChanges,
   type InitialMatchRow,
+  type MatchPlayerUpdates,
 } from "@/services/kampService";
 import {
   getInitialPhaseTournament,
   type InitialPhaseTournamentRow,
 } from "@/services/stevneService";
-import { unsubscribeChannel } from "@/utils/data/realtime";
 import { buildParticipantMaps } from "@/utils/stevne/participantMaps";
 import { groupBy } from "@/utils/groupBy";
 import { getResultsForInitialRound, type InitialResultRow } from "@/services/resultatService";
@@ -97,10 +95,15 @@ export interface InnledendeVariant {
   filterRounds?: (roundMap: Map<number, InitialMatchRow[]>) => Map<number, InitialMatchRow[]>;
 }
 
+type PhaseData = {
+  stevne: InitialPhaseTournamentRow;
+  allMatches: InitialMatchRow[];
+  resultat: InitialResultRow[];
+};
+
 // ── Factory ───────────────────────────────────────────────────────────────────
 
 export function createInnledendeRenderer(variant: InnledendeVariant) {
-  let channel: RealtimeChannel | null = null;
   let bannerSlot: HTMLElement | null = null;
   let isAdmin = false;
   const standingExpandedIds = new Set<string>();
@@ -111,6 +114,16 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
   const ownedSpelarIds = new Set<number>();
   /** The realtime handler's coalesced reload — our own writes queue through it too. */
   let scheduleReload: (() => void) | null = null;
+  /** What is on screen, so a confirmed save can be shown without a refetch. */
+  let shown: PhaseData | null = null;
+  /** Bumped by every local patch; a fetch started before one is stale. */
+  let patchSeq = 0;
+  const phaseChannel = createPhaseChannel(
+    variant.channelName,
+    ["innledende"],
+    ownedSpelarIds,
+    loadAndRender,
+  );
 
   async function render(
     container: HTMLElement,
@@ -120,101 +133,104 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
     bannerSlot = _bannerSlot;
     isAdmin = _isAdmin;
     variant.onReset?.();
-    if (channel) {
-      await unsubscribeChannel(channel);
-      channel = null;
-    }
+    await phaseChannel.stop();
     container.replaceChildren(createLoadingState("Laster…"));
     await loadAndRender(container, id);
   }
 
   async function loadAndRender(container: HTMLElement, stevneid: number): Promise<void> {
     try {
+      const seq = patchSeq;
       const [{ data: stevne }, { data: allMatches }, { data: resultat }] = await Promise.all([
         getInitialPhaseTournament(stevneid),
         getInitialRoundMatches(stevneid),
         getResultsForInitialRound(stevneid),
       ]);
+      if (seq !== patchSeq) return;
 
       if (!stevne) {
         container.replaceChildren(createErrorBanner("Stevne ikkje funne."));
         return;
       }
 
-      ownedSpelarIds.clear();
-      for (const kamp of allMatches) for (const sp of kamp.spelarar) ownedSpelarIds.add(sp.id);
-
-      const { startNumberMap, hcpMap, positionMap, isTeam } = buildParticipantMaps(resultat);
-      const roundMap = groupBy(allMatches, (kamp) => kamp.runde_nummer);
-      const standing = buildStanding(allMatches, resultat, startNumberMap, positionMap, isTeam);
-      if (flashStevneid !== stevneid) {
-        flashTracker.reset();
-        flashStevneid = stevneid;
-      }
-      const idsToFlash = flashTracker.pick(
-        allMatches.filter((k) => k.er_bekreftet).map((k) => k.id),
-      );
-
-      const allMatchesConfirmed = allMatches.length > 0 && allMatches.every((k) => k.er_bekreftet);
-      const canEditMatches = isAdmin && stevne.stevne_fase !== "avsluttende";
-
-      const ctx: InnledendeContext = {
-        container,
-        stevneid,
-        stevne,
-        allMatches,
-        roundMap,
-        startNumberMap,
-        standing,
-        isAdmin,
-        allMatchesConfirmed,
-        reload: () => loadAndRender(container, stevneid),
-      };
-
-      setupBanner(ctx);
-
-      const roundsToShow = (variant.filterRounds ?? ((m) => m))(roundMap);
-      const matchesHtml =
-        [...roundsToShow.entries()]
-          .map(([nr, roundMatches]) =>
-            renderRound(nr, roundMatches, startNumberMap, canEditMatches, hcpMap, positionMap),
-          )
-          .join("") + renderMatchLegend();
-      const standingHtml = renderStandingTable(standing, allMatches, startNumberMap, {
-        tableId: "standing-initial",
-        hasMatchCount: true,
-        positionMap,
-        unitLabel: isTeam ? "par" : "spelarar",
-        // Once the avsluttande fase has an A/B split, mark where A ends.
-        qualifyCutoff: parseRound1Format(stevne.runde1_format)?.nA ?? null,
-      });
-
-      const activeTab = getActiveTab(container);
-      container.innerHTML = renderMainContent(matchesHtml, standingHtml);
-      bindTabToggle(container);
-      if (activeTab === "standing") setActiveTab(container, "standing");
-      bindStandingDetails(container, "standing-initial", standingExpandedIds);
-
-      applyFlashClasses(container, idsToFlash, allMatches);
-
-      bindScoreboardClicks(container);
-      for (const kamp of allMatches) {
-        bindMatchEvents(
-          container,
-          stevneid,
-          kamp,
-          startNumberMap,
-          hcpMap,
-          positionMap,
-          canEditMatches,
-        );
-      }
-
-      subscribeToChanges(container, stevneid);
+      shown = { stevne, allMatches, resultat };
+      renderData(container, stevneid, shown);
     } catch (err) {
       logError(`${variant.logPrefix}.loadAndRender`, err);
       container.replaceChildren(createErrorBanner("Kunne ikkje laste innleiande fase."));
     }
+  }
+
+  function renderData(container: HTMLElement, stevneid: number, data: PhaseData): void {
+    const { stevne, allMatches, resultat } = data;
+    ownedSpelarIds.clear();
+    for (const kamp of allMatches) for (const sp of kamp.spelarar) ownedSpelarIds.add(sp.id);
+
+    const { startNumberMap, hcpMap, positionMap, isTeam } = buildParticipantMaps(resultat);
+    const roundMap = groupBy(allMatches, (kamp) => kamp.runde_nummer);
+    const standing = buildStanding(allMatches, resultat, startNumberMap, positionMap, isTeam);
+    if (flashStevneid !== stevneid) {
+      flashTracker.reset();
+      flashStevneid = stevneid;
+    }
+    const idsToFlash = flashTracker.pick(allMatches.filter((k) => k.er_bekreftet).map((k) => k.id));
+
+    const allMatchesConfirmed = allMatches.length > 0 && allMatches.every((k) => k.er_bekreftet);
+    const canEditMatches = isAdmin && stevne.stevne_fase !== "avsluttende";
+
+    const ctx: InnledendeContext = {
+      container,
+      stevneid,
+      stevne,
+      allMatches,
+      roundMap,
+      startNumberMap,
+      standing,
+      isAdmin,
+      allMatchesConfirmed,
+      reload: () => loadAndRender(container, stevneid),
+    };
+
+    setupBanner(ctx);
+
+    const roundsToShow = (variant.filterRounds ?? ((m) => m))(roundMap);
+    const matchesHtml =
+      [...roundsToShow.entries()]
+        .map(([nr, roundMatches]) =>
+          renderRound(nr, roundMatches, startNumberMap, canEditMatches, hcpMap, positionMap),
+        )
+        .join("") + renderMatchLegend();
+    const standingHtml = renderStandingTable(standing, allMatches, startNumberMap, {
+      tableId: "standing-initial",
+      hasMatchCount: true,
+      positionMap,
+      unitLabel: isTeam ? "par" : "spelarar",
+      // Once the avsluttande fase has an A/B split, mark where A ends.
+      qualifyCutoff: parseRound1Format(stevne.runde1_format)?.nA ?? null,
+    });
+
+    const activeTab = getActiveTab(container);
+    container.innerHTML = renderMainContent(matchesHtml, standingHtml);
+    bindTabToggle(container);
+    if (activeTab === "standing") setActiveTab(container, "standing");
+    bindStandingDetails(container, "standing-initial", standingExpandedIds);
+
+    applyFlashClasses(container, idsToFlash, allMatches);
+
+    bindScoreboardClicks(container);
+    for (const kamp of allMatches) {
+      bindMatchEvents(
+        container,
+        stevneid,
+        kamp,
+        startNumberMap,
+        hcpMap,
+        positionMap,
+        canEditMatches,
+      );
+    }
+
+    scheduleReload = phaseChannel.start(container, stevneid);
   }
 
   function setupBanner(ctx: InnledendeContext): void {
@@ -283,7 +299,8 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
             positionMap,
             [newS1, newS2],
           );
-          if (!ok) await loadAndRender(container, stevneid);
+          if (!ok) void loadAndRender(container, stevneid);
+          return ok;
         },
       });
     };
@@ -333,20 +350,6 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
     bindMobileRow(container, kamp);
   }
 
-  function subscribeToChanges(container: HTMLElement, stevneid: number): void {
-    if (channel) return;
-    const onChange = createChangeHandler(stevneid, ["innledende"], container, loadAndRender, () => {
-      if (channel) {
-        void unsubscribeChannel(channel);
-        channel = null;
-      }
-    });
-    scheduleReload = onChange;
-    channel = subscribeToMatchChanges(stevneid, variant.channelName(stevneid), onChange, (id) =>
-      ownedSpelarIds.has(id),
-    );
-  }
-
   async function confirmMatch(
     container: HTMLElement,
     stevneid: number,
@@ -363,7 +366,7 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
     const hcp1 = hcpMap[p1?.kasterid ?? -1] ?? 0;
     const hcp2 = hcpMap[p2?.kasterid ?? -1] ?? 0;
 
-    const { error } = await confirmMatchService({
+    const { error, stored } = await confirmMatchService({
       kampId: kamp.id,
       sides: [
         toConfirmSide(side1, { baseScore: enteredScores?.[0] }),
@@ -377,11 +380,39 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
       showToast("DB-feil ved bekreft: " + errorMessage(error), "error");
       return false;
     }
-    // Queued, not awaited: the numberpad closes on the write, and this reload
-    // collapses into the realtime burst our own write is about to trigger.
+    showConfirmed(container, stevneid, kamp.id, stored);
+    // The refetch still runs: the standings may hold other devices' writes.
     if (scheduleReload) scheduleReload();
-    else await loadAndRender(container, stevneid);
+    else void loadAndRender(container, stevneid);
     return true;
+  }
+
+  /** Draws a confirm the server has acknowledged, with exactly the values it stored. */
+  function showConfirmed(
+    container: HTMLElement,
+    stevneid: number,
+    kampId: number,
+    stored: MatchPlayerUpdates["updates"] | undefined,
+  ): void {
+    const row = shown?.allMatches.find((k) => k.id === kampId);
+    if (!shown || !row || !stored) return;
+    row.er_bekreftet = true;
+    for (const sp of row.spelarar) {
+      const values = stored.get(sp.id);
+      if (!values) continue;
+      sp.score_poeng = values.score_poeng;
+      sp.kamp_poeng = values.kamp_poeng;
+      sp.antall_ringer = values.antall_ringer;
+      // The score editor deleted them before the confirm
+      sp.omgangar = [];
+    }
+    patchSeq++;
+    try {
+      renderData(container, stevneid, shown);
+    } catch (err) {
+      // Already saved — the refetch that follows draws it instead.
+      logError(`${variant.logPrefix}.showConfirmed`, err);
+    }
   }
 
   return render;

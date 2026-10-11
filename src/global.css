@@ -75,10 +75,6 @@
      against the --flate surface for lightness band, chroma, CVD separation and
      contrast; the light steps under [data-theme="light"] are their own selected
      steps, not a flip. */
-  /* Spelled out rather than var(--flate): this one is read back through
-     getComputedStyle, and a literal keeps that independent of how a WebView
-     resolves nested custom properties. Keep in sync with --flate. */
-  --chart-surface: #1c1f2a;
   --chart-ink: #c3c2b7;
   --chart-muted: #898781;
   --chart-grid: #2c3040;
@@ -198,7 +194,6 @@
   /* Light steps of the chart palette (see :root for the rationale). Slots 2 and 3
      sit below 3:1 on the light surface, so every chart using them ships visible
      labels — the legend carries the numbers, never the fill alone. */
-  --chart-surface: #f0f0f0;
   --chart-ink: #52514e;
   --chart-muted: #7c7a75;
   --chart-grid: #d7d7d7;

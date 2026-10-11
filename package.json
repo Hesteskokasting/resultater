@@ -1,27 +1,19 @@
 {
   "name": "resultater",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "",
   "license": "ISC",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/hesteskokasting/resultater.git"
   },
+  "type": "module",
   "scripts": {
-    "dev": "vp dev",
-    "build": "tsc -b && vp build",
-    "typecheck": "tsc -b",
-    "typecheck:test": "tsc --noEmit -p tsconfig.test.json",
-    "test": "vp test",
-    "test:run": "vp test run",
-    "preview": "vp preview --host",
-    "test:db": "supabase test db",
     "css:check": "node scripts/css-check.mjs",
     "types:gen": "node scripts/gen-types.mjs --linked",
     "types:gen:local": "node scripts/gen-types.mjs --local",
     "android:sync": "cap sync android",
     "android:sync:dev": "cross-env CAPACITOR_SERVER_URL=https://res.hesteskokasting.no/dev cap sync android",
-    "android:sync:local": "cross-env CAPACITOR_SERVER_URL=http://10.0.2.2:5173 cap sync android",
     "android:dev": "powershell -ExecutionPolicy Bypass -File scripts/android-dev.ps1",
     "ios:sync": "cap sync ios",
     "ios:sync:dev": "cross-env CAPACITOR_SERVER_URL=https://res.hesteskokasting.no/dev cap sync ios",
@@ -40,7 +32,7 @@
     "@supabase/supabase-js": "^2.105.4",
     "bootstrap": "^5.3.8",
     "chart.js": "^4.5.1",
-    "xlsx": "^0.18.5"
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",
@@ -48,11 +40,11 @@
     "happy-dom": "^20.10.1",
     "supabase": "^2.93.0",
     "typescript": "^7.0.2",
-    "vite": "npm:@voidzero-dev/vite-plus-core@0.3.0",
-    "vite-plus": "0.3.0"
+    "vite": "npm:@voidzero-dev/vite-plus-core@1.1.0",
+    "vite-plus": "1.1.0"
   },
   "overrides": {
-    "vite": "npm:@voidzero-dev/vite-plus-core@0.3.0"
+    "vite": "npm:@voidzero-dev/vite-plus-core@1.1.0"
   },
   "devEngines": {
     "packageManager": {
@@ -61,5 +53,5 @@
       "onFail": "warn"
     }
   },
-  "buildNumber": 7
+  "buildNumber": 8
 }

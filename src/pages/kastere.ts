@@ -1,5 +1,6 @@
 import { throwerName, buildThrowerSlug as buildSlug } from "@/utils/kaster";
 import { prependAdminLinkBar } from "@/components/AdminLinkBar";
+import { isOrganizerRole } from "@/utils/roles";
 import { createErrorBanner, createLoadingState } from "@/components/states";
 import { createSearchInput } from "@/components/SearchInput";
 import { escHtml } from "@/utils/escHtml";
@@ -139,7 +140,7 @@ async function renderList(container: HTMLElement): Promise<void> {
       href: "#/kaster/ny",
       label: "+ Ny utøvar",
       variant: "success",
-      canShow: (auth) => auth.profil?.role === "admin" || auth.profil?.role === "klubbadmin",
+      canShow: (auth) => isOrganizerRole(auth.profil?.role),
     });
   } catch (err) {
     logError("kastere.renderList", err);

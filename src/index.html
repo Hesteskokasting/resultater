@@ -7,6 +7,15 @@
     <title>Hesteskokasting Resultater</title>
     <script>
       (function () {
+        // Native app offline: the WebView may serve this shell from HTTP cache
+        // (max-age=600), so server.errorPath never fires — hand over explicitly.
+        var cap = window.Capacitor;
+        if (!navigator.onLine && cap && cap.isNativePlatform && cap.isNativePlatform()) {
+          var scheme = cap.getPlatform() === "ios" ? "capacitor" : "https";
+          location.replace(scheme + "://localhost/offline.html");
+          return;
+        }
+
         var tema = localStorage.getItem("tema") || "light";
         if (tema === "dark") {
           document.documentElement.setAttribute("data-theme", tema);
@@ -40,7 +49,7 @@
       })();
     </script>
     <link rel="preconnect" href="%VITE_SUPABASE_URL%" crossorigin />
-    <link rel="icon" type="image/svg+xml" href="assets/NHF_logo_original_oppskalert.svg" />
+    <link rel="icon" type="image/svg+xml" href="/nhf-logo.svg" />
     <link rel="stylesheet" href="global.css" />
     <link rel="stylesheet" href="styles.css" />
   </head>

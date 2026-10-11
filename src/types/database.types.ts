@@ -1059,6 +1059,16 @@ export type Database = {
         Args: { p_eliminert_kasterid?: number; p_kamp_id: number }
         Returns: undefined
       }
+      bekreft_avsluttende_kamp_rangert: {
+        Args: {
+          p_eliminert: number[]
+          p_kamp_id: number
+          p_scores: Json
+          p_slett_omgangar?: boolean
+          p_vidare: Json
+        }
+        Returns: undefined
+      }
       bekreft_innledende_kamp: {
         Args: { p_kamp_id: number; p_scores: Json }
         Returns: boolean
@@ -1082,6 +1092,14 @@ export type Database = {
         Returns: {
           ar: number
           deltakarar: number
+          deltakingar: number
+        }[]
+      }
+      deltakingar_per_stevne: {
+        Args: { p_stevneids: number[] }
+        Returns: {
+          deltakingar: number
+          stevneid: number
         }[]
       }
       draw_snc_premiar: {
@@ -1139,6 +1157,10 @@ export type Database = {
       snc_kan_konsolidere: { Args: { p_stevneid: number }; Returns: boolean }
       snc_kan_trekke_premie: { Args: { p_stevneid: number }; Returns: boolean }
       stevne_is_completed: { Args: { p_stevneid: number }; Returns: boolean }
+      svar_koblingsforespurnad: {
+        Args: { p_bruker_id: string; p_godkjenn: boolean }
+        Returns: undefined
+      }
       swap_xkast_kongelag_deltaker: {
         Args: { p_deltaker_a: number; p_deltaker_b: number }
         Returns: undefined

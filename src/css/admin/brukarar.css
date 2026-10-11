@@ -1,0 +1,25 @@
+/* Rendered by admin/panels/brukarar.ts. */
+
+/* Users panel: the cells that differ from the shared admin table. */
+
+.user-table__email {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-wrap: anywhere;
+}
+
+.user-table__link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.admin-table .search-select {
+  min-width: 220px;
+}
+
+.admin-table .search-select .form-control {
+  padding: 2px 8px;
+  font-size: 0.85rem;
+}

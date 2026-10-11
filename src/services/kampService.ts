@@ -54,7 +54,7 @@ export async function getMyMatches(
 const _kampScoreboardQuery = supabase.from("kamp").select(`
     id, stevneid, fase, runde_nummer, runde_navn, bane_nummer,
     er_bekreftet, er_walkover, er_tre_spelarar,
-    stevne:stevneid(navn),
+    stevne:stevneid(navn, klubbid),
     spelarar:kamp_spelar(
       id, kasterid, score_poeng, kamp_poeng, antall_ringer,
       kaster:kasterid(id, fornavn, etternavn)
@@ -108,21 +108,6 @@ export async function deleteMatchRounds(
   return _runWithTimeout("deleteMatchRounds", omgang == null ? query : query.eq("omgang", omgang));
 }
 
-export async function updateMatchPlayerScoreFast(
-  id: number,
-  scorePoints: number,
-  kampPoeng?: number,
-): Promise<{ error: unknown }> {
-  const update =
-    kampPoeng !== undefined
-      ? { score_poeng: scorePoints, kamp_poeng: kampPoeng }
-      : { score_poeng: scorePoints };
-  return _runWithTimeout(
-    "updateMatchPlayerScoreFast",
-    supabase.from("kamp_spelar").update(update).eq("id", id),
-  );
-}
-
 // ── Scoreboard read ───────────────────────────────────────────────────────────
 
 export async function getMatch(id: number): Promise<{ data: MatchRow | null; error: unknown }> {
@@ -131,7 +116,7 @@ export async function getMatch(id: number): Promise<{ data: MatchRow | null; err
     .select(`
       id, stevneid, fase, runde_nummer, runde_navn, bane_nummer,
       er_bekreftet, er_walkover, er_tre_spelarar,
-      stevne:stevneid(navn),
+      stevne:stevneid(navn, klubbid),
       spelarar:kamp_spelar(
         id, kasterid, score_poeng, kamp_poeng, antall_ringer,
         kaster:kasterid(id, fornavn, etternavn)
@@ -263,7 +248,15 @@ export type RoundScoreRow = {
   antall_ringer: number | null;
 };
 
-type MatchPlayerUpdateValues = { score_poeng: number; kamp_poeng: number; antall_ringer: number };
+type MatchPlayerUpdateValues = {
+  score_poeng: number;
+  kamp_poeng: number;
+  antall_ringer: number;
+  kamp_plassering: number | null;
+};
+
+/** Sides best first, by their rep's kasterid. Sides that tie share a plassering (1-1-3). */
+export type SideRanking = { kasterid: number; plassering: number }[];
 
 /**
  * One match side at confirmation. playerIds are kamp_spelar ids ordered by
@@ -306,6 +299,10 @@ export type MatchPlayerUpdates = {
  *
  * kamp_poeng is only meaningful for two sides; a 3-side match ranks by
  * placement instead and every player keeps kamp_poeng 0.
+ *
+ * kamp_plassering is shared by the side: `placements` when the caller knows the
+ * finishing order (3-player race), otherwise ranked by total with equal totals
+ * sharing a place.
  */
 export function buildMatchPlayerUpdates(params: {
   roundData: RoundScoreRow[];
@@ -313,13 +310,15 @@ export function buildMatchPlayerUpdates(params: {
   /** Per-side HCP, in `sides` order. */
   hcp?: number[];
   erWalkover?: boolean;
+  /** Per-side plassering, in `sides` order. */
+  placements?: (number | null)[];
 }): MatchPlayerUpdates {
-  const { roundData, sides, hcp = [], erWalkover = false } = params;
+  const { roundData, sides, hcp = [], erWalkover = false, placements } = params;
 
   const updates = new Map<number, MatchPlayerUpdateValues>();
   for (const side of sides) {
     for (const id of side?.playerIds ?? []) {
-      updates.set(id, { score_poeng: 0, kamp_poeng: 0, antall_ringer: 0 });
+      updates.set(id, { score_poeng: 0, kamp_poeng: 0, antall_ringer: 0, kamp_plassering: null });
     }
   }
 
@@ -366,6 +365,13 @@ export function buildMatchPlayerUpdates(params: {
     for (const id of sides[1]?.playerIds ?? []) updates.get(id)!.kamp_poeng = kp2;
   }
 
+  sides.forEach((side, i) => {
+    const place =
+      placements?.[i] ??
+      1 + sides.filter((other, j) => other && (totals[j] ?? 0) > (totals[i] ?? 0)).length;
+    for (const id of side?.playerIds ?? []) updates.get(id)!.kamp_plassering = place;
+  });
+
   return { updates, totals };
 }
 
@@ -399,8 +405,9 @@ async function _resolveMatchScores(params: {
   sides: (MatchSideConfirm | null)[];
   hcp?: number[];
   erWalkover: boolean;
+  placements?: (number | null)[];
 }): Promise<{ error: unknown; updates: MatchPlayerUpdates["updates"]; totals: number[] }> {
-  const { sides, hcp, erWalkover } = params;
+  const { sides, hcp, erWalkover, placements } = params;
   const allIds = sides.flatMap((side) => side?.playerIds ?? []);
   const empty = { updates: new Map<number, MatchPlayerUpdateValues>(), totals: sides.map(() => 0) };
   if (!allIds.length) return { error: null, ...empty };
@@ -444,6 +451,7 @@ async function _resolveMatchScores(params: {
     sides: resolvedSides,
     hcp,
     erWalkover,
+    placements,
   });
   return { error: null, updates, totals };
 }
@@ -474,25 +482,23 @@ export type MatchOutcome =
   | { type: "innledende" }
   /**
    * Cup where the ranking is derived from the scores: the lowest side total is
-   * eliminated, unless orderedKasterids ranks a 3-side match explicitly. Goes
+   * eliminated, unless confirmMatch's ranking orders a 3-side match. Goes
    * through the SECURITY DEFINER RPC, because RLS blocks a participant from
    * writing kamp_spelar and resultat once er_bekreftet is set.
    */
-  | { type: "cup-derived"; orderedKasterids?: number[] | null }
+  | { type: "cup-derived" }
   /**
-   * Cup where the caller supplies the ranking outright — who advances in what
-   * order, who is out — and it is written directly to kamp_spelar and resultat.
+   * Cup where the organizer supplies the ranking outright — who advances in what
+   * order, who is out. Scores, ranks and bracket are written by one RPC.
    */
   | {
       type: "cup-ranked";
-      stevneId: number;
-      roundNumber: number;
-      roundName: string | null;
-      allThrowerIds: number[];
       /** All members of the eliminated side ([] = none). Singel: one kasterid. */
       eliminatedIds: number[];
       /** Advancing sides in rank order; every member of a side shares its kamp_plassering. */
       advancingSides: number[][];
+      /** Clears the kamp's omgangar in the same transaction (a typed-in total). */
+      deleteRounds?: boolean;
     };
 
 /**
@@ -500,8 +506,8 @@ export type MatchOutcome =
  * shared by every entry point — scoreboard and numberpad, innledende and cup —
  * so a match always ends up with its score in kamp_spelar.score_poeng.
  *
- * A 3-side cup match ranked by hand carries no scores of its own; the score step
- * then simply writes back what is already stored.
+ * A 3-side cup match ranked by hand carries no scores of its own; its sides
+ * pass baseScore 0, since the omgangar behind any stored total are deleted.
  */
 export async function confirmMatch(params: {
   kampId: number;
@@ -509,50 +515,87 @@ export async function confirmMatch(params: {
   sides: (MatchSideConfirm | null)[];
   hcp?: number[];
   erWalkover?: boolean;
+  /** Finishing order from the 3-player race; omitted = ranked by side total. */
+  ranking?: SideRanking | null;
   outcome: MatchOutcome;
-}): Promise<{ error: unknown }> {
-  const { kampId, sides, hcp, erWalkover = false, outcome } = params;
+}): Promise<{ error: unknown; stored?: MatchPlayerUpdates["updates"] }> {
+  const { kampId, sides, hcp, erWalkover = false, ranking, outcome } = params;
+  const placements = ranking
+    ? sides.map((side) => ranking.find((r) => r.kasterid === side?.kasterid)?.plassering ?? null)
+    : undefined;
 
   const {
     error: scoreErr,
     updates,
     totals,
-  } = await _resolveMatchScores({ sides, hcp, erWalkover });
+  } = await _resolveMatchScores({ sides, hcp, erWalkover, placements });
   if (scoreErr) return { error: scoreErr };
 
   // Innledende writes the scores and the confirm flag in one RPC — the two
   // steps are ordered by RLS (kamp_spelar first), so they cannot be batched
   // from the client.
+  const scores = [...updates.entries()].map(([id, values]) => ({ kamp_spelar_id: id, ...values }));
+
   if (outcome.type === "innledende") {
-    const { data, error } = await supabase.rpc("bekreft_innledende_kamp", {
-      p_kamp_id: kampId,
-      p_scores: [...updates.entries()].map(([id, values]) => ({
-        kamp_spelar_id: id,
-        ...values,
-      })),
-    });
+    const { data, error } = await supabase
+      .rpc("bekreft_innledende_kamp", { p_kamp_id: kampId, p_scores: scores })
+      .abortSignal(AbortSignal.timeout(SAVE_TIMEOUT_MS));
+    if (!error && data !== false) return { error: null, stored: updates };
+    // A lost response, or a retry of a confirm that already landed, is fine
+    // as long as the match is confirmed with the scores that were sent.
+    if (await _confirmLanded(kampId, updates)) return { error: null, stored: updates };
     if (error) logError("confirmMatch:innledende", error);
-    if (!error && data === false) return { error: new Error(ALREADY_CONFIRMED_MESSAGE) };
+    return { error: error ?? new Error(ALREADY_CONFIRMED_MESSAGE) };
+  }
+
+  if (outcome.type === "cup-ranked") {
+    const { error } = await supabase
+      .rpc("bekreft_avsluttende_kamp_rangert", {
+        p_kamp_id: kampId,
+        p_scores: scores,
+        p_vidare: outcome.advancingSides,
+        p_eliminert: outcome.eliminatedIds,
+        p_slett_omgangar: outcome.deleteRounds ?? false,
+      })
+      .abortSignal(AbortSignal.timeout(SAVE_TIMEOUT_MS));
+    // One transaction: if the scores are stored, so is everything else
+    if (!error || (await _confirmLanded(kampId, updates))) return { error: null, stored: updates };
+    logError("confirmMatch:cup-ranked", error);
     return { error };
   }
 
   const { error: writeErr } = await _writeMatchPlayerScores(updates);
   if (writeErr) return { error: writeErr };
 
-  if (outcome.type === "cup-derived") {
-    const eliminatedId =
-      outcome.orderedKasterids?.length === 3
-        ? (outcome.orderedKasterids[2] ?? null)
-        : losingSideKasterid(sides, totals);
-    const { error } = await supabase.rpc("bekreft_avsluttende_kamp_deltakar", {
-      p_kamp_id: kampId,
-      p_eliminert_kasterid: eliminatedId ?? undefined,
-    });
-    if (error) logError("confirmMatch:cup-derived", error);
-    return { error };
-  }
+  // cup-derived
+  const eliminatedId =
+    ranking?.length === 3 ? (ranking[2]?.kasterid ?? null) : losingSideKasterid(sides, totals);
+  const { error } = await supabase.rpc("bekreft_avsluttende_kamp_deltakar", {
+    p_kamp_id: kampId,
+    p_eliminert_kasterid: eliminatedId ?? undefined,
+  });
+  if (error) logError("confirmMatch:cup-derived", error);
+  return { error };
+}
 
-  return _finishRankedCup(kampId, outcome);
+async function _confirmLanded(
+  kampId: number,
+  updates: MatchPlayerUpdates["updates"],
+): Promise<boolean> {
+  try {
+    const { data, error } = await supabase
+      .from("kamp")
+      .select("er_bekreftet, spelarar:kamp_spelar(id, score_poeng)")
+      .eq("id", kampId)
+      .abortSignal(AbortSignal.timeout(SAVE_TIMEOUT_MS))
+      .maybeSingle();
+    if (error || !data?.er_bekreftet) return false;
+    return [...updates.entries()].every(([id, values]) =>
+      data.spelarar.some((s) => s.id === id && s.score_poeng === values.score_poeng),
+    );
+  } catch {
+    return false;
+  }
 }
 
 // ── Avsluttande fase ──────────────────────────────────────────────────────────
@@ -606,206 +649,6 @@ export async function getMatchPlayers(
   return { data: data ?? [], error };
 }
 
-export async function setMatchPlayerPlacements(
-  kampId: number,
-  entries: { kasterid: number; plassering: number }[],
-): Promise<{ error: unknown }> {
-  if (!entries.length) return { error: null };
-  const results = await Promise.all(
-    entries.map((e) =>
-      supabase
-        .from("kamp_spelar")
-        .update({ kamp_plassering: e.plassering })
-        .eq("kampid", kampId)
-        .eq("kasterid", e.kasterid),
-    ),
-  );
-  const err = results.find((r) => r.error)?.error ?? null;
-  if (err) logError("setMatchPlayerPlacements", err);
-  return { error: err };
-}
-
-async function _finishRankedCup(
-  kampId: number,
-  outcome: Extract<MatchOutcome, { type: "cup-ranked" }>,
-): Promise<{ error: unknown }> {
-  const { stevneId, roundNumber, roundName, allThrowerIds, eliminatedIds, advancingSides } =
-    outcome;
-
-  const { error: kampErr } = await supabase
-    .from("kamp")
-    .update({ er_bekreftet: true })
-    .eq("id", kampId);
-  if (kampErr) {
-    logError("confirmMatch:cup-ranked:kamp", kampErr);
-    return { error: kampErr };
-  }
-
-  // Write per-match rank to kamp_spelar for display (advancingSides = 1st, 2nd, …; eliminated = last)
-  const matchPlacements = [
-    ...advancingSides.flatMap((side, i) =>
-      side.map((kid) => ({ kasterid: kid, plassering: i + 1 })),
-    ),
-    ...eliminatedIds.map((kid) => ({ kasterid: kid, plassering: advancingSides.length + 1 })),
-  ];
-  const { error: kpErr } = await setMatchPlayerPlacements(kampId, matchPlacements);
-  if (kpErr) return { error: kpErr };
-
-  // Semifinale losers are not finally eliminated — they advance to bronsefinale
-  if (roundName === "Semifinale") return { error: null };
-
-  if (!eliminatedIds.length) return { error: null };
-
-  if (roundName !== "Finale" && roundName !== "Bronsefinale") {
-    const { error } = await _resetAndMarkEliminated(
-      stevneId,
-      roundNumber,
-      allThrowerIds,
-      eliminatedIds,
-      "confirmMatch:cup-ranked",
-    );
-    if (error) return { error };
-  }
-
-  // Write final tournament placement for Finale and Bronsefinale
-  const winnerIds = advancingSides[0] ?? [];
-  if (roundName === "Finale" && winnerIds.length) {
-    const { error: vErr } = await supabase
-      .from("resultat")
-      .update({ plassering: 1 })
-      .eq("stevneid", stevneId)
-      .in("kasterid", winnerIds);
-    if (vErr) {
-      logError("confirmMatch:cup-ranked:plassering-vinnar", vErr);
-      return { error: vErr };
-    }
-    const { error: tErr } = await supabase
-      .from("resultat")
-      .update({ plassering: 2 })
-      .eq("stevneid", stevneId)
-      .in("kasterid", eliminatedIds);
-    if (tErr) {
-      logError("confirmMatch:cup-ranked:plassering-tapar", tErr);
-      return { error: tErr };
-    }
-  } else if (roundName === "Bronsefinale" && winnerIds.length) {
-    const { error: vErr } = await supabase
-      .from("resultat")
-      .update({ plassering: 3 })
-      .eq("stevneid", stevneId)
-      .in("kasterid", winnerIds);
-    if (vErr) {
-      logError("confirmMatch:cup-ranked:plassering-vinnar", vErr);
-      return { error: vErr };
-    }
-    const { error: tErr } = await supabase
-      .from("resultat")
-      .update({ plassering: 4 })
-      .eq("stevneid", stevneId)
-      .in("kasterid", eliminatedIds);
-    if (tErr) {
-      logError("confirmMatch:cup-ranked:plassering-tapar", tErr);
-      return { error: tErr };
-    }
-  }
-
-  return { error: null };
-}
-
-/** Regular cup rounds: clear this round's eliminations for the match's players, then mark the losers. */
-async function _resetAndMarkEliminated(
-  stevneId: number,
-  roundNumber: number,
-  allThrowerIds: number[],
-  eliminatedIds: number[],
-  logContext: string,
-): Promise<{ error: unknown }> {
-  const { error: resetErr } = await supabase
-    .from("resultat")
-    .update({ runde_eliminert: null })
-    .eq("stevneid", stevneId)
-    .eq("runde_eliminert", roundNumber)
-    .in("kasterid", allThrowerIds);
-  if (resetErr) {
-    logError(`${logContext}:reset`, resetErr);
-    return { error: resetErr };
-  }
-  if (eliminatedIds.length) {
-    const { error } = await supabase
-      .from("resultat")
-      .update({ runde_eliminert: roundNumber })
-      .eq("stevneid", stevneId)
-      .in("kasterid", eliminatedIds);
-    if (error) {
-      logError(`${logContext}:eliminert`, error);
-      return { error };
-    }
-  }
-  return { error: null };
-}
-
-export async function updateWinnerLoser(params: {
-  stevneId: number;
-  roundNumber: number;
-  roundName: string | null;
-  allThrowerIds: number[];
-  /** All members of the winning/losing side. Singel: one kasterid. */
-  newWinnerIds: number[];
-  newLoserIds: number[];
-}): Promise<{ error: unknown }> {
-  const { stevneId, roundNumber, roundName, allThrowerIds, newWinnerIds, newLoserIds } = params;
-  const isSemifinal = roundName === "Semifinale";
-  const isFinal = roundName === "Finale";
-  const isBronzeFinal = roundName === "Bronsefinale";
-
-  // Write per-match rank to kamp_spelar (score correction path — need kampId)
-  // kamp_plassering update is handled by the caller (cup.ts score edit handler) when re-confirming
-
-  if (isSemifinal) {
-    // Semifinale losers are not finally eliminated — no runde_eliminert changes
-    return { error: null };
-  }
-
-  if (isFinal || isBronzeFinal) {
-    // Write final tournament placement
-    const winnerRank = isFinal ? 1 : 3;
-    const loserRank = isFinal ? 2 : 4;
-    if (newWinnerIds.length) {
-      const { error } = await supabase
-        .from("resultat")
-        .update({ plassering: winnerRank })
-        .eq("stevneid", stevneId)
-        .in("kasterid", newWinnerIds);
-      if (error) {
-        logError("updateWinnerLoser:plassering-vinnar", error);
-        return { error };
-      }
-    }
-    if (newLoserIds.length) {
-      const { error } = await supabase
-        .from("resultat")
-        .update({ plassering: loserRank })
-        .eq("stevneid", stevneId)
-        .in("kasterid", newLoserIds);
-      if (error) {
-        logError("updateWinnerLoser:plassering-tapar", error);
-        return { error };
-      }
-    }
-  } else {
-    const { error } = await _resetAndMarkEliminated(
-      stevneId,
-      roundNumber,
-      allThrowerIds,
-      newLoserIds,
-      "updateWinnerLoser",
-    );
-    if (error) return { error };
-  }
-
-  return { error: null };
-}
-
 // ── Scoreboard omgangar ───────────────────────────────────────────────────────
 
 const _kampOmgangQuery = supabase
@@ -826,18 +669,17 @@ export async function getMatchRounds(
   return { data: data ?? [], error };
 }
 
-const SAVE_TIMEOUT_MS = 10_000;
+// Generous on purpose: a write that times out often lands anyway, and a poor
+// mobile signal can spend several seconds per round trip (plus CORS preflight).
+const SAVE_TIMEOUT_MS = 20_000;
 
-/** Races a Supabase write against SAVE_TIMEOUT_MS so scoreboard saves never hang. */
+/** Aborts a Supabase write after SAVE_TIMEOUT_MS so scoreboard saves never hang. */
 async function _runWithTimeout(
   logContext: string,
-  query: PromiseLike<{ error: unknown }>,
+  query: { abortSignal(signal: AbortSignal): PromiseLike<{ error: unknown }> },
 ): Promise<{ error: unknown }> {
   try {
-    const timeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("Request timed out")), SAVE_TIMEOUT_MS),
-    );
-    const { error } = await Promise.race([query, timeout]);
+    const { error } = await query.abortSignal(AbortSignal.timeout(SAVE_TIMEOUT_MS));
     if (error) logError(logContext, error);
     return { error };
   } catch (e) {
@@ -850,7 +692,39 @@ export async function saveMatchRound(
   inserts: { kamp_spelar_id: number; omgang: number; score: number; antall_ringer: number }[],
 ): Promise<{ error: unknown }> {
   if (!inserts.length) return { error: null };
-  return _runWithTimeout("saveMatchRound", supabase.from("kamp_omgang").insert(inserts));
+  const result = await _runWithTimeout(
+    "saveMatchRound",
+    supabase.from("kamp_omgang").insert(inserts),
+  );
+  if (!result.error) return result;
+  // A timeout or a lost response says nothing about the insert itself; on a
+  // slow connection it often lands anyway, and a retry then hits the unique key.
+  return (await _roundsLanded(inserts)) ? { error: null } : result;
+}
+
+/** True when every row is stored with the same score — someone else's score still fails. */
+async function _roundsLanded(
+  inserts: { kamp_spelar_id: number; omgang: number; score: number }[],
+): Promise<boolean> {
+  try {
+    const { data, error } = await supabase
+      .from("kamp_omgang")
+      .select("kamp_spelar_id, omgang, score")
+      .in(
+        "kamp_spelar_id",
+        inserts.map((r) => r.kamp_spelar_id),
+      )
+      .abortSignal(AbortSignal.timeout(SAVE_TIMEOUT_MS));
+    if (error || !data) return false;
+    return inserts.every((r) =>
+      data.some(
+        (d) =>
+          d.kamp_spelar_id === r.kamp_spelar_id && d.omgang === r.omgang && d.score === r.score,
+      ),
+    );
+  } catch {
+    return false;
+  }
 }
 
 // ── Realtime ──────────────────────────────────────────────────────────────────

@@ -2,15 +2,10 @@ import { Capacitor } from "@capacitor/core";
 import { supabase } from "@/supabase";
 import type { AuthUser, Profile, Role } from "@/types";
 import { getProfileForUser } from "@/services/brukerProfilService";
-import { getClubAdminClubsForUser } from "@/services/adminService";
+import { getClubAdminClubForUser } from "@/services/adminService";
 import { generateNonce } from "@/utils/nonce";
 import { syncPushLogin, syncPushLogout } from "@/services/pushNotificationService";
-
-const ROLES = ["admin", "klubbadmin", "bruker"] as const;
-
-function isRole(value: unknown): value is Role {
-  return typeof value === "string" && (ROLES as readonly string[]).includes(value);
-}
+import { isRole } from "@/utils/roles";
 
 function mapToProfile(obj: unknown): Profile | null {
   if (obj === null || typeof obj !== "object") return null;
@@ -45,14 +40,13 @@ async function _fetchUser(): Promise<AuthUser | null> {
 
   const { data: profilRow } = await getProfileForUser(session.user.id);
 
-  let clubs: number[] = [];
-  if (profilRow?.rolle === "klubbadmin") {
-    const { data: clubIds } = await getClubAdminClubsForUser(session.user.id);
-    clubs = clubIds;
-  }
+  const club =
+    profilRow?.rolle === "klubbadmin"
+      ? (await getClubAdminClubForUser(session.user.id)).data
+      : null;
 
   _lastKnownEmail = session.user.email ?? _lastKnownEmail;
-  _cache = { user: session.user, profil: mapToProfile(profilRow), clubs };
+  _cache = { user: session.user, profil: mapToProfile(profilRow), club };
   return _cache;
 }
 
@@ -87,11 +81,8 @@ export async function isAdmin(): Promise<boolean> {
   return (await getRole()) === "admin";
 }
 
-export async function isClubAdmin(clubId: number | string | null = null): Promise<boolean> {
-  const auth = await _fetchCache();
-  if (!auth || auth.profil?.role !== "klubbadmin") return false;
-  if (clubId === null) return true;
-  return auth.clubs.includes(Number(clubId));
+export async function isClubAdmin(): Promise<boolean> {
+  return (await getRole()) === "klubbadmin";
 }
 
 export async function signOut(): Promise<void> {

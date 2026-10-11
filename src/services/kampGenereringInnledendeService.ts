@@ -37,6 +37,7 @@ interface MatchPlayerInsert {
   score_poeng: number;
   kamp_poeng: number;
   antall_ringer: number;
+  kamp_plassering: number | null;
 }
 interface SwissMatchup {
   p1: number;
@@ -225,20 +226,23 @@ export function buildCascadeMatchups(N: number, roundCount: number): Matchup[][]
   return rounds;
 }
 
-function _pushPlayerRows(
+export function pushPlayerRows(
   playerRows: MatchPlayerInsert[],
   kampid: number,
   kasterids: number[],
   scorePoeng = 0,
   kampPoeng = 0,
+  plassering: number | null = null,
 ): void {
-  for (const kasterid of kasterids) {
+  // Side score lands on the representative only, so a pair sums to the same as a single.
+  for (const [i, kasterid] of kasterids.entries()) {
     playerRows.push({
       kampid,
       kasterid,
-      score_poeng: scorePoeng,
+      score_poeng: i === 0 ? scorePoeng : 0,
       kamp_poeng: kampPoeng,
       antall_ringer: 0,
+      kamp_plassering: plassering,
     });
   }
 }
@@ -287,15 +291,16 @@ async function _insertRounds(
 
   for (const { matchup, row } of matchupRows) {
     const kampid = matchIdToKampid[row.match_id]!;
-    _pushPlayerRows(
+    pushPlayerRows(
       playerRows,
       kampid,
       posToKasterids[matchup.p1Pos] ?? [],
       matchup.isWalkover ? 21 : 0,
       matchup.isWalkover ? 2 : 0,
+      matchup.isWalkover ? 1 : null,
     );
     if (matchup.p2Pos != null)
-      _pushPlayerRows(playerRows, kampid, posToKasterids[matchup.p2Pos] ?? []);
+      pushPlayerRows(playerRows, kampid, posToKasterids[matchup.p2Pos] ?? []);
   }
 
   const { error: spErr } = await supabase.from("kamp_spelar").insert(playerRows);
@@ -540,14 +545,15 @@ export async function generateNextSwissRound(
 
   for (const [i, matchup] of matchups.entries()) {
     const kampid = laneToMatchId[i + 1]!;
-    _pushPlayerRows(
+    pushPlayerRows(
       playerRows,
       kampid,
       snrToKasterids[matchup.p1] ?? [],
       matchup.isWalkover ? 21 : 0,
       matchup.isWalkover ? 2 : 0,
+      matchup.isWalkover ? 1 : null,
     );
-    if (matchup.p2 != null) _pushPlayerRows(playerRows, kampid, snrToKasterids[matchup.p2] ?? []);
+    if (matchup.p2 != null) pushPlayerRows(playerRows, kampid, snrToKasterids[matchup.p2] ?? []);
   }
 
   const { error: spErr } = await supabase.from("kamp_spelar").insert(playerRows);

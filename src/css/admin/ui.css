@@ -81,10 +81,6 @@ a.admin-stat:hover {
   border-left-color: var(--kamp-stripe-pagaar);
 }
 
-.admin-stat--live {
-  border-left-color: var(--live-prikk);
-}
-
 .admin-stat__label {
   font-size: 0.72rem;
   font-weight: 600;
@@ -209,6 +205,11 @@ a.admin-stat:hover {
 .admin-select {
   width: auto;
   min-width: 140px;
+}
+
+/* Filters in a toolbar size to their options instead of growing like .app-select. */
+.admin-toolbar .admin-select {
+  flex: 0 0 auto;
 }
 
 .admin-count {
