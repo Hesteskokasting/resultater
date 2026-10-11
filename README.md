@@ -393,7 +393,7 @@ Google blokkerer OAuth-innlogging inne i ein WebView (`disallowed_useragent`), s
 
 1. Hent SHA-1-fingeravtrykk for dei lokale nøkkellagera:
    ```bash
-   cd android && ./gradlew signInReport
+   cd android && ./gradlew signingReport
    ```
    (køyr éin gong for debug-nøkkelen, éin gong med release-`keystore.properties` på plass for opplastingsnøkkelen)
 2. Hent SHA-1 for **appsigneringsnøkkelen** i Play Console → appen → **Test og publiser → Appintegritet → Appsignering**, under «Sertifikat for appsigneringsnøkkel».
