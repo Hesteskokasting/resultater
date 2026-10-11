@@ -8,9 +8,27 @@ permissions:
   contents: write
 
 jobs:
+  # Gates the migration push, so failing checks or tests never reach the database.
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      # vp version is auto-detected from the vite-plus devDependency + lockfile.
+      - uses: voidzero-dev/setup-vp@v1
+        with:
+          node-version: "24"
+          cache: true
+          run-install: false
+      - run: vp install --frozen-lockfile
+      # Replaces the `tsc --noEmit` gate that `npm run build` used to provide;
+      # also covers fmt and lint (lint.options.typeCheck is on in vite.config.js).
+      - run: vp check
+      - run: vp test run
+
   # Runs here first so a broken migration is caught against dev, before the
   # same push runs against prod.
   database:
+    needs: verify
     runs-on: ubuntu-latest
     environment: dev
     steps:
@@ -41,9 +59,6 @@ jobs:
           cache: true
           run-install: false
       - run: vp install --frozen-lockfile
-      # Replaces the `tsc --noEmit` gate that `npm run build` used to provide;
-      # also covers fmt and lint (lint.options.typeCheck is on in vite.config.js).
-      - run: vp check
       - run: vp build --base /dev/
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}

@@ -24,6 +24,11 @@ export default defineConfig({
     environment: "happy-dom",
     globals: true,
     include: ["../tests/**/*.test.ts"],
+    // Tests must not depend on .env or CI secrets; src/supabase.ts throws without a URL.
+    env: {
+      VITE_SUPABASE_URL: "http://localhost:54321",
+      VITE_SUPABASE_ANON_KEY: "test-anon-key",
+    },
   },
   root: "src",
   css: {
