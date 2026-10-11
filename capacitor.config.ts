@@ -21,6 +21,8 @@ const config: CapacitorConfig = {
   server: {
     url: serverUrl,
     cleartext: isLocalHttp,
+    // Bundled page shown when server.url fails to load (offline or server error).
+    errorPath: "offline.html",
     allowNavigation: ["accounts.google.com", "*.supabase.co"],
   },
   plugins: {
