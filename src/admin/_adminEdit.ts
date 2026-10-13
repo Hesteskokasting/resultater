@@ -16,6 +16,7 @@ type Mount = (host: AdminFormHost, id?: number) => Promise<void>;
 interface EditorProps {
   title: (isNew: boolean) => string;
   deletedMessage: string;
+  confirmsCreate?: boolean;
 }
 
 function openEditor(
@@ -38,8 +39,9 @@ function openEditor(
     {
       container: modal.body,
       // The form announces the save itself; the overlay only has to get out of the way.
-      onSaved: () => {
-        modal.close();
+      // A form that confirms its create in place stays open; the list still refreshes.
+      onSaved: (_id, created) => {
+        if (!(created && props.confirmsCreate)) modal.close();
         onChanged();
       },
       // A caller viewing the deleted row itself has to leave, not just refresh.
@@ -60,6 +62,7 @@ export function openTournamentEditor(
     {
       title: (isNew) => (isNew ? "Nytt stevne" : "Rediger stevne"),
       deletedMessage: "Stevnet er sletta.",
+      confirmsCreate: true,
     },
     id,
     onChanged,

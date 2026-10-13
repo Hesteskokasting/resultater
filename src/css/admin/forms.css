@@ -64,3 +64,9 @@
   gap: 8px;
   margin-top: 16px;
 }
+
+/* Check mark on the "Stevnet er oppretta" confirmation. */
+.admin-created-icon {
+  width: 3.5rem;
+  height: 3.5rem;
+}

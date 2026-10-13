@@ -42,6 +42,35 @@ function sncParentFromHash(): number | null {
   return Number.isFinite(id) && id > 0 ? id : null;
 }
 
+/** Replaces the form after a create, offering to open the new stevne or create another. */
+function showCreated(
+  host: AdminFormHost,
+  newId: number,
+  t: { navn: string; dato: string; tid: string | null; sted: string | null },
+): void {
+  const when = formatDate(t.dato) + (t.tid ? ` kl. ${t.tid.slice(0, 5)}` : "");
+  const summary = [t.navn, when, t.sted].filter(Boolean).join(" · ");
+  const wrapper = document.createElement("div");
+  wrapper.className = "text-center py-4";
+  wrapper.innerHTML = `
+    <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-success-subtle text-success fs-3 mb-3 admin-created-icon" aria-hidden="true">✓</div>
+    <h3 class="h5 fw-bold">Stevnet er oppretta</h3>
+    <p class="text-muted">${escHtml(summary)}</p>
+    <div class="d-flex flex-wrap justify-content-center gap-2">
+      <a class="btn btn-primary" href="#/stevne/${newId}" id="goto-button">Gå til stevnet</a>
+      <button type="button" class="btn btn-outline-primary" id="new-button">Opprett nytt stevne</button>
+      ${host.onCancel ? '<button type="button" class="btn btn-outline-secondary" id="cancel-button">Lukk</button>' : ""}
+    </div>`;
+  // The overlay doesn't follow navigation, so it has to close itself first.
+  wrapper.querySelector("#goto-button")!.addEventListener("click", () => host.onCancel?.());
+  wrapper.querySelector("#new-button")!.addEventListener("click", () => {
+    void mountTournamentForm(host);
+  });
+  bindCancelButton(wrapper, host);
+  host.container.replaceChildren(wrapper);
+  wrapper.querySelector<HTMLElement>("#goto-button")!.focus();
+}
+
 /** Create/edit form for a tournament. Used by `#/stevne/ny` and by the dashboard overlay. */
 export async function mountTournamentForm(host: AdminFormHost, id?: number): Promise<void> {
   const { container } = host;
@@ -347,8 +376,13 @@ export async function mountTournamentForm(host: AdminFormHost, id?: number): Pro
         showFormError(wrapper, errorMessage(error));
         return;
       }
-      showToast(id ? "Stevnet er lagra." : "Stevnet er oppretta.", "success");
-      host.onSaved?.(saved?.id ?? id!, !id);
+      if (id) {
+        showToast("Stevnet er lagra.", "success");
+        host.onSaved?.(id, false);
+        return;
+      }
+      host.onSaved?.(saved!.id, true);
+      showCreated(host, saved!.id, payload);
     });
 
   bindCancelButton(wrapper, host);

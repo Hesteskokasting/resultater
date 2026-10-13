@@ -187,8 +187,12 @@ describe("stevneForm, ordinary tournament", () => {
         snc_hovudstevne_id: null,
       }),
     );
-    // The form announces the save itself, and words a create differently.
-    expect(document.querySelector(".toast-item")?.textContent).toBe("Stevnet er oppretta.");
+    // A create is confirmed in place, with a link to the new stevne.
+    expect(h.container.querySelector("h3")?.textContent).toBe("Stevnet er oppretta");
+    expect(h.container.querySelector("#goto-button")?.getAttribute("href")).toBe("#/stevne/7");
+
+    h.container.querySelector<HTMLButtonElement>("#new-button")!.click();
+    await vi.waitFor(() => expect(field<HTMLInputElement>(h.container, "navn").value).toBe(""));
   });
 
   it("sends the chosen kontaktperson on create", async () => {

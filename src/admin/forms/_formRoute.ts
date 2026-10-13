@@ -12,8 +12,8 @@ export interface FormRouteProps {
   /** e.g. `(isNew) => isNew ? "Nytt stevne" : "Rediger stevne"`. */
   heading: (isNew: boolean) => string;
   wrapperClass: string;
-  /** Where a freshly created entity lands, e.g. `#/stevne/12/rediger`. */
-  createdHash: (id: number) => string;
+  /** Where a freshly created entity lands. Omit when the form confirms the create in place. */
+  createdHash?: (id: number) => string;
   /** Where a delete returns to. Omit for forms that cannot delete. */
   deletedHash?: string;
   /** Input names whose values make up the "Rediger X: <name>" heading suffix. */
@@ -35,7 +35,7 @@ export async function renderFormRoute(
       // The form's toast outlives the navigation, so a fresh entity can go
       // straight to its edit route.
       onSaved: (savedId, created) => {
-        if (created) location.hash = props.createdHash(savedId);
+        if (created && props.createdHash) location.hash = props.createdHash(savedId);
       },
       onDeleted: props.deletedHash
         ? () => {

@@ -11,7 +11,6 @@ export function render(container: HTMLElement, params: Params = {}): Promise<voi
     mount: mountTournamentForm,
     heading: (isNew) => (isNew ? "Nytt stevne" : "Rediger stevne"),
     wrapperClass: "container py-4 admin-form-lg",
-    createdHash: (id) => `#/stevne/${id}/rediger`,
     deletedHash: "#/terminliste",
     nameFields: ["navn"],
   });
