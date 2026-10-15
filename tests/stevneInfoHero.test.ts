@@ -8,6 +8,8 @@
 const mocks = vi.hoisted(() => ({
   getInfoTournament: vi.fn(),
   startTournament: vi.fn(),
+  setInitialRoundCount: vi.fn(),
+  getInfoMatchSummary: vi.fn(),
   getRegistrationCount: vi.fn(),
   getPairCount: vi.fn(),
   getUnconfirmedCount: vi.fn(),
@@ -22,6 +24,8 @@ vi.mock("@/supabase", () => ({ supabase: {} }));
 vi.mock("@/services/stevneService", () => ({
   getInfoTournament: mocks.getInfoTournament,
   startTournament: mocks.startTournament,
+  setInitialRoundCount: mocks.setInitialRoundCount,
+  getInfoMatchSummary: mocks.getInfoMatchSummary,
 }));
 vi.mock("@/services/pameldingService", () => ({
   getRegistrationCount: mocks.getRegistrationCount,
@@ -80,6 +84,11 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.getInfoTournament.mockResolvedValue({ data: row(), error: null });
   mocks.getRegistrationCount.mockResolvedValue(0);
+  mocks.getInfoMatchSummary.mockResolvedValue({
+    initialRounds: 0,
+    hasFinalMatches: false,
+    groupSizes: {},
+  });
   mocks.getPairCount.mockResolvedValue(0);
   mocks.getMyRegistrationForTournament.mockResolvedValue({ data: null });
   mocks.getUser.mockResolvedValue(null);
@@ -237,19 +246,116 @@ describe("stevne-info hero", () => {
     expect(el.querySelector(".stevne-hero__status")!.textContent).toBe("Innleiande fase");
   });
 
-  it("only lists antal rundar once it is set", async () => {
-    const el = host();
-    await renderInfo(el, { id: 5 });
-    expect(el.querySelector(".stevne-hero__detaljar")!.textContent).not.toContain("Antal rundar");
+  function roundOptions(el: HTMLElement): string[] {
+    return [...el.querySelectorAll<HTMLOptionElement>("#info-rundar option")].map((o) => o.value);
+  }
 
+  it("keeps both right-hand tiles even when the metodar have nothing to show", async () => {
+    const el = host();
+    await renderInfo(el, { id: 5, isAdmin: true });
+    const right = [
+      ...el.querySelectorAll(".stevne-hero__par > .stevne-hero__rute + .stevne-hero__rute"),
+    ];
+    expect(right.map((r) => r.textContent!.replace(/\s+/g, ""))).toEqual(["Rundar—", "Info—"]);
+    expect(el.querySelector("#info-rundar")).toBeNull();
+  });
+
+  it("lets an organiser pick and clear the rundar, unblocking the start button", async () => {
     mocks.getInfoTournament.mockResolvedValue({
-      data: row({ antall_runder_innl: 3 }),
+      data: row({ antall_runder_innl: null, kastemetodeInnl: { id: 1, navn: "Gloppen" } }),
       error: null,
     });
-    const withRounds = host();
-    await renderInfo(withRounds, { id: 5 });
-    expect(withRounds.querySelector(".stevne-hero__detaljar")!.textContent).toContain(
-      "Antal rundar",
+    mocks.getRegistrationCount.mockResolvedValue(4);
+    mocks.setInitialRoundCount.mockResolvedValue({ error: null });
+    const el = host();
+    await renderInfo(el, { id: 5, isAdmin: true });
+    const startBtn = () => slot(el).querySelector<HTMLButtonElement>("#start-stevne-btn")!;
+    expect(startBtn().disabled).toBe(true);
+
+    // 4 spelarar caps Gloppen at 2 rundar.
+    expect(roundOptions(el)).toEqual(["", "1", "2"]);
+
+    const select = el.querySelector<HTMLSelectElement>("#info-rundar")!;
+    select.value = "2";
+    select.dispatchEvent(new Event("change"));
+    await vi.waitFor(() => expect(mocks.setInitialRoundCount).toHaveBeenCalledWith(5, 2));
+    await vi.waitFor(() => expect(startBtn().disabled).toBe(false));
+
+    select.value = "";
+    select.dispatchEvent(new Event("change"));
+    await vi.waitFor(() => expect(mocks.setInitialRoundCount).toHaveBeenCalledWith(5, null));
+    await vi.waitFor(() => expect(startBtn().disabled).toBe(true));
+  });
+
+  it("keeps NHM rundar adjustable mid-innleiande, never below what is generated", async () => {
+    mocks.getInfoTournament.mockResolvedValue({
+      data: row({
+        stevne_fase: "innledende",
+        antall_runder_innl: 5,
+        kastemetodeInnl: { id: 2, navn: "Nordhordlandsmetoden" },
+      }),
+      error: null,
+    });
+    mocks.getInfoMatchSummary.mockResolvedValue({
+      initialRounds: 3,
+      hasFinalMatches: false,
+      groupSizes: {},
+    });
+    const el = host();
+    await renderInfo(el, { id: 5, isAdmin: true });
+    expect(roundOptions(el)).toEqual(["3", "4", "5", "6", "7", "8", "9", "10"]);
+  });
+
+  it("locks the rundar once Gloppen has started", async () => {
+    mocks.getInfoTournament.mockResolvedValue({
+      data: row({
+        stevne_fase: "innledende",
+        antall_runder_innl: 4,
+        kastemetodeInnl: { id: 1, navn: "Gloppen" },
+      }),
+      error: null,
+    });
+    const el = host();
+    await renderInfo(el, { id: 5, isAdmin: true });
+    expect(el.querySelector("#info-rundar")).toBeNull();
+    expect(el.querySelector(".stevne-hero__par")!.textContent).toContain("4");
+  });
+
+  it("shows the cup gruppefordeling next to the avsluttande metode", async () => {
+    mocks.getInfoTournament.mockResolvedValue({
+      data: row({ kastemetodeAvsl: { id: 7, navn: "Cup" }, runde1_format: { nA: 9 } }),
+      error: null,
+    });
+    mocks.getRegistrationCount.mockResolvedValue(15);
+    const el = host();
+    await renderInfo(el, { id: 5 });
+    expect(el.querySelectorAll(".stevne-hero__par")[1]!.textContent).toContain("A: 9 - B: 6");
+    expect(el.querySelector('a[href="#/stevne/5/avsluttende"]')).toBeNull();
+
+    await renderInfo(el, { id: 5, isAdmin: true });
+    expect(el.querySelector('a[href="#/stevne/5/avsluttende"]')!.textContent).toBe(
+      "Endre gruppefordeling",
     );
+  });
+
+  it("prefers the assigned grupper and drops the link once the cup has kampar", async () => {
+    mocks.getInfoTournament.mockResolvedValue({
+      data: row({
+        stevne_fase: "avsluttende",
+        kastemetodeAvsl: { id: 7, navn: "Cup" },
+        runde1_format: { nA: 9 },
+      }),
+      error: null,
+    });
+    mocks.getRegistrationCount.mockResolvedValue(16);
+    mocks.getInfoMatchSummary.mockResolvedValue({
+      initialRounds: 0,
+      hasFinalMatches: true,
+      groupSizes: { A: 8, B: 8 },
+    });
+    const el = host();
+    await renderInfo(el, { id: 5, isAdmin: true });
+    expect(el.querySelectorAll(".stevne-hero__par")[1]!.textContent).toContain("A: 8 - B: 8");
+    expect(el.querySelector('a[href="#/stevne/5/avsluttende"]')).toBeNull();
   });
 });

@@ -739,7 +739,6 @@ describe("settings tab on an SNC umbrella", () => {
     expect(mocks.updateTournamentSettings).toHaveBeenCalledWith(10, {
       innledendekastemetodeid: 3,
       avsluttendekastemetodeid: 6,
-      antall_runder_innl: null,
       tilgjengelige_baner: null,
       stevnetypeid: 5,
       kategoriid: 2,
@@ -782,7 +781,6 @@ describe("settings tab on an SNC umbrella", () => {
     expect(mocks.updateTournamentSettings).toHaveBeenCalledWith(11, {
       innledendekastemetodeid: 3,
       avsluttendekastemetodeid: 6,
-      antall_runder_innl: null,
       tilgjengelige_baner: 4,
       stevnetypeid: 5,
       kategoriid: 2,
@@ -802,104 +800,5 @@ describe("settings tab on an SNC umbrella", () => {
     expect(el.querySelector("#tilgjengelege-banar")).not.toBeNull();
     expect(el.querySelector("#nullstill-btn")).not.toBeNull();
     expect(optionLabels(el, "innl-metode")).toEqual(["Gloppen", "Minimatch X-kast"]);
-  });
-
-  describe("Gloppen round cap hint", () => {
-    function gloppenSettings(rounds: number | null) {
-      return settings({
-        er_snc_hovudstevne: false,
-        innledendekastemetodeid: 1,
-        antall_runder_innl: rounds,
-      });
-    }
-
-    it("names the cap for the current field", async () => {
-      getTournamentSettings.mockResolvedValue({ data: gloppenSettings(4), error: null });
-      mocks.getRegistrationCount.mockResolvedValue(10);
-      const el = host();
-      await renderSettings(el, { id: 10 });
-
-      const help = el.querySelector<HTMLElement>("#rundar-hjelp")!;
-      expect(help.classList.contains("d-none")).toBe(false);
-      expect(help.textContent).toContain("Maks 5 rundar med 10 spelarar");
-      expect(help.classList.contains("text-danger")).toBe(false);
-    });
-
-    it("flags a stored round count that is already over the cap", async () => {
-      getTournamentSettings.mockResolvedValue({ data: gloppenSettings(7), error: null });
-      mocks.getRegistrationCount.mockResolvedValue(10);
-      const el = host();
-      await renderSettings(el, { id: 10 });
-
-      const help = el.querySelector<HTMLElement>("#rundar-hjelp")!;
-      expect(help.textContent).toContain("For mange rundar");
-      expect(help.classList.contains("text-danger")).toBe(true);
-    });
-
-    it("counts par, not spelarar, on a lagbasert stevne", async () => {
-      getTournamentSettings.mockResolvedValue({
-        data: { ...gloppenSettings(3), kategori: { erlagbasert: true } },
-        error: null,
-      });
-      mocks.getRegistrationCount.mockResolvedValue(16);
-      mocks.getPairCount.mockResolvedValue(8);
-      const el = host();
-      await renderSettings(el, { id: 10 });
-
-      expect(el.querySelector("#rundar-hjelp")!.textContent).toContain("Maks 4 rundar med 8 par");
-    });
-
-    it("updates as the organiser types", async () => {
-      getTournamentSettings.mockResolvedValue({ data: gloppenSettings(4), error: null });
-      mocks.getRegistrationCount.mockResolvedValue(10);
-      const el = host();
-      await renderSettings(el, { id: 10 });
-
-      const input = el.querySelector<HTMLInputElement>("#antall-rundar")!;
-      input.value = "9";
-      input.dispatchEvent(new Event("input"));
-
-      expect(el.querySelector("#rundar-hjelp")!.classList.contains("text-danger")).toBe(true);
-    });
-
-    it("shows the round count only for a round-based metode", async () => {
-      getTournamentSettings.mockResolvedValue({ data: gloppenSettings(4), error: null });
-      const el = host();
-      await renderSettings(el, { id: 10 });
-
-      const field = el.querySelector<HTMLElement>("#rundar-felt")!;
-      expect(field.classList.contains("d-none")).toBe(false);
-
-      // Minimatch X-kast gets its omgangar from the kastemetode instead.
-      const select = el.querySelector<HTMLSelectElement>("#innl-metode")!;
-      select.value = "3";
-      select.dispatchEvent(new Event("change"));
-
-      expect(field.classList.contains("d-none")).toBe(true);
-      expect(el.querySelector<HTMLInputElement>("#antall-rundar")!.value).toBe("");
-    });
-
-    it("stays hidden for a non-cascade metode", async () => {
-      getTournamentSettings.mockResolvedValue({
-        data: settings({ er_snc_hovudstevne: false }),
-        error: null,
-      });
-      mocks.getRegistrationCount.mockResolvedValue(10);
-      const el = host();
-      await renderSettings(el, { id: 10 });
-
-      expect(el.querySelector("#rundar-hjelp")!.classList.contains("d-none")).toBe(true);
-    });
-
-    it("falls back to the required-hint before anyone is påmeld", async () => {
-      getTournamentSettings.mockResolvedValue({ data: gloppenSettings(4), error: null });
-      const el = host();
-      await renderSettings(el, { id: 10 });
-
-      const help = el.querySelector<HTMLElement>("#rundar-hjelp")!;
-      expect(help.classList.contains("d-none")).toBe(false);
-      expect(help.textContent).not.toContain("Maks");
-      expect(help.textContent).toContain("Må setjast");
-    });
   });
 });

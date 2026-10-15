@@ -23,7 +23,8 @@ export interface StevneHeroOptions {
   /** Joined with "·" under the title, e.g. "SNC Singel · Årdalen". */
   subtitle: string[];
   facts: StevneHeroFact[];
-  methods: StevneHeroFact[];
+  /** One row per fase; the tiles in a row are drawn joined. */
+  methods: StevneHeroFact[][];
   details: StevneHeroFact[];
 }
 
@@ -118,7 +119,7 @@ export function stevneHeroHtml(options: StevneHeroOptions): string {
       </div>
       <div class="stevne-hero__handling" id="stevne-hero-handling"></div>
       <div class="stevne-hero__ruter">${facts.map((f) => tileHtml(f)).join("")}</div>
-      ${methods.length ? `<div class="stevne-hero__ruter stevne-hero__ruter--brei">${methods.map((m) => tileHtml(m)).join("")}</div>` : ""}
+      ${methods.length ? `<div class="stevne-hero__ruter stevne-hero__ruter--brei">${methods.map((row) => `<div class="stevne-hero__par">${row.map((m) => tileHtml(m)).join("")}</div>`).join("")}</div>` : ""}
       ${details.length ? `<dl class="stevne-hero__detaljar">${details.map((d) => detailHtml(d)).join("")}</dl>` : ""}
     </section>`;
 }

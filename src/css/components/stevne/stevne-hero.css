@@ -115,3 +115,37 @@
   text-align: right;
   overflow-wrap: anywhere;
 }
+
+/* Joined tiles: the fase's metode, then what belongs to it (rundar, cup-info).
+   The right tile has a fixed share so the seam lines up across rows. */
+.stevne-hero__par {
+  display: flex;
+}
+
+.stevne-hero__par > .stevne-hero__rute {
+  flex: 1 1 0;
+}
+
+.stevne-hero__par > .stevne-hero__rute:not(:last-child) {
+  border-right-style: dashed;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.stevne-hero__par > .stevne-hero__rute + .stevne-hero__rute {
+  flex: 0 0 36%;
+  border-left: 0;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  background: var(--flate-2);
+}
+
+.stevne-hero__par .form-select {
+  margin-top: 2px;
+  font-weight: 600;
+}
+
+.stevne-hero__lenke {
+  font-size: 0.8rem;
+  font-weight: 500;
+}

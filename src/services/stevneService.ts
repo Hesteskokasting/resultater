@@ -40,8 +40,8 @@ export type CategoryRow = Pick<Tables<"kategori">, "id" | "navn">;
 // ── Info-tab typar ────────────────────────────────────────────────────────────
 
 const _infoStevneQuery = supabase.from("stevne").select(`
-    id, navn, dato, tid, sted, stevne_fase, antall_runder_innl, erfullfort, klubbid, tilgjengelige_baner,
-    snc_hovudstevne_id,
+    id, navn, dato, tid, sted, stevne_fase, antall_runder_innl, runde1_format, erfullfort, klubbid, tilgjengelige_baner,
+    snc_hovudstevne_id, juryleder,
     kastemetodeInnl:kastemetode!stevne_innledendekastemetodeid_fkey(id, navn),
     kastemetodeAvsl:kastemetode!stevne_avsluttendekastemetodeid_fkey(id, navn),
     kategori:kategoriid(erlagbasert, navn),
@@ -179,7 +179,7 @@ export async function getInfoTournament(
   const { data, error } = await supabase
     .from("stevne")
     .select(`
-      id, navn, dato, tid, sted, stevne_fase, antall_runder_innl, erfullfort, klubbid, tilgjengelige_baner,
+      id, navn, dato, tid, sted, stevne_fase, antall_runder_innl, runde1_format, erfullfort, klubbid, tilgjengelige_baner,
       snc_hovudstevne_id, juryleder,
       kastemetodeInnl:kastemetode!stevne_innledendekastemetodeid_fkey(id, navn),
       kastemetodeAvsl:kastemetode!stevne_avsluttendekastemetodeid_fkey(id, navn),
@@ -572,7 +572,6 @@ export type TournamentSettingsRow = Pick<
   Tables<"stevne">,
   | "id"
   | "stevne_fase"
-  | "antall_runder_innl"
   | "innledendekastemetodeid"
   | "avsluttendekastemetodeid"
   | "tilgjengelige_baner"
@@ -591,7 +590,6 @@ export type TournamentSettingsUpdatePayload = Pick<
   Tables<"stevne">,
   | "innledendekastemetodeid"
   | "avsluttendekastemetodeid"
-  | "antall_runder_innl"
   | "tilgjengelige_baner"
   | "stevnetypeid"
   | "kategoriid"
@@ -605,7 +603,7 @@ export async function getTournamentSettings(
   const { data, error } = await supabase
     .from("stevne")
     .select(
-      "id, stevne_fase, antall_runder_innl, innledendekastemetodeid, avsluttendekastemetodeid, tilgjengelige_baner, er_snc_hovudstevne, snc_hovudstevne_id, stevnetypeid, kategoriid, dato, tid, kategori:kategoriid(erlagbasert)",
+      "id, stevne_fase, innledendekastemetodeid, avsluttendekastemetodeid, tilgjengelige_baner, er_snc_hovudstevne, snc_hovudstevne_id, stevnetypeid, kategoriid, dato, tid, kategori:kategoriid(erlagbasert)",
     )
     .eq("id", id)
     .single();
@@ -635,6 +633,58 @@ export async function updateTournamentSettings(
   );
   if (error) logError("updateTournamentSettings", error);
   return { error };
+}
+
+export async function setInitialRoundCount(
+  id: number,
+  rounds: number | null,
+): Promise<{ error: unknown }> {
+  const { error } = await verifyRowsAffected(
+    supabase.from("stevne").update({ antall_runder_innl: rounds }).eq("id", id).select("id"),
+  );
+  if (error) logError("setInitialRoundCount", error);
+  return { error };
+}
+
+export interface InfoMatchSummary {
+  /** Highest innleiande runde generated so far, 0 before start. */
+  initialRounds: number;
+  hasFinalMatches: boolean;
+  /** Cup units (spelarar or par) assigned to each gruppe, keyed by gruppe navn. */
+  groupSizes: Record<string, number>;
+}
+
+export async function getInfoMatchSummary(stevneid: number): Promise<InfoMatchSummary> {
+  const [matchRes, groupRes] = await Promise.all([
+    supabase.from("kamp").select("fase, runde_nummer").eq("stevneid", stevneid),
+    supabase
+      .from("resultat")
+      .select("startnummer, gruppe:gruppeid(navn)")
+      .eq("stevneid", stevneid)
+      .not("gruppeid", "is", null),
+  ]);
+  if (matchRes.error) logError("getInfoMatchSummary.kamp", matchRes.error);
+  if (groupRes.error) logError("getInfoMatchSummary.resultat", groupRes.error);
+
+  const matches = matchRes.data ?? [];
+  const initialRounds = Math.max(
+    0,
+    ...matches.filter((k) => k.fase === "innledende").map((k) => k.runde_nummer),
+  );
+  // Both members of a par carry the gruppe, so a par counts once by startnummer.
+  const unitsByGroup = new Map<string, Set<number | null>>();
+  for (const r of groupRes.data ?? []) {
+    const navn = r.gruppe?.navn;
+    if (!navn) continue;
+    const units = unitsByGroup.get(navn) ?? new Set();
+    units.add(r.startnummer);
+    unitsByGroup.set(navn, units);
+  }
+  return {
+    initialRounds,
+    hasFinalMatches: matches.some((k) => k.fase === "avsluttende"),
+    groupSizes: Object.fromEntries([...unitsByGroup].map(([navn, units]) => [navn, units.size])),
+  };
 }
 
 export interface ThrowerRegistrations {

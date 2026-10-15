@@ -15,7 +15,13 @@ import { logError } from "@/utils/logError";
 import { errorMessage } from "@/utils/errorMessage";
 import { showToast } from "@/components/Toast";
 import { confirmDialog } from "@/components/dialog/ConfirmDialog";
-import { getInfoTournament, startTournament, type StartStep } from "@/services/stevneService";
+import {
+  getInfoMatchSummary,
+  getInfoTournament,
+  setInitialRoundCount,
+  startTournament,
+  type StartStep,
+} from "@/services/stevneService";
 import {
   getRegistrationCount,
   getPairCount,
@@ -29,9 +35,11 @@ import { registerRefetch } from "@/utils/data/refetchRegistry";
 import {
   isCascadeMethodName,
   isKongelagMethodName,
+  maxCascadeRounds,
   usesInitialRoundCount,
 } from "@/utils/kastemetode";
 import { canStartTournament } from "@/utils/stevne/stevneStart";
+import { parseRound1Format } from "@/utils/kamp/cupStructure";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -48,6 +56,34 @@ function statusBadge(fase: string | null, erfullfort: boolean | null): StevneHer
   return { text: "Ikkje starta", variant: "warn" };
 }
 
+/** The assigned grupper once they exist, else the saved split against today's påmelde. */
+function groupSplitLabel(
+  groupSizes: Record<string, number>,
+  savedNa: number | null | undefined,
+  entryCount: number,
+): string {
+  const assignedA = groupSizes.A ?? 0;
+  const assignedB = groupSizes.B ?? 0;
+  const [nA, nB] =
+    assignedA || assignedB
+      ? [assignedA, assignedB]
+      : savedNa != null
+        ? [savedNa, entryCount - savedNa]
+        : [null, 0];
+  if (nA == null) return "Ikkje sett";
+  return nB > 0 ? `A: ${nA} - B: ${nB}` : "Alle i A";
+}
+
+/**
+ * Never below the rundar already generated; up to the Gloppen cap when known,
+ * else 10, stretched to keep a stored count above that in the list.
+ */
+function roundChoices(current: number | null, generated: number, cap: number | null): number[] {
+  const min = Math.max(1, generated);
+  const max = Math.max(cap ?? 10, current ?? 0, min);
+  return Array.from({ length: max - min + 1 }, (_, i) => min + i);
+}
+
 // ── Render ────────────────────────────────────────────────────────────────────
 
 export async function render(
@@ -58,11 +94,12 @@ export async function render(
   container.replaceChildren(createLoadingState());
 
   try {
-    const [stevneRes, count, pairCount, auth] = await Promise.all([
+    const [stevneRes, count, pairCount, auth, matchSummary] = await Promise.all([
       getInfoTournament(id),
       getRegistrationCount(id),
       getPairCount(id),
       getUser(),
+      getInfoMatchSummary(id),
     ]);
 
     if (stevneRes.error || !stevneRes.data) {
@@ -82,6 +119,44 @@ export async function render(
     const isTeam = stevne.kategori?.erlagbasert ?? false;
     const categoryName = (stevne.kategori?.navn ?? "").toLowerCase();
     const isTeamOrMix = categoryName.includes("par") || categoryName.includes("mix");
+    const entryCount = isTeam ? pairCount : count;
+
+    // ── Method tiles ──────────────────────────────────────────────────────────
+
+    const [initialFact, finalFact] = stevneMethodFacts(stevne);
+    // Gloppen generates every runde at start; NHM generates one at a time
+    // against the stored count, so it stays adjustable through innleiande.
+    const canSetRounds =
+      isAdmin &&
+      isRoundBased &&
+      (isNotStarted || (!isCascade && !stevne.erfullfort && phase === "innledende"));
+    const roundCap = isCascade && entryCount > 0 ? maxCascadeRounds(entryCount) : null;
+    const roundsHtml = (): string => {
+      if (!isRoundBased) return "—";
+      if (!canSetRounds) return String(stevne.antall_runder_innl ?? "—");
+      const current = stevne.antall_runder_innl;
+      const choices = roundChoices(current, matchSummary.initialRounds, roundCap);
+      return `<select id="info-rundar" class="form-select form-select-sm" aria-label="Antal rundar">
+          ${isNotStarted ? `<option value=""${current == null ? " selected" : ""}>—</option>` : ""}
+          ${choices.map((n) => `<option value="${n}"${n === current ? " selected" : ""}>${n}</option>`).join("")}
+        </select>`;
+    };
+
+    const isCup = (stevne.kastemetodeAvsl?.navn ?? "").toLowerCase().includes("cup");
+    const round1Format = parseRound1Format(stevne.runde1_format);
+    // The split is set on the Avsl. tab until the cup's first kampar exist.
+    const canSetGroups = isAdmin && !stevne.erfullfort && !matchSummary.hasFinalMatches;
+    const infoHtml = isCup
+      ? escHtml(groupSplitLabel(matchSummary.groupSizes, round1Format?.nA, entryCount)) +
+        (canSetGroups
+          ? `<a class="stevne-hero__lenke d-block" href="#/stevne/${id}/avsluttende">${round1Format ? "Endre" : "Set"} gruppefordeling</a>`
+          : "")
+      : "—";
+
+    const methods = [
+      [initialFact!, { label: "Rundar", html: roundsHtml() }],
+      [finalFact!, { label: "Info", html: infoHtml }],
+    ];
 
     // ── Hero ──────────────────────────────────────────────────────────────────
 
@@ -92,18 +167,10 @@ export async function render(
         status: statusBadge(stevne.stevne_fase, stevne.erfullfort),
         subtitle: stevneSubtitle(stevne),
         facts: stevneKeyFacts(stevne),
-        methods: stevneMethodFacts(stevne),
+        methods,
         details: [
           ...stevneDetails(stevne),
           { label: registrationLabel, html: String(isTeamOrMix ? pairCount : count) },
-          ...(stevne.antall_runder_innl != null
-            ? [
-                {
-                  label: "Antal rundar innleiande",
-                  html: String(stevne.antall_runder_innl),
-                },
-              ]
-            : []),
           ...(stevne.snc_hovudstevne_id != null
             ? [
                 {
@@ -126,9 +193,10 @@ export async function render(
       !stevne.kastemetodeInnl && isKongelagMethodName(stevne.kastemetodeAvsl?.navn ?? "");
 
     const showStartButton = isNotStarted && isAdmin;
-    if (showStartButton) {
-      // Every input is already in hand, so the organizer is told what is missing
-      // up front instead of discovering it in a toast after clicking.
+    // Every input is already in hand, so the organizer is told what is missing
+    // up front instead of discovering it in a toast after clicking. Redrawn when
+    // the rundar tile changes the round count.
+    function renderStartButton(): void {
       const blocked = canStartTournament({
         hasInitialMethod: Boolean(stevne.kastemetodeInnl),
         isStandaloneKongelag,
@@ -186,6 +254,23 @@ export async function render(
         location.hash = `#/stevne/${id}/${startedPhase}`;
       });
     }
+    if (showStartButton) renderStartButton();
+
+    // ── Rundar select ─────────────────────────────────────────────────────────
+
+    const roundsSelect = container.querySelector<HTMLSelectElement>("#info-rundar");
+    roundsSelect?.addEventListener("change", async () => {
+      const previous = stevne.antall_runder_innl;
+      const next = roundsSelect.value ? Number(roundsSelect.value) : null;
+      stevne.antall_runder_innl = next;
+      const { error } = await setInitialRoundCount(id, next);
+      if (error) {
+        showToast("Feil ved lagring av rundar: " + errorMessage(error), "error");
+        stevne.antall_runder_innl = previous;
+        roundsSelect.value = String(previous ?? "");
+      }
+      if (showStartButton) renderStartButton();
+    });
 
     // ── Action buttons ────────────────────────────────────────────────────────
 

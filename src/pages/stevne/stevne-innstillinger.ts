@@ -12,14 +12,7 @@ import {
   updateTournamentSettings,
 } from "@/services/stevneService";
 import { resetTournament } from "@/services/testDataService";
-import {
-  isCascadeMethodName,
-  isKongelagMethodName,
-  isXkastMethodName,
-  maxCascadeRounds,
-  usesInitialRoundCount,
-} from "@/utils/kastemetode";
-import { getPairCount, getRegistrationCount } from "@/services/pameldingService";
+import { isKongelagMethodName, isXkastMethodName } from "@/utils/kastemetode";
 import { registerRefetch, reloadRoute } from "@/utils/data/refetchRegistry";
 
 // ── Render ────────────────────────────────────────────────────────────────────
@@ -32,15 +25,12 @@ export async function render(
   container.replaceChildren(createLoadingState());
 
   try {
-    const [tournamentRes, methodsRes, typesRes, categoriesRes, playerCount, pairCount] =
-      await Promise.all([
-        getTournamentSettings(id),
-        getActiveThrowingMethods(),
-        getTournamentTypes(),
-        getCategories(),
-        getRegistrationCount(id),
-        getPairCount(id),
-      ]);
+    const [tournamentRes, methodsRes, typesRes, categoriesRes] = await Promise.all([
+      getTournamentSettings(id),
+      getActiveThrowingMethods(),
+      getTournamentTypes(),
+      getCategories(),
+    ]);
 
     if (tournamentRes.error || !tournamentRes.data) {
       container.replaceChildren(createErrorBanner("Stevne ikkje funne."));
@@ -63,13 +53,6 @@ export async function render(
     const finalMethods = methods.filter(
       (m) => m.er_avsluttende && (!isSncParent || isKongelagMethodName(m.navn)),
     );
-
-    // lag_id rows survive a switch from par to singel, so the kategori decides
-    // the unit, not pairCount. With no påmelde there is no cap to show yet.
-    const isTeam = stevne.kategori?.erlagbasert ?? false;
-    const entryCount = isTeam ? pairCount : playerCount;
-    const roundCap = entryCount > 0 ? maxCascadeRounds(entryCount) : null;
-    const capUnit = isTeam ? "par" : "spelarar";
 
     function optionsHtml(list: { id: number; navn: string }[], selectedId: number | null): string {
       return list
@@ -131,12 +114,6 @@ export async function render(
                 </p>`
               : ""
           }
-          <div id="rundar-felt" class="mb-3 d-none">
-            <label class="form-label fw-semibold">Antall runder</label>
-            <input id="antall-rundar" type="number" min="1" class="form-control"
-              value="${stevne.antall_runder_innl ?? ""}" placeholder="Innleiande">
-            <p id="rundar-hjelp" class="form-text d-none"></p>
-          </div>
           ${
             isSncParent
               ? `<p class="form-text mb-4">Kastemetoden gjeld heile SNC-runden og blir arva av alle lokalstevna.</p>`
@@ -181,57 +158,6 @@ export async function render(
         );
       });
 
-    // antall_runder_innl only drives Gloppen/NHM kamp generation — X-kast
-    // methods get their omgang count from kastemetode.antall_omganger.
-    const initialSelect = container.querySelector<HTMLSelectElement>("#innl-metode")!;
-    const roundsField = container.querySelector<HTMLElement>("#rundar-felt")!;
-    const roundsInput = container.querySelector<HTMLInputElement>("#antall-rundar")!;
-    const roundsHelp = container.querySelector<HTMLParagraphElement>("#rundar-hjelp")!;
-    // The selected="" attribute above sets the initial option; assigning value
-    // as well keeps the select in sync with the row for the code below, which
-    // reads the live select rather than the markup.
-    initialSelect.value = String(stevne.innledendekastemetodeid ?? "");
-
-    function selectedMethodName(): string {
-      return initialMethods.find((m) => m.id === Number(initialSelect.value))?.navn ?? "";
-    }
-
-    // Gloppen pairs the first half of the startnummer against the second, one
-    // offset per runde, so it runs out of fresh matchups after ceil(N/2).
-    function syncRoundsHelp(): void {
-      const method = selectedMethodName();
-      const isRoundBased = method !== "" && usesInitialRoundCount(method);
-      if (!isRoundBased) {
-        roundsHelp.classList.add("d-none");
-        return;
-      }
-      if (isCascadeMethodName(method) && roundCap != null) {
-        const overCap = Number(roundsInput.value) > roundCap;
-        roundsHelp.textContent = overCap
-          ? `For mange rundar: ${entryCount} ${capUnit} gjev maks ${roundCap} rundar utan omkampar.`
-          : `Maks ${roundCap} rundar med ${entryCount} ${capUnit} påmelde.`;
-        roundsHelp.classList.toggle("text-danger", overCap);
-        roundsHelp.classList.remove("d-none");
-        return;
-      }
-      roundsHelp.textContent = "Må setjast før stevnet kan startast.";
-      roundsHelp.classList.remove("text-danger");
-      roundsHelp.classList.remove("d-none");
-    }
-
-    // The field means nothing outside Gloppen/NHM, so it is hidden rather than
-    // shown disabled, and its value cleared so a leftover count is not saved.
-    function syncRoundsInput(): void {
-      const method = selectedMethodName();
-      const isRoundBased = method !== "" && usesInitialRoundCount(method);
-      roundsField.classList.toggle("d-none", !isRoundBased);
-      if (!isRoundBased) roundsInput.value = "";
-      syncRoundsHelp();
-    }
-    syncRoundsInput();
-    initialSelect.addEventListener("change", syncRoundsInput);
-    roundsInput.addEventListener("input", syncRoundsHelp);
-
     container
       .querySelector<HTMLFormElement>("#innstillingar-form")!
       .addEventListener("submit", async (e) => {
@@ -247,7 +173,6 @@ export async function render(
         }
         const typeId = container.querySelector<HTMLSelectElement>("#stevnetype")!.value;
         const categoryId = container.querySelector<HTMLSelectElement>("#kategori")!.value;
-        const rounds = container.querySelector<HTMLInputElement>("#antall-rundar")!.value;
         const lanesInput = container.querySelector<HTMLInputElement>("#tilgjengelege-banar");
 
         const { error } = await updateTournamentSettings(id, {
@@ -261,7 +186,6 @@ export async function render(
             : finalId
               ? Number(finalId)
               : null,
-          antall_runder_innl: rounds ? Number(rounds) : null,
           dato: date,
           tid: time || null,
           tilgjengelige_baner: lanesInput?.value ? Number(lanesInput.value) : null,
@@ -276,8 +200,8 @@ export async function render(
           return;
         }
 
-        // The kategori sets par vs singel for the round cap here and for the
-        // tabs above, so the whole route is drawn again.
+        // The kategori sets par vs singel for the tabs above, so the whole
+        // route is drawn again.
         if ((categoryId ? Number(categoryId) : null) !== stevne.kategoriid) {
           void reloadRoute();
           return;

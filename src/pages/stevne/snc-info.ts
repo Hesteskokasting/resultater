@@ -79,7 +79,7 @@ function overviewHtml(
       : { text: "Ikkje konsolidert", variant: "warn" },
     subtitle: stevneSubtitle(parent),
     facts: stevneKeyFacts(parent),
-    methods: stevneMethodFacts(parent),
+    methods: stevneMethodFacts(parent).map((fact) => [fact]),
     details: [
       ...stevneDetails(parent),
       { label: "Lokale stevne", html: escHtml(progress) },
