@@ -145,14 +145,16 @@
   gap: 6px;
 }
 
-.stevne-hero__atvaring {
+/* The tile hugs the right edge, so the panel opens leftwards from the icon. */
+.stevne-hero__rundar .info-tip {
   flex: none;
-  padding: 0 4px;
-  border: 0;
-  background: none;
-  color: var(--bs-warning);
-  font-size: 1.1rem;
-  line-height: 1;
+  margin-left: 0;
+}
+
+.stevne-hero__rundar .info-tip__panel {
+  left: auto;
+  right: 0;
+  transform: none;
 }
 
 .stevne-hero__lenke {

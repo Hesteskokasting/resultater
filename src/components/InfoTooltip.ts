@@ -2,6 +2,8 @@
 // spell out in standing text. Click rather than hover: a hover tooltip is
 // unreachable on a touch screen, and these pages are read on phones.
 
+export type InfoTooltipVariant = "info" | "warning" | "danger";
+
 export interface InfoTooltipProps {
   /** Placeholder element (from an innerHTML skeleton) that the button replaces. */
   slot: Element;
@@ -9,6 +11,8 @@ export interface InfoTooltipProps {
   label?: string;
   /** Panel contents as HTML — the caller escapes whatever comes from data. */
   html: string;
+  /** Icon and colour; defaults to info. */
+  variant?: InfoTooltipVariant;
 }
 
 export interface InfoTooltip {
@@ -16,12 +20,23 @@ export interface InfoTooltip {
   setHtml: (html: string) => void;
 }
 
-const INFO_SVG =
+const svg = (shapes: string): string =>
   '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
-  'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-  '<circle cx="12" cy="12" r="10"/><line x1="12" y1="11" x2="12" y2="17"/>' +
-  '<line x1="12" y1="7.5" x2="12" y2="7.5"/>' +
-  "</svg>";
+  `stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${shapes}</svg>`;
+
+const ICONS: Record<InfoTooltipVariant, string> = {
+  info: svg(
+    '<circle cx="12" cy="12" r="10"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="12" y1="7.5" x2="12" y2="7.5"/>',
+  ),
+  warning: svg(
+    '<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>' +
+      '<line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12" y2="17"/>',
+  ),
+  danger: svg(
+    '<polygon points="7.9 2 16.1 2 22 7.9 22 16.1 16.1 22 7.9 22 2 16.1 2 7.9"/>' +
+      '<line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12" y2="16"/>',
+  ),
+};
 
 let nextId = 0;
 
@@ -29,11 +44,12 @@ export function createInfoTooltip({
   slot,
   label = "Vis info",
   html,
+  variant = "info",
 }: InfoTooltipProps): InfoTooltip {
   const panelId = `info-tip-${nextId++}`;
 
   const wrapper = document.createElement("span");
-  wrapper.className = "info-tip";
+  wrapper.className = `info-tip info-tip--${variant}`;
 
   const button = document.createElement("button");
   button.type = "button";
@@ -42,7 +58,7 @@ export function createInfoTooltip({
   button.setAttribute("aria-expanded", "false");
   button.setAttribute("aria-controls", panelId);
   button.title = label;
-  button.innerHTML = INFO_SVG;
+  button.innerHTML = ICONS[variant];
 
   const panel = document.createElement("div");
   panel.className = "info-tip__panel";

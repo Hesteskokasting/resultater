@@ -25,8 +25,6 @@ export async function render(
     const { render: r } = await import("./avsluttende/nordhordland");
     await r(container, { id, isAdmin }, bannerSlot);
   } else {
-    container.replaceChildren(
-      createErrorBanner(`Ukjend avsluttande kastemetode: ${navn || "(ikkje sett)"}`),
-    );
+    container.replaceChildren(createErrorBanner(`Ukjend avsluttande kastemetode: ${navn || "-"}`));
   }
 }

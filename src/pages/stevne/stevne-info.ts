@@ -13,6 +13,7 @@ import {
 import { logError } from "@/utils/logError";
 import { errorMessage } from "@/utils/errorMessage";
 import { showToast } from "@/components/Toast";
+import { createInfoTooltip } from "@/components/InfoTooltip";
 import { confirmDialog } from "@/components/dialog/ConfirmDialog";
 import {
   getInfoMatchSummary,
@@ -72,7 +73,7 @@ function groupSplitLabel(
       : savedNa != null
         ? [savedNa, entryCount - savedNa]
         : [null, 0];
-  if (nA == null) return "Ikkje sett";
+  if (nA == null) return "-";
   return nB > 0 ? `A: ${nA} - B: ${nB}` : "Alle i A";
 }
 
@@ -136,13 +137,12 @@ export async function render(
       (isNotStarted || (!isCascade && !stevne.erfullfort && phase === "innledende"));
     const roundCap = isCascade && entryCount > 0 ? maxCascadeRounds(entryCount) : null;
     const current = stevne.antall_runder_innl;
+    // Only the organiser can act on it, so visitors are spared the warning.
     const roundWarning =
-      isNotStarted && roundCap != null && current != null && current > roundCap
+      isAdmin && isNotStarted && roundCap != null && current != null && current > roundCap
         ? cascadeRoundLimitMessage(entryCount, current, isTeam)
         : null;
-    const warningHtml = roundWarning
-      ? `<button type="button" class="stevne-hero__atvaring" title="${escHtml(roundWarning)}" aria-label="${escHtml(roundWarning)}">⚠</button>`
-      : "";
+    const warningHtml = roundWarning ? `<span id="info-rundar-varsel"></span>` : "";
     const roundsHtml = (): string => {
       if (!isRoundBased) return "—";
       if (!canSetRounds)
@@ -278,10 +278,15 @@ export async function render(
 
     // ── Rundar select ─────────────────────────────────────────────────────────
 
-    // A tap shows the reason on touch screens, where title never appears.
-    container
-      .querySelector(".stevne-hero__atvaring")
-      ?.addEventListener("click", () => showToast(roundWarning!, "warning"));
+    const warningSlot = container.querySelector("#info-rundar-varsel");
+    if (warningSlot) {
+      createInfoTooltip({
+        slot: warningSlot,
+        label: "For mange rundar",
+        html: escHtml(roundWarning!),
+        variant: "warning",
+      });
+    }
 
     const roundsSelect = container.querySelector<HTMLSelectElement>("#info-rundar");
     roundsSelect?.addEventListener("change", async () => {

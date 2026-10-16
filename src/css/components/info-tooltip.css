@@ -26,6 +26,14 @@
   color: var(--lenke);
 }
 
+.info-tip--warning .info-tip__knapp {
+  color: var(--bs-warning);
+}
+
+.info-tip--danger .info-tip__knapp {
+  color: var(--bs-danger);
+}
+
 .info-tip__knapp:focus-visible {
   outline: 2px solid var(--lenke);
   outline-offset: 2px;

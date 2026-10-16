@@ -41,6 +41,13 @@ describe("createInfoTooltip", () => {
     expect(button.getAttribute("aria-controls")).toBe(panel.id);
   });
 
+  it("defaults to info and takes a warning or danger variant", () => {
+    expect(mount().wrapper.classList.contains("info-tip--info")).toBe(true);
+    document.body.innerHTML = '<span id="slot"></span>';
+    createInfoTooltip({ slot: document.querySelector("#slot")!, html: "", variant: "danger" });
+    expect(document.querySelector(".info-tip")!.classList.contains("info-tip--danger")).toBe(true);
+  });
+
   it("toggles on the button", () => {
     const { button, panel } = mount();
     button.click();

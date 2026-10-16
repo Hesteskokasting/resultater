@@ -188,11 +188,14 @@ describe("stevne-info hero", () => {
     const startBtn = slot(el).querySelector<HTMLButtonElement>("#start-stevne-btn")!;
     expect(startBtn.disabled).toBe(true);
     expect(slot(el).textContent!.trim()).toBe("Start stevne");
-    const warning = el.querySelector(".stevne-hero__par .stevne-hero__atvaring")!;
-    expect(warning.getAttribute("title")).toContain("maks 5 rundar");
+    const warning = el.querySelector(".stevne-hero__par .info-tip--warning")!;
+    expect(warning.querySelector(".info-tip__panel")!.textContent).toContain("maks 5 rundar");
 
     startBtn.click();
     expect(mocks.startTournament).not.toHaveBeenCalled();
+
+    await renderInfo(el, { id: 5 });
+    expect(el.querySelector(".info-tip--warning")).toBeNull();
   });
 
   it("starts Gloppen when the rundar sit on the cap", async () => {
