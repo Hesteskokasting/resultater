@@ -1,6 +1,5 @@
 import { showToast } from "@/components/Toast";
 import { errorMessage } from "@/utils/errorMessage";
-import { confirmDialog } from "@/components/dialog/ConfirmDialog";
 import { getUser } from "@/services/authService";
 import { canOrganize } from "@/utils/roles";
 import { escHtml } from "@/utils/escHtml";
@@ -18,11 +17,7 @@ import {
   createTournament,
   updateTournament,
   deleteTournament,
-  setTournamentCompleted,
-  reopenTournament,
   getSncParentOptions,
-  completeSncParent,
-  reopenSncParent,
   type TournamentAdminRow,
   type SncParentOptionRow,
 } from "@/services/stevneService";
@@ -34,6 +29,7 @@ import { formatDate } from "@/utils/date";
 import { formShell, formRowHtml, showFormError } from "./_formHost";
 import type { AdminFormHost } from "./_formHost";
 import { bindCancelButton, bindDeleteButton } from "./_formButtons";
+import { completionLabel, toggleCompletion } from "@/components/stevne/completionActions";
 
 /** `#/stevne/ny?snc=<id>` preselects the umbrella when added from the SNC page. */
 function sncParentFromHash(): number | null {
@@ -222,11 +218,7 @@ export async function mountTournamentForm(host: AdminFormHost, id?: number): Pro
         <div class="mb-3 d-flex align-items-center gap-2 flex-wrap">
           <span class="fw-semibold">Status:</span>
           <span>${v.erfullfort ? (isSncParent ? "Konsolidert" : "Fullført") : "Ikkje fullført"}</span>
-          ${
-            v.erfullfort
-              ? `<button type="button" id="reopen-button" class="btn btn-sm btn-outline-warning">${isSncParent ? "Gjenopne SNC-runden" : "Gjenåpne turnering"}</button>`
-              : `<button type="button" id="complete-button" class="btn btn-sm btn-outline-success">${isSncParent ? "Konsolider SNC-runden" : "Fullfør turnering"}</button>`
-          }
+          <button type="button" id="${v.erfullfort ? "reopen" : "complete"}-button" class="btn btn-sm ${v.erfullfort ? "btn-outline-warning" : "btn-outline-success"}">${completionLabel({ erfullfort: v.erfullfort === true, isSncParent })}</button>
         </div>`
           : ""
       }
@@ -394,44 +386,17 @@ export async function mountTournamentForm(host: AdminFormHost, id?: number): Pro
   });
 
   wrapper
-    .querySelector<HTMLButtonElement>("#complete-button")
+    .querySelector<HTMLButtonElement>("#complete-button, #reopen-button")
     ?.addEventListener("click", async () => {
-      if (
-        !(await confirmDialog({
-          title: isSncParent ? "Konsolider SNC-runden" : "Fullfør turnering",
-          message: isSncParent
-            ? `Slå saman lokalresultata i «${tournament?.navn}» til éi liste og rekne ut NC-poeng frå den samla plasseringa?`
-            : `Fullfør «${tournament?.navn}»? Du kan ikkje lenger endre kampar og resultat for stevnet.`,
-          danger: true,
-        }))
-      )
-        return;
-      const { error } = isSncParent
-        ? await completeSncParent(id!)
-        : await setTournamentCompleted(id!);
-      if (error) {
-        showFormError(wrapper, errorMessage(error));
-        return;
-      }
-      await mountTournamentForm(host, id);
-    });
-
-  wrapper
-    .querySelector<HTMLButtonElement>("#reopen-button")
-    ?.addEventListener("click", async () => {
-      if (
-        !(await confirmDialog({
-          title: isSncParent ? "Gjenopne SNC-runden" : "Gjenåpne turnering",
-          message: isSncParent
-            ? `Gjenopne «${tournament?.navn}»? Den samla lista og NC-poenga blir nullstilte.`
-            : `Gjenåpne «${tournament?.navn}»? Kampar og resultat kan då endres igjen.`,
-          danger: isSncParent,
-        }))
-      )
-        return;
-      const { error } = isSncParent ? await reopenSncParent(id!) : await reopenTournament(id!);
-      if (error) {
-        showFormError(wrapper, errorMessage(error));
+      const result = await toggleCompletion({
+        id: id!,
+        navn: tournament?.navn ?? "",
+        erfullfort: v.erfullfort === true,
+        isSncParent,
+      });
+      if (!result) return;
+      if (result.error) {
+        showFormError(wrapper, errorMessage(result.error));
         return;
       }
       await mountTournamentForm(host, id);

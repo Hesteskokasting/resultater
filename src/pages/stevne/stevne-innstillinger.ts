@@ -2,18 +2,22 @@ import { logError } from "@/utils/logError";
 import { errorMessage } from "@/utils/errorMessage";
 import { showToast } from "@/components/Toast";
 import { confirmDialog } from "@/components/dialog/ConfirmDialog";
-import { escHtml } from "@/utils/escHtml";
 import { createErrorBanner, createLoadingState } from "@/components/states";
-import {
-  getTournamentSettings,
-  getActiveThrowingMethods,
-  getCategories,
-  getTournamentTypes,
-  updateTournamentSettings,
-} from "@/services/stevneService";
+import { getTournamentSettings, updateTournamentSettings } from "@/services/stevneService";
 import { resetTournament } from "@/services/testDataService";
-import { isKongelagMethodName, isXkastMethodName } from "@/utils/kastemetode";
+import { completionLabel, toggleCompletion } from "@/components/stevne/completionActions";
 import { registerRefetch, reloadRoute } from "@/utils/data/refetchRegistry";
+
+// Dato, tid, stad, kontaktperson and the format are edited on the Info tiles;
+// what is left here are the flags and the actions that change the whole stevne.
+
+type FlagColumn = "ernm" | "ernorgesranking" | "erekskludertfrarekorder";
+
+const FLAGS: { column: FlagColumn; label: string }[] = [
+  { column: "ernm", label: "Er NM" },
+  { column: "ernorgesranking", label: "Er Norgesranking" },
+  { column: "erekskludertfrarekorder", label: "Ekskl. frå rekordar" },
+];
 
 // ── Render ────────────────────────────────────────────────────────────────────
 
@@ -25,120 +29,82 @@ export async function render(
   container.replaceChildren(createLoadingState());
 
   try {
-    const [tournamentRes, methodsRes, typesRes, categoriesRes] = await Promise.all([
-      getTournamentSettings(id),
-      getActiveThrowingMethods(),
-      getTournamentTypes(),
-      getCategories(),
-    ]);
-
-    if (tournamentRes.error || !tournamentRes.data) {
+    const { data: stevne, error } = await getTournamentSettings(id);
+    if (error || !stevne) {
       container.replaceChildren(createErrorBanner("Stevne ikkje funne."));
       return;
     }
 
-    const stevne = tournamentRes.data;
-    const methods = methodsRes.data;
-
     const isSncParent = stevne.er_snc_hovudstevne === true;
-    // A local stevne inherits the format from its umbrella — the DB coerces it
-    // back on write, so the format fields are hidden there.
-    const sncParentId = stevne.snc_hovudstevne_id;
-    const isSncLocal = sncParentId != null;
-    // The DB requires stevnetype SNC on an umbrella.
-    const typeLocked = isSncParent ? " disabled" : "";
-    const initialMethods = methods.filter(
-      (m) => m.er_innledende && (!isSncParent || isXkastMethodName(m.navn)),
-    );
-    const finalMethods = methods.filter(
-      (m) => m.er_avsluttende && (!isSncParent || isKongelagMethodName(m.navn)),
-    );
-
-    function optionsHtml(list: { id: number; navn: string }[], selectedId: number | null): string {
-      return list
-        .map(
-          (m) =>
-            `<option value="${m.id}"${m.id === selectedId ? " selected" : ""}>${escHtml(m.navn)}</option>`,
-        )
-        .join("");
-    }
+    const isSncLocal = stevne.snc_hovudstevne_id != null;
+    const erfullfort = stevne.erfullfort === true;
+    // NM and the record exemption belong to the SNC round as a whole, and the
+    // umbrella's ranking flag is inherited — the DB coerces all three on a local.
+    const completion = { id, navn: stevne.navn, erfullfort, isSncParent };
 
     container.innerHTML = `
-      <div>
+      <div class="stevne-max-480">
         <h4 class="mb-3">Innstillingar</h4>
-        <form id="innstillingar-form" class="stevne-max-480">
-          <div class="row g-3 mb-3">
-            <div class="col-6">
-              <label class="form-label fw-semibold">Dato</label>
-              <input id="dato" type="date" class="form-control" value="${stevne.dato}" required>
-            </div>
-            <div class="col-6">
-              <label class="form-label fw-semibold">Tid</label>
-              <input id="tid" type="time" class="form-control" value="${stevne.tid?.slice(0, 5) ?? ""}">
-            </div>
-          </div>
-          <div class="row g-3 mb-3${isSncLocal ? " d-none" : ""}">
-            <div class="col-6">
-              <label class="form-label fw-semibold">Stevnetype</label>
-              <select id="stevnetype" class="form-select"${typeLocked}>
-                <option value="">— Ikkje vald —</option>
-                ${optionsHtml(typesRes.data, stevne.stevnetypeid)}
-              </select>
-            </div>
-            <div class="col-6">
-              <label class="form-label fw-semibold">Innleiande</label>
-              <select id="innl-metode" class="form-select">
-                <option value="">— Ikkje vald —</option>
-                ${optionsHtml(initialMethods, stevne.innledendekastemetodeid)}
-              </select>
-            </div>
-            <div class="col-6">
-              <label class="form-label fw-semibold">Kategori</label>
-              <select id="kategori" class="form-select">
-                <option value="">— Ikkje vald —</option>
-                ${optionsHtml(categoriesRes.data, stevne.kategoriid)}
-              </select>
-            </div>
-            <div class="col-6">
-              <label class="form-label fw-semibold">Avsluttande</label>
-              <select id="avsl-metode" class="form-select">
-                <option value="">— Ikkje vald —</option>
-                ${optionsHtml(finalMethods, stevne.avsluttendekastemetodeid)}
-              </select>
-            </div>
-          </div>
+        <div class="mb-3">
+          ${FLAGS.map(
+            ({ column, label }) => `
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" role="switch" id="flag-${column}" name="${column}"${stevne[column] ? " checked" : ""}${isSncLocal ? " disabled" : ""}>
+            <label class="form-check-label" for="flag-${column}">${label}</label>
+          </div>`,
+          ).join("")}
           ${
             isSncLocal
-              ? `<p class="form-text mb-3">Stevnetype, kategori og kastemetode settes på
-                   <a href="#/stevne/${sncParentId}/innstillinger">SNC-hovudstevnet</a>.
+              ? `<p class="form-text mb-0">Arva frå
+                   <a href="#/stevne/${stevne.snc_hovudstevne_id}/innstillinger">SNC-hovudstevnet</a>.
                 </p>`
               : ""
           }
-          ${
-            isSncParent
-              ? `<p class="form-text mb-4">Kastemetoden gjeld heile SNC-runden og blir arva av alle lokalstevna.</p>`
-              : `<div class="mb-4">
-            <label class="form-label fw-semibold">Tilgjengelege baner</label>
-            <input id="tilgjengelege-banar" type="number" min="1" class="form-control"
-              value="${stevne.tilgjengelige_baner ?? ""}" placeholder="(X-kast/Kongelag)">
-            <p class="form-text">Utan verdi blir X-kast éi pulje. Kongelag blir alltid delt i minst to puljer.</p>
-          </div>`
-          }
-          <button type="submit" class="btn btn-primary">Lagre</button>
-          <button type="button" id="rediger-stevne" class="btn btn-outline-secondary ms-2">Fleire innstillingar</button>
-          <span id="lagre-status" class="ms-3 text-success d-none">Lagra ✓</span>
-          ${
-            isSncParent
-              ? ""
-              : `<hr class="my-4">
-          <div class="border border-danger rounded p-3">
-            <h6 class="text-danger mb-2">Farleg sone</h6>
-            <p class="text-muted small mb-2">Slettar alle kampar og resultat, og set stevnet tilbake til starttilstanden.</p>
-            <button type="button" id="nullstill-btn" class="btn btn-danger">Start på nytt!</button>
-          </div>`
-          }
-        </form>
+        </div>
+        <div class="mb-3 d-flex align-items-center gap-2 flex-wrap">
+          <span class="fw-semibold">Status:</span>
+          <span>${erfullfort ? (isSncParent ? "Konsolidert" : "Fullført") : "Ikkje fullført"}</span>
+          <button type="button" id="fullfor-btn" class="btn btn-sm ${erfullfort ? "btn-outline-warning" : "btn-outline-success"}">${completionLabel(completion)}</button>
+        </div>
+        <button type="button" id="rediger-stevne" class="btn btn-outline-secondary">Fleire innstillingar</button>
+        ${
+          isSncParent
+            ? ""
+            : `<hr class="my-4">
+        <div class="border border-danger rounded p-3">
+          <h6 class="text-danger mb-2">Farleg sone</h6>
+          <p class="text-muted small mb-2">Slettar alle kampar og resultat, og set stevnet tilbake til starttilstanden.</p>
+          <button type="button" id="nullstill-btn" class="btn btn-danger">Start på nytt!</button>
+        </div>`
+        }
       </div>`;
+
+    container.querySelectorAll<HTMLInputElement>("[id^=flag-]").forEach((box) => {
+      box.addEventListener("change", async () => {
+        box.disabled = true;
+        const { error: saveError } = await updateTournamentSettings(id, {
+          [box.name as FlagColumn]: box.checked,
+        });
+        box.disabled = false;
+        if (saveError) {
+          showToast("Feil ved lagring: " + errorMessage(saveError), "error");
+          box.checked = !box.checked;
+          return;
+        }
+        showToast("Lagra", "success");
+      });
+    });
+
+    // The status badge and the tabs follow erfullfort, so the whole route redraws.
+    container.querySelector("#fullfor-btn")!.addEventListener("click", async () => {
+      const result = await toggleCompletion(completion);
+      if (!result) return;
+      if (result.error) {
+        showToast(errorMessage(result.error), "error");
+        return;
+      }
+      void reloadRoute();
+    });
 
     // Editing runs in the overlay so the arrangør keeps this page. A save can
     // change the name and the kastemetodar, which the page header and the tab
@@ -159,62 +125,6 @@ export async function render(
       });
 
     container
-      .querySelector<HTMLFormElement>("#innstillingar-form")!
-      .addEventListener("submit", async (e) => {
-        e.preventDefault();
-
-        const initialId = container.querySelector<HTMLSelectElement>("#innl-metode")!.value || null;
-        const finalId = container.querySelector<HTMLSelectElement>("#avsl-metode")!.value || null;
-        const date = container.querySelector<HTMLInputElement>("#dato")!.value;
-        const time = container.querySelector<HTMLInputElement>("#tid")!.value;
-        if (!date) {
-          showToast("Dato må setjast.", "error");
-          return;
-        }
-        const typeId = container.querySelector<HTMLSelectElement>("#stevnetype")!.value;
-        const categoryId = container.querySelector<HTMLSelectElement>("#kategori")!.value;
-        const lanesInput = container.querySelector<HTMLInputElement>("#tilgjengelege-banar");
-
-        const { error } = await updateTournamentSettings(id, {
-          innledendekastemetodeid: isSncLocal
-            ? stevne.innledendekastemetodeid
-            : initialId
-              ? Number(initialId)
-              : null,
-          avsluttendekastemetodeid: isSncLocal
-            ? stevne.avsluttendekastemetodeid
-            : finalId
-              ? Number(finalId)
-              : null,
-          dato: date,
-          tid: time || null,
-          tilgjengelige_baner: lanesInput?.value ? Number(lanesInput.value) : null,
-          stevnetypeid:
-            isSncLocal || isSncParent ? stevne.stevnetypeid : typeId ? Number(typeId) : null,
-          kategoriid: isSncLocal ? stevne.kategoriid : categoryId ? Number(categoryId) : null,
-        });
-
-        if (error) {
-          logError("stevne-innstillingar.lagre", error);
-          showToast("Feil ved lagring: " + errorMessage(error), "error");
-          return;
-        }
-
-        // The kategori sets par vs singel for the tabs above, so the whole
-        // route is drawn again.
-        if ((categoryId ? Number(categoryId) : null) !== stevne.kategoriid) {
-          void reloadRoute();
-          return;
-        }
-
-        const status = container.querySelector<HTMLElement>("#lagre-status")!;
-        status.classList.remove("d-none");
-        setTimeout(() => {
-          status.classList.add("d-none");
-        }, 2000);
-      });
-
-    container
       .querySelector<HTMLButtonElement>("#nullstill-btn")
       ?.addEventListener("click", async (e) => {
         const btn = e.currentTarget as HTMLButtonElement;
@@ -228,9 +138,9 @@ export async function render(
         )
           return;
         btn.disabled = true;
-        const { error } = await resetTournament(id);
-        if (error) {
-          showToast("Feil ved nullstilling: " + errorMessage(error), "error");
+        const { error: resetError } = await resetTournament(id);
+        if (resetError) {
+          showToast("Feil ved nullstilling: " + errorMessage(resetError), "error");
           btn.disabled = false;
           return;
         }

@@ -15,17 +15,14 @@ const mocks = vi.hoisted(() => ({
   clearSncPremiar: vi.fn(),
   premieDialog: vi.fn(),
   getTournamentSettings: vi.fn(),
-  getActiveThrowingMethods: vi.fn(),
-  getTournamentTypes: vi.fn(),
-  getCategories: vi.fn(),
   updateTournamentSettings: vi.fn(),
+  setTournamentCompleted: vi.fn(),
+  reopenTournament: vi.fn(),
   resetTournament: vi.fn(),
   getRegistrationsAcrossTournaments: vi.fn(),
   registerForTournament: vi.fn(),
   removeRegistration: vi.fn(),
   switchRegistration: vi.fn(),
-  getRegistrationCount: vi.fn(),
-  getPairCount: vi.fn(),
   getUser: vi.fn(),
   confirmDialog: vi.fn(),
   showToast: vi.fn(),
@@ -38,10 +35,9 @@ vi.mock("@/services/stevneService", () => ({
   completeSncParent: mocks.completeSncParent,
   reopenSncParent: mocks.reopenSncParent,
   getTournamentSettings: mocks.getTournamentSettings,
-  getActiveThrowingMethods: mocks.getActiveThrowingMethods,
-  getTournamentTypes: mocks.getTournamentTypes,
-  getCategories: mocks.getCategories,
   updateTournamentSettings: mocks.updateTournamentSettings,
+  setTournamentCompleted: mocks.setTournamentCompleted,
+  reopenTournament: mocks.reopenTournament,
 }));
 vi.mock("@/services/testDataService", () => ({ resetTournament: mocks.resetTournament }));
 vi.mock("@/services/resultatService", () => ({
@@ -55,8 +51,6 @@ vi.mock("@/services/pameldingService", () => ({
   registerForTournament: mocks.registerForTournament,
   removeRegistration: mocks.removeRegistration,
   switchRegistration: mocks.switchRegistration,
-  getRegistrationCount: mocks.getRegistrationCount,
-  getPairCount: mocks.getPairCount,
 }));
 vi.mock("@/services/authService", () => ({ getUser: mocks.getUser }));
 vi.mock("@/components/dialog/ConfirmDialog", () => ({ confirmDialog: mocks.confirmDialog }));
@@ -71,7 +65,6 @@ const {
   drawSncPremiar,
   premieDialog,
   getTournamentSettings,
-  getActiveThrowingMethods,
   getRegistrationsAcrossTournaments,
   registerForTournament,
   removeRegistration,
@@ -172,8 +165,6 @@ beforeEach(() => {
   switchRegistration.mockResolvedValue({ error: null, step: null });
   completeSncParent.mockResolvedValue({ error: null });
   reopenSncParent.mockResolvedValue({ error: null });
-  mocks.getRegistrationCount.mockResolvedValue(0);
-  mocks.getPairCount.mockResolvedValue(0);
 });
 
 describe("SNC umbrella info tab", () => {
@@ -650,155 +641,105 @@ describe("SNC consolidated result", () => {
   });
 });
 
-describe("settings tab on an SNC umbrella", () => {
-  const METHODS = [
-    { id: 1, navn: "Gloppen", er_innledende: true, er_avsluttende: false },
-    { id: 3, navn: "Minimatch X-kast", er_innledende: true, er_avsluttende: false },
-    { id: 6, navn: "Kongelag", er_innledende: false, er_avsluttende: true },
-    { id: 7, navn: "Cup", er_innledende: false, er_avsluttende: true },
-  ];
-
+describe("settings tab", () => {
   function settings(overrides: Record<string, unknown> = {}) {
     return {
       id: 10,
-      stevne_fase: null,
-      antall_runder_innl: null,
-      innledendekastemetodeid: 3,
-      avsluttendekastemetodeid: 6,
-      tilgjengelige_baner: null,
+      navn: "SNC runde 1",
+      erfullfort: false,
+      ernm: false,
+      ernorgesranking: true,
+      erekskludertfrarekorder: false,
       er_snc_hovudstevne: true,
       snc_hovudstevne_id: null,
-      stevnetypeid: 5,
-      kategoriid: 2,
-      dato: "2026-10-03",
-      tid: "10:00:00",
-      kategori: { erlagbasert: false },
       ...overrides,
     };
   }
 
-  function optionLabels(el: HTMLElement, selectId: string): string[] {
-    return [...el.querySelectorAll<HTMLOptionElement>(`#${selectId} option`)]
-      .map((o) => o.textContent ?? "")
-      .filter((label) => !label.startsWith("—"));
+  function flag(el: HTMLElement, column: string): HTMLInputElement {
+    return el.querySelector<HTMLInputElement>(`#flag-${column}`)!;
   }
 
   beforeEach(() => {
-    getActiveThrowingMethods.mockResolvedValue({ data: METHODS, error: null });
-    mocks.getTournamentTypes.mockResolvedValue({ data: [{ id: 5, navn: "SNC" }], error: null });
-    mocks.getCategories.mockResolvedValue({
-      data: [
-        { id: 2, navn: "Singel" },
-        { id: 3, navn: "Par" },
-      ],
-      error: null,
-    });
     getTournamentSettings.mockResolvedValue({ data: settings(), error: null });
   });
 
-  it("keeps the edit button, so date and time stay reachable", async () => {
+  it("leaves the format to the Info tiles", async () => {
     const el = host();
     await renderSettings(el, { id: 10 });
 
+    expect(el.querySelector("select, input[type=date], input[type=number]")).toBeNull();
     expect(el.querySelector("#rediger-stevne")).not.toBeNull();
   });
 
-  it("offers only X-kast and Kongelag as methods", async () => {
+  it("saves a flag the moment it is ticked", async () => {
+    mocks.updateTournamentSettings.mockResolvedValue({ error: null });
     const el = host();
     await renderSettings(el, { id: 10 });
 
-    expect(optionLabels(el, "innl-metode")).toEqual(["Minimatch X-kast"]);
-    expect(optionLabels(el, "avsl-metode")).toEqual(["Kongelag"]);
+    const nm = flag(el, "ernm");
+    nm.checked = true;
+    nm.dispatchEvent(new Event("change"));
+
+    await vi.waitFor(() =>
+      expect(mocks.updateTournamentSettings).toHaveBeenCalledWith(10, { ernm: true }),
+    );
   });
 
-  it("locks stevnetype on the umbrella but leaves kategori editable", async () => {
+  it("puts a flag back when the save fails", async () => {
+    mocks.updateTournamentSettings.mockResolvedValue({ error: new Error("nei") });
     const el = host();
     await renderSettings(el, { id: 10 });
 
-    expect(el.querySelector<HTMLSelectElement>("#stevnetype")!.disabled).toBe(true);
-    expect(el.querySelector<HTMLSelectElement>("#kategori")!.disabled).toBe(false);
+    const ranking = flag(el, "ernorgesranking");
+    ranking.checked = false;
+    ranking.dispatchEvent(new Event("change"));
+
+    await vi.waitFor(() => expect(ranking.checked).toBe(true));
   });
 
-  it("drops the lane field and the reset button, which belong to a local stevne", async () => {
+  it("consolidates an umbrella instead of completing it, with no reset", async () => {
+    confirmDialog.mockResolvedValue(true);
+    completeSncParent.mockResolvedValue({ error: null });
     const el = host();
     await renderSettings(el, { id: 10 });
 
-    expect(el.querySelector("#tilgjengelege-banar")).toBeNull();
+    const button = el.querySelector<HTMLButtonElement>("#fullfor-btn")!;
+    expect(button.textContent).toBe("Konsolider SNC-runden");
     expect(el.querySelector("#nullstill-btn")).toBeNull();
+
+    button.click();
+    await vi.waitFor(() => expect(completeSncParent).toHaveBeenCalledWith(10));
   });
 
-  it("saves without a lane value", async () => {
-    mocks.updateTournamentSettings.mockResolvedValue({ error: null });
-    const el = host();
-    await renderSettings(el, { id: 10 });
-
-    el.querySelector<HTMLFormElement>("#innstillingar-form")!.dispatchEvent(
-      new Event("submit", { cancelable: true }),
-    );
-    await vi.waitFor(() => expect(mocks.updateTournamentSettings).toHaveBeenCalled());
-    expect(mocks.updateTournamentSettings).toHaveBeenCalledWith(10, {
-      innledendekastemetodeid: 3,
-      avsluttendekastemetodeid: 6,
-      tilgjengelige_baner: null,
-      stevnetypeid: 5,
-      kategoriid: 2,
-      dato: "2026-10-03",
-      tid: "10:00",
-    });
-  });
-
-  it("shows only dato, tid and lanes on a local stevne, pointing at the umbrella", async () => {
+  it("locks the flags on a local stevne, which inherits them", async () => {
     getTournamentSettings.mockResolvedValue({
-      data: settings({ er_snc_hovudstevne: false, snc_hovudstevne_id: 10 }),
+      data: settings({ id: 11, er_snc_hovudstevne: false, snc_hovudstevne_id: 10 }),
       error: null,
     });
     const el = host();
     await renderSettings(el, { id: 11 });
 
-    const formatRow = el.querySelector("#innl-metode")!.closest(".row")!;
-    expect(formatRow.classList.contains("d-none")).toBe(true);
-    expect(el.querySelector("#dato")).not.toBeNull();
-    expect(el.querySelector("#tid")).not.toBeNull();
+    expect(
+      ["ernm", "ernorgesranking", "erekskludertfrarekorder"].map((c) => flag(el, c).disabled),
+    ).toEqual([true, true, true]);
     expect(el.querySelector('a[href="#/stevne/10/innstillinger"]')).not.toBeNull();
-    // Lanes stay editable: courts are generated per local stevne.
-    expect(el.querySelector("#tilgjengelege-banar")).not.toBeNull();
   });
 
-  it("keeps the inherited methods when a local stevne saves", async () => {
-    mocks.updateTournamentSettings.mockResolvedValue({ error: null });
+  it("reopens a completed ordinary stevne and keeps its reset button", async () => {
     getTournamentSettings.mockResolvedValue({
-      data: settings({ er_snc_hovudstevne: false, snc_hovudstevne_id: 10 }),
+      data: settings({ er_snc_hovudstevne: false, erfullfort: true }),
       error: null,
     });
-    const el = host();
-    await renderSettings(el, { id: 11 });
-
-    el.querySelector<HTMLInputElement>("#tilgjengelege-banar")!.value = "4";
-    el.querySelector<HTMLFormElement>("#innstillingar-form")!.dispatchEvent(
-      new Event("submit", { cancelable: true }),
-    );
-    await vi.waitFor(() => expect(mocks.updateTournamentSettings).toHaveBeenCalled());
-    expect(mocks.updateTournamentSettings).toHaveBeenCalledWith(11, {
-      innledendekastemetodeid: 3,
-      avsluttendekastemetodeid: 6,
-      tilgjengelige_baner: 4,
-      stevnetypeid: 5,
-      kategoriid: 2,
-      dato: "2026-10-03",
-      tid: "10:00",
-    });
-  });
-
-  it("leaves an ordinary tournament's lane field and reset button in place", async () => {
-    getTournamentSettings.mockResolvedValue({
-      data: settings({ er_snc_hovudstevne: false, innledendekastemetodeid: 1 }),
-      error: null,
-    });
+    confirmDialog.mockResolvedValue(true);
+    mocks.reopenTournament.mockResolvedValue({ error: null });
     const el = host();
     await renderSettings(el, { id: 10 });
 
-    expect(el.querySelector("#tilgjengelege-banar")).not.toBeNull();
     expect(el.querySelector("#nullstill-btn")).not.toBeNull();
-    expect(optionLabels(el, "innl-metode")).toEqual(["Gloppen", "Minimatch X-kast"]);
+    const button = el.querySelector<HTMLButtonElement>("#fullfor-btn")!;
+    expect(button.textContent).toBe("Gjenåpne turnering");
+    button.click();
+    await vi.waitFor(() => expect(mocks.reopenTournament).toHaveBeenCalledWith(10));
   });
 });

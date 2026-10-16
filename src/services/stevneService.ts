@@ -573,17 +573,14 @@ export async function getTournamentRegistrationCount(
 export type TournamentSettingsRow = Pick<
   Tables<"stevne">,
   | "id"
-  | "stevne_fase"
-  | "innledendekastemetodeid"
-  | "avsluttendekastemetodeid"
-  | "tilgjengelige_baner"
+  | "navn"
+  | "erfullfort"
+  | "ernm"
+  | "ernorgesranking"
+  | "erekskludertfrarekorder"
   | "er_snc_hovudstevne"
   | "snc_hovudstevne_id"
-  | "stevnetypeid"
-  | "kategoriid"
-  | "dato"
-  | "tid"
-> & { kategori: Pick<Tables<"kategori">, "erlagbasert"> | null };
+>;
 export type ActiveThrowingMethodRow = Pick<
   Tables<"kastemetode">,
   "id" | "navn" | "er_innledende" | "er_avsluttende"
@@ -602,6 +599,9 @@ export type TournamentSettingsUpdatePayload = Partial<
     | "kategoriid"
     | "dato"
     | "tid"
+    | "ernm"
+    | "ernorgesranking"
+    | "erekskludertfrarekorder"
   >
 >;
 
@@ -611,7 +611,7 @@ export async function getTournamentSettings(
   const { data, error } = await supabase
     .from("stevne")
     .select(
-      "id, stevne_fase, innledendekastemetodeid, avsluttendekastemetodeid, tilgjengelige_baner, er_snc_hovudstevne, snc_hovudstevne_id, stevnetypeid, kategoriid, dato, tid, kategori:kategoriid(erlagbasert)",
+      "id, navn, erfullfort, ernm, ernorgesranking, erekskludertfrarekorder, er_snc_hovudstevne, snc_hovudstevne_id",
     )
     .eq("id", id)
     .single();
