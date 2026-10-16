@@ -18,10 +18,11 @@ import { confirmDialog } from "@/components/dialog/ConfirmDialog";
 import {
   getInfoMatchSummary,
   getInfoTournament,
-  setInitialRoundCount,
   startTournament,
+  updateTournamentSettings,
   type StartStep,
 } from "@/services/stevneService";
+import { FORMAT_COLUMNS, bindInfoEditing, infoEditors } from "./infoEditing";
 import {
   getRegistrationCount,
   getPairCount,
@@ -31,10 +32,11 @@ import {
 import { createRegistrationButton } from "@/components/stevne/RegistrationButton";
 import { actionLinkHtml, registrationCtaLink } from "@/components/stevne/StevneCard";
 import { createCheckInButton } from "@/components/stevne/CheckInButton";
-import { registerRefetch } from "@/utils/data/refetchRegistry";
+import { registerRefetch, reloadRoute } from "@/utils/data/refetchRegistry";
 import {
   isCascadeMethodName,
   isKongelagMethodName,
+  isXkastMethodName,
   maxCascadeRounds,
   usesInitialRoundCount,
 } from "@/utils/kastemetode";
@@ -153,9 +155,31 @@ export async function render(
           : "")
       : "—";
 
+    // X-kast pools its spelarar over the baner; the round-based metodar count rundar.
+    const initialSide = isXkastMethodName(methodName)
+      ? {
+          key: "baner",
+          label: "Baner",
+          html: String(stevne.tilgjengelige_baner ?? "—"),
+          editable: isAdmin && !stevne.erfullfort,
+        }
+      : { label: "Rundar", html: roundsHtml() };
+
+    // A local SNC stevne inherits its format from the umbrella (the DB coerces it
+    // back on write), and kampar are generated against the format at start.
+    const isSncLocal = stevne.snc_hovudstevne_id != null;
+    const editableKeys = new Set([
+      ...(isAdmin ? ["dato", "tid", "sted", "kontakt"] : []),
+      ...(isAdmin && isNotStarted && !isSncLocal ? ["type", "innl", "avsl"] : []),
+    ]);
+    const markEditable = <T extends { key?: string }>(fact: T): T => ({
+      ...fact,
+      editable: fact.key != null && editableKeys.has(fact.key),
+    });
+
     const methods = [
-      [initialFact!, { label: "Rundar", html: roundsHtml() }],
-      [finalFact!, { label: "Info", html: infoHtml }],
+      [markEditable(initialFact!), initialSide],
+      [markEditable(finalFact!), { label: "Info", html: infoHtml }],
     ];
 
     // ── Hero ──────────────────────────────────────────────────────────────────
@@ -166,10 +190,10 @@ export async function render(
         title: stevne.navn,
         status: statusBadge(stevne.stevne_fase, stevne.erfullfort),
         subtitle: stevneSubtitle(stevne),
-        facts: stevneKeyFacts(stevne),
+        facts: stevneKeyFacts(stevne).map((f) => markEditable(f)),
         methods,
         details: [
-          ...stevneDetails(stevne),
+          ...stevneDetails(stevne).map((d) => markEditable(d)),
           { label: registrationLabel, html: String(isTeamOrMix ? pairCount : count) },
           ...(stevne.snc_hovudstevne_id != null
             ? [
@@ -263,13 +287,31 @@ export async function render(
       const previous = stevne.antall_runder_innl;
       const next = roundsSelect.value ? Number(roundsSelect.value) : null;
       stevne.antall_runder_innl = next;
-      const { error } = await setInitialRoundCount(id, next);
+      const { error } = await updateTournamentSettings(id, { antall_runder_innl: next });
       if (error) {
         showToast("Feil ved lagring av rundar: " + errorMessage(error), "error");
         stevne.antall_runder_innl = previous;
         roundsSelect.value = String(previous ?? "");
       }
       if (showStartButton) renderStartButton();
+    });
+
+    // ── In-place editing ──────────────────────────────────────────────────────
+
+    bindInfoEditing(container, infoEditors(stevne), async (patch) => {
+      if (patch.dato === null) {
+        showToast("Dato må setjast.", "error");
+        return false;
+      }
+      const { error } = await updateTournamentSettings(id, patch);
+      if (error) {
+        showToast("Feil ved lagring: " + errorMessage(error), "error");
+        return false;
+      }
+      // Format fields shape the tab row above, so the whole route is redrawn.
+      if (FORMAT_COLUMNS.some((column) => column in patch)) void reloadRoute();
+      else void render(container, { id, isAdmin });
+      return true;
     });
 
     // ── Action buttons ────────────────────────────────────────────────────────

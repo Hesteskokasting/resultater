@@ -149,3 +149,46 @@
   font-size: 0.8rem;
   font-weight: 500;
 }
+
+/* Organiser-only: tap a value to edit it in place. */
+.stevne-hero__redigerbar {
+  position: relative;
+  cursor: pointer;
+}
+
+.stevne-hero__redigerbar:not(.is-editing):hover {
+  border-color: var(--tekst-2);
+}
+
+.stevne-hero__rute.stevne-hero__redigerbar:not(.is-editing)::after {
+  content: "✎";
+  position: absolute;
+  top: 6px;
+  right: 10px;
+  color: var(--tekst-2);
+  font-size: 0.8rem;
+}
+
+.stevne-hero__detalj.stevne-hero__redigerbar:not(.is-editing) dd::after {
+  content: " ✎";
+  color: var(--tekst-2);
+  font-weight: 400;
+}
+
+.stevne-hero__redigerbar.is-editing {
+  cursor: default;
+}
+
+.stevne-hero__redigerbar.is-editing .form-control,
+.stevne-hero__redigerbar.is-editing .form-select {
+  margin-top: 2px;
+}
+
+.stevne-hero__detalj.is-editing {
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stevne-hero__detalj.is-editing dd {
+  text-align: left;
+}

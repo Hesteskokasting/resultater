@@ -23,7 +23,7 @@ export interface StartTournamentInput {
 /** Returns why the stevne cannot start, or null when it can. */
 export function canStartTournament(input: StartTournamentInput): string | null {
   if (!input.hasInitialMethod && !input.isStandaloneKongelag) {
-    return "Du må velje kastemetode for innleiande fase. Gå til Innstillingar for å endre.";
+    return "Du må velje kastemetode for innleiande fase. Trykk på Innleiande-ruta for å velje.";
   }
   if (input.isTeam ? input.playerCount < 4 : input.playerCount < 2) {
     return input.isTeam
@@ -31,7 +31,7 @@ export function canStartTournament(input: StartTournamentInput): string | null {
       : "Stevnet må ha minst 2 spelarar for å startast.";
   }
   if (input.isRoundBased && !input.roundCount) {
-    return "Du må setje antal rundar for innleiande fase. Gå til Innstillingar for å endre.";
+    return "Du må setje antal rundar for innleiande fase i Rundar-ruta.";
   }
   const entryCount = input.isTeam ? input.pairCount : input.playerCount;
   const rounds = input.roundCount ?? 0;

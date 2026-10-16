@@ -8,7 +8,7 @@
 const mocks = vi.hoisted(() => ({
   getInfoTournament: vi.fn(),
   startTournament: vi.fn(),
-  setInitialRoundCount: vi.fn(),
+  updateTournamentSettings: vi.fn(),
   getInfoMatchSummary: vi.fn(),
   getRegistrationCount: vi.fn(),
   getPairCount: vi.fn(),
@@ -24,9 +24,13 @@ vi.mock("@/supabase", () => ({ supabase: {} }));
 vi.mock("@/services/stevneService", () => ({
   getInfoTournament: mocks.getInfoTournament,
   startTournament: mocks.startTournament,
-  setInitialRoundCount: mocks.setInitialRoundCount,
+  updateTournamentSettings: mocks.updateTournamentSettings,
   getInfoMatchSummary: mocks.getInfoMatchSummary,
+  getActiveThrowingMethods: vi.fn(),
+  getTournamentTypes: vi.fn(),
+  getCategories: vi.fn(),
 }));
+vi.mock("@/services/kasterService", () => ({ getAllThrowerList: vi.fn() }));
 vi.mock("@/services/pameldingService", () => ({
   getRegistrationCount: mocks.getRegistrationCount,
   getPairCount: mocks.getPairCount,
@@ -256,7 +260,7 @@ describe("stevne-info hero", () => {
     const right = [
       ...el.querySelectorAll(".stevne-hero__par > .stevne-hero__rute + .stevne-hero__rute"),
     ];
-    expect(right.map((r) => r.textContent!.replace(/\s+/g, ""))).toEqual(["Rundar—", "Info—"]);
+    expect(right.map((r) => r.textContent!.replace(/\s+/g, ""))).toEqual(["Baner4", "Info—"]);
     expect(el.querySelector("#info-rundar")).toBeNull();
   });
 
@@ -266,7 +270,7 @@ describe("stevne-info hero", () => {
       error: null,
     });
     mocks.getRegistrationCount.mockResolvedValue(4);
-    mocks.setInitialRoundCount.mockResolvedValue({ error: null });
+    mocks.updateTournamentSettings.mockResolvedValue({ error: null });
     const el = host();
     await renderInfo(el, { id: 5, isAdmin: true });
     const startBtn = () => slot(el).querySelector<HTMLButtonElement>("#start-stevne-btn")!;
@@ -278,12 +282,16 @@ describe("stevne-info hero", () => {
     const select = el.querySelector<HTMLSelectElement>("#info-rundar")!;
     select.value = "2";
     select.dispatchEvent(new Event("change"));
-    await vi.waitFor(() => expect(mocks.setInitialRoundCount).toHaveBeenCalledWith(5, 2));
+    await vi.waitFor(() =>
+      expect(mocks.updateTournamentSettings).toHaveBeenCalledWith(5, { antall_runder_innl: 2 }),
+    );
     await vi.waitFor(() => expect(startBtn().disabled).toBe(false));
 
     select.value = "";
     select.dispatchEvent(new Event("change"));
-    await vi.waitFor(() => expect(mocks.setInitialRoundCount).toHaveBeenCalledWith(5, null));
+    await vi.waitFor(() =>
+      expect(mocks.updateTournamentSettings).toHaveBeenCalledWith(5, { antall_runder_innl: null }),
+    );
     await vi.waitFor(() => expect(startBtn().disabled).toBe(true));
   });
 
@@ -357,5 +365,82 @@ describe("stevne-info hero", () => {
     await renderInfo(el, { id: 5, isAdmin: true });
     expect(el.querySelectorAll(".stevne-hero__par")[1]!.textContent).toContain("A: 8 - B: 8");
     expect(el.querySelector('a[href="#/stevne/5/avsluttende?fra=info"]')).toBeNull();
+  });
+
+  describe("in-place editing", () => {
+    function tile(el: HTMLElement, key: string): HTMLElement | null {
+      return el.querySelector<HTMLElement>(`[data-felt="${key}"]`);
+    }
+
+    it("offers nothing to a visitor", async () => {
+      const el = host();
+      await renderInfo(el, { id: 5 });
+      expect(el.querySelector("[data-felt]")).toBeNull();
+    });
+
+    it("saves the dato straight from the tile", async () => {
+      mocks.updateTournamentSettings.mockResolvedValue({ error: null });
+      const el = host();
+      await renderInfo(el, { id: 5, isAdmin: true });
+
+      tile(el, "dato")!.click();
+      const input = await vi.waitFor(() => {
+        const field = el.querySelector<HTMLInputElement>('input[name="dato"]');
+        expect(field).not.toBeNull();
+        return field!;
+      });
+      input.value = "2026-08-07";
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+
+      await vi.waitFor(() =>
+        expect(mocks.updateTournamentSettings).toHaveBeenCalledWith(5, { dato: "2026-08-07" }),
+      );
+    });
+
+    it("puts the value back on Escape without saving", async () => {
+      const el = host();
+      await renderInfo(el, { id: 5, isAdmin: true });
+
+      const stad = tile(el, "sted")!;
+      stad.click();
+      await vi.waitFor(() => expect(stad.querySelector('input[name="sted"]')).not.toBeNull());
+      stad.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+
+      expect(stad.querySelector("input")).toBeNull();
+      expect(stad.textContent).toContain("Årdalen");
+      expect(mocks.updateTournamentSettings).not.toHaveBeenCalled();
+    });
+
+    it("locks the format once the stevne has started", async () => {
+      mocks.getInfoTournament.mockResolvedValue({
+        data: row({ stevne_fase: "innledende" }),
+        error: null,
+      });
+      const el = host();
+      await renderInfo(el, { id: 5, isAdmin: true });
+
+      expect(tile(el, "dato")).not.toBeNull();
+      expect(tile(el, "type")).toBeNull();
+      expect(tile(el, "innl")).toBeNull();
+      expect(tile(el, "avsl")).toBeNull();
+    });
+
+    it("leaves a local SNC stevne's format to the umbrella", async () => {
+      mocks.getInfoTournament.mockResolvedValue({
+        data: row({ snc_hovudstevne_id: 9 }),
+        error: null,
+      });
+      const el = host();
+      await renderInfo(el, { id: 5, isAdmin: true });
+
+      expect(tile(el, "kontakt")).not.toBeNull();
+      expect(tile(el, "innl")).toBeNull();
+    });
+
+    it("shows baner beside an X-kast innleiande", async () => {
+      const el = host();
+      await renderInfo(el, { id: 5, isAdmin: true });
+      expect(tile(el, "baner")!.textContent).toContain("4");
+    });
   });
 });

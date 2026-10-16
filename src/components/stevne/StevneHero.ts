@@ -13,6 +13,10 @@ export interface StevneHeroFact {
   label: string;
   /** Escaped or otherwise trusted HTML. */
   html: string;
+  /** Names the field, so a page can wire an editor to it. */
+  key?: string;
+  /** Drawn as tappable; the page binds the editor. */
+  editable?: boolean;
 }
 
 export type StevneStatusVariant = "ok" | "warn" | "live";
@@ -64,17 +68,17 @@ export function stevneSubtitle(stevne: StevneInfoSource): string[] {
 
 export function stevneKeyFacts(stevne: StevneInfoSource): StevneHeroFact[] {
   return [
-    { label: "Dato", html: stevne.dato ? formatDateNumeric(stevne.dato) : "—" },
-    { label: "Tid", html: stevne.tid ? formatTime(stevne.tid) : "—" },
-    { label: "Stad", html: escHtml(stevne.sted ?? "—") },
-    { label: "Type / kategori", html: escHtml(typeAndCategoryLabel(stevne)) },
+    { key: "dato", label: "Dato", html: stevne.dato ? formatDateNumeric(stevne.dato) : "—" },
+    { key: "tid", label: "Tid", html: stevne.tid ? formatTime(stevne.tid) : "—" },
+    { key: "sted", label: "Stad", html: escHtml(stevne.sted ?? "—") },
+    { key: "type", label: "Type / kategori", html: escHtml(typeAndCategoryLabel(stevne)) },
   ];
 }
 
 export function stevneMethodFacts(stevne: StevneInfoSource): StevneHeroFact[] {
   return [
-    { label: "Innleiande", html: escHtml(stevne.kastemetodeInnl?.navn ?? "—") },
-    { label: "Avsluttande", html: escHtml(stevne.kastemetodeAvsl?.navn ?? "—") },
+    { key: "innl", label: "Innleiande", html: escHtml(stevne.kastemetodeInnl?.navn ?? "—") },
+    { key: "avsl", label: "Avsluttande", html: escHtml(stevne.kastemetodeAvsl?.navn ?? "—") },
   ];
 }
 
@@ -85,16 +89,22 @@ export function stevneMethodFacts(stevne: StevneInfoSource): StevneHeroFact[] {
 export function stevneDetails(stevne: StevneInfoSource): StevneHeroFact[] {
   return [
     { label: "Arrangør", html: escHtml(stevne.klubb?.navn ?? "—") },
-    { label: "Kontaktperson", html: escHtml(contactName(stevne) || "—") },
+    { key: "kontakt", label: "Kontaktperson", html: escHtml(contactName(stevne) || "—") },
     ...(stevne.juryleder ? [{ label: "Juryleiar", html: escHtml(stevne.juryleder) }] : []),
   ];
 }
 
 // ── Markup ────────────────────────────────────────────────────────────────────
 
+/** data-felt plus the tappable affordance; plain facts get nothing. */
+function editAttrs(fact: StevneHeroFact): string {
+  if (!fact.editable || !fact.key) return "";
+  return ` data-felt="${fact.key}" role="button" tabindex="0" aria-label="Endre ${escHtml(fact.label.toLowerCase())}"`;
+}
+
 function tileHtml(fact: StevneHeroFact): string {
   return `
-    <div class="stevne-hero__rute">
+    <div class="stevne-hero__rute${fact.editable ? " stevne-hero__redigerbar" : ""}"${editAttrs(fact)}>
       <span class="stevne-hero__etikett">${escHtml(fact.label)}</span>
       <span class="stevne-hero__verdi">${fact.html}</span>
     </div>`;
@@ -102,7 +112,7 @@ function tileHtml(fact: StevneHeroFact): string {
 
 function detailHtml(detail: StevneHeroFact): string {
   return `
-    <div class="stevne-hero__detalj">
+    <div class="stevne-hero__detalj${detail.editable ? " stevne-hero__redigerbar" : ""}"${editAttrs(detail)}>
       <dt>${escHtml(detail.label)}</dt>
       <dd>${detail.html}</dd>
     </div>`;

@@ -41,7 +41,8 @@ export type CategoryRow = Pick<Tables<"kategori">, "id" | "navn">;
 
 const _infoStevneQuery = supabase.from("stevne").select(`
     id, navn, dato, tid, sted, stevne_fase, antall_runder_innl, runde1_format, erfullfort, klubbid, tilgjengelige_baner,
-    snc_hovudstevne_id, juryleder,
+    snc_hovudstevne_id, juryleder, stevnetypeid, kategoriid, kontaktkasterid,
+    innledendekastemetodeid, avsluttendekastemetodeid,
     kastemetodeInnl:kastemetode!stevne_innledendekastemetodeid_fkey(id, navn),
     kastemetodeAvsl:kastemetode!stevne_avsluttendekastemetodeid_fkey(id, navn),
     kategori:kategoriid(erlagbasert, navn),
@@ -180,7 +181,8 @@ export async function getInfoTournament(
     .from("stevne")
     .select(`
       id, navn, dato, tid, sted, stevne_fase, antall_runder_innl, runde1_format, erfullfort, klubbid, tilgjengelige_baner,
-      snc_hovudstevne_id, juryleder,
+      snc_hovudstevne_id, juryleder, stevnetypeid, kategoriid, kontaktkasterid,
+      innledendekastemetodeid, avsluttendekastemetodeid,
       kastemetodeInnl:kastemetode!stevne_innledendekastemetodeid_fkey(id, navn),
       kastemetodeAvsl:kastemetode!stevne_avsluttendekastemetodeid_fkey(id, navn),
       kategori:kategoriid(erlagbasert, navn),
@@ -586,15 +588,21 @@ export type ActiveThrowingMethodRow = Pick<
   Tables<"kastemetode">,
   "id" | "navn" | "er_innledende" | "er_avsluttende"
 >;
-export type TournamentSettingsUpdatePayload = Pick<
-  Tables<"stevne">,
-  | "innledendekastemetodeid"
-  | "avsluttendekastemetodeid"
-  | "tilgjengelige_baner"
-  | "stevnetypeid"
-  | "kategoriid"
-  | "dato"
-  | "tid"
+/** Any subset of the fields the organiser edits on the info tab or in Innstillingar. */
+export type TournamentSettingsUpdatePayload = Partial<
+  Pick<
+    Tables<"stevne">,
+    | "innledendekastemetodeid"
+    | "avsluttendekastemetodeid"
+    | "antall_runder_innl"
+    | "sted"
+    | "kontaktkasterid"
+    | "tilgjengelige_baner"
+    | "stevnetypeid"
+    | "kategoriid"
+    | "dato"
+    | "tid"
+  >
 >;
 
 export async function getTournamentSettings(
@@ -632,17 +640,6 @@ export async function updateTournamentSettings(
     supabase.from("stevne").update(payload).eq("id", id).select("id"),
   );
   if (error) logError("updateTournamentSettings", error);
-  return { error };
-}
-
-export async function setInitialRoundCount(
-  id: number,
-  rounds: number | null,
-): Promise<{ error: unknown }> {
-  const { error } = await verifyRowsAffected(
-    supabase.from("stevne").update({ antall_runder_innl: rounds }).eq("id", id).select("id"),
-  );
-  if (error) logError("setInitialRoundCount", error);
   return { error };
 }
 
