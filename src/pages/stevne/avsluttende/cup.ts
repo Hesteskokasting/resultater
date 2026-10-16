@@ -15,6 +15,7 @@ import { errorMessage } from "@/utils/errorMessage";
 import { logError } from "@/utils/logError";
 import { showToast } from "@/components/Toast";
 import { confirmDialog } from "@/components/dialog/ConfirmDialog";
+import { getHashQueryParam } from "@/utils/navigation";
 import { type FinalMatchRow } from "@/services/kampService";
 import {
   cupRanking,
@@ -228,6 +229,15 @@ const cupVariant: FinalPhaseVariant = {
             return;
           }
           showToast("Gruppefordeling lagra", "success");
+          // Opened from the Info tile before start: the organiser came to set the
+          // split only, so they go back to where they came from.
+          if (
+            getHashQueryParam("fra") === "info" &&
+            (stevne.stevne_fase ?? "ikke_startet") === "ikke_startet"
+          ) {
+            location.hash = `#/stevne/${stevneid}/info`;
+            return;
+          }
           await reload();
         },
         startFromForm,

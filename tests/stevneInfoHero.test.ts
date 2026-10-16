@@ -330,10 +330,10 @@ describe("stevne-info hero", () => {
     const el = host();
     await renderInfo(el, { id: 5 });
     expect(el.querySelectorAll(".stevne-hero__par")[1]!.textContent).toContain("A: 9 - B: 6");
-    expect(el.querySelector('a[href="#/stevne/5/avsluttende"]')).toBeNull();
+    expect(el.querySelector('a[href="#/stevne/5/avsluttende?fra=info"]')).toBeNull();
 
     await renderInfo(el, { id: 5, isAdmin: true });
-    expect(el.querySelector('a[href="#/stevne/5/avsluttende"]')!.textContent).toBe(
+    expect(el.querySelector('a[href="#/stevne/5/avsluttende?fra=info"]')!.textContent).toBe(
       "Endre gruppefordeling",
     );
   });
@@ -356,6 +356,6 @@ describe("stevne-info hero", () => {
     const el = host();
     await renderInfo(el, { id: 5, isAdmin: true });
     expect(el.querySelectorAll(".stevne-hero__par")[1]!.textContent).toContain("A: 8 - B: 8");
-    expect(el.querySelector('a[href="#/stevne/5/avsluttende"]')).toBeNull();
+    expect(el.querySelector('a[href="#/stevne/5/avsluttende?fra=info"]')).toBeNull();
   });
 });

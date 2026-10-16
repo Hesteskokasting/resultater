@@ -149,7 +149,7 @@ export async function render(
     const infoHtml = isCup
       ? escHtml(groupSplitLabel(matchSummary.groupSizes, round1Format?.nA, entryCount)) +
         (canSetGroups
-          ? `<a class="stevne-hero__lenke d-block" href="#/stevne/${id}/avsluttende">${round1Format ? "Endre" : "Set"} gruppefordeling</a>`
+          ? `<a class="stevne-hero__lenke d-block" href="#/stevne/${id}/avsluttende?fra=info">${round1Format ? "Endre" : "Set"} gruppefordeling</a>`
           : "")
       : "—";
 
