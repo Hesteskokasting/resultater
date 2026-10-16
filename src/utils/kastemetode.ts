@@ -54,7 +54,6 @@ export function cascadeRoundLimitMessage(N: number, roundCount: number, isTeam =
   const unit = isTeam ? "par" : "spelarar";
   return (
     `Gloppen med ${N} ${unit} kan ha maks ${maxCascadeRounds(N)} rundar, ` +
-    `ikkje ${roundCount} — fleire rundar gjev omkampar. ` +
-    `Set ned antal rundar på Info-sida.`
+    `ikkje ${roundCount} — fleire rundar gjev omkampar.`
   );
 }

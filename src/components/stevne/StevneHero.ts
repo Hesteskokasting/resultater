@@ -24,8 +24,6 @@ export type StevneStatusVariant = "ok" | "warn" | "live";
 export interface StevneHeroOptions {
   title: string;
   status: { text: string; variant: StevneStatusVariant };
-  /** Joined with "·" under the title, e.g. "SNC Singel · Årdalen". */
-  subtitle: string[];
   facts: StevneHeroFact[];
   /** One row per fase; the tiles in a row are drawn joined. */
   methods: StevneHeroFact[][];
@@ -59,11 +57,6 @@ function typeAndCategoryLabel(stevne: StevneInfoSource): string {
 function contactName(stevne: StevneInfoSource): string {
   if (!stevne.kontakt) return "";
   return `${stevne.kontakt.fornavn ?? ""} ${stevne.kontakt.etternavn ?? ""}`.trim();
-}
-
-/** "SNC Singel · Årdalen" — the one-line summary under the name. */
-export function stevneSubtitle(stevne: StevneInfoSource): string[] {
-  return [typeAndCategoryLabel(stevne), stevne.sted ?? ""].filter((part) => part && part !== "—");
 }
 
 export function stevneKeyFacts(stevne: StevneInfoSource): StevneHeroFact[] {
@@ -119,13 +112,12 @@ function detailHtml(detail: StevneHeroFact): string {
 }
 
 export function stevneHeroHtml(options: StevneHeroOptions): string {
-  const { title, status, subtitle, facts, methods, details } = options;
+  const { title, status, facts, methods, details } = options;
   return `
     <section class="stevne-hero">
       <div class="stevne-hero__topp">
         <h2 class="stevne-hero__tittel">${escHtml(title)}</h2>
         <span class="admin-badge admin-badge--${status.variant} stevne-hero__status">${escHtml(status.text)}</span>
-        ${subtitle.length ? `<p class="stevne-hero__undertittel">${escHtml(subtitle.join(" · "))}</p>` : ""}
       </div>
       <div class="stevne-hero__handling" id="stevne-hero-handling"></div>
       <div class="stevne-hero__ruter">${facts.map((f) => tileHtml(f)).join("")}</div>

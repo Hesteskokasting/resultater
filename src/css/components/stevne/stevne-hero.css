@@ -35,12 +35,6 @@
   letter-spacing: 0.04em;
 }
 
-.stevne-hero__undertittel {
-  margin: 0;
-  color: var(--tekst-2);
-  font-size: 0.9rem;
-}
-
 .stevne-hero__handling {
   display: flex;
   gap: 8px;
@@ -143,6 +137,22 @@
 .stevne-hero__par .form-select {
   margin-top: 2px;
   font-weight: 600;
+}
+
+.stevne-hero__rundar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stevne-hero__atvaring {
+  flex: none;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: var(--bs-warning);
+  font-size: 1.1rem;
+  line-height: 1;
 }
 
 .stevne-hero__lenke {

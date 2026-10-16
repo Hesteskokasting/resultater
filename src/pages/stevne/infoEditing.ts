@@ -106,13 +106,6 @@ export function bindInfoEditing(
 
 // ── Editors for the info tab ──────────────────────────────────────────────────
 
-export const FORMAT_COLUMNS: (keyof InfoPatch)[] = [
-  "stevnetypeid",
-  "kategoriid",
-  "innledendekastemetodeid",
-  "avsluttendekastemetodeid",
-];
-
 interface EditableStevne {
   dato: string;
   tid: string | null;

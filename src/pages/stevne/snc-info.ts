@@ -13,7 +13,6 @@ import {
   stevneHeroHtml,
   stevneKeyFacts,
   stevneMethodFacts,
-  stevneSubtitle,
 } from "@/components/stevne/StevneHero";
 import { showToast } from "@/components/Toast";
 import { errorMessage } from "@/utils/errorMessage";
@@ -77,7 +76,6 @@ function overviewHtml(
     status: parent.erfullfort
       ? { text: "Konsolidert", variant: "ok" }
       : { text: "Ikkje konsolidert", variant: "warn" },
-    subtitle: stevneSubtitle(parent),
     facts: stevneKeyFacts(parent),
     methods: stevneMethodFacts(parent).map((fact) => [fact]),
     details: [

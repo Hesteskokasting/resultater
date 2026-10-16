@@ -110,7 +110,6 @@ describe("stevne-info hero", () => {
 
     expect(el.querySelector(".stevne-hero__tittel")!.textContent).toBe("SNC - TEST");
     expect(el.querySelector(".stevne-hero__status")!.textContent).toBe("Ikkje starta");
-    expect(el.querySelector(".stevne-hero__undertittel")!.textContent).toBe("SNC Singel · Årdalen");
 
     const facts = [...el.querySelectorAll(".stevne-hero__rute")].map((r) => r.textContent);
     expect(facts.join("|")).toContain("Type / kategori");
@@ -176,7 +175,7 @@ describe("stevne-info hero", () => {
     expect(el.querySelector('#info-handling-knapper a[href^="#/minside"]')).toBeNull();
   });
 
-  it("refuses to start Gloppen with more rundar than the field can pair, and says so before the click", async () => {
+  it("refuses to start Gloppen with more rundar than the field can pair, flagging the Rundar tile", async () => {
     mocks.getInfoTournament.mockResolvedValue({
       data: row({ antall_runder_innl: 7, kastemetodeInnl: { id: 1, navn: "Gloppen" } }),
       error: null,
@@ -188,9 +187,9 @@ describe("stevne-info hero", () => {
 
     const startBtn = slot(el).querySelector<HTMLButtonElement>("#start-stevne-btn")!;
     expect(startBtn.disabled).toBe(true);
-    expect(slot(el).querySelector(".stevne-start-hindring")!.textContent).toContain(
-      "maks 5 rundar",
-    );
+    expect(slot(el).textContent!.trim()).toBe("Start stevne");
+    const warning = el.querySelector(".stevne-hero__par .stevne-hero__atvaring")!;
+    expect(warning.getAttribute("title")).toContain("maks 5 rundar");
 
     startBtn.click();
     expect(mocks.startTournament).not.toHaveBeenCalled();
@@ -264,31 +263,34 @@ describe("stevne-info hero", () => {
     expect(el.querySelector("#info-rundar")).toBeNull();
   });
 
-  it("lets an organiser pick and clear the rundar, unblocking the start button", async () => {
-    mocks.getInfoTournament.mockResolvedValue({
-      data: row({ antall_runder_innl: null, kastemetodeInnl: { id: 1, navn: "Gloppen" } }),
-      error: null,
-    });
+  it("lets an organiser pick and clear the rundar in place, unblocking the start button", async () => {
+    const stored = row({ antall_runder_innl: null, kastemetodeInnl: { id: 1, navn: "Gloppen" } });
+    mocks.getInfoTournament.mockImplementation(async () => ({ data: { ...stored }, error: null }));
     mocks.getRegistrationCount.mockResolvedValue(4);
-    mocks.updateTournamentSettings.mockResolvedValue({ error: null });
+    mocks.updateTournamentSettings.mockImplementation(async (_id: number, patch: object) => {
+      Object.assign(stored, patch);
+      return { error: null };
+    });
     const el = host();
     await renderInfo(el, { id: 5, isAdmin: true });
     const startBtn = () => slot(el).querySelector<HTMLButtonElement>("#start-stevne-btn")!;
+    const select = () => el.querySelector<HTMLSelectElement>("#info-rundar")!;
     expect(startBtn().disabled).toBe(true);
 
     // 4 spelarar caps Gloppen at 2 rundar.
     expect(roundOptions(el)).toEqual(["", "1", "2"]);
 
-    const select = el.querySelector<HTMLSelectElement>("#info-rundar")!;
-    select.value = "2";
-    select.dispatchEvent(new Event("change"));
+    select().value = "2";
+    select().dispatchEvent(new Event("change"));
     await vi.waitFor(() =>
       expect(mocks.updateTournamentSettings).toHaveBeenCalledWith(5, { antall_runder_innl: 2 }),
     );
+    // The refetch keeps the tiles on screen instead of a loading line.
+    expect(el.querySelector(".loading")).toBeNull();
     await vi.waitFor(() => expect(startBtn().disabled).toBe(false));
 
-    select.value = "";
-    select.dispatchEvent(new Event("change"));
+    select().value = "";
+    select().dispatchEvent(new Event("change"));
     await vi.waitFor(() =>
       expect(mocks.updateTournamentSettings).toHaveBeenCalledWith(5, { antall_runder_innl: null }),
     );

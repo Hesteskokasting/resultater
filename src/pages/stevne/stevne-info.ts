@@ -8,7 +8,6 @@ import {
   stevneHeroHtml,
   stevneKeyFacts,
   stevneMethodFacts,
-  stevneSubtitle,
   type StevneHeroOptions,
 } from "@/components/stevne/StevneHero";
 import { logError } from "@/utils/logError";
@@ -22,7 +21,7 @@ import {
   updateTournamentSettings,
   type StartStep,
 } from "@/services/stevneService";
-import { FORMAT_COLUMNS, bindInfoEditing, infoEditors } from "./infoEditing";
+import { bindInfoEditing, infoEditors } from "./infoEditing";
 import {
   getRegistrationCount,
   getPairCount,
@@ -34,6 +33,7 @@ import { actionLinkHtml, registrationCtaLink } from "@/components/stevne/StevneC
 import { createCheckInButton } from "@/components/stevne/CheckInButton";
 import { registerRefetch, reloadRoute } from "@/utils/data/refetchRegistry";
 import {
+  cascadeRoundLimitMessage,
   isCascadeMethodName,
   isKongelagMethodName,
   isXkastMethodName,
@@ -90,10 +90,12 @@ function roundChoices(current: number | null, generated: number, cap: number | n
 
 export async function render(
   container: HTMLElement,
-  { id, isAdmin = false }: { id: number; isAdmin?: boolean },
+  { id, isAdmin = false, silent = false }: { id: number; isAdmin?: boolean; silent?: boolean },
 ): Promise<void> {
   registerRefetch(() => render(container, { id, isAdmin }));
-  container.replaceChildren(createLoadingState());
+  // A save redraws in place: no spinner, so the page and its scroll stay put.
+  if (!silent) container.replaceChildren(createLoadingState());
+  const redraw = (): Promise<void> => render(container, { id, isAdmin, silent: true });
 
   try {
     const [stevneRes, count, pairCount, auth, matchSummary] = await Promise.all([
@@ -133,15 +135,23 @@ export async function render(
       isRoundBased &&
       (isNotStarted || (!isCascade && !stevne.erfullfort && phase === "innledende"));
     const roundCap = isCascade && entryCount > 0 ? maxCascadeRounds(entryCount) : null;
+    const current = stevne.antall_runder_innl;
+    const roundWarning =
+      isNotStarted && roundCap != null && current != null && current > roundCap
+        ? cascadeRoundLimitMessage(entryCount, current, isTeam)
+        : null;
+    const warningHtml = roundWarning
+      ? `<button type="button" class="stevne-hero__atvaring" title="${escHtml(roundWarning)}" aria-label="${escHtml(roundWarning)}">⚠</button>`
+      : "";
     const roundsHtml = (): string => {
       if (!isRoundBased) return "—";
-      if (!canSetRounds) return String(stevne.antall_runder_innl ?? "—");
-      const current = stevne.antall_runder_innl;
+      if (!canSetRounds)
+        return `<span class="stevne-hero__rundar">${current ?? "—"}${warningHtml}</span>`;
       const choices = roundChoices(current, matchSummary.initialRounds, roundCap);
-      return `<select id="info-rundar" class="form-select form-select-sm" aria-label="Antal rundar">
+      return `<span class="stevne-hero__rundar"><select id="info-rundar" class="form-select form-select-sm" aria-label="Antal rundar">
           ${isNotStarted ? `<option value=""${current == null ? " selected" : ""}>—</option>` : ""}
           ${choices.map((n) => `<option value="${n}"${n === current ? " selected" : ""}>${n}</option>`).join("")}
-        </select>`;
+        </select>${warningHtml}</span>`;
     };
 
     const isCup = (stevne.kastemetodeAvsl?.navn ?? "").toLowerCase().includes("cup");
@@ -189,7 +199,6 @@ export async function render(
       ${stevneHeroHtml({
         title: stevne.navn,
         status: statusBadge(stevne.stevne_fase, stevne.erfullfort),
-        subtitle: stevneSubtitle(stevne),
         facts: stevneKeyFacts(stevne).map((f) => markEditable(f)),
         methods,
         details: [
@@ -217,10 +226,8 @@ export async function render(
       !stevne.kastemetodeInnl && isKongelagMethodName(stevne.kastemetodeAvsl?.navn ?? "");
 
     const showStartButton = isNotStarted && isAdmin;
-    // Every input is already in hand, so the organizer is told what is missing
-    // up front instead of discovering it in a toast after clicking. Redrawn when
-    // the rundar tile changes the round count.
-    function renderStartButton(): void {
+    // The tiles already flag what is missing, so the reason only rides in the title.
+    if (showStartButton) {
       const blocked = canStartTournament({
         hasInitialMethod: Boolean(stevne.kastemetodeInnl),
         isStandaloneKongelag,
@@ -232,21 +239,11 @@ export async function render(
         roundCount: stevne.antall_runder_innl,
       });
 
-      const startButtonHtml =
+      actionSlot.innerHTML =
         `<button id="start-stevne-btn" class="btn btn-sm btn-success"` +
         `${blocked ? ` disabled title="${escHtml(blocked)}"` : ""}>Start stevne</button>`;
-      // Blocked: button and reason stack as one flex item in the hero row, the
-      // same shape .check-in-row uses. Unblocked, the button stays a direct child.
-      actionSlot.innerHTML = blocked
-        ? `<div class="stevne-start-boks">${startButtonHtml}` +
-          `<p class="stevne-start-hindring">${escHtml(blocked)}</p></div>`
-        : startButtonHtml;
       const startBtn = actionSlot.querySelector<HTMLButtonElement>("#start-stevne-btn")!;
       startBtn.addEventListener("click", async () => {
-        if (blocked) {
-          showToast(blocked, "error");
-          return;
-        }
         const unconfirmedCount = await getUnconfirmedCount(id);
         if (unconfirmedCount > 0) {
           const ok = await confirmDialog({
@@ -278,22 +275,26 @@ export async function render(
         location.hash = `#/stevne/${id}/${startedPhase}`;
       });
     }
-    if (showStartButton) renderStartButton();
 
     // ── Rundar select ─────────────────────────────────────────────────────────
 
+    // A tap shows the reason on touch screens, where title never appears.
+    container
+      .querySelector(".stevne-hero__atvaring")
+      ?.addEventListener("click", () => showToast(roundWarning!, "warning"));
+
     const roundsSelect = container.querySelector<HTMLSelectElement>("#info-rundar");
     roundsSelect?.addEventListener("change", async () => {
-      const previous = stevne.antall_runder_innl;
+      roundsSelect.disabled = true;
       const next = roundsSelect.value ? Number(roundsSelect.value) : null;
-      stevne.antall_runder_innl = next;
       const { error } = await updateTournamentSettings(id, { antall_runder_innl: next });
       if (error) {
         showToast("Feil ved lagring av rundar: " + errorMessage(error), "error");
-        stevne.antall_runder_innl = previous;
-        roundsSelect.value = String(previous ?? "");
+        roundsSelect.value = String(current ?? "");
+        roundsSelect.disabled = false;
+        return;
       }
-      if (showStartButton) renderStartButton();
+      await redraw();
     });
 
     // ── In-place editing ──────────────────────────────────────────────────────
@@ -308,9 +309,12 @@ export async function render(
         showToast("Feil ved lagring: " + errorMessage(error), "error");
         return false;
       }
-      // Format fields shape the tab row above, so the whole route is redrawn.
-      if (FORMAT_COLUMNS.some((column) => column in patch)) void reloadRoute();
-      else void render(container, { id, isAdmin });
+      // Only the Avsl. tab follows the format, and only whether a metode is set.
+      const togglesFinalTab =
+        "avsluttendekastemetodeid" in patch &&
+        (patch.avsluttendekastemetodeid == null) !== (stevne.avsluttendekastemetodeid == null);
+      if (togglesFinalTab) void reloadRoute();
+      else void redraw();
       return true;
     });
 
