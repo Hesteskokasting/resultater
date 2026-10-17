@@ -205,8 +205,11 @@ export function createInnledendeRenderer(variant: InnledendeVariant) {
       hasMatchCount: true,
       positionMap,
       unitLabel: isTeam ? "par" : "spelarar",
-      // Once the avsluttande fase has an A/B split, mark where A ends.
-      qualifyCutoff: parseRound1Format(stevne.runde1_format)?.nA ?? null,
+      // Once the cup has an A/B split, mark where A ends. A split left over
+      // from before the avsluttande metode was changed is ignored.
+      qualifyCutoff: (stevne.kastemetodeAvsl?.navn ?? "").toLowerCase().includes("cup")
+        ? (parseRound1Format(stevne.runde1_format)?.nA ?? null)
+        : null,
     });
 
     const activeTab = getActiveTab(container);

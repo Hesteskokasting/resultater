@@ -210,3 +210,20 @@ describe("innledende list — entering a score confirms the match", () => {
     expect(container().querySelector(`[data-endre-score="${KAMP_ID}"]`)).toBeNull();
   });
 });
+
+describe("innledende standing — cup cut line", () => {
+  it.each([
+    ["Cup", 1],
+    ["Kongelag", 0],
+  ])(
+    "with a saved A/B split and %s as avsluttande metode draws %i cut line(s)",
+    async (navn, lines) => {
+      mocks.getInitialPhaseTournament.mockResolvedValue({
+        data: { ...stevne, runde1_format: { nA: 1 }, kastemetodeAvsl: { navn } },
+        error: null,
+      });
+      await renderPage();
+      expect(container().querySelectorAll(".standing-cutoff")).toHaveLength(lines);
+    },
+  );
+});
