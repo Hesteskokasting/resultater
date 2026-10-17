@@ -4,6 +4,7 @@ import type { XkastKongelagPadHeader } from "@/components/numberpad/XkastKongela
 import { confirmDialog } from "@/components/dialog/ConfirmDialog";
 import { updateTournamentPhase } from "@/services/stevneService";
 import { getRegistrationCount } from "@/services/pameldingService";
+import { KONGELAG_MIN_PULJER } from "@/utils/xkastKongelag/kongelagSeeding";
 import {
   getKongelagConfig,
   getKongelagCarryOver,
@@ -80,6 +81,12 @@ function renderStartPanel(ctx: CourtPhaseContext): HTMLElement | null {
   panel.appendChild(createEl("p", "Kongelag er ikkje starta enno.", "text-muted"));
   const status = createEl("p", "Sjekkar innleiande fase…", "text-muted fst-italic");
   panel.appendChild(status);
+  const puljeLabel = createEl("label", "Puljer ", "me-2");
+  const puljeSelect = document.createElement("select");
+  puljeSelect.className = "form-select form-select-sm d-inline-block w-auto";
+  for (let n = KONGELAG_MIN_PULJER; n <= 8; n++) puljeSelect.add(new Option(String(n)));
+  puljeLabel.appendChild(puljeSelect);
+  panel.appendChild(puljeLabel);
   const startBtn = createEl("button", "Start Kongelag", "btn btn-success") as HTMLButtonElement;
   startBtn.disabled = true;
   panel.appendChild(startBtn);
@@ -129,7 +136,7 @@ function renderStartPanel(ctx: CourtPhaseContext): HTMLElement | null {
       }
     }
 
-    const { error } = await generateKongelagCourts(ctx.stevneid);
+    const { error } = await generateKongelagCourts(ctx.stevneid, Number(puljeSelect.value));
     if (error) {
       showToast("Feil ved generering av Kongelag-banar.", "error");
       startBtn.disabled = false;

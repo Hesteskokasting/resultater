@@ -205,7 +205,7 @@ describe("stevne-info hero", () => {
     });
     mocks.getRegistrationCount.mockResolvedValue(10);
     mocks.getUnconfirmedCount.mockResolvedValue(0);
-    mocks.startTournament.mockResolvedValue({ error: null, step: null, phase: "innledende" });
+    mocks.startTournament.mockResolvedValue({ error: null, step: null });
     const el = host();
     await renderInfo(el, { id: 5, isAdmin: true });
 
@@ -217,8 +217,22 @@ describe("stevne-info hero", () => {
       methodName: "Gloppen",
       roundCount: 5,
       isTeam: false,
-      isStandaloneKongelag: false,
     });
+  });
+
+  it("sends a standalone Kongelag to the Avsl. tab instead of starting it", async () => {
+    mocks.getInfoTournament.mockResolvedValue({
+      data: row({ kastemetodeInnl: null, kastemetodeAvsl: { id: 9, navn: "Kongelag" } }),
+      error: null,
+    });
+    mocks.getRegistrationCount.mockResolvedValue(10);
+    mocks.getUnconfirmedCount.mockResolvedValue(0);
+    const el = host();
+    await renderInfo(el, { id: 5, isAdmin: true });
+
+    slot(el).querySelector<HTMLButtonElement>("#start-stevne-btn")!.click();
+    await vi.waitFor(() => expect(location.hash).toBe("#/stevne/5/avsluttende"));
+    expect(mocks.startTournament).not.toHaveBeenCalled();
   });
 
   it("invites a signed-out visitor to log in instead of leaving the slot empty", async () => {

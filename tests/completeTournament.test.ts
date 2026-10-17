@@ -15,7 +15,6 @@ vi.mock("@/services/resultatService", () => ({ writePlacements: mocks.writePlace
 vi.mock("@/services/kampGenereringInnledendeService", () => ({
   generateInitialRoundMatches: vi.fn(),
 }));
-vi.mock("@/services/xkastKongelagService", () => ({ generateKongelagCourts: vi.fn() }));
 vi.mock("@/utils/logError", () => ({ logError: vi.fn() }));
 
 import { completeTournament } from "@/services/stevneService";

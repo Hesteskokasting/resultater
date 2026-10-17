@@ -49,7 +49,6 @@ import { parseRound1Format } from "@/utils/kamp/cupStructure";
 const START_ERROR: Record<StartStep, string> = {
   fase: "Feil ved oppdatering av fase",
   kampar: "Feil ved kampgenerering",
-  kongelag: "Feil ved generering av Kongelag-banar",
 };
 
 function statusBadge(fase: string | null, erfullfort: boolean | null): StevneHeroOptions["status"] {
@@ -221,7 +220,7 @@ export async function render(
     // ── Start-tournament button (admin, not started) ──────────────────────────
 
     // No innleiande metode + Kongelag avsluttande = standalone Kongelag:
-    // the stevne starts directly in the avsluttende phase.
+    // started from the Avsl. tab, where the puljer are chosen.
     const isStandaloneKongelag =
       !stevne.kastemetodeInnl && isKongelagMethodName(stevne.kastemetodeAvsl?.navn ?? "");
 
@@ -257,19 +256,18 @@ export async function render(
             return;
           }
         }
+        if (isStandaloneKongelag) {
+          location.hash = `#/stevne/${id}/avsluttende`;
+          return;
+        }
         startBtn.disabled = true;
         startBtn.textContent = "Starter…";
 
-        const {
-          error,
-          step,
-          phase: startedPhase,
-        } = await startTournament({
+        const { error, step } = await startTournament({
           stevneid: id,
           methodName,
           roundCount: stevne.antall_runder_innl ?? 1,
           isTeam,
-          isStandaloneKongelag,
         });
         if (error) {
           showToast(`${START_ERROR[step!]}: ${errorMessage(error)}`, "error");
@@ -277,7 +275,7 @@ export async function render(
           startBtn.textContent = "Start stevne";
           return;
         }
-        location.hash = `#/stevne/${id}/${startedPhase}`;
+        location.hash = `#/stevne/${id}/innledende`;
       });
     }
 

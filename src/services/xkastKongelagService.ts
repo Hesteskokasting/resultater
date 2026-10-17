@@ -295,7 +295,10 @@ async function _seedStandaloneKongelag(
  * standalone Kongelag draws randomly from enrollment (and creates the resultat
  * rows) instead.
  */
-export async function generateKongelagCourts(stevneid: number): Promise<{ error: unknown }> {
+export async function generateKongelagCourts(
+  stevneid: number,
+  puljeCount?: number,
+): Promise<{ error: unknown }> {
   const { data: config, error: configError } = await getKongelagConfig(stevneid);
   if (configError || !config) return { error: configError ?? new Error("Stevne ikkje funne") };
 
@@ -331,7 +334,7 @@ export async function generateKongelagCourts(stevneid: number): Promise<{ error:
     kasterids = data;
   }
 
-  const courts = buildKongelagCourts(kasterids, config.tilgjengeligeBaner);
+  const courts = buildKongelagCourts(kasterids, config.tilgjengeligeBaner, puljeCount);
   return createCourts(stevneid, "avsluttende", courts);
 }
 

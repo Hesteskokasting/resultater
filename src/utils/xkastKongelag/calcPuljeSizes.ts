@@ -15,7 +15,11 @@ export function calcPuljeSizes(participantCount: number, maxPerPulje: number): n
   }
   if (participantCount === 0) return [];
 
-  const puljeCount = Math.ceil(participantCount / maxPerPulje);
+  return splitEvenly(participantCount, Math.ceil(participantCount / maxPerPulje));
+}
+
+/** Splits participants into exactly puljeCount puljer, remainder to the last ones (41 / 4 → [10, 10, 10, 11]). */
+export function splitEvenly(participantCount: number, puljeCount: number): number[] {
   const baseSize = Math.floor(participantCount / puljeCount);
   const remainder = participantCount % puljeCount;
   return Array.from(

@@ -112,3 +112,25 @@ describe("buildKongelagCourts", () => {
     expect(buildKongelagCourts([], 6)).toEqual([]);
   });
 });
+
+describe("buildKongelagCourts with a chosen pulje count", () => {
+  const sizes = (courts: { pulje: number }[]) =>
+    [...new Set(courts.map((c) => c.pulje))].map((p) => courts.filter((c) => c.pulje === p).length);
+  const field = (n: number) => Array.from({ length: n }, (_, i) => i + 1);
+
+  it("splits 41 into four near-equal puljer, the larger one last", () => {
+    expect(sizes(buildKongelagCourts(field(41), null, 4))).toEqual([10, 10, 10, 11]);
+  });
+
+  it("gives exactly the chosen count even where a per-pulje cap would round it down", () => {
+    expect(sizes(buildKongelagCourts(field(9), null, 4))).toEqual([2, 2, 2, 3]);
+  });
+
+  it("adds puljer when the lanes cannot hold the chosen count", () => {
+    expect(sizes(buildKongelagCourts(field(12), 3, 2))).toEqual([3, 3, 3, 3]);
+  });
+
+  it("never makes more puljer than players", () => {
+    expect(sizes(buildKongelagCourts(field(3), null, 8))).toEqual([1, 1, 1]);
+  });
+});
