@@ -74,7 +74,7 @@ function groupSplitLabel(
         ? [savedNa, entryCount - savedNa]
         : [null, 0];
   if (nA == null) return "-";
-  return nB > 0 ? `A: ${nA} - B: ${nB}` : "Alle i A";
+  return `A:${nA} - B:${nB}`;
 }
 
 /**
