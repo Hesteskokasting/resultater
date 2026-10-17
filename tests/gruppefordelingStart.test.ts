@@ -14,7 +14,7 @@ const n = [8, 10, 12, 14, 16, 18, 20, 24].find(
 )!;
 const standings = Array.from({ length: n }, (_, i) => ({ navn: `P${i + 1}` }));
 
-function setup() {
+function setup(blocked?: string) {
   const [first, second] = calcValidGroupSizes(n);
   const nB = n - first!.nA;
   const saved = {
@@ -26,7 +26,7 @@ function setup() {
   container.innerHTML = renderGroupAssignment(standings, { initNa: saved.nA, initFormat: saved });
   const onConfirm = vi.fn();
   const onStart = vi.fn();
-  bindGroupAssignment(container, standings, onConfirm, { saved, onStart });
+  const form = bindGroupAssignment(container, standings, onConfirm, { saved, onStart, blocked });
   const btn = container.querySelector<HTMLButtonElement>("#confirm-group-btn")!;
   // happy-dom matches :checked on the attribute, so move it like a browser would
   const pick = (input: HTMLInputElement) => {
@@ -42,7 +42,17 @@ function setup() {
   const formatsA = () => [
     ...container.querySelectorAll<HTMLInputElement>('input[name="round1-format-a"]'),
   ];
-  return { btn, pick, split, formatsA, onConfirm, onStart, savedNa: saved.nA, otherNa: second!.nA };
+  return {
+    form,
+    btn,
+    pick,
+    split,
+    formatsA,
+    onConfirm,
+    onStart,
+    savedNa: saved.nA,
+    otherNa: second!.nA,
+  };
 }
 
 describe("group assignment button", () => {
@@ -70,5 +80,23 @@ describe("group assignment button", () => {
     expect(btn.textContent).toBe("Bekreft gruppefordeling");
     pick(formatsA()[0]!);
     expect(btn.textContent).toBe("Start");
+  });
+
+  it("shows the blocked reason on a disabled button instead of Start", () => {
+    const { btn, pick, split, savedNa, otherNa } = setup("Innleiande rundar er ikkje fullført");
+    expect(btn.textContent).toBe("Innleiande rundar er ikkje fullført");
+    expect(btn.disabled).toBe(true);
+    pick(split(otherNa));
+    expect(btn.textContent).toBe("Bekreft gruppefordeling");
+    expect(btn.disabled).toBe(false);
+    pick(split(savedNa));
+    expect(btn.disabled).toBe(true);
+  });
+
+  it("turns back into Start once unblocked", () => {
+    const { form, btn } = setup("Innleiande rundar er ikkje fullført");
+    form.setBlocked(undefined);
+    expect(btn.textContent).toBe("Start");
+    expect(btn.disabled).toBe(false);
   });
 });

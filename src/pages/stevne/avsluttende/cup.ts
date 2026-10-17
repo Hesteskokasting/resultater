@@ -199,28 +199,23 @@ const cupVariant: FinalPhaseVariant = {
       await startFinalPhase();
     });
 
-    // X-kast innledende has no kamp rows, so allInitialConfirmed can't see it finish
+    // X-kast innledende has no kamp rows, so allInitialConfirmed can't see it
+    // finish — it stays blocked until isInnledendeComplete says otherwise.
+    const checkXkast = !started && isXkast && stevne.stevne_fase === "innledende";
     const startFromForm =
       round1Format?.nA != null
         ? {
             saved: round1Format,
-            onStart: async () => {
-              const done =
-                started ||
-                (isXkast
-                  ? (await isInnledendeComplete(stevneid)).data === true
-                  : allInitialConfirmed);
-              if (!done) {
-                showToast("Fullfør den innleiande fasen før cupen kan startast", "error");
-                return;
-              }
-              await startFinalPhase();
-            },
+            onStart: startFinalPhase,
+            blocked:
+              !started && (stevne.stevne_fase !== "innledende" || isXkast || !allInitialConfirmed)
+                ? "Innleiande rundar er ikkje fullført"
+                : undefined,
           }
         : undefined;
 
     if (!hasGroupAssignment) {
-      bindGroupAssignment(
+      const form = bindGroupAssignment(
         container,
         standings,
         async ({ nA, setupA, setupB }) => {
@@ -243,6 +238,10 @@ const cupVariant: FinalPhaseVariant = {
         },
         startFromForm,
       );
+      if (startFromForm && checkXkast)
+        void isInnledendeComplete(stevneid).then(({ data: complete }) => {
+          if (complete) form.setBlocked(undefined);
+        });
     }
 
     bannerSlot?.querySelector("#edit-group-assignment-btn")?.addEventListener("click", async () => {

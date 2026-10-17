@@ -140,8 +140,13 @@ export function bindGroupAssignment(
   standings: StandingRowForGroup[],
   onConfirm: (selection: GroupAssignmentSelection) => void | Promise<void>,
   /** While the form still shows the saved format, the button starts the cup instead. */
-  start?: { saved: Round1FormatTyped; onStart: () => void | Promise<void> },
-): void {
+  start?: {
+    saved: Round1FormatTyped;
+    onStart: () => void | Promise<void>;
+    /** Shown on a disabled button instead of Start, e.g. while innledende is unfinished. */
+    blocked?: string;
+  },
+): { setBlocked: (reason: string | undefined) => void } {
   const n =
     parseInt(container.querySelector<HTMLElement>("#group-assignment-wrapper")?.dataset.n ?? "0") ||
     standings.length;
@@ -211,7 +216,10 @@ export function bindGroupAssignment(
   }
 
   function refreshButton(): void {
-    if (confirmBtn) confirmBtn.textContent = showsSaved() ? "Start" : "Bekreft gruppefordeling";
+    if (!confirmBtn) return;
+    const saved = showsSaved();
+    confirmBtn.disabled = saved && !!start?.blocked;
+    confirmBtn.textContent = saved ? (start?.blocked ?? "Start") : "Bekreft gruppefordeling";
   }
 
   container.querySelector("#group-assignment-wrapper")?.addEventListener("change", refreshButton);
@@ -261,6 +269,13 @@ export function bindGroupAssignment(
     if (start && showsSaved()) void start.onStart();
     else void onConfirm(sel);
   });
+
+  return {
+    setBlocked: (reason) => {
+      if (start) start.blocked = reason;
+      refreshButton();
+    },
+  };
 }
 
 function sameSetup(a: RoundSetup | null, b: RoundSetup | null): boolean {
