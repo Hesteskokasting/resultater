@@ -247,10 +247,15 @@ export async function render(
         const unconfirmedCount = await getUnconfirmedCount(id);
         if (unconfirmedCount > 0) {
           const ok = await confirmDialog({
-            title: "Ubekrefta spelarar",
-            message: `${unconfirmedCount} spelar(ar) er ikkje bekrefta. Vil du starte stevnet likevel?`,
+            title: `${unconfirmedCount} deltakere er ikke bekreftet`,
+            message: `Vil du starte stevnet med alle deltakere likevel?`,
+            confirmText: "Ja",
+            cancelText: "Nei, vis deltakere",
           });
-          if (!ok) return;
+          if (!ok) {
+            location.hash = `#/stevne/${id}/deltakere`;
+            return;
+          }
         }
         startBtn.disabled = true;
         startBtn.textContent = "Starter…";
