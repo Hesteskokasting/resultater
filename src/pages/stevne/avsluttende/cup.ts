@@ -194,11 +194,6 @@ const cupVariant: FinalPhaseVariant = {
       await reload();
     }
 
-    bannerSlot?.querySelector("#start-final-btn")?.addEventListener("click", async () => {
-      if (!allInitialConfirmed) return;
-      await startFinalPhase();
-    });
-
     // X-kast innledende has no kamp rows, so allInitialConfirmed can't see it
     // finish — it stays blocked until isInnledendeComplete says otherwise.
     const checkXkast = !started && isXkast && stevne.stevne_fase === "innledende";

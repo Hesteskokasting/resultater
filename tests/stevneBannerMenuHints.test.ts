@@ -70,18 +70,8 @@ describe("finalMenuItems", () => {
     hasGroupAssignment: false,
   };
 
-  it("lists Start avsluttande fase with the missing precondition instead of hiding it", () => {
-    const item = byId(
-      finalMenuItems(beforeFinal, { ...finalState, allMatchesConfirmed: false }),
-      "start-final-btn",
-    )!;
-    expect(item.disabled).toBe(true);
-    expect(item.hint).toMatch(/bekrefta/);
-  });
-
-  it("enables Start avsluttande fase once every innleiande kamp is confirmed", () => {
-    const item = byId(finalMenuItems(beforeFinal, finalState), "start-final-btn")!;
-    expect(item.disabled).toBe(false);
+  it("leaves starting the avsluttande fase to the group assignment form", () => {
+    expect(byId(finalMenuItems(beforeFinal, finalState), "start-final-btn")).toBeUndefined();
   });
 
   it("still gates Endre gruppefordeling on confirmed kampar", () => {

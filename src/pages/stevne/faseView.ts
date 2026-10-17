@@ -510,16 +510,6 @@ export function finalMenuItems(
   const items: StevneBannerMenuItem[] = [];
 
   if (tournament.stevne_fase !== "avsluttende") {
-    // Listed even when it cannot run yet — the hint is the only place the
-    // organizer learns what is left before the final phase can start.
-    items.push({
-      id: "start-final-btn",
-      label: "Start avsluttande fase",
-      disabled: !allMatchesConfirmed,
-      hint: allMatchesConfirmed
-        ? undefined
-        : "Alle kampar i innleiande fase må vere bekrefta først.",
-    });
     if (hasPreconfiguredFormat && allMatchesConfirmed)
       items.push({ id: "edit-group-assignment-btn", label: "Endre gruppefordeling" });
   } else if (hasGroupAssignment && !hasFinalMatches) {
