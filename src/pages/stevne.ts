@@ -1,10 +1,12 @@
 import { getUser } from "@/services/authService";
 import { canOrganize } from "@/utils/roles";
-import { getTournamentHeader, hasResultData } from "@/services/stevneService";
+import { getTournamentHeader, hasResultData, hasRoundData } from "@/services/stevneService";
+import { shortMethodName } from "@/utils/kastemetode";
 import { createErrorBanner, createLoadingState } from "@/components/states";
 import { logError } from "@/utils/logError";
 import { escHtml } from "@/utils/escHtml";
 import { setPageTitle } from "@/utils/pageTitle";
+import { icon, type IconName } from "@/components/icons";
 import { render as renderInfo } from "./stevne/stevne-info";
 import { render as renderParticipants } from "./stevne/stevne-deltakere";
 import { render as renderPreliminary } from "./stevne/stevne-innledende";
@@ -32,18 +34,25 @@ const TABS = [
   { key: "innledende", label: "Innl.", adminOnly: false, completedOnly: false },
   { key: "avsluttende", label: "Avsl.", adminOnly: false, completedOnly: false },
   { key: "resultat", label: "Resultat", adminOnly: false, completedOnly: true },
-  { key: "innstillinger", label: "Innstillingar", adminOnly: true, completedOnly: false },
   { key: "stats", label: "Stats", adminOnly: false, completedOnly: false },
+  {
+    key: "innstillinger",
+    label: "Innstillingar",
+    icon: "settings",
+    adminOnly: true,
+    completedOnly: false,
+  },
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
+type Tab = { key: TabKey; label: string; icon?: IconName };
 
-// An SNC umbrella has no participants, matches or match stats of its own — those
-// live on the local stevner.
-const SNC_PARENT_HIDDEN_TABS = new Set<TabKey>(["deltakere", "innledende", "avsluttende", "stats"]);
+// An SNC umbrella has no participants or matches of its own — those live on the
+// local stevner.
+const SNC_PARENT_HIDDEN_TABS = new Set<TabKey>(["deltakere", "innledende", "avsluttende"]);
 
-// Nothing to render until the stevne has matches — these three read kamp/kamp_spelar only.
-const MATCH_ONLY_TABS = new Set<TabKey>(["innledende", "avsluttende", "stats"]);
+// Nothing to render until the stevne has matches — these read kamp/kamp_spelar only.
+const MATCH_ONLY_TABS = new Set<TabKey>(["innledende", "avsluttende"]);
 
 const TAB_RENDER: Record<TabKey, TabRender> = {
   info: renderInfo,
@@ -70,25 +79,27 @@ export function visibleTabs(
   isCompleted: boolean,
   isSncParent: boolean,
   hasMatchData: boolean,
-): readonly { key: TabKey; label: string }[] {
+  hasRounds: boolean,
+): readonly Tab[] {
   return TABS.filter((f) => isAdminUser || !f.adminOnly)
     .filter((f) => f.key !== "avsluttende" || hasFinal)
     .filter((f) => !f.completedOnly || isCompleted)
     .filter((f) => !isSncParent || !SNC_PARENT_HIDDEN_TABS.has(f.key))
-    .filter((f) => hasMatchData || !MATCH_ONLY_TABS.has(f.key));
+    .filter((f) => hasMatchData || !MATCH_ONLY_TABS.has(f.key))
+    .filter((f) => f.key !== "stats" || hasRounds);
 }
 
-function renderNav(
-  tournamentId: number,
-  active: string,
-  tabs: readonly { key: string; label: string }[],
-): string {
+function renderNav(tournamentId: number, active: string, tabs: readonly Tab[]): string {
   const items = tabs
     .map(
-      ({ key, label }) => `
+      ({ key, label, icon: iconName }) => `
       <li class="nav-item">
         <a class="nav-link${active === key ? " active" : ""}"
-           href="#/stevne/${tournamentId}/${key}">${label}</a>
+           href="#/stevne/${tournamentId}/${key}"${
+             iconName
+               ? ` aria-label="${escHtml(label)}" title="${escHtml(label)}">${icon(iconName)}`
+               : `>${escHtml(label)}`
+           }</a>
       </li>`,
     )
     .join("");
@@ -112,7 +123,6 @@ export async function render(container: HTMLElement, params: Params): Promise<vo
 
     setPageTitle(tournament.navn);
 
-    const userIsAdmin = canOrganize(await getUser(), tournament.klubbid);
     const hasFinal = tournament.avsluttendekastemetodeid != null;
     const isCompleted = tournament.erfullfort === true;
     const isSncParent = tournament.er_snc_hovudstevne === true;
@@ -120,9 +130,28 @@ export async function render(container: HTMLElement, params: Params): Promise<vo
     // Only a completed stevne that never ran a started fase is asked whether
     // any detailed results exist; everything else keeps its fase tabs.
     const started = tournament.stevne_fase !== null && tournament.stevne_fase !== "ikke_startet";
-    const hasMatchData = isSncParent || !isCompleted || started || (await hasResultData(id));
+    const [user, hasMatchData, hasRounds] = await Promise.all([
+      getUser(),
+      isSncParent || !isCompleted || started || hasResultData(id),
+      !isSncParent && hasRoundData(id),
+    ]);
+    const userIsAdmin = canOrganize(user, tournament.klubbid);
 
-    const tabs = visibleTabs(userIsAdmin, hasFinal, isCompleted, isSncParent, hasMatchData);
+    const methodLabels: Partial<Record<TabKey, string | undefined>> = {
+      innledende: tournament.kastemetodeInnl?.navn,
+      avsluttende: tournament.kastemetodeAvsl?.navn,
+    };
+    const tabs = visibleTabs(
+      userIsAdmin,
+      hasFinal,
+      isCompleted,
+      isSncParent,
+      hasMatchData,
+      hasRounds,
+    ).map((t) => {
+      const method = methodLabels[t.key];
+      return method ? { ...t, label: shortMethodName(method) } : t;
+    });
     const activeTab: TabKey = tabs.some((f) => f.key === tab) ? (tab as TabKey) : "info";
 
     // The info tab leads with its own hero, which carries the name and the

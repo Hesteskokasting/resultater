@@ -12,6 +12,11 @@ export function isXkastMethodName(navn: string): boolean {
   );
 }
 
+/** Kastemetode name short enough for a tab label. */
+export function shortMethodName(navn: string): string {
+  return navn === "Nordhordlandsmetoden" ? "NHM" : navn;
+}
+
 /**
  * Avsluttende kastemetoder scored as Kongelag courts. Mirrors
  * er_kongelag_kastemetode() in the SNC migration, which enforces the same rule

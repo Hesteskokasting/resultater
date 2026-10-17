@@ -8,6 +8,7 @@
 const mocks = vi.hoisted(() => ({
   getTournamentHeader: vi.fn(),
   hasResultData: vi.fn(),
+  hasRoundData: vi.fn(),
   getLatestResults: vi.fn(),
   getLiveTournaments: vi.fn(),
   getTournamentsByIds: vi.fn(),
@@ -42,6 +43,7 @@ vi.mock("@/supabase", () => ({ supabase: {} }));
 vi.mock("@/services/stevneService", () => ({
   getTournamentHeader: mocks.getTournamentHeader,
   hasResultData: mocks.hasResultData,
+  hasRoundData: mocks.hasRoundData,
   getLatestResults: mocks.getLatestResults,
   getLiveTournaments: mocks.getLiveTournaments,
   getTournamentsByIds: mocks.getTournamentsByIds,
@@ -98,7 +100,9 @@ function host(): HTMLElement {
 }
 
 function tabLabels(el: HTMLElement): string[] {
-  return [...el.querySelectorAll(".nav-link")].map((n) => n.textContent?.trim() ?? "");
+  return [...el.querySelectorAll(".nav-link")].map(
+    (n) => n.getAttribute("aria-label") ?? n.textContent?.trim() ?? "",
+  );
 }
 
 function header(overrides: Record<string, unknown> = {}) {
@@ -121,6 +125,7 @@ beforeEach(() => {
   getUser.mockResolvedValue(null);
   getTournamentHeader.mockResolvedValue({ data: header(), error: null });
   hasResultData.mockResolvedValue(true);
+  mocks.hasRoundData.mockResolvedValue(true);
   getLatestResults.mockResolvedValue({ data: [], error: null });
   getLiveTournaments.mockResolvedValue({ data: [], error: null });
   getTournamentsByIds.mockResolvedValue({ data: [], error: null });
@@ -185,9 +190,23 @@ describe("stevne tabs", () => {
       "Deltakere",
       "Innl.",
       "Avsl.",
-      "Innstillingar",
       "Stats",
+      "Innstillingar",
     ]);
+  });
+
+  it("names the fase tabs after their kastemetode, shortening Nordhordlandsmetoden", async () => {
+    getTournamentHeader.mockResolvedValue({
+      data: header({
+        kastemetodeInnl: { navn: "Nordhordlandsmetoden" },
+        kastemetodeAvsl: { navn: "Cup" },
+      }),
+      error: null,
+    });
+    const el = host();
+    await renderTournamentPage(el, { id: 10, tab: "info" });
+
+    expect(tabLabels(el)).toEqual(["Info", "NHM", "Cup", "Stats"]);
   });
 
   it("gives a klubbadmin the organizer tabs on their own club's stevne only", async () => {

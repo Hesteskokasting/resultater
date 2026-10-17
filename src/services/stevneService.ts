@@ -479,7 +479,7 @@ export async function getScheduleTournaments(
 const _stevneHeaderQuery = supabase
   .from("stevne")
   .select(
-    "id, navn, klubbid, stevne_fase, erfullfort, avsluttendekastemetodeid, er_snc_hovudstevne, snc_hovudstevne_id, kategori:kategoriid(id, navn, erlagbasert)",
+    "id, navn, klubbid, stevne_fase, erfullfort, avsluttendekastemetodeid, er_snc_hovudstevne, snc_hovudstevne_id, kategori:kategoriid(id, navn, erlagbasert), kastemetodeInnl:kastemetode!stevne_innledendekastemetodeid_fkey(navn), kastemetodeAvsl:kastemetode!stevne_avsluttendekastemetodeid_fkey(navn)",
   );
 
 export type TournamentHeaderRow = QueryData<typeof _stevneHeaderQuery>[number];
@@ -490,7 +490,7 @@ export async function getTournamentHeader(
   const { data, error } = await supabase
     .from("stevne")
     .select(
-      "id, navn, klubbid, stevne_fase, erfullfort, avsluttendekastemetodeid, er_snc_hovudstevne, snc_hovudstevne_id, kategori:kategoriid(id, navn, erlagbasert)",
+      "id, navn, klubbid, stevne_fase, erfullfort, avsluttendekastemetodeid, er_snc_hovudstevne, snc_hovudstevne_id, kategori:kategoriid(id, navn, erlagbasert), kastemetodeInnl:kastemetode!stevne_innledendekastemetodeid_fkey(navn), kastemetodeAvsl:kastemetode!stevne_avsluttendekastemetodeid_fkey(navn)",
     )
     .eq("id", id)
     .single();
@@ -515,6 +515,16 @@ export async function hasResultData(stevneid: number): Promise<boolean> {
   if (matches.error) logError("hasResultData:kamp", matches.error);
   if (courts.error) logError("hasResultData:xkast_kongelag", courts.error);
   return (matches.count ?? 0) > 0 || (courts.count ?? 0) > 0;
+}
+
+/** Whether any omgang has been registered on the stevne's kamper — what Stats reads. */
+export async function hasRoundData(stevneid: number): Promise<boolean> {
+  const { count, error } = await supabase
+    .from("kamp_omgang")
+    .select("id, kamp_spelar!inner(kamp!inner(stevneid))", { count: "exact", head: true })
+    .eq("kamp_spelar.kamp.stevneid", stevneid);
+  if (error) logError("hasRoundData", error);
+  return (count ?? 0) > 0;
 }
 
 // ── Avsluttande fase ──────────────────────────────────────────────────────────
