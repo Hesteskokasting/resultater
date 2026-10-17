@@ -1,3 +1,4 @@
+import { icon } from "@/components/icons";
 // An "i" beside a heading, opening the explanation the page would otherwise
 // spell out in standing text. Click rather than hover: a hover tooltip is
 // unreachable on a touch screen, and these pages are read on phones.
@@ -20,24 +21,6 @@ export interface InfoTooltip {
   setHtml: (html: string) => void;
 }
 
-const svg = (shapes: string): string =>
-  '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
-  `stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${shapes}</svg>`;
-
-const ICONS: Record<InfoTooltipVariant, string> = {
-  info: svg(
-    '<circle cx="12" cy="12" r="10"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="12" y1="7.5" x2="12" y2="7.5"/>',
-  ),
-  warning: svg(
-    '<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>' +
-      '<line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12" y2="17"/>',
-  ),
-  danger: svg(
-    '<polygon points="7.9 2 16.1 2 22 7.9 22 16.1 16.1 22 7.9 22 2 16.1 2 7.9"/>' +
-      '<line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12" y2="16"/>',
-  ),
-};
-
 let nextId = 0;
 
 export function createInfoTooltip({
@@ -58,7 +41,7 @@ export function createInfoTooltip({
   button.setAttribute("aria-expanded", "false");
   button.setAttribute("aria-controls", panelId);
   button.title = label;
-  button.innerHTML = ICONS[variant];
+  button.innerHTML = icon(variant, 15);
 
   const panel = document.createElement("div");
   panel.className = "info-tip__panel";

@@ -1,3 +1,4 @@
+import { icon } from "@/components/icons";
 import { escHtml } from "@/utils/escHtml";
 import { liveDotHtml } from "@/components/LivePill";
 import { linkedThrowerId } from "@/utils/kaster";
@@ -130,13 +131,6 @@ export interface StevneCardProps {
   actionSlot?: boolean;
 }
 
-// Bootstrap Icons is not loaded in this app; use an inline SVG chevron (matches the
-// existing inline-SVG convention, e.g. the theme switch in index.html).
-const CHEVRON_SVG =
-  '<svg class="stevne-card__chevron" xmlns="http://www.w3.org/2000/svg" width="20" height="20" ' +
-  'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" ' +
-  'stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>';
-
 const NM_LABEL = "Noregsmeisterskap";
 
 /**
@@ -169,7 +163,7 @@ export function createStevneCard(props: StevneCardProps): HTMLElement {
         ? `<div class="stevne-card__trailing stevne-card__trailing--action">${actionLinkHtml(props.actionLink)}</div>`
         : props.actionSlot
           ? `<div class="stevne-card__trailing stevne-card__trailing--action"><span data-action-slot></span></div>`
-          : `<div class="stevne-card__trailing">${CHEVRON_SVG}</div>`;
+          : `<div class="stevne-card__trailing">${icon("chevronRight", 20, "stevne-card__chevron")}</div>`;
 
   const dateA11yText = props.dateFull ?? props.date;
   const dateIsoAttr = props.dateIso ? ` datetime="${escHtml(props.dateIso)}"` : "";

@@ -1,3 +1,4 @@
+import { icon } from "@/components/icons";
 import { Capacitor } from "@capacitor/core";
 import type { AuthUser } from "@/types";
 import { getUser } from "@/services/authService";
@@ -158,16 +159,6 @@ const tableColumns = [
 const TABLE_COLUMN_COUNT = tableColumns.length + 1; // + trailing action column
 
 // Bootstrap Icons isn't loaded in this app — inline SVG, matching StevneCard's chevron convention.
-// ponytail: lives here because this page is the only caller; move back to
-// components/FilterButton.ts the moment a second page needs it.
-const FILTER_SVG =
-  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
-  'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-  '<line x1="4" y1="6" x2="20" y2="6"/><circle cx="9" cy="6" r="2" fill="currentColor" stroke="none"/>' +
-  '<line x1="4" y1="12" x2="20" y2="12"/><circle cx="15" cy="12" r="2" fill="currentColor" stroke="none"/>' +
-  '<line x1="4" y1="18" x2="20" y2="18"/><circle cx="7" cy="18" r="2" fill="currentColor" stroke="none"/>' +
-  "</svg>";
-
 function sortIconHtml(sort: ScheduleSort, column: string): string {
   const active = sort.column === column;
   const glyph = !active ? "↕" : sort.direction === "asc" ? "↑" : "↓";
@@ -716,7 +707,7 @@ export async function render(container: HTMLElement): Promise<void> {
     const filterButton = document.createElement("button");
     filterButton.type = "button";
     filterButton.className = "tl-filter-button";
-    filterButton.innerHTML = `${FILTER_SVG} Filter`;
+    filterButton.innerHTML = `${icon("filter")} Filter`;
     filterButton.addEventListener("click", openSheet);
     container.querySelector("#tl-filter-slot")!.replaceWith(filterButton);
 
