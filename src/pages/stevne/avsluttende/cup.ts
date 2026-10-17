@@ -142,13 +142,14 @@ const cupVariant: FinalPhaseVariant = {
     });
   },
 
-  bannerMeta: ({ standings, round1Format }) => {
+  bannerMeta: ({ standings, round1Format, unitCount }) => {
     const nA = standings.filter((r) => r.gruppe?.navn === "A").length;
     const nB = standings.filter((r) => r.gruppe?.navn === "B").length;
     if (nA || nB) return `Cup - A:${nA} - B:${nB}`;
     // Not assigned yet — the configured split is the next best thing.
+    // Standings are empty before start, so fall back to the påmelde.
     if (round1Format?.nA != null)
-      return `Cup - A:${round1Format.nA} - B:${standings.length - round1Format.nA}`;
+      return `Cup - A:${round1Format.nA} - B:${(standings.length || unitCount) - round1Format.nA}`;
     return "Cup";
   },
 
