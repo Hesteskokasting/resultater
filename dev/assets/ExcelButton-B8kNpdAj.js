@@ -1,0 +1,1 @@
+import{p as e}from"./index-D6KMvqKH.js";function t({slot:t,onClick:n}){let r=document.createElement(`button`);return r.type=`button`,r.className=`excel-button`,r.setAttribute(`aria-label`,`Last ned Excel`),r.title=`Last ned Excel`,r.innerHTML=e(`excel`),r.addEventListener(`click`,()=>{n()}),t.replaceWith(r),r}export{t};
